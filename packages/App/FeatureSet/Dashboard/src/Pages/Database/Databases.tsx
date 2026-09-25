@@ -46,6 +46,9 @@ import { getDatabaseServerDiscoverySourceLabel } from "Common/Types/DatabaseServ
 import DatabaseDocumentationCard from "../../Components/DatabaseServer/DocumentationCard";
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
+import DatabaseLastSeenCell from "../../Components/DatabaseServer/DatabaseLastSeenCell";
+import useDatabaseWideTable from "./Utils/useDatabaseWideTable";
+import OneUptimeDate from "Common/Types/Date";
 import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
 import { isDatabaseFleetSummaryStale } from "./Utils/DatabaseServerSummary";
 import {
@@ -66,6 +69,14 @@ import {
   getDatabaseEngineOptions,
 } from "./Utils/DatabaseServerPresentation";
 
+/*
+ * Width caps for the two cells whose text can be long. With them, and with
+ * the low-priority columns hidden by default below 2xl, the list fits a
+ * 1440 px screen (it measured 1852 px inside a 1098 px card).
+ */
+export const DATABASE_NAME_COLUMN_MAX_WIDTH_CLASS: string = "max-w-[14rem]";
+export const DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS: string = "max-w-[10rem]";
+
 const ENGINE_OPTIONS: Array<DatabaseOption> = getDatabaseEngineOptions();
 const DISCOVERY_SOURCE_OPTIONS: Array<DatabaseOption> =
   getDatabaseDiscoverySourceOptions();
@@ -80,6 +91,8 @@ const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
   };
 
 const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Below 2xl: Discovered from, Labels and Owners start hidden.
+  const isWideTable: boolean = useDatabaseWideTable();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   /*
@@ -288,7 +301,12 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isViewable={true}
         showRefreshButton={true}
-        showViewIdButton={true}
+        /*
+         * No "Show ID" button, and a short "View": the Name links to the
+         * database already, and the actions column is width the list
+         * cannot spare at 1440 px (the id is on the Overview's Details).
+         */
+        viewButtonText="View"
         bulkActions={{
           buttons: [
             ...labelBulkActions,
@@ -335,7 +353,13 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ): string | null => {
               return validateDatabaseServerAddress(values);
             },
-            // Advice only: an unqualified cluster-local address still works.
+            /*
+             * The `@<cluster>` hint for an address that only resolves inside
+             * one cluster or private network. Advice for a private IP or
+             * private-zone name; for a Kubernetes Service name the server
+             * refuses it without the cluster once the project has a
+             * Kubernetes cluster, and the hint says so up front.
+             */
             getFooterElement: (
               values: FormValues<DatabaseServer>,
             ): ReactElement | undefined => {
@@ -414,6 +438,13 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Element,
+            /*
+             * Wraps within a cap instead of stretching the table: a
+             * "PostgreSQL billing-pg.apps.svc.cluster.local:5432" pushed
+             * Last Seen and View off a 1440 px screen.
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: DATABASE_NAME_COLUMN_MAX_WIDTH_CLASS,
             getElement: (item: DatabaseServer): ReactElement => {
               const route: Route = RouteUtil.populateRouteParams(
                 RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route,
@@ -426,12 +457,12 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="min-w-0">
                   <AppLink
                     to={route}
-                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                    className="text-sm font-medium text-gray-900 break-words hover:underline"
                   >
                     {(item.name as string) || "—"}
                   </AppLink>
                   {subtitle && (
-                    <div className="text-xs text-gray-500 font-mono truncate">
+                    <div className="text-xs text-gray-500 font-mono break-all">
                       {subtitle}
                     </div>
                   )}
@@ -480,6 +511,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Element,
             hideOnMobile: true,
             disableSort: true,
+            wrapContent: true,
+            wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,
             getElement: (item: DatabaseServer): ReactElement => {
               // Links to the cluster / host page when the database runs on one.
               return <DatabaseRunsOnLink source={item} />;
@@ -492,6 +525,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Discovered from",
             type: FieldType.Element,
             hideOnMobile: true,
+            // Also a filter above the table; shown by default on wide screens.
+            isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
@@ -523,7 +558,19 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               lastSeenAt: true,
             },
             title: "Last Seen",
-            type: FieldType.DateTime,
+            type: FieldType.Element,
+            /*
+             * "5 minutes ago", the full time on hover: a full date and time
+             * zone was the widest cell of the row.
+             */
+            getElement: (item: DatabaseServer): ReactElement => {
+              return <DatabaseLastSeenCell lastSeenAt={item.lastSeenAt} />;
+            },
+            getExportValue: (item: DatabaseServer): string => {
+              return item.lastSeenAt
+                ? OneUptimeDate.getDateAsLocalFormattedString(item.lastSeenAt)
+                : "";
+            },
           },
           {
             field: {
@@ -535,6 +582,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
@@ -546,6 +594,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return (
                 <OwnersCell

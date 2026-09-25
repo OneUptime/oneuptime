@@ -134,6 +134,7 @@ import DatabaseCallingServicesCard, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseCallingServicesCard";
 import DatabaseEngineMetricsSection, {
   ENGINE_METRICS_DISCONNECTED_TITLE,
+  ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE,
   ENGINE_METRICS_NO_DATA_TITLE,
   ENGINE_METRICS_NOT_CONNECTED_TITLE,
   EngineMetricsGuidance,
@@ -751,17 +752,27 @@ describe("DatabaseEngineMetricsSection", () => {
     expect(chartCardMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * E2E: a Connected Memcached (7f1cbfa6, engine metrics last at 00:38) read
+   * "No engine metrics in this range" while 69-76 metrics arrived every
+   * 30 s. Its metrics DO arrive; only the curated overview is missing.
+   */
   test("connected, but the engine has no curated overview", () => {
     renderSection({
       status: DatabaseEngineMetricsStatus.Connected,
       results: [],
       hasCatalog: false,
+      dbSystem: "memcached",
+      engineLabel: "Memcached",
     });
 
     const card: HTMLElement = screen.getByRole("region", {
-      name: ENGINE_METRICS_NO_DATA_TITLE,
+      name: ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE,
     });
-    expect(card).toHaveTextContent("no curated overview");
+    expect(
+      screen.queryByRole("region", { name: ENGINE_METRICS_NO_DATA_TITLE }),
+    ).not.toBeInTheDocument();
+    expect(card).toHaveTextContent("no curated overview for Memcached");
     expect(
       within(card).getByRole("link", { name: /All metrics/ }),
     ).toHaveAttribute("href", databasePath("/metrics"));
@@ -1203,7 +1214,12 @@ describe("DatabaseMetricChartModal", () => {
     expect(query["name"]).toBe("postgresql.commits");
     expect((query["entityKeys"] as Includes).values).toEqual([KEY]);
     expect(query["attributes"]).toBeUndefined();
-    expect(lastChart().yFormatter!(2.5)).toBe("2.5 commits/s");
+    /*
+     * The axis carries the number; the unit is said once, by the title (a
+     * 64 px axis clipped "2.5 commits/s" to "ommits/s").
+     */
+    expect(lastChart().yFormatter!(2.5)).toBe("2.5");
+    expect(lastChart().title).toBe("postgresql.commits (per second)");
   });
 
   test("a gauge offers the aggregations and refetches on a change", async () => {
@@ -1225,7 +1241,9 @@ describe("DatabaseMetricChartModal", () => {
       screen.getByRole("dialog", { name: "db.client.connection.count" }),
     ).toBeInTheDocument();
     expect(lastAggregateBy()["aggregationType"]).toBe(AggregationType.Avg);
-    expect(lastChart().yFormatter!(3)).toBe("3 connection");
+    // The annotation word moves from every tick to the title.
+    expect(lastChart().yFormatter!(3)).toBe("3");
+    expect(lastChart().title).toBe("db.client.connection.count (connection)");
 
     const group: HTMLElement = screen.getByRole("group", {
       name: "Aggregation",

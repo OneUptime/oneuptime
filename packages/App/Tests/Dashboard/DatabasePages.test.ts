@@ -414,7 +414,11 @@ describe("the Overview", () => {
     expect(section).toContain('"Engine metrics not connected"');
     expect(section).toContain("PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION");
     expect(section).toContain("formatDatabaseMetricValue(");
-    expect(section).toContain('result.definition.kind === "counter"');
+    // A counter's chart says "(per second)" (getDatabaseEngineMetricChartTitle).
+    expect(section).toContain('definition.kind === "counter"');
+    expect(section).toContain(
+      "title={getDatabaseEngineMetricChartTitle(result.definition)}",
+    );
   });
 
   test("what 'not connected' suggests follows the engine's metrics source, not the receiver flag", () => {
@@ -587,6 +591,57 @@ describe("the Databases list", () => {
     expect(bulk).toContain("...ownerBulkActions");
     expect(bulk).toContain("...archiveBulkActionsWithSummary");
     expect(code).toContain('resourceIdField: "databaseServerId"');
+  });
+
+  /*
+   * E2E at 1440 px: the table was 1852 px inside a 1098 px card — Last
+   * Seen, Labels, Owners and View off-screen — with a "Show ID" button
+   * widening the actions column.
+   */
+  test("fits a laptop: no Show ID, capped Name / Runs on, low-priority columns hidden below 2xl", () => {
+    expect(code).not.toContain("showViewIdButton");
+    expect(code).toContain('viewButtonText="View"');
+    expect(code).toContain(
+      "const isWideTable: boolean = useDatabaseWideTable();",
+    );
+
+    const columns: string = between(code, "columns={[", "onViewPage={");
+    const name: string = between(columns, 'title: "Name",', "getElement:");
+    expect(name).toContain("wrapContent: true,");
+    expect(name).toContain(
+      "wrapMaxWidthClassName: DATABASE_NAME_COLUMN_MAX_WIDTH_CLASS,",
+    );
+    const runsOn: string = between(columns, 'title: "Runs on",', "getElement:");
+    expect(runsOn).toContain(
+      "wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,",
+    );
+    for (const title of ["Discovered from", "Labels", "Owners"]) {
+      expect(between(columns, `title: "${title}",`, "getElement:")).toContain(
+        "isHiddenByDefault: !isWideTable,",
+      );
+    }
+    // Relative, with the full date on hover and in the CSV.
+    const lastSeen: string = between(columns, 'title: "Last Seen",', "},");
+    expect(lastSeen).toContain("type: FieldType.Element,");
+    expect(code).toContain(
+      "<DatabaseLastSeenCell lastSeenAt={item.lastSeenAt} />",
+    );
+    expect(code).toContain("getExportValue: (item: DatabaseServer): string");
+
+    const archived: string = readCode("Pages/Database/Archived.tsx");
+    expect(archived).not.toContain("showViewIdButton");
+    const endpoints: string = readCode("Pages/Database/View/Endpoints.tsx");
+    expect(between(endpoints, 'title: "Added",', "},")).toContain(
+      "isHiddenByDefault: !isWideTable,",
+    );
+  });
+
+  test("the address hint's comment says the server refuses an unqualified Service name", () => {
+    const source: string = readSource("Pages/Database/Databases.tsx");
+    expect(source).not.toContain(
+      "an unqualified cluster-local address still works",
+    );
+    expect(source).toContain("the server");
   });
 
   test("the summary strip sits above the table and the guide below it, count first", () => {

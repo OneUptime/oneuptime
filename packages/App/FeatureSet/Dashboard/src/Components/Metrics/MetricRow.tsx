@@ -11,6 +11,7 @@ import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
 import { getVisibleMetricServices } from "./MetricRowData";
+import { getMetricServicesWithin } from "./Utils/MetricRowScope";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
@@ -20,6 +21,17 @@ export interface MetricRowProps {
   sparklineLoading?: boolean;
   lastValue?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * When set, the row names only these services — strictly, so an empty
+   * list names none. An entity-scoped list passes the services that
+   * reported the metric under its keys (see Utils/MetricRowScope); left
+   * unset, `serviceIds` applies as before.
+   */
+  restrictServicesToIds?: ReadonlyArray<string> | undefined;
+  // Appended to the value, e.g. "/s" when the host charts a rate.
+  valueSuffix?: string | undefined;
+  // One short line under the value saying what the number is.
+  valueCaption?: string | undefined;
   /*
    * Without a handler the row is a plain entry: no button, no "Explore"
    * affordance (a host that cannot drill down with its scope intact — see
@@ -55,10 +67,15 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.time)
     : null;
 
-  const services: Array<Service> = getVisibleMetricServices({
-    services: metric.services,
-    serviceIds: props.serviceIds,
-  });
+  const services: Array<Service> = props.restrictServicesToIds
+    ? getMetricServicesWithin({
+        services: metric.services,
+        allowedServiceIds: props.restrictServicesToIds,
+      })
+    : getVisibleMetricServices({
+        services: metric.services,
+        serviceIds: props.serviceIds,
+      });
   const rawUnit: string = metric.unit || "";
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",
@@ -129,10 +146,19 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
                 rawUnit,
                 formatterOptions,
               )}
+              {props.valueSuffix || ""}
             </div>
             {displayedTime && (
               <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
                 {displayedTime}
+              </div>
+            )}
+            {!displayedTime && props.valueCaption && (
+              <div
+                data-testid="metric-row-value-caption"
+                className="mt-0.5 text-[10px] text-gray-400"
+              >
+                {props.valueCaption}
               </div>
             )}
           </div>

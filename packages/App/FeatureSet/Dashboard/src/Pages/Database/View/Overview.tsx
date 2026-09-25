@@ -56,6 +56,7 @@ import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
   getDatabaseServerFormattedEndpoints,
+  getDatabaseServerInstanceMemberKeys,
   getDatabaseServerMemberScopeKeys,
   getDatabaseServerScopeKeys,
   isDatabaseServerScoped,
@@ -75,17 +76,25 @@ import {
   fetchDatabaseQueryMetrics,
 } from "../Utils/DatabaseServerTelemetryQueries";
 import {
+  DATABASE_LIVENESS_DESCRIPTION,
+  DATABASE_NOT_FOUND_MESSAGE,
   DATABASE_RUNTIME_METRICS,
   DatabaseEngineMetricsStatus,
+  DatabaseHeaderIdentifier,
+  DatabaseLivenessStatus,
   DatabaseRuntimePlatform,
   formatDatabaseCount,
-  getDatabaseEndpointLabel,
   getDatabaseEngineLabel,
   getDatabaseEngineMetricsStatus,
   getDatabaseEngineMetricsStatusLabel,
+  getDatabaseHeaderIdentifier,
+  getDatabaseLivenessLabel,
+  getDatabaseLivenessStatus,
+  getDatabaseLivenessTone,
   getDatabaseRunsOnLabel,
   getDatabaseRuntimePlatform,
   getDatabaseWorkloadLabel,
+  isDatabaseServerFound,
   isDatabaseServerLive,
 } from "../Utils/DatabaseServerPresentation";
 
@@ -193,7 +202,7 @@ const DatabaseServerOverview: FunctionComponent<
             memberEntityKeys: true,
             instanceCount: true,
             kubernetesClusterId: true,
-            kubernetesCluster: { name: true },
+            kubernetesCluster: { name: true, clusterIdentifier: true },
             kubernetesNamespace: true,
             workloadKind: true,
             workloadName: true,
@@ -214,9 +223,10 @@ const DatabaseServerOverview: FunctionComponent<
         }),
       ]);
 
-      if (!item) {
+      // A deleted or unknown id comes back as an empty model, not null.
+      if (!item || !isDatabaseServerFound(item)) {
         if (showLoader) {
-          setError("Database not found.");
+          setError(DATABASE_NOT_FOUND_MESSAGE);
         }
         setIsLoading(false);
         setIsRefreshing(false);
@@ -426,7 +436,7 @@ const DatabaseServerOverview: FunctionComponent<
   }
 
   if (!databaseServer) {
-    return <ErrorMessage message="Database not found." />;
+    return <ErrorMessage message={DATABASE_NOT_FOUND_MESSAGE} />;
   }
 
   const r: DatabaseServer = databaseServer;
@@ -443,7 +453,17 @@ const DatabaseServerOverview: FunctionComponent<
   );
   // Only its row key: only data sent with its id can show.
   const isIdOnly: boolean = isDatabaseServerScopedByIdOnly(source);
-  const memberCount: number = getDatabaseServerMemberScopeKeys(source).length;
+  /*
+   * Pods / containers only: a Deployment-backed database also has its
+   * Deployment's key among its members, which is no pod.
+   */
+  const memberCount: number = getDatabaseServerInstanceMemberKeys({
+    ...source,
+    kubernetesClusterIdentifier: r.kubernetesCluster?.clusterIdentifier,
+    kubernetesNamespace: r.kubernetesNamespace,
+    workloadKind: r.workloadKind,
+    workloadName: r.workloadName,
+  }).length;
   const formattedEndpoints: Array<string> =
     getDatabaseServerFormattedEndpoints(source);
 
@@ -454,8 +474,13 @@ const DatabaseServerOverview: FunctionComponent<
     getDatabaseRuntimePlatform(r);
   const runsOn: string = getDatabaseRunsOnLabel(r);
   const workload: string = getDatabaseWorkloadLabel(r);
-  const endpointLabel: string =
-    getDatabaseEndpointLabel(r) || formattedEndpoints[0] || "";
+  // Its endpoint — or, for a workload with none, the workload, so labelled.
+  const headerIdentifier: DatabaseHeaderIdentifier | null =
+    getDatabaseHeaderIdentifier(r, formattedEndpoints);
+  // Seen by any source lately — deliberately not the engine-metrics words.
+  const liveness: DatabaseLivenessStatus = getDatabaseLivenessStatus(
+    r.lastSeenAt,
+  );
   const hasQueries: boolean = m.total > 0;
   // The cluster / host page, when the database runs on one.
   const runsOnRoute: Route | null = getDatabaseRunsOnRoute(r);
@@ -656,9 +681,12 @@ const DatabaseServerOverview: FunctionComponent<
       <ResourceOverview
         icon={IconProp.Database}
         title={(r.name as string) || engineLabel}
-        identifier={endpointLabel}
-        identifierLabel="endpoint"
+        identifier={headerIdentifier?.value || ""}
+        identifierLabel={headerIdentifier?.label || "endpoint"}
         status={isDatabaseServerLive(r.lastSeenAt) ? "active" : "inactive"}
+        statusLabel={getDatabaseLivenessLabel(liveness)}
+        statusTone={getDatabaseLivenessTone(liveness)}
+        statusDescription={DATABASE_LIVENESS_DESCRIPTION}
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}

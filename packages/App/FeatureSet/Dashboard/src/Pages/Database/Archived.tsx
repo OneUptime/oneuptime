@@ -52,7 +52,8 @@ const DatabaseArchivedPage: FunctionComponent<
           description:
             "Databases you archived, and discovered databases archived automatically after they stopped being seen. They are hidden from the main list; an automatically archived database returns on its own when it is seen again. Select databases to unarchive them.",
         }}
-        showViewIdButton={true}
+        // As on the main list: the id is on the Overview, not worth a column.
+        viewButtonText="View"
         noItemsMessage={"No archived databases."}
         showRefreshButton={true}
         onViewPage={(item: DatabaseServer): Promise<Route> => {

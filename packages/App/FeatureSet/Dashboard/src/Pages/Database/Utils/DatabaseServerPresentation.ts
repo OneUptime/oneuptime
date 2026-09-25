@@ -189,6 +189,23 @@ export function getDatabaseEngineMetricsStatusLabel(
   }
 }
 
+// ---- lookup -----------------------------------------------------------
+
+/*
+ * Whether a database lookup found a row. The API answers a deleted or
+ * unknown id with `{}`, which ModelAPI.getItem turns into an EMPTY model,
+ * not null — so "not found" is a row without an id, and a page that only
+ * checked for null rendered a whole overview of nothing, with setup
+ * buttons, for a database that does not exist.
+ */
+export function isDatabaseServerFound(
+  item: { _id?: string | null | undefined } | null | undefined,
+): boolean {
+  return Boolean(item && typeof item._id === "string" && item._id.trim());
+}
+
+export const DATABASE_NOT_FOUND_MESSAGE: string = "Database not found.";
+
 // ---- liveness ---------------------------------------------------------
 
 /*
@@ -213,6 +230,63 @@ export function isDatabaseServerLive(
   const ageInMinutes: number = (now.getTime() - seenAt.getTime()) / 60000;
   return ageInMinutes <= DATABASE_SERVER_LIVE_WINDOW_MINUTES;
 }
+
+/*
+ * The Overview header's pill. It reads `lastSeenAt` — ANY source saw the
+ * database (a client span, a pod, a container, an agent batch) — so it must
+ * not borrow the Connected / Disconnected / Not connected words of the
+ * engine-metrics status: a Kubernetes-only database seen a minute ago would
+ * otherwise read "Connected" right above "Engine metrics: Not connected".
+ */
+export enum DatabaseLivenessStatus {
+  SeenRecently = "seen-recently",
+  NotSeenRecently = "not-seen-recently",
+  NeverSeen = "never-seen",
+}
+
+export function getDatabaseLivenessStatus(
+  lastSeenAt: Date | string | null | undefined,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): DatabaseLivenessStatus {
+  if (!isValidTimestamp(lastSeenAt)) {
+    return DatabaseLivenessStatus.NeverSeen;
+  }
+  return isDatabaseServerLive(lastSeenAt, now)
+    ? DatabaseLivenessStatus.SeenRecently
+    : DatabaseLivenessStatus.NotSeenRecently;
+}
+
+export function getDatabaseLivenessLabel(
+  status: DatabaseLivenessStatus,
+): string {
+  switch (status) {
+    case DatabaseLivenessStatus.SeenRecently:
+      return "Seen recently";
+    case DatabaseLivenessStatus.NotSeenRecently:
+      return "Not seen recently";
+    default:
+      return "Never seen";
+  }
+}
+
+// The header pill's colour for each liveness status.
+export type DatabaseLivenessTone = "positive" | "warning" | "neutral";
+
+export function getDatabaseLivenessTone(
+  status: DatabaseLivenessStatus,
+): DatabaseLivenessTone {
+  switch (status) {
+    case DatabaseLivenessStatus.SeenRecently:
+      return "positive";
+    case DatabaseLivenessStatus.NotSeenRecently:
+      return "warning";
+    default:
+      return "neutral";
+  }
+}
+
+// The pill's hover text: what "seen" means, and what it does not.
+export const DATABASE_LIVENESS_DESCRIPTION: string = `Seen recently: application traces, a Kubernetes cluster, a Docker / Podman host or a Database Agent saw this database in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} minutes. Whether its engine metrics arrive is the separate Engine metrics status.`;
 
 // ---- runtime platform ------------------------------------------------
 
@@ -307,6 +381,37 @@ export function getDatabaseEndpointLabel(
       : host;
   }
   return getDatabaseWorkloadLabel(source);
+}
+
+/*
+ * The line under the Overview header's name: the endpoint the database is
+ * known by — its own address, else its primary stored endpoint (an alias
+ * added to a Docker / Kubernetes database that has no address of its own) —
+ * and only without any endpoint the workload it runs as, labelled
+ * "workload" (never "endpoint: Container/pg").
+ */
+export interface DatabaseHeaderIdentifier {
+  label: "endpoint" | "workload";
+  value: string;
+}
+
+export function getDatabaseHeaderIdentifier(
+  source: DatabaseEndpointLabelSource | null | undefined,
+  formattedEndpoints: ReadonlyArray<string>,
+): DatabaseHeaderIdentifier | null {
+  if (text(source?.serverAddress)) {
+    return { label: "endpoint", value: getDatabaseEndpointLabel(source) };
+  }
+  const stored: string | undefined = formattedEndpoints.find(
+    (endpoint: string): boolean => {
+      return text(endpoint).length > 0;
+    },
+  );
+  if (stored) {
+    return { label: "endpoint", value: stored };
+  }
+  const workload: string = getDatabaseWorkloadLabel(source);
+  return workload ? { label: "workload", value: workload } : null;
 }
 
 /**
@@ -502,11 +607,47 @@ export function formatDatabaseFraction(
   return `${text || "0"}%`;
 }
 
+/*
+ * The singular of a catalog unit word ("connections" → "connection",
+ * "processes" → "process", "databases" → "database"), for a value that
+ * reads exactly 1. Anything that is not a plain plural word ("ops/s", "%",
+ * "ms") is returned unchanged.
+ */
+const PLAIN_WORD_PATTERN: RegExp = /^[a-z]+$/i;
+const SIBILANT_PLURAL_PATTERN: RegExp = /(ss|sh|ch|x)es$/i;
+const CONSONANT_IES_PLURAL_PATTERN: RegExp = /[^aeiou]ies$/i;
+const S_PLURAL_PATTERN: RegExp = /[^s]s$/i;
+
+export function getDatabaseUnitSingular(unit: string): string {
+  const word: string = (unit || "").trim();
+  if (!PLAIN_WORD_PATTERN.test(word) || word.length < 3) {
+    return word;
+  }
+  if (SIBILANT_PLURAL_PATTERN.test(word)) {
+    return word.slice(0, -2);
+  }
+  if (CONSONANT_IES_PLURAL_PATTERN.test(word)) {
+    return `${word.slice(0, -3)}y`;
+  }
+  if (S_PLURAL_PATTERN.test(word)) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
+// "1 connection", "2 connections": the unit agrees with the number shown.
+function withUnitWord(countText: string, unit: string): string {
+  if (!unit) {
+    return countText;
+  }
+  return `${countText} ${countText === "1" ? getDatabaseUnitSingular(unit) : unit}`;
+}
+
 /**
  * A catalog metric's value for its tile: bytes as KiB/MiB/GiB, seconds as
  * s/min/h/d, a "fraction" (a 0..1 share) as a percentage, other units as a
- * compact count followed by the unit. Counters are rates, so they read
- * "12.5 commits/s".
+ * compact count followed by the unit — singular for exactly one ("1
+ * database"). Counters are rates, so they read "12.5 commits/s".
  */
 export function formatDatabaseMetricValue(
   value: number | null | undefined,
@@ -530,7 +671,7 @@ export function formatDatabaseMetricValue(
     if (cleanUnit === "bytes") {
       return `${formatDatabaseBytes(value)}/s`;
     }
-    return cleanUnit ? `${rate} ${cleanUnit}/s` : `${rate}/s`;
+    return `${withUnitWord(rate, cleanUnit)}/s`;
   }
 
   if (cleanUnit === "bytes") {
@@ -542,8 +683,102 @@ export function formatDatabaseMetricValue(
   if (cleanUnit === "fraction") {
     return formatDatabaseFraction(value);
   }
-  const count: string = formatDatabaseCount(value);
-  return cleanUnit ? `${count} ${cleanUnit}` : count;
+  if (cleanUnit === "%") {
+    return `${formatDatabaseCount(value)}%`;
+  }
+  return withUnitWord(formatDatabaseCount(value), cleanUnit);
+}
+
+function trimDecimalZeros(textValue: string): string {
+  if (textValue.includes("e") || !textValue.includes(".")) {
+    return textValue;
+  }
+  return textValue.replace(/\.?0+$/, "") || "0";
+}
+
+/**
+ * A number for a chart axis tick: short, and precise enough that
+ * neighbouring ticks differ — "0.004", "0.25", "2.5", "25", "250", "2.5k".
+ * An idle container's 0.02 % must not read "0.0" five times over.
+ */
+export function formatDatabaseAxisNumber(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+  const abs: number = Math.abs(value);
+  if (abs === 0) {
+    return "0";
+  }
+  if (abs >= 1000) {
+    return formatDatabaseCount(value);
+  }
+  if (abs >= 100) {
+    return String(Math.round(value));
+  }
+  if (abs >= 10) {
+    return trimDecimalZeros(value.toFixed(1));
+  }
+  if (abs >= 1) {
+    return trimDecimalZeros(value.toFixed(2));
+  }
+  return trimDecimalZeros(value.toPrecision(2));
+}
+
+/*
+ * Units short enough to repeat on every tick. Anything else — the words of
+ * the catalog ("connections", "rollbacks") — is said once, by the chart's
+ * title, and the ticks carry only the number: a 64 px axis clips
+ * "20 connections" to "onnections".
+ */
+const DATABASE_AXIS_SHORT_UNITS: ReadonlyArray<string> = ["ms", "%"];
+
+/**
+ * A catalog metric's value on a chart axis (and in its tooltip, which
+ * shares the formatter): bytes, seconds and shares in their compact form,
+ * "ms" and "%" kept, a unit word dropped (the title names it), counters
+ * without "/s" (their title says "per second").
+ */
+export function formatDatabaseMetricAxisValue(
+  value: number | null | undefined,
+  unit: string,
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "";
+  }
+  const cleanUnit: string = (unit || "").trim();
+  if (cleanUnit === "bytes") {
+    return formatDatabaseBytes(value);
+  }
+  if (cleanUnit === "s") {
+    // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
+    return Math.abs(value) > 0 && Math.abs(value) < 1
+      ? `${formatDatabaseAxisNumber(value * 1000)} ms`
+      : formatDatabaseSeconds(value);
+  }
+  if (cleanUnit === "fraction") {
+    return formatDatabaseFraction(value);
+  }
+  const number: string = formatDatabaseAxisNumber(value);
+  if (DATABASE_AXIS_SHORT_UNITS.includes(cleanUnit)) {
+    return cleanUnit === "%" ? `${number}%` : `${number} ${cleanUnit}`;
+  }
+  return number;
+}
+
+/**
+ * The unit word a chart's title should carry because its axis does not
+ * (see formatDatabaseMetricAxisValue) — "" when the axis already shows it.
+ */
+export function getDatabaseMetricAxisUnitLabel(unit: string): string {
+  const cleanUnit: string = (unit || "").trim();
+  if (
+    !cleanUnit ||
+    ["bytes", "s", "fraction"].includes(cleanUnit) ||
+    DATABASE_AXIS_SHORT_UNITS.includes(cleanUnit)
+  ) {
+    return "";
+  }
+  return cleanUnit;
 }
 
 // A UCUM annotation-only unit such as "{connections}".
@@ -586,6 +821,60 @@ export function formatDatabaseMetricUnitValue(
   return options?.isRate ? `${formatted}/s` : formatted;
 }
 
+/**
+ * formatDatabaseMetricUnitValue for a chart axis: a dimensional unit the
+ * shared formatter prints compactly ("4 ms", "1.5 MB") is kept, a UCUM
+ * annotation word ("{connections}") is dropped for the chart's title to say
+ * once (getDatabaseMetricUnitAxisLabel), and a rate keeps its "/s" only
+ * when there is no unit at all.
+ */
+export function formatDatabaseMetricUnitAxisValue(
+  value: number | null | undefined,
+  unit: string | null | undefined,
+  options?: {
+    isRate?: boolean | undefined;
+    metricName?: string | undefined;
+  },
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "";
+  }
+  const cleanUnit: string = (unit || "").trim();
+  if (ANNOTATION_UNIT_PATTERN.test(cleanUnit)) {
+    return formatDatabaseAxisNumber(value);
+  }
+  if (!cleanUnit || cleanUnit === "1") {
+    const number: string = formatDatabaseAxisNumber(value);
+    return options?.isRate ? `${number}/s` : number;
+  }
+  return ValueFormatter.formatValue(value, cleanUnit, {
+    metricName: options?.metricName || "",
+  });
+}
+
+/** The annotation word a metric's axis leaves to its title, or "". */
+export function getDatabaseMetricUnitAxisLabel(
+  unit: string | null | undefined,
+): string {
+  const annotation: RegExpExecArray | null = ANNOTATION_UNIT_PATTERN.exec(
+    (unit || "").trim(),
+  );
+  return annotation ? annotation[1]!.trim() : "";
+}
+
+/*
+ * A small share or core count with enough digits to tell 0.02 from 0.03
+ * (two significant digits below 1), one decimal above.
+ */
+function formatSmallRuntimeNumber(value: number): string {
+  if (value === 0) {
+    return "0";
+  }
+  return Math.abs(value) < 1
+    ? trimDecimalZeros(value.toPrecision(2))
+    : value.toFixed(1);
+}
+
 export function formatDatabaseRuntimeValue(
   value: number | null | undefined,
   unit: DatabaseRuntimeMetric["unit"],
@@ -597,9 +886,40 @@ export function formatDatabaseRuntimeValue(
     return formatDatabaseBytes(value);
   }
   if (unit === "percent") {
-    return `${value.toFixed(1)}%`;
+    return `${formatSmallRuntimeNumber(value)}%`;
   }
-  return `${value < 1 ? value.toFixed(3) : value.toFixed(2)} cores`;
+  return `${
+    Math.abs(value) < 1
+      ? trimDecimalZeros(value.toPrecision(3))
+      : value.toFixed(2)
+  } cores`;
+}
+
+/**
+ * A runtime chart's axis tick (and tooltip): "0.025%", "12 MiB", and for
+ * cores the number alone — the chart's title says "(cores)".
+ */
+export function formatDatabaseRuntimeAxisValue(
+  value: number | null | undefined,
+  unit: DatabaseRuntimeMetric["unit"],
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "";
+  }
+  if (unit === "bytes") {
+    return formatDatabaseBytes(value);
+  }
+  if (unit === "percent") {
+    return `${formatDatabaseAxisNumber(value)}%`;
+  }
+  return formatDatabaseAxisNumber(value);
+}
+
+/** A runtime chart's title, with the unit its axis leaves out. */
+export function getDatabaseRuntimeChartTitle(
+  metric: DatabaseRuntimeMetric,
+): string {
+  return metric.unit === "cores" ? `${metric.title} (cores)` : metric.title;
 }
 
 // ---- engine support --------------------------------------------------

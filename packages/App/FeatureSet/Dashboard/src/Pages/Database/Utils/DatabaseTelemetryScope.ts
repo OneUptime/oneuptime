@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   keyForDatabaseEndpoint,
   keyForDatabaseServerRow,
+  keyForKubernetesDeployment,
 } from "Common/Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "Common/Utils/Telemetry/DatabaseServerEntityKeys";
 
@@ -145,6 +146,50 @@ export function getDatabaseServerMemberScopeKeys(
     endpoints: [],
     dbSystem: source.dbSystem,
     memberEntityKeys: source.memberEntityKeys,
+  });
+}
+
+/*
+ * What a Kubernetes database's runtime card counts as its pods: the row's
+ * cluster (by the identifier its agent reports, which discovery hashes the
+ * keys with), namespace and workload.
+ */
+export interface DatabaseServerWorkloadScopeSource
+  extends DatabaseServerScopeSource {
+  kubernetesClusterIdentifier?: string | null | undefined;
+  kubernetesNamespace?: string | null | undefined;
+  workloadKind?: string | null | undefined;
+  workloadName?: string | null | undefined;
+}
+
+/**
+ * The member keys that stand for a pod or container the database ran as —
+ * the "Tracked pods / containers" count. Discovery also files the owning
+ * Deployment's key among the members (Deployment-scoped telemetry belongs to
+ * the database too), so a one-pod Deployment has two member keys; that
+ * workload key is left out here. It is recomputed from the row's cluster,
+ * namespace and workload exactly as discovery computes it.
+ */
+export function getDatabaseServerInstanceMemberKeys(
+  source: DatabaseServerWorkloadScopeSource | null | undefined,
+): Array<string> {
+  const memberKeys: Array<string> = getDatabaseServerMemberScopeKeys(source);
+  const projectId: string = projectIdText(source?.projectId);
+  const workloadName: string = (source?.workloadName || "").trim();
+  if (
+    !projectId ||
+    !workloadName ||
+    (source?.workloadKind || "").trim() !== "Deployment"
+  ) {
+    return memberKeys;
+  }
+  const deploymentKey: string = keyForKubernetesDeployment(projectId, {
+    clusterName: (source?.kubernetesClusterIdentifier || "").trim() || null,
+    namespace: (source?.kubernetesNamespace || "").trim() || null,
+    deploymentName: workloadName,
+  });
+  return memberKeys.filter((key: string): boolean => {
+    return key !== deploymentKey;
   });
 }
 

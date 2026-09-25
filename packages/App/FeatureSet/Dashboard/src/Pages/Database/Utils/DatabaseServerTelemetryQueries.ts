@@ -12,11 +12,14 @@ import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { DATABASE_CONNECTION_SPAN_NAMES } from "Common/Types/DatabaseServer/DatabaseConnectionSpan";
 import {
   DatabaseServerMetricDefinition,
   DatabaseServerMetricSeriesCombine,
@@ -136,6 +139,23 @@ function projectIdOf(
   return text ? new ObjectID(text) : null;
 }
 
+/*
+ * The span names a "Queries" count leaves out (DatabaseConnectionSpan): as
+ * the instrumentations spell them, and lower-cased — the column comparison
+ * is exact, while the shared rule compares without case.
+ */
+export function getDatabaseConnectionSpanNameExclusions(): Array<string> {
+  const names: Array<string> = [];
+  for (const name of DATABASE_CONNECTION_SPAN_NAMES) {
+    for (const variant of [name, name.toLowerCase()]) {
+      if (!names.includes(variant)) {
+        names.push(variant);
+      }
+    }
+  }
+  return names;
+}
+
 /**
  * The Span query for the database's client spans in a window, or null when
  * the database is unscoped (no keys) or there is no project. `errorsOnly`
@@ -165,6 +185,14 @@ export function buildDatabaseSpanQuery(
      * applications".
      */
     kind: SpanKind.Client,
+    /*
+     * Queries only: a client library's connection-management spans
+     * (`pg-pool.connect`, `pg.connect`, `redis-connect`, ...) carry the same
+     * endpoint, and counted as calls they doubled a pooled client's
+     * "Queries". The list is the one client-span discovery's min-calls
+     * threshold leaves out, so the two counts agree.
+     */
+    name: new IncludesNone(getDatabaseConnectionSpanNameExclusions()),
   };
 
   if (options?.errorsOnly) {
@@ -519,6 +547,39 @@ function firstFiniteValue(
 }
 
 /**
+ * The points of a per-bucket COUNT series whose bucket lies wholly inside
+ * the window. The window ends now, so its newest bucket is still filling
+ * (and its oldest started before the window did): charted as is, every
+ * "Queries from applications" line fell at its right edge, as if traffic
+ * had halved. The bucket width is the one the aggregate API picks for the
+ * window (AggregationIntervalUtil, the server's own rule). A series whose
+ * every bucket is partial — a window shorter than one bucket — is kept.
+ */
+export function getCompleteBucketSeries(
+  series: ReadonlyArray<DatabaseTimePoint>,
+  window: { start: Date; end: Date },
+): Array<DatabaseTimePoint> {
+  const width: number = AggregationIntervalUtil.getAggregationIntervalMs(
+    AggregationIntervalUtil.getAggregationIntervalForWindow({
+      startDate: window.start,
+      endDate: window.end,
+    }),
+  );
+  if (!Number.isFinite(width) || width <= 0) {
+    return [...series];
+  }
+  const start: number = window.start.getTime();
+  const end: number = window.end.getTime();
+  const complete: Array<DatabaseTimePoint> = series.filter(
+    (point: DatabaseTimePoint): boolean => {
+      const bucketStart: number = point.x.getTime();
+      return bucketStart >= start && bucketStart + width <= end;
+    },
+  );
+  return complete.length > 0 ? complete : [...series];
+}
+
+/**
  * Rate, errors and p95 duration of the queries applications send the
  * database. The tile's p95 is ONE percentile over every query in the window
  * (not the mean of per-bucket p95s); the chart keeps the per-bucket p95.
@@ -598,6 +659,7 @@ export async function fetchDatabaseQueryMetrics(
       1 / NANOSECONDS_PER_MILLISECOND,
     );
 
+    // The tiles count every query in the range, partial buckets included.
     const total: number = sum(countSeries);
     const errors: number = sum(errorSeries);
 
@@ -609,8 +671,8 @@ export async function fetchDatabaseQueryMetrics(
         total > 0
           ? firstFiniteValue(windowP95Result, 1 / NANOSECONDS_PER_MILLISECOND)
           : null,
-      countSeries: countSeries,
-      errorSeries: errorSeries,
+      countSeries: getCompleteBucketSeries(countSeries, window),
+      errorSeries: getCompleteBucketSeries(errorSeries, window),
       p95Series: p95Series,
     };
   } catch {
@@ -971,6 +1033,118 @@ export async function fetchDatabaseEngineMetrics(
       },
     ),
   );
+}
+
+// ---- the Metrics tab's list values ---------------------------------------
+
+/*
+ * What a catalog metric's row on the Metrics tab shows: the same series and
+ * number as its Overview tile (a total across databases, the worst series,
+ * a counter's per-second rate), not the generic list's average of every
+ * series — which read `postgresql.backends 4` beside an Overview showing 8
+ * connections, and a cumulative counter as its raw total.
+ */
+export interface DatabaseMetricListValue {
+  definition: DatabaseServerMetricDefinition;
+  points: Array<DatabaseTimePoint>;
+  // Gauges: the latest bucket. Counters: the mean rate over the window.
+  value: number | null;
+  isRate: boolean;
+  // One short line under the value saying what the number is.
+  caption: string;
+}
+
+/**
+ * The caption under a catalog metric's list value: how its series combine,
+ * and for an entry pinned to one breakdown value (`mysql.threads{kind=
+ * running}`), which one — its title.
+ */
+export function getDatabaseMetricListCaption(
+  definition: DatabaseServerMetricDefinition,
+): string {
+  let how: string;
+  if (definition.kind === "counter") {
+    how = "per second, all series";
+  } else {
+    switch (definition.seriesCombine) {
+      case "max":
+        how = "highest series";
+        break;
+      case "min":
+        how = "lowest series";
+        break;
+      case "avg":
+        how = "average of series";
+        break;
+      default:
+        how = "total of series";
+    }
+  }
+  return Object.keys(definition.attributes || {}).length > 0
+    ? `${definition.title}, ${how}`
+    : how;
+}
+
+/**
+ * The list values of the catalog metrics among `metricNames`, read exactly
+ * as the Overview reads them (fetchDatabaseCatalogMetricSeries) — keyed by
+ * metric name. A name the engine's catalog does not know is left out, and
+ * the list shows its generic value. Empty (no API call) when unscoped.
+ */
+export async function fetchDatabaseMetricListValues(
+  window: DatabaseQueryWindow & {
+    dbSystem: string | null | undefined;
+    metricNames: ReadonlyArray<string>;
+  },
+): Promise<Map<string, DatabaseMetricListValue>> {
+  const values: Map<string, DatabaseMetricListValue> = new Map();
+  if (!getDatabaseServerEntityKeysQueryValue(window.keys)) {
+    return values;
+  }
+
+  const entries: Array<[string, DatabaseMetricListValue] | null> =
+    await Promise.all(
+      window.metricNames.map(
+        async (
+          metricName: string,
+        ): Promise<[string, DatabaseMetricListValue] | null> => {
+          const definition: DatabaseServerMetricDefinition | null =
+            findDatabaseServerMetricByName(window.dbSystem, metricName);
+          if (!definition) {
+            return null;
+          }
+          const series: Array<DatabaseTimePoint> =
+            await fetchDatabaseCatalogMetricSeries({
+              projectId: window.projectId,
+              keys: window.keys,
+              start: window.start,
+              end: window.end,
+              definition: definition,
+            });
+          const result: DatabaseEngineMetricResult = toEngineMetricResult(
+            definition,
+            series,
+          );
+          return [
+            metricName,
+            {
+              definition: definition,
+              points: result.series,
+              value: result.value,
+              isRate: definition.kind === "counter",
+              caption: getDatabaseMetricListCaption(definition),
+            },
+          ];
+        },
+      ),
+    );
+
+  for (const entry of entries) {
+    if (entry) {
+      values.set(entry[0], entry[1]);
+    }
+  }
+  return values;
 }
 
 /** True when any engine metric returned at least one point. */

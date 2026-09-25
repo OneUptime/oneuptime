@@ -222,18 +222,43 @@ export function buildDatabaseMetricMonitorViewData(data: {
   };
 }
 
+/*
+ * The query parameter carrying the new monitor's description. Monitor
+ * Create otherwise words it "Created from the Metric Explorer view for …",
+ * which is not where a database's monitor came from.
+ */
+export const DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM: string =
+  "monitorDescription";
+
+/** "Created from database Checkout primary." — or "" without a name. */
+export function getDatabaseMetricMonitorDescription(
+  databaseName: string | null | undefined,
+): string {
+  const name: string = (databaseName || "").trim();
+  return name ? `Created from database ${name}.` : "";
+}
+
 /**
  * Monitor Create, pre-seeded with the database metric monitor — the route
- * with the metric explorer's query params (metricQueries, the window).
+ * with the metric explorer's query params (metricQueries, the window) and,
+ * when the database's name is known, the monitor's description.
  */
 export function buildDatabaseMetricMonitorRoute(
   viewData: MetricViewData,
+  options?: { databaseName?: string | null | undefined },
 ): Route {
   const route: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.MONITOR_CREATE] as Route,
   );
-  const params: Dictionary<string> =
-    MetricExplorerUrl.buildQueryParamsFromMetricViewData(viewData);
+  const params: Dictionary<string> = {
+    ...MetricExplorerUrl.buildQueryParamsFromMetricViewData(viewData),
+  };
+  const description: string = getDatabaseMetricMonitorDescription(
+    options?.databaseName,
+  );
+  if (description) {
+    params[DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM] = description;
+  }
   const query: string = Object.keys(params)
     .map((name: string): string => {
       return `${encodeURIComponent(name)}=${encodeURIComponent(

@@ -20,9 +20,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DatabaseDocumentationCard from "../../../Components/DatabaseServer/DocumentationCard";
 import { DatabaseDocumentationTarget } from "../Utils/DocumentationMarkdown";
 import {
+  DATABASE_NOT_FOUND_MESSAGE,
   DatabaseRuntimePlatform,
   getDatabaseEngineLabel,
   getDatabaseRuntimePlatform,
+  isDatabaseServerFound,
 } from "../Utils/DatabaseServerPresentation";
 
 /*
@@ -75,8 +77,9 @@ const DatabaseServerDocumentation: FunctionComponent<
         }),
       ]);
 
-      if (!item) {
-        setError("Database not found.");
+      // A deleted or unknown id comes back as an empty model, not null.
+      if (!item || !isDatabaseServerFound(item)) {
+        setError(DATABASE_NOT_FOUND_MESSAGE);
         setIsLoading(false);
         return;
       }

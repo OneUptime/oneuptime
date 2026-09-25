@@ -4,6 +4,10 @@ import {
   getDatabaseServerScopeKeys,
   isDatabaseServerScopedByIdOnly,
 } from "../../Pages/Database/Utils/DatabaseTelemetryScope";
+import {
+  DATABASE_NOT_FOUND_MESSAGE,
+  isDatabaseServerFound,
+} from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
@@ -85,8 +89,9 @@ const useDatabaseServerTelemetryScope: (
           return;
         }
 
-        if (!item) {
-          setError("Database not found.");
+        // A deleted or unknown id comes back as an empty model, not null.
+        if (!item || !isDatabaseServerFound(item)) {
+          setError(DATABASE_NOT_FOUND_MESSAGE);
           setIsLoading(false);
           return;
         }

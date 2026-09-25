@@ -9,8 +9,10 @@ import {
   getDatabaseMetricChartSpec,
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
-  formatDatabaseMetricUnitValue,
-  formatDatabaseMetricValue,
+  formatDatabaseMetricAxisValue,
+  formatDatabaseMetricUnitAxisValue,
+  getDatabaseMetricAxisUnitLabel,
+  getDatabaseMetricUnitAxisLabel,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import {
   buildDatabaseMetricMonitorRoute,
@@ -75,6 +77,8 @@ export interface ComponentProps {
   dbSystem?: string | null | undefined;
   // The database's id: what "Create monitor" scopes the monitor by.
   databaseServerId?: ObjectID | string | null | undefined;
+  // The database's name, for the new monitor's description.
+  databaseName?: string | null | undefined;
   // The range the metric list was showing; the past hour when not given.
   initialTimeRange?: RangeStartAndEndDateTime | undefined;
   onClose: () => void;
@@ -273,6 +277,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
         ),
         rangeToken: timeRange.range,
       }),
+      { databaseName: props.databaseName },
     );
   }, [
     monitorScopeId,
@@ -282,6 +287,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
     aggregation,
     chartWindow,
     timeRange,
+    props.databaseName,
   ]);
 
   useEffect(() => {
@@ -327,19 +333,37 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
     };
   }, [shape, spec, aggregation, timeRange, props.keys, props.projectId]);
 
+  /*
+   * The axis (and the tooltip, which shares the formatter) keeps short
+   * units — bytes, durations, "%", "/s" — and leaves a unit word to the
+   * chart's title: a 64 px axis clipped "20 connections" to "onnections".
+   */
   const formatValue: (value: number) => string = (value: number): string => {
     if (spec.definition) {
-      return formatDatabaseMetricValue(
-        value,
-        spec.definition.unit,
-        spec.definition.kind,
-      );
+      return formatDatabaseMetricAxisValue(value, spec.definition.unit);
     }
-    return formatDatabaseMetricUnitValue(value, spec.unit, {
+    return formatDatabaseMetricUnitAxisValue(value, spec.unit, {
       isRate: spec.isRate,
       metricName: spec.metricName,
     });
   };
+  // A bare-number rate keeps its "/s" on the axis; anything else says it here.
+  const isBareNumberUnit: boolean = !spec.unit || spec.unit === "1";
+  const axisUnitLabel: string = spec.definition
+    ? spec.definition.kind === "counter"
+      ? "per second"
+      : getDatabaseMetricAxisUnitLabel(spec.definition.unit)
+    : [
+        getDatabaseMetricUnitAxisLabel(spec.unit),
+        spec.isRate && !isBareNumberUnit ? "per second" : "",
+      ]
+        .filter((part: string): boolean => {
+          return part.length > 0;
+        })
+        .join(" ");
+  const chartTitle: string = axisUnitLabel
+    ? `${props.metricName} (${axisUnitLabel})`
+    : props.metricName;
 
   const description: string = spec.definition
     ? `${spec.definition.description} Charted for this database only.`
@@ -464,7 +488,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <ChartCard
-          title={props.metricName}
+          title={chartTitle}
           icon={IconProp.ChartBar}
           iconColor="violet"
           series={

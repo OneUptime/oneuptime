@@ -5,7 +5,8 @@ import {
   DatabaseRunsOnSource,
   DatabaseRuntimeMetrics,
   DatabaseRuntimePlatform,
-  formatDatabaseRuntimeValue,
+  formatDatabaseRuntimeAxisValue,
+  getDatabaseRuntimeChartTitle,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import { DatabaseTimePoint } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import { DATABASE_METRIC_DESCRIPTIONS } from "./DatabaseMetricDescriptions";
@@ -29,7 +30,10 @@ export interface ComponentProps {
   // The row's parent and workload columns, for the two links.
   source: DatabaseRunsOnSource;
   instanceCount: number | null;
-  // Pods / containers seen as members in the last 30 days.
+  /*
+   * Pods / containers seen as members in the last 30 days — instance keys
+   * only (getDatabaseServerInstanceMemberKeys), not the owning Deployment.
+   */
   memberCount: number;
   cpuSeries: Array<DatabaseTimePoint>;
   memorySeries: Array<DatabaseTimePoint>;
@@ -104,7 +108,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
       </Card>
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard
-          title={metrics.cpu.title}
+          title={getDatabaseRuntimeChartTitle(metrics.cpu)}
           description={DATABASE_METRIC_DESCRIPTIONS.runtimeCpu}
           icon={IconProp.ChartBar}
           iconColor="blue"
@@ -117,12 +121,12 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeValue(value, metrics.cpu.unit);
+            return formatDatabaseRuntimeAxisValue(value, metrics.cpu.unit);
           }}
           loading={props.isLoading && props.cpuSeries.length === 0}
         />
         <ChartCard
-          title={metrics.memory.title}
+          title={getDatabaseRuntimeChartTitle(metrics.memory)}
           description={DATABASE_METRIC_DESCRIPTIONS.runtimeMemory}
           icon={IconProp.SquareStack}
           iconColor="violet"
@@ -135,7 +139,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeValue(value, metrics.memory.unit);
+            return formatDatabaseRuntimeAxisValue(value, metrics.memory.unit);
           }}
           loading={props.isLoading && props.memorySeries.length === 0}
         />

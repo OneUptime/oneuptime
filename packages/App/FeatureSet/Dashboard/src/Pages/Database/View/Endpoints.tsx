@@ -12,6 +12,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { getDatabaseEndpointSourceLabel } from "../Utils/DatabaseServerPresentation";
+import useDatabaseWideTable from "../Utils/useDatabaseWideTable";
 
 /*
  * The endpoints a database is known by — the ONE thing that decides which
@@ -32,6 +33,7 @@ const DatabaseServerEndpoints: FunctionComponent<
 > = (): ReactElement => {
   // The route is <modelId>/endpoints, so the id is one segment back.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const isWideTable: boolean = useDatabaseWideTable();
 
   return (
     <Fragment>
@@ -151,6 +153,12 @@ const DatabaseServerEndpoints: FunctionComponent<
             title: "Added",
             type: FieldType.DateTime,
             hideOnMobile: true,
+            /*
+             * Below 2xl it starts hidden (the column picker offers it): with
+             * it the table was 1160 px in a 1098 px card at 1440 px, and the
+             * Delete button was cut off.
+             */
+            isHiddenByDefault: !isWideTable,
           },
         ]}
       />

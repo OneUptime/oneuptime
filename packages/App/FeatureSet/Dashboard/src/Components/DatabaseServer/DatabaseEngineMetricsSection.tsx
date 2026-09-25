@@ -8,11 +8,17 @@ import {
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
   DatabaseEngineMetricsStatus,
+  formatDatabaseMetricAxisValue,
   formatDatabaseMetricValue,
   getDatabaseEngineMetricsStatusLabel,
+  getDatabaseMetricAxisUnitLabel,
+  getDatabaseUnitSingular,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import { getDatabaseAgentEngine } from "../../Pages/Database/Utils/DocumentationMarkdown";
-import { getDatabaseServerMetricId } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import {
+  DatabaseServerMetricDefinition,
+  getDatabaseServerMetricId,
+} from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import {
   DatabaseEngineMetricsSource,
   getDatabaseEngineMetricsSource,
@@ -82,6 +88,14 @@ export const ENGINE_METRICS_DISCONNECTED_TITLE: string =
 export const ENGINE_METRICS_NO_DATA_TITLE: string =
   "No engine metrics in this range";
 
+/*
+ * Connected, and the engine has no curated overview at all (Memcached,
+ * Elasticsearch / OpenSearch while their catalogs are missing): its metrics
+ * DO arrive — "no engine metrics in this range" said the opposite.
+ */
+export const ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE: string =
+  "Engine metrics connected";
+
 const STATUS_PILL_CLASSES: Record<DatabaseEngineMetricsStatus, string> = {
   [DatabaseEngineMetricsStatus.Connected]: "bg-emerald-50 text-emerald-700",
   [DatabaseEngineMetricsStatus.Disconnected]: "bg-red-50 text-red-700",
@@ -115,6 +129,32 @@ export const ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL: string =
 
 export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string =
   "Check the agent setup →";
+
+/**
+ * An engine chart's title. The axis ticks of a metric counted in a unit
+ * word carry the number alone (formatDatabaseMetricAxisValue), so the title
+ * says the unit, once: a counter's "(per second)", and a gauge's unit word
+ * in brackets unless its title already names it — "Connections" stays
+ * "Connections", "Buffer pool size" in pages reads "Buffer pool size
+ * (pages)".
+ */
+export function getDatabaseEngineMetricChartTitle(
+  definition: Pick<DatabaseServerMetricDefinition, "title" | "unit" | "kind">,
+): string {
+  if (definition.kind === "counter") {
+    return `${definition.title} (per second)`;
+  }
+  const unitLabel: string = getDatabaseMetricAxisUnitLabel(definition.unit);
+  const title: string = definition.title.toLowerCase();
+  if (
+    !unitLabel ||
+    title.includes(unitLabel.toLowerCase()) ||
+    title.includes(getDatabaseUnitSingular(unitLabel).toLowerCase())
+  ) {
+    return definition.title;
+  }
+  return `${definition.title} (${unitLabel})`;
+}
 
 export interface EngineMetricsGuidance {
   // Why the metrics are missing, and what to do about it.
@@ -231,7 +271,14 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
       : `Engine metrics for this ${props.engineLabel} database are connected, but there is no curated overview for ${props.engineLabel} yet. Open Metrics to see everything it reports.`;
 
     return (
-      <Card title={ENGINE_METRICS_NO_DATA_TITLE} description={description}>
+      <Card
+        title={
+          props.hasCatalog
+            ? ENGINE_METRICS_NO_DATA_TITLE
+            : ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE
+        }
+        description={description}
+      >
         <div
           data-testid="database-engine-metrics-no-data"
           className="flex flex-wrap items-center gap-4"
@@ -360,11 +407,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           return (
             <ChartCard
               key={`chart-${getDatabaseServerMetricId(result.definition)}`}
-              title={
-                result.definition.kind === "counter"
-                  ? `${result.definition.title} (per second)`
-                  : result.definition.title
-              }
+              title={getDatabaseEngineMetricChartTitle(result.definition)}
               description={result.definition.description}
               icon={IconProp.ChartBar}
               iconColor="violet"
@@ -380,10 +423,9 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
               windowEnd={props.windowEnd}
               syncId={`database-${props.modelId.toString()}`}
               yFormatter={(value: number): string => {
-                return formatDatabaseMetricValue(
+                return formatDatabaseMetricAxisValue(
                   value,
                   result.definition.unit,
-                  result.definition.kind,
                 );
               }}
             />

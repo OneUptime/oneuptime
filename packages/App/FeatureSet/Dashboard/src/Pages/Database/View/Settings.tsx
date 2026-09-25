@@ -13,6 +13,10 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { useParams } from "react-router-dom";
+import {
+  DatabaseViewOutletContext,
+  useDatabaseViewOutletContext,
+} from "../Utils/DatabaseViewOutletContext";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -40,11 +44,17 @@ const DatabaseServerSettings: FunctionComponent<
 > = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
+  // A rename must reach the page header, which the layout reads once.
+  const { refreshDatabaseHeader }: DatabaseViewOutletContext =
+    useDatabaseViewOutletContext();
 
   return (
     <Fragment>
       <CardModelDetail<DatabaseServer>
         name="Database Settings"
+        onSaveSuccess={(): void => {
+          refreshDatabaseHeader();
+        }}
         cardProps={{
           title: "Database Settings",
           description:

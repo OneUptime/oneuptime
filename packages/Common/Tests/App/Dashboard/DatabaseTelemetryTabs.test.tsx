@@ -202,7 +202,16 @@ jest.mock(
 );
 
 import DatabaseServerLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Logs";
-import DatabaseServerMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Metrics";
+import DatabaseServerMetrics, {
+  DATABASE_METRIC_LIST_DEFAULT_CAPTION,
+  toMetricRowValueOverrides,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Metrics";
+import { MetricRowValueOverrideMap } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
+import { DatabaseMetricListValue } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
+import {
+  DatabaseServerMetricDefinition,
+  findDatabaseServerMetricByName,
+} from "../../../Types/DatabaseServer/DatabaseServerMetricCatalog";
 import DatabaseServerTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Traces";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -546,6 +555,26 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     );
     expect(tabCase.viewerMock).not.toHaveBeenCalled();
   });
+
+  /*
+   * E2E: a random UUID on /metrics rendered the tab scoped by that id's row
+   * key. The API answers an unknown or deleted id with `{}`, which
+   * ModelAPI.getItem turns into an EMPTY model — never null.
+   */
+  test("a deleted database (the API's `{}`, an empty model) says so", async () => {
+    getItemMock.mockResolvedValue(new DatabaseServer());
+    getListMock.mockResolvedValue(endpointRows([]));
+
+    render(<tabCase.Page {...PAGE_PROPS} />);
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(
+      "Database not found.",
+    );
+    expect(tabCase.viewerMock).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("database-unscoped-banner"),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("the database Logs tab", () => {
@@ -629,5 +658,79 @@ describe("the database Metrics tab's row click", () => {
     expect(
       screen.queryByTestId("database-metric-chart-modal"),
     ).not.toBeInTheDocument();
+  });
+
+  test("names the database in the new monitor's description", async () => {
+    getItemMock.mockResolvedValue(databaseServer({}));
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    clickMetric("postgresql.backends");
+    expect(lastProps(metricChartMock)["databaseName"]).toBe(
+      "PostgreSQL db.prod.internal:5432",
+    );
+  });
+});
+
+/*
+ * E2E: pg16's list read `postgresql.backends 4` (the average of its
+ * per-database series) beside an Overview showing 8, and counters as raw
+ * totals. The tab hands the list the catalog's own values.
+ */
+describe("the database Metrics tab's list values", () => {
+  test("hands the list the catalog's values and labels the rest as averages", async () => {
+    getItemMock.mockResolvedValue(databaseServer({}));
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    const props: ViewerProps = lastProps(metricsViewerMock);
+    expect(typeof props["fetchRowValueOverrides"]).toBe("function");
+    expect(props["defaultRowValueCaption"]).toBe(
+      DATABASE_METRIC_LIST_DEFAULT_CAPTION,
+    );
+  });
+
+  test("a rate row gets its '/s', a gauge row its caption", () => {
+    const backends: DatabaseServerMetricDefinition =
+      findDatabaseServerMetricByName("postgresql", "postgresql.backends")!;
+    const commits: DatabaseServerMetricDefinition =
+      findDatabaseServerMetricByName("postgresql", "postgresql.commits")!;
+    const at: Date = new Date("2026-09-25T01:11:00.000Z");
+    const values: Map<string, DatabaseMetricListValue> = new Map([
+      [
+        "postgresql.backends",
+        {
+          definition: backends,
+          points: [{ x: at, y: 19 }],
+          value: 19,
+          isRate: false,
+          caption: "total of series",
+        },
+      ],
+      [
+        "postgresql.commits",
+        {
+          definition: commits,
+          points: [{ x: at, y: 2.5 }],
+          value: 2.5,
+          isRate: true,
+          caption: "per second, all series",
+        },
+      ],
+    ]);
+
+    const overrides: MetricRowValueOverrideMap =
+      toMetricRowValueOverrides(values);
+    expect(overrides.get("postgresql.backends")).toEqual({
+      points: [{ time: at.toISOString(), value: 19 }],
+      value: 19,
+      valueSuffix: undefined,
+      caption: "total of series",
+    });
+    expect(overrides.get("postgresql.commits")!.valueSuffix).toBe("/s");
   });
 });
