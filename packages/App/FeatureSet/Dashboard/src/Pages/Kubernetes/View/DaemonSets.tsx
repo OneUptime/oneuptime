@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
   PodMetricAggregate,
@@ -94,10 +95,15 @@ const KubernetesClusterDaemonSets: FunctionComponent<
       title="DaemonSets"
       description="All daemonsets running in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetMemory,
+      }}
       columns={[
         {
           title: "Ready",
           key: "ready",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetReady,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {

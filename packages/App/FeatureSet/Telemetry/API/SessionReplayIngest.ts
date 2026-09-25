@@ -998,6 +998,7 @@ router.get(
         urlAllowlist: [],
         ignoreErrorPatterns: [],
         tracePropagationOrigins: [],
+        sameOriginTracePropagation: false,
         lcpBudgetMs: 0,
         longTaskBudgetMs: 0,
         slowRequestBudgetMs: 0,
@@ -1142,10 +1143,17 @@ router.get(
         /*
          * Correlation and performance knobs ship to the recorder verbatim;
          * the artifact normalises them defensively (see the recorder's
-         * ExtendedConfig). Empty origins mean the injection code never
-         * runs, which is the safe default the column migration sets.
+         * ExtendedConfig). Empty origins mean nothing is injected into
+         * CROSS-origin requests, which is the safe default the column
+         * migration sets: a header there makes the request preflighted.
+         *
+         * Same-origin propagation is the policy switch alone, sent as an
+         * explicit boolean because the recorder reads anything but `true`
+         * as off. It needs no origin list: a request to the page's own
+         * origin is never preflighted.
          */
         tracePropagationOrigins: policy.tracePropagationOrigins,
+        sameOriginTracePropagation: policy.sameOriginTracePropagation,
         lcpBudgetMs: policy.lcpBudgetMs,
         longTaskBudgetMs: policy.longTaskBudgetMs,
         slowRequestBudgetMs: policy.slowRequestBudgetMs,

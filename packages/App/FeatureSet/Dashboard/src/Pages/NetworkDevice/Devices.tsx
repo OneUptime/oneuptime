@@ -74,6 +74,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
@@ -1268,6 +1269,7 @@ const NetworkDevices: FunctionComponent<
               _id: true,
             },
             title: "Status",
+            headerTooltip: NETWORK_DEVICE_METRIC_DESCRIPTIONS.deviceStatus,
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
               /*
@@ -1620,6 +1622,8 @@ const NetworkDevices: FunctionComponent<
               interfacesUp: true,
             },
             title: "Interfaces (Up / Down)",
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.deviceInterfacesUpDown,
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
               /*

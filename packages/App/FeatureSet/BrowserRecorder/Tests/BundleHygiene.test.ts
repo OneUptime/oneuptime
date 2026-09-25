@@ -154,11 +154,13 @@ describe("bundle hygiene", (): void => {
     /*
      * 90 KB since the session-replay overhaul (web vitals, the retrying
      * transport, cross-tab adoption, attribute masking, the public API and
-     * click/custom/visibility events), 92 KB since offline mode;
+     * click/custom/visibility events), 92 KB since offline mode, 93 KB
+     * since automatic same-origin trace propagation (2026-09-24, issue
+     * #3979: 94178 gzip after, 92376 before the feature);
      * esbuild.config.js carries the measurements and the itemised reasons.
      * Asserted here as well as there on purpose - see the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(92 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(93 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*

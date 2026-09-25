@@ -23,6 +23,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const VMwareVCenterHosts: FunctionComponent<
   PageComponentProps
@@ -87,6 +88,10 @@ const VMwareVCenterHosts: FunctionComponent<
       showStatus={false}
       tableIdPrefix="vmware"
       emptyMessage="No ESXi hosts reported yet. Make sure the VMware agent is sending metrics and that its read-only user can see the hosts."
+      builtInColumnDescriptions={{
+        cpu: VMWARE_METRIC_DESCRIPTIONS.hostListCpu,
+        memory: VMWARE_METRIC_DESCRIPTIONS.hostListMemory,
+      }}
       columns={[
         {
           title: "Cluster",
@@ -98,6 +103,7 @@ const VMwareVCenterHosts: FunctionComponent<
         {
           title: "CPU Capacity",
           key: "cpuCapacityMhz",
+          description: VMWARE_METRIC_DESCRIPTIONS.hostListCpuCapacity,
           getValue: (resource: InfrastructureResource): string => {
             const raw: string =
               resource.additionalAttributes["cpuCapacityMhz"] || "";

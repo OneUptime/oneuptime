@@ -5,13 +5,15 @@ import NetworkPathTrace, {
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { NetworkDeviceDiagnosticPingResult } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 
 /*
  * The pure half of the on-demand device diagnostics (issue #3745): the
  * polling constants, who may run one, and how a ping / traceroute result
  * reads once the probe has answered.
  *
- * Imports ONLY Common/Types. RouteMap, PageMap, Navigation and ModelAPI all
+ * Imports ONLY Common/Types, plus the metric descriptions, which are plain
+ * data with no imports of their own. RouteMap, PageMap, Navigation and ModelAPI all
  * read `window` at module load (through Common/UI/Config), and the App test
  * suite runs in plain Node with static imports, so
  * anything that needs a route or an API call lives in the .tsx components
@@ -59,6 +61,12 @@ export type PingResultTone = "up" | "down" | "degraded";
 export interface DiagnosticRow {
   label: string;
   value: string;
+  /*
+   * What a statistic row means ("Jitter" is the standard deviation of the
+   * round trips), shown in an (i) beside the label. Left off the rows that
+   * only name something — Host, Reason.
+   */
+  description?: string | undefined;
 }
 
 export interface PingResultSummary {
@@ -135,22 +143,26 @@ export function describePingResult(
   rows.push({
     label: "Average RTT",
     value: formatMilliseconds(result.pingResponse.avgRoundTripTimeInMs),
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingAverageRtt,
   });
   rows.push({
     label: "Min / Max RTT",
     value: `${formatMilliseconds(
       result.pingResponse.minRoundTripTimeInMs,
     )} / ${formatMilliseconds(result.pingResponse.maxRoundTripTimeInMs)}`,
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingMinMaxRtt,
   });
   rows.push({
     label: "Jitter",
     value: formatMilliseconds(result.pingResponse.jitterInMs),
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingJitter,
   });
   rows.push({
     label: "Packet loss",
     value: `${formatPercent(loss)} (${result.pingResponse.packetsReceived}/${
       result.pingResponse.packetsSent
     } received)`,
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingPacketLoss,
   });
 
   return { headline, tone, rows };

@@ -16,7 +16,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import {
   KubernetesHPAMetricSpec,
@@ -105,11 +108,10 @@ const KubernetesClusterHPADetail: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Name", value: hpaName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: hpaName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (objectData) {
     const currentReplicas: number = objectData.status.currentReplicas;
@@ -139,18 +141,22 @@ const KubernetesClusterHPADetail: FunctionComponent<
       },
       {
         title: "Min Replicas",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMinReplicas,
         value: String(objectData.spec.minReplicas),
       },
       {
         title: "Max Replicas",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMaxReplicas,
         value: String(objectData.spec.maxReplicas),
       },
       {
         title: "Current Replicas",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaCurrentReplicas,
         value: String(currentReplicas),
       },
       {
         title: "Desired Replicas",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaDesiredReplicas,
         value: String(desiredReplicas),
       },
       {
@@ -183,6 +189,7 @@ const KubernetesClusterHPADetail: FunctionComponent<
         .join(", ");
       summaryFields.push({
         title: "Metrics",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMetrics,
         value: metricsDisplay || "N/A",
       });
     }

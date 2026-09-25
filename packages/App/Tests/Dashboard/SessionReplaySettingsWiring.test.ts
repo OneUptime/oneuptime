@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 
 /*
  * Source-structural pins for the session replay settings surfaces.
@@ -21,7 +22,8 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
  *  - the RUM settings section is not collapsed and the two side-menu
  *    entries no longer share a name (settings-setup-5);
  *  - the audit page's Viewed By filter is wired (settings-setup-9), the
- *    watched-time bucket matches the server (settings-setup-10);
+ *    watched-time bucket matches the server (settings-setup-10), and the
+ *    Watched header's (i) says what the player and the server count;
  *  - the policy card's model id is stable across renders and its Recording
  *    pill reads health itself, not from a closure frozen at mount;
  *  - no Dashboard replay file imports a server service into the bundle.
@@ -175,6 +177,9 @@ const SERVER_SERVICE_IMPORT_PATTERN: RegExp = new RegExp(
   "from [\"']Common/Server/Services",
 );
 const RRWEB_IMPORT_PATTERN: RegExp = new RegExp("from [\"']rrweb");
+const WATCH_BUCKET_PATTERN: RegExp = new RegExp(
+  "SESSION_REPLAY_WATCH_BUCKET_SECONDS: number = (\\d+)",
+);
 const FIELD_DECLARATION_PATTERN: RegExp = new RegExp(
   "field: \\{ (sessionReplay[A-Za-z]+|isSessionReplayEnabled): true \\}",
   "g",
@@ -355,6 +360,176 @@ describe("Application replay settings page composition", () => {
       "The session row - counts, signals, device - expires together with its footage",
     );
     expect(PRIVACY_SUMMARY).toContain("expires with it");
+  });
+});
+
+/*
+ * RumApplication.sessionReplaySameOriginTracePropagation. The recorder adds
+ * traceparent and a session tracestate to the page's own requests while a
+ * session uploads, on by default; this toggle is the way back without a
+ * customer redeploy, so it has to be on the policy form next to the
+ * cross-origin list it complements, say what it sends and where it goes,
+ * and reach the privacy summary.
+ */
+const SAME_ORIGIN_FORM_FIELD_PATTERN: RegExp = new RegExp(
+  '\\{\\s*field:\\s*\\{\\s*sessionReplaySameOriginTracePropagation:\\s*true\\s*\\},\\s*title:\\s*SAME_ORIGIN_TRACE_PROPAGATION_TITLE,\\s*stepId:\\s*"performance",\\s*fieldType:\\s*FormFieldSchemaType\\.Toggle,',
+);
+const ORIGINS_FORM_FIELD_PATTERN: RegExp = new RegExp(
+  '\\{\\s*field:\\s*\\{\\s*sessionReplayTracePropagationOrigins:\\s*true\\s*\\},\\s*title:\\s*"Trace propagation origins",\\s*stepId:\\s*"performance",',
+);
+const SAME_ORIGIN_READ_FIELD_PATTERN: RegExp = new RegExp(
+  "field:\\s*\\{\\s*sessionReplaySameOriginTracePropagation:\\s*true\\s*\\},\\s*title:\\s*SAME_ORIGIN_TRACE_PROPAGATION_TITLE,\\s*fieldType:\\s*FieldType\\.Element,[\\s\\S]{0,300}describeSameOriginTracePropagation\\(\\s*item\\.sessionReplaySameOriginTracePropagation",
+);
+const PRIVACY_POLICY_FEED_PATTERN: RegExp = new RegExp(
+  "sameOriginTracePropagation:\\s*application\\.sessionReplaySameOriginTracePropagation",
+);
+const DESCRIPTION_PATTERN: RegExp = new RegExp('description:\\s*"([^"]*)"');
+const SAME_ORIGIN_TITLE_PATTERN: RegExp = new RegExp(
+  'SAME_ORIGIN_TRACE_PROPAGATION_TITLE:\\s*string\\s*=\\s*"Same-origin trace propagation";',
+);
+
+/* The description string of the form field that starts at `start`. */
+function formFieldDescription(start: number): string {
+  const match: RegExpMatchArray | null =
+    APP_SETTINGS_PAGE.slice(start).match(DESCRIPTION_PATTERN);
+
+  expect(match).not.toBeNull();
+
+  return match?.[1] ?? "";
+}
+
+describe("Same-origin trace propagation setting", () => {
+  test("the toggle and its read-view row share one title constant, with the fixed name", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(SAME_ORIGIN_TITLE_PATTERN);
+    expect(
+      APP_SETTINGS_PAGE.match(/title: SAME_ORIGIN_TRACE_PROPAGATION_TITLE,/g) ??
+        [],
+    ).toHaveLength(2);
+  });
+
+  test("the toggle sits in the Performance & Tracing step, immediately before the origins list", () => {
+    const toggle: RegExpMatchArray | null = APP_SETTINGS_PAGE.match(
+      SAME_ORIGIN_FORM_FIELD_PATTERN,
+    );
+    const origins: RegExpMatchArray | null = APP_SETTINGS_PAGE.match(
+      ORIGINS_FORM_FIELD_PATTERN,
+    );
+
+    expect(toggle).not.toBeNull();
+    expect(origins).not.toBeNull();
+
+    const toggleIndex: number = toggle?.index ?? -1;
+    const originsIndex: number = origins?.index ?? -1;
+
+    expect(toggleIndex).toBeLessThan(originsIndex);
+
+    /* No other form field between the two: they are one decision. */
+    const between: string = APP_SETTINGS_PAGE.slice(
+      toggleIndex + 1,
+      originsIndex,
+    );
+
+    expect(between.match(/\bfield:\s*\{/g) ?? []).toHaveLength(1);
+    expect(APP_SETTINGS_PAGE).toContain(
+      '{ title: "Performance & Tracing", id: "performance" }',
+    );
+  });
+
+  test("the toggle's description says what it sends, where it goes, what it costs, and the redirect caveat", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    for (const phrase of [
+      "On by default.",
+      "traceparent and a tracestate carrying this session's id",
+      "requests your page makes to its own origin",
+      "no code in your frontend or backend",
+      "before consent",
+      "marked sampled",
+      "ParentBased samplers",
+      "remoteParentSampled",
+      "third parties included",
+      "the visitor id is never sent",
+      "redirects to another origin",
+      "Access-Control-Allow-Headers",
+      "retries a failed body-less fetch GET or HEAD once",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+  });
+
+  /*
+   * Review round 2. The toggle used to say the recorder "retries a failed
+   * GET once" - but an XHR GET (axios in the browser) and any fetch with a
+   * body or another method are never retried. And it told operators to set
+   * a remoteParentSampled delegate without saying where: TraceIdRatioBased
+   * decides differently per language SDK, so the delegate belongs on the
+   * first hop only. Turning the switch off also leaves an own origin listed
+   * in Trace propagation origins getting a traceparent.
+   */
+  test("the toggle's description states the retry rule, the first-hop sampling scope and the listed-own-origin caveat", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    for (const phrase of [
+      "retries a failed body-less fetch GET or HEAD once; an XMLHttpRequest cannot be retried",
+      "set a remoteParentSampled ratio delegate only on the service(s) your pages call directly, never on the services they call",
+      "ratio decisions differ between language SDKs",
+      "tail sampling in an OpenTelemetry Collector",
+      "take your own origin out of Trace propagation origins if you listed it there",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+
+    expect(description).not.toContain("retries a failed GET once");
+    expect(description).not.toContain(
+      "set a remoteParentSampled delegate to keep ratio sampling",
+    );
+  });
+
+  test("the origins list is described as the cross-origin one, not as 'never inject'", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(ORIGINS_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    expect(description).toContain("For APIs on OTHER origins than your page");
+    expect(description).toContain(
+      "requests to your own origin are linked automatically",
+    );
+    expect(description).toContain("traceparent only, never the session id");
+    expect(description).toContain("Access-Control-Allow-Headers");
+    expect(description).not.toContain("Empty (default) never injects");
+    expect(APP_SETTINGS_PAGE).not.toContain(
+      "None: no traceparent header is injected",
+    );
+    expect(APP_SETTINGS_PAGE).toContain(
+      "None: no cross-origin request gets a traceparent",
+    );
+  });
+
+  test("the read view shows the switch through describeSameOriginTracePropagation", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(SAME_ORIGIN_READ_FIELD_PATTERN);
+    expect(APP_SETTINGS_PAGE).toContain(
+      "export function describeSameOriginTracePropagation(",
+    );
+    /* Only an explicit false reads as off, like the gate. */
+    expect(APP_SETTINGS_PAGE).toContain("return value === false");
+  });
+
+  test("the privacy summary is fed the switch from the loaded row", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(PRIVACY_POLICY_FEED_PATTERN);
+    expect(PRIVACY_SUMMARY).toContain('"backend-link"');
+    expect(PRIVACY_SUMMARY).toContain(
+      "sameOriginTracePropagation?: boolean | null | undefined;",
+    );
   });
 });
 
@@ -595,6 +770,71 @@ describe("Replay access log page", () => {
 
   test("the Reason column explains an empty value instead of rendering blank", () => {
     expect(AUDIT_PAGE).toContain("None given (opened from the list)");
+  });
+
+  test("the Watched header carries an (i) and no other column does", () => {
+    expect(AUDIT_PAGE).toContain(
+      'import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";',
+    );
+
+    const watchedColumn: string = AUDIT_PAGE.slice(
+      indexOfOrFail(AUDIT_PAGE, 'title: "Watched"'),
+      indexOfOrFail(AUDIT_PAGE, 'title: "Reason"'),
+    );
+
+    expect(watchedColumn).toContain(
+      "headerTooltip: RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched,",
+    );
+    expect(AUDIT_PAGE.split("headerTooltip:").length - 1).toBe(1);
+    expect(
+      AUDIT_PAGE.split("RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.").length - 1,
+    ).toBe(Object.keys(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS).length);
+  });
+
+  test("the Watched text says what the player counts: played footage, times the speed", () => {
+    const player: string = readSource(
+      "Components/SessionReplay/SessionReplayPlayer.tsx",
+    );
+
+    // Time accrues only while playing, so pauses and scrubbing add nothing.
+    expect(player).toContain('if (current.phase === "playing") {');
+    expect(player).toContain(
+      "watchedMs += Math.max(0, now - lastSampleAt) * current.speed;",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      "Paused time and jumps along the timeline do not count",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      "at 2x speed a minute of watching counts as two",
+    );
+  });
+
+  test("the Watched text names the server's bucket and the page's reading of zero", () => {
+    const serverSource: string = fs.readFileSync(
+      nodePath.join(
+        __dirname,
+        "../../../Common/Server/Services/RumSessionReplayViewService.ts",
+      ),
+      "utf8",
+    );
+
+    expect(serverSource).toContain(
+      "Math.floor(clamped / SESSION_REPLAY_WATCH_BUCKET_SECONDS) *",
+    );
+
+    const bucket: RegExpMatchArray | null =
+      AUDIT_PAGE.match(WATCH_BUCKET_PATTERN);
+
+    expect(bucket?.[1]).toBeDefined();
+    expect(AUDIT_PAGE).toContain(
+      "return `< ${SESSION_REPLAY_WATCH_BUCKET_SECONDS}s`;",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      `Rounded down to ${bucket?.[1]}-second steps`,
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      `shows as < ${bucket?.[1]}s.`,
+    );
   });
 });
 

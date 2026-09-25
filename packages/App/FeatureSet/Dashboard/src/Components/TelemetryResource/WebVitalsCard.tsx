@@ -1,10 +1,14 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
 import { WebVital, formatDurationMs } from "./telemetryMetrics";
 
 export interface WebVitalsCardProps {
   vitals: Array<WebVital>;
   loading: boolean;
+  // What the card as a whole shows, in an (i) beside its title.
+  description?: string | undefined;
 }
 
 const formatVital: (v: WebVital) => string = (v: WebVital): string => {
@@ -41,6 +45,18 @@ const ratingClasses: (v: WebVital) => { text: string; chip: string } = (
   };
 };
 
+/*
+ * The tooltip beside each vital: what it measures, then the limits the
+ * Good / Needs work / Poor chip is judged against.
+ */
+export const describeWebVital: (v: WebVital) => string = (
+  v: WebVital,
+): string => {
+  return [v.description, describeWebVitalThresholds(v)]
+    .filter(Boolean)
+    .join(" ");
+};
+
 const ratingLabel: (v: WebVital) => string = (v: WebVital): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
     return "—";
@@ -64,7 +80,20 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
   return (
     <div className="mt-6">
       <Card
-        title="Core Web Vitals"
+        title={
+          props.description ? (
+            <span className="inline-flex items-center gap-1.5">
+              Core Web Vitals
+              <InfoTooltip
+                label="Core Web Vitals"
+                text={props.description}
+                iconClassName="h-4 w-4"
+              />
+            </span>
+          ) : (
+            "Core Web Vitals"
+          )
+        }
         description="Real-user performance (averaged over the selected range). Reported when your browser instrumentation emits web-vital metrics over OpenTelemetry."
       >
         {props.loading ? (
@@ -101,9 +130,15 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                   className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {v.key}
-                    </span>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        {v.key}
+                      </span>
+                      <InfoTooltip
+                        label={`${v.key.toUpperCase()} (${v.label})`}
+                        text={describeWebVital(v)}
+                      />
+                    </div>
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${rc.chip}`}
                     >

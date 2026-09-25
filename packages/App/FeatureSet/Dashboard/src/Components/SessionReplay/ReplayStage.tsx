@@ -22,6 +22,11 @@ import {
   SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS,
   SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE,
+  REPLAY_TEXT_SELECTION_ATTRIBUTE,
+  REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE,
+} from "./ReplayTextSelectionAttributes";
 
 /*
  * The playback surface, as a thin React binding over the engine.
@@ -252,13 +257,6 @@ const REPLAY_SHADOW_TEXT_SELECTION_CSS: string = `
   pointer-events: none !important;
 }
 `;
-
-const REPLAY_TEXT_SELECTION_ATTRIBUTE: string =
-  "data-oneuptime-replay-text-selection";
-const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
-  "data-oneuptime-replay-text-selection-style";
-const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
-  "data-oneuptime-replay-shadow-text-selection-style";
 
 const enabledReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
 const observedReplayFrames: WeakSet<HTMLIFrameElement> =
@@ -1846,12 +1844,19 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         data-testid="replay-stage-frame"
         className={
           isMobile
-            ? "overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
-            : "bg-white shadow-sm ring-1 ring-gray-200"
+            ? "isolate overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
+            : "isolate bg-white shadow-sm ring-1 ring-gray-200"
         }
         style={frameStyle}
       >
-        <div ref={mountRef} className="absolute inset-0" />
+        {/*
+         * isolate (here and on the frame): the Replayer's pointer and the
+         * touch rings carry the largest z-index there is, and at 1:1 (no
+         * transform on the host) nothing else contained them - they
+         * painted over the overlays drawn above the stage, the paused Play
+         * button and the screenshot dock among them.
+         */}
+        <div ref={mountRef} className="absolute inset-0 isolate" />
         {touchRings.map((ring: TouchRing): ReactElement => {
           return (
             <div

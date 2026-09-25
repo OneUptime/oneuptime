@@ -14,10 +14,12 @@ import SiteUptimeUtil, {
 } from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import fetchSiteMaintenanceWindows from "../../../Components/NetworkSite/SiteMaintenanceWindows";
 import SiteDailyUptimeStrip from "../../../Components/NetworkSite/SiteDailyUptimeStrip";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -31,6 +33,7 @@ import React, {
 
 const UPTIME_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30, 90];
 const DAILY_STRIP_DAYS: number = 30;
+const DAILY_UPTIME_TITLE: string = `Daily Uptime — Last ${DAILY_STRIP_DAYS} Days`;
 
 /*
  * Status history for one site: uptime percentages over four windows
@@ -191,6 +194,12 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
                     ? "Uptime — Last 24 Hours"
                     : `Uptime — Last ${days} Days`
                 }
+                /*
+                 * One text for all four windows: it points at "the period
+                 * in the title", so it cannot disagree with the card it
+                 * sits on.
+                 */
+                tooltip={NETWORK_SITE_METRIC_DESCRIPTIONS.uptimeWindow}
                 value={
                   <div
                     className={`mt-1 text-3xl font-semibold ${
@@ -209,8 +218,16 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
       )}
       {dailyEntries.length > 0 && (
         <div className="mb-5 rounded-lg bg-white p-6 shadow">
-          <div className="mb-1 text-base font-medium text-gray-900">
-            Daily Uptime — Last {DAILY_STRIP_DAYS} Days
+          {/*
+           * The paragraph below says why the strip exists; the (i) is the
+           * legend — what each colour, and the hollow outline, means.
+           */}
+          <div className="mb-1 flex items-center gap-1 text-base font-medium text-gray-900">
+            <span>{DAILY_UPTIME_TITLE}</span>
+            <InfoTooltip
+              label={DAILY_UPTIME_TITLE}
+              text={NETWORK_SITE_METRIC_DESCRIPTIONS.dailyUptime}
+            />
           </div>
           <p className="mb-4 text-sm text-gray-500">
             One bar per 24 hours, oldest first. A whole day of downtime only

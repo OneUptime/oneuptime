@@ -23,6 +23,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const VMwareVCenterDatastores: FunctionComponent<
   PageComponentProps
@@ -87,6 +88,7 @@ const VMwareVCenterDatastores: FunctionComponent<
         {
           title: "Used / Capacity",
           key: "diskBytes",
+          description: VMWARE_METRIC_DESCRIPTIONS.datastoreListUsedCapacity,
           getValue: (resource: InfrastructureResource): string => {
             const usedRaw: string =
               resource.additionalAttributes["diskBytes"] || "";

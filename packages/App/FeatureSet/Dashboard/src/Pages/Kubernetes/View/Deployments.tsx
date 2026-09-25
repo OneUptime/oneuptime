@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
   PodMetricAggregate,
@@ -110,10 +111,15 @@ const KubernetesClusterDeployments: FunctionComponent<
       title="Deployments"
       description="All deployments running in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentMemory,
+      }}
       columns={[
         {
           title: "Ready",
           key: "ready",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReady,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {

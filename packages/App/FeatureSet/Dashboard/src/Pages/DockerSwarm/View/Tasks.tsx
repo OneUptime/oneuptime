@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 const DockerSwarmClusterTasks: FunctionComponent<
   PageComponentProps
@@ -78,6 +79,10 @@ const DockerSwarmClusterTasks: FunctionComponent<
       showGroupColumn={true}
       groupColumnTitle="Node"
       tableIdPrefix="docker-swarm"
+      builtInColumnDescriptions={{
+        cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn,
+        memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn,
+      }}
       emptyMessage="No tasks reported yet. Make sure the Docker Swarm agent is sending metrics."
       columns={[
         {

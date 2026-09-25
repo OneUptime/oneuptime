@@ -192,6 +192,15 @@ describe("the pure view-model", () => {
    * single such import would take DeviceDiagnosticsViewModel.test.ts down
    * with a ReferenceError long before any assertion ran.
    */
+  /*
+   * The one import outside Common/Types is the ping rows' (i) texts. That
+   * module is plain data — the MetricDescriptionsCatalog test holds every
+   * module in that folder to it — and the test below proves it imports
+   * nothing at all, so it cannot drag `window` in either.
+   */
+  const METRIC_DESCRIPTIONS_SPECIFIER: string =
+    "../MetricDescriptions/NetworkDeviceMetricDescriptions";
+
   test("imports nothing that reads window at load", () => {
     const specifiers: Array<string> = [];
     let match: RegExpExecArray | null = null;
@@ -204,12 +213,25 @@ describe("the pure view-model", () => {
     expect(specifiers.length).toBeGreaterThan(0);
 
     for (const specifier of specifiers) {
-      expect([specifier, specifier.startsWith("Common/Types/")]).toEqual([
+      expect([
         specifier,
-        true,
-      ]);
+        specifier.startsWith("Common/Types/") ||
+          specifier === METRIC_DESCRIPTIONS_SPECIFIER,
+      ]).toEqual([specifier, true]);
       expect(BROWSER_BOUND_MODULE_PATTERN.test(specifier)).toBe(false);
     }
+  });
+
+  test("the metric descriptions it reads import nothing at all", () => {
+    const descriptions: string = readRaw(
+      DASHBOARD_SRC,
+      "Components",
+      "MetricDescriptions",
+      "NetworkDeviceMetricDescriptions.ts",
+    );
+
+    expect(descriptions).not.toMatch(/\bimport\b/);
+    expect(descriptions).not.toMatch(/\brequire\(/);
   });
 });
 

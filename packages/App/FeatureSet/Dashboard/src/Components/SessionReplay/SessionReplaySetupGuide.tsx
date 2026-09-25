@@ -42,6 +42,7 @@ import useSessionReplayHealth, {
 } from "./useSessionReplayHealth";
 import SessionReplayInstallSnippet, {
   buildCspSnippet,
+  buildOnSessionChangeSnippet,
   getOneUptimeUrl,
 } from "./SessionReplayInstallSnippet";
 import { RecordingHealthDiagnosisBanner } from "./RecordingHealthCard";
@@ -497,23 +498,39 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           docsAnchor="correlating-with-your-other-telemetry"
         >
           <>
-            A recording lines up with the logs, spans and exceptions from the
-            same browser through <code>session.id</code> on your OpenTelemetry
-            resource. Set it from the recorder&apos;s session hook, and add your
-            API origins to <em>Trace propagation origins</em> in this
-            application&apos;s replay policy so requests carry a{" "}
-            <code>traceparent</code> header without a browser tracing SDK.
-            <div className="mt-2" data-testid="setup-correlation-snippet">
-              <SessionReplayInstallSnippet
-                appIdentifier={appIdentifier}
-                oneuptimeUrl={oneuptimeUrl}
-                showIdentify={false}
-                showCorrelation={true}
-              />
+            <span data-testid="setup-correlation-automatic">
+              Nothing to install for your own backend. While a session uploads,
+              the recorder adds a <code>traceparent</code> and a{" "}
+              <code>tracestate</code> carrying the session id to the requests
+              your page makes to its own origin. Every backend service that
+              continues W3C trace context then has its spans linked to the
+              recording at ingest, and its logs and exceptions join the
+              recording by trace id.
+            </span>{" "}
+            <span data-testid="setup-correlation-cross-origin">
+              For an API on another origin, add it to{" "}
+              <em>Trace propagation origins</em> in this application&apos;s
+              replay policy. It must allow <code>traceparent</code> in{" "}
+              <code>Access-Control-Allow-Headers</code>; those requests get a{" "}
+              <code>traceparent</code> only and match by trace id. To stop the
+              automatic headers, turn off <em>Same-origin trace propagation</em>{" "}
+              on the same page.
+            </span>
+            <div className="mt-3 text-xs text-gray-500">
+              Optional: if this page also runs the OpenTelemetry browser SDK,
+              this stamps its own spans (page loads, route changes, errors) with
+              the session id too.
             </div>
-            <div className="mt-2 text-xs text-gray-500">
-              Optional. Recordings work without it; the rail beside the player
-              just will not show your backend signals.
+            {/*
+             * Only the optional snippet. This step used to render the whole
+             * install snippet again - script-tag tabs included - under a
+             * step that now says there is nothing to install.
+             */}
+            <div className="mt-2" data-testid="setup-correlation-snippet">
+              <CodeBlock
+                code={buildOnSessionChangeSnippet()}
+                language="javascript"
+              />
             </div>
           </>
         </Step>

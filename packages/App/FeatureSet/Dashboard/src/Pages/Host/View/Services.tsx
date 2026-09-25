@@ -38,6 +38,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import FilterChipDropdown, {
   FilterChipDropdownOption,
 } from "../../../Components/ResourceOwners/FilterChipDropdown";
@@ -376,6 +377,7 @@ const HostServices: FunctionComponent<
         title: "Startup",
         type: FieldType.Element,
         key: "startupMode",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.serviceListStartup,
         hideOnMobile: true,
         getElement: (row: ServiceRow): ReactElement => {
           return (
@@ -387,6 +389,7 @@ const HostServices: FunctionComponent<
         title: "Status",
         type: FieldType.Element,
         key: "statusCode",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.serviceListStatus,
         getElement: (row: ServiceRow): ReactElement => {
           const meta: ServiceStatusMeta = statusMeta(row.statusCode);
           return (

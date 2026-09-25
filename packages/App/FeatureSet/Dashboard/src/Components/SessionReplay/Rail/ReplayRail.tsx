@@ -30,7 +30,7 @@ import {
   getReplaySegmentClassName,
 } from "../ReplayUi";
 import {
-  REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS,
+  REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS,
   ReplayBackendSignalsSnapshot,
   ReplayBackendSignalsStore,
   makeIdleBackendSignalsState,
@@ -171,6 +171,11 @@ export interface ReplayRailProps {
   totalChunkCount?: number | null | undefined;
   /* header.recorderCapabilities, for the old-recording explanation. */
   recorderCapabilities?: ReadonlyArray<string> | null | undefined;
+  /*
+   * A React Native recording: the empty Logs and Traces tabs give the
+   * manual onSessionChange step instead of the web's automatic link.
+   */
+  isMobileReplay?: boolean | undefined;
 
   /* Override any link builder (tests, or a page without RouteMap context). */
   links?: Partial<ReplayRailLinks> | undefined;
@@ -469,7 +474,12 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     }
   }, [props.isExpiredFootage, store]);
 
-  /* Live sessions: refresh whatever is loaded, once a minute. */
+  /*
+   * Live sessions: refresh whatever is loaded, once a minute. The interval
+   * only ticks; the store decides what is due. Ticking at the refresh
+   * interval itself skipped every other tick (the slot's age fell short
+   * by the read's latency), so the refresh really ran every two minutes.
+   */
   useEffect(() => {
     if (!store || props.isFinalized) {
       return;
@@ -477,7 +487,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
     const timer: ReturnType<typeof setInterval> = setInterval((): void => {
       void store.refreshIfDue();
-    }, REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS);
+    }, REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS);
 
     return (): void => {
       clearInterval(timer);
@@ -1210,6 +1220,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           slot: activeSlot,
           isExpiredFootage: props.isExpiredFootage,
           recorderCapabilities: props.recorderCapabilities,
+          isMobileReplay: props.isMobileReplay === true,
           hasLoadedFootage:
             typeof props.loadedChunkCount === "number"
               ? props.loadedChunkCount > 0
@@ -1239,9 +1250,23 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         />
       );
     } else if (tab.count !== null) {
-      const total: string = `${tab.count}${tab.isTruncated ? "+" : ""}`;
+      /* A lower bound: the fetch was capped, or part of it failed. */
+      const isLowerBound: boolean = tab.isTruncated || tab.isPartial;
+      const total: string = `${tab.count}${isLowerBound ? "+" : ""}`;
       const text: string =
         tab.matchingCount !== null ? `${tab.matchingCount}/${total}` : total;
+      let title: string | undefined = undefined;
+
+      if (tab.matchingCount !== null) {
+        title = `${tab.matchingCount} of ${total} match the search`;
+      } else if (tab.isPartial) {
+        title = `${tab.count} loaded; some rows did not load`;
+      } else if (tab.isTraceIdSetCapped) {
+        /* The same cause the notice names, not the row cap. */
+        title = `${tab.count} rows; this session has more traces than one fetch names, so the rows of some of its traces were not fetched`;
+      } else if (tab.isTruncated) {
+        title = `The first ${tab.count} rows; the fetch was capped`;
+      }
 
       badge = (
         <span
@@ -1250,13 +1275,8 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               ? "bg-indigo-100 text-indigo-700"
               : "bg-gray-200/70 text-gray-500"
           }`}
-          title={
-            tab.matchingCount !== null
-              ? `${tab.matchingCount} of ${total} match the search`
-              : tab.isTruncated
-                ? `The first ${tab.count} rows; the fetch was capped`
-                : undefined
-          }
+          title={title}
+          data-testid={`rail-tab-badge-${tab.id}`}
         >
           {text}
         </span>
@@ -1314,10 +1334,16 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
     if (activeSlot?.isTruncated) {
       notices.push(
-        <div key="slot-truncated" className="text-[11px] text-amber-700">
-          Only the first {activeSlot.rowCount} rows were fetched; the scope
-          defaults to ±30s around the playhead so nothing here reads as the
-          whole session.
+        <div
+          key="slot-truncated"
+          className="text-[11px] text-amber-700"
+          data-testid="rail-slot-truncated"
+        >
+          {activeSlot.isTraceIdSetCapped
+            ? "This session has more traces than one fetch names, so the rows of some of its traces were not fetched"
+            : `Only the first ${activeSlot.rowCount ?? 0} rows were fetched`}
+          ; the scope defaults to ±30s around the playhead so nothing here reads
+          as the whole session.
         </div>,
       );
     }

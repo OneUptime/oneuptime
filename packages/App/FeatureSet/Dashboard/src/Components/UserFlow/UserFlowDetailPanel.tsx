@@ -8,6 +8,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
   OTHER_PAGES_KEY,
   UserFlowAnalysis,
@@ -29,6 +30,7 @@ import {
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { UserFlowSelection } from "./UserFlowMap";
+import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
  * What the map says about the page or transition that was clicked, and the
@@ -50,6 +52,8 @@ export interface ComponentProps {
 function Stat(props: {
   label: string;
   value: string;
+  /* What the number means, in an (i) beside the label. */
+  tooltip: string;
   hint?: string | undefined;
   tone?: "neutral" | "danger" | "warning" | undefined;
   testId?: string | undefined;
@@ -63,7 +67,12 @@ function Stat(props: {
 
   return (
     <div className="rounded-lg bg-gray-50 px-3 py-2" data-testid={props.testId}>
-      <p className="text-xs font-medium text-gray-500">{props.label}</p>
+      <div className="flex items-center gap-1">
+        <p className="min-w-0 text-xs font-medium text-gray-500">
+          {props.label}
+        </p>
+        <InfoTooltip label={props.label} text={props.tooltip} />
+      </div>
       <p className={`text-lg font-semibold ${toneClass}`}>{props.value}</p>
       {props.hint ? (
         <p className="text-xs text-gray-500">{props.hint}</p>
@@ -117,6 +126,8 @@ function SampleSessions(props: {
 
 function NeighbourList(props: {
   title: string;
+  /* What the counts and shares are, in an (i) beside the title. */
+  tooltip: string;
   items: Array<UserFlowPageCount>;
   total: number;
   onPick: (page: string) => void;
@@ -124,9 +135,21 @@ function NeighbourList(props: {
 }): ReactElement {
   return (
     <div data-testid={props.testId}>
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {props.title}
-      </p>
+      {/*
+       * The (i) sits in the title row, never inside the rows below: each
+       * of those is a button that re-anchors the map.
+       */}
+      <div className="mb-1.5 flex items-center gap-1">
+        <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {props.title}
+        </p>
+        <InfoTooltip
+          label={props.title}
+          text={props.tooltip}
+          className="font-normal normal-case"
+          dataTestId={`${props.testId}-info`}
+        />
+      </div>
       {props.items.length === 0 ? (
         <p className="text-sm text-gray-400">None in this range.</p>
       ) : (
@@ -251,11 +274,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
             label="Sessions"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailTransitionSessions}
             value={formatUserFlowCount(link.sessions)}
             testId="user-flow-detail-sessions"
           />
           <Stat
             label={`Share of ${sourceLabel}`}
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource}
             value={formatUserFlowShare(
               source && source.sessions > 0
                 ? link.sessions / source.sessions
@@ -264,6 +289,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           />
           <Stat
             label={`Share of ${targetLabel}`}
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget}
             value={formatUserFlowShare(
               target && target.sessions > 0
                 ? link.sessions / target.sessions
@@ -272,6 +298,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           />
           <Stat
             label="Returning to a seen page"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailReturning}
             value={formatUserFlowShare(
               link.sessions > 0 ? link.revisitSessions / link.sessions : 0,
             )}
@@ -348,6 +375,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         )}
         <NeighbourList
           title="Pages folded together (click to follow one)"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailFoldedPages}
           items={node.otherPages}
           total={node.sessions}
           testId="user-flow-other-pages"
@@ -389,6 +417,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat
           label="Sessions at this step"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailStepSessions}
           value={formatUserFlowCount(node.sessions)}
           hint={`${formatUserFlowShare(
             columnTotal > 0 ? node.sessions / columnTotal : 0,
@@ -397,6 +426,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         />
         <Stat
           label={graph.anchorPage ? "Of anchored sessions" : "Of all sessions"}
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailOfAllSessions}
           value={formatUserFlowShare(reachShare)}
           hint={
             node.step === 0
@@ -409,6 +439,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         {isBackward ? (
           <Stat
             label="Started their session here"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailStartedHere}
             value={formatUserFlowCount(node.terminal)}
             hint={formatUserFlowShare(
               node.sessions > 0 ? node.terminal / node.sessions : 0,
@@ -417,6 +448,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         ) : (
           <Stat
             label="Left the application here"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailLeftHere}
             value={formatUserFlowCount(node.terminal)}
             hint={`${formatUserFlowShare(
               node.sessions > 0 ? node.terminal / node.sessions : 0,
@@ -431,6 +463,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         )}
         <Stat
           label="Hit an error here"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailErrorsHere}
           value={formatUserFlowCount(node.errorSessions)}
           hint={`${formatUserFlowCount(
             node.frustrationSessions,
@@ -443,6 +476,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <NeighbourList
             title="Where they came from (whole range)"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailCameFrom}
             items={stats.previous}
             total={stats.sessions}
             testId="user-flow-previous-pages"
@@ -452,6 +486,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           />
           <NeighbourList
             title="Where they went next (whole range)"
+            tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailWentNext}
             items={stats.next}
             total={stats.sessions}
             testId="user-flow-next-pages"

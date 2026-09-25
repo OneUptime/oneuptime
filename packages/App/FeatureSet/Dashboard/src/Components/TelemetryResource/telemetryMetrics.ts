@@ -21,6 +21,19 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  formatBytes,
+  formatCompact,
+  formatDurationMs,
+  formatPercent,
+} from "./telemetryFormat";
+
+/*
+ * The formatters are pure and live in telemetryFormat.ts so a node test
+ * (and a React-free helper module) can use them without pulling in the
+ * API client this file needs. Re-exported so existing imports keep working.
+ */
+export { formatBytes, formatCompact, formatDurationMs, formatPercent };
 
 export interface TimePoint {
   x: Date;
@@ -41,11 +54,22 @@ export interface SpanMetrics {
   countSeries: Array<TimePoint>;
   errorSeries: Array<TimePoint>;
   p95Series: Array<TimePoint>;
+  /*
+   * The aggregate queries failed (e.g. a 403 without trace read access).
+   * The numbers are then zero, which is unknown rather than none - a tile
+   * should say "could not load" instead of showing 0.
+   */
+  failed?: boolean | undefined;
 }
 
 export interface SpanScope {
   attributes?: Record<string, string> | undefined;
   primaryEntityId?: ObjectID | undefined;
+  /*
+   * Only spans with exactly this name - e.g. "documentLoad", the span the
+   * OpenTelemetry browser SDK records for each full page load.
+   */
+  spanName?: string | undefined;
   start: Date;
   end: Date;
 }
@@ -129,6 +153,9 @@ export const fetchSpanMetrics: (
   if (scope.primaryEntityId) {
     baseQuery.primaryEntityId = scope.primaryEntityId;
   }
+  if (scope.spanName) {
+    baseQuery.name = scope.spanName;
+  }
   if (scope.attributes && Object.keys(scope.attributes).length > 0) {
     baseQuery.attributes = scope.attributes;
   }
@@ -203,7 +230,7 @@ export const fetchSpanMetrics: (
       p95Series: p95Series,
     };
   } catch {
-    return empty;
+    return { ...empty, failed: true };
   }
 };
 
@@ -271,6 +298,8 @@ export const fetchMetricSeries: (
 export interface WebVital {
   key: string;
   label: string;
+  // What the vital measures (from WebVitalDefinitions).
+  description: string;
   value: number | null;
   unit: "ms" | "score";
   // Core Web Vitals thresholds (good < warn, poor >= danger).
@@ -314,6 +343,7 @@ export const fetchWebVitals: (data: {
         return {
           key: def.key,
           label: def.label,
+          description: def.description,
           value: value,
           unit: def.unit,
           thresholds: def.thresholds,
@@ -322,61 +352,6 @@ export const fetchWebVitals: (data: {
     ),
   );
   return results;
-};
-
-export const formatCompact: (n: number | null) => string = (
-  n: number | null,
-): string => {
-  if (n === null || !Number.isFinite(n)) {
-    return "—";
-  }
-  if (n < 1000) {
-    return String(Math.round(n));
-  }
-  if (n < 1_000_000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-  }
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-};
-
-export const formatPercent: (n: number | null) => string = (
-  n: number | null,
-): string => {
-  if (n === null || !Number.isFinite(n)) {
-    return "—";
-  }
-  return `${n.toFixed(1)}%`;
-};
-
-export const formatDurationMs: (ms: number | null) => string = (
-  ms: number | null,
-): string => {
-  if (ms === null || !Number.isFinite(ms)) {
-    return "—";
-  }
-  if (ms < 1) {
-    return `${(ms * 1000).toFixed(0)} µs`;
-  }
-  if (ms < 1000) {
-    return `${ms.toFixed(ms < 10 ? 1 : 0)} ms`;
-  }
-  return `${(ms / 1000).toFixed(2)} s`;
-};
-
-export const formatBytes: (bytes: number | null) => string = (
-  bytes: number | null,
-): string => {
-  if (bytes === null || !Number.isFinite(bytes)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 };
 
 /*
@@ -392,6 +367,11 @@ export interface LogSignalSummary {
   errorCount: number;
   countSeries: Array<TimePoint>;
   errorSeries: Array<TimePoint>;
+  /*
+   * The lookup failed (e.g. a 403 without log read access). The counts are
+   * then zero, which is unknown rather than none - a tile should say so.
+   */
+  failed: boolean;
 }
 
 export interface ExceptionSignalSummary {
@@ -399,6 +379,8 @@ export interface ExceptionSignalSummary {
   unhandledCount: number;
   unhandledSeries: Array<TimePoint>;
   handledSeries: Array<TimePoint>;
+  // As LogSignalSummary.failed.
+  failed: boolean;
 }
 
 export interface LogAndExceptionSignals {
@@ -409,7 +391,7 @@ export interface LogAndExceptionSignals {
 // Log severities that count as errors (matches the server's default set).
 const ERROR_LOG_SEVERITY_SET: Set<string> = new Set<string>(["Error", "Fatal"]);
 
-interface RawHistogramBucket {
+export interface RawHistogramBucket {
   time?: string;
   severity?: string;
   series?: string;
@@ -441,6 +423,68 @@ function toSortedSeries(seriesByTime: Map<number, number>): Array<TimePoint> {
     });
 }
 
+/*
+ * Fold the two histograms' buckets into per-pillar totals and series. A
+ * pillar whose request failed is passed as null and comes back zeroed with
+ * `failed` set, so a tile can say "could not load" instead of a confident 0.
+ * Exported for tests.
+ */
+export const summarizeLogAndExceptionBuckets: (
+  logBuckets: Array<RawHistogramBucket> | null,
+  exceptionBuckets: Array<RawHistogramBucket> | null,
+) => LogAndExceptionSignals = (
+  logBuckets: Array<RawHistogramBucket> | null,
+  exceptionBuckets: Array<RawHistogramBucket> | null,
+): LogAndExceptionSignals => {
+  const logCountByTime: Map<number, number> = new Map<number, number>();
+  const logErrorByTime: Map<number, number> = new Map<number, number>();
+  let logTotal: number = 0;
+  let logErrorCount: number = 0;
+
+  for (const bucket of logBuckets || []) {
+    const count: number = typeof bucket.count === "number" ? bucket.count : 0;
+    logTotal += count;
+    addPoint(logCountByTime, bucket.time, count);
+    if (ERROR_LOG_SEVERITY_SET.has(bucket.severity || "")) {
+      logErrorCount += count;
+      addPoint(logErrorByTime, bucket.time, count);
+    }
+  }
+
+  const unhandledByTime: Map<number, number> = new Map<number, number>();
+  const handledByTime: Map<number, number> = new Map<number, number>();
+  let exceptionTotal: number = 0;
+  let unhandledCount: number = 0;
+
+  for (const bucket of exceptionBuckets || []) {
+    const count: number = typeof bucket.count === "number" ? bucket.count : 0;
+    exceptionTotal += count;
+    if (bucket.series === "unhandled") {
+      unhandledCount += count;
+      addPoint(unhandledByTime, bucket.time, count);
+    } else {
+      addPoint(handledByTime, bucket.time, count);
+    }
+  }
+
+  return {
+    logs: {
+      total: logTotal,
+      errorCount: logErrorCount,
+      countSeries: toSortedSeries(logCountByTime),
+      errorSeries: toSortedSeries(logErrorByTime),
+      failed: logBuckets === null,
+    },
+    exceptions: {
+      total: exceptionTotal,
+      unhandledCount,
+      unhandledSeries: toSortedSeries(unhandledByTime),
+      handledSeries: toSortedSeries(handledByTime),
+      failed: exceptionBuckets === null,
+    },
+  };
+};
+
 export const fetchLogAndExceptionSignals: (scope: {
   primaryEntityId: ObjectID;
   start: Date;
@@ -450,16 +494,6 @@ export const fetchLogAndExceptionSignals: (scope: {
   start: Date;
   end: Date;
 }): Promise<LogAndExceptionSignals> => {
-  const empty: LogAndExceptionSignals = {
-    logs: { total: 0, errorCount: 0, countSeries: [], errorSeries: [] },
-    exceptions: {
-      total: 0,
-      unhandledCount: 0,
-      unhandledSeries: [],
-      handledSeries: [],
-    },
-  };
-
   const body: JSONObject = {
     startTime: scope.start.toISOString(),
     endTime: scope.end.toISOString(),
@@ -484,70 +518,107 @@ export const fetchLogAndExceptionSignals: (scope: {
     return Array.isArray(buckets) ? (buckets as Array<RawHistogramBucket>) : [];
   };
 
-  try {
-    const [logBuckets, exceptionBuckets]: [
-      Array<RawHistogramBucket>,
-      Array<RawHistogramBucket>,
-    ] = await Promise.all([
-      postHistogram("/telemetry/logs/histogram").catch(
-        (): Array<RawHistogramBucket> => {
-          return [];
-        },
+  // Overview signals are best-effort — a failure never breaks the page.
+  const [logBuckets, exceptionBuckets]: [
+    Array<RawHistogramBucket> | null,
+    Array<RawHistogramBucket> | null,
+  ] = await Promise.all([
+    postHistogram("/telemetry/logs/histogram").catch((): null => {
+      return null;
+    }),
+    postHistogram("/telemetry/exceptions/histogram").catch((): null => {
+      return null;
+    }),
+  ]);
+
+  return summarizeLogAndExceptionBuckets(logBuckets, exceptionBuckets);
+};
+
+/*
+ * Whole-range statistics for the spans with one name - e.g. every
+ * "documentLoad" span, one per full page load. Unlike SpanMetrics'
+ * p95DurationMs (a mean of per-interval p95s), these percentiles are over
+ * every matching span in the range at once.
+ */
+export interface SpanNameStats {
+  count: number;
+  errorCount: number;
+  avgDurationMs: number;
+  p50DurationMs: number;
+  p95DurationMs: number;
+  p99DurationMs: number;
+}
+
+/*
+ * The first row of a /telemetry/traces/analytics table response, as
+ * SpanNameStats. No row means no matching spans: zero, not unknown.
+ * Exported for tests.
+ */
+export const spanNameStatsFromTableRows: (rows: unknown) => SpanNameStats = (
+  rows: unknown,
+): SpanNameStats => {
+  const first: JSONObject | undefined =
+    Array.isArray(rows) &&
+    rows.length > 0 &&
+    rows[0] &&
+    typeof rows[0] === "object"
+      ? (rows[0] as JSONObject)
+      : undefined;
+
+  const read: (key: string) => number = (key: string): number => {
+    const value: number = Number(first?.[key]);
+    return Number.isFinite(value) ? value : 0;
+  };
+
+  return {
+    count: read("count"),
+    errorCount: read("errorCount"),
+    avgDurationMs: read("avgDurationMs"),
+    p50DurationMs: read("p50DurationMs"),
+    p95DurationMs: read("p95DurationMs"),
+    p99DurationMs: read("p99DurationMs"),
+  };
+};
+
+/*
+ * One aggregated row for `spanName` under `primaryEntityId` over the range.
+ * Rejects when the request fails, so the caller can tell "could not load"
+ * from "none".
+ */
+export const fetchSpanNameStats: (scope: {
+  primaryEntityId: ObjectID;
+  spanName: string;
+  start: Date;
+  end: Date;
+}) => Promise<SpanNameStats> = async (scope: {
+  primaryEntityId: ObjectID;
+  spanName: string;
+  start: Date;
+  end: Date;
+}): Promise<SpanNameStats> => {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        "/telemetry/traces/analytics",
       ),
-      postHistogram("/telemetry/exceptions/histogram").catch(
-        (): Array<RawHistogramBucket> => {
-          return [];
-        },
-      ),
-    ]);
-
-    const logCountByTime: Map<number, number> = new Map<number, number>();
-    const logErrorByTime: Map<number, number> = new Map<number, number>();
-    let logTotal: number = 0;
-    let logErrorCount: number = 0;
-
-    for (const bucket of logBuckets) {
-      const count: number = typeof bucket.count === "number" ? bucket.count : 0;
-      logTotal += count;
-      addPoint(logCountByTime, bucket.time, count);
-      if (ERROR_LOG_SEVERITY_SET.has(bucket.severity || "")) {
-        logErrorCount += count;
-        addPoint(logErrorByTime, bucket.time, count);
-      }
-    }
-
-    const unhandledByTime: Map<number, number> = new Map<number, number>();
-    const handledByTime: Map<number, number> = new Map<number, number>();
-    let exceptionTotal: number = 0;
-    let unhandledCount: number = 0;
-
-    for (const bucket of exceptionBuckets) {
-      const count: number = typeof bucket.count === "number" ? bucket.count : 0;
-      exceptionTotal += count;
-      if (bucket.series === "unhandled") {
-        unhandledCount += count;
-        addPoint(unhandledByTime, bucket.time, count);
-      } else {
-        addPoint(handledByTime, bucket.time, count);
-      }
-    }
-
-    return {
-      logs: {
-        total: logTotal,
-        errorCount: logErrorCount,
-        countSeries: toSortedSeries(logCountByTime),
-        errorSeries: toSortedSeries(logErrorByTime),
+      data: {
+        startTime: scope.start.toISOString(),
+        endTime: scope.end.toISOString(),
+        chartType: "table",
+        metric: "count",
+        // A table needs a dimension; the name filter leaves one row.
+        groupBy: ["name"],
+        spanNames: [scope.spanName],
+        serviceIds: [scope.primaryEntityId.toString()],
+        limit: 1,
       },
-      exceptions: {
-        total: exceptionTotal,
-        unhandledCount,
-        unhandledSeries: toSortedSeries(unhandledByTime),
-        handledSeries: toSortedSeries(handledByTime),
-      },
-    };
-  } catch {
-    // Overview signals are best-effort — never break the page.
-    return empty;
+      headers: ModelAPI.getCommonHeaders(),
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
   }
+
+  return spanNameStatsFromTableRows(response.data["data"]);
 };

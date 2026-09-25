@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
 import {
   fetchAllNetworkSiteTypeOptions,
@@ -688,6 +689,7 @@ const NetworkSites: FunctionComponent<
               },
             },
             title: "Status",
+            headerTooltip: NETWORK_SITE_METRIC_DESCRIPTIONS.siteStatus,
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {

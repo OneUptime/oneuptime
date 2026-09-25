@@ -13,6 +13,7 @@ import RumSessionReplayView from "../../../Models/DatabaseModels/RumSessionRepla
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import Permission from "../../../Types/Permission";
 import SessionReplayCaptureTrigger from "../../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../../Types/Rum/SessionReplayConsentMode";
@@ -159,6 +160,8 @@ describe("RumApplication session replay configuration", () => {
       "sessionReplayMonthlyBudgetInGB",
       "sessionReplayLastChunkReceivedAt",
       "sessionReplayBudgetExceededAt",
+      "sessionReplayTracePropagationOrigins",
+      "sessionReplaySameOriginTracePropagation",
     ];
 
     for (const columnName of expectedColumns) {
@@ -264,6 +267,120 @@ describe("RumApplication session replay configuration", () => {
     expect(accessControl["sessionReplayMaskingMode"]?.update || []).toContain(
       Permission.EditRumApplication,
     );
+  });
+
+  /*
+   * Same-origin trace propagation: the recorder adds traceparent and a
+   * tracestate member carrying the session id to requests to the page's own
+   * origin. On by default (for existing applications too, via the column
+   * default), so the switch is the way back without a customer redeploy.
+   * Turning it on links recordings to backend telemetry that may name the
+   * user and sends the session id past the customer's backend, which is the
+   * identity switch's reason for its narrower ACL - so it gets that ACL.
+   */
+  it("ships same-origin trace propagation on by default, as a required boolean", () => {
+    const column: TableColumnMetadata = getColumn(
+      "sessionReplaySameOriginTracePropagation",
+    );
+
+    expect(column.defaultValue).toBe(true);
+    expect(column.required).toBe(true);
+    expect(column.isDefaultValueColumn).toBe(true);
+    expect(column.type).toBe(TableColumnType.Boolean);
+    expect(column.title).toBe("Same-origin trace propagation");
+
+    /* The description names what it sends, where, and what that costs. */
+    for (const phrase of [
+      "traceparent",
+      "tracestate",
+      "session id",
+      "own origin",
+      "sampled",
+      "third parties",
+    ]) {
+      expect({ phrase, found: column.description?.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+  });
+
+  /*
+   * TraceIdRatioBased hashes the trace id differently in each language SDK
+   * (and the OTel spec recommends it for root spans only), so a ratio
+   * delegate for sampled remote parents on every service of a polyglot
+   * backend drops spans from traces the first hop kept. The description
+   * used to recommend the delegate without saying where it goes.
+   */
+  it("scopes the remote-parent ratio delegate in the description to the first hop", () => {
+    const description: string =
+      getColumn("sessionReplaySameOriginTracePropagation").description || "";
+
+    for (const phrase of [
+      "remoteParentSampled ratio delegate only on the service(s) your pages call directly",
+      "never on the services they call",
+      "ratio decisions differ between language SDKs",
+      "tail sampling in an OpenTelemetry Collector",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+
+    expect(description).not.toContain(
+      "(set a remoteParentSampled delegate to keep ratio sampling)",
+    );
+  });
+
+  it("gives same-origin trace propagation the identity switch's narrower create and update ACL", () => {
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+    const sameOrigin: ColumnAccessControl | undefined =
+      accessControl["sessionReplaySameOriginTracePropagation"];
+    const identity: ColumnAccessControl | undefined =
+      accessControl["sessionReplayCaptureUserIdentity"];
+
+    expect(sameOrigin).toBeDefined();
+    expect([...(sameOrigin?.create || [])].sort()).toEqual(
+      [...(identity?.create || [])].sort(),
+    );
+    expect([...(sameOrigin?.update || [])].sort()).toEqual(
+      [...(identity?.update || [])].sort(),
+    );
+
+    for (const permission of [
+      Permission.ProjectMember,
+      Permission.SettingsMember,
+    ]) {
+      expect(sameOrigin?.create || []).not.toContain(permission);
+      expect(sameOrigin?.update || []).not.toContain(permission);
+    }
+
+    expect(sameOrigin?.update || []).toContain(Permission.ProjectAdmin);
+    expect(sameOrigin?.update || []).toContain(Permission.EditRumApplication);
+
+    /* Readable by everyone who can read the rest of the replay policy. */
+    expect([...(sameOrigin?.read || [])].sort()).toEqual(
+      [
+        ...(accessControl["sessionReplayTracePropagationOrigins"]?.read || []),
+      ].sort(),
+    );
+  });
+
+  /*
+   * The origins list used to promise "Empty means never inject". With
+   * same-origin propagation on by default that is false for the page's own
+   * origin, so the list is described as the CROSS-origin one.
+   */
+  it("describes the trace propagation origins as the cross-origin list", () => {
+    const description: string =
+      getColumn("sessionReplayTracePropagationOrigins").description || "";
+
+    expect(description).not.toContain("Empty means never inject");
+    expect(description).toContain("OTHER origins");
+    expect(description).toContain("Same-origin trace propagation");
+    expect(description).toContain("never the session id");
   });
 
   it("never exposes the ingest diagnostics as writable", () => {

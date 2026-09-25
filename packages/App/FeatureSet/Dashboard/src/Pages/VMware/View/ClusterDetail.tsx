@@ -37,6 +37,7 @@ import {
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const VMwareVCenterClusterDetail: FunctionComponent<
   PageComponentProps
@@ -351,6 +352,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
           : 0;
       summaryFields.push({
         title: "Hosts",
+        description: VMWARE_METRIC_DESCRIPTIONS.clusterHosts,
         value:
           notEffective > 0 ? (
             <StatusBadge
@@ -370,6 +372,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     if (vmCount !== null) {
       summaryFields.push({
         title: "Virtual Machines",
+        description: VMWARE_METRIC_DESCRIPTIONS.clusterVirtualMachines,
         value:
           poweredOnVmCount !== null
             ? `${poweredOnVmCount} powered on of ${vmCount}`
@@ -382,6 +385,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       summaryFields.push({
         title: "VM Templates",
         value: String(templateCount),
+        description: VMWARE_METRIC_DESCRIPTIONS.clusterTemplates,
       });
     }
 
@@ -391,6 +395,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       summaryFields.push({
         title: "CPU (Effective / Total)",
         value: `${formatMhz(cpuEffective)} / ${formatMhz(cpuLimit)}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.clusterCpu,
       });
     }
 
@@ -400,6 +405,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       summaryFields.push({
         title: "Memory (Effective / Total)",
         value: `${formatBytes(memoryEffective)} / ${formatBytes(memoryLimit)}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.clusterMemory,
       });
     }
 

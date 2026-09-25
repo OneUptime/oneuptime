@@ -19,6 +19,11 @@ import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import GoldenMetricTile, {
+  tileColorClasses,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -128,101 +133,17 @@ const formatMemoryBytes: (bytes: number | null | undefined) => string = (
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 };
 
-interface MetricTileProps {
-  title: string;
-  icon: IconProp;
-  iconColor: "blue" | "violet" | "amber" | "emerald" | "slate";
-  value: string;
-  sublabel?: string | undefined;
-  percent?: number | null | undefined;
-  thresholds?: { warn: number; danger: number } | undefined;
-}
-
-const colorClasses: Record<
-  MetricTileProps["iconColor"],
-  { bg: string; ring: string; text: string }
-> = {
-  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
-  violet: {
-    bg: "bg-violet-50",
-    ring: "ring-violet-200",
-    text: "text-violet-600",
-  },
-  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
-  emerald: {
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-    text: "text-emerald-600",
-  },
-  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
-};
-
-const MetricTile: FunctionComponent<MetricTileProps> = (
-  props: MetricTileProps,
-): ReactElement => {
-  const colors: { bg: string; ring: string; text: string } =
-    colorClasses[props.iconColor];
-
-  const barColor: string = (() => {
-    if (props.percent === null || props.percent === undefined) {
-      return "bg-gray-300";
-    }
-    const t: { warn: number; danger: number } = props.thresholds || {
-      warn: 70,
-      danger: 90,
-    };
-    if (props.percent >= t.danger) {
-      return "bg-red-500";
-    }
-    if (props.percent >= t.warn) {
-      return "bg-amber-500";
-    }
-    return "bg-emerald-500";
-  })();
-
-  const safePercent: number =
-    props.percent === null || props.percent === undefined
-      ? 0
-      : Math.min(100, Math.max(0, props.percent));
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
-        <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-        >
-          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-        </div>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
-      </div>
-      {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
-      ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
-      )}
-      {props.percent !== undefined && props.percent !== null && (
-        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            className={`${barColor} h-1.5 rounded-full transition-all`}
-            style={{ width: `${safePercent}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
 /*
  * Tile values use a short recent-window mean regardless of how wide
  * the chart window is — "what's the host doing right now" is what
  * the numbers in the tiles answer, even when the chart is showing a
  * month. `meanFromBuckets` falls back to the full window if no
  * bucket is recent enough so tiles never go blank on slow hosts.
+ *
+ * It keeps buckets that START inside the window, and past 12 hours a
+ * bucket is 15 minutes or wider, so on those ranges the fallback is the
+ * usual case, not the exception. HostMetricDescriptions says so in the
+ * CPU and Memory tooltips; change the words if this changes.
  */
 const TILE_WINDOW_MINUTES: number = 5;
 
@@ -1348,23 +1269,25 @@ const HostOverview: FunctionComponent<
 
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricTile
+        <GoldenMetricTile
           title="CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
           sublabel={cpuSublabel}
           percent={s.cpuPercent}
+          description={HOST_METRIC_DESCRIPTIONS.cpu}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.memoryPercent)}
           sublabel={memSublabel}
           percent={s.memoryPercent}
+          description={HOST_METRIC_DESCRIPTIONS.memory}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Filesystem"
           icon={IconProp.Cube}
           iconColor="amber"
@@ -1372,8 +1295,9 @@ const HostOverview: FunctionComponent<
           sublabel="largest mount"
           percent={s.filesystemPercent}
           thresholds={{ warn: 75, danger: 90 }}
+          description={HOST_METRIC_DESCRIPTIONS.filesystem}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Load avg (1m)"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
@@ -1381,8 +1305,9 @@ const HostOverview: FunctionComponent<
           sublabel={loadSublabel}
           percent={loadSaturationPct}
           thresholds={{ warn: 70, danger: 100 }}
+          description={HOST_METRIC_DESCRIPTIONS.loadAverage}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Processes"
           icon={IconProp.List}
           iconColor="slate"
@@ -1396,6 +1321,7 @@ const HostOverview: FunctionComponent<
             }
             return "running";
           })()}
+          description={HOST_METRIC_DESCRIPTIONS.processes}
         />
       </div>
     );
@@ -1515,13 +1441,25 @@ const HostOverview: FunctionComponent<
                       scope="col"
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
-                      Used / Total
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Used / Total
+                        <InfoTooltip
+                          label="Used / Total"
+                          text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}
+                        />
+                      </span>
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
                     >
-                      Utilization
+                      <span className="inline-flex items-center gap-1">
+                        Utilization
+                        <InfoTooltip
+                          label="Utilization"
+                          text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}
+                        />
+                      </span>
                     </th>
                   </tr>
                 </thead>
@@ -1595,6 +1533,8 @@ const HostOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    // What the chart plots, shown in an (i) tooltip beside the title.
+    description?: string;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1604,17 +1544,22 @@ const HostOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    // What the chart plots, shown in an (i) tooltip beside the title.
+    description?: string;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
-      colorClasses[params.iconColor];
+      tileColorClasses[params.iconColor];
 
     if (!chartWindow) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {params.title}
+              </span>
+              <InfoTooltip label={params.title} text={params.description} />
+            </div>
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
             >
@@ -1655,9 +1600,12 @@ const HostOverview: FunctionComponent<
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {params.title}
+              </span>
+              <InfoTooltip label={params.title} text={params.description} />
+            </div>
             {params.headerExtra ?? null}
           </div>
           <div
@@ -1768,6 +1716,7 @@ const HostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            description: HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
         <div className="mb-6">
@@ -1787,18 +1736,21 @@ const HostOverview: FunctionComponent<
               icon: IconProp.ChartBar,
               iconColor: "blue",
               data: cpuSeries,
+              description: HOST_METRIC_DESCRIPTIONS.cpuChart,
             })}
             {renderChartCard({
               title: "Memory",
               icon: IconProp.SquareStack,
               iconColor: "violet",
               data: memorySeries,
+              description: HOST_METRIC_DESCRIPTIONS.memoryChart,
             })}
             {renderChartCard({
               title: "Disk space",
               icon: IconProp.Cube,
               iconColor: "amber",
               data: diskSeries,
+              description: HOST_METRIC_DESCRIPTIONS.diskSpaceChart,
             })}
             {renderChartCard({
               title: "Network",
@@ -1807,6 +1759,7 @@ const HostOverview: FunctionComponent<
               data: networkSeries,
               yAxis: networkYAxis,
               showLegend: networkSeries.length > 1,
+              description: HOST_METRIC_DESCRIPTIONS.networkChart,
             })}
           </div>
         </div>
@@ -2014,6 +1967,8 @@ const HostOverview: FunctionComponent<
                       {
                         key: "processCount",
                         title: "Process Count (cached)",
+                        description:
+                          HOST_METRIC_DESCRIPTIONS.processCountCached,
                         fieldType: FieldType.Number,
                         showIf: (item: Host): boolean => {
                           return (

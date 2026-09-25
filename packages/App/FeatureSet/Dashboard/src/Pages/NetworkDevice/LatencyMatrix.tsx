@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import LatencyMatrixGrid from "../../Components/NetworkDevice/LatencyMatrixGrid";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -14,6 +15,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -27,6 +29,8 @@ import React, {
 } from "react";
 
 const EMPTY_MATRIX: LatencyMatrix = { monitors: [], probes: [], cells: {} };
+
+const MATRIX_TITLE: string = "Probe Latency Matrix";
 
 // Narrow an untyped axis payload into LatencyMatrixAxisItem[], dropping bad rows.
 const parseAxis: (raw: unknown) => Array<LatencyMatrixAxisItem> = (
@@ -146,7 +150,22 @@ const NetworkDeviceLatencyMatrix: FunctionComponent<
   return (
     <Fragment>
       <Card
-        title="Probe Latency Matrix"
+        /*
+         * The cells are bare "N ms" with no unit story of their own: a
+         * ping's round trip in one row, a page's response time in the
+         * next. The (i) says which check each cell is, what Offline, the
+         * dash and a faded cell mean, and why a global probe never gets a
+         * column (the endpoint lists the project's own probes only).
+         */
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            {MATRIX_TITLE}
+            <InfoTooltip
+              label={MATRIX_TITLE}
+              text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyMatrix}
+            />
+          </span>
+        }
         description="Latest response time each probe measured for every target — spot slow paths at a glance."
         buttons={[
           {

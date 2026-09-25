@@ -22,7 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
@@ -183,11 +186,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   };
 
   // Build overview summary fields from statefulset object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Name", value: statefulSetName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: statefulSetName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (objectData) {
     summaryFields.push(
@@ -205,10 +207,14 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       },
       {
         title: "Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetReplicas,
         value: String(objectData.spec.replicas ?? "N/A"),
       },
       {
         title: "Ready Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetReadyReplicas,
         value: (
           <StatusBadge
             text={`${objectData.status.readyReplicas ?? 0}/${objectData.spec.replicas ?? 0}`}
@@ -275,7 +281,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       children: (
         <Card
           title={`StatefulSet Metrics: ${statefulSetName}`}
-          description="CPU and memory usage for pods in this statefulset over the last 6 hours."
+          description="CPU and memory usage for pods in this statefulset over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

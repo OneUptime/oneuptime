@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 const ProxmoxClusterGuests: FunctionComponent<
   PageComponentProps
@@ -76,6 +77,12 @@ const ProxmoxClusterGuests: FunctionComponent<
       resources={resources}
       showGroupColumn={true}
       groupColumnTitle="Node"
+      builtInColumnDescriptions={{
+        status: PROXMOX_METRIC_DESCRIPTIONS.guestsTableStatus,
+        cpu: PROXMOX_METRIC_DESCRIPTIONS.guestsTableCpu,
+        memory: PROXMOX_METRIC_DESCRIPTIONS.guestsTableMemory,
+        age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime,
+      }}
       tableIdPrefix="proxmox"
       emptyMessage="No guests reported yet. Make sure the Proxmox agent is sending metrics."
       columns={[
@@ -90,6 +97,7 @@ const ProxmoxClusterGuests: FunctionComponent<
         {
           title: "HA State",
           key: "haState",
+          description: PROXMOX_METRIC_DESCRIPTIONS.guestsTableHaState,
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["haState"] || "-";
           },
@@ -104,6 +112,7 @@ const ProxmoxClusterGuests: FunctionComponent<
            */
           title: "Backup",
           key: "backedUp",
+          description: PROXMOX_METRIC_DESCRIPTIONS.guestsTableBackup,
           getValue: (resource: InfrastructureResource): string => {
             const backedUp: string =
               resource.additionalAttributes["backedUp"] || "";

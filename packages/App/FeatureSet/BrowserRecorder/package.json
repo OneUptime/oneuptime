@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/browser-recorder",
-  "version": "14.0.2",
+  "version": "14.0.3",
   "private": false,
   "description": "OneUptime session replay browser recorder. Shipped to third-party origins as an IIFE bundle.",
   "repository": {
@@ -35,6 +35,9 @@
     "rrweb": "2.1.1"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/instrumentation-fetch": "^0.220.0",
+    "@opentelemetry/sdk-trace-web": "~2.9.0",
     "@types/jest": "^29.5.11",
     "@types/node": "^26.1.1",
     "esbuild": "^0.28.1",

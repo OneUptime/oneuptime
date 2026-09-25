@@ -88,6 +88,7 @@ import {
   ReplayBackendSignalsSnapshot,
   ReplayBackendSignalsStore,
   makeIdleBackendSignalsState,
+  recordingTraceIdsFromSignals,
 } from "./Rail/ReplayBackendSignals";
 import {
   REPLAY_RAIL_TAB_IDS,
@@ -98,6 +99,10 @@ import {
 import { isSignalInTab } from "./Rail/ReplayRailFilters";
 import { fromTimelineEvents, mergeSignals } from "./Rail/ReplaySignals";
 import ReplayPinControl from "./ReplayPinControl";
+import {
+  ReplayScreenshot,
+  captureReplayerScreenshot,
+} from "./ReplayScreenshot";
 import ReplayCorrelationPanel, {
   ReplayRailCounts,
 } from "./ReplayCorrelationPanel";
@@ -1242,6 +1247,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       startTimeUnixMs: manifest.startTimeUnixMs,
       endTimeUnixMs: manifest.endTimeUnixMs,
       isFinalized: manifest.isFinalized,
+      /* Still recording: new ids wait for the live refresh, not a debounce. */
+      isRecordingLive: isManifestRecordingLive(manifest),
+      /* Header ids: backend rows of these traces join the rail by trace id. */
+      traceIds: manifest.details.traceIds,
     });
 
     setBackendStore(store);
@@ -1477,6 +1486,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         backendStore?.setSessionBounds({
           endTimeUnixMs: refreshed.endTimeUnixMs,
           isFinalized: refreshed.isFinalized,
+          isRecordingLive: isManifestRecordingLive(refreshed),
+          traceIds: refreshed.details.traceIds,
         });
       } catch {
         /* A missed poll is retried on the next tick; the footage is unchanged. */
@@ -1640,6 +1651,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const allSignals: Array<ReplaySignal> = useMemo(() => {
     return mergeSignals(recordingSignals, telemetrySignals);
   }, [recordingSignals, telemetrySignals]);
+
+  /*
+   * The trace ids of the requests decoded so far join the backend reads:
+   * the header only carries the ids of a few chunks, and a cross-origin
+   * API that receives a traceparent but no tracestate is matched by trace
+   * id alone. The store keeps every id it was ever given (a tab switch
+   * hands over another tab's rows), ignores ones it knows, and re-reads
+   * the loaded tabs once when the set grows.
+   */
+  useEffect(() => {
+    if (!backendStore) {
+      return;
+    }
+
+    backendStore.setRecordingTraceIds(
+      recordingTraceIdsFromSignals(recordingSignals),
+    );
+  }, [backendStore, recordingSignals]);
 
   const bands: Array<ReplayTrackBand> = useMemo(() => {
     return buildTrackBands({
@@ -2586,6 +2615,32 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }, [sessionId, rumApplicationIdString]);
 
+  /*
+   * The paused frame as a PNG, for the stage's screenshot dock. Read
+   * through refs at click time: the Replayer is replaced on a seek across
+   * anchors or a tab switch, and the playhead the file is named after is
+   * the engine's live one, never a rendered snapshot's.
+   */
+  const captureFrame: () => Promise<ReplayScreenshot> =
+    useCallback((): Promise<ReplayScreenshot> => {
+      const currentManifest: SessionReplayManifest | null = manifestRef.current;
+      const tabs: Array<SessionReplayManifestTab> = currentManifest?.tabs ?? [];
+      const tabIndex: number = tabs.findIndex(
+        (tab: SessionReplayManifestTab): boolean => {
+          return tab.tabId === activeTabIdRef.current;
+        },
+      );
+
+      return captureReplayerScreenshot({
+        replayer: replayerRef.current,
+        sessionId: currentManifest?.sessionId || sessionId,
+        offsetMs: engineRef.current?.getSnapshot().currentTimeMs ?? 0,
+        /* "Tab N" is the header's own label for the same tab. */
+        tabLabel:
+          tabs.length > 1 && tabIndex >= 0 ? `Tab ${tabIndex + 1}` : null,
+      });
+    }, [sessionId]);
+
   const backHref: string = useMemo((): string => {
     const stored: string | null = readReplayListUrl();
 
@@ -2907,6 +2962,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           loaderRef.current?.getExtractedChunkIndexes().length ?? null,
         totalChunkCount: chunks.length > 0 ? chunks.length : null,
         recorderCapabilities: manifest.recorderCapabilities,
+        /* React Native links only through onSessionChange; the empty tabs say so. */
+        isMobileReplay: isMobileSessionReplay(manifest.details.recorderKind),
         onShowOnStage: handleShowOnStage,
         onCopyLink: copySignalLink,
         onTelemetrySignalsChange: handleTelemetrySignalsChange,
@@ -3086,6 +3143,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   isLive: isLive,
                   nextUserSession: nextUserSession,
                   onOpenNextUserSession: openUserSession,
+                  onCaptureFrame: captureFrame,
+                  canCaptureFrame:
+                    isPlayable && engine !== null && isReplayDocumentReady,
                   children: (
                     <Fragment>
                       {isPlayable && engine && (

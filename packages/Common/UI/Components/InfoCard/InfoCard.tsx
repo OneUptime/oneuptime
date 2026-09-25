@@ -20,6 +20,8 @@ export interface ComponentProps {
   isSelected?: boolean | undefined;
   // Announced in place of the title when the card is clickable.
   ariaLabel?: string | undefined;
+  // What the value means, shown in an (i) tooltip beside the title.
+  tooltip?: string | undefined;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
@@ -36,6 +38,50 @@ const InfoCard: FunctionComponent<ComponentProps> = (
     isClickable && props.isSelected
       ? "border-indigo-500 ring-1 ring-indigo-500"
       : "border-gray-200";
+
+  /*
+   * A clickable card with a tooltip cannot stay a role="button" div: the (i)
+   * is a button of its own, and a button's children are presentational, so
+   * screen readers would never reach it. The card becomes a plain container
+   * with a real button laid over it, and the (i) sits above that button
+   * (FieldLabel lifts it with relative z-10). Cards without a tooltip keep
+   * the markup below, unchanged.
+   */
+  if (isClickable && props.tooltip?.trim()) {
+    return (
+      <div
+        className={`relative rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${props.className || ""}`}
+      >
+        <button
+          type="button"
+          onClick={props.onClick}
+          aria-pressed={
+            props.isSelected !== undefined
+              ? Boolean(props.isSelected)
+              : undefined
+          }
+          /*
+           * Named like the old role="button" card, which read its title and
+           * value - unless the value is an element, which has no text to
+           * borrow here.
+           */
+          aria-label={
+            props.ariaLabel ||
+            (typeof props.value === "string"
+              ? `${props.title} ${props.value}`
+              : props.title)
+          }
+          className="absolute inset-0 rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        />
+        <div className="mb-2">
+          <FieldLabelElement title={props.title} tooltip={props.tooltip} />
+        </div>
+        <div className={props.textClassName || "text-gray-900"}>
+          {props.value}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -75,7 +121,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
       className={`rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" : ""} ${props.className || ""}`}
     >
       <div className="mb-2">
-        <FieldLabelElement title={props.title} />
+        <FieldLabelElement title={props.title} tooltip={props.tooltip} />
       </div>
       <div className={props.textClassName || "text-gray-900"}>
         {props.value}

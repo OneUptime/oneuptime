@@ -70,6 +70,8 @@ export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> = {
   [AlertFeedEventType.OnCallNotification]: IconProp.Alert,
   [AlertFeedEventType.AddedToEpisode]: IconProp.Circle,
   [AlertFeedEventType.RemovedFromEpisode]: IconProp.Circle,
+  [AlertFeedEventType.LinkedToIncident]: IconProp.Link,
+  [AlertFeedEventType.UnlinkedFromIncident]: IconProp.LinkSlash,
   [AlertFeedEventType.LabelRuleExecuted]: IconProp.Tag,
   [AlertFeedEventType.OwnerRuleExecuted]: IconProp.User,
   [AlertFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,

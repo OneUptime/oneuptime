@@ -15,11 +15,13 @@ import SiteUptimeUtil, {
   SiteUptimeMeasurement,
 } from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import fetchSiteMaintenanceWindows from "./SiteMaintenanceWindows";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkSiteMetricDescriptions";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -32,6 +34,31 @@ import React, {
 export interface ComponentProps {
   modelId: ObjectID;
 }
+
+export interface SiteHeroTileTitleProps {
+  title: string;
+  // What the tile's value means, in the (i) beside the title.
+  description?: string | undefined;
+}
+
+/*
+ * A hero tile's title, with the (i) that says what the value under it means
+ * — which devices the health is rolled up from, what counts as downtime, and
+ * that Devices and Endpoints are this site's own while Health covers
+ * everything beneath it. Site Type only names something, so it passes no
+ * description and gets no (i). The loading skeleton draws no titles, so this
+ * is the only branch that needs one.
+ */
+export const SiteHeroTileTitle: FunctionComponent<SiteHeroTileTitleProps> = (
+  props: SiteHeroTileTitleProps,
+): ReactElement => {
+  return (
+    <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
+      <span>{props.title}</span>
+      <InfoTooltip label={props.title} text={props.description} />
+    </div>
+  );
+};
 
 const UPTIME_WINDOW_DAYS: number = 30;
 const DAILY_UPTIME_WINDOW_DAYS: number = 1;
@@ -290,7 +317,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
     >
       <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-7">
         <div>
-          <div className="text-sm font-medium text-gray-500">Health</div>
+          <SiteHeroTileTitle
+            title="Health"
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.health}
+          />
           <div className="mt-1.5">
             {data.site?.currentMonitorStatus?.name ? (
               <Pill
@@ -328,9 +358,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">
-            Uptime ({DAILY_UPTIME_WINDOW_DAYS * 24}h)
-          </div>
+          <SiteHeroTileTitle
+            title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.uptime24h}
+          />
           <div
             className="mt-1.5 text-2xl font-semibold text-gray-900"
             data-testid="site-hero-daily-uptime"
@@ -341,9 +372,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">
-            Uptime ({UPTIME_WINDOW_DAYS}d)
-          </div>
+          <SiteHeroTileTitle
+            title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.uptime30d}
+          />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {formatUptimePercent(data.uptimePercent)}
           </div>
@@ -353,7 +385,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Devices</div>
+          <SiteHeroTileTitle
+            title="Devices"
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.devices}
+          />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {data.devicesTotal}
           </div>
@@ -377,21 +412,27 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Child Sites</div>
+          <SiteHeroTileTitle
+            title="Child Sites"
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.childSites}
+          />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {data.childSiteCount}
           </div>
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Endpoints</div>
+          <SiteHeroTileTitle
+            title="Endpoints"
+            description={NETWORK_SITE_METRIC_DESCRIPTIONS.endpoints}
+          />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {data.endpointCount}
           </div>
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Site Type</div>
+          <SiteHeroTileTitle title="Site Type" />
           <div className="mt-1.5 text-sm text-gray-900">
             {data.site?.siteType?.toString() || (
               <span className="text-gray-400">—</span>

@@ -62,6 +62,7 @@ import {
   SERVICE_LANGUAGE_DISPLAY_NAMES,
   ServiceLanguage,
 } from "../../../Components/TelemetryResource/serviceGoldenMetrics";
+import { SERVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -307,6 +308,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       loading: metricsLoading,
       sublabel: "spans, selected range",
       to: populate(PageMap.SERVICE_VIEW_TRACES),
+      description: SERVICE_METRIC_DESCRIPTIONS.requests,
     },
     {
       title: "Error rate",
@@ -317,6 +319,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sublabel: "of spans errored",
       percent: m?.errorRatePercent,
       thresholds: { warn: 1, danger: 5 },
+      description: SERVICE_METRIC_DESCRIPTIONS.errorRate,
     },
     {
       title: "Latency (p95)",
@@ -325,6 +328,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       iconColor: "amber",
       loading: metricsLoading,
       sublabel: "span duration",
+      description: SERVICE_METRIC_DESCRIPTIONS.latencyP95,
     },
   ];
 
@@ -350,6 +354,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       loading: metricsLoading,
       sublabel: firstRuntime.def.sublabel,
       percent: firstRuntime.def.unit === "percent" ? tileValue : undefined,
+      description: firstRuntime.def.description,
     });
   } else {
     tiles.push({
@@ -358,6 +363,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       icon: IconProp.Code,
       iconColor: "slate",
       sublabel: "detected from telemetry",
+      description: SERVICE_METRIC_DESCRIPTIONS.technology,
     });
   }
 
@@ -380,6 +386,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         syncId={syncId}
         showLegend={true}
         loading={metricsLoading}
+        description={SERVICE_METRIC_DESCRIPTIONS.requestsChart}
       />
       <ChartCard
         title="Latency (p95)"
@@ -397,6 +404,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           return formatDurationMs(n);
         }}
         loading={metricsLoading}
+        description={SERVICE_METRIC_DESCRIPTIONS.latencyP95Chart}
       />
       <ChartCard
         title="Logs"
@@ -419,6 +427,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         syncId={syncId}
         showLegend={true}
         loading={metricsLoading}
+        description={SERVICE_METRIC_DESCRIPTIONS.logsChart}
       />
       <ChartCard
         title="Exceptions"
@@ -441,6 +450,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         syncId={syncId}
         showLegend={true}
         loading={metricsLoading}
+        description={SERVICE_METRIC_DESCRIPTIONS.exceptionsChart}
       />
       {runtimeCharts.map((chart: ProbedRuntimeChart): ReactElement => {
         return (
@@ -462,6 +472,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return formatRuntimeValue(n, chart.def.unit);
             }}
             loading={metricsLoading}
+            description={chart.def.description}
           />
         );
       })}

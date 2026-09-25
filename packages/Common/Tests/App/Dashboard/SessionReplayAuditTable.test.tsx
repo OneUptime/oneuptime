@@ -18,8 +18,12 @@ import Route from "../../../Types/API/Route";
 import RumSessionReplayView from "../../../Models/DatabaseModels/RumSessionReplayView";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import SessionReplayAudit from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
+import SessionReplayAudit, {
+  SESSION_REPLAY_WATCH_BUCKET_SECONDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
 import type { SessionReplayAuditSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayAuditSummary";
+import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
+import { expectReadableDescriptionRecord } from "./MetricDescriptionRules";
 
 /*
  * Render the page through a captured ModelTable. This keeps the regression
@@ -29,6 +33,7 @@ import type { SessionReplayAuditSummary } from "../../../../App/FeatureSet/Dashb
 
 type AuditColumn = {
   title: string;
+  headerTooltip?: string | undefined;
   getElement?: ((item: RumSessionReplayView) => ReactElement) | undefined;
 };
 
@@ -406,5 +411,55 @@ describe("RUM session replay audit table", () => {
     });
 
     expect(summaryFromCell(row)).toBeUndefined();
+  });
+
+  test("the Watched column explains itself in its header, and no other column claims a tooltip", () => {
+    expectReadableDescriptionRecord(
+      RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS,
+      "RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS",
+    );
+
+    const tooltips: Record<string, string | undefined> = {};
+
+    for (const candidate of capturedTableProps!.columns) {
+      tooltips[candidate.title] = candidate.headerTooltip;
+    }
+
+    expect(tooltips).toEqual({
+      "Viewed At": undefined,
+      "Viewed By": undefined,
+      Session: undefined,
+      Watched: RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched,
+      Reason: undefined,
+      "Viewer IP": undefined,
+    });
+  });
+
+  test("the Watched cell reads the way its header says: whole steps, and '< 15s' under one", () => {
+    const watched: AuditColumn = column("Watched");
+    const cellFor: (seconds: number | undefined) => string = (
+      seconds: number | undefined,
+    ): string => {
+      const row: RumSessionReplayView = auditRow(SESSION_A);
+
+      if (seconds !== undefined) {
+        row.secondsWatched = seconds;
+      }
+
+      const cell: ReturnType<typeof render> = render(watched.getElement!(row));
+      const text: string = cell.container.textContent || "";
+      cell.unmount();
+      return text;
+    };
+
+    const bucket: number = SESSION_REPLAY_WATCH_BUCKET_SECONDS;
+
+    expect(cellFor(0)).toBe(`< ${bucket}s`);
+    expect(cellFor(undefined)).toBe(`< ${bucket}s`);
+    expect(cellFor(bucket * 6)).toBe(`${bucket * 6}s`);
+
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      `Rounded down to ${bucket}-second steps, so less than that shows as < ${bucket}s.`,
+    );
   });
 });

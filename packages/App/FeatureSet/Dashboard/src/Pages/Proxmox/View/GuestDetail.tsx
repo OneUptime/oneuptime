@@ -46,6 +46,8 @@ import {
   displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 const ProxmoxClusterGuestDetail: FunctionComponent<
   PageComponentProps
@@ -234,6 +236,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
             type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Warning}
           />
         ),
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestStatus,
       });
     }
 
@@ -250,12 +253,17 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
       summaryFields.push({ title: "Node", value: row.parentNodeName });
     }
     if (row.haState) {
-      summaryFields.push({ title: "HA State", value: row.haState });
+      summaryFields.push({
+        title: "HA State",
+        value: row.haState,
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestHaState,
+      });
     }
     if (row.onboot !== null && row.onboot !== undefined) {
       summaryFields.push({
         title: "Start on Boot",
         value: row.onboot ? "Yes" : "No",
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestStartOnBoot,
       });
     }
 
@@ -277,18 +285,24 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
             }
           />
         ),
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestBackupCoverage,
       });
     }
 
     const uptime: string = formatUptime(row.uptimeSeconds);
     if (uptime) {
-      summaryFields.push({ title: "Uptime", value: uptime });
+      summaryFields.push({
+        title: "Uptime",
+        value: uptime,
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestUptime,
+      });
     }
 
     if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
       summaryFields.push({
         title: "CPU",
         value: formatPercent(Number(row.latestCpuPercent)),
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestCpu,
       });
     }
 
@@ -300,6 +314,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
             ? Number(row.maxMemoryBytes)
             : null,
         )}`,
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestMemory,
       });
     }
 
@@ -315,11 +330,13 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
             ? Number(row.maxDiskBytes)
             : null,
         )}`,
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestDisk,
       });
     } else if (isQemu) {
       summaryFields.push({
         title: "Disk (Used / Max)",
         value: "N/A — install the QEMU guest agent for disk usage",
+        description: PROXMOX_METRIC_DESCRIPTIONS.guestDisk,
       });
     }
 
@@ -421,8 +438,14 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
               return (
                 <div className="mt-4 space-y-6">
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Network Throughput
+                      <InfoTooltip
+                        label="Network Throughput"
+                        text={
+                          PROXMOX_METRIC_DESCRIPTIONS.guestNetworkThroughput
+                        }
+                      />
                     </div>
                     <ProxmoxRateChart
                       clusterName={clusterName}
@@ -442,8 +465,12 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                     />
                   </div>
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Disk Throughput
+                      <InfoTooltip
+                        label="Disk Throughput"
+                        text={PROXMOX_METRIC_DESCRIPTIONS.guestDiskThroughput}
+                      />
                     </div>
                     <ProxmoxRateChart
                       clusterName={clusterName}

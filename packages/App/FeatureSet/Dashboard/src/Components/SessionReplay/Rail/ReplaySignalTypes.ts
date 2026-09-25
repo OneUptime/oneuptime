@@ -174,7 +174,7 @@ export type ReplayBackendSignalKind = "log" | "span" | "exception";
  *   loading   request in flight
  *   ready     rows loaded (possibly zero, possibly truncated)
  *   locked    403: the caller lacks the model's read permission
- *   error     request failed; retryable
+ *   error     request failed; retryable (rows it did get may be shown)
  */
 export type ReplayBackendSignalsStatus =
   | "idle"
@@ -185,15 +185,36 @@ export type ReplayBackendSignalsStatus =
 
 export interface ReplayBackendSignalsSlot {
   status: ReplayBackendSignalsStatus;
-  /* null until a fetch completes; never a claimed 0 before that. */
+  /*
+   * null until a fetch completes; never a claimed 0 before that. Counts
+   * the merged rows (session-id read plus trace-id read, deduplicated).
+   */
   rowCount: number | null;
-  /* The fetch hit its row cap; the scope toggle defaults to +-30s. */
+  /*
+   * Rows are missing: a read or the merge hit the row cap, or the trace
+   * ids read B named were capped (see isTraceIdSetCapped). The scope
+   * toggle defaults to +-30s.
+   */
   isTruncated: boolean;
+  /*
+   * The session had more trace ids than one trace-id read names (the
+   * grouped span read came back full, or the recording, header and span
+   * ids together passed the cap), so the rows of some of its traces were
+   * never asked for. Set only when true; implies isTruncated.
+   */
+  isTraceIdSetCapped?: boolean;
   /* For "locked": the permission name to show. */
   lockedPermission?: string;
-  /* For "error": domain copy. */
+  /*
+   * For "error": domain copy. An error slot can still carry rows: when
+   * the session-id read worked and only the trace-id read failed, its
+   * rows are published with the failure beside them.
+   */
   errorMessage?: string;
-  /* When the rows were fetched, for the 60s live refresh. */
+  /*
+   * When the load that fetched the rows STARTED, for the 60s live refresh
+   * (stamping the settle time pushed every refresh back by its latency).
+   */
   fetchedAtUnixMs: number | null;
 }
 
@@ -211,7 +232,10 @@ export function makeIdleBackendSignalsSlot(): ReplayBackendSignalsSlot {
   };
 }
 
-/* Row cap per backend fetch; over it the slot is flagged truncated. */
+/*
+ * Row cap per backend read, and per slot once the session-id and trace-id
+ * reads are merged; over it the slot is flagged truncated.
+ */
 export const REPLAY_BACKEND_SIGNALS_ROW_LIMIT: number = 500;
 
 /* ---- Signal id helpers. ---- */

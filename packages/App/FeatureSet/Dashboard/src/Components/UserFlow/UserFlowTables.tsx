@@ -1,8 +1,14 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useState,
+} from "react";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
   UserFlowDirection,
   UserFlowLoop,
@@ -16,6 +22,7 @@ import {
   formatUserFlowDuration,
   formatUserFlowShare,
 } from "./UserFlowFormat";
+import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
  * The map's companions, under one tab strip:
@@ -98,6 +105,27 @@ const HEADER_CELL: string =
   "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
 const CELL: string = "px-3 py-2 align-middle text-sm text-gray-700";
 
+/*
+ * A column title with its (i). The (i) is a button of its own, so for a
+ * sortable column it sits BESIDE the sort button, never inside it.
+ */
+function HeaderWithInfo(props: {
+  label: string;
+  tooltip: string;
+  children?: ReactNode | undefined;
+}): ReactElement {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {props.children ?? props.label}
+      <InfoTooltip
+        label={props.label}
+        text={props.tooltip}
+        className="font-normal normal-case"
+      />
+    </span>
+  );
+}
+
 type PageSortKey =
   | "sessions"
   | "views"
@@ -107,14 +135,48 @@ type PageSortKey =
   | "errorSessions"
   | "frustrationSessions";
 
-const PAGE_COLUMNS: Array<{ key: PageSortKey; label: string }> = [
-  { key: "sessions", label: "Sessions" },
-  { key: "views", label: "Visits" },
-  { key: "entries", label: "Landed" },
-  { key: "exits", label: "Left" },
-  { key: "exitRate", label: "Exit rate" },
-  { key: "errorSessions", label: "Errors" },
-  { key: "frustrationSessions", label: "Frustrated" },
+interface PageColumn {
+  key: PageSortKey;
+  label: string;
+  tooltip: string;
+}
+
+const PAGE_COLUMNS: Array<PageColumn> = [
+  {
+    key: "sessions",
+    label: "Sessions",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageSessions,
+  },
+  {
+    key: "views",
+    label: "Visits",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageVisits,
+  },
+  {
+    key: "entries",
+    label: "Landed",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageLanded,
+  },
+  {
+    key: "exits",
+    label: "Left",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageLeft,
+  },
+  {
+    key: "exitRate",
+    label: "Exit rate",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageExitRate,
+  },
+  {
+    key: "errorSessions",
+    label: "Errors",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageErrors,
+  },
+  {
+    key: "frustrationSessions",
+    label: "Frustrated",
+    tooltip: RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageFrustrated,
+  },
 ];
 
 const UserFlowTables: FunctionComponent<ComponentProps> = (
@@ -181,9 +243,24 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
               <tr>
                 <th className={HEADER_CELL}>#</th>
                 <th className={HEADER_CELL}>Journey</th>
-                <th className={HEADER_CELL}>Sessions</th>
-                <th className={HEADER_CELL}>Avg. duration</th>
-                <th className={HEADER_CELL}>With errors</th>
+                <th className={HEADER_CELL}>
+                  <HeaderWithInfo
+                    label="Sessions"
+                    tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathSessions}
+                  />
+                </th>
+                <th className={HEADER_CELL}>
+                  <HeaderWithInfo
+                    label="Avg. duration"
+                    tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathAvgDuration}
+                  />
+                </th>
+                <th className={HEADER_CELL}>
+                  <HeaderWithInfo
+                    label="With errors"
+                    tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathWithErrors}
+                  />
+                </th>
                 <th className={HEADER_CELL}></th>
               </tr>
             </thead>
@@ -281,18 +358,18 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
             <thead>
               <tr>
                 <th className={HEADER_CELL}>Page</th>
-                {PAGE_COLUMNS.map(
-                  (column: {
-                    key: PageSortKey;
-                    label: string;
-                  }): ReactElement => {
-                    const active: boolean = column.key === pageSort;
+                {PAGE_COLUMNS.map((column: PageColumn): ReactElement => {
+                  const active: boolean = column.key === pageSort;
 
-                    return (
-                      <th
-                        key={column.key}
-                        className={HEADER_CELL}
-                        aria-sort={active ? "descending" : "none"}
+                  return (
+                    <th
+                      key={column.key}
+                      className={HEADER_CELL}
+                      aria-sort={active ? "descending" : "none"}
+                    >
+                      <HeaderWithInfo
+                        label={column.label}
+                        tooltip={column.tooltip}
                       >
                         <button
                           type="button"
@@ -313,10 +390,10 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                             <></>
                           )}
                         </button>
-                      </th>
-                    );
-                  },
-                )}
+                      </HeaderWithInfo>
+                    </th>
+                  );
+                })}
                 <th className={HEADER_CELL}></th>
               </tr>
             </thead>
@@ -402,46 +479,62 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
               No session in this range left a page and came straight back to it.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100">
-              {props.loops.map((loop: UserFlowLoop): ReactElement => {
-                return (
-                  <li
-                    key={`${loop.pageA}-${loop.pageB}`}
-                    className="flex flex-wrap items-center justify-between gap-3 py-2"
-                    data-testid="user-flow-loop-row"
-                  >
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <PageChip
-                        page={loop.pageA}
-                        onClick={(): void => {
-                          props.onAnchor(loop.pageA, "forward");
-                        }}
-                      />
-                      <Icon
-                        icon={IconProp.ArrowUpDown}
-                        className="h-3.5 w-3.5 rotate-90 text-amber-500"
-                      />
-                      <PageChip
-                        page={loop.pageB}
-                        onClick={(): void => {
-                          props.onAnchor(loop.pageB, "forward");
-                        }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-700">
-                        {formatUserFlowCount(loop.sessions)} sessions
-                      </span>
-                      <ShareBar share={loop.share} />
-                      <WatchLink
-                        sessionId={loop.sampleSessionIds[0]}
-                        rumApplicationId={props.rumApplicationId}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {/*
+               * The rows carry no column headers of their own; this one
+               * says what the session count and its bar are.
+               */}
+              <div
+                className="flex items-center justify-between border-b border-gray-100 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                data-testid="user-flow-loops-header"
+              >
+                <span>Pages</span>
+                <HeaderWithInfo
+                  label="Sessions"
+                  tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.loopSessions}
+                />
+              </div>
+              <ul className="divide-y divide-gray-100">
+                {props.loops.map((loop: UserFlowLoop): ReactElement => {
+                  return (
+                    <li
+                      key={`${loop.pageA}-${loop.pageB}`}
+                      className="flex flex-wrap items-center justify-between gap-3 py-2"
+                      data-testid="user-flow-loop-row"
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PageChip
+                          page={loop.pageA}
+                          onClick={(): void => {
+                            props.onAnchor(loop.pageA, "forward");
+                          }}
+                        />
+                        <Icon
+                          icon={IconProp.ArrowUpDown}
+                          className="h-3.5 w-3.5 rotate-90 text-amber-500"
+                        />
+                        <PageChip
+                          page={loop.pageB}
+                          onClick={(): void => {
+                            props.onAnchor(loop.pageB, "forward");
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-700">
+                          {formatUserFlowCount(loop.sessions)} sessions
+                        </span>
+                        <ShareBar share={loop.share} />
+                        <WatchLink
+                          sessionId={loop.sampleSessionIds[0]}
+                          rumApplicationId={props.rumApplicationId}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </div>
       ) : (

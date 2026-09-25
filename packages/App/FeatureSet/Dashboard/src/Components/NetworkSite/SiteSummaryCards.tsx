@@ -195,6 +195,8 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
           <InfoCard
             key={tile.key}
             title={tile.label}
+            // The (i) swallows its own click, so it never activates the tile.
+            tooltip={tile.description}
             onClick={
               isActivatable
                 ? () => {

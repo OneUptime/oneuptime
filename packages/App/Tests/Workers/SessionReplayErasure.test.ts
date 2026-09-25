@@ -688,6 +688,11 @@ describe("Rum:ProcessSessionErasureRequests activity purge", () => {
       return Promise.resolve(resultSetOf([{ chunkCount: 1 }]));
     };
 
+    /* The trace-id read on Span: no stamped spans, so no trace deletes. */
+    jest
+      .spyOn(SpanService, "executeQuery")
+      .mockResolvedValue(resultSetOf([]) as never);
+
     for (const service of [
       RumSessionChunkService,
       RumSessionService,
@@ -1454,6 +1459,14 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       return Promise.resolve(resultSetOf([{ chunkCount: 7 }]));
     };
 
+    /*
+     * No stamped spans, so no trace-id deletes: the trace-id path has its
+     * own file (SessionReplayErasureTraceIds.test.ts).
+     */
+    jest
+      .spyOn(SpanService, "executeQuery")
+      .mockResolvedValue(resultSetOf([]) as never);
+
     const analyticsServices: Array<{ name: string; service: unknown }> = [
       { name: "chunks", service: RumSessionChunkService },
       { name: "headers", service: RumSessionService },
@@ -1486,12 +1499,17 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       });
 
       expect(chunksDeleted).toBe(7);
+      /*
+       * The header goes last of the ClickHouse deletes: three of the four
+       * request types find a session through it, so a run that dies
+       * earlier must leave it for the retry to find.
+       */
       expect(order).toEqual([
         "chunks",
-        "headers",
         "logs",
         "spans",
         "exceptions",
+        "headers",
         "pins",
       ]);
 

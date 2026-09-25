@@ -122,7 +122,9 @@ jest.mock("../../../UI/Utils/Permission", () => {
 
 import RumApplicationSessionReplaySettings, {
   EffectiveRecordingStatePill,
+  SAME_ORIGIN_TRACE_PROPAGATION_TITLE,
   describeEffectiveRecordingState,
+  describeSameOriginTracePropagation,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import useSessionReplayHealth, {
   SESSION_REPLAY_INGEST_STATUS_ROUTE,
@@ -581,5 +583,152 @@ describe("EffectiveRecordingStatePill (standalone)", () => {
 
     expect(screen.queryByText(NOT_CHECKED_COPY)).toBeNull();
     expect(ingestStatusCalls()).toHaveLength(1);
+  });
+});
+
+/*
+ * RumApplication.sessionReplaySameOriginTracePropagation on the Replay
+ * Policy page: the read view names the switch and what it does, and the
+ * privacy summary gains its backend-link sentence exactly while it is on.
+ * The column defaults to true and the gate reads anything but an explicit
+ * false as on, so an unset value must read as on here too.
+ */
+const SAME_ORIGIN_ON_COPY: string =
+  "On: requests to your own origin carry a traceparent and this session's id";
+const SAME_ORIGIN_OFF_COPY: string =
+  "Off: nothing is added to requests to your own origin";
+
+describe("describeSameOriginTracePropagation", () => {
+  it("only an explicit false reads as off", () => {
+    expect(describeSameOriginTracePropagation(false)).toBe(
+      SAME_ORIGIN_OFF_COPY,
+    );
+    expect(describeSameOriginTracePropagation(true)).toBe(SAME_ORIGIN_ON_COPY);
+    expect(describeSameOriginTracePropagation(undefined)).toBe(
+      SAME_ORIGIN_ON_COPY,
+    );
+    expect(describeSameOriginTracePropagation(null)).toBe(SAME_ORIGIN_ON_COPY);
+  });
+
+  it("carries the fixed setting title", () => {
+    expect(SAME_ORIGIN_TRACE_PROPAGATION_TITLE).toBe(
+      "Same-origin trace propagation",
+    );
+  });
+});
+
+describe("Replay Policy page: same-origin trace propagation", () => {
+  async function renderWithRow(
+    overrides: Partial<RumApplication>,
+  ): Promise<HealthControl> {
+    getItemMock.mockImplementation((): Promise<RumApplication> => {
+      return Promise.resolve(makeApplication(overrides));
+    });
+
+    const health: HealthControl = holdHealth();
+
+    renderPage();
+
+    await waitForPolicyRows();
+
+    return health;
+  }
+
+  it("the policy fetch selects the switch", async () => {
+    const health: HealthControl = await renderWithRow({});
+
+    const select: JSONObject =
+      ((policyGetItemCalls()[0]?.[0] as { select?: JSONObject })
+        .select as JSONObject) || {};
+
+    expect(select["sessionReplaySameOriginTracePropagation"]).toBe(true);
+    expect(select["sessionReplayTracePropagationOrigins"]).toBe(true);
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
+  });
+
+  it("a row with it on reads on and adds the backend-link sentence", async () => {
+    const health: HealthControl = await renderWithRow({
+      sessionReplaySameOriginTracePropagation: true,
+      sessionReplayCaptureUserIdentity: false,
+    });
+
+    const card: HTMLElement = getPolicyCard();
+
+    expect(
+      within(card).getByText(SAME_ORIGIN_TRACE_PROPAGATION_TITLE),
+    ).toBeInTheDocument();
+    expect(within(card).getByText(SAME_ORIGIN_ON_COPY)).toBeInTheDocument();
+    expect(
+      within(card).getByText(
+        "None: no cross-origin request gets a traceparent",
+      ),
+    ).toBeInTheDocument();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByTestId("privacy-summary-backend-link"),
+        ).toHaveTextContent(
+          "Same-origin requests carry this session's id to your backend",
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.getByTestId("privacy-summary-identity")).toHaveTextContent(
+      "can still name the person",
+    );
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
+  });
+
+  it("a row with it off reads off and has no backend-link sentence", async () => {
+    const health: HealthControl = await renderWithRow({
+      sessionReplaySameOriginTracePropagation: false,
+      sessionReplayCaptureUserIdentity: false,
+    });
+
+    expect(
+      within(getPolicyCard()).getByText(SAME_ORIGIN_OFF_COPY),
+    ).toBeInTheDocument();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByTestId("privacy-summary-identity"),
+        ).toHaveTextContent("cannot be found by who the person was");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByTestId("privacy-summary-backend-link")).toBeNull();
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
+  });
+
+  it("a row that never set it reads as the on default, in both places", async () => {
+    const health: HealthControl = await renderWithRow({});
+
+    expect(
+      within(getPolicyCard()).getByText(SAME_ORIGIN_ON_COPY),
+    ).toBeInTheDocument();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByTestId("privacy-summary-backend-link"),
+        ).toHaveAttribute("data-default", "true");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
   });
 });

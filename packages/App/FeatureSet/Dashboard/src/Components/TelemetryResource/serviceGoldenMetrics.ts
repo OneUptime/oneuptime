@@ -7,6 +7,7 @@ import {
   ServiceLanguage,
 } from "Common/Types/Service/ServiceLanguage";
 import { ChartCardColor } from "./ChartCard";
+import { SERVICE_RUNTIME_METRIC_DESCRIPTIONS } from "../MetricDescriptions/ServiceMetricDescriptions";
 import {
   fetchMetricSeries,
   formatBytes,
@@ -78,6 +79,13 @@ export interface RuntimeChartDef {
   aggregationType: AggregationType;
   unit: RuntimeMetricUnit;
   sublabel: string;
+  /*
+   * What the chart plots, in plain words - shown in the (i) beside the
+   * chart title and, when this is the first chart with data, beside the
+   * Service overview's fourth tile. Required so a new chart cannot ship
+   * unexplained.
+   */
+  description: string;
   candidates: Array<RuntimeMetricCandidate>;
   /*
    * The metric is a cumulative monotonic counter (the SDK default
@@ -109,6 +117,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "percent",
       sublabel: "recent utilization",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.jvmCpu,
       candidates: [
         ratio("jvm.cpu.recent_utilization"),
         ratio("process.runtime.jvm.cpu.utilization"),
@@ -122,6 +131,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "avg across heap pools",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.jvmHeap,
       candidates: [
         {
           metricName: "jvm.memory.used",
@@ -141,6 +151,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "count",
       sublabel: "live threads",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.jvmThreads,
       candidates: [
         { metricName: "jvm.thread.count" },
         { metricName: "process.runtime.jvm.threads.count" },
@@ -156,6 +167,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "process memory",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.dotnetWorkingSet,
       candidates: [
         { metricName: "dotnet.process.memory.working_set" },
         { metricName: "process.memory.usage" },
@@ -169,6 +181,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "avg across generations",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.dotnetGcHeap,
       candidates: [
         { metricName: "dotnet.gc.last_collection.heap.size" },
         { metricName: "process.runtime.dotnet.gc.heap.size" },
@@ -182,6 +195,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "count",
       sublabel: "pool size",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.dotnetThreadPool,
       candidates: [
         { metricName: "dotnet.thread_pool.thread.count" },
         { metricName: "process.runtime.dotnet.thread_pool.threads.count" },
@@ -195,6 +209,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "thrown, selected range",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.dotnetExceptions,
       cumulativeCounter: true,
       candidates: [
         { metricName: "dotnet.exceptions" },
@@ -211,6 +226,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "percent",
       sublabel: "busy share of loop time",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.nodeEventLoopUtilization,
       candidates: [ratio("nodejs.eventloop.utilization")],
     },
     {
@@ -221,6 +237,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "milliseconds",
       sublabel: "scheduling lag",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.nodeEventLoopDelay,
       candidates: [{ metricName: "nodejs.eventloop.delay.p99", scale: 1000 }],
     },
     {
@@ -231,6 +248,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "avg across V8 heap spaces",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.nodeHeap,
       candidates: [
         { metricName: "v8js.memory.heap.used" },
         { metricName: "process.memory.usage" },
@@ -246,6 +264,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "resident set size",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.pythonMemory,
       candidates: [
         {
           metricName: "process.runtime.cpython.memory",
@@ -262,6 +281,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "collections, selected range",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.pythonGc,
       cumulativeCounter: true,
       candidates: [
         { metricName: "cpython.gc.collections" },
@@ -278,6 +298,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "count",
       sublabel: "live goroutines",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.goGoroutines,
       candidates: [
         { metricName: "go.goroutine.count" },
         { metricName: "process.runtime.go.goroutines" },
@@ -291,6 +312,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Avg,
       unit: "bytes",
       sublabel: "non-stack runtime memory",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.goMemory,
       candidates: [
         /*
          * go.memory.used splits by go.memory.type = stack | other; "other"
@@ -313,6 +335,7 @@ const RUNTIME_CHARTS_BY_LANGUAGE: Partial<
       aggregationType: AggregationType.Max,
       unit: "count",
       sublabel: "completed, selected range",
+      description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.goGc,
       cumulativeCounter: true,
       candidates: [{ metricName: "process.runtime.go.gc.count" }],
     },
@@ -333,6 +356,7 @@ const GENERIC_RUNTIME_CHARTS: Array<RuntimeChartDef> = [
     aggregationType: AggregationType.Avg,
     unit: "percent",
     sublabel: "process utilization",
+    description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.processCpu,
     candidates: [ratio("process.cpu.utilization")],
   },
   {
@@ -343,6 +367,7 @@ const GENERIC_RUNTIME_CHARTS: Array<RuntimeChartDef> = [
     aggregationType: AggregationType.Avg,
     unit: "bytes",
     sublabel: "resident memory",
+    description: SERVICE_RUNTIME_METRIC_DESCRIPTIONS.processMemory,
     candidates: [
       { metricName: "process.memory.usage" },
       { metricName: "process.runtime.memory.usage" },

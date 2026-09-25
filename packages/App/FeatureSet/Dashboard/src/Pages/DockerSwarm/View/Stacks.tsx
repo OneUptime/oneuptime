@@ -15,6 +15,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 const DockerSwarmClusterStacks: FunctionComponent<
   PageComponentProps
@@ -67,11 +68,15 @@ const DockerSwarmClusterStacks: FunctionComponent<
       showGroupColumn={false}
       showResourceMetrics={false}
       tableIdPrefix="docker-swarm"
+      builtInColumnDescriptions={{
+        status: DOCKER_SWARM_METRIC_DESCRIPTIONS.stackStatusColumn,
+      }}
       emptyMessage="No stacks reported yet. Deploy a stack with 'docker stack deploy' to see it here."
       columns={[
         {
           title: "Services",
           key: "serviceCount",
+          description: DOCKER_SWARM_METRIC_DESCRIPTIONS.stackServices,
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["serviceCount"] || "-";
           },

@@ -361,6 +361,7 @@ import IncidentEpisodeLabelRuleService from "./IncidentEpisodeLabelRuleService";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import IncidentAlertService from "./IncidentAlertService";
 import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerRuleService from "./IncidentEpisodeOwnerRuleService";
@@ -797,6 +798,7 @@ const services: Array<BaseService> = [
   IncidentEpisodeFeedService,
   IncidentEpisodeInternalNoteService,
   IncidentEpisodeMemberService,
+  IncidentAlertService,
   IncidentEpisodeRoleMemberService,
   IncidentEpisodeOwnerTeamService,
   IncidentEpisodeOwnerRuleService,
