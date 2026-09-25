@@ -1,0 +1,63 @@
+<html>
+
+<head>
+    <%- include('./Partials/Head.ejs') -%>
+    <%# The URL that opened this page carries a single-use token. Keep it out of every Referer. %>
+    <meta name="referrer" content="no-referrer" />
+    <title> <%= title %> </title>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="h-full">
+
+        <main class="mx-auto max-w-7xl pb-10 lg:py-12 lg:px-8">
+
+            <div class="sm:mx-auto sm:w-full sm:max-w-md flex justify-center mt-10 mb-10">
+                <img
+                    class="mx-auto h-12 w-auto"
+                    src="/oneuptime-assets/brand/oneuptime-logo.svg"
+                    alt="OneUptime"
+                />
+            </div>
+
+            <div class="sm:mx-auto sm:w-full sm:max-w-lg px-4">
+                <div class="shadow sm:overflow-hidden sm:rounded-md">
+                    <div class="bg-white py-6 px-4 sm:p-6">
+                        <h2 class="text-lg font-medium leading-6 text-gray-900" data-testid="sso-confirmation-title"><%= title %></h2>
+                        <p class="mt-2 text-sm text-gray-600" data-testid="sso-confirmation-message"><%= message %></p>
+
+                        <% if (typeof formAction !== 'undefined' && formAction) { %>
+                        <%#
+                          A POST behind a button, never a GET that acts. Mail
+                          scanners open the links in an email before the person
+                          does, and a link that confirmed on GET would be
+                          confirmed by the scanner.
+                        %>
+                        <form method="POST" action="<%= formAction %>" class="mt-6">
+                            <input type="hidden" name="token" value="<%= token %>" />
+                            <input type="hidden" name="signature" value="<%= signature %>" />
+                            <button type="submit" data-testid="sso-confirmation-submit"
+                                class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                                <%= buttonText %>
+                            </button>
+                        </form>
+                        <% } %>
+
+                        <% if (typeof linkUrl !== 'undefined' && linkUrl) { %>
+                        <div class="mt-6">
+                            <a href="<%= linkUrl %>" data-testid="sso-confirmation-link"
+                                class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                                <%= linkText %>
+                            </a>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>

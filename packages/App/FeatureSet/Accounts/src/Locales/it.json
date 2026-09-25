@@ -112,7 +112,13 @@
     "loginLink": "Accedi.",
     "notifySelfHosted": "Avvisami delle patch di sicurezza e delle nuove versioni",
     "checkEmailTitle": "Controlla la tua email",
-    "checkEmailMessage": "Se a questo indirizzo email è associato un account in attesa di configurazione, gli abbiamo inviato un link per completare la registrazione. Non dimenticare di controllare la cartella spam."
+    "checkEmailMessage": "Se a questo indirizzo email è associato un account in attesa di configurazione, gli abbiamo inviato un link per completare la registrazione. Non dimenticare di controllare la cartella spam.",
+    "verifyEmailTitle": "Verifica la tua email per completare la registrazione",
+    "verifyEmailSentTo": "Abbiamo inviato un link di verifica a {{email}}.",
+    "verifyEmailSent": "Ti abbiamo inviato un link di verifica.",
+    "verifyEmailInstructions": "Apri il link contenuto nell'email per attivare il tuo account, poi accedi.",
+    "verifyEmailResendHint": "Non la trovi? Controlla la cartella spam. Il link scade dopo 24 ore e, accedendo con email e password, te ne invieremo uno nuovo.",
+    "verifyEmailLoginLink": "Vai all'accesso"
   },
   "forgotPassword": {
     "title": "Password dimenticata",
@@ -152,7 +158,8 @@
     "successDescription": "Grazie per aver verificato la tua e-mail. Ora puoi accedere a OneUptime.",
     "errorTitle": "Spiacenti, qualcosa è andato storto!",
     "returnToSignIn": "Torna all'accesso?",
-    "loginLink": "Accedi."
+    "loginLink": "Accedi.",
+    "continueToSignIn": "Continua con l'accesso"
   },
   "errors": {
     "forbidden": {

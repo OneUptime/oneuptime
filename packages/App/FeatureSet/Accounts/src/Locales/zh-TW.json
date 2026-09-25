@@ -112,7 +112,13 @@
     "loginLink": "登入。",
     "notifySelfHosted": "通知我有關安全修補程式與新版本",
     "checkEmailTitle": "請查看您的電子郵件",
-    "checkEmailMessage": "如果此電子郵件地址有一個等待設定的帳戶，我們已向其發送了完成註冊的連結。請不要忘記檢查垃圾郵件。"
+    "checkEmailMessage": "如果此電子郵件地址有一個等待設定的帳戶，我們已向其發送了完成註冊的連結。請不要忘記檢查垃圾郵件。",
+    "verifyEmailTitle": "驗證您的電子郵件以完成註冊",
+    "verifyEmailSentTo": "我們已將驗證連結寄送至 {{email}}。",
+    "verifyEmailSent": "我們已寄送驗證連結給您。",
+    "verifyEmailInstructions": "開啟該郵件中的連結以啟用您的帳戶，然後登入。",
+    "verifyEmailResendHint": "找不到郵件？請檢查垃圾郵件資料夾。該連結將在 24 小時後失效，使用您的電子郵件和密碼登入時，我們會寄送新的連結給您。",
+    "verifyEmailLoginLink": "前往登入"
   },
   "forgotPassword": {
     "title": "忘記密碼",
@@ -152,7 +158,8 @@
     "successDescription": "感謝您驗證您的電子郵件。您現在可以登入 OneUptime。",
     "errorTitle": "抱歉，發生錯誤！",
     "returnToSignIn": "返回登入？",
-    "loginLink": "登入。"
+    "loginLink": "登入。",
+    "continueToSignIn": "繼續登入"
   },
   "errors": {
     "forbidden": {

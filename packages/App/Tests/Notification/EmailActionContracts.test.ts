@@ -335,6 +335,12 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "registrationLink",
   ],
   [
+    "ConfirmProjectSsoSignIn",
+    "confirmationUrl",
+    "Confirm Sign-In",
+    "confirmationUrl",
+  ],
+  [
     "ConfirmStatusPageSubscription",
     "confirmationUrl",
     "Confirm Subscription",

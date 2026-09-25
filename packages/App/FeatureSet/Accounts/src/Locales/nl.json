@@ -112,7 +112,13 @@
     "loginLink": "Inloggen.",
     "notifySelfHosted": "Stel mij op de hoogte van beveiligingspatches en nieuwe versies",
     "checkEmailTitle": "Controleer uw e-mail",
-    "checkEmailMessage": "Als er voor dit e-mailadres een account klaarstaat om te worden ingesteld, hebben we een link gestuurd om de registratie te voltooien. Vergeet niet om uw spammap te controleren."
+    "checkEmailMessage": "Als er voor dit e-mailadres een account klaarstaat om te worden ingesteld, hebben we een link gestuurd om de registratie te voltooien. Vergeet niet om uw spammap te controleren.",
+    "verifyEmailTitle": "Bevestig je e-mailadres om je registratie af te ronden",
+    "verifyEmailSentTo": "We hebben een verificatielink naar {{email}} gestuurd.",
+    "verifyEmailSent": "We hebben je een verificatielink gestuurd.",
+    "verifyEmailInstructions": "Open de link in die e-mail om je account te activeren en log daarna in.",
+    "verifyEmailResendHint": "Kun je hem niet vinden? Kijk in je spammap. De link verloopt na 24 uur, en als je inlogt met je e-mailadres en wachtwoord sturen we je een nieuwe.",
+    "verifyEmailLoginLink": "Naar inloggen"
   },
   "forgotPassword": {
     "title": "Wachtwoord vergeten",
@@ -152,7 +158,8 @@
     "successDescription": "Bedankt voor het verifiëren van uw e-mail. U kunt nu inloggen bij OneUptime.",
     "errorTitle": "Sorry, er is iets misgegaan!",
     "returnToSignIn": "Terug naar aanmelden?",
-    "loginLink": "Inloggen."
+    "loginLink": "Inloggen.",
+    "continueToSignIn": "Doorgaan naar inloggen"
   },
   "errors": {
     "forbidden": {

@@ -97,6 +97,19 @@ const VerifyEmail: () => JSX.Element = () => {
               <p className="mt-3 px-2 text-sm leading-relaxed text-gray-600 sm:px-0 sm:text-base">
                 {t("verifyEmail.successDescription")}
               </p>
+              {/*
+               * Verifying signs nobody in -- the link is a bearer secret sat
+               * in an inbox, and mail scanners follow links -- so the next
+               * step for a new account is always the sign-in page.
+               */}
+              <div className="mt-6">
+                <Link
+                  to={new Route("/accounts/login")}
+                  className="inline-flex w-full cursor-pointer justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
+                >
+                  {t("verifyEmail.continueToSignIn")}
+                </Link>
+              </div>
             </div>
           )}
 
@@ -122,17 +135,19 @@ const VerifyEmail: () => JSX.Element = () => {
           )}
         </div>
 
-        <div className="mt-6 text-center sm:mt-8">
-          <p className="text-sm text-gray-500 sm:text-base">
-            {t("verifyEmail.returnToSignIn")}{" "}
-            <Link
-              to={new Route("/accounts/login")}
-              className="cursor-pointer font-medium text-indigo-500 hover:text-indigo-700"
-            >
-              {t("verifyEmail.loginLink")}
-            </Link>
-          </p>
-        </div>
+        {error && (
+          <div className="mt-6 text-center sm:mt-8">
+            <p className="text-sm text-gray-500 sm:text-base">
+              {t("verifyEmail.returnToSignIn")}{" "}
+              <Link
+                to={new Route("/accounts/login")}
+                className="cursor-pointer font-medium text-indigo-500 hover:text-indigo-700"
+              >
+                {t("verifyEmail.loginLink")}
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

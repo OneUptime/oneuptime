@@ -112,7 +112,13 @@
     "loginLink": "Log in.",
     "notifySelfHosted": "Notify me about security patches and new releases",
     "checkEmailTitle": "Check your email",
-    "checkEmailMessage": "If this email address has an account waiting to be set up, we've sent it a link to finish registering. Please do not forget to check spam."
+    "checkEmailMessage": "If this email address has an account waiting to be set up, we've sent it a link to finish registering. Please do not forget to check spam.",
+    "verifyEmailTitle": "Verify your email to finish signing up",
+    "verifyEmailSentTo": "We've sent a verification link to {{email}}.",
+    "verifyEmailSent": "We've sent you a verification link.",
+    "verifyEmailInstructions": "Open the link in that email to activate your account, then sign in.",
+    "verifyEmailResendHint": "Can't find it? Check your spam folder. The link expires in 24 hours, and signing in with your email and password sends you a new one.",
+    "verifyEmailLoginLink": "Go to sign in"
   },
   "forgotPassword": {
     "title": "Forgot your password",
@@ -152,7 +158,8 @@
     "successDescription": "Thank you for verifying your email. You can now log in to OneUptime.",
     "errorTitle": "Sorry, something went wrong!",
     "returnToSignIn": "Return to sign in?",
-    "loginLink": "Login."
+    "loginLink": "Login.",
+    "continueToSignIn": "Continue to sign in"
   },
   "errors": {
     "forbidden": {

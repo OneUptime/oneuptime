@@ -585,7 +585,7 @@ describe("POST /login — verifying against a per-user salt", () => {
     expect(createSession).not.toHaveBeenCalled();
   });
 
-  it("still refuses an unverified email before looking at the password", async () => {
+  it("still refuses an unverified email once the password is right", async () => {
     const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
     user.isEmailVerified = false;
