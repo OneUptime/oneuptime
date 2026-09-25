@@ -64,28 +64,161 @@ export const gunzipAsync: (
   options?: zlib.ZlibOptions,
 ) => Promise<Buffer>;
 
+// Same Buffer pass-through and cast as gunzipAsync above.
+const inflateAsync: (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer> = promisify(zlib.inflate) as unknown as (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer>;
+
+const inflateRawAsync: (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer> = promisify(zlib.inflateRaw) as unknown as (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer>;
+
+/*
+ * zstd only exists in zlib from Node 23.8 / 22.15. The App image runs Node
+ * 26, but promisify(undefined) throws at import, which would take the whole
+ * telemetry worker down on an older runtime - so probe for it, and let
+ * encodingFromContentEncoding refuse zstd at admission when it is missing
+ * rather than accept bodies this process could never decode.
+ */
+const zstdDecompressAsync:
+  | ((
+      buffer: Buffer | Uint8Array,
+      options?: zlib.ZstdOptions,
+    ) => Promise<Buffer>)
+  | null =
+  typeof zlib.zstdDecompress === "function"
+    ? (promisify(zlib.zstdDecompress) as unknown as (
+        buffer: Buffer | Uint8Array,
+        options?: zlib.ZstdOptions,
+      ) => Promise<Buffer>)
+    : null;
+
 /*
  * Decompressed-payload ceiling for ONE queued OTLP body.
  *
  * The inflate runs in the BullMQ worker, where TELEMETRY_CONCURRENCY (100
- * by default) jobs can be in flight on one pod, so an unbounded gunzip is
- * unbounded a hundred times over. Nginx caps the COMPRESSED body at 4 MB
- * on /otlp, /telemetry and the OTLP/gRPC location, and gzip on OTLP
- * protobuf runs about 5-15x, so a legitimate batch fits under this. A hostile one reaches four figures of
- * amplification and would otherwise take the pod out.
+ * by default) jobs can be in flight on one pod, so an unbounded inflate is
+ * unbounded a hundred times over. Only OTLP/HTTP bodies are ever compressed
+ * here: nginx caps them, as sent, at 4 MiB on /otlp and /telemetry (and
+ * OtelRequestMiddleware at MAX_OTLP_REQUEST_BYTES without nginx in front),
+ * and gzip on OTLP protobuf runs about 5-15x, so a legitimate batch fits
+ * under this. A hostile one reaches four figures of amplification and would
+ * otherwise take the pod out. OTLP/gRPC exports never reach this inflate:
+ * grpc-js decodes those messages itself, bounded by the server's 50 MB
+ * `grpc.max_receive_message_length`, and TelemetryQueueService stores the
+ * decoded object as uncompressed JSON.
  *
- * `maxOutputLength` is honoured because this is zlib's CONVENIENCE api.
- * Node applies it on `gunzip`/`gunzipSync` only; on a `createGunzip`
- * stream it is accepted and silently ignored.
+ * The same ceiling bounds the OUTPUT of every content coding the decoder
+ * accepts (gzip, deflate, zstd). `maxOutputLength` is honoured because these
+ * are zlib's CONVENIENCE apis - `gunzip`, `inflate`, `inflateRaw` and
+ * `zstdDecompress` all reject with ERR_BUFFER_TOO_LARGE past it (asserted per
+ * coding in OtlpContentEncoding.test.ts). On a `createGunzip`-style stream it
+ * is accepted and silently ignored. It does not bound the decoder's own
+ * history window: deflate's is fixed at 32 KiB, but zstd's is whatever the
+ * frame declares, so that one is capped separately by
+ * MAX_ZSTD_WINDOW_LOG below.
  */
 export const MAX_DECOMPRESSED_OTLP_BODY_BYTES: number = 64 * 1024 * 1024;
+
+/*
+ * Largest zstd window (2^24 = 16 MiB) the worker will allocate for one body.
+ * A zstd frame names its own window size, and libzstd's default limit is
+ * 2^27 = 128 MiB. The decoder fills that window alongside the output, so a
+ * ~2 KB frame declaring a 128 MiB window roughly doubled what a job could
+ * hold before maxOutputLength tripped, times TELEMETRY_CONCURRENCY. (With
+ * ten such frames in flight, peak RSS measured 1.3 GiB, against 0.7 GiB for
+ * ten gzip bombs.) Past this limit the decode fails straight away with
+ * ZSTD_error_frameParameter_windowTooLarge.
+ *
+ * Nothing legitimate needs more. RFC 9659 says encoders MUST NOT use a
+ * window over 8 MB for the "zstd" HTTP content coding. The Collector's
+ * encoder (klauspost/compress, GH#3978's exporter) tops out at 8 MiB. So does
+ * libzstd at levels 1-19, whether its window is declared or implied by a
+ * single-segment frame's content size. That leaves 2x headroom for
+ * non-conforming senders. Only an encoder deliberately configured past it
+ * (zstd's --ultra levels, or --long) is refused - in the worker, after the
+ * 200, like a gzip batch over the output ceiling.
+ */
+export const MAX_ZSTD_WINDOW_LOG: number = 24;
 
 export enum OtelPayloadFormat {
   Protobuf = "protobuf",
   Json = "json",
 }
 
-export type OtelPayloadEncoding = "gzip" | "none";
+/*
+ * How a queued OTLP body is compressed - the decode vocabulary shared by
+ * the HTTP enqueue (TelemetryQueueService) and the worker (decodeFromQueue).
+ * "deflate" covers both the zlib-wrapped (RFC 1950) and the raw (RFC 1951)
+ * framing; decompress() tells them apart from the first two bytes.
+ */
+export type OtelPayloadEncoding = "gzip" | "deflate" | "zstd" | "none";
+
+/*
+ * HTTP content codings the OTLP/HTTP endpoints accept, keyed by the
+ * lowercased coding name. GH#3978: Datadog's recommended Collector config
+ * (the exporter a migrating customer re-points at us) sets
+ * `compression: zstd`, and before this every such batch was answered 200,
+ * stored as if uncompressed and then failed to decode in the worker.
+ *
+ *   - "x-gzip" is gzip (RFC 9110 section 8.4.1.3).
+ *   - "deflate" and "zlib" are both what the OpenTelemetry Collector's
+ *     confighttp sends for `compression: deflate` / `compression: zlib`: it
+ *     writes the configured name verbatim as the Content-Encoding and
+ *     compresses both with Go's compress/zlib, i.e. RFC 1950 zlib-wrapped
+ *     deflate. Some HTTP clients send raw RFC 1951 deflate under "deflate"
+ *     instead - a long-standing ambiguity of that coding - so the decoder
+ *     accepts either framing.
+ */
+const CONTENT_CODINGS: ReadonlyMap<string, OtelPayloadEncoding> = new Map<
+  string,
+  OtelPayloadEncoding
+>([
+  ["gzip", "gzip"],
+  ["x-gzip", "gzip"],
+  ["deflate", "deflate"],
+  ["zlib", "deflate"],
+  ...(zstdDecompressAsync
+    ? ([["zstd", "zstd"]] as Array<[string, OtelPayloadEncoding]>)
+    : []),
+]);
+
+/*
+ * The canonical content-coding names, for the 415 message and its
+ * Accept-Encoding header (RFC 9110 section 15.5.16). The aliases above are
+ * accepted but not advertised.
+ */
+export const SUPPORTED_OTLP_CONTENT_ENCODINGS: ReadonlyArray<string> = [
+  "gzip",
+  "deflate",
+  ...(zstdDecompressAsync ? ["zstd"] : []),
+];
+
+/*
+ * RFC 1950 zlib header check: CM (low nibble of CMF) is 8 = deflate, CINFO
+ * (high nibble) is a window of at most 32 KiB, and CMF*256 + FLG is a
+ * multiple of 31. A raw deflate stream from a conforming encoder never
+ * passes it: a low nibble of 8 there means a non-final STORED block whose
+ * padding bit 3 is set, and encoders write that padding as zeros.
+ */
+function isZlibWrapped(raw: Buffer): boolean {
+  if (raw.length < 2) {
+    return false;
+  }
+
+  const cmf: number = raw[0]!;
+  const flg: number = raw[1]!;
+
+  return (cmf & 0x0f) === 8 && cmf >> 4 <= 7 && (cmf * 256 + flg) % 31 === 0;
+}
 
 function protoTypeForProduct(productType: ProductType): protobuf.Type | null {
   switch (productType) {
@@ -128,17 +261,18 @@ export default class OtelPayloadDecoder {
       throw new Error("OtelPayloadDecoder: bodyKey is required");
     }
 
-    let raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
-    if (!raw) {
+    const stored: Buffer | null = await TelemetryBodyStore.readBody(
+      input.bodyKey,
+    );
+    if (!stored) {
       // Body expired (TTL) before the worker got to it — nothing to decode.
       return {} as JSONObject;
     }
 
-    if (input.encoding === "gzip") {
-      raw = await gunzipAsync(raw, {
-        maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
-      });
-    }
+    const raw: Buffer = await OtelPayloadDecoder.decompress(
+      stored,
+      input.encoding,
+    );
 
     if (input.format === OtelPayloadFormat.Json) {
       return JSON.parse(raw.toString("utf-8")) as JSONObject;
@@ -171,6 +305,95 @@ export default class OtelPayloadDecoder {
       raw as unknown as Uint8Array,
     );
     return message.toJSON() as JSONObject;
+  }
+
+  /*
+   * Undo the body's content coding. Output is capped at
+   * MAX_DECOMPRESSED_OTLP_BODY_BYTES whatever the coding, and zstd's window
+   * at MAX_ZSTD_WINDOW_LOG. An encoding this build does not know throws
+   * instead of falling through to "none": parsing compressed bytes as
+   * protobuf or JSON can only fail later with a less useful error, and
+   * silently treating an unknown coding as identity is how GH#3978's zstd
+   * batches were lost.
+   */
+  public static async decompress(
+    raw: Buffer,
+    encoding: OtelPayloadEncoding,
+  ): Promise<Buffer> {
+    switch (encoding) {
+      case "none":
+        return raw;
+      case "gzip":
+        return await gunzipAsync(raw, {
+          maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+        });
+      case "deflate":
+        return isZlibWrapped(raw)
+          ? await inflateAsync(raw, {
+              maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+            })
+          : await inflateRawAsync(raw, {
+              maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+            });
+      case "zstd":
+        if (!zstdDecompressAsync) {
+          throw new Error(
+            "OtelPayloadDecoder: zstd body, but this Node runtime has no zlib.zstdDecompress",
+          );
+        }
+        return await zstdDecompressAsync(raw, {
+          maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+          params: {
+            [zlib.constants.ZSTD_d_windowLogMax]: MAX_ZSTD_WINDOW_LOG,
+          },
+        });
+      default:
+        throw new Error(
+          `OtelPayloadDecoder: unknown body encoding "${String(encoding)}"`,
+        );
+    }
+  }
+
+  /*
+   * Map an OTLP/HTTP request's Content-Encoding header to the queue's
+   * decode vocabulary, or null when the body is coded in a way the worker
+   * cannot undo. Null is the signal to refuse the request at admission (see
+   * OtelRequestMiddleware.parseBody), before its body is stored or queued.
+   *
+   * Codings are case-insensitive and trimmed. Absent, empty and "identity"
+   * all mean uncompressed ("identity" is also dropped from a list, since it
+   * is a no-op). More than one real coding is refused even when every one of
+   * them is supported: "gzip, zstd" means zstd was applied on top of gzip,
+   * and the worker undoes exactly one. An array (hand-built header maps) is
+   * read as the comma-joined list, which is also how Node folds a repeated
+   * Content-Encoding header.
+   */
+  public static encodingFromContentEncoding(
+    contentEncoding: string | Array<string> | undefined,
+  ): OtelPayloadEncoding | null {
+    const headerValue: string = Array.isArray(contentEncoding)
+      ? contentEncoding.join(",")
+      : contentEncoding ?? "";
+
+    const codings: Array<string> = headerValue
+      .split(",")
+      .map((coding: string) => {
+        return coding.trim().toLowerCase();
+      })
+      .filter((coding: string) => {
+        return coding.length > 0 && coding !== "identity";
+      });
+
+    if (codings.length === 0) {
+      return "none";
+    }
+
+    if (codings.length > 1) {
+      return null;
+    }
+
+    // A Map, not an object literal: "constructor" must not resolve.
+    return CONTENT_CODINGS.get(codings[0]!) ?? null;
   }
 
   /**
