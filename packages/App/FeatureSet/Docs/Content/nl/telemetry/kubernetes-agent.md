@@ -686,10 +686,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 De verbonden status van een cluster wordt puur bepaald door binnenkomende telemetrie — als er geen data binnenkomt, wordt het cluster na ~15 minuten als verbroken gemarkeerd. Dus "disconnected" en "geen metrieken" hebben vrijwel altijd **dezelfde** oorzaak: de telemetrie van de agent wordt niet geaccepteerd.
 
-De meest voorkomende reden — vooral na een herinstallatie — is een **verkeerde of ingetrokken ingestion-sleutel**. Dit wordt makkelijk over het hoofd gezien omdat de OTLP-ingest-endpoints bewust HTTP `200` retourneren, zelfs voor een ongeldig token (zodat een verkeerd geconfigureerde collector de server niet kan overspoelen met retries). Het gevolg: de collector rapporteert succes, de logs tonen geen fouten en de data wordt stilletjes verworpen.
+De meest voorkomende reden — vooral na een herinstallatie — is een **verkeerde of ingetrokken ingestion-sleutel**. OneUptime weigert zo'n sleutel: de OTLP-ingest-endpoints antwoorden HTTP `401` voor een ontbrekende, onbekende of verlopen sleutel en `422` voor een uitgeschakelde sleutel of een browsersleutel. Geen van beide statussen wordt opnieuw geprobeerd, dus de collector verwerpt elke batch en logt per batch een fout `Exporting failed. Dropping data.` De pods blijven Running en Ready, waardoor die regel makkelijk over het hoofd wordt gezien.
 
 1. Controleer of de agent-pods draaien: `kubectl get pods -n oneuptime-agent`
-2. Controleer de metrics-collector-logs: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (geen fouten hier betekent **niet** dat data binnenkomt — zie hierboven)
+2. Controleer de metrics-collector-logs: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (een regel `Exporting failed` met `HTTP Status Code 401` of `422` betekent dat de sleutel is geweigerd — zie hierboven)
 3. **Valideer de ingestion-sleutel.** Vraag OneUptime rechtstreeks of je token geaccepteerd wordt (`200` = geldig, `401` = onbekend/ingetrokken):
 
    ```bash
@@ -716,7 +716,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
 
 ### Geen metrieken zichtbaar
 
-1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is onzichtbaar vanaf de agent-kant. Zie [Agent toont "Disconnected"](#agent-toont-disconnected) hierboven (of voer gewoon het diagnosescript uit).
+1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is vanaf de agent-kant makkelijk over het hoofd te zien. Zie [Agent toont "Disconnected"](#agent-toont-disconnected) hierboven (of voer gewoon het diagnosescript uit).
 2. Controleer of de cluster-identifier overeenkomt met de waarde die je hebt doorgegeven als `clusterName`
 3. Verifieer de RBAC-permissies: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Controleer de OTel-collector-logs op export-fouten

@@ -44,6 +44,7 @@ import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySna
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
+import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -90,6 +91,13 @@ export default class MonitorIncident {
      * no-criteria-met code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Every criteria on the monitor, keyed by id. Used to name the
+     * criteria a recovered series no longer satisfies when its incident
+     * is resolved per series; without it the resolution text falls back
+     * to "the criteria that raised it".
+     */
+    criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Incident>> {
     // check active incidents and if there are open incidents, do not create another incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -138,10 +146,29 @@ export default class MonitorIncident {
       if (shouldClose) {
         resolvedIncidentIds.add(openIncident.id!.toString());
 
+        /*
+         * A series resolved per series closes on a tick where other series
+         * may still breach, and input.rootCause describes those. Record why
+         * THIS series resolved instead. Whole-monitor resolves keep the
+         * caller's root cause.
+         */
+        const isPerSeriesResolution: boolean =
+          input.breachingSeriesFingerprints !== undefined &&
+          Boolean(openIncident.seriesFingerprint);
+
+        const rootCause: string = isPerSeriesResolution
+          ? PerSeriesResolutionRootCause.build({
+              seriesLabels: openIncident.seriesLabels,
+              createdCriteriaId:
+                openIncident.createdCriteriaId?.toString() || undefined,
+              criteriaInstancesById: input.criteriaInstancesById,
+            })
+          : input.rootCause;
+
         // then resolve incident.
         await this.resolveOpenIncident({
           openIncident: openIncident,
-          rootCause: input.rootCause,
+          rootCause: rootCause,
           dataToProcess: input.dataToProcess,
         });
 

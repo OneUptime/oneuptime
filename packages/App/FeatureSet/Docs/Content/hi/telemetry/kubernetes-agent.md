@@ -687,10 +687,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 एक क्लस्टर की कनेक्टेड स्थिति पूरी तरह से आने वाली telemetry द्वारा संचालित होती है — यदि कोई डेटा नहीं आता, तो क्लस्टर को ~15 मिनट के बाद disconnected के रूप में चिह्नित किया जाता है। इसलिए "disconnected" और "no metrics" का लगभग हमेशा **एक ही** कारण होता है: एजेंट की telemetry स्वीकार नहीं की जा रही है।
 
-सबसे आम कारण — विशेष रूप से reinstall के बाद — एक **गलत या निरस्त ingestion key** है। इसे चूकना आसान है क्योंकि OTLP ingest endpoints जानबूझकर एक खराब token के लिए भी HTTP `200` लौटाते हैं (ताकि एक गलत कॉन्फ़िगर किया गया collector सर्वर पर retry-storm न कर सके)। परिणाम: collector सफलता की रिपोर्ट करता है, इसके logs कोई त्रुटि नहीं दिखाते, और डेटा चुपचाप गिरा दिया जाता है।
+सबसे आम कारण — विशेष रूप से reinstall के बाद — एक **गलत या निरस्त ingestion key** है। OneUptime ऐसी key को अस्वीकार कर देता है: OTLP ingest endpoints गायब, अज्ञात या expired key के लिए HTTP `401` और disabled key या browser key के लिए `422` लौटाते हैं। इन दोनों में से किसी भी status पर retry नहीं होता, इसलिए collector हर batch को गिरा देता है और हर batch के लिए एक `Exporting failed. Dropping data.` त्रुटि log करता है। Pods Running और Ready बने रहते हैं, इसलिए यह पंक्ति आसानी से छूट जाती है।
 
 1. जाँचें कि एजेंट pods चल रहे हैं: `kubectl get pods -n oneuptime-agent`
-2. metrics-collector logs जाँचें: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (यहाँ कोई त्रुटि नहीं होने का मतलब **यह नहीं** है कि डेटा आ रहा है — ऊपर देखें)
+2. metrics-collector logs जाँचें: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (`HTTP Status Code 401` या `422` वाली `Exporting failed` पंक्ति का मतलब है कि key अस्वीकार कर दी गई — ऊपर देखें)
 3. **Ingestion key सत्यापित करें।** OneUptime से सीधे पूछें कि आपका token स्वीकार किया गया है या नहीं (`200` = वैध, `401` = अज्ञात/निरस्त):
 
    ```bash
@@ -717,7 +717,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### कोई metrics दिखाई नहीं दे रहे
 
-1. पहले एक अस्वीकृत ingestion key को खारिज करें — यह सबसे आम कारण है और एजेंट पक्ष से अदृश्य है। ऊपर [एजेंट "डिस्कनेक्टेड" दिखाता है](#एजेंट-डिस्कनेक्टेड-दिखाता-है) देखें (या बस diagnostic स्क्रिप्ट चलाएँ)।
+1. पहले एक अस्वीकृत ingestion key को खारिज करें — यह सबसे आम कारण है और एजेंट पक्ष से आसानी से छूट जाता है। ऊपर [एजेंट "डिस्कनेक्टेड" दिखाता है](#एजेंट-डिस्कनेक्टेड-दिखाता-है) देखें (या बस diagnostic स्क्रिप्ट चलाएँ)।
 2. जाँचें कि क्लस्टर पहचानकर्ता उस मान से मेल खाता है जिसे आपने `clusterName` के रूप में पास किया था
 3. RBAC अनुमतियाँ सत्यापित करें: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. export त्रुटियों के लिए OTel collector logs जाँचें

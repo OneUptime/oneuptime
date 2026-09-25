@@ -625,7 +625,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 
-It checks the container, the identity in `.env`, TCP reachability of the database from the agent's own network, login, permission and TLS errors in the collector log (and names any other receiver error it finds there), and the ingestion key. The key check matters: OneUptime's OTLP endpoints answer a bad key with a silent `200` (so a misconfigured collector cannot retry-flood the server), so the collector log looks clean while everything is dropped. The script calls `GET <url>/otlp/v1/validate`, which answers `200` or `401` for real. It runs its probes from a pinned curl image and hands it the key on stdin, never on a command line.
+It checks the container, the identity in `.env`, TCP reachability of the database from the agent's own network, login, permission and TLS errors in the collector log (and names any other receiver error it finds there), and the ingestion key. The key check matters: OneUptime's OTLP endpoints refuse a bad key with `401` (`422` for a disabled key or a browser key), and the collector drops every batch it cannot deliver, logging one `Exporting failed` line per batch that is easy to miss among the receiver's output. The script calls `GET <url>/otlp/v1/validate`, which answers `200` or `401` directly. It runs its probes from a pinned curl image and hands it the key on stdin, never on a command line.
 
 ### The agent runs but no database appears
 

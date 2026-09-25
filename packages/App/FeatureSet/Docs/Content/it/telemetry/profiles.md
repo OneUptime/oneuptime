@@ -143,13 +143,14 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
+    # Senza questa riga l'exporter invia a /otlp/v1development/profiles, che OneUptime non gestisce
+    profiles_endpoint: "https://oneuptime.com/otlp/v1/profiles"
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "VOSTRO_TOKEN_SERVIZIO_ONEUPTIME"
 
 service:
   pipelines:
+    # Richiede di avviare il collector con --feature-gates=service.profilesSupport
     profiles:
       receivers: [otlp]
       exporters: [otlphttp]

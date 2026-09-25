@@ -78,10 +78,7 @@ exporters:
   # HTTP पर Export करें
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # Default Proto(buf) के बजाय JSON encoder उपयोग आवश्यक
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "ONEUPTIME_TOKEN" # आपका OneUptime token
 
 service:

@@ -78,10 +78,7 @@ exporters:
   # 通过 HTTP 导出
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # 需要使用 JSON 编码器而非默认的 Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "ONEUPTIME_TOKEN" # 您的 OneUptime 令牌
 
 service:

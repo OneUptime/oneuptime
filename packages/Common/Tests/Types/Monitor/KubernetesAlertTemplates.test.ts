@@ -6,6 +6,7 @@ import {
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
+import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
 import MonitorStepKubernetesMonitor from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
@@ -949,6 +950,155 @@ describe("KubernetesAlertTemplates - grouped alerts point at the right field", (
             /root cause/i,
           );
         }
+      }
+    }
+  });
+});
+
+/*
+ * BUG: k8s-deployment-replica-mismatch queried
+ * `k8s.deployment.unavailable_replicas`. The agent's k8s_cluster receiver
+ * has no such series — it reports a Deployment as `k8s.deployment.desired`
+ * and `k8s.deployment.available` — and the chart renames nothing, so the
+ * query matched zero rows and the monitor could never fire. The shortfall
+ * is now computed per deployment as desired - available.
+ */
+describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
+  const ID: string = "k8s-deployment-replica-mismatch";
+
+  test("queries only metrics the shipped agent emits", () => {
+    const queryConfigs: Array<any> = getQueryConfigs(ID);
+
+    expect(queryConfigs.length).toBeGreaterThan(0);
+
+    for (const query of queryConfigs) {
+      const metricName: string = query.metricQueryData.filterData.metricName;
+
+      expect(
+        `${metricName} emitted: ${AGENT_EMITTED_METRIC_NAMES.has(metricName)}`,
+      ).toBe(`${metricName} emitted: true`);
+    }
+  });
+
+  test("computes desired - available, per namespace + deployment, on both queries", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(ID),
+    );
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    const formulaConfigs: Array<any> = monitor.metricViewConfig
+      .formulaConfigs as Array<any>;
+
+    expect(queryConfigs).toHaveLength(2);
+    expect(formulaConfigs).toHaveLength(1);
+
+    const [desired, available] = queryConfigs;
+
+    expect(desired.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.desired",
+    );
+    expect(desired.metricAliasData.metricVariable).toBe("desired_replicas");
+    expect(available.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.available",
+    );
+    expect(available.metricAliasData.metricVariable).toBe("available_replicas");
+
+    expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+      "desired_replicas - available_replicas",
+    );
+    // A pod count. "%" would render a shortfall of 2 replicas as "2%".
+    expect(formulaConfigs[0].metricAliasData.legendUnit).toBe("");
+
+    for (const query of queryConfigs) {
+      /*
+       * Both sides carry exactly this key set, or the formula's
+       * fingerprint join finds nothing and the monitor goes silent.
+       */
+      expect(query.metricQueryData.groupByAttributeKeys).toEqual([
+        "resource.k8s.namespace.name",
+        "resource.k8s.deployment.name",
+      ]);
+      /*
+       * One series per deployment per side, from one scrape: Avg is the
+       * per-minute count. Sum would scale the shortfall by scrape count.
+       */
+      expect(query.metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Avg,
+      );
+      // An attribute filter nothing stamps would match zero rows.
+      expect(query.metricQueryData.filterData.attributes).toEqual({});
+    }
+  });
+
+  test("fires on any shortfall and recovers at or below zero", () => {
+    const [offline, online] = getCriteriaInstances(ID);
+    const offlineFilter: any = offline.data.filters[0];
+    const onlineFilter: any = online.data.filters[0];
+
+    // Both compare the FORMULA, never a raw operand.
+    expect(offlineFilter.metricMonitorOptions.metricAlias).toBe(
+      "replica_shortfall",
+    );
+    expect(onlineFilter.metricMonitorOptions.metricAlias).toBe(
+      "replica_shortfall",
+    );
+
+    expect(offlineFilter.filterType).toBe(FilterType.GreaterThan);
+    expect(offlineFilter.value).toBe(0);
+
+    /*
+     * `<= 0`, not `= 0`: a surge rollout makes available exceed desired,
+     * and a negative shortfall that matched neither criteria would leave
+     * the monitor stuck in whatever status it last had.
+     */
+    expect(onlineFilter.filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(onlineFilter.value).toBe(0);
+
+    expect(offline.data.createIncidents).toBe(true);
+    expect(online.data.createIncidents).toBe(false);
+  });
+
+  test("names no metric the receiver does not have", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(ID);
+    const [offline] = getCriteriaInstances(ID);
+
+    for (const text of [
+      template!.description,
+      offline.data.name as string,
+      offline.data.description as string,
+      offline.data.incidents[0].description as string,
+    ]) {
+      expect(text).not.toContain("unavailable_replicas");
+    }
+
+    expect(template!.description).toContain("k8s.deployment.desired");
+    expect(template!.description).toContain("k8s.deployment.available");
+  });
+
+  /*
+   * The same bug, generalised: any template reading a k8s_cluster workload
+   * series must read one the receiver actually has. (Node and pod metrics
+   * come from kubeletstats too, whose optional families the chart enables
+   * selectively, so they are not swept up here.)
+   */
+  test("no template queries a workload metric the agent does not emit", () => {
+    const workloadMetric: RegExp =
+      /^k8s\.(deployment|statefulset|daemonset|replicaset|job|cronjob|hpa)\./;
+
+    for (const template of getAllKubernetesAlertTemplates()) {
+      for (const query of getQueryConfigs(template.id)) {
+        const metricName: string = query.metricQueryData.filterData.metricName;
+
+        if (!workloadMetric.test(metricName)) {
+          continue;
+        }
+
+        expect(`${template.id}: ${metricName}`).toBe(
+          AGENT_EMITTED_METRIC_NAMES.has(metricName)
+            ? `${template.id}: ${metricName}`
+            : "a metric the agent emits",
+        );
       }
     }
   });

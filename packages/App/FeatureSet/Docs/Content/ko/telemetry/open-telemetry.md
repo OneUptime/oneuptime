@@ -78,10 +78,7 @@ exporters:
   # HTTP를 통해 내보내기
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # 기본 Proto(buf) 대신 JSON 인코더 사용 필요
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "ONEUPTIME_TOKEN" # OneUptime 토큰
 
 service:

@@ -36,6 +36,23 @@ export interface LogExceptionExtractorInput {
  * reach the parser.
  */
 const MIN_ERROR_SEVERITY_NUMBER: number = 17;
+const MAX_FATAL_SEVERITY_NUMBER: number = 24;
+
+/*
+ * A positive range check, so anything that is not an ERROR/FATAL integer
+ * fails closed. The gate used to be `severityNumber < 17 -> skip`, and
+ * `NaN < 17` is false: a NaN severity — what OtelLogsIngestService produced
+ * for every OTLP severity name it did not map, e.g. SEVERITY_NUMBER_WARN2
+ * (GH#3978) — was body-scanned as if it were an error.
+ */
+function isErrorOrFatalSeverity(severityNumber: unknown): boolean {
+  return (
+    typeof severityNumber === "number" &&
+    Number.isInteger(severityNumber) &&
+    severityNumber >= MIN_ERROR_SEVERITY_NUMBER &&
+    severityNumber <= MAX_FATAL_SEVERITY_NUMBER
+  );
+}
 
 /**
  * Only the first 16 KB of a body is parsed. A clean single-record stack trace
@@ -105,7 +122,7 @@ export default class LogExceptionExtractor {
       }
 
       // Path B — raw body scan. Gated to keep the hot path cheap.
-      if (input.severityNumber < MIN_ERROR_SEVERITY_NUMBER) {
+      if (!isErrorOrFatalSeverity(input.severityNumber)) {
         return null;
       }
       if (input.hasTraceAndSpan) {

@@ -274,6 +274,7 @@ export default class MetricMonitorCriteria {
         seriesFingerprint: input.seriesFingerprint,
         seriesLabels: input.seriesLabels,
         projectId: input.projectId,
+        nativeUnitsByMetricName: input.nativeUnitsByMetricName,
       });
     }
 
@@ -824,6 +825,7 @@ export default class MetricMonitorCriteria {
     seriesFingerprint: string | undefined;
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -908,6 +910,19 @@ export default class MetricMonitorCriteria {
       return noBreach();
     }
 
+    /*
+     * The baseline is aggregated from the raw stored values, so it is in
+     * the metric's NATIVE unit — but the samples were already converted
+     * into the query's legendUnit by the worker. Rescale the baseline
+     * into the sample unit before anything compares against it or
+     * renders it; otherwise a "By" baseline read as "MB" puts the mean a
+     * million times too high — AnomalouslyHigh can never fire,
+     * AnomalouslyLow fires on every sample, and the root cause prints
+     * the mean in TB.
+     */
+    const baselineUnit: string | undefined =
+      input.nativeUnitsByMetricName?.[metricContext.metricName.toLowerCase()];
+
     const baselineByHour: Map<number, BaselineSummary> = new Map();
     for (const hour of hoursInWindow) {
       const baseline: BaselineSummary | null =
@@ -919,7 +934,14 @@ export default class MetricMonitorCriteria {
           minSamples,
         });
       if (baseline && baseline.isReliable) {
-        baselineByHour.set(hour, baseline);
+        baselineByHour.set(
+          hour,
+          MetricMonitorCriteria.convertBaselineToUnit({
+            baseline,
+            fromUnit: baselineUnit,
+            toUnit: metricContext.unit || undefined,
+          }),
+        );
       }
     }
 
@@ -1085,6 +1107,45 @@ export default class MetricMonitorCriteria {
       labels: input.seriesLabels,
       rootCause,
       context: metricContext,
+    };
+  }
+
+  /**
+   * Rescale every quantity in a baseline from one unit into another.
+   * Every supported unit family converts by a pure multiplier (no
+   * offsets), so the spread terms (stddev, MAD) scale by the same
+   * factor as the location terms. When the units match, either is
+   * missing, or they aren't convertible, the baseline is returned
+   * unchanged — the same pass-through the worker applies to samples.
+   */
+  private static convertBaselineToUnit(input: {
+    baseline: BaselineSummary;
+    fromUnit: string | undefined;
+    toUnit: string | undefined;
+  }): BaselineSummary {
+    const { baseline, fromUnit, toUnit } = input;
+
+    if (!fromUnit || !toUnit || fromUnit === toUnit) {
+      return baseline;
+    }
+
+    const convert: (value: number) => number = (value: number): number => {
+      return MetricUnitUtil.convertToMetricUnit({
+        value,
+        fromUnit,
+        metricUnit: toUnit,
+      });
+    };
+
+    return {
+      ...baseline,
+      mean: convert(baseline.mean),
+      stddev: convert(baseline.stddev),
+      median: convert(baseline.median),
+      p95: convert(baseline.p95),
+      minObserved: convert(baseline.minObserved),
+      maxObserved: convert(baseline.maxObserved),
+      ...(baseline.mad !== undefined ? { mad: convert(baseline.mad) } : {}),
     };
   }
 

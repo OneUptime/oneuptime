@@ -37,6 +37,7 @@ import SeriesResourceLinker, {
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -76,6 +77,13 @@ export default class MonitorAlert {
      * code paths for grouped incoming-request monitors.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /**
+     * Every criteria on the monitor, keyed by id. Used to name the
+     * criteria a recovered series no longer satisfies when its alert is
+     * resolved per series; without it the resolution text falls back to
+     * "the criteria that raised it".
+     */
+    criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -123,10 +131,29 @@ export default class MonitorAlert {
       if (shouldClose) {
         resolvedAlertIds.add(openAlert.id!.toString());
 
+        /*
+         * A series resolved per series closes on a tick where other series
+         * may still breach, and input.rootCause describes those. Record why
+         * THIS series resolved instead. Whole-monitor resolves keep the
+         * caller's root cause.
+         */
+        const isPerSeriesResolution: boolean =
+          input.breachingSeriesFingerprints !== undefined &&
+          Boolean(openAlert.seriesFingerprint);
+
+        const rootCause: string = isPerSeriesResolution
+          ? PerSeriesResolutionRootCause.build({
+              seriesLabels: openAlert.seriesLabels,
+              createdCriteriaId:
+                openAlert.createdCriteriaId?.toString() || undefined,
+              criteriaInstancesById: input.criteriaInstancesById,
+            })
+          : input.rootCause;
+
         // then resolve alert.
         await this.resolveOpenAlert({
           openAlert: openAlert,
-          rootCause: input.rootCause,
+          rootCause: rootCause,
           dataToProcess: input.dataToProcess,
         });
 

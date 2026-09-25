@@ -7,7 +7,16 @@ import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+  TelemetryIngestionKeyRefusalReason,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import {
+  GrpcAuthenticationResult,
+  INVALID_INGESTION_TOKEN_MESSAGE,
+  MISSING_INGESTION_TOKEN_MESSAGE,
+  authenticateGrpcRequest,
   authenticateRequest,
   buildTelemetryRequest,
 } from "../../FeatureSet/Telemetry/GrpcServer";
@@ -223,6 +232,160 @@ describe("GrpcServer authenticateRequest", () => {
     expect(getCachedResolverMock()).toHaveBeenCalledTimes(5);
     expect(getFindOneByMock()).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * authenticateGrpcRequest is what handleExport acts on: the project, or the
+ * exact status and sentence to refuse with (GH#3978). The status for each
+ * guard reason is restated here as the contract - 401-class reasons
+ * UNAUTHENTICATED, 422-class ones PERMISSION_DENIED, as the HTTP middleware
+ * answers them - and GrpcServerAuthStatusLive.test.ts checks the same
+ * contract against the HTTP middleware itself.
+ */
+describe("GrpcServer authenticateGrpcRequest", () => {
+  let loggerErrorSpy: SpyLike;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    loggerErrorSpy = (
+      jest.spyOn(logger, "error") as unknown as SpyLike
+    ).mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    loggerErrorSpy.mockRestore();
+  });
+
+  /*
+   * Total Records, so a reason added to the guard fails to compile here
+   * until someone decides what gRPC answers for it.
+   */
+  const policyOverridesForReason: Record<
+    TelemetryIngestionKeyRefusalReason,
+    Partial<TelemetryIngestionKeyPolicy>
+  > = {
+    [TelemetryIngestionKeyRefusalReason.Disabled]: { isEnabled: false },
+    [TelemetryIngestionKeyRefusalReason.Expired]: {
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    },
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]: {
+      keyType: TelemetryIngestionKeyType.Browser,
+      allowedOrigins: ["https://shop.example.com"],
+    },
+  };
+
+  const expectedCodeForReason: Record<
+    TelemetryIngestionKeyRefusalReason,
+    grpc.status
+  > = {
+    [TelemetryIngestionKeyRefusalReason.Disabled]:
+      grpc.status.PERMISSION_DENIED,
+    [TelemetryIngestionKeyRefusalReason.Expired]: grpc.status.UNAUTHENTICATED,
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
+      grpc.status.PERMISSION_DENIED,
+  };
+
+  const GUARD_REASONS: Array<TelemetryIngestionKeyRefusalReason> =
+    Object.values(TelemetryIngestionKeyRefusalReason);
+
+  test("an admitted key yields its projectId and no refusal", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
+
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({ "x-oneuptime-ingestion-key": "ingestion-key-value" }),
+    );
+
+    expect(result).toEqual({ projectId });
+  });
+
+  test("a missing token is UNAUTHENTICATED with the missing-token sentence, without a lookup", async () => {
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({}),
+    );
+
+    expect(result).toEqual({
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: MISSING_INGESTION_TOKEN_MESSAGE,
+      },
+    });
+    expect(getCachedResolverMock()).not.toHaveBeenCalled();
+  });
+
+  test("an unknown token is UNAUTHENTICATED with the invalid-token sentence", async () => {
+    getCachedResolverMock().mockResolvedValue(null);
+
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({ "x-oneuptime-service-token": "unknown-token-value" }),
+    );
+
+    expect(result).toEqual({
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: INVALID_INGESTION_TOKEN_MESSAGE,
+      },
+    });
+    expect(getCachedResolverMock()).toHaveBeenCalledWith("unknown-token-value");
+  });
+
+  test.each(GUARD_REASONS)(
+    "a guard refusal (%s) carries the guard's own sentence under its agreed status",
+    async (reason: TelemetryIngestionKeyRefusalReason) => {
+      const secretToken: string = `secret-${ObjectID.generate().toString()}`;
+      const policy: TelemetryIngestionKeyPolicy = {
+        ...makeServerKeyPolicy(ObjectID.generate()),
+        ...policyOverridesForReason[reason],
+      };
+      getCachedResolverMock().mockResolvedValue(policy);
+
+      // What the shared guard says about this key on the gRPC surface.
+      const guardRefusal: TelemetryIngestionKeyRefusal | null =
+        TelemetryIngestionKeyGuard.getRefusal({
+          policy,
+          surface: TelemetryIngestSurface.Grpc,
+        });
+      expect(guardRefusal?.reason).toBe(reason);
+
+      const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+        makeMetadata({ "x-oneuptime-token": secretToken }),
+      );
+
+      expect(result).toEqual({
+        refusal: {
+          code: expectedCodeForReason[reason],
+          message: guardRefusal!.message,
+        },
+      });
+
+      /*
+       * What the caller is told names neither the token nor the key; the
+       * key id and reason code go to the server log only.
+       */
+      const message: string = (result as { refusal: { message: string } })
+        .refusal.message;
+      expect(message).not.toContain(secretToken);
+      expect(message).not.toContain(policy.ingestionKeyId.toString());
+      expect(message).not.toContain(policy.projectId.toString());
+      expect(message).not.toContain("shop.example.com");
+      expect(loggerErrorSpy.mock.calls).toContainEqual([
+        `gRPC: Ingestion key ${policy.ingestionKeyId.toString()} refused: ${reason}.`,
+        { service: "telemetry" },
+      ]);
+      for (const call of loggerErrorSpy.mock.calls) {
+        expect(JSON.stringify(call)).not.toContain(secretToken);
+      }
+
+      // The yes/no wrapper still reports every refusal as null.
+      expect(
+        await authenticateRequest(
+          makeMetadata({ "x-oneuptime-token": secretToken }),
+        ),
+      ).toBeNull();
+    },
+  );
 });
 
 describe("GrpcServer buildTelemetryRequest", () => {

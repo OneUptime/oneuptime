@@ -1436,10 +1436,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as JSONArray | undefined;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
-                    const aggregationTemporality: OtelAggregationTemporality =
-                      metricTypeWrapper?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality;
+                    const aggregationTemporality:
+                      | OtelAggregationTemporality
+                      | undefined = this.normalizeAggregationTemporality(
+                      metricTypeWrapper?.["aggregationTemporality"],
+                    );
 
                     const isMonotonic: boolean | undefined =
                       metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
@@ -3735,7 +3736,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     metricPointType: MetricPointType;
-    aggregationTemporality?: OtelAggregationTemporality;
+    aggregationTemporality?: OtelAggregationTemporality | undefined;
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
@@ -3763,8 +3764,45 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const valueFromDouble: number | null = this.toNumberOrNull(
       data.datapoint["asDouble"],
     );
-    const count: number | null = this.toNumberOrNull(data.datapoint["count"]);
-    const sum: number | null = this.toNumberOrNull(data.datapoint["sum"]);
+    /*
+     * A plain (non-`optional`) proto3 scalar has no presence: the Collector,
+     * like every canonical encoder, leaves a 0 off the wire in protobuf and
+     * in OTLP/JSON alike, so the decoded key is simply absent - and the
+     * proto3 JSON mapping reads a `null` field as that same default. For
+     * such a field, absent or null IS 0. A value that is present but not a
+     * finite number (NaN, +/-Inf, a non-numeric string) is unknown: null.
+     */
+    const readProto3Number: (raw: unknown) => number | null = (
+      raw: unknown,
+    ): number | null => {
+      return raw === undefined || raw === null ? 0 : this.toNumberOrNull(raw);
+    };
+
+    /*
+     * `count` is a plain `fixed64` on Histogram, ExponentialHistogram and
+     * Summary points, and a Summary's `sum` a plain `double`. Read with
+     * toNumberOrNull, an idle point (nothing observed: an empty delta
+     * histogram interval, a Prometheus summary with no observations yet)
+     * was stored with count null, and a Summary with sum null - and so
+     * value null, since its row value is its sum. MetricService only treats
+     * a row with a count and a sum as a distribution row, so a Summary whose
+     * observations were all 0 (count written, sum elided) lost them from
+     * Count and Avg (GH#3978). Histogram / ExponentialHistogram `sum`, `min`
+     * and `max` are `optional` (explicit presence): absent there means "not
+     * recorded", and null is right. Gauge and Sum points carry no count or
+     * sum at all.
+     */
+    const hasPlainCount: boolean =
+      data.metricPointType === MetricPointType.Histogram ||
+      data.metricPointType === MetricPointType.ExponentialHistogram ||
+      data.metricPointType === MetricPointType.Summary;
+    const count: number | null = hasPlainCount
+      ? readProto3Number(data.datapoint["count"])
+      : this.toNumberOrNull(data.datapoint["count"]);
+    const sum: number | null =
+      data.metricPointType === MetricPointType.Summary
+        ? readProto3Number(data.datapoint["sum"])
+        : this.toNumberOrNull(data.datapoint["sum"]);
     const min: number | null = this.toNumberOrNull(data.datapoint["min"]);
     const max: number | null = this.toNumberOrNull(data.datapoint["max"]);
 
@@ -3840,9 +3878,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Summary-specific fields. The proto carries
      * `quantile_values: repeated { quantile: double, value: double }`.
      * We split into two parallel Float64 arrays keyed by index, matching the
-     * bucketCounts/explicitBounds convention used by histograms. Any entries
-     * that fail to parse (NaN, +/-Inf, missing) are dropped together so the
-     * two arrays stay length-aligned.
+     * bucketCounts/explicitBounds convention used by histograms.
+     *
+     * Both are plain proto3 doubles, so they go through readProto3Number: an
+     * absent (or JSON null) field IS 0. Skipping such an entry dropped
+     * quantile 0, and any quantile whose value was 0, from every exporter
+     * that elides zeros (found by the GH#3978 wire-format tests). A field
+     * that is present but not a finite number, or an entry that is not an
+     * object, still drops the whole entry so the two arrays stay
+     * length-aligned.
      */
     const quantileEntriesRaw: JSONArray = Array.isArray(
       data.datapoint["quantileValues"],
@@ -3852,9 +3896,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const summaryQuantiles: Array<number> = [];
     const summaryValues: Array<number> = [];
     for (const entryUnknown of quantileEntriesRaw) {
-      const entry: JSONObject = (entryUnknown as JSONObject) || {};
-      const q: number | null = this.toNumberOrNull(entry["quantile"]);
-      const v: number | null = this.toNumberOrNull(entry["value"]);
+      if (!entryUnknown || typeof entryUnknown !== "object") {
+        continue;
+      }
+      const entry: JSONObject = entryUnknown as JSONObject;
+      const q: number | null = readProto3Number(entry["quantile"]);
+      const v: number | null = readProto3Number(entry["value"]);
       if (q === null || v === null) {
         continue;
       }
@@ -4125,6 +4172,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /*
+   * Protobuf bodies (and gRPC) reach us through protobufjs with enums as
+   * their string names, but OTLP/JSON encodes enums as integers per the
+   * spec (1 = DELTA, 2 = CUMULATIVE) — which is what the collector's
+   * `otlphttp` exporter sends with `encoding: json`. Accept both so JSON
+   * metrics don't lose their temporality.
+   */
+  public static normalizeAggregationTemporality(
+    temporality: unknown,
+  ): OtelAggregationTemporality | undefined {
+    switch (temporality) {
+      case OtelAggregationTemporality.Delta:
+      case 1:
+      case "1":
+        return OtelAggregationTemporality.Delta;
+      case OtelAggregationTemporality.Cumulative:
+      case 2:
+      case "2":
+        return OtelAggregationTemporality.Cumulative;
+      default:
+        return undefined;
+    }
   }
 
   private static mapAggregationTemporality(

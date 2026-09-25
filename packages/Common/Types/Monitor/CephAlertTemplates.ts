@@ -534,6 +534,12 @@ const osdDownTemplate: CephAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 1,
+        /*
+         * `ceph_osd_up` is strictly 0 or 1, so the shared 10% recovery dead
+         * band would put this at `>= 1.1` — unreachable, leaving the
+         * monitor Offline even after the OSD comes back up.
+         */
+        isBinaryMetric: true,
       }),
     });
   },
@@ -581,6 +587,12 @@ const osdOutTemplate: CephAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 1,
+        /*
+         * `ceph_osd_in` is strictly 0 or 1, so the shared 10% recovery dead
+         * band would put this at `>= 1.1` — unreachable, leaving the
+         * monitor Offline even after the OSD is marked back in.
+         */
+        isBinaryMetric: true,
       }),
     });
   },
@@ -675,6 +687,12 @@ const monQuorumDegradedTemplate: CephAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 1,
+        /*
+         * `ceph_mon_quorum_status` is strictly 0 or 1, so the shared 10%
+         * recovery dead band would put this at `>= 1.1` — unreachable,
+         * leaving the monitor Offline even after the mon rejoins quorum.
+         */
+        isBinaryMetric: true,
       }),
     });
   },

@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # O OneUptime requer o codificador JSON em vez do Proto(buf) padrão
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,7 @@ service:
 
 - O **`resource`** carimba cada registro com os atributos da frota. Defina `iot.fleet.name` (e o `service.name=iot/<fleet>` correspondente) por gateway para que os dispositivos de cada gateway caiam na frota certa.
 - Mantenha `device.id` (e opcionalmente `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) em cada datapoint para que o OneUptime possa resolver o dispositivo individual dentro da frota.
-- O **`otlphttp`** envia para o OneUptime via HTTPS com o token de ingestão anexado. Observe que `encoding: json` e o cabeçalho `Content-Type: application/json` são obrigatórios.
+- O **`otlphttp`** envia para o OneUptime via HTTPS com o token de ingestão anexado. Tanto a codificação protobuf padrão quanto `encoding: json` são aceitas.
 
 ## Enviando métricas via MQTT
 
@@ -220,7 +217,7 @@ O OneUptime reconhece os seguintes nomes de métricas `iot_*`. Cada datapoint de
 
 1. Verifique se `iot.fleet.name` está definido como um atributo de **recurso** (não um label de datapoint) e se `service.name` é `iot/<fleet>`.
 2. Confirme que o endpoint do exportador é `https://oneuptime.com/otlp` (ou seu `…/otlp` self-hosted) e que o cabeçalho `x-oneuptime-token` carrega um token válido.
-3. Se estiver usando um coletor, certifique-se de que `encoding: json` e `Content-Type: application/json` estejam definidos no exportador `otlphttp`.
+3. Se estiver usando MQTT, confirme que o tópico segue exatamente `oneuptime/<fleet>/<device>/…` — é o segmento de frota do tópico que cria a frota.
 
 ### Dispositivos Ausentes no Inventário
 
@@ -252,9 +249,7 @@ Ou, em um coletor:
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
