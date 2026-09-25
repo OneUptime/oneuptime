@@ -12,13 +12,23 @@ import ProfilesQueueService from "../../FeatureSet/Telemetry/Services/Queue/Prof
 import TracesQueueService from "../../FeatureSet/Telemetry/Services/Queue/TracesQueueService";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
-import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngest, {
+  TelemetryRequest,
+} from "Common/Server/Middleware/TelemetryIngest";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import TelemetryIngestionKeyRateLimiter from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter";
 import ObjectID from "Common/Types/ObjectID";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 /*
  * LIVE gRPC: the OTLP ingest server's auth status, over a real socket
@@ -27,7 +37,10 @@ import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestion
  * wrong-type ingestion key used to be answered with gRPC OK and have its
  * batch dropped, so the exporter logged nothing and the customer saw a
  * healthy pipeline that never showed data. handleExport now answers every
- * refused credential with UNAUTHENTICATED.
+ * refused credential with the sentence the HTTP ingest middleware
+ * (TelemetryIngest) sends for the same refusal, under the gRPC status that
+ * corresponds to its HTTP one: 401 -> UNAUTHENTICATED, 422 ->
+ * PERMISSION_DENIED. Both are non-retryable for an OTLP exporter.
  *
  * GrpcServerEnqueueAck.test.ts pins that by calling the captured Export
  * closure with a hand-made callback. That cannot see what an exporter
@@ -41,14 +54,35 @@ import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestion
  * Export through real @grpc/grpc-js clients built from the same .proto files
  * an exporter compiles against.
  *
- * Only two things are substituted: the key-policy resolver (so each test can
- * hand the server an exact key state without Postgres) and the per-signal
- * queue services (so admission can be observed and failed without Redis).
+ * The expected sentences are NOT copied into this file. Each case is first
+ * put to the real HTTP middleware, and the gRPC reply must match what it
+ * said, so rewording either side without the other fails here.
+ *
+ * Only these are substituted: the key-policy resolver (so each test can hand
+ * both servers an exact key state without Postgres), the per-signal queue
+ * services (so admission can be observed and failed without Redis) and the
+ * per-key rate limiter (Redis-backed, and never reached by any case here).
  */
 
 jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
-  return { __esModule: true, default: { getPolicyFromSecretKey: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { getPolicyFromSecretKey: jest.fn(), markUsed: jest.fn() },
+  };
 });
+/*
+ * Only consume() is replaced; the real outcome enum stays, because the
+ * middleware compares against it by value.
+ */
+jest.mock(
+  "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+    ) as Record<string, unknown>;
+    return { __esModule: true, ...actual, default: { consume: jest.fn() } };
+  },
+);
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
     __esModule: true,
@@ -105,12 +139,18 @@ const OTLP_RETRYABLE_GRPC_STATUS_CODES: ReadonlyArray<grpc.status> = [
 ];
 
 /*
- * Pinned verbatim, not imported: this is the sentence a customer reads in
- * their collector's log, and the same one for every refusal reason. A change
- * to it should be a deliberate edit to this file too.
+ * The gRPC status that corresponds to each HTTP status the ingest middleware
+ * refuses a credential with. Keyed by ExceptionCode rather than literal
+ * numbers, so these are the statuses the exceptions really carry: 401 for
+ * NotAuthenticatedException (missing, unknown or expired key) and 422 for
+ * NotAuthorizedException (a recognised key that may not write here). A
+ * refusal with any other HTTP status has no agreed gRPC reply and fails.
  */
-const UNAUTHENTICATED_DETAILS: string =
-  "Invalid or missing OneUptime ingestion key. Set the x-oneuptime-token header to a valid server ingestion key.";
+const GRPC_CODE_FOR_HTTP_REFUSAL_STATUS: ReadonlyMap<number, grpc.status> =
+  new Map<number, grpc.status>([
+    [ExceptionCode.NotAuthenticatedException, grpc.status.UNAUTHENTICATED],
+    [ExceptionCode.NotAuthorizedException, grpc.status.PERMISSION_DENIED],
+  ]);
 
 const QUEUE_UNAVAILABLE_DETAILS: string =
   "Telemetry queue unavailable. Please retry.";
@@ -514,8 +554,8 @@ const sentinelToken: SentinelTokenFunction = (label: string): string => {
 /*
  * ---------------------------------------------------------------------------
  * The refusal reasons. `policy` is what the resolver answers for the
- * presented token; `token: null` means no credential header is sent at all,
- * in which case the resolver must not even be consulted.
+ * presented token; `token: null` means no credential is presented, in which
+ * case the resolver must not even be consulted.
  * ---------------------------------------------------------------------------
  */
 interface RefusalCase {
@@ -523,10 +563,15 @@ interface RefusalCase {
   token: string | null;
   policy: TelemetryIngestionKeyPolicy | null;
   /*
-   * The reply is deliberately the same for every reason, so this server log
-   * line is the ONLY place the reason exists. For a resolved-but-refused key
-   * it names the key id (what an operator searches the dashboard with) and
-   * the guard's closed-vocabulary reason, and never the token.
+   * The status this reason must get. Stated here as the contract, and also
+   * checked against what the HTTP middleware's own status maps to.
+   */
+  expectedCode: grpc.status;
+  /*
+   * The caller is told the problem, not the key: this server log line is the
+   * only place the key id (what an operator searches the dashboard with) and
+   * the guard's closed-vocabulary reason appear, and it never names the
+   * token.
    */
   expectedLogLine: string;
 }
@@ -535,6 +580,7 @@ type RefusedPolicyCaseFunction = (data: {
   reason: string;
   label: string;
   overrides: Partial<TelemetryIngestionKeyPolicy>;
+  expectedCode: grpc.status;
   loggedReason: string;
 }) => RefusalCase;
 
@@ -542,6 +588,7 @@ const refusedPolicyCase: RefusedPolicyCaseFunction = (data: {
   reason: string;
   label: string;
   overrides: Partial<TelemetryIngestionKeyPolicy>;
+  expectedCode: grpc.status;
   loggedReason: string;
 }): RefusalCase => {
   const policy: TelemetryIngestionKeyPolicy = buildServerKeyPolicy(
@@ -551,6 +598,7 @@ const refusedPolicyCase: RefusedPolicyCaseFunction = (data: {
     reason: data.reason,
     token: sentinelToken(data.label),
     policy,
+    expectedCode: data.expectedCode,
     expectedLogLine: `gRPC: Ingestion key ${policy.ingestionKeyId.toString()} refused: ${data.loggedReason}.`,
   };
 };
@@ -563,24 +611,28 @@ const buildRefusalCases: BuildRefusalCasesFunction = (): Array<RefusalCase> => {
       reason: "missing token",
       token: null,
       policy: null,
+      expectedCode: grpc.status.UNAUTHENTICATED,
       expectedLogLine: "gRPC: Missing metadata: x-oneuptime-token",
     },
     {
       reason: "unknown token",
       token: sentinelToken("unknown"),
       policy: null,
+      expectedCode: grpc.status.UNAUTHENTICATED,
       expectedLogLine: "gRPC: Invalid service token.",
     },
     refusedPolicyCase({
       reason: "disabled key",
       label: "disabled",
       overrides: { isEnabled: false },
+      expectedCode: grpc.status.PERMISSION_DENIED,
       loggedReason: "disabled",
     }),
     refusedPolicyCase({
       reason: "expired key",
       label: "expired",
       overrides: { expiresAt: new Date(Date.now() - 60 * 1000) },
+      expectedCode: grpc.status.UNAUTHENTICATED,
       loggedReason: "expired",
     }),
     /*
@@ -596,16 +648,64 @@ const buildRefusalCases: BuildRefusalCasesFunction = (): Array<RefusalCase> => {
         allowedOrigins: ["https://shop.example.com"],
         pinnedServiceName: "shop-frontend",
       },
+      expectedCode: grpc.status.PERMISSION_DENIED,
       loggedReason: "surface-not-allowed-for-browser-key",
     }),
   ];
 };
 
-const REFUSAL_REASONS: Array<string> = buildRefusalCases().map(
-  (refusal: RefusalCase): string => {
-    return refusal.reason;
+type FindRefusalCaseFunction = (reason: string) => RefusalCase;
+
+// A fresh case (new key ids, new sentinel token) for one reason.
+const buildRefusalCase: FindRefusalCaseFunction = (
+  reason: string,
+): RefusalCase => {
+  return buildRefusalCases().find((candidate: RefusalCase): boolean => {
+    return candidate.reason === reason;
+  })!;
+};
+
+/*
+ * One row per reason per way of presenting it. A presented token goes in
+ * each of the three accepted headers in turn. The missing-token reason is
+ * sent both with no credential header at all (`header: null`) and with each
+ * header present but EMPTY, which both HTTP and gRPC treat as missing.
+ */
+interface RefusalRow {
+  reason: string;
+  header: string | null;
+  via: string;
+}
+
+const REFUSAL_ROWS: Array<RefusalRow> = buildRefusalCases().flatMap(
+  (refusal: RefusalCase): Array<RefusalRow> => {
+    const headers: Array<string | null> =
+      refusal.token === null ? [null, ...TOKEN_HEADERS] : TOKEN_HEADERS;
+    return headers.map((header: string | null): RefusalRow => {
+      let via: string = "no credential header";
+      if (header !== null) {
+        via = refusal.token === null ? `empty ${header}` : header;
+      }
+      return { reason: refusal.reason, header, via };
+    });
   },
 );
+
+type PresentedTokenFunction = (
+  refusal: RefusalCase,
+  header: string | null,
+) => string | null;
+
+// What actually goes on the wire for a row: null sends no header at all.
+const presentedToken: PresentedTokenFunction = (
+  refusal: RefusalCase,
+  header: string | null,
+): string | null => {
+  if (header === null) {
+    return null;
+  }
+  return refusal.token ?? "";
+};
 
 /*
  * ---------------------------------------------------------------------------
@@ -645,27 +745,40 @@ const makeMetadata: MakeMetadataFunction = (
   return metadata;
 };
 
-type TokenMetadataFunction = (
+type CredentialEntriesFunction = (
   token: string | null,
   header?: string,
-) => grpc.Metadata;
+) => Array<[string, string]>;
 
 /*
  * Every call also carries a non-secret header the worker does consume, so
  * a success test can see the whitelist pass it through while the token is
- * stripped.
+ * stripped. The same entries become gRPC metadata or HTTP headers, so both
+ * servers are asked exactly the same thing.
  */
-const tokenMetadata: TokenMetadataFunction = (
+const credentialEntries: CredentialEntriesFunction = (
   token: string | null,
   header: string = "x-oneuptime-token",
-): grpc.Metadata => {
+): Array<[string, string]> => {
   const entries: Array<[string, string]> = [
     ["x-oneuptime-service-name", "live-grpc-exporter"],
   ];
   if (token !== null) {
     entries.push([header, token]);
   }
-  return makeMetadata(entries);
+  return entries;
+};
+
+type TokenMetadataFunction = (
+  token: string | null,
+  header?: string,
+) => grpc.Metadata;
+
+const tokenMetadata: TokenMetadataFunction = (
+  token: string | null,
+  header: string = "x-oneuptime-token",
+): grpc.Metadata => {
+  return makeMetadata(credentialEntries(token, header));
 };
 
 type ExportFunction = (
@@ -797,13 +910,158 @@ const logTranscript: LogTranscriptFunction = (): string => {
     .join("\n");
 };
 
-type ArrangeRefusalFunction = (refusal: RefusalCase) => grpc.Metadata;
+/*
+ * What the resolver does for the presented token: resolve to a policy,
+ * resolve to null (unknown token), or throw (billing admission, an outage).
+ */
+type KeyResolution = TelemetryIngestionKeyPolicy | null | Error;
 
-const arrangeRefusal: ArrangeRefusalFunction = (
-  refusal: RefusalCase,
-): grpc.Metadata => {
-  getPolicyResolverMock().mockResolvedValue(refusal.policy);
-  return tokenMetadata(refusal.token);
+type ArmResolverFunction = (resolution: KeyResolution) => void;
+
+const armResolver: ArmResolverFunction = (resolution: KeyResolution): void => {
+  if (resolution instanceof Error) {
+    getPolicyResolverMock().mockRejectedValue(resolution);
+    return;
+  }
+  getPolicyResolverMock().mockResolvedValue(resolution);
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * The HTTP side: what TelemetryIngest, the Express middleware in front of
+ * the OTLP/HTTP routes, answers for the same credential.
+ *
+ * It is asked about TelemetryIngestSurface.Grpc. No Express route names that
+ * surface, but it is the one the gRPC server hands the shared guard, so the
+ * browser-key sentence names the same surface on both sides. For every other
+ * reason the surface plays no part in the middleware's answer.
+ * ---------------------------------------------------------------------------
+ */
+interface HttpVerdict {
+  // The response status, when the middleware answered the request itself.
+  status: number | null;
+  // The `message` of the JSON body it sent.
+  message: string | null;
+  // What it called next() with; null when it never called next().
+  nextArgs: Array<unknown> | null;
+}
+
+type AskHttpMiddlewareFunction = (
+  resolution: KeyResolution,
+  entries: Array<[string, string]>,
+) => Promise<HttpVerdict>;
+
+/*
+ * Runs the real middleware over a bare request/response pair, then clears
+ * the call records it left, so the gRPC call that follows is observed on its
+ * own: resolver call counts and the log transcript describe the gRPC server
+ * alone. The resolver keeps answering the same way.
+ */
+const askHttpMiddleware: AskHttpMiddlewareFunction = async (
+  resolution: KeyResolution,
+  entries: Array<[string, string]>,
+): Promise<HttpVerdict> => {
+  armResolver(resolution);
+
+  const verdict: HttpVerdict = { status: null, message: null, nextArgs: null };
+  const res: Record<string, unknown> = {};
+  res["status"] = (code: number): Record<string, unknown> => {
+    verdict.status = code;
+    return res;
+  };
+  res["send"] = (body: unknown): Record<string, unknown> => {
+    const message: unknown = (body as { message?: unknown } | null)?.message;
+    verdict.message = typeof message === "string" ? message : null;
+    return res;
+  };
+  res["setHeader"] = (): void => {
+    return undefined;
+  };
+  const next: (...args: Array<unknown>) => void = (
+    ...args: Array<unknown>
+  ): void => {
+    verdict.nextArgs = args;
+  };
+
+  await TelemetryIngest.forSurface(TelemetryIngestSurface.Grpc)(
+    { headers: Object.fromEntries(entries) } as unknown as ExpressRequest,
+    res as unknown as ExpressResponse,
+    next as unknown as NextFunction,
+  );
+
+  getPolicyResolverMock().mockClear();
+  for (const fn of [logger.error, logger.warn, logger.info, logger.debug]) {
+    (fn as unknown as MockedFn).mockClear();
+  }
+
+  return verdict;
+};
+
+interface ExpectedReply {
+  code: grpc.status;
+  details: string;
+}
+
+type ExpectedReplyFunction = (verdict: HttpVerdict) => ExpectedReply;
+
+/*
+ * The gRPC reply an HTTP refusal translates to: its sentence, under the gRPC
+ * status for its HTTP status. Fails outright if HTTP admitted the request,
+ * or refused it with a status that has no agreed gRPC code.
+ */
+const expectedReplyFor: ExpectedReplyFunction = (
+  verdict: HttpVerdict,
+): ExpectedReply => {
+  expect(verdict.nextArgs).toBeNull();
+  expect(verdict.status).not.toBeNull();
+  expect(Array.from(GRPC_CODE_FOR_HTTP_REFUSAL_STATUS.keys())).toContain(
+    verdict.status,
+  );
+  expect(verdict.message).toEqual(expect.stringMatching(/\S/));
+  return {
+    code: GRPC_CODE_FOR_HTTP_REFUSAL_STATUS.get(verdict.status!)!,
+    details: verdict.message!,
+  };
+};
+
+type ExpectRefusalReplyFunction = (
+  outcome: ExportOutcome,
+  expected: ExpectedReply,
+) => void;
+
+/*
+ * Everything an exporter observes about a refusal: the status and its
+ * sentence, the formatted client error, empty application trailers, and a
+ * code the exporter will not retry.
+ */
+const expectRefusalReply: ExpectRefusalReplyFunction = (
+  outcome: ExportOutcome,
+  expected: ExpectedReply,
+): void => {
+  // The exporter receives a status, not a success with an empty body.
+  expect(outcome.response).toBeUndefined();
+  expect(outcome.error).not.toBeNull();
+  expect(outcome.error!.code).toBe(expected.code);
+  expect(outcome.error!.details).toBe(expected.details);
+  expect(outcome.error!.message).toBe(
+    `${expected.code} ${grpc.status[expected.code]}: ${expected.details}`,
+  );
+  expect(outcome.status.code).toBe(expected.code);
+  expect(outcome.status.details).toBe(expected.details);
+
+  /*
+   * The server sends empty metadata, so beyond the transport's own headers
+   * the trailers carry nothing — no key id, no project, no reason code, no
+   * echo of the presented header.
+   */
+  expect(applicationMetadata(outcome.status.metadata)).toEqual({});
+  expect(applicationMetadata(outcome.error!.metadata)).toEqual({});
+  expect(outcome.status.metadata.get("content-type")).toEqual([
+    "application/grpc+proto",
+  ]);
+
+  // Non-retryable: the exporter drops the batch and logs the status.
+  expect(isRetryableForOtlpExporter(outcome.error!.code)).toBe(false);
 };
 
 /*
@@ -903,6 +1161,10 @@ beforeAll(async () => {
 beforeEach(() => {
   jest.clearAllMocks();
   getPolicyResolverMock().mockReset();
+  // Fire-and-forget bookkeeping on the HTTP middleware's accept path.
+  (TelemetryIngestionKeyService.markUsed as unknown as MockedFn)
+    .mockReset()
+    .mockResolvedValue(undefined);
   for (const signal of signals) {
     signal.getQueue().mockReset();
     signal.getQueue().mockResolvedValue(undefined);
@@ -966,47 +1228,32 @@ describe("live gRPC harness", () => {
 describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
   /*
    * -------------------------------------------------------------------------
-   * Refused credentials.
+   * Refused credentials: every reason, via every header, on this signal.
    * -------------------------------------------------------------------------
    */
-  test.each(REFUSAL_REASONS)(
-    "refused credential (%s) is answered UNAUTHENTICATED (non-retryable), leaks nothing and enqueues nothing",
-    async (reason: string) => {
-      const refusal: RefusalCase = buildRefusalCases().find(
-        (candidate: RefusalCase): boolean => {
-          return candidate.reason === reason;
-        },
-      )!;
+  test.each(REFUSAL_ROWS)(
+    "$reason via $via gets HTTP's sentence under its gRPC status, leaks nothing and enqueues nothing",
+    async (row: RefusalRow) => {
+      const refusal: RefusalCase = buildRefusalCase(row.reason);
+      const token: string | null = presentedToken(refusal, row.header);
+      const entries: Array<[string, string]> =
+        row.header === null
+          ? credentialEntries(null)
+          : credentialEntries(token, row.header);
+
+      // What the HTTP middleware says about exactly this credential.
+      const expected: ExpectedReply = expectedReplyFor(
+        await askHttpMiddleware(refusal.policy, entries),
+      );
+      // The contract for this reason, and HTTP's status maps onto it.
+      expect(expected.code).toBe(refusal.expectedCode);
 
       const outcome: ExportOutcome = await callExport(
         signal,
-        arrangeRefusal(refusal),
+        makeMetadata(entries),
       );
 
-      // The exporter receives a status, not a success with an empty body.
-      expect(outcome.response).toBeUndefined();
-      expect(outcome.error).not.toBeNull();
-      expect(outcome.error!.code).toBe(grpc.status.UNAUTHENTICATED);
-      expect(outcome.error!.details).toBe(UNAUTHENTICATED_DETAILS);
-      expect(outcome.error!.message).toBe(
-        `${grpc.status.UNAUTHENTICATED} UNAUTHENTICATED: ${UNAUTHENTICATED_DETAILS}`,
-      );
-      expect(outcome.status.code).toBe(grpc.status.UNAUTHENTICATED);
-      expect(outcome.status.details).toBe(UNAUTHENTICATED_DETAILS);
-
-      /*
-       * The server sends empty metadata, so beyond the transport's own
-       * headers the trailers carry nothing — no key id, no project, no
-       * refusal reason, no echo of the presented header.
-       */
-      expect(applicationMetadata(outcome.status.metadata)).toEqual({});
-      expect(applicationMetadata(outcome.error!.metadata)).toEqual({});
-      expect(outcome.status.metadata.get("content-type")).toEqual([
-        "application/grpc+proto",
-      ]);
-
-      // Non-retryable: the exporter drops the batch and logs the reason.
-      expect(isRetryableForOtlpExporter(outcome.error!.code)).toBe(false);
+      expectRefusalReply(outcome, expected);
 
       if (refusal.token !== null) {
         expect(clientObservableText(outcome)).not.toContain(refusal.token);
@@ -1014,13 +1261,13 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
         expect(getPolicyResolverMock()).toHaveBeenCalledTimes(1);
         expect(getPolicyResolverMock()).toHaveBeenCalledWith(refusal.token);
       } else {
-        // No credential header at all: refused before any lookup.
+        // No usable credential: refused before any lookup.
         expect(getPolicyResolverMock()).not.toHaveBeenCalled();
       }
 
       /*
-       * The reply is deliberately uninformative, so the error log is the
-       * only place the reason lives.
+       * The caller is told the problem; the key id and the guard's reason
+       * code are only in the server log.
        */
       expect(logger.error).toHaveBeenCalledWith(refusal.expectedLogLine, {
         service: "telemetry",
@@ -1030,43 +1277,31 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
     },
   );
 
-  test("an empty-valued token header is treated as missing: UNAUTHENTICATED without a lookup", async () => {
+  test("all three token headers present but empty is a missing token: refused without a lookup", async () => {
+    const entries: Array<[string, string]> = [
+      ["x-oneuptime-token", ""],
+      ["x-oneuptime-service-token", ""],
+      ["x-oneuptime-ingestion-key", ""],
+    ];
+    const expected: ExpectedReply = expectedReplyFor(
+      await askHttpMiddleware(null, entries),
+    );
+    // The same reply as sending no credential header at all.
+    const noHeader: ExpectedReply = expectedReplyFor(
+      await askHttpMiddleware(null, credentialEntries(null)),
+    );
+    expect(expected).toEqual(noHeader);
+
     const outcome: ExportOutcome = await callExport(
       signal,
-      makeMetadata([
-        ["x-oneuptime-token", ""],
-        ["x-oneuptime-service-token", ""],
-        ["x-oneuptime-ingestion-key", ""],
-      ]),
+      makeMetadata(entries),
     );
 
-    expect(outcome.error?.code).toBe(grpc.status.UNAUTHENTICATED);
-    expect(outcome.error?.details).toBe(UNAUTHENTICATED_DETAILS);
+    expectRefusalReply(outcome, expected);
+    expect(outcome.error!.code).toBe(grpc.status.UNAUTHENTICATED);
     expect(getPolicyResolverMock()).not.toHaveBeenCalled();
     assertNothingEnqueued();
   });
-
-  test.each(TOKEN_HEADERS)(
-    "a refused key presented via %s gets the same UNAUTHENTICATED reply",
-    async (header: string) => {
-      const token: string = sentinelToken("refused-via-header");
-      getPolicyResolverMock().mockResolvedValue(
-        buildServerKeyPolicy({ isEnabled: false }),
-      );
-
-      const outcome: ExportOutcome = await callExport(
-        signal,
-        tokenMetadata(token, header),
-      );
-
-      expect(outcome.error?.code).toBe(grpc.status.UNAUTHENTICATED);
-      expect(outcome.error?.details).toBe(UNAUTHENTICATED_DETAILS);
-      expect(applicationMetadata(outcome.status.metadata)).toEqual({});
-      expect(clientObservableText(outcome)).not.toContain(token);
-      expect(getPolicyResolverMock()).toHaveBeenCalledWith(token);
-      assertNothingEnqueued();
-    },
-  );
 
   /*
    * -------------------------------------------------------------------------
@@ -1156,16 +1391,17 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
   // A refused then an accepted export, both over the gzip clients.
   const exportGzipRefusedThenAccepted: GzipScenarioFunction =
     async (): Promise<void> => {
-      getPolicyResolverMock().mockResolvedValue(null);
       const refusedToken: string = sentinelToken("gzip-refused");
+      const expected: ExpectedReply = expectedReplyFor(
+        await askHttpMiddleware(null, credentialEntries(refusedToken)),
+      );
       const refused: ExportOutcome = await callExport(
         signal,
         tokenMetadata(refusedToken),
         gzipClients,
       );
-      expect(refused.error?.code).toBe(grpc.status.UNAUTHENTICATED);
-      expect(refused.error?.details).toBe(UNAUTHENTICATED_DETAILS);
-      expect(applicationMetadata(refused.status.metadata)).toEqual({});
+      expectRefusalReply(refused, expected);
+      expect(refused.error!.code).toBe(grpc.status.UNAUTHENTICATED);
       expect(clientObservableText(refused)).not.toContain(refusedToken);
       assertNothingEnqueued();
 
@@ -1322,11 +1558,11 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
 
 /*
  * ---------------------------------------------------------------------------
- * Cross-signal: the reply must not be an oracle.
+ * Cross-signal: one reply per reason.
  * ---------------------------------------------------------------------------
  */
-describe("live gRPC refusal reply is identical across reasons, headers and signals", () => {
-  test("every refusal reason, via every header, on every signal, yields one byte-identical status", async () => {
+describe("live gRPC refusal reply depends on the reason alone", () => {
+  test("every reason, via every header, on every signal: the header and the signal never change the reply, the reason always does", async () => {
     interface ObservedStatus {
       code: grpc.status;
       details: string;
@@ -1334,62 +1570,107 @@ describe("live gRPC refusal reply is identical across reasons, headers and signa
       trailers: string;
     }
 
-    const observed: Array<ObservedStatus> = [];
+    const reasons: Array<string> = buildRefusalCases().map(
+      (refusal: RefusalCase): string => {
+        return refusal.reason;
+      },
+    );
+
+    // HTTP's answer for each reason, asked before any gRPC call is observed.
+    const expectedByReason: Map<string, ObservedStatus> = new Map();
+    for (const reason of reasons) {
+      const refusal: RefusalCase = buildRefusalCase(reason);
+      const expected: ExpectedReply = expectedReplyFor(
+        await askHttpMiddleware(
+          refusal.policy,
+          credentialEntries(refusal.token),
+        ),
+      );
+      expectedByReason.set(reason, {
+        code: expected.code,
+        details: expected.details,
+        message: `${expected.code} ${grpc.status[expected.code]}: ${expected.details}`,
+        trailers: "{}",
+      });
+    }
+
+    const observedByReason: Map<string, Array<string>> = new Map();
     const presentedTokens: Array<string> = [];
 
     for (const signal of signals) {
-      for (const refusal of buildRefusalCases()) {
-        const headers: Array<string> =
-          refusal.token === null ? ["x-oneuptime-token"] : TOKEN_HEADERS;
-        for (const header of headers) {
-          getPolicyResolverMock().mockResolvedValue(refusal.policy);
-          const token: string | null =
-            refusal.token === null ? null : `${refusal.token}-${header}`;
-          if (token !== null) {
-            presentedTokens.push(token);
-          }
-
-          const outcome: ExportOutcome = await callExport(
-            signal,
-            tokenMetadata(token, header),
-          );
-
-          observed.push({
-            code: outcome.status.code,
-            details: outcome.status.details,
-            message: outcome.error?.message ?? "",
-            /*
-             * Transport headers excluded: `date` ticks every second, and
-             * would make identical replies look different across a
-             * second boundary.
-             */
-            trailers: JSON.stringify(
-              applicationMetadata(outcome.status.metadata),
-            ),
-          });
+      for (const row of REFUSAL_ROWS) {
+        const refusal: RefusalCase = buildRefusalCase(row.reason);
+        const token: string | null = presentedToken(refusal, row.header);
+        if (refusal.token !== null) {
+          presentedTokens.push(refusal.token);
         }
+        armResolver(refusal.policy);
+
+        const outcome: ExportOutcome = await callExport(
+          signal,
+          row.header === null
+            ? tokenMetadata(null)
+            : tokenMetadata(token, row.header),
+        );
+
+        const observed: ObservedStatus = {
+          code: outcome.status.code,
+          details: outcome.status.details,
+          message: outcome.error?.message ?? "",
+          /*
+           * Transport headers excluded: `date` ticks every second, and
+           * would make identical replies look different across a second
+           * boundary.
+           */
+          trailers: JSON.stringify(
+            applicationMetadata(outcome.status.metadata),
+          ),
+        };
+        const seen: Array<string> = observedByReason.get(row.reason) ?? [];
+        seen.push(JSON.stringify(observed));
+        observedByReason.set(row.reason, seen);
       }
     }
 
-    // 4 signals x (1 missing + 4 presented reasons x 3 headers).
-    expect(observed).toHaveLength(4 * (1 + 4 * 3));
-    const distinct: Set<string> = new Set(
-      observed.map((status: ObservedStatus): string => {
-        return JSON.stringify(status);
-      }),
+    expect(Array.from(observedByReason.keys())).toEqual(reasons);
+
+    // 4 signals x (missing: no header + 3 empty ones; 4 others x 3 headers).
+    const totalObserved: number = Array.from(observedByReason.values()).reduce(
+      (sum: number, seen: Array<string>): number => {
+        return sum + seen.length;
+      },
+      0,
     );
-    expect(distinct.size).toBe(1);
-    expect(observed[0]).toEqual({
-      code: grpc.status.UNAUTHENTICATED,
-      details: UNAUTHENTICATED_DETAILS,
-      message: `${grpc.status.UNAUTHENTICATED} UNAUTHENTICATED: ${UNAUTHENTICATED_DETAILS}`,
-      trailers: "{}",
-    });
+    expect(totalObserved).toBe(4 * (4 + 4 * 3));
+
+    for (const reason of reasons) {
+      const distinct: Set<string> = new Set(observedByReason.get(reason));
+      // Neither the header nor the signal changes the reply...
+      expect(distinct.size).toBe(1);
+      // ...and it is HTTP's answer for this reason.
+      expect(JSON.parse(Array.from(distinct)[0]!)).toEqual(
+        expectedByReason.get(reason),
+      );
+    }
+
+    // ...while no two reasons get the same reply.
+    const replies: Set<string> = new Set(
+      Array.from(expectedByReason.values()).map(
+        (reply: ObservedStatus): string => {
+          return JSON.stringify(reply);
+        },
+      ),
+    );
+    expect(replies.size).toBe(reasons.length);
 
     const transcript: string = logTranscript();
     for (const token of presentedTokens) {
       expect(transcript).not.toContain(token);
     }
+    // The transcript is not vacuous: every refusal was logged.
+    expect(
+      (logger.error as unknown as MockedFn).mock.calls.length,
+    ).toBeGreaterThanOrEqual(totalObserved);
     assertNothingEnqueued();
   });
 
@@ -1414,5 +1695,221 @@ describe("live gRPC refusal reply is identical across reasons, headers and signa
         policy.projectId,
       );
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * HTTP and gRPC, side by side, case by case.
+ *
+ * Each case is one key state. It is put to the HTTP middleware and then to
+ * the live gRPC server with the same resolver answer and the same token in
+ * the same header, and the two answers must agree: admitted on both, or
+ * refused on both with HTTP's sentence as the gRPC details and HTTP's status
+ * mapped onto the gRPC code. The combinations (a key both disabled and
+ * expired, a disabled browser key, ...) pin that both sides check in the
+ * same order, since only the first refusal is reported.
+ * ---------------------------------------------------------------------------
+ */
+interface AgreementCase {
+  label: string;
+  presentsToken: boolean;
+  // Built fresh per call, so every call gets its own key ids.
+  resolve: () => KeyResolution;
+  // What gRPC must answer; OK means admitted and enqueued.
+  expectedCode: grpc.status;
+}
+
+const PAYMENT_REQUIRED_MESSAGE: string = "Upgrade to a paid plan to ingest.";
+
+const browserKeyOverrides: Partial<TelemetryIngestionKeyPolicy> = {
+  keyType: TelemetryIngestionKeyType.Browser,
+  allowedOrigins: ["https://shop.example.com"],
+  pinnedServiceName: "shop-frontend",
+};
+
+const PAST: () => Date = (): Date => {
+  return new Date(Date.now() - 60 * 1000);
+};
+
+const FUTURE: () => Date = (): Date => {
+  return new Date(Date.now() + 60 * 60 * 1000);
+};
+
+const AGREEMENT_CASES: Array<AgreementCase> = [
+  {
+    label: "no token",
+    presentsToken: false,
+    resolve: (): KeyResolution => {
+      return null;
+    },
+    expectedCode: grpc.status.UNAUTHENTICATED,
+  },
+  {
+    label: "unknown token",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return null;
+    },
+    expectedCode: grpc.status.UNAUTHENTICATED,
+  },
+  {
+    label: "disabled server key",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({ isEnabled: false });
+    },
+    expectedCode: grpc.status.PERMISSION_DENIED,
+  },
+  {
+    label: "expired server key",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({ expiresAt: PAST() });
+    },
+    expectedCode: grpc.status.UNAUTHENTICATED,
+  },
+  {
+    label: "browser key",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy(browserKeyOverrides);
+    },
+    expectedCode: grpc.status.PERMISSION_DENIED,
+  },
+  {
+    label: "disabled and expired key (the kill switch is reported)",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({ isEnabled: false, expiresAt: PAST() });
+    },
+    expectedCode: grpc.status.PERMISSION_DENIED,
+  },
+  {
+    label: "expired browser key (expiry is reported before the key type)",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({
+        ...browserKeyOverrides,
+        expiresAt: PAST(),
+      });
+    },
+    expectedCode: grpc.status.UNAUTHENTICATED,
+  },
+  {
+    label: "disabled browser key (the kill switch is reported)",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({
+        ...browserKeyOverrides,
+        isEnabled: false,
+      });
+    },
+    expectedCode: grpc.status.PERMISSION_DENIED,
+  },
+  {
+    label: "valid server key",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy();
+    },
+    expectedCode: grpc.status.OK,
+  },
+  {
+    label: "server key expiring in the future",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({ expiresAt: FUTURE() });
+    },
+    expectedCode: grpc.status.OK,
+  },
+  {
+    label: "server key pinned to one service",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return buildServerKeyPolicy({ pinnedServiceName: "checkout" });
+    },
+    expectedCode: grpc.status.OK,
+  },
+  {
+    label: "live key on a project without payment set up",
+    presentsToken: true,
+    resolve: (): KeyResolution => {
+      return new PaymentRequiredException(PAYMENT_REQUIRED_MESSAGE);
+    },
+    expectedCode: grpc.status.PERMISSION_DENIED,
+  },
+];
+
+describe("HTTP and gRPC agree on every credential, case by case", () => {
+  test.each(AGREEMENT_CASES)("$label", async (agreementCase: AgreementCase) => {
+    const headers: Array<string | null> = agreementCase.presentsToken
+      ? TOKEN_HEADERS
+      : [null];
+    let comparisons: number = 0;
+
+    for (const signal of signals) {
+      for (const header of headers) {
+        const resolution: KeyResolution = agreementCase.resolve();
+        const token: string | null = agreementCase.presentsToken
+          ? sentinelToken("agreement")
+          : null;
+        const entries: Array<[string, string]> =
+          header === null
+            ? credentialEntries(null)
+            : credentialEntries(token, header);
+
+        const http: HttpVerdict = await askHttpMiddleware(resolution, entries);
+        for (const other of signals) {
+          other.getQueue().mockClear();
+        }
+
+        const outcome: ExportOutcome = await callExport(
+          signal,
+          makeMetadata(entries),
+        );
+        expect(outcome.status.code).toBe(agreementCase.expectedCode);
+
+        if (http.nextArgs !== null && http.nextArgs.length === 0) {
+          // HTTP admitted it: gRPC accepts and enqueues for the project.
+          expect(http.status).toBeNull();
+          expect(outcome.error).toBeNull();
+          expect(outcome.response).toEqual({});
+          expect(signal.getQueue()).toHaveBeenCalledTimes(1);
+          expect(signal.getQueue().mock.calls[0]![0].projectId).toBe(
+            (resolution as TelemetryIngestionKeyPolicy).projectId,
+          );
+        } else if (
+          http.nextArgs !== null &&
+          http.nextArgs[0] instanceof PaymentRequiredException
+        ) {
+          /*
+           * HTTP hands billing admission to the Express error handler;
+           * gRPC sends the same exception's message, non-retryable.
+           */
+          expectRefusalReply(outcome, {
+            code: grpc.status.PERMISSION_DENIED,
+            details: (http.nextArgs[0] as PaymentRequiredException).message,
+          });
+          assertNothingEnqueued();
+        } else {
+          // HTTP refused it: gRPC refuses with the same sentence.
+          expectRefusalReply(outcome, expectedReplyFor(http));
+          assertNothingEnqueued();
+        }
+
+        if (token !== null) {
+          expect(clientObservableText(outcome)).not.toContain(token);
+          expect(logTranscript()).not.toContain(token);
+        }
+        comparisons += 1;
+      }
+    }
+
+    expect(comparisons).toBe(signals.length * headers.length);
+    // No case here may reach the Redis-backed per-key limiter on HTTP.
+    expect(
+      TelemetryIngestionKeyRateLimiter.consume as unknown as MockedFn,
+    ).not.toHaveBeenCalled();
   });
 });

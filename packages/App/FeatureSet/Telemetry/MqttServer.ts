@@ -60,9 +60,11 @@ import {
  * password (username is ignored; the key is accepted there as a
  * fallback for clients that only expose one field). The key resolves
  * to a projectId through the same cached lookup the HTTP OTLP path
- * uses — unlike the gRPC path we reject bad credentials explicitly
- * (CONNACK rc=4) so a misconfigured device fails loudly instead of
- * silently dropping data. On success the MQTT clientId is namespaced
+ * uses, and like the HTTP and gRPC paths we reject bad credentials
+ * explicitly (CONNACK rc=4) so a misconfigured device fails loudly
+ * instead of silently dropping data. An MQTT 3.1.1 CONNACK carries no
+ * reason, so unlike gRPC's status details the device is not told why;
+ * the broker logs it. On success the MQTT clientId is namespaced
  * by projectId: aedes keys its session/takeover map on clientId
  * globally, so without the prefix a client in one project could evict
  * (and fire the Last Will of) another project's device that happens
