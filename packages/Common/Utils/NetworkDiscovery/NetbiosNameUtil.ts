@@ -143,4 +143,77 @@ export function normalizeNetbiosName(value: unknown): string | undefined {
   return lowerCased;
 }
 
+/*
+ * One octet of a dotted quad in the only spelling the probe's sweep reports:
+ * ASCII digits, no leading zero. The 0-255 bound is checked on the number.
+ */
+const IPV4_OCTET_PATTERN: RegExp = /^(?:0|[1-9][0-9]{0,2})$/;
+
+/**
+ * True exactly for the addresses the probe's NetBIOS lookup would send a
+ * query to: a strict dotted-quad IPv4 literal in 10.0.0.0/8, 172.16.0.0/12,
+ * 192.168.0.0/16 or the 100.64.0.0/10 CGNAT range (OneUptime issue #3916).
+ *
+ * The probe's own rule is isNetbiosQueryAddressAllowed
+ * (Probe/Utils/Discovery/NetbiosNameResolver.ts), which refuses every other
+ * address whoever asks. This is the dashboard's copy of it, for the Review
+ * dialog: an unnamed host on a scan with NetBIOS off used to be told that
+ * "NetBIOS lookup asks Windows hosts for their own name" whatever its
+ * address, so an operator scanning public space turned NetBIOS on, rescanned,
+ * and got "not asked. Only private addresses are asked." — advice whose only
+ * effect was a different way of saying no name.
+ *
+ * A copy rather than an import, because Common is bundled into the dashboard
+ * and the probe's rule leans on Node's `net.isIPv4`. The strict form below is
+ * what `net.isIPv4` accepts (no leading zeros, no whitespace, no IPv6 or
+ * IPv4-mapped IPv6). The probe's NetbiosEligibilityParity test holds the two
+ * to the same answer on every range edge, on a sweep of every first and
+ * second octet, and on the malformed spellings, so changing one without the
+ * other fails it.
+ *
+ * `unknown`, like normalizeNetbiosName, because the dashboard reads the
+ * address out of jsonb.
+ */
+export function isNetbiosQueryableIPv4Address(value: unknown): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const parts: Array<string> = value.split(".");
+
+  if (parts.length !== 4) {
+    return false;
+  }
+
+  const octets: Array<number> = [];
+
+  for (const part of parts) {
+    if (!IPV4_OCTET_PATTERN.test(part)) {
+      return false;
+    }
+
+    const octet: number = parseInt(part, 10);
+
+    if (octet > 255) {
+      return false;
+    }
+
+    octets.push(octet);
+  }
+
+  const first: number = octets[0]!;
+  const second: number = octets[1]!;
+
+  return (
+    // 10.0.0.0/8, RFC 1918.
+    first === 10 ||
+    // 172.16.0.0/12, RFC 1918: second octet 16-31.
+    (first === 172 && second >= 16 && second <= 31) ||
+    // 192.168.0.0/16, RFC 1918.
+    (first === 192 && second === 168) ||
+    // 100.64.0.0/10, RFC 6598 shared/CGNAT space: second octet 64-127.
+    (first === 100 && second >= 64 && second <= 127)
+  );
+}
+
 export default normalizeNetbiosName;

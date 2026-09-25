@@ -4,7 +4,6 @@ process.env["PROBE_KEY"] = "test-probe-key";
 
 import ReverseDnsResolver, {
   buildDefaultLookup,
-  ReverseDnsResolverLike,
   DEFAULT_REVERSE_DNS_CONCURRENCY,
   DEFAULT_REVERSE_DNS_FAILURE_BUDGET,
   DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
@@ -15,6 +14,11 @@ import ReverseDnsResolver, {
   ReverseDnsLookupFunction,
   ReverseDnsResolution,
 } from "../../../Utils/Discovery/ReverseDnsResolver";
+import {
+  FakeReverseDnsResolver,
+  fakeReverseDnsResolver,
+  neverSettles,
+} from "../../TestingUtils/FakeReverseDnsResolver";
 import logger from "Common/Server/Utils/Logger";
 import {
   afterEach,
@@ -44,6 +48,13 @@ import {
  * resolver's job is to add names when it can and to get out of the way,
  * cheaply and silently, when it cannot. Every test below is ultimately about
  * one of those two halves.
+ *
+ * OneUptime issue #3916 added a third half: saying WHY an address has no
+ * name, and asking again when the first lookup failed. Every resolver built
+ * here injects `lookup` alone, which by design means NO retry pass — so what
+ * this file pins about the first pass is exactly what it always pinned. The
+ * per-address statuses are ReverseDnsResolverStatus.test.ts, the retry pass
+ * is ReverseDnsResolverRetry.test.ts.
  */
 
 /*
@@ -53,6 +64,14 @@ import {
  * subnet disables naming for the rest of its own scan; read as "no record"
  * when the resolver is actually unreachable, every address in a /16 pays the
  * full timeout for nothing.
+ *
+ * The default message, "queryPtr ESERVFAIL", is the shape of what Node's
+ * resolvePtr rejects with — and since issue #3916 resolvePtr is what the
+ * probe really calls for an IPv4 address. Before that the probe called
+ * reverse(), which never produced ESERVFAIL, EREFUSED, ECONNREFUSED or
+ * ETIMEOUT at all: it turned every one of them into ENOTFOUND. So the
+ * failures these tests inject were, until then, failures production could
+ * not see; they are now an accurate picture of it.
  */
 function dnsError(code: string, message?: string): Error {
   const error: Error & { code?: string } = new Error(
@@ -373,6 +392,11 @@ describe("ReverseDnsResolver — an address with no PTR record", () => {
      * it. That is a fact about one address and says nothing about the
      * resolver, so counting it would let a handful of malformed inputs
      * convict a working probe of having no DNS.
+     *
+     * For the BUDGET these three still read exactly as "no name here", which
+     * is all this test asserts. Since issue #3916 their per-address status
+     * differs — a malformed argument is reported as a failed lookup, not as
+     * "no PTR record" — and ReverseDnsResolverStatus.test.ts pins that.
      */
     "EINVAL",
     "EBADNAME",
@@ -475,9 +499,13 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
   });
 
   it("says why, once, in the probe log", async () => {
+    /*
+     * A timeout, not a SERVFAIL: since OneUptime issue #3916 a server that
+     * answers SERVFAIL has RESPONDED, and only silence spends the budget.
+     */
     const resolver: ReverseDnsResolver = resolverWith(
       async (): Promise<Array<string>> => {
-        throw dnsError("ESERVFAIL");
+        throw dnsError("ETIMEOUT");
       },
       { failureBudget: 2 },
     );
@@ -495,11 +523,11 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
      * failureReason is threaded through to the log at all. "reverse DNS" on
      * its own would be satisfied by the wall-clock message too — the two warn
      * paths share that phrase — so an operator reading it would be told the
-     * pass ran out of time when in fact their resolver is answering SERVFAIL.
+     * pass ran out of time when in fact their resolver is timing out.
      * Asserting the injected code pins that the message an operator acts on
      * came from the failure they actually have.
      */
-    expect(warnedMessages[0]).toContain("ESERVFAIL");
+    expect(warnedMessages[0]).toContain("ETIMEOUT");
     expect(warnedMessages[0]).toContain("not usable from this probe");
     // And that it says the remaining hosts were skipped rather than scanned.
     expect(warnedMessages[0]).toContain("skipped");
@@ -605,10 +633,8 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
 
   it("counts our own timeout as an infrastructure failure", async () => {
     /*
-     * A wedged resolver rejects through the race guard with a plain Error and
-     * no code. That is the archetypal "resolver is broken" case, so an
-     * unrecognised error must default to counting — the opposite default
-     * would make the budget unreachable exactly when it is needed.
+     * A wedged resolver rejects through the race guard. That is the
+     * archetypal "resolver is broken" case, and it must count.
      *
      * This is also the closest an injected lookup can get to buildDefaultLookup's
      * per-address race: injecting a lookup that never settles would hang the
@@ -616,10 +642,20 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
      * not in this class. So the error that race produces is reproduced
      * verbatim instead, message shape and all, and what is pinned is how the
      * classifier reads it.
+     *
+     * CHANGED for OneUptime issue #3916: the race's Error used to carry no
+     * code, and now carries c-ares' own ETIMEOUT so it is reported as a
+     * timeout rather than as an unknown failure — so the reproduction carries
+     * it too. That an unrecognised, code-less error still counts as a failure
+     * (the default that keeps the budget reachable when a resolver fails in a
+     * way nobody anticipated) is pinned in ReverseDnsResolverStatus.test.ts.
      */
     const resolver: ReverseDnsResolver = resolverWith(
       async (ipAddress: string): Promise<Array<string>> => {
-        throw new Error(`Reverse DNS lookup for ${ipAddress} timed out`);
+        throw dnsError(
+          "ETIMEOUT",
+          `Reverse DNS lookup for ${ipAddress} timed out after 2000ms`,
+        );
       },
       { failureBudget: 2 },
     );
@@ -686,7 +722,8 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
           return ["gateway.corp.example.com"];
         }
 
-        throw dnsError("ESERVFAIL");
+        // Silence: since #3916 a SERVFAIL would not spend the budget at all.
+        throw dnsError("ETIMEOUT");
       },
     );
 
@@ -1366,9 +1403,11 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
      * Deciding at a wave boundary removes the race instead of managing it:
      * every lookup that started has settled, so a wave containing ANY answer
      * never trips in the first place. Here the first wave carries two
-     * ESERVFAILs against a budget of two — enough to trip on the old
+     * timeouts against a budget of two — enough to trip on the old
      * counting — alongside two answers. Nothing trips, nothing is skipped,
      * and the operator is not warned about a resolver that plainly works.
+     * (Timeouts, not SERVFAILs: since #3916 a SERVFAIL is a server
+     * responding, which never spends the budget, so it could not show this.)
      */
     const asked: Array<string> = [];
     const firstWave: Array<DeferredLookup> = [];
@@ -1399,8 +1438,8 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
     const pass: Promise<ReverseDnsResolution> =
       resolver.resolveHostnames(addresses);
 
-    firstWave[0]!.reject(dnsError("ESERVFAIL"));
-    firstWave[1]!.reject(dnsError("ESERVFAIL"));
+    firstWave[0]!.reject(dnsError("ETIMEOUT"));
+    firstWave[1]!.reject(dnsError("ETIMEOUT"));
     firstWave[2]!.resolve(["sw-core-01.corp.example.com"]);
     firstWave[3]!.resolve(["sw-core-02.corp.example.com"]);
 
@@ -1417,7 +1456,7 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
      * documented as "the first infrastructure failure seen" and must never be
      * read without isReverseDnsAvailable beside it.
      */
-    expect(result.failureReason).toContain("ESERVFAIL");
+    expect(result.failureReason).toContain("ETIMEOUT");
   });
 
   it("skips the rest only after a whole wave in which nothing answered", async () => {
@@ -1647,32 +1686,38 @@ describe("ReverseDnsResolver — the default lookup", () => {
    * The real dns.promises.Resolver is still exercised once below, on the one
    * path that cannot reach the network: `reverse()` on an unparseable address
    * fails inside ares_inet_pton and rejects with EINVAL without emitting
-   * anything.
+   * anything. The real resolver against a real (loopback) DNS server is
+   * ReverseDnsResolverRealResolver.test.ts; the seam's query choice and retry
+   * walk are ReverseDnsResolverDefaultLookup.test.ts, and the hosts file,
+   * read before any of it, is ReverseDnsResolverHostsFile.test.ts.
+   *
+   * CHANGED for OneUptime issue #3916. The address these tests use,
+   * 10.18.166.51, is IPv4, so the default lookup now asks it with
+   * resolvePtr("51.166.18.10.in-addr.arpa") rather than reverse(): reverse()
+   * reported every DNS failure as ENOTFOUND. The stubs below used to script
+   * reverse(); they now script resolvePtr, and implement the rest of the
+   * grown ReverseDnsResolverLike through the shared fake. What each test pins
+   * — the race, the cancel, the cleared timer, the error passing through
+   * with its code — is unchanged.
    */
 
   /*
    * A resolver that never answers, and remembers whether it was cancelled.
    * Nothing here touches DNS.
    */
-  function neverAnsweringResolver(): ReverseDnsResolverLike & {
-    cancelCount: number;
-  } {
-    const stub: ReverseDnsResolverLike & { cancelCount: number } = {
-      cancelCount: 0,
+  function neverAnsweringResolver(): FakeReverseDnsResolver {
+    return fakeReverseDnsResolver({
+      resolvePtr: (): Promise<Array<string>> => {
+        return neverSettles();
+      },
       reverse: (): Promise<Array<string>> => {
-        return new Promise<Array<string>>(() => {});
+        return neverSettles();
       },
-      cancel: (): void => {
-        stub.cancelCount++;
-      },
-    };
-
-    return stub;
+    });
   }
 
   it("gives up on a resolver that never answers, and says so", async () => {
-    const stub: ReverseDnsResolverLike & { cancelCount: number } =
-      neverAnsweringResolver();
+    const stub: FakeReverseDnsResolver = neverAnsweringResolver();
 
     const lookup: ReverseDnsLookupFunction = buildDefaultLookup(20, () => {
       return stub;
@@ -1682,8 +1727,14 @@ describe("ReverseDnsResolver — the default lookup", () => {
      * The timeout arm, reached for the first time. Without it this await
      * never returns — which is the failure the arm exists to prevent, and the
      * reason the assertion is on the rejection rather than on a flag.
+     *
+     * And it rejects with c-ares' own ETIMEOUT code (issue #3916), so the
+     * classifier files it as a timeout rather than as an unknown failure.
      */
     await expect(lookup("10.18.166.51")).rejects.toThrow(/timed out/);
+    await expect(lookup("10.18.166.51")).rejects.toMatchObject({
+      code: "ETIMEOUT",
+    });
   });
 
   it("cancels the query it abandoned", async () => {
@@ -1693,8 +1744,7 @@ describe("ReverseDnsResolver — the default lookup", () => {
      * in the sweep would leave one behind. Deleting `resolver.cancel()` from
      * the timeout branch fails only this assertion.
      */
-    const stub: ReverseDnsResolverLike & { cancelCount: number } =
-      neverAnsweringResolver();
+    const stub: FakeReverseDnsResolver = neverAnsweringResolver();
 
     const lookup: ReverseDnsLookupFunction = buildDefaultLookup(20, () => {
       return stub;
@@ -1713,15 +1763,11 @@ describe("ReverseDnsResolver — the default lookup", () => {
      * is already in the caller's map. On a sweep of thousands of hosts that is
      * thousands of live timers, each ending in a pointless cancel.
      */
-    const stub: ReverseDnsResolverLike & { cancelCount: number } = {
-      cancelCount: 0,
-      reverse: async (): Promise<Array<string>> => {
+    const stub: FakeReverseDnsResolver = fakeReverseDnsResolver({
+      resolvePtr: async (): Promise<Array<string>> => {
         return ["sw-core-01.corp.example.com"];
       },
-      cancel: (): void => {
-        stub.cancelCount++;
-      },
-    };
+    });
 
     const lookup: ReverseDnsLookupFunction = buildDefaultLookup(20, () => {
       return stub;
@@ -1742,14 +1788,11 @@ describe("ReverseDnsResolver — the default lookup", () => {
   it("passes a rejection from the resolver through unchanged", async () => {
     // The classifier reads `code`, so the error object must survive the race.
     const lookup: ReverseDnsLookupFunction = buildDefaultLookup(50, () => {
-      return {
-        reverse: (): Promise<Array<string>> => {
+      return fakeReverseDnsResolver({
+        resolvePtr: (): Promise<Array<string>> => {
           return Promise.reject(dnsError("ECONNREFUSED", "connect refused"));
         },
-        cancel: (): void => {
-          return undefined;
-        },
-      };
+      });
     });
 
     await expect(lookup("10.18.166.51")).rejects.toMatchObject({
@@ -3464,7 +3507,8 @@ describe("ReverseDnsResolver — how much of a pass was actually asked", () => {
         return {
           result: await resolverWith(
             async (): Promise<Array<string>> => {
-              throw dnsError("ESERVFAIL");
+              // Silence: a SERVFAIL is a response and cuts nothing (#3916).
+              throw dnsError("ETIMEOUT");
             },
             { concurrency: 5, failureBudget: 7 },
           ).resolveHostnames(addressList(33)),

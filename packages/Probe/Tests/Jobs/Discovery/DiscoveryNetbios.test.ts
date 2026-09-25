@@ -484,6 +484,18 @@ describe("when it runs at all — opt-in, and never on a global probe", () => {
     expect(hostAt(result, "10.0.0.1")).not.toHaveProperty("netbiosName");
     expect(result.netbiosResolvedCount).toBeUndefined();
     expect(loggedLines(logger.debug)).toMatch(/global probe/);
+
+    /*
+     * And no longer ONLY a debug line (OneUptime issue #3916): the host the
+     * lookup would have asked says why it was not, and the result carries the
+     * skip for the status message. Still never asked — the policy stands.
+     */
+    expect(hostAt(result, "10.0.0.1")).toStrictEqual({
+      ipAddress: "10.0.0.1",
+      snmpReachable: false,
+      netbiosNameStatus: "skipped-global-probe",
+    });
+    expect(result.isNetbiosLookupSkippedOnGlobalProbe).toBe(true);
   });
 
   it("reads the probe's real REGISTER_PROBE_KEY through Probe/Config", () => {
