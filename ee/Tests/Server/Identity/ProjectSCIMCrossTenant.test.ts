@@ -833,8 +833,8 @@ const emailChangeShapes: Array<EmailChangeShape> = [
 ];
 
 /*
- * POST /Users answers 200 rather than 201 today (Response.sendJsonObjectResponse
- * ignores the res.status(201) before it). Not what these tests are about, so
+ * POST /Users answers 201 and the group adds answer 200. Status codes are not
+ * what these tests are about (SCIMResponseStatusCodes.test.ts pins them), so
  * they only ask for a success.
  */
 function expectSuccess(result: HttpResult): void {
