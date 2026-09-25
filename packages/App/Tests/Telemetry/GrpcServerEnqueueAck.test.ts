@@ -299,35 +299,55 @@ describe.each(signals)(
       expect(loggedText()).not.toContain("must-not-be-logged");
     });
 
-    test.each(["disabled", "unauthenticated"])(
-      "preserves intentional %s drop without queueing",
-      async (mode: string) => {
-        if (mode === "disabled") {
-          jest
-            .spyOn(TelemetryIngestionDisabled, "isDisabled")
-            .mockReturnValue(true);
-        } else {
+    test("preserves intentional disabled-ingestion drop without queueing", async () => {
+      jest
+        .spyOn(TelemetryIngestionDisabled, "isDisabled")
+        .mockReturnValue(true);
+      const callback: jest.Mock = jest.fn();
+      await new Promise<void>((resolve: () => void) => {
+        handlers.get(service)!(
+          call(),
           (
-            TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
-          ).mockResolvedValue(null);
-        }
-        const callback: jest.Mock = jest.fn();
-        await new Promise<void>((resolve: () => void) => {
-          handlers.get(service)!(
-            call(),
-            (
-              error: grpc.ServiceError | null,
-              result?: Record<string, unknown>,
-            ) => {
-              callback(error, result);
-              resolve();
-            },
-          );
-        });
-        expect(callback).toHaveBeenCalledTimes(1);
-        expect(callback).toHaveBeenCalledWith(null, {});
-        expect(queue).not.toHaveBeenCalled();
-      },
-    );
+            error: grpc.ServiceError | null,
+            result?: Record<string, unknown>,
+          ) => {
+            callback(error, result);
+            resolve();
+          },
+        );
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(null, {});
+      expect(queue).not.toHaveBeenCalled();
+    });
+
+    test("answers a rejected key with non-retryable UNAUTHENTICATED, not success", async () => {
+      /*
+       * A success here made a mistyped or revoked key indistinguishable from
+       * a healthy pipeline (GH#3978). UNAUTHENTICATED is non-retryable in the
+       * OTLP gRPC status mapping, so the exporter still does not retry.
+       */
+      (
+        TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
+      ).mockResolvedValue(null);
+      const callback: jest.Mock = jest.fn();
+      await new Promise<void>((resolve: () => void) => {
+        handlers.get(service)!(
+          call(),
+          (
+            error: grpc.ServiceError | null,
+            result?: Record<string, unknown>,
+          ) => {
+            callback(error, result);
+            resolve();
+          },
+        );
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+      const error: grpc.ServiceError = callback.mock.calls[0]![0];
+      expect(error.code).toBe(grpc.status.UNAUTHENTICATED);
+      expect(error.metadata.getMap()).toEqual({});
+      expect(queue).not.toHaveBeenCalled();
+    });
   },
 );

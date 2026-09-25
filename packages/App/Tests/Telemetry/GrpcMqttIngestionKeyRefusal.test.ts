@@ -61,8 +61,8 @@ jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
  *
  *   4. THE TRANSPORT'S OWN REFUSAL MECHANICS ARE UNCHANGED. gRPC returns null
  *      from authenticateRequest — byte-identical to the unknown-token path —
- *      so handleExport's existing "reply success, enqueue nothing" behaviour
- *      applies with no new branch. MQTT answers done(err, false) with
+ *      so handleExport's existing "reply UNAUTHENTICATED, enqueue nothing"
+ *      behaviour applies with no new branch. MQTT answers done(err, false) with
  *      returnCode 4 (bad username or password) and leaves the client
  *      unauthenticated and its clientId un-namespaced.
  *
@@ -593,9 +593,10 @@ describe("gRPC OTLP ingest — telemetry ingestion key refusals", () => {
   test("every refusal returns exactly null — the same value an unknown token returns — so handleExport needs no new branch", async () => {
     /*
      * authenticateRequest's contract with its only caller is "an ObjectID or
-     * null". handleExport answers the RPC with success and enqueues nothing on
-     * null (deliberately, so the OTel SDK does not retry a request that will
-     * never succeed). Any refusal that returned something else — an exception,
+     * null". handleExport answers the RPC with UNAUTHENTICATED and enqueues
+     * nothing on null (non-retryable, so the OTel SDK does not retry a
+     * request that will never succeed), with one fixed message for every
+     * reason. Any refusal that returned something else — an exception,
      * undefined, a projectId with a flag — would change that caller's
      * behaviour, so pin that all four rejection paths are indistinguishable.
      */

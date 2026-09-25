@@ -832,6 +832,15 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # must match nginx.conf's access_log exactly; see /telemetry above.
         access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
 
+        # nginx.conf sets no global client_max_body_size, so without this line
+        # nginx's 1M default applies and a full collector batch gets a bare
+        # 413 before the App (which parses up to 50M) ever sees it. Kept equal
+        # to /telemetry, which mounts the same OTLP router: both paths must
+        # take the same batch. Not higher, because the worker caps a body at
+        # 64 MiB AFTER gunzip (OtelPayloadDecoder), and 4M of gzipped OTLP
+        # protobuf at its usual 5-15x stays inside that.
+        client_max_body_size 4M;
+
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
@@ -979,6 +988,11 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
+
+        # OTLP/gRPC carries the same batch as OTLP/HTTP on /otlp; without this
+        # the 1M default applies here too and the exporter sees a stream reset.
+        client_max_body_size 4M;
+
         grpc_pass ${BACKEND_APP_GRPC_TARGET};
     }
 

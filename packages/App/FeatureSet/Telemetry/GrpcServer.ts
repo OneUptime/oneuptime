@@ -188,8 +188,24 @@ export async function handleExport(
     const projectId: ObjectID | null = await authenticateRequest(call.metadata);
 
     if (!projectId) {
-      // Return success to avoid OTel SDK retries
-      callback(null, {});
+      /*
+       * UNAUTHENTICATED, not success. It is non-retryable in the OTLP gRPC
+       * status mapping, so exporters still drop the batch without retrying,
+       * but they now log WHY — answering success here made a mistyped or
+       * revoked key look like a healthy pipeline that never shows data
+       * (GH#3978). The same fixed message for every refusal reason (unknown,
+       * disabled, expired, browser key): the gRPC reply must not become an
+       * oracle for whether a presented token names a real key. The reason
+       * and key id are in the server log, from authenticateRequest.
+       */
+      const message: string =
+        "Invalid or missing OneUptime ingestion key. Set the x-oneuptime-token header to a valid server ingestion key.";
+      const error: grpc.ServiceError = Object.assign(new Error(message), {
+        code: grpc.status.UNAUTHENTICATED,
+        details: message,
+        metadata: new grpc.Metadata(),
+      });
+      callback(error);
       return;
     }
 

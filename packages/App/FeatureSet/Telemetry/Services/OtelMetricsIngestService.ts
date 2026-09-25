@@ -1436,10 +1436,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as JSONArray | undefined;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
-                    const aggregationTemporality: OtelAggregationTemporality =
-                      metricTypeWrapper?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality;
+                    const aggregationTemporality:
+                      | OtelAggregationTemporality
+                      | undefined = this.normalizeAggregationTemporality(
+                      metricTypeWrapper?.["aggregationTemporality"],
+                    );
 
                     const isMonotonic: boolean | undefined =
                       metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
@@ -3735,7 +3736,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     metricPointType: MetricPointType;
-    aggregationTemporality?: OtelAggregationTemporality;
+    aggregationTemporality?: OtelAggregationTemporality | undefined;
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
@@ -4125,6 +4126,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /*
+   * Protobuf bodies (and gRPC) reach us through protobufjs with enums as
+   * their string names, but OTLP/JSON encodes enums as integers per the
+   * spec (1 = DELTA, 2 = CUMULATIVE) — which is what the collector's
+   * `otlphttp` exporter sends with `encoding: json`. Accept both so JSON
+   * metrics don't lose their temporality.
+   */
+  public static normalizeAggregationTemporality(
+    temporality: unknown,
+  ): OtelAggregationTemporality | undefined {
+    switch (temporality) {
+      case OtelAggregationTemporality.Delta:
+      case 1:
+      case "1":
+        return OtelAggregationTemporality.Delta;
+      case OtelAggregationTemporality.Cumulative:
+      case 2:
+      case "2":
+        return OtelAggregationTemporality.Cumulative;
+      default:
+        return undefined;
+    }
   }
 
   private static mapAggregationTemporality(

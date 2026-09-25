@@ -69,10 +69,9 @@ export const gunzipAsync: (
  *
  * The inflate runs in the BullMQ worker, where TELEMETRY_CONCURRENCY (100
  * by default) jobs can be in flight on one pod, so an unbounded gunzip is
- * unbounded a hundred times over. Nginx caps the COMPRESSED body at its
- * 1 MB default on /otlp and at 4 MB on /telemetry, and gzip on OTLP
- * protobuf runs about 5-15x, so a legitimate batch has an order of
- * magnitude of headroom under this. A hostile one reaches four figures of
+ * unbounded a hundred times over. Nginx caps the COMPRESSED body at 4 MB
+ * on /otlp, /telemetry and the OTLP/gRPC location, and gzip on OTLP
+ * protobuf runs about 5-15x, so a legitimate batch fits under this. A hostile one reaches four figures of
  * amplification and would otherwise take the pod out.
  *
  * `maxOutputLength` is honoured because this is zlib's CONVENIENCE api.

@@ -377,6 +377,18 @@ test("raising /pyroscope left /telemetry at its documented 4M", () => {
   assert.equal(clientMaxBodySizeOf("/telemetry"), 4 * 1024 * 1024);
 });
 
+test("OTLP ingest takes the same batch on /otlp, /telemetry and gRPC", () => {
+  // /otlp was left on nginx's 1M default while /telemetry (the same OTLP
+  // router) allowed 4M, so a collector pointed at /otlp got bare 413s
+  // (GH#3978).
+  const telemetry = clientMaxBodySizeOf("/telemetry");
+  assert.equal(clientMaxBodySizeOf("/otlp"), telemetry);
+  assert.equal(
+    clientMaxBodySizeOf("~ /opentelemetry.proto.collector*"),
+    telemetry,
+  );
+});
+
 test("ordinary locations are left on the inherited global access_log", () => {
   // The switch is scoped to ingest. If it leaks onto /api or /dashboard, an
   // operator turning ingest logging off would blind the whole ingress.
