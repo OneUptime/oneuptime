@@ -230,7 +230,7 @@ function componentInteraction(data: {
     },
     data: {
       component_type: 2,
-      custom_id: `incident:${data.customId}:${data.incidentId}`,
+      custom_id: `${data.customId}:${data.incidentId}`,
     },
   });
 }
@@ -310,7 +310,10 @@ test("component interaction acknowledges an incident and replies with the new st
   const incident: IncidentRow = await createIncident("HOM-35 ack target");
   const before: { order?: number } = await currentIncidentState(incident._id);
   const response: APIResponse = await postInteraction(
-    componentInteraction({ customId: "acknowledge", incidentId: incident._id }),
+    componentInteraction({
+      customId: "AcknowledgeIncident",
+      incidentId: incident._id,
+    }),
   );
   expect(
     response.status(),
@@ -329,7 +332,10 @@ test("component interaction resolves an incident", async (): Promise<void> => {
   await setIncidentChannel(identities.channelId);
   const incident: IncidentRow = await createIncident("HOM-35 resolve target");
   const response: APIResponse = await postInteraction(
-    componentInteraction({ customId: "resolve", incidentId: incident._id }),
+    componentInteraction({
+      customId: "ResolveIncident",
+      incidentId: incident._id,
+    }),
   );
   expect(response.status()).toBe(200);
   await expect
@@ -345,7 +351,10 @@ test("resolved incidents cannot be regressed by an acknowledge button", async ()
   await setIncidentChannel(identities.channelId);
   const incident: IncidentRow = await createIncident("HOM-35 no-regress");
   await postInteraction(
-    componentInteraction({ customId: "resolve", incidentId: incident._id }),
+    componentInteraction({
+      customId: "ResolveIncident",
+      incidentId: incident._id,
+    }),
   );
   await expect
     .poll(
@@ -355,7 +364,10 @@ test("resolved incidents cannot be regressed by an acknowledge button", async ()
     .toBeGreaterThanOrEqual(3);
   const before: { order?: number } = await currentIncidentState(incident._id);
   const response: APIResponse = await postInteraction(
-    componentInteraction({ customId: "acknowledge", incidentId: incident._id }),
+    componentInteraction({
+      customId: "AcknowledgeIncident",
+      incidentId: incident._id,
+    }),
   );
   expect(
     [200, 409].includes(response.status()),
@@ -371,7 +383,7 @@ test("unknown custom ids are ignored without crashing", async (): Promise<void> 
   await setIncidentChannel(identities.channelId);
   const response: APIResponse = await postInteraction(
     componentInteraction({
-      customId: "definitely-not-a-real-action",
+      customId: "NotARealAction",
       incidentId: "000000000000000000000000",
     }),
   );
@@ -385,7 +397,7 @@ test("forged component signatures are refused", async (): Promise<void> => {
   await install();
   await setIncidentChannel(identities.channelId);
   const body: string = componentInteraction({
-    customId: "acknowledge",
+    customId: "AcknowledgeIncident",
     incidentId: "000000000000000000000000",
   });
   const timestamp: string = Math.floor(Date.now() / 1000).toString();
@@ -408,7 +420,7 @@ test("component interactions from unmapped Discord users cannot transition incid
   const before: { order?: number } = await currentIncidentState(incident._id);
   const response: APIResponse = await postInteraction(
     componentInteraction({
-      customId: "acknowledge",
+      customId: "AcknowledgeIncident",
       incidentId: incident._id,
       discordUserId: "999999999999999999",
     }),
@@ -427,7 +439,7 @@ test("interactions with a foreign project incident id do not cross tenants", asy
   await setIncidentChannel(identities.channelId);
   const response: APIResponse = await postInteraction(
     componentInteraction({
-      customId: "acknowledge",
+      customId: "AcknowledgeIncident",
       incidentId: "000000000000000000000000",
     }),
   );

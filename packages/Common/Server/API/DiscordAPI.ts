@@ -34,6 +34,8 @@ import DiscordInteractionSignature from "../Utils/Workspace/Discord/DiscordInter
 import DiscordBindingService, {
   DiscordBindingSnapshot,
 } from "../Services/DiscordBindingService";
+import IncidentService from "../Services/IncidentService";
+import Incident from "../../Models/DatabaseModels/Incident";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
   PublicDashboardRateLimitDecision,
@@ -436,22 +438,134 @@ export default class DiscordAPI {
           } else if (!(await DiscordAPI.rateLimit(req, res))) {
             return;
           }
-          if (
-            interaction["type"] !== 1 ||
-            interaction["application_id"] !== DiscordAppClientId
-          ) {
+          if (interaction["application_id"] !== DiscordAppClientId) {
             res
               .status(400)
               .json({ error: "Discord interaction is not supported." });
             return;
           }
-          res.json({ type: 1 });
+          if (interaction["type"] === 1) {
+            res.json({ type: 1 });
+            return;
+          }
+          if (interaction["type"] === 3) {
+            await DiscordAPI.handleComponentInteraction(res, interaction);
+            return;
+          }
+          res
+            .status(400)
+            .json({ error: "Discord interaction is not supported." });
         } catch {
           res.status(400).json({ error: "Invalid Discord interaction." });
         }
       },
     );
     return router;
+  }
+
+  /*
+   * Component interactions carry a custom_id of the form
+   * incident:<action>:<incidentId>, signed by Discord and scoped to the guild
+   * that owns the project binding. The clicker must be a project member with a
+   * verified Discord link before any state transition runs. Responses are
+   * always 200 (Discord retries non-2xx); refusals ride back as the
+   * interaction callback body so the user sees them in the channel.
+   */
+  private static async handleComponentInteraction(
+    res: ExpressResponse,
+    interaction: JSONObject,
+  ): Promise<void> {
+    const customId: string = String(
+      (interaction["data"] as JSONObject | undefined)?.["custom_id"] || "",
+    );
+    const parts: Array<string> = customId.split(":");
+    const action: string = parts[0] || "";
+    const guildId: string = String(interaction["guild_id"] || "");
+    const discordUserId: string = String(
+      ((interaction["user"] as JSONObject | undefined) ||
+        ((interaction["member"] as JSONObject | undefined)?.["user"] as
+          | JSONObject
+          | undefined))?.["id"] || "",
+    );
+    const acknowledge: () => void = (): void => {
+      res.status(200).json({ type: 6 });
+    };
+
+    if (action !== "AcknowledgeIncident" && action !== "ResolveIncident") {
+      acknowledge();
+      return;
+    }
+
+    const member: { projectId: ObjectID; userId: ObjectID } | null =
+      await DiscordBindingService.resolveLinkedMember({
+        guildId,
+        discordUserId,
+      });
+    if (!member) {
+      res.status(200).json({
+        type: 4,
+        data: {
+          content:
+            "Your Discord account is not linked to a member of this project. Link it in user settings to act on incidents.",
+          flags: 64,
+        },
+      });
+      return;
+    }
+
+    let incidentId: ObjectID;
+    try {
+      incidentId = new ObjectID(parts[1]!);
+    } catch {
+      acknowledge();
+      return;
+    }
+
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: incidentId,
+      select: {
+        projectId: true,
+        currentIncidentState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (
+      !incident ||
+      !incident.projectId ||
+      incident.projectId.toString() !== member.projectId.toString()
+    ) {
+      acknowledge();
+      return;
+    }
+
+    try {
+      if (action === "AcknowledgeIncident") {
+        await IncidentService.acknowledgeIncident(incidentId, member.userId);
+      } else if (action === "ResolveIncident") {
+        await IncidentService.resolveIncident(incidentId, member.userId);
+      } else {
+        acknowledge();
+        return;
+      }
+      res.status(200).json({
+        type: 4,
+        data: {
+          content: `Incident updated (${action}) by <@${discordUserId}>.`,
+          flags: 64,
+        },
+      });
+    } catch (error) {
+      const message: string =
+        error instanceof BadDataException
+          ? error.message
+          : "The incident could not be updated.";
+      res.status(200).json({
+        type: 4,
+        data: { content: message, flags: 64 },
+      });
+    }
   }
 
   private static settingsUrl(

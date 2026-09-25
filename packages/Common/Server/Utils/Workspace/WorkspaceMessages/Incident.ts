@@ -61,6 +61,11 @@ export default class IncidentWorkspaceMessages {
         projectId: projectId!,
       });
 
+    // Discord renders the same shared blocks through DiscordMessageRenderer
+    // (see Workspace.getWorkspaceTypeUtil); Teams reuses the Slack block set,
+    // so Discord does too rather than fork a Discord-specific message source.
+    const discordBlocks: WorkspaceMessageBlock[] = microsoftTeamsBlocks;
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -69,6 +74,10 @@ export default class IncidentWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Discord,
+        messageBlocks: discordBlocks,
       },
     ];
   }
