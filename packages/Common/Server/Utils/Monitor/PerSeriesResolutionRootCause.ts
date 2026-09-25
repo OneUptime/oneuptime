@@ -24,12 +24,11 @@ export default class PerSeriesResolutionRootCause {
       input.seriesLabels,
     );
 
-    const criteriaName: string =
-      (input.createdCriteriaId
-        ? input.criteriaInstancesById?.[
-            input.createdCriteriaId
-          ]?.data?.name?.trim()
-        : undefined) || "";
+    const criteriaName: string = input.createdCriteriaId
+      ? input.criteriaInstancesById?.[
+          input.createdCriteriaId
+        ]?.data?.name?.trim() || ""
+      : "";
 
     const series: string = seriesSummary
       ? `Series "${seriesSummary}"`
