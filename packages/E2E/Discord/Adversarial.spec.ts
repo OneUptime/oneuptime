@@ -148,9 +148,9 @@ function makeVectors(seed: number): Array<Vector> {
 
   /*
    * Type 3 (component/button) is a supported interaction since HOM-35: it is
-   * handled (200) because Discord retries non-2xx responses forever, which
-   * would replay a state transition on every retry. Every other unsupported
-   * type must still be a 400.
+   * handled (200) so the clicker gets the card's response in the channel
+   * instead of "This interaction failed". Every other unsupported type must
+   * still be a 400.
    */
   for (const type of [0, 2, 4, 5, -1, 99999, "1", null, {}]) {
     add({
@@ -160,7 +160,7 @@ function makeVectors(seed: number): Array<Vector> {
     });
   }
   add({
-    name: "unsupported-type-3",
+    name: "component-without-custom-id",
     body: JSON.stringify({
       type: 3,
       application_id: identities.applicationId,
