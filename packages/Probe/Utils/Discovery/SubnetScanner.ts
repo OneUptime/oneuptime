@@ -9,6 +9,10 @@ import NetbiosNameResolver, {
   NetbiosNameResolution,
 } from "./NetbiosNameResolver";
 import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import DiscoveryPing from "./DiscoveryPing";
 
@@ -47,6 +51,22 @@ export interface DiscoveredHost {
    * object.
    */
   netbiosName?: string | undefined;
+  /*
+   * Why reverse DNS left this host unnamed (OneUptime issue #3916): no PTR
+   * record, a lookup that failed even on its retry, a lookup the pass never
+   * reached. Stamped by attachReverseDnsHostnames ONLY on hosts it leaves with
+   * neither a sysName nor a dnsHostname, and only with a code the resolver
+   * reported. ABSENT, not undefined, everywhere else, for the reason
+   * netbiosName is.
+   */
+  dnsHostnameStatus?: DiscoveredHostReverseDnsStatus | undefined;
+  /*
+   * Why NetBIOS left this host unnamed (issue #3916): no reply, no usable
+   * name, or never queried and why. Stamped only on scans that asked for
+   * NetBIOS names, only on hosts that lookup was responsible for and did not
+   * name. ABSENT everywhere else.
+   */
+  netbiosNameStatus?: DiscoveredHostNetbiosStatus | undefined;
   /*
    * The rest of the SNMP system group. probeSystemInfo reads all six
    * scalars in the same single GET that fetches sysName/sysDescr, so

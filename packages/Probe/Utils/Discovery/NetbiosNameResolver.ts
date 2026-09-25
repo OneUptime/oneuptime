@@ -6,6 +6,7 @@ import {
   toNbstatTransactionId,
 } from "./NetbiosNbstatCodec";
 import CidrMatchUtil from "Common/Utils/NetworkSite/CidrMatchUtil";
+import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import crypto from "crypto";
 import dgram from "dgram";
@@ -306,6 +307,17 @@ export interface NetbiosNameResolution {
    * Addresses with no usable name are ABSENT, never mapped to undefined.
    */
   nameByIpAddress: Map<string, string>;
+  /*
+   * Why each distinct address passed in did NOT get a name (OneUptime issue
+   * #3916) — never replied, replied with no usable name, or was never
+   * queried and why. Every distinct input address is in exactly one of
+   * nameByIpAddress and this map.
+   *
+   * Optional so a resolution written by hand — every scanner and job test
+   * stubs this seam — still describes a lookup; a reader treats a missing map
+   * or a missing key as "no code".
+   */
+  statusByIpAddress?: Map<string, DiscoveredHostNetbiosStatus> | undefined;
   // Distinct addresses at least one query was handed to the socket for.
   queriedCount: number;
   /*

@@ -1,4 +1,5 @@
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import dns from "dns";
 
@@ -216,6 +217,25 @@ export interface ReverseDnsResolution {
    * `if (name)` without also having to know whether the key exists.
    */
   hostnameByIpAddress: Map<string, string>;
+  /*
+   * Why each distinct address passed in did NOT get a name (OneUptime issue
+   * #3916): no PTR record, an unusable answer, a lookup that still failed
+   * after its retry and how, or a lookup the pass never made and why. Every
+   * distinct input address is in exactly one of hostnameByIpAddress and this
+   * map.
+   *
+   * Optional so a resolution written by hand — every scanner and job test
+   * stubs this seam — still describes a pass; a reader treats a missing map
+   * or a missing key as "no code".
+   */
+  statusByIpAddress?: Map<string, DiscoveredHostReverseDnsStatus> | undefined;
+  /*
+   * Distinct addresses whose lookup FAILED — timed out, SERVFAIL, REFUSED,
+   * no server listening, any other error — on the first try and on the
+   * retry. Not "addresses without a name": an address with no PTR record was
+   * answered, and is not here. Optional for the reason statusByIpAddress is.
+   */
+  failedAddressCount?: number | undefined;
   /*
    * False when the failure budget ran out and the remaining addresses were
    * skipped: not one lookup came back, NXDOMAIN included, so this probe cannot
