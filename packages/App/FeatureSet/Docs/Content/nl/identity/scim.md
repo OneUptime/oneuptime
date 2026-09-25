@@ -56,7 +56,7 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 
 1. **Gebruikerstoewijzing in IdP**: Wanneer een gebruiker wordt toegewezen aan OneUptime in uw IdP
 2. **SCIM-inrichting**: IdP roept de OneUptime SCIM API aan om de gebruiker aan te maken
-3. **Teamlidmaatschap**: Gebruiker wordt automatisch toegevoegd aan geconfigureerde standaardteams
+3. **Teamlidmaatschap**: Gebruiker wordt automatisch toegevoegd aan geconfigureerde standaardteams. In OneUptime Cloud wordt iemand die al een OneUptime-account had in plaats daarvan uitgenodigd, en wordt lid zodra de uitnodiging is geaccepteerd (zie de veelgestelde vragen hieronder)
 4. **Toegang verleend**: Gebruiker heeft nu toegang tot het OneUptime-project
 5. **Gebruikersverwijdering**: Wanneer gebruiker wordt verwijderd in IdP
 6. **SCIM-verwijdering**: IdP roept de OneUptime SCIM API aan om de gebruiker te verwijderen
@@ -409,7 +409,21 @@ Ja, SCIM en SSO zijn onafhankelijke functies. U kunt SCIM gebruiken voor gebruik
 
 ### Hoe ga ik om met gebruikers die al bestaan in OneUptime?
 
-Wanneer SCIM probeert een gebruiker aan te maken die al bestaat (overeenkomend op e-mail), voegt OneUptime die gebruiker eenvoudigweg toe aan de geconfigureerde standaardteams in plaats van een dubbele gebruiker aan te maken.
+Wanneer SCIM probeert een gebruiker aan te maken die al bestaat (overeenkomend op e-mail), maakt OneUptime geen dubbele gebruiker aan. Wat er daarna gebeurt, hangt af van waar OneUptime draait:
+
+- **Zelfgehost**: De bestaande gebruiker wordt direct toegevoegd aan de geconfigureerde standaardteams (of, met Push-groepen, aan het team van de groep).
+- **OneUptime Cloud**: Een OneUptime-account hoort bij de persoon, niet bij één project, dus SCIM kan iemand niet op eigen gezag lid van uw project maken. De bestaande gebruiker wordt in plaats daarvan voor de teams **uitgenodigd** en ontvangt de gebruikelijke uitnodigingsmail. De gebruiker wordt lid zodra de uitnodigingen zijn geaccepteerd via **Projectuitnodigingen** in OneUptime, of zodra de single sign-on (SSO) van uw project is bevestigd via de e-mail die OneUptime bij de eerste SSO-aanmelding stuurt. Tot die tijd staat de gebruiker als openstaand vermeld. Hetzelfde geldt wanneer een groep een bestaande gebruiker toevoegt die nog geen lid van uw project is.
+
+Gebruikers die SCIM zelf aanmaakt, gebruikers die al lid van uw project zijn geworden en gebruikers die de SSO van uw project hebben bevestigd, worden in beide gevallen direct toegevoegd.
+
+### Kan SCIM het e-mailadres of de naam van een gebruiker wijzigen?
+
+Met het e-mailadres van een OneUptime-account meldt die persoon zich aan bij elk project waartoe deze behoort, en op dat adres komen de links voor het opnieuw instellen van het wachtwoord binnen. Daarom:
+
+- **OneUptime Cloud**: SCIM wijzigt nooit een e-mailadres. Een verzoek dat er een zou wijzigen, wordt geweigerd met een SCIM-fout `400` van het type `mutability`, en niets uit dat verzoek wordt toegepast; uw identiteitsprovider toont de reden. Vraag de gebruiker het adres zelf te wijzigen via het eigen OneUptime-profiel. Een verzoek dat het adres herhaalt dat het account al heeft, is geen wijziging en slaagt.
+- **Zelfgehost**: SCIM wijzigt het e-mailadres alleen van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Elke andere wijziging wordt op dezelfde manier geweigerd.
+
+Voor namen geldt in beide gevallen dezelfde regel: SCIM werkt de naam alleen bij van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen blijft de naam zoals hij is, en de rest van het verzoek slaagt gewoon.
 
 ### Wat is het verschil tussen standaardteams en groepen pushen?
 
