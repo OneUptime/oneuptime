@@ -12,6 +12,7 @@ import MonitorPage from "../Pages/Monitor/Monitors";
 import WorkspaceConnectionSlack from "../Pages/Monitor/WorkspaceConnectionSlack";
 
 import WorkspaceConnectionTeams from "../Pages/Monitor/WorkspaceConnectionMicrosoftTeams";
+import MonitorWorkspaceConnectionDiscord from "../Pages/Monitor/WorkspaceConnectionDiscord";
 
 import MonitorViewMetrics from "../Pages/Monitor/View/Metrics";
 
@@ -149,6 +150,20 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               RouteMap[
                 PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               ] as Route
+            }
+          />
+        }
+      />
+
+      <PageRoute
+        path={
+          MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD] || ""
+        }
+        element={
+          <MonitorWorkspaceConnectionDiscord
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD] as Route
             }
           />
         }

@@ -377,39 +377,57 @@ test("one incident, one thread, one post", async (): Promise<void> => {
   await createDiscordRule("Incident");
   await fixture("reset", {});
   await createIncident("HOM-36 one thread one post");
-  // Exactly one thread must be created under the incident parent...
+  // Wait for the lifecycle message with the title to land in a thread (not
+  // the parent channel). Polling the thread-creation count alone resolves
+  // before the message POST that follows it.
   await expect
     .poll(
-      async (): Promise<number> =>
-        (await fixture("state")).events.filter(
-          (event: { method: string; path: string }): boolean =>
-            event.method === "POST" &&
-            event.path ===
-              `/channels/${identities.channelId}/threads`,
-        ).length,
+      async (): Promise<boolean> =>
+        (await fixture("state")).postedMessages.some(
+          (message: PostedMessage): boolean =>
+            message.channel_id !== identities.channelId &&
+            (message.content || "").includes("HOM-36 one thread one post"),
+        ),
       { timeout: 30_000 },
     )
-    .toBe(1);
-  // ...and exactly one message must be posted into it.
+    .toBe(true);
+  // Settle window: a double-post landing one async tick later must not slip
+  // past a snapshot taken at first arrival. The double-post is the bug this
+  // spec exists to catch.
+  await page.waitForTimeout(10_000);
   const state: ProviderState = await fixture("state");
-  const threadId: string | undefined = state.postedMessages.find(
+  // The fixture records the raw pathname under DiscordClient.BASE_URL
+  // (https://discord.com/api/v10), so match on the suffix, like
+  // Installation.spec.ts does for /oauth2/token.
+  const threadPosts: number = state.events.filter(
+    (event: { method: string; path: string }): boolean =>
+      event.method === "POST" &&
+      event.path.endsWith(`/channels/${identities.channelId}/threads`),
+  ).length;
+  expect(
+    threadPosts,
+    "Exactly one thread must be created under the incident parent",
+  ).toBe(1);
+  const withTitle: Array<PostedMessage> = state.postedMessages.filter(
     (message: PostedMessage): boolean =>
-      message.channel_id !== identities.channelId &&
       (message.content || "").includes("HOM-36 one thread one post"),
-  )?.channel_id;
-  expect(threadId, "The incident message must land in a thread").toBeTruthy();
-  const messages: Array<PostedMessage> = state.postedMessages.filter(
-    (message: PostedMessage): boolean => message.channel_id === threadId,
   );
   expect(
-    messages.length,
-    "The incident lifecycle must post to the thread exactly once",
+    withTitle.length,
+    "The incident lifecycle must post exactly once, anywhere",
   ).toBe(1);
+  const threadId: string | undefined = withTitle[0]?.channel_id;
+  expect(threadId, "The message must be in a thread").toBeTruthy();
+  // A thread also carries the owner feed line and the state-change line
+  // (Slack parity through sendWorkspaceMarkdownNotification), so the thread
+  // message count is not asserted. The double-post signature is the title
+  // card appearing in the parent channel.
   expect(
     state.postedMessages.filter(
       (message: PostedMessage): boolean =>
+        message.channel_id === identities.channelId &&
         (message.content || "").includes("HOM-36 one thread one post"),
     ).length,
-    "The incident must not also post to the parent channel",
-  ).toBe(1);
+    "The title card must not also be posted to the parent channel",
+  ).toBe(0);
 });

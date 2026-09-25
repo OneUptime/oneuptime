@@ -14,6 +14,10 @@ export function getWorkspaceTypeDisplayName(
   if (workspaceType === WorkspaceType.Slack) {
     return "Slack";
   }
+
+  if (workspaceType === WorkspaceType.Discord) {
+    return "Discord";
+  }
   return workspaceType;
 }
 

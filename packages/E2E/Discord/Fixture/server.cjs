@@ -313,6 +313,17 @@ const server = https.createServer(
             user: { id: ids.botId, bot: true },
             roles: [ids.botRoleId],
           });
+        // Linked workspace user: the notification-rule engine resolves the
+        // "who did this" prefix via Discord.getUsernameFromUserId now that
+        // Discord is in getAllWorkspaceTypes.
+        if (suffix === `/members/${ids.userId}`)
+          return send(res, 200, {
+            user: {
+              id: ids.userId,
+              username: ids.username,
+              global_name: ids.username,
+            },
+          });
         if (suffix === "/roles")
           return send(res, 200, [
             { id: guildId, name: "@everyone", permissions: "0" },

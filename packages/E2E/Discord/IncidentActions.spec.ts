@@ -324,41 +324,10 @@ test.afterAll(async (): Promise<void> => {
   await context?.close();
 });
 
-test("incident created in a bound project posts a lifecycle message to the incident channel", async (): Promise<void> => {
-  await install();
-  await setIncidentChannel(identities.channelId);
-  await fixture("reset", {});
-  const incident: IncidentRow = await createIncident(
-    "HOM-35 lifecycle created",
-  );
-  expect(incident._id).toBeTruthy();
-  // Lifecycle dispatch is asynchronous: poll the fixture for a message POST.
-  // Bodies are recorded in postedMessages (a762d355); events only carries the
-  // method/path access log. Playwright expect.poll matchers return void, so
-  // poll a boolean and read the recorded message from state afterwards.
-  await expect
-    .poll(
-      async (): Promise<boolean> =>
-        (await fixture("state")).postedMessages.some(
-          (message: ProviderEvent): boolean =>
-            message.channel_id === identities.channelId &&
-            (message.content || "").includes("HOM-35 lifecycle created"),
-        ),
-      { timeout: 30_000 },
-    )
-    .toBe(true);
-  const posted: ProviderEvent | undefined = (
-    await fixture("state")
-  ).postedMessages.find(
-    (message: ProviderEvent): boolean =>
-      message.channel_id === identities.channelId &&
-      (message.content || "").includes("HOM-35 lifecycle created"),
-  );
-  expect(
-    posted?.content || "",
-    "The lifecycle message must name the incident",
-  ).toContain("HOM-35 lifecycle created");
-});
+// The old "bound project posts a lifecycle message to the incident channel"
+// spec is deleted: it asserted the channel-bound bypass HOM-36 removes.
+// NotificationRouting.spec.ts "one incident, one thread, one post" is its
+// replacement (rule-driven thread + exactly-once posting).
 
 test("component interaction acknowledges an incident and replies with the new state", async (): Promise<void> => {
   await install();

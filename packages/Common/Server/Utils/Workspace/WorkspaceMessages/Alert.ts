@@ -68,6 +68,9 @@ export default class AlertWorkspaceMessages {
         projectId: projectId!,
       });
 
+    // Discord renders the same shared blocks through DiscordMessageRenderer.
+    const discordBlocks: WorkspaceMessageBlock[] = microsoftTeamsBlocks;
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -76,6 +79,10 @@ export default class AlertWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Discord,
+        messageBlocks: discordBlocks,
       },
     ];
   }
