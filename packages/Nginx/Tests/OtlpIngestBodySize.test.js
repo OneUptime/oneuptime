@@ -6,19 +6,23 @@
  * megabyte. /telemetry allowed 4M, but /otlp -- the path the docs hand out --
  * and the OTLP/gRPC location were left on nginx's 1M default, so those
  * batches got a bare nginx 413 that no App log ever saw. All three now take
- * 4M.
+ * 4M. So do /otlp and /telemetry in the two status-page default servers,
+ * which answer every request whose Host the primary ingress does not name
+ * (an IP, an in-cluster Service name, any name while HOST is "localhost")
+ * and forward it to the same App.
  *
  * Two halves:
  *
  *   - Static: read default.conf.template and the App source and pin the
- *     limit, its agreement across the three entry points, and its place under
- *     every cap the App applies after it. The App caps are read from source
- *     at test time, so the test breaks when either side drifts.
+ *     limit, its agreement across the entry points and server blocks, and its
+ *     place under every cap the App applies after it. The App caps are read
+ *     from source at test time, so the test breaks when either side drifts.
  *   - Live: render the template the way the container does, run it under a
  *     real nginx in front of stub upstreams that record what actually
  *     arrives, and send real batches at and around the limit over HTTP/1.1,
- *     HTTP/2 and gRPC. Skipped without nginx >= 1.25.1 and envsubst on PATH;
- *     the TLS suite also needs openssl.
+ *     HTTP/2 and gRPC, under the names the primary answers to and under
+ *     names only the default servers catch. Skipped without nginx >= 1.25.1
+ *     and envsubst on PATH; the TLS suites also need openssl.
  *
  * Tests named "KNOWN BUG" document gaps the fix leaves; see expectKnownBug().
  */
@@ -28,6 +32,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const http2 = require("node:http2");
+const https = require("node:https");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
@@ -84,7 +89,21 @@ const OTLP_LOCATIONS = [
   OTLP_GRPC_LOCATION,
 ];
 
+const OTLP_HTTP_SPECS = [OTLP_HTTP_LOCATION, TELEMETRY_LOCATION];
+
 const INGRESS_PORT = "7849";
+const TLS_INGRESS_PORT = "7850";
+
+/*
+ * What the status-page servers' `location /` and the OTLP locations that
+ * pre-empt it must both send upstream.
+ */
+const FORWARDING_HEADERS = [
+  "proxy_set_header Host $host;",
+  "proxy_set_header X-Real-IP $remote_addr;",
+  "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+  "proxy_set_header X-Forwarded-Proto $scheme;",
+];
 
 const REPOSITORY_ROOT = path.resolve(NGINX_DIRECTORY, "..", "..");
 const TELEMETRY_SOURCE_DIRECTORY = path.join(
@@ -214,6 +233,48 @@ function plaintextIngressDefaultServer() {
   assert.ok(explicit.length <= 1, "two default servers on the ingress port");
 
   return explicit[0] || listening[0];
+}
+
+/**
+ * The server nginx treats as the default for the TLS port: the one with
+ * `listen ...7850 ssl default_server`. The primary only listens on 7850 at
+ * all when PROVISION_SSL is on (${PROVISION_SSL_LISTEN_DIRECTIVE}).
+ */
+function tlsIngressDefaultServer() {
+  const servers = serverBlocks.filter((serverBlock) => {
+    return getDirectives(serverBlock.body, "listen").some((listen) => {
+      return new RegExp(
+        `\\b${TLS_INGRESS_PORT}\\s+ssl\\s+default_server\\b`,
+      ).test(listen);
+    });
+  });
+
+  assert.equal(servers.length, 1, "expected one default server on 7850");
+
+  return servers[0];
+}
+
+/** Every server block other than the primary ingress. */
+function statusPageServers() {
+  const servers = serverBlocks.filter((serverBlock) => {
+    return serverBlock !== primaryServerBlock;
+  });
+
+  assert.equal(servers.length, 2, "expected two status-page server blocks");
+
+  return servers;
+}
+
+/** A label for assertion messages: the block's first listen directive. */
+function serverLabel(serverBlock) {
+  return getDirectives(serverBlock.body, "listen")[0];
+}
+
+/** Whether a location hands the request to the App's HTTP port (in any branch). */
+function forwardsToApp(location) {
+  return getDirectives(location.body, "proxy_pass").includes(
+    "proxy_pass ${BACKEND_APP_TARGET};",
+  );
 }
 
 /** Whether HTTP/2 is on for `serverBlock`: its own setting, else http{}'s. */
@@ -420,7 +481,8 @@ const liveSkipReason = (() => {
 
 /*
  * OTLP/gRPC can only reach the gRPC location over TLS (see the h2c KNOWN BUG
- * below), and nginx needs a certificate file for that.
+ * below), and the 7850 status-page suites need a certificate for the custom
+ * domain they send; nginx needs a certificate file for either.
  */
 const tlsSkipReason =
   liveSkipReason ||
@@ -610,9 +672,9 @@ test("the primary ingress defines each OTLP entry point exactly once", () => {
 
 test("every server block defining an OTLP location sets client_max_body_size 4M there, once", () => {
   /*
-   * Not only the primary ingress: if an OTLP location is ever added to
-   * another server block (see the fallback KNOWN BUG below), it has to take
-   * the same batch.
+   * Not only the primary ingress: the status-page default servers carry
+   * /otlp and /telemetry too (see "every server block that forwards OTLP/HTTP
+   * to the App" below), and every copy has to take the same batch.
    */
   let checked = 0;
 
@@ -641,9 +703,11 @@ test("every server block defining an OTLP location sets client_max_body_size 4M 
     }
   }
 
-  assert.ok(
-    checked >= OTLP_LOCATIONS.length,
-    `expected at least ${OTLP_LOCATIONS.length} OTLP locations, found ${checked}`,
+  // Three in the primary, two in each status-page server.
+  assert.equal(
+    checked,
+    OTLP_LOCATIONS.length + 2 * OTLP_HTTP_SPECS.length,
+    `expected ${OTLP_LOCATIONS.length + 2 * OTLP_HTTP_SPECS.length} OTLP locations, found ${checked}`,
   );
 });
 
@@ -784,13 +848,21 @@ test("a compressed batch at the ingress limit inflates inside the worker's post-
 });
 
 test("the /otlp rationale still quotes the App's real caps", () => {
-  // The comment is the only place an operator reads why 4M and not more.
-  const [otlpBlock] = findBlocks(
+  /*
+   * The comment is the only place an operator reads why 4M and not more. It
+   * sits on the primary's /otlp (the status-page servers' copies refer back
+   * to it), so take the /otlp that follows the primary's server_name.
+   */
+  const primaryStart = template.indexOf("server_name localhost ingress");
+  const otlpBlock = findBlocks(
     template,
     /^[^\S\n]*location[^\S\n]+(\/otlp)[^\S\n]*\{[^\S\n]*$/,
-  );
+  ).find((block) => {
+    return block.startIndex > primaryStart;
+  });
 
-  assert.ok(otlpBlock, "location /otlp not found");
+  assert.notEqual(primaryStart, -1, "primary ingress server_name not found");
+  assert.ok(otlpBlock, "the primary's location /otlp not found");
   assert.ok(
     otlpBlock.body.includes(`parses up to ${appOtlpHttpCapBytes() / MIB}M`),
     "the /otlp comment misquotes the App's OTLP/HTTP cap",
@@ -860,7 +932,8 @@ test(
   () => {
     for (const mode of UPSTREAM_MODES) {
       const rendered = render(baseEnvironment(mode.environment));
-      const renderedPrimary = getServerBlocks(rendered).find((block) => {
+      const renderedServers = getServerBlocks(rendered);
+      const renderedPrimary = renderedServers.find((block) => {
         return /server_name\s+localhost\s+ingress/.test(block.body);
       });
 
@@ -894,6 +967,31 @@ test(
         mode.name,
       );
 
+      // The status-page servers' copies, which pass from inside an `if` in
+      // the plaintext one.
+      const renderedStatusPageServers = renderedServers.filter((block) => {
+        return block !== renderedPrimary;
+      });
+
+      assert.equal(renderedStatusPageServers.length, 2, mode.name);
+
+      for (const serverBlock of renderedStatusPageServers) {
+        for (const spec of OTLP_HTTP_SPECS) {
+          const location = onlyLocation(serverBlock, spec);
+
+          assert.deepEqual(
+            getDirectives(location.body, "client_max_body_size"),
+            [OTLP_BATCH_LIMIT_DIRECTIVE],
+            `${mode.name}: ${spec} in ${serverLabel(serverBlock)}`,
+          );
+          assert.deepEqual(
+            getDirectives(location.body, "proxy_pass"),
+            [`proxy_pass ${mode.environment.BACKEND_APP_TARGET};`],
+            `${mode.name}: ${spec} in ${serverLabel(serverBlock)}`,
+          );
+        }
+      }
+
       // The pools exist exactly when the targets name them.
       assert.equal(
         rendered.includes("upstream backend_app_grpc {"),
@@ -905,51 +1003,236 @@ test(
 );
 
 // ---------------------------------------------------------------------------
-// Static: gaps the fix leaves
+// Static: OTLP under a Host the primary ingress does not name
 // ---------------------------------------------------------------------------
 
-test("KNOWN BUG: OTLP/HTTP sent under a Host the ingress does not name gets the same 4M", async (t) => {
-  /*
-   * nginx picks the server block by Host. The primary ingress only answers to
-   * "localhost ingress $HOST"; anything else on the plaintext port -- the
-   * ingress's IP, an in-cluster Service name, or any name at all when HOST is
-   * left at its "localhost" default -- lands in the status-page default
-   * server. With billing off (every self-hosted install) that server's
-   * `location /` proxies the batch to the same App, which serves OTLP under
-   * "/" too, but with no client_max_body_size, so it still gets GH#3978's
-   * bare 413 above 1M.
-   */
-  const fallbackServer = plaintextIngressDefaultServer();
+/*
+ * nginx picks the server block by Host. The primary ingress only answers to
+ * "localhost ingress $HOST"; anything else -- the ingress's IP, an in-cluster
+ * Service name, a second DNS name, or any name at all while HOST is left at
+ * its "localhost" default -- lands in the default server of the port, which
+ * is a status-page server on both 7849 and 7850. Each of those forwards
+ * OTLP to the same App, which serves it under "/" and "/telemetry" whatever
+ * the Host, so before they carried their own /otlp and /telemetry the batch
+ * went through their `location /` on nginx's 1M default and still got
+ * GH#3978's bare 413.
+ */
 
-  if (fallbackServer === primaryServerBlock) {
-    // The primary became the default: nothing falls through any more.
-    assert.fail(
-      "This known bug is fixed: turn this test into a plain one that asserts the fixed behaviour.",
-    );
+/*
+ * Hosts the primary ingress does not name, as an exporter really sends them:
+ * the ingress's own address, and the Helm chart's in-cluster Service name
+ * ("<release>-nginx", HelmChart/Public/oneuptime/templates/nginx.yaml), fully
+ * qualified, and short with a port.
+ */
+const UNNAMED_HOSTS = [
+  "10.0.0.5",
+  "oneuptime-nginx.oneuptime.svc.cluster.local",
+  "oneuptime-nginx:80",
+];
+
+// A status page's custom domain, which only the status-page servers serve.
+const STATUS_PAGE_DOMAIN = "status.customer.example";
+
+/** $host for a Host header: the name, lowercased, without its port. */
+function hostName(host) {
+  return host.replace(/:\d+$/, "").toLowerCase();
+}
+
+test("the unnamed hosts are not names the primary ingress answers to", () => {
+  // The live tests below rely on these reaching a default server.
+  const [serverName] = getDirectives(primaryServerBlock.body, "server_name");
+  const names = serverName
+    .replace(/^server_name\s+/, "")
+    .replace(/;$/, "")
+    .split(/\s+/)
+    .map((name) => {
+      return name === "${HOST}" ? INGRESS_HOST : name;
+    });
+
+  assert.deepEqual(names, ["localhost", "ingress", INGRESS_HOST]);
+
+  for (const host of [...UNNAMED_HOSTS, STATUS_PAGE_DOMAIN]) {
+    assert.ok(!names.includes(hostName(host)), host);
+  }
+});
+
+test("the plaintext default server routes every OTLP/HTTP route to a 4M location, on both prefixes", () => {
+  const defaultServer = plaintextIngressDefaultServer();
+  const locations = getLocationBlocks(defaultServer.body);
+
+  for (const route of appOtlpHttpRoutes()) {
+    for (const [uri, expectedSpec] of [
+      [route, OTLP_HTTP_LOCATION],
+      [`/telemetry${route}`, TELEMETRY_LOCATION],
+    ]) {
+      const location = resolveLocation(locations, uri);
+
+      assert.ok(location, `${uri} matches no location`);
+      assert.equal(location.spec, expectedSpec, `${uri} is routed elsewhere`);
+      assert.equal(
+        effectiveBodyLimit(defaultServer, location),
+        OTLP_BATCH_LIMIT_BYTES,
+        uri,
+      );
+    }
+  }
+});
+
+test("every server block that forwards OTLP/HTTP to the App gives it the same 4M", () => {
+  /*
+   * Whichever server a batch lands in, if that server hands it to the App it
+   * has to take the batch the primary takes. Today all three do: the primary,
+   * and both status-page default servers (the plaintext one only while
+   * billing is off; see the billing test below).
+   */
+  const routes = appOtlpHttpRoutes();
+  let forwardingServers = 0;
+
+  for (const serverBlock of serverBlocks) {
+    const locations = getLocationBlocks(serverBlock.body);
+    let forwards = false;
+
+    for (const route of routes) {
+      for (const uri of [route, `/telemetry${route}`]) {
+        const location = resolveLocation(locations, uri);
+
+        if (!location || !forwardsToApp(location)) {
+          continue;
+        }
+
+        forwards = true;
+
+        assert.equal(
+          effectiveBodyLimit(serverBlock, location),
+          OTLP_BATCH_LIMIT_BYTES,
+          `${uri} in the server with "${serverLabel(serverBlock)}" lands in "location ${location.spec}"`,
+        );
+      }
+    }
+
+    if (forwards) {
+      forwardingServers++;
+    }
   }
 
-  const location = resolveLocation(
-    getLocationBlocks(fallbackServer.body),
-    "/otlp/v1/metrics",
-  );
-
-  assert.ok(location, "/otlp/v1/metrics matches nothing in the default server");
-  assert.ok(
-    getDirectives(location.body, "proxy_pass").includes(
-      "proxy_pass ${BACKEND_APP_TARGET};",
-    ),
-    "premise: the default server proxies OTLP to the App when billing is off",
-  );
-
-  await expectKnownBug(t, () => {
-    const limit = effectiveBodyLimit(fallbackServer, location);
-
-    assert.ok(
-      limit >= OTLP_BATCH_LIMIT_BYTES,
-      `the default server's "location ${location.spec}" gives OTLP ${limit} bytes (nginx's default is ${NGINX_DEFAULT_BODY_LIMIT_BYTES})`,
-    );
-  });
+  assert.equal(forwardingServers, serverBlocks.length);
 });
+
+test("the plaintext default server's OTLP locations keep its billing redirect", () => {
+  /*
+   * Its `location /` sends plain-HTTP traffic to https when billing is on
+   * (the hosted product) and proxies otherwise. /otlp and /telemetry pre-empt
+   * it for their prefixes, so a copy without that split would start
+   * proxying plain-HTTP ingest on the hosted product.
+   */
+  const BILLING_REDIRECT =
+    /if\s*\(\$billing_enabled\s*=\s*true\)\s*\{\s*return 301 https:\/\/\$host\$request_uri;\s*\}/;
+  const BILLING_OFF_PROXY =
+    /if\s*\(\$billing_enabled\s*!=\s*true\)\s*\{\s*proxy_pass \$\{BACKEND_APP_TARGET\};\s*\}/;
+
+  const defaultServer = plaintextIngressDefaultServer();
+  const rootLocation = onlyLocation(defaultServer, "/");
+
+  assert.deepEqual(
+    ownDirectives(defaultServer.body, "set"),
+    ["set $billing_enabled ${BILLING_ENABLED};"],
+    "premise: the server sets $billing_enabled for its locations",
+  );
+  assert.match(stripComments(rootLocation.body), BILLING_REDIRECT, "premise");
+  assert.match(stripComments(rootLocation.body), BILLING_OFF_PROXY, "premise");
+
+  for (const spec of OTLP_HTTP_SPECS) {
+    const location = onlyLocation(defaultServer, spec);
+    const body = stripComments(location.body);
+
+    assert.match(body, BILLING_REDIRECT, spec);
+    assert.match(body, BILLING_OFF_PROXY, spec);
+
+    // Nothing else decides where the request goes...
+    for (const directive of ["return", "proxy_pass", "rewrite"]) {
+      assert.deepEqual(
+        getDirectives(location.body, directive),
+        getDirectives(rootLocation.body, directive),
+        `${spec}: ${directive}`,
+      );
+    }
+
+    // ...and the App sees the same forwarding headers either way.
+    for (const header of FORWARDING_HEADERS) {
+      assert.ok(
+        getDirectives(rootLocation.body, "proxy_set_header").includes(header),
+        `premise: location / sends "${header}"`,
+      );
+      assert.ok(
+        getDirectives(location.body, "proxy_set_header").includes(header),
+        `${spec} must send "${header}" like location /`,
+      );
+    }
+  }
+});
+
+test("the TLS default server's OTLP locations proxy unconditionally, like its location /", () => {
+  const tlsDefaultServer = tlsIngressDefaultServer();
+  const rootLocation = onlyLocation(tlsDefaultServer, "/");
+
+  assert.deepEqual(getDirectives(rootLocation.body, "proxy_pass"), [
+    "proxy_pass ${BACKEND_APP_TARGET};",
+  ]);
+
+  for (const spec of OTLP_HTTP_SPECS) {
+    const location = onlyLocation(tlsDefaultServer, spec);
+
+    assert.deepEqual(getDirectives(location.body, "proxy_pass"), [
+      "proxy_pass ${BACKEND_APP_TARGET};",
+    ]);
+    assert.deepEqual(getDirectives(location.body, "return"), [], spec);
+    assert.deepEqual(getDirectives(location.body, "rewrite"), [], spec);
+    assert.ok(!/\bif\s*\(/.test(stripComments(location.body)), spec);
+
+    for (const header of FORWARDING_HEADERS) {
+      assert.ok(
+        getDirectives(rootLocation.body, "proxy_set_header").includes(header),
+        `premise: location / sends "${header}"`,
+      );
+      assert.ok(
+        getDirectives(location.body, "proxy_set_header").includes(header),
+        `${spec} must send "${header}" like location /`,
+      );
+    }
+  }
+});
+
+test("the status-page servers raise only their two OTLP prefixes", () => {
+  /*
+   * They exist to serve status pages to anonymous visitors on custom
+   * domains. The raise is scoped to /otlp and /telemetry rather than put on
+   * the server or its `location /`, so everything else there keeps nginx's
+   * 1M default.
+   */
+  for (const serverBlock of statusPageServers()) {
+    assert.deepEqual(
+      ownDirectives(serverBlock.body, "client_max_body_size"),
+      [],
+      serverLabel(serverBlock),
+    );
+
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      if (OTLP_HTTP_SPECS.includes(location.spec)) {
+        continue;
+      }
+
+      assert.equal(
+        effectiveBodyLimit(serverBlock, location),
+        NGINX_DEFAULT_BODY_LIMIT_BYTES,
+        `location ${location.spec} in ${serverLabel(serverBlock)}`,
+      );
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Static: gaps the fix leaves
+// ---------------------------------------------------------------------------
 
 test("KNOWN BUG: the plaintext ingress port speaks h2c, so OTLP/gRPC can reach its location", async (t) => {
   /*
@@ -1213,33 +1496,88 @@ function replaceEveryOccurrence(source, from, to) {
   return source.split(from).join(to);
 }
 
-/**
- * Delete one location's client_max_body_size from a rendered config: the
- * config as it was before GH#3978's fix, for the control suite.
+/*
+ * Which server blocks of a rendered, comment-stripped config an edit applies
+ * to, told apart by their server_name.
  */
-function withoutBodyLimitIn(rendered, locationHeader) {
-  const start = rendered.indexOf(`${locationHeader} {`);
+const RENDERED_SERVERS = {
+  primary: (serverBody) => {
+    return /server_name\s+localhost\s+ingress\b/.test(serverBody);
+  },
+  statusPage: (serverBody) => {
+    return /server_name\s+_\s*;/.test(serverBody);
+  },
+};
 
-  assert.notEqual(start, -1, `${locationHeader} not in the rendered config`);
-  assert.equal(
-    rendered.indexOf(`${locationHeader} {`, start + 1),
-    -1,
-    `${locationHeader} appears twice in the rendered config`,
-  );
+/**
+ * Delete a location's client_max_body_size from a rendered config, in every
+ * server block `server` selects: the config as it was before the fix, for
+ * the control suites. Works on the config with its comments stripped (nginx
+ * does not care), because prose in the comments carries unbalanced braces.
+ */
+function withoutBodyLimitIn(rendered, { location: locationHeader, server }) {
+  const source = stripComments(rendered);
+  const header = `\n    ${locationHeader} {`;
+  const spans = [];
 
-  const end = rendered.indexOf("\n    }", start);
-  const block = rendered.slice(start, end);
-  const edited = block.replace(/^[ \t]*client_max_body_size 4M;\n/m, "");
+  for (const serverBlock of findBlocks(source, /^server\s*\{[^\S\n]*$/)) {
+    if (!server(serverBlock.body)) {
+      continue;
+    }
 
-  assert.notEqual(edited, block, `${locationHeader} had no 4M limit to remove`);
-  assert.ok(/(proxy|grpc)_pass /.test(edited), "sliced the wrong block");
+    const bodyStart = source.indexOf("{", serverBlock.startIndex) + 1;
+    const start = serverBlock.body.indexOf(header);
 
-  return rendered.slice(0, start) + edited + rendered.slice(end);
+    assert.notEqual(start, -1, `${locationHeader} missing from a server block`);
+    assert.equal(
+      serverBlock.body.indexOf(header, start + 1),
+      -1,
+      `${locationHeader} appears twice in one server block`,
+    );
+
+    spans.push({
+      start: bodyStart + start,
+      end: bodyStart + serverBlock.body.indexOf("\n    }", start + 1),
+    });
+  }
+
+  assert.ok(spans.length > 0, `no server block selected for ${locationHeader}`);
+
+  // Last first, so the earlier offsets stay valid.
+  return spans.reverse().reduce((edited, { start, end }) => {
+    const block = edited.slice(start, end);
+    const withoutLimit = block.replace(
+      /^[ \t]*client_max_body_size 4M;\n/m,
+      "",
+    );
+
+    assert.notEqual(
+      withoutLimit,
+      block,
+      `${locationHeader} had no 4M limit to remove`,
+    );
+    assert.ok(
+      /(proxy|grpc)_pass /.test(withoutLimit),
+      "sliced the wrong block",
+    );
+
+    return edited.slice(0, start) + withoutLimit + edited.slice(end);
+  }, source);
 }
 
-function makeTlsCertificate(directory) {
-  const certificatePath = path.join(directory, "ingress.crt");
-  const keyPath = path.join(directory, "ingress.key");
+/**
+ * A self-signed certificate for `host` in `directory`, as
+ * <basename>.crt/.key. `readableByWorkers` is for a certificate nginx loads
+ * per handshake from a path with variables in it (the status-page servers'
+ * StatusPageCerts/$ssl_server_name.crt): the worker reads that one, not the
+ * master, and in the docker run workers are not root.
+ */
+function makeTlsCertificate(
+  directory,
+  { host = INGRESS_HOST, basename = "ingress", readableByWorkers = false } = {},
+) {
+  const certificatePath = path.join(directory, `${basename}.crt`);
+  const keyPath = path.join(directory, `${basename}.key`);
 
   // The same command envsubst-on-templates.sh uses for its placeholder cert.
   const result = spawnSync(
@@ -1251,7 +1589,7 @@ function makeTlsCertificate(directory) {
       "rsa:2048",
       "-nodes",
       "-subj",
-      `/CN=${INGRESS_HOST}`,
+      `/CN=${host}`,
       "-keyout",
       keyPath,
       "-out",
@@ -1264,6 +1602,11 @@ function makeTlsCertificate(directory) {
 
   assert.equal(result.status, 0, result.stderr);
 
+  if (readableByWorkers) {
+    fs.chmodSync(certificatePath, 0o644);
+    fs.chmodSync(keyPath, 0o644);
+  }
+
   return { certificatePath, keyPath };
 }
 
@@ -1274,13 +1617,20 @@ function makeTlsCertificate(directory) {
  * What differs from the shipped config is only what has to: the App's
  * address (our stubs on loopback), the listen ports (free ones instead of
  * 7849/7850/4317), and nginx.conf's absolute paths (moved into a temp
- * prefix, exactly as NginxTemplateRender.test.js does for `nginx -t`).
+ * prefix, exactly as NginxTemplateRender.test.js does for `nginx -t`) --
+ * plus, with `statusPageCertificates`, the StatusPageCerts directory, moved
+ * into the prefix and holding a certificate for each of those names.
+ *
+ * `tls` provisions the primary's certificate (PROVISION_SSL);
+ * `environment` overrides the container environment (e.g. BILLING_ENABLED).
  */
 async function startIngress({
   appPort,
   grpcPort,
   upstreamMode = UPSTREAM_MODES[0],
   tls = false,
+  environment: environmentOverrides = {},
+  statusPageCertificates = [],
   withoutBodyLimitIn: strippedLocations = [],
 }) {
   const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-otlp-"));
@@ -1302,6 +1652,7 @@ async function startIngress({
     NGINX_RESOLVER: "127.0.0.1",
     SERVER_APP_HOSTNAME: "127.0.0.1",
     SERVER_HOME_HOSTNAME: "127.0.0.1",
+    ...environmentOverrides,
   });
 
   if (tls) {
@@ -1333,8 +1684,28 @@ async function startIngress({
     `127.0.0.1:${grpcPort}`,
   );
 
-  for (const locationHeader of strippedLocations) {
-    rendered = withoutBodyLimitIn(rendered, locationHeader);
+  if (statusPageCertificates.length > 0) {
+    const certificateDirectory = path.join(prefix, "StatusPageCerts");
+
+    fs.mkdirSync(certificateDirectory);
+
+    for (const host of statusPageCertificates) {
+      makeTlsCertificate(certificateDirectory, {
+        host,
+        basename: host,
+        readableByWorkers: true,
+      });
+    }
+
+    rendered = replaceEveryOccurrence(
+      rendered,
+      "/etc/nginx/certs/StatusPageCerts/",
+      `${certificateDirectory}/`,
+    );
+  }
+
+  for (const edit of strippedLocations) {
+    rendered = withoutBodyLimitIn(rendered, edit);
   }
 
   const temporaryPaths = [
@@ -1462,9 +1833,19 @@ async function startIngress({
 /**
  * POST `body` over HTTP/1.1. `chunked` sends it with Transfer-Encoding:
  * chunked and no Content-Length, in 64 KiB writes, so nginx has to count it
- * as it arrives rather than refuse it from the header.
+ * as it arrives rather than refuse it from the header. `tls` sends it over
+ * TLS with SNI for the Host's name (HTTP/1.1, which is all the status-page
+ * TLS server offers), and reports the name on the certificate that answered.
  */
-function postHttp1({ port, uri, body, host = INGRESS_HOST, chunked, id }) {
+function postHttp1({
+  port,
+  uri,
+  body,
+  host = INGRESS_HOST,
+  chunked,
+  id,
+  tls = false,
+}) {
   return new Promise((resolve, reject) => {
     const headers = {
       host,
@@ -1478,18 +1859,29 @@ function postHttp1({ port, uri, body, host = INGRESS_HOST, chunked, id }) {
       headers["content-length"] = String(body.length);
     }
 
-    const request = http.request({
+    const options = {
       host: "127.0.0.1",
       port,
       method: "POST",
       path: uri,
       headers,
       agent: false,
-    });
+    };
+
+    const request = tls
+      ? https.request({
+          ...options,
+          servername: hostName(host),
+          rejectUnauthorized: false,
+        })
+      : http.request(options);
     let answered = false;
 
     request.on("response", (response) => {
       const chunks = [];
+      const certificateName = tls
+        ? response.socket.getPeerCertificate().subject.CN
+        : undefined;
 
       response.on("data", (chunk) => {
         chunks.push(chunk);
@@ -1500,6 +1892,7 @@ function postHttp1({ port, uri, body, host = INGRESS_HOST, chunked, id }) {
           status: response.statusCode,
           headers: response.headers,
           text: Buffer.concat(chunks).toString("utf8"),
+          certificateName,
         });
       });
     });
@@ -1636,6 +2029,17 @@ function assertRefusedByNginx(response, what) {
   );
   assert.equal(response.headers[UPSTREAM_HEADER], undefined, what);
   assert.ok(response.text.includes("413 Request Entity Too Large"), what);
+}
+
+/** nginx sent it to https itself: a 301 to `location`, no App header. */
+function assertRedirectedByNginx(response, location, what) {
+  assert.equal(
+    response.status,
+    301,
+    `${what}: expected nginx's 301, got ${response.status}: ${response.text || response.error}`,
+  );
+  assert.equal(response.headers.location, location, what);
+  assert.equal(response.headers[UPSTREAM_HEADER], undefined, what);
 }
 
 // ---------------------------------------------------------------------------
@@ -1856,34 +2260,65 @@ for (const upstreamMode of UPSTREAM_MODES) {
         }
       });
 
-      // Server selection happens before the upstream mode matters, so one
-      // mode is enough for this one.
-      if (upstreamMode !== UPSTREAM_MODES[0]) {
-        return;
+      /*
+       * Names the primary does not answer to land in the status-page default
+       * server (see "Static: OTLP under a Host the primary ingress does not
+       * name"; the control suite below proves these requests are served
+       * there). Run in both upstream modes because those locations carry
+       * their own proxy_pass.
+       */
+      for (const host of UNNAMED_HOSTS) {
+        test(`Host ${host}: 2 MiB, 3 MiB and exactly 4 MiB reach the App whole on both prefixes`, async () => {
+          for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+            for (const bytes of [2 * MIB, 3 * MIB, OTLP_BATCH_LIMIT_BYTES]) {
+              const what = `Host: ${host}, ${location}, ${bytes} bytes`;
+              const id = newRequestId();
+              const body = crypto.randomBytes(bytes);
+
+              const response = await postHttp1({
+                port: ingress.httpPort,
+                uri,
+                body,
+                host,
+                id,
+              });
+
+              assertAnsweredByApp(response, what);
+
+              const forwarded = appStub.requestsFor(id);
+
+              assert.equal(forwarded.length, 1, what);
+              assert.equal(forwarded[0].url, uri, what);
+              assert.equal(forwarded[0].host, hostName(host), what);
+              assert.equal(forwarded[0].complete, true, what);
+              assert.equal(forwarded[0].bytes, bytes, what);
+              assert.equal(forwarded[0].sha256, sha256(body), what);
+            }
+          }
+        });
+
+        test(`Host ${host}: 4 MiB + 1 byte and 5 MiB get nginx's 413 on both prefixes and never reach the App`, async () => {
+          for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+            for (const bytes of [OTLP_BATCH_LIMIT_BYTES + 1, 5 * MIB]) {
+              const id = newRequestId();
+
+              const response = await postHttp1({
+                port: ingress.httpPort,
+                uri,
+                body: crypto.randomBytes(bytes),
+                host,
+                id,
+              });
+
+              assertRefusedByNginx(
+                response,
+                `Host: ${host}, ${location}, ${bytes} bytes`,
+              );
+              assert.deepEqual(appStub.requestsFor(id), []);
+            }
+          }
+        });
       }
-
-      test("KNOWN BUG: a batch under a Host the ingress does not name takes the same 4M", async (t) => {
-        // See the static KNOWN BUG above: an IP lands in the status-page
-        // default server, which proxies to the App on nginx's 1M default.
-        const id = newRequestId();
-        const body = crypto.randomBytes(2 * MIB);
-        const logOffset = ingress.errorLogOffset();
-
-        const response = await postHttp1({
-          port: ingress.httpPort,
-          uri: "/otlp/v1/metrics",
-          body,
-          host: "10.0.0.5",
-          id,
-        });
-
-        await expectKnownBug(t, () => {
-          assertAnsweredByApp(response, "Host: 10.0.0.5, 2 MiB");
-          assert.equal(appStub.requestsFor(id).length, 1);
-        });
-
-        t.diagnostic(ingress.errorLogSince(logOffset).trim());
-      });
     },
   );
 }
@@ -1911,7 +2346,9 @@ describe(
       ingress = await startIngress({
         appPort: appStub.port,
         grpcPort: grpcStub.port,
-        withoutBodyLimitIn: ["location /otlp"],
+        withoutBodyLimitIn: [
+          { location: "location /otlp", server: RENDERED_SERVERS.primary },
+        ],
       });
     });
 
@@ -1962,8 +2399,328 @@ describe(
 
       assertAnsweredByApp(response, "/telemetry, 4 MiB");
     });
+
+    test("a Host the primary does not name is not served by the primary's /otlp", async () => {
+      // Its batch goes through the default server's own /otlp, which kept 4M.
+      const id = newRequestId();
+
+      const response = await postHttp1({
+        port: ingress.httpPort,
+        uri: "/otlp/v1/metrics",
+        body: crypto.randomBytes(2 * MIB),
+        host: UNNAMED_HOSTS[0],
+        id,
+      });
+
+      assertAnsweredByApp(response, `Host: ${UNNAMED_HOSTS[0]}, 2 MiB`);
+    });
   },
 );
+
+describe(
+  "live control: the rendered ingress with the status-page servers' OTLP limits removed",
+  { skip: tlsSkipReason, timeout: 120000 },
+  () => {
+    /*
+     * The other half of that proof: with only the default servers' two
+     * directives gone, a batch under a name the primary does not answer to is
+     * back to the 1M default -- on 7849 and on 7850 -- while the primary still
+     * takes it. So those requests are served by the default servers, and it
+     * is their own /otlp and /telemetry that admit the batch.
+     */
+    let appStub;
+    let grpcStub;
+    let ingress;
+
+    before(async () => {
+      appStub = await startAppStub();
+      grpcStub = await startGrpcStub();
+      ingress = await startIngress({
+        appPort: appStub.port,
+        grpcPort: grpcStub.port,
+        statusPageCertificates: [STATUS_PAGE_DOMAIN],
+        withoutBodyLimitIn: OTLP_HTTP_SPECS.map((spec) => {
+          return {
+            location: `location ${spec}`,
+            server: RENDERED_SERVERS.statusPage,
+          };
+        }),
+      });
+    });
+
+    after(async () => {
+      await ingress?.stop();
+      await appStub?.close();
+      await grpcStub?.close();
+    });
+
+    for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+      test(`${uri}: 2 MiB under an unnamed Host is a bare 413 on both ports; under the primary's name it passes`, async () => {
+        for (const host of UNNAMED_HOSTS) {
+          const id = newRequestId();
+
+          const response = await postHttp1({
+            port: ingress.httpPort,
+            uri,
+            body: crypto.randomBytes(2 * MIB),
+            host,
+            id,
+          });
+
+          assertRefusedByNginx(response, `${location}, Host: ${host}`);
+          assert.deepEqual(appStub.requestsFor(id), []);
+        }
+
+        const tlsId = newRequestId();
+
+        const overTls = await postHttp1({
+          port: ingress.tlsPort,
+          uri,
+          body: crypto.randomBytes(2 * MIB),
+          host: STATUS_PAGE_DOMAIN,
+          id: tlsId,
+          tls: true,
+        });
+
+        assert.equal(overTls.certificateName, STATUS_PAGE_DOMAIN);
+        assertRefusedByNginx(
+          overTls,
+          `${location}, TLS, ${STATUS_PAGE_DOMAIN}`,
+        );
+        assert.deepEqual(appStub.requestsFor(tlsId), []);
+
+        const primaryId = newRequestId();
+
+        const primary = await postHttp1({
+          port: ingress.httpPort,
+          uri,
+          body: crypto.randomBytes(2 * MIB),
+          id: primaryId,
+        });
+
+        assertAnsweredByApp(primary, `${location}, Host: ${INGRESS_HOST}`);
+      });
+
+      test(`${uri}: exactly 1 MiB under an unnamed Host still passes, so it is the size`, async () => {
+        const id = newRequestId();
+
+        const response = await postHttp1({
+          port: ingress.httpPort,
+          uri,
+          body: crypto.randomBytes(NGINX_DEFAULT_BODY_LIMIT_BYTES),
+          host: UNNAMED_HOSTS[0],
+          id,
+        });
+
+        assertAnsweredByApp(response, `${location}, 1 MiB`);
+      });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Live: the plaintext default server with billing on
+// ---------------------------------------------------------------------------
+
+describe(
+  "live: the plaintext default server with BILLING_ENABLED=true (the hosted product)",
+  { skip: liveSkipReason, timeout: 120000 },
+  () => {
+    /*
+     * With billing on, that server's `location /` answers plain HTTP with a
+     * 301 to https, and its /otlp and /telemetry must do the same. The one
+     * visible change: nginx checks a declared Content-Length BEFORE the
+     * redirect runs, so a batch declaring between 1M and 4M used to get a
+     * 413 there and now gets the 301 a smaller one always got. (Every
+     * request here declares its length; a chunked body is simply discarded
+     * behind the redirect, before and after this change.)
+     */
+    let appStub;
+    let grpcStub;
+    let ingress;
+
+    before(async () => {
+      appStub = await startAppStub();
+      grpcStub = await startGrpcStub();
+      ingress = await startIngress({
+        appPort: appStub.port,
+        grpcPort: grpcStub.port,
+        environment: { BILLING_ENABLED: "true" },
+      });
+    });
+
+    after(async () => {
+      await ingress?.stop();
+      await appStub?.close();
+      await grpcStub?.close();
+    });
+
+    test("premise: its location / still sends plain HTTP to https", async () => {
+      for (const host of UNNAMED_HOSTS) {
+        const id = newRequestId();
+
+        const response = await postHttp1({
+          port: ingress.httpPort,
+          uri: "/",
+          body: crypto.randomBytes(1024),
+          host,
+          id,
+        });
+
+        assertRedirectedByNginx(
+          response,
+          `https://${hostName(host)}/`,
+          `Host: ${host}`,
+        );
+        assert.deepEqual(appStub.requestsFor(id), []);
+      }
+    });
+
+    for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+      test(`${uri}: an unnamed Host gets the same https redirect, for any batch up to 4M`, async () => {
+        for (const host of UNNAMED_HOSTS) {
+          for (const bytes of [
+            1024,
+            2 * MIB,
+            3 * MIB,
+            OTLP_BATCH_LIMIT_BYTES,
+          ]) {
+            const id = newRequestId();
+
+            const response = await postHttp1({
+              port: ingress.httpPort,
+              uri,
+              body: crypto.randomBytes(bytes),
+              host,
+              id,
+            });
+
+            assertRedirectedByNginx(
+              response,
+              `https://${hostName(host)}${uri}`,
+              `${location}, Host: ${host}, ${bytes} bytes`,
+            );
+            assert.deepEqual(appStub.requestsFor(id), []);
+          }
+        }
+      });
+
+      test(`${uri}: a batch declaring more than 4M under an unnamed Host gets nginx's 413, not the redirect`, async () => {
+        for (const host of UNNAMED_HOSTS) {
+          const id = newRequestId();
+
+          const response = await postHttp1({
+            port: ingress.httpPort,
+            uri,
+            body: crypto.randomBytes(5 * MIB),
+            host,
+            id,
+          });
+
+          assertRefusedByNginx(response, `${location}, Host: ${host}, 5 MiB`);
+          assert.deepEqual(appStub.requestsFor(id), []);
+        }
+      });
+
+      test(`${uri}: the primary ingress still takes the batch itself`, async () => {
+        // Its OTLP locations have no billing split; only the default server
+        // redirects.
+        const id = newRequestId();
+        const body = crypto.randomBytes(3 * MIB);
+
+        const response = await postHttp1({
+          port: ingress.httpPort,
+          uri,
+          body,
+          id,
+        });
+
+        assertAnsweredByApp(response, `${location}, Host: ${INGRESS_HOST}`);
+        assert.equal(appStub.requestsFor(id)[0].sha256, sha256(body));
+      });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Live: the TLS default server (a status page's custom domain)
+// ---------------------------------------------------------------------------
+
+for (const provisionSsl of [false, true]) {
+  describe(
+    `live: OTLP/HTTP to a status page's custom domain on 7850, PROVISION_SSL ${provisionSsl ? "on" : "off"}`,
+    { skip: tlsSkipReason, timeout: 120000 },
+    () => {
+      /*
+       * The custom domain is not a name the primary answers to, so SNI picks
+       * the status-page TLS server (its certificate is the one that answers)
+       * and so does the Host. With PROVISION_SSL off the primary does not
+       * listen on 7850 at all.
+       */
+      let appStub;
+      let grpcStub;
+      let ingress;
+
+      before(async () => {
+        appStub = await startAppStub();
+        grpcStub = await startGrpcStub();
+        ingress = await startIngress({
+          appPort: appStub.port,
+          grpcPort: grpcStub.port,
+          tls: provisionSsl,
+          statusPageCertificates: [STATUS_PAGE_DOMAIN],
+        });
+      });
+
+      after(async () => {
+        await ingress?.stop();
+        await appStub?.close();
+        await grpcStub?.close();
+      });
+
+      for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+        test(`${uri}: 2 MiB, 3 MiB and exactly 4 MiB reach the App whole; past 4M is nginx's 413`, async () => {
+          for (const [bytes, expectAdmitted] of [
+            [2 * MIB, true],
+            [3 * MIB, true],
+            [OTLP_BATCH_LIMIT_BYTES, true],
+            [OTLP_BATCH_LIMIT_BYTES + 1, false],
+            [5 * MIB, false],
+          ]) {
+            const what = `${location}, ${STATUS_PAGE_DOMAIN}, ${bytes} bytes`;
+            const id = newRequestId();
+            const body = crypto.randomBytes(bytes);
+
+            const response = await postHttp1({
+              port: ingress.tlsPort,
+              uri,
+              body,
+              host: STATUS_PAGE_DOMAIN,
+              id,
+              tls: true,
+            });
+
+            assert.equal(response.certificateName, STATUS_PAGE_DOMAIN, what);
+
+            if (expectAdmitted) {
+              assertAnsweredByApp(response, what);
+              assert.equal(appStub.requestsFor(id).length, 1, what);
+              assert.equal(appStub.requestsFor(id)[0].url, uri, what);
+              assert.equal(
+                appStub.requestsFor(id)[0].sha256,
+                sha256(body),
+                what,
+              );
+            } else {
+              assertRefusedByNginx(response, what);
+              assert.deepEqual(appStub.requestsFor(id), [], what);
+            }
+          }
+        });
+      }
+    },
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Live: HTTP/2 and OTLP/gRPC over TLS
@@ -2070,8 +2827,11 @@ describe(
     test("an export one byte over 4 MiB gets a 413 and the App never sees a whole message", async () => {
       /*
        * grpc_pass streams the request body, so without a content-length the
-       * App's gRPC server does see the first 4 MiB before nginx resets the
-       * stream -- but never a complete message, so nothing is ingested.
+       * App's gRPC server does see up to the first 4 MiB before nginx gives
+       * up on the upstream stream -- but never a complete message, so nothing
+       * is ingested. The exporter gets no stream reset: it gets nginx's HTTP
+       * 413 page with no grpc-status at all, which gRPC clients report as
+       * status UNKNOWN (what the comment on the gRPC location says).
        */
       const logOffset = ingress.errorLogOffset();
       const exported = await exportOverGrpc({
@@ -2080,9 +2840,15 @@ describe(
         withContentLength: false,
       });
 
+      assert.equal(exported.response.error, undefined);
       assert.equal(exported.response.status, 413, exported.response.text);
       assert.equal(exported.response.headers[UPSTREAM_HEADER], undefined);
-      assert.notEqual(exported.response.trailers["grpc-status"], "0");
+      assert.match(exported.response.headers["content-type"], /^text\/html/);
+      assert.ok(
+        exported.response.text.includes("413 Request Entity Too Large"),
+      );
+      assert.equal(exported.response.headers["grpc-status"], undefined);
+      assert.equal(exported.response.trailers["grpc-status"], undefined);
 
       for (const record of exported.forwarded) {
         assert.equal(deliveredWholeMessage(record), false);
@@ -2104,10 +2870,13 @@ describe(
         withContentLength: true,
       });
 
+      assert.equal(exported.response.error, undefined);
       assert.equal(exported.response.status, 413, exported.response.text);
       assert.ok(
         exported.response.text.includes("413 Request Entity Too Large"),
       );
+      assert.equal(exported.response.headers["grpc-status"], undefined);
+      assert.equal(exported.response.trailers["grpc-status"], undefined);
       assert.deepEqual(exported.forwarded, []);
     });
 
@@ -2150,6 +2919,36 @@ describe(
       });
     }
 
+    test("a plaintext HTTP/2 connection preface is refused as an HTTP/1.x request", async () => {
+      /*
+       * What the comment on the gRPC location says happens to an h2c
+       * exporter, and why the KNOWN BUG below is still broken: the port's
+       * default server does not speak HTTP/2 in cleartext, so the preface
+       * ("PRI * HTTP/2.0") is parsed as an HTTP/1.x request line and gets a
+       * 400 before any Host could pick the primary.
+       */
+      const reply = await new Promise((resolve, reject) => {
+        const socket = net.connect(ingress.httpPort, "127.0.0.1");
+        const chunks = [];
+
+        socket.setTimeout(5000, () => {
+          socket.destroy(new Error("no reply to the preface"));
+        });
+        socket.on("connect", () => {
+          socket.write("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+        });
+        socket.on("data", (chunk) => {
+          chunks.push(chunk);
+        });
+        socket.on("error", reject);
+        socket.on("close", () => {
+          resolve(Buffer.concat(chunks).toString("latin1"));
+        });
+      });
+
+      assert.match(reply, /^HTTP\/1\.1 400 Bad Request\r\n/, reply);
+    });
+
     test("KNOWN BUG: a plaintext (h2c) OTLP/gRPC export reaches the gRPC location", async (t) => {
       // See the static KNOWN BUG above: nginx takes the h2c decision from the
       // port's default server, which is the status-page block.
@@ -2191,7 +2990,12 @@ describe(
         appPort: appStub.port,
         grpcPort: grpcStub.port,
         tls: true,
-        withoutBodyLimitIn: ["location ~ /opentelemetry.proto.collector*"],
+        withoutBodyLimitIn: [
+          {
+            location: "location ~ /opentelemetry.proto.collector*",
+            server: RENDERED_SERVERS.primary,
+          },
+        ],
       });
     });
 

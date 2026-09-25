@@ -115,6 +115,73 @@ server {
 
     }
 
+    # OTLP/HTTP sent under a Host the primary ingress (the last server block)
+    # does not name: the ingress's IP, an in-cluster Service name, a second DNS
+    # name, or any name at all while HOST is left at its "localhost" default.
+    # nginx picks the server by Host, so all of those land in this default
+    # server, and the App serves its OTLP router under "/" and "/telemetry"
+    # whatever the Host. Before these two locations existed, `location /`
+    # forwarded such a batch on nginx's 1M default, and a full collector batch
+    # got the bare 413 of GH#3978.
+    #
+    # Both take the primary's 4M (the reasoning is on its /otlp location), its
+    # ingest logging switch and its pooled upstream connection; everything
+    # else mirrors `location /` above, billing redirect included. nginx checks
+    # a declared Content-Length before that redirect runs, so with billing on
+    # a batch declaring more than 4M still gets a 413 rather than the 301.
+    # Only these two prefixes are raised, not `location /`, so the status-page
+    # traffic this server exists for keeps the 1M default.
+    location /otlp {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        client_max_body_size 4M;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
+    # Same as /otlp above: the App mounts the same OTLP router here.
+    location /telemetry {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        client_max_body_size 4M;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
     # On-call calendar feeds. The URL IS the credential: a subscribed calendar
     # client (Google, Outlook, Apple) polls
     #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
@@ -365,6 +432,51 @@ server {
         proxy_pass ${BACKEND_APP_TARGET};
 
 
+    }
+
+    # OTLP/HTTP over TLS under a Host the primary ingress does not name, such
+    # as a status page's custom domain -- or under any Host at all when
+    # PROVISION_SSL is off, since the primary then does not listen on 7850.
+    # `location /` above forwards every path to the App, which serves OTLP
+    # whatever the Host, so these take the same 4M and logging switch as the
+    # two OTLP locations in the plaintext default server above (GH#3978).
+    # Like `location /` here, they proxy unconditionally.
+    location /otlp {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        client_max_body_size 4M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    location /telemetry {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        client_max_body_size 4M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     # On-call calendar feeds. The URL IS the credential: a subscribed calendar
@@ -989,8 +1101,21 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
 
-        # OTLP/gRPC carries the same batch as OTLP/HTTP on /otlp; without this
-        # the 1M default applies here too and the exporter sees a stream reset.
+        # OTLP/gRPC carries the same batch as OTLP/HTTP on /otlp, so it takes
+        # the same 4M (GH#3978). Past it nginx answers with its own HTTP 413
+        # page and no grpc-status, which gRPC clients report as status UNKNOWN
+        # ("unexpected HTTP status code received from server: 413" in grpc-go,
+        # "Received HTTP status code 413" in grpc-js). The OTLP spec does not
+        # retry UNKNOWN, so the exporter drops that batch.
+        #
+        # OTLP/gRPC only reaches this location over TLS. nginx decides whether
+        # a cleartext connection may speak HTTP/2 before it has read a Host,
+        # from the default server of the address:port. On 7849 that is the
+        # status-page server at the top of this file, which leaves http2 off,
+        # so a plaintext (h2c) exporter's connection preface is parsed as an
+        # HTTP/1.x request and refused with a 400. Over TLS, ALPN is settled
+        # by the server the SNI names, which is this one for the primary host
+        # when PROVISION_SSL is on.
         client_max_body_size 4M;
 
         grpc_pass ${BACKEND_APP_GRPC_TARGET};
