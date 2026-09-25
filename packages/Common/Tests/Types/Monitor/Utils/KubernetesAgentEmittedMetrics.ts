@@ -161,12 +161,6 @@ export const CONTROL_PLANE_SCRAPE_METRICS: ReadonlyArray<string> = [
   "scheduler_pending_pods",
 ];
 
-export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
-  ...K8S_CLUSTER_RECEIVER_METRICS,
-  ...KUBELETSTATS_RECEIVER_METRICS,
-  ...CONTROL_PLANE_SCRAPE_METRICS,
-]);
-
 const AGENT_CHART_VALUES_PATH: string = path.resolve(
   __dirname,
   "../../../../../../HelmChart/Public/kubernetes-agent/values.yaml",
@@ -179,3 +173,30 @@ export function readAgentChartValues(): Record<string, any> {
     any
   >;
 }
+
+/*
+ * The chart's Prometheus scrapes that carry an allowlist — cAdvisor on the
+ * DaemonSet (on by default), kube-state-metrics and the cost engine on the
+ * Deployment (opt-in). Each job's `metric_relabel_configs` keeps exactly
+ * `^(<allowlist joined by |>)$`, and the prometheus receiver trims `_total`
+ * and unit suffixes only under `trim_metric_suffixes`, which is off by
+ * default and which the chart never sets. So the names that arrive are the
+ * allowlist entries verbatim — read from values.yaml rather than copied,
+ * so the two cannot drift.
+ */
+const agentChartValues: Record<string, any> = readAgentChartValues();
+
+export const ALLOWLISTED_SCRAPE_METRICS: ReadonlyArray<string> = [
+  ...(agentChartValues["cadvisor"]["metricsAllowlist"] as Array<string>),
+  ...(agentChartValues["kubeStateMetrics"][
+    "metricsAllowlist"
+  ] as Array<string>),
+  ...(agentChartValues["cost"]["metrics"]["metricsAllowlist"] as Array<string>),
+];
+
+export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
+  ...K8S_CLUSTER_RECEIVER_METRICS,
+  ...KUBELETSTATS_RECEIVER_METRICS,
+  ...CONTROL_PLANE_SCRAPE_METRICS,
+  ...ALLOWLISTED_SCRAPE_METRICS,
+]);

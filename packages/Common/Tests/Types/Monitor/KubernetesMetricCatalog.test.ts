@@ -526,9 +526,10 @@ describe("KubernetesMetricCatalog", () => {
   describe("every entry names a metric the shipped agent emits", () => {
     test("the agent chart still pins the collector these names were read from", () => {
       /*
-       * AGENT_EMITTED_METRIC_NAMES is the receivers' metadata.yaml at this
-       * collector version. Bumping the image fails here until that list is
-       * re-read — receivers rename metrics between versions.
+       * The receiver half of AGENT_EMITTED_METRIC_NAMES is the receivers'
+       * metadata.yaml at this collector version. Bumping the image fails
+       * here until that list is re-read — receivers rename metrics between
+       * versions.
        */
       const values: Record<string, any> = readAgentChartValues();
 
