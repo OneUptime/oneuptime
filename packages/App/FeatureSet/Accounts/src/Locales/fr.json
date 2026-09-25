@@ -112,7 +112,13 @@
     "loginLink": "Connexion.",
     "notifySelfHosted": "M'avertir des correctifs de sécurité et des nouvelles versions",
     "checkEmailTitle": "Vérifiez votre boîte de réception",
-    "checkEmailMessage": "Si un compte est en attente de configuration pour cette adresse e-mail, nous lui avons envoyé un lien pour terminer l'inscription. N'oubliez pas de vérifier vos courriers indésirables."
+    "checkEmailMessage": "Si un compte est en attente de configuration pour cette adresse e-mail, nous lui avons envoyé un lien pour terminer l'inscription. N'oubliez pas de vérifier vos courriers indésirables.",
+    "verifyEmailTitle": "Vérifiez votre adresse e-mail pour finaliser votre inscription",
+    "verifyEmailSentTo": "Nous avons envoyé un lien de vérification à {{email}}.",
+    "verifyEmailSent": "Nous vous avons envoyé un lien de vérification.",
+    "verifyEmailInstructions": "Ouvrez le lien contenu dans cet e-mail pour activer votre compte, puis connectez-vous.",
+    "verifyEmailResendHint": "Vous ne le trouvez pas ? Vérifiez votre dossier de courrier indésirable. Le lien expire au bout de 24 heures, et vous en recevrez un nouveau en vous connectant avec votre adresse e-mail et votre mot de passe.",
+    "verifyEmailLoginLink": "Aller à la connexion"
   },
   "forgotPassword": {
     "title": "Mot de passe oublié",
@@ -152,7 +158,8 @@
     "successDescription": "Merci d'avoir vérifié votre e-mail. Vous pouvez maintenant vous connecter à OneUptime.",
     "errorTitle": "Désolé, quelque chose s'est mal passé !",
     "returnToSignIn": "Retour à la connexion ?",
-    "loginLink": "Connexion."
+    "loginLink": "Connexion.",
+    "continueToSignIn": "Continuer vers la connexion"
   },
   "errors": {
     "forbidden": {

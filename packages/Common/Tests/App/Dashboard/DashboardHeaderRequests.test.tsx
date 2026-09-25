@@ -209,7 +209,10 @@ function project(id: string): Project {
   return result;
 }
 
-function header(selectedProject: Project | null): ReactElement {
+function header(
+  selectedProject: Project | null,
+  onSsoAuthorizationRequired?: () => void,
+): ReactElement {
   return (
     <DashboardHeader
       projects={selectedProject ? [selectedProject] : []}
@@ -217,6 +220,7 @@ function header(selectedProject: Project | null): ReactElement {
       showProjectModal={false}
       onProjectModalClose={() => {}}
       selectedProject={selectedProject}
+      onSsoAuthorizationRequired={onSsoAuthorizationRequired}
     />
   );
 }
@@ -420,6 +424,65 @@ describe("dashboard header on-call requests", () => {
     expect(
       screen.queryByText("header.onCallPoliciesFetchError"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The on-call lookup is a plain API call, so ModelAPI's redirect on an SSO
+   * error never runs for it. The header's other project-scoped lookups go
+   * through ModelAPI, but that redirect needs the project's details cached,
+   * and the shell's own redirect otherwise hears only about billing. So the
+   * header hands the error to the shell, which sends the user to the
+   * project's SSO page.
+   */
+  test("reports the SSO authorization error to the shell instead of showing it", async () => {
+    const onSsoAuthorizationRequired: MockFunction = getJestMockFunction();
+    getMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(406, { message: "SSO Authorization Required" }, {}),
+    );
+    render(header(project(PROJECT_A), onSsoAuthorizationRequired));
+    await act(async () => {});
+
+    expect(onSsoAuthorizationRequired).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText("header.onCallPoliciesFetchError"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("does not report other on-call failures as an SSO requirement", async () => {
+    const onSsoAuthorizationRequired: MockFunction = getJestMockFunction();
+    getMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(500, { message: "Request failed" }, {}),
+    );
+    render(header(project(PROJECT_A), onSsoAuthorizationRequired));
+    await act(async () => {});
+
+    expect(onSsoAuthorizationRequired).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("header.onCallPoliciesFetchError"),
+    ).toBeInTheDocument();
+  });
+
+  test("does not report a former project's late SSO failure", async () => {
+    const onSsoAuthorizationRequired: MockFunction = getJestMockFunction();
+    const oldRequest: DeferredResponse = deferredResponse();
+    getMock.mockReturnValueOnce(oldRequest.promise);
+    const view: ReturnType<typeof render> = render(
+      header(project(PROJECT_A), onSsoAuthorizationRequired),
+    );
+
+    selectCurrentProject(PROJECT_B);
+    view.rerender(header(project(PROJECT_B), onSsoAuthorizationRequired));
+    await act(async () => {
+      oldRequest.resolve(
+        new HTTPErrorResponse(
+          406,
+          { message: "SSO Authorization Required" },
+          {},
+        ),
+      );
+    });
+
+    expect(onSsoAuthorizationRequired).not.toHaveBeenCalled();
   });
 
   test("starts a fresh lookup after unmounting and remounting the header", async () => {

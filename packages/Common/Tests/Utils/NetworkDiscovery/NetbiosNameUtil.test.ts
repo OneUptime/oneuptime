@@ -1,5 +1,6 @@
 import {
   MAX_NETBIOS_NAME_LENGTH,
+  isNetbiosQueryableIPv4Address,
   normalizeNetbiosName,
 } from "../../../Utils/NetworkDiscovery/NetbiosNameUtil";
 import { normalizeReverseDnsName } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
@@ -345,5 +346,248 @@ describe("normalizeNetbiosName — invariants", () => {
 
     // A guard on the guard: a property that is never exercised proves nothing.
     expect(acceptedCount).toBeGreaterThan(50);
+  });
+});
+
+/*
+ * OneUptime issue #3916 — the Review dialog told an unnamed host on a scan
+ * with NetBIOS off that "NetBIOS lookup asks Windows hosts for their own
+ * name" whatever its address. The probe only ever queries private and CGNAT
+ * IPv4 (isNetbiosQueryAddressAllowed, Probe/Utils/Discovery/
+ * NetbiosNameResolver.ts), so on public space that advice led to a rescan
+ * whose only news was "not asked".
+ *
+ * This is the browser-safe copy of the probe's rule that the dialog now asks
+ * first. The expectations are written out by hand from RFC 1918 and RFC 6598,
+ * not computed, so a wrong range in the helper cannot agree with itself here.
+ * The probe's NetbiosEligibilityParity test then holds the helper to the
+ * probe's own answer on the same edges and a sweep.
+ */
+describe("isNetbiosQueryableIPv4Address — the addresses the probe would ask", () => {
+  it("accepts the first, last and an inside address of every range", () => {
+    for (const address of [
+      // 10.0.0.0/8
+      "10.0.0.0",
+      "10.0.0.1",
+      "10.16.42.51",
+      "10.255.255.255",
+      // 172.16.0.0/12
+      "172.16.0.0",
+      "172.20.1.2",
+      "172.31.255.255",
+      // 192.168.0.0/16
+      "192.168.0.0",
+      "192.168.1.1",
+      "192.168.255.255",
+      // 100.64.0.0/10, CGNAT
+      "100.64.0.0",
+      "100.100.100.100",
+      "100.127.255.255",
+    ]) {
+      expect({
+        address: address,
+        queryable: isNetbiosQueryableIPv4Address(address),
+      }).toEqual({ address: address, queryable: true });
+    }
+  });
+
+  it("refuses the address just outside each edge, and the special ranges", () => {
+    for (const address of [
+      "9.255.255.255",
+      "11.0.0.0",
+      "172.15.255.255",
+      "172.32.0.0",
+      "192.167.255.255",
+      "192.169.0.0",
+      "100.63.255.255",
+      "100.128.0.0",
+      // Public, documentation, loopback, link-local, broadcast, multicast.
+      "8.8.8.8",
+      "203.0.113.7",
+      "198.51.100.1",
+      "127.0.0.1",
+      "169.254.169.254",
+      "0.0.0.0",
+      "255.255.255.255",
+      "224.0.0.251",
+    ]) {
+      expect({
+        address: address,
+        queryable: isNetbiosQueryableIPv4Address(address),
+      }).toEqual({ address: address, queryable: false });
+    }
+  });
+
+  it("draws the 172.16/12 edge between 15 and 16, and between 31 and 32", () => {
+    expect(isNetbiosQueryableIPv4Address("172.15.0.1")).toBe(false);
+    expect(isNetbiosQueryableIPv4Address("172.16.0.1")).toBe(true);
+    expect(isNetbiosQueryableIPv4Address("172.31.0.1")).toBe(true);
+    expect(isNetbiosQueryableIPv4Address("172.32.0.1")).toBe(false);
+  });
+
+  it("draws the 100.64/10 edge between 63 and 64, and between 127 and 128", () => {
+    expect(isNetbiosQueryableIPv4Address("100.63.0.1")).toBe(false);
+    expect(isNetbiosQueryableIPv4Address("100.64.0.1")).toBe(true);
+    expect(isNetbiosQueryableIPv4Address("100.127.0.1")).toBe(true);
+    expect(isNetbiosQueryableIPv4Address("100.128.0.1")).toBe(false);
+  });
+
+  it("accepts exactly the second octets each first octet allows", () => {
+    /*
+     * Every second octet under the four first octets that have a range, and
+     * under the neighbours of each. The last two octets never matter, since
+     * no range is narrower than a /16, so each is tried at both ends.
+     */
+    const range: (start: number, count: number) => Array<number> = (
+      start: number,
+      count: number,
+    ): Array<number> => {
+      return Array.from({ length: count }, (_value: unknown, index: number) => {
+        return start + index;
+      });
+    };
+    const expected: Array<[number, Array<number>]> = [
+      [9, []],
+      [10, range(0, 256)],
+      [11, []],
+      [99, []],
+      [100, range(64, 64)],
+      [101, []],
+      [171, []],
+      [172, range(16, 16)],
+      [173, []],
+      [191, []],
+      [192, [168]],
+      [193, []],
+    ];
+
+    for (const [first, secondOctets] of expected) {
+      const accepted: Set<number> = new Set<number>();
+
+      for (let second: number = 0; second <= 255; second++) {
+        for (const tail of ["0.0", "0.1", "255.254", "255.255"]) {
+          if (isNetbiosQueryableIPv4Address(`${first}.${second}.${tail}`)) {
+            accepted.add(second);
+          }
+        }
+      }
+
+      expect({ first: first, accepted: Array.from(accepted) }).toEqual({
+        first: first,
+        accepted: secondOctets,
+      });
+    }
+  });
+
+  it("refuses leading zeros, which the probe's net.isIPv4 refuses", () => {
+    /*
+     * "010" is octal to some parsers and ten to others. The sweep never
+     * reports one, and the probe would refuse it, so the dialog must too.
+     */
+    for (const value of [
+      "010.0.0.1",
+      "10.00.0.1",
+      "10.0.00.1",
+      "10.0.0.01",
+      "10.0.0.00",
+      "0172.16.0.1",
+      "172.016.0.1",
+      "192.168.001.1",
+      "100.064.0.1",
+      "00.0.0.0",
+    ]) {
+      expect({
+        value: value,
+        queryable: isNetbiosQueryableIPv4Address(value),
+      }).toEqual({ value: value, queryable: false });
+    }
+  });
+
+  it("refuses surrounding or inner whitespace, rather than trimming it", () => {
+    for (const value of [
+      " 10.0.0.1",
+      "10.0.0.1 ",
+      "\t10.0.0.1",
+      "10.0.0.1\n",
+      "10.0.0.1\r\n",
+      "10. 0.0.1",
+      "10.0.0.1\u00a0",
+      "\u200b10.0.0.1",
+      "\ufeff10.0.0.1",
+      "10.0.0.1\u0000",
+    ]) {
+      expect({
+        value: value,
+        queryable: isNetbiosQueryableIPv4Address(value),
+      }).toEqual({ value: value, queryable: false });
+    }
+  });
+
+  it("refuses everything else that is not a strict dotted quad", () => {
+    for (const value of [
+      "",
+      ".",
+      "...",
+      "10.0.0",
+      "10.0.0.0.1",
+      "10.0.0.1.",
+      ".10.0.0.1",
+      "10..0.1",
+      "10.0.0.256",
+      "10.0.0.999",
+      "10.0.0.1000",
+      "10.0.0.-1",
+      "+10.0.0.1",
+      "0x0a.0.0.1",
+      "1e1.0.0.1",
+      "10.0.0.1/8",
+      "10.0.0.1:137",
+      "::ffff:10.0.0.1",
+      "::ffff:a00:1",
+      "fd00::1",
+      "fe80::1",
+      "2001:db8::5",
+      "::1",
+      "10.0.0.a",
+      "host.corp.example.com",
+      // Full-width and Arabic-Indic digits: digits, but not ASCII ones.
+      "\uff11\uff10.0.0.1",
+      "\u0661\u0660.0.0.1",
+    ]) {
+      expect({
+        value: value,
+        queryable: isNetbiosQueryableIPv4Address(value),
+      }).toEqual({ value: value, queryable: false });
+    }
+  });
+
+  it("refuses anything that is not a string, even one that stringifies to an address", () => {
+    /*
+     * The dialog reads the address out of jsonb. An array or an object with
+     * a toString would pass a check that coerced first; the probe checks the
+     * type, so this does too.
+     */
+    for (const value of [
+      undefined,
+      null,
+      167772161,
+      Number.NaN,
+      true,
+      ["10.0.0.1"],
+      {
+        toString: (): string => {
+          return "10.0.0.1";
+        },
+      },
+    ]) {
+      expect(isNetbiosQueryableIPv4Address(value)).toBe(false);
+    }
+  });
+
+  it("answers a very long input without throwing", () => {
+    expect(isNetbiosQueryableIPv4Address(`${"1".repeat(100000)}.0.0.1`)).toBe(
+      false,
+    );
+    expect(isNetbiosQueryableIPv4Address("10.".repeat(100000))).toBe(false);
   });
 });

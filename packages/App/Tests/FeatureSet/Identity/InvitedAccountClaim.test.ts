@@ -2,10 +2,17 @@ import {
   buildRequest,
   buildResponse,
   createMockIdentityRouter,
+  expectNoUserSecrets,
   MockIdentityRouter,
   RouteHandler,
+  sentEntityBody,
+  withSecretColumns,
 } from "./IdentityRouterTestUtil";
+import User from "Common/Models/DatabaseModels/User";
+import Email from "Common/Types/Email";
+import Name from "Common/Types/Name";
 import Exception from "Common/Types/Exception/Exception";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -685,6 +692,60 @@ describe("Identity /signup - the invited person following their own invitation",
 
     expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
   });
+
+  describe("the account in the response body", () => {
+    beforeEach(() => {
+      /*
+       * The claim re-reads the row with a narrow select today, so nothing
+       * secret comes back from it. That select is one edit away from widening,
+       * and the response must not depend on it staying narrow: the row handed
+       * back here carries every secret column a stored account can hold.
+       */
+      const claimedUser: User = new User();
+      claimedUser._id = INVITED_USER_ID;
+      claimedUser.email = new Email(VICTIM_EMAIL);
+      claimedUser.name = new Name("Alice");
+      claimedUser.isMasterAdmin = false;
+
+      userUpdateOneByIdAndFetch.mockResolvedValue(
+        withSecretColumns(claimedUser),
+      );
+    });
+
+    it("never carries the password hash, its salt, or any other secret column", async () => {
+      await invoke(
+        "/signup",
+        signupBody({
+          email: VICTIM_EMAIL,
+          password: "alice-chosen-passphrase",
+          registrationToken: VALID_TOKEN,
+        }),
+      );
+
+      expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+      expectNoUserSecrets(sentEntityBody(sendEntityResponse.mock.calls[0]!));
+    });
+
+    it("still carries what the sign-in page reads to start the session", async () => {
+      await invoke(
+        "/signup",
+        signupBody({
+          email: VICTIM_EMAIL,
+          password: "alice-chosen-passphrase",
+          registrationToken: VALID_TOKEN,
+        }),
+      );
+
+      const body: JSONObject = sentEntityBody(
+        sendEntityResponse.mock.calls[0]!,
+      );
+
+      expect(body["_id"]).toBe(INVITED_USER_ID);
+      expect(body["email"]).toEqual({ _type: "Email", value: VICTIM_EMAIL });
+      expect(body["name"]).toEqual({ _type: "Name", value: "Alice" });
+      expect(body["isMasterAdmin"]).toBe(false);
+    });
+  });
 });
 
 describe("Identity /signup - the paths that must not have changed", () => {
@@ -751,7 +812,13 @@ describe("Identity /signup - the paths that must not have changed", () => {
     expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
     expect(consumeRegistrationToken).not.toHaveBeenCalled();
     expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
-    expect(createSession).toHaveBeenCalledTimes(1);
+
+    /*
+     * Signed in at once only where no email verification is waiting: on the
+     * hosted service a new account gets its session after the welcome link is
+     * followed (SignupEmailVerification.test.ts), never from this request.
+     */
+    expect(createSession).toHaveBeenCalledTimes(IsBillingEnabled ? 0 : 1);
   });
 
   it("still sends the ordinary welcome-and-verify email to a brand-new person", async () => {

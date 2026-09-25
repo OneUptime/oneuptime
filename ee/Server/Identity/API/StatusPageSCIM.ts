@@ -16,6 +16,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import StatusCode from "Common/Types/API/StatusCode";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -202,7 +203,6 @@ router.post(
           steps: executionSteps,
         });
 
-        res.status(400);
         return Response.sendJsonObjectResponse(
           req,
           res,
@@ -211,6 +211,7 @@ router.post(
             validation.error!,
             SCIMErrorType.InvalidValue,
           ),
+          { statusCode: new StatusCode(400) },
         );
       }
       executionSteps.push("Bulk request validation passed");
@@ -1191,8 +1192,9 @@ router.post(
         },
       });
 
-      res.status(201);
-      return Response.sendJsonObjectResponse(req, res, createdUser);
+      return Response.sendJsonObjectResponse(req, res, createdUser, {
+        statusCode: new StatusCode(201),
+      });
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -1654,9 +1656,9 @@ router.delete(
         },
       });
 
-      // Return 204 No Content for successful deletion
-      res.status(204);
-      return Response.sendEmptySuccessResponse(req, res);
+      // RFC 7644 section 3.6: a successful DELETE is 204 No Content, no body.
+      res.status(204).send();
+      return;
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;

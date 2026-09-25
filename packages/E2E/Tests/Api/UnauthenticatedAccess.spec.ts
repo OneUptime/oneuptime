@@ -44,6 +44,13 @@ const JSON_HEADERS: { "content-type": string } = {
 };
 
 /*
+ * NotAuthorizedException is 422 and the read-permission layer answers 401;
+ * both are accepted so that hardening a denial into a different conventional
+ * code is not read as a regression.
+ */
+const REFUSAL_STATUSES: Array<number> = [401, 403, 422];
+
+/*
  * Tenant-scoped models whose rows belong to a project. A public caller has no
  * project, so reading any of them must be refused outright.
  */
@@ -151,7 +158,7 @@ test.describe("API: the authentication boundary is closed", () => {
    * this into "every project on the instance" would still be a 200, which is
    * exactly why the assertion is on the rows and not on the status.
    */
-  test("POST /api/project/get-list returns an empty list, not every project", async ({
+  test("POST /api/project/get-list never returns another caller's projects", async ({
     page,
   }: {
     page: Page;
@@ -163,12 +170,29 @@ test.describe("API: the authentication boundary is closed", () => {
       { data: LIST_BODY, headers: JSON_HEADERS },
     );
 
-    expect(response.status()).toBe(200);
-
-    const body: ListBody = await readBody(response);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.data).toHaveLength(0);
-    expect(body.count).toBe(0);
+    /*
+     * Project is the one route here that is not tenant-scoped: it is scoped
+     * to the CALLER, so a public caller is a caller with no projects rather
+     * than one doing something forbidden, and a self-hosted stack answers 200
+     * with an empty list rather than 401.
+     *
+     * The status is deliberately not pinned. Whether an instance refuses this
+     * or answers an empty list is a configuration detail — it was observed as
+     * 200 on a docker-compose stack, and asserting that everywhere would make
+     * this test fail on a deployment that (reasonably) refuses instead, which
+     * is not a regression. What is never acceptable, in either shape, is a row
+     * coming back, because the failure worth catching here is "every project
+     * on the instance" and that answer is also a 200.
+     */
+    if (response.status() === 200) {
+      const body: ListBody = await readBody(response);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data).toHaveLength(0);
+      expect(body.count).toBe(0);
+    } else {
+      expect(REFUSAL_STATUSES).toContain(response.status());
+      expectNoRowsLeaked(await readBody(response));
+    }
   });
 
   // Counting projects is refused even though listing them is not.

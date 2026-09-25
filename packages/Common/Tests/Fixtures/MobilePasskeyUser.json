@@ -3,6 +3,5 @@
   "email": { "_type": "Email", "value": "passkey@example.com" },
   "name": { "_type": "Name", "value": "Passkey Tester" },
   "isMasterAdmin": false,
-  "isEmailVerified": true,
-  "isBlocked": false
+  "isEmailVerified": true
 }

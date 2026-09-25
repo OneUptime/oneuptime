@@ -4,6 +4,7 @@ import {
   RouteHandler,
 } from "App/Tests/FeatureSet/Identity/IdentityRouterTestUtil";
 import ConfigLogLevel from "Common/Server/Types/ConfigLogLevel";
+import StatusCode from "Common/Types/API/StatusCode";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -414,6 +415,7 @@ describe("status page private-user logs", () => {
         expect.anything(),
         expect.anything(),
         expect.objectContaining({ userName: EMAIL }),
+        { statusCode: new StatusCode(201) },
       );
       expect(collectLogText()).toContain("Status Page SCIM Create user");
       expectNoPersonalData();

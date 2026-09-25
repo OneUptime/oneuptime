@@ -112,7 +112,13 @@
     "loginLink": "Anmelden.",
     "notifySelfHosted": "Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen",
     "checkEmailTitle": "Überprüfen Sie Ihre E-Mails",
-    "checkEmailMessage": "Falls für diese E-Mail-Adresse ein Konto zur Einrichtung bereitsteht, haben wir einen Link zum Abschließen der Registrierung gesendet. Bitte denken Sie daran, auch den Spam-Ordner zu überprüfen."
+    "checkEmailMessage": "Falls für diese E-Mail-Adresse ein Konto zur Einrichtung bereitsteht, haben wir einen Link zum Abschließen der Registrierung gesendet. Bitte denken Sie daran, auch den Spam-Ordner zu überprüfen.",
+    "verifyEmailTitle": "Bestätigen Sie Ihre E-Mail-Adresse, um die Registrierung abzuschließen",
+    "verifyEmailSentTo": "Wir haben einen Bestätigungslink an {{email}} gesendet.",
+    "verifyEmailSent": "Wir haben Ihnen einen Bestätigungslink gesendet.",
+    "verifyEmailInstructions": "Öffnen Sie den Link in dieser E-Mail, um Ihr Konto zu aktivieren, und melden Sie sich dann an.",
+    "verifyEmailResendHint": "Nicht gefunden? Prüfen Sie Ihren Spam-Ordner. Der Link ist 24 Stunden gültig. Wenn Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort anmelden, senden wir Ihnen einen neuen.",
+    "verifyEmailLoginLink": "Zur Anmeldung"
   },
   "forgotPassword": {
     "title": "Passwort vergessen",
@@ -152,7 +158,8 @@
     "successDescription": "Vielen Dank für die Bestätigung Ihrer E-Mail. Sie können sich jetzt bei OneUptime anmelden.",
     "errorTitle": "Entschuldigung, etwas ist schiefgelaufen!",
     "returnToSignIn": "Zurück zur Anmeldung?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "continueToSignIn": "Weiter zur Anmeldung"
   },
   "errors": {
     "forbidden": {

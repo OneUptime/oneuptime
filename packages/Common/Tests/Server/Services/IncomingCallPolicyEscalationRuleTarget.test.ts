@@ -50,15 +50,30 @@ function makeCreateBy(
   } as CreateBy<IncomingCallPolicyEscalationRule>;
 }
 
-let countBy: jest.SpiedFunction<
-  typeof IncomingCallPolicyEscalationRuleService.countBy
->;
+/*
+ * Spy handles are held through this rather than a SpyInstance type: two
+ * SpyInstance declarations are in scope in this project (the global jest
+ * namespace's two-parameter form and @jest/globals' one-parameter form), and
+ * naming the wrong one fails only in the compile job. These tests read
+ * exactly one thing off a spy, so that is all this names.
+ */
+interface SpyCalls {
+  mock: { calls: Array<Array<unknown>> };
+}
+
+// Ordering is exercised separately; stub the two calls that reach the DB.
+function stubCountBy(existingRules: number): SpyCalls {
+  return jest
+    .spyOn(IncomingCallPolicyEscalationRuleService, "countBy")
+    .mockResolvedValue(
+      new PositiveNumber(existingRules) as never,
+    ) as unknown as SpyCalls;
+}
+
+let countBy: SpyCalls;
 
 beforeEach(() => {
-  // Ordering is exercised separately; stub the two calls that reach the DB.
-  countBy = jest
-    .spyOn(IncomingCallPolicyEscalationRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
+  countBy = stubCountBy(0);
 
   jest
     .spyOn(IncomingCallPolicyEscalationRuleService, "findBy")
@@ -139,7 +154,7 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — target", ()
       service.onBeforeCreate(makeCreateBy({ incomingCallPolicyId: POLICY_ID })),
     ).rejects.toThrow(BadDataException);
 
-    expect(countBy).not.toHaveBeenCalled();
+    expect(countBy.mock.calls).toHaveLength(0);
   });
 });
 
@@ -149,7 +164,7 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — order", () 
    * escalation chain, which is one past the rules already there.
    */
   test("appends a rule with no order to the end of the chain", async () => {
-    countBy.mockResolvedValue(new PositiveNumber(3) as never);
+    countBy = stubCountBy(3);
 
     const result: { createBy: CreateBy<IncomingCallPolicyEscalationRule> } =
       await service.onBeforeCreate(
@@ -163,7 +178,7 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — order", () 
   });
 
   test("gives the first rule of a policy order 1", async () => {
-    countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    countBy = stubCountBy(0);
 
     const result: { createBy: CreateBy<IncomingCallPolicyEscalationRule> } =
       await service.onBeforeCreate(
@@ -205,6 +220,6 @@ describe("IncomingCallPolicyEscalationRuleService.onBeforeCreate — order", () 
       );
 
     expect(result.createBy.data.order).toBe(2);
-    expect(countBy).not.toHaveBeenCalled();
+    expect(countBy.mock.calls).toHaveLength(0);
   });
 });

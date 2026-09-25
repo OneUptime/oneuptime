@@ -11,6 +11,7 @@ import { RemoveAppAccessTokenFromWorkspaceProjectAuthTokenMiscData1794700000000 
 import { AddSessionReplaySameOriginTracePropagation1794800000000 } from "./1794800000000-AddSessionReplaySameOriginTracePropagation";
 import { AddIncidentAlert1794900000000 } from "./1794900000000-AddIncidentAlert";
 import { AddDatabaseServerTables1795000000000 } from "./1795000000000-AddDatabaseServerTables";
+import { AddUserProjectSsoConsent1795100000000 } from "./1795100000000-AddUserProjectSsoConsent";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1222,4 +1223,5 @@ export default [
   AddSessionReplaySameOriginTracePropagation1794800000000,
   AddIncidentAlert1794900000000,
   AddDatabaseServerTables1795000000000,
+  AddUserProjectSsoConsent1795100000000,
 ];

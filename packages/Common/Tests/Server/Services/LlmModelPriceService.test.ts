@@ -23,7 +23,31 @@ type HookAccess = {
 
 const service: HookAccess = LlmModelPriceService as unknown as HookAccess;
 
-function makeCreateBy(data: Partial<LlmModelPrice>): CreateBy<LlmModelPrice> {
+/*
+ * Spy handles are held through this rather than a SpyInstance type: two
+ * SpyInstance declarations are in scope in this project (the global jest
+ * namespace's two-parameter form and @jest/globals' one-parameter form), and
+ * naming the wrong one type-checks nowhere but fails only in the compile job.
+ * These tests read exactly one thing off a spy, so that is all this names.
+ */
+interface SpyCalls {
+  mock: { calls: Array<Array<unknown>> };
+}
+
+/*
+ * Explicit `| undefined` on every field rather than Partial<LlmModelPrice>:
+ * the tests below deliberately pass undefined to prove it is rejected, and
+ * under exactOptionalPropertyTypes an optional property is not the same as a
+ * property that accepts undefined.
+ */
+interface PriceOverrides {
+  modelPrefix?: string | undefined;
+  inputPricePerMillionTokensInUSD?: number | undefined;
+  outputPricePerMillionTokensInUSD?: number | undefined;
+  projectId?: ObjectID | undefined;
+}
+
+function makeCreateBy(data: PriceOverrides): CreateBy<LlmModelPrice> {
   const price: LlmModelPrice = new LlmModelPrice();
   Object.assign(price, data);
 
@@ -42,9 +66,7 @@ function makeUpdateBy(data: Record<string, unknown>): UpdateBy<LlmModelPrice> {
 }
 
 // A create payload that carries no projectId never reaches a duplicate lookup.
-function validCreate(
-  overrides: Partial<LlmModelPrice> = {},
-): CreateBy<LlmModelPrice> {
+function validCreate(overrides: PriceOverrides = {}): CreateBy<LlmModelPrice> {
   return makeCreateBy({
     modelPrefix: "gpt-4o",
     inputPricePerMillionTokensInUSD: 5,
@@ -206,10 +228,9 @@ describe("LlmModelPriceService.onBeforeCreate — duplicate prefixes", () => {
       "11111111-1111-4111-8111-111111111111",
     ).toString();
 
-    const findOneBy: jest.SpiedFunction<typeof LlmModelPriceService.findOneBy> =
-      jest
-        .spyOn(LlmModelPriceService, "findOneBy")
-        .mockResolvedValue(existing as never);
+    const findOneBy: SpyCalls = jest
+      .spyOn(LlmModelPriceService, "findOneBy")
+      .mockResolvedValue(existing as never) as unknown as SpyCalls;
 
     await expect(
       service.onBeforeCreate(
@@ -219,14 +240,13 @@ describe("LlmModelPriceService.onBeforeCreate — duplicate prefixes", () => {
       ),
     ).rejects.toThrow(BadDataException);
 
-    expect(findOneBy).toHaveBeenCalled();
+    expect(findOneBy.mock.calls.length).toBeGreaterThan(0);
   });
 
   test("looks the duplicate up by the NORMALIZED prefix, not the raw input", async () => {
-    const findOneBy: jest.SpiedFunction<typeof LlmModelPriceService.findOneBy> =
-      jest
-        .spyOn(LlmModelPriceService, "findOneBy")
-        .mockResolvedValue(null as never);
+    const findOneBy: SpyCalls = jest
+      .spyOn(LlmModelPriceService, "findOneBy")
+      .mockResolvedValue(null as never) as unknown as SpyCalls;
 
     await service.onBeforeCreate(
       validCreate({
@@ -369,14 +389,14 @@ describe("LlmModelPriceService.onBeforeUpdate", () => {
   });
 
   test("rejects an empty renamed prefix without touching the database", async () => {
-    const findBy: jest.SpiedFunction<typeof LlmModelPriceService.findBy> = jest
+    const findBy: SpyCalls = jest
       .spyOn(LlmModelPriceService, "findBy")
-      .mockResolvedValue([] as never);
+      .mockResolvedValue([] as never) as unknown as SpyCalls;
 
     await expect(
       service.onBeforeUpdate(makeUpdateBy({ modelPrefix: "   " })),
     ).rejects.toThrow(BadDataException);
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(findBy.mock.calls).toHaveLength(0);
   });
 });

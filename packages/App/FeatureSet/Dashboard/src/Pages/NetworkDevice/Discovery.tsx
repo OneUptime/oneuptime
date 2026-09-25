@@ -73,6 +73,11 @@ import {
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import {
+  DiscoveredHostNamingExplanation,
+  explainUnnamedDiscoveredHost,
+} from "Common/Utils/NetworkDiscovery/DiscoveredHostNamingDiagnosis";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import {
   buildPingMonitorForDiscoveredHost,
   MonitorCriteriaSeedIds,
 } from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
@@ -898,6 +903,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * another tab since the table loaded.
              */
             useShortDeviceNames: true,
+            /*
+             * Whether the probe was asked to look up NetBIOS names (issue
+             * #3677), read so an unnamed row can say which naming sources were
+             * even tried (issue #3916). A host listed by its bare address on a
+             * scan with NetBIOS off is explained by that setting, not by the
+             * host — and a column missing here would read as "off" on every
+             * scan, so a row on a scan the lookup DID run for would be told
+             * it was off. Same read access as isSnmpEnabled above.
+             */
+            isNetbiosLookupEnabled: true,
             snmpConfigs: true,
             snmpVersion: true,
             snmpCommunityString: true,
@@ -1364,6 +1379,34 @@ const NetworkDeviceDiscovery: FunctionComponent<
    * scan was allowed to ask.
    */
   const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);
+
+  /*
+   * Whether the scan under review ran on a GLOBAL probe: true or false for a
+   * probe in the list ProbeUtil loaded (it stamps the flag on every probe it
+   * returns), undefined for one the page does not know — deleted since the
+   * scan ran, say. The explanation reads undefined as "not global": the page
+   * cannot claim that a probe it knows nothing about refused to ask.
+   *
+   * It exists for the unnamed-host explanation (issue #3916). A global probe
+   * never sends NetBIOS queries whatever the scan asks for, and the bundled
+   * self-hosted probes register as global ones — yet the probe used to record
+   * that refusal in a debug log and nowhere else. A row from such a probe
+   * carries no NetBIOS code, so without this the dialog could say only "no
+   * name was recorded" on a scan whose operator had turned the lookup on,
+   * when the truth is that it was never going to be asked — and could advise
+   * turning on a lookup that probe will never run.
+   *
+   * Once per render, like isIcmpOnlyReview: it is a fact about the scan, and
+   * a list of thousands of rows has no business searching the probes for
+   * each of them.
+   */
+  const reviewedScanProbeId: string | undefined =
+    scanToReview?.probeId?.toString() || undefined;
+  const isReviewedScanOnGlobalProbe: boolean | undefined = reviewedScanProbeId
+    ? probes.find((probe: Probe) => {
+        return probe.id?.toString() === reviewedScanProbeId;
+      })?.isGlobalProbe
+    : undefined;
 
   return (
     <Fragment>
@@ -2186,6 +2229,45 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 const isChecked: boolean =
                   isSelectable && Boolean(selectedIps[entry.ipAddress]);
                 /*
+                 * Why this host is listed by its address, when it is — or
+                 * undefined when it has a name (OneUptime issue #3916).
+                 *
+                 * The issue was a scan of twelve kitchen displays that named
+                 * four, listed the other eight as bare addresses, and said
+                 * nothing about why: no way to tell "the probe's DNS server
+                 * has no PTR record for it" from "the DNS server timed out"
+                 * from "SNMP and NetBIOS were never asked". The probe now
+                 * records, per unnamed host, what each lookup came back with,
+                 * and explainUnnamedDiscoveredHost turns that — or, for a row
+                 * from an older probe, what the scan was set to ask — into
+                 * fixed sentences. ALL of the wording lives there, in Common,
+                 * where every sentence is unit-tested; the row adds nothing
+                 * to it. In particular nothing the scanned host chose (a
+                 * name, a sysDescr) is ever put into the text, so a hostile
+                 * subnet cannot write into the tooltip.
+                 *
+                 * Handed the fresh scan the dialog read — the status,
+                 * isSnmpEnabled and isNetbiosLookupEnabled it reads are all
+                 * selected there — and the per-scan global-probe answer
+                 * worked out once above.
+                 *
+                 * Computed HERE, before the name line, and not among the
+                 * naming statements that follow: those are lifted out of this
+                 * file and executed on their own by the App suite's
+                 * DiscoveryReviewHostname tests, with only the builders they
+                 * use injected, so a new call in that block would be a
+                 * ReferenceError there. It also cannot change what the row is
+                 * named — it only reads the host and says why the name line
+                 * is its address.
+                 */
+                const unnamedHostExplanation:
+                  | DiscoveredHostNamingExplanation
+                  | undefined = explainUnnamedDiscoveredHost({
+                  host: entry,
+                  scan: scanToReview,
+                  isGlobalProbe: isReviewedScanOnGlobalProbe,
+                });
+                /*
                  * `buildDeviceName`, not the unclamped display name: this row
                  * shows the name the device will ACTUALLY be created with,
                  * character for character.
@@ -2343,11 +2425,49 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         }}
                       />
                       <div className="min-w-0">
-                        <div
-                          className="truncate text-sm font-medium text-gray-900"
-                          title={displayName}
-                        >
-                          {displayName}
+                        {/*
+                         * The name line, and — only when that name is the
+                         * host's address — a muted "No name found" and an (i)
+                         * that says why (issue #3916). A named row renders
+                         * exactly what it always did.
+                         *
+                         * Beside the NAME, because that is the line that
+                         * reads as a bare address and so the one an operator
+                         * asks about. Not on the address line below: that
+                         * line carries only the names the name line does not
+                         * show, plus the NetBIOS hint, and is pinned to
+                         * exactly that by the App suite.
+                         *
+                         * The name div is unchanged inside the wrapper: it
+                         * still truncates, and as a flex item with overflow
+                         * hidden it shrinks before the label and the (i),
+                         * which do not. The (i) is the shared lazy
+                         * InfoTooltip — a real button, so the explanation is
+                         * reachable by keyboard and touch rather than hover
+                         * only, and no Tippy instance exists until someone
+                         * reaches for it, which matters on a list of
+                         * thousands. Its text is the Common function's output
+                         * verbatim.
+                         */}
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <div
+                            className="truncate text-sm font-medium text-gray-900"
+                            title={displayName}
+                          >
+                            {displayName}
+                          </div>
+                          {unnamedHostExplanation && (
+                            <Fragment>
+                              <span className="flex-shrink-0 text-xs text-gray-400">
+                                {unnamedHostExplanation.label}
+                              </span>
+                              <InfoTooltip
+                                label={`why ${entry.ipAddress} has no name`}
+                                text={unnamedHostExplanation.text}
+                                dataTestId={`discovered-device-unnamed-${entry.ipAddress}`}
+                              />
+                            </Fragment>
+                          )}
                         </div>
                         <div className="truncate text-sm text-gray-500">
                           {entry.ipAddress}

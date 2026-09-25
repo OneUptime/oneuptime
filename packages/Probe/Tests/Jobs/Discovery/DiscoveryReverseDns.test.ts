@@ -1742,6 +1742,10 @@ describe("result.reverseDnsOutcome.error — describing what the pass threw", ()
  * every test using this asserts it was never called — so a change that made
  * the pass reach the network anyway fails here instead of querying the
  * machine's DNS.
+ *
+ * And Resolver#resolvePtr with it (OneUptime issue #3916): the default lookup
+ * asks resolvePtr for an IPv4 address, because reverse() reports every DNS
+ * failure as "no record", so that is now the call a leak would make.
  */
 function spyOnResolverWithoutLookups(): {
   budgets: Array<{ addressCount: number; totalBudgetInMs: number }>;
@@ -1750,6 +1754,9 @@ function spyOnResolverWithoutLookups(): {
 
   jest
     .spyOn(dns.promises.Resolver.prototype, "reverse")
+    .mockRejectedValue(new Error("a unit test must never send a PTR query"));
+  jest
+    .spyOn(dns.promises.Resolver.prototype, "resolvePtr")
     .mockRejectedValue(new Error("a unit test must never send a PTR query"));
 
   jest
@@ -1961,6 +1968,7 @@ describe("the budget override reaches the resolver", () => {
     ]);
     expect(resolution.totalBudgetInMs).toBe(5000);
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 
   it("resolveReverseDnsHostnames sizes the budget to each pass when given none", async () => {
@@ -1999,6 +2007,7 @@ describe("the budget override reaches the resolver", () => {
       DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
     );
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 
   it("scanWithDeadline hands the seam an options object with no NaN or Infinity in it", async () => {
@@ -2081,6 +2090,7 @@ describe("the budget override reaches the resolver", () => {
     }
 
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 
   it("resolveReverseDnsHostnames grows a NaN or Infinity budget with the pass, like an absent one", async () => {
@@ -2120,6 +2130,7 @@ describe("the budget override reaches the resolver", () => {
       { addressCount: 1000, totalBudgetInMs: automatic },
     ]);
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 
   it("carries a finite budget onto the verdict when the pass was handed NaN or Infinity", async () => {
@@ -2148,6 +2159,7 @@ describe("the budget override reaches the resolver", () => {
     }
 
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 
   it("carries the budget the resolver actually used onto result.reverseDnsOutcome", async () => {
@@ -2177,5 +2189,6 @@ describe("the budget override reaches the resolver", () => {
       { addressCount: 1, totalBudgetInMs: 5000 },
     ]);
     expect(dns.promises.Resolver.prototype.reverse).not.toHaveBeenCalled();
+    expect(dns.promises.Resolver.prototype.resolvePtr).not.toHaveBeenCalled();
   });
 });

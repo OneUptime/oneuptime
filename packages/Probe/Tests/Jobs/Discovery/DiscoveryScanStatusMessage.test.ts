@@ -5,6 +5,7 @@ process.env["PROBE_ID"] = "11111111-2222-3333-4444-555555555555";
 
 import {
   buildHostNamingNote,
+  buildHostNamingNoteSentences,
   buildScanStatusMessage,
   formatNamingBudget,
   HostNamingNoteForm,
@@ -1478,11 +1479,17 @@ function compactNoteFor(
   return noteFor(reverseDnsOutcome, netbiosOutcome, "compact");
 }
 
-// The same result as a scan() that never ran the naming passes would return.
+/*
+ * The same result as a scan() that never ran the naming passes would return —
+ * including the global-probe NetBIOS skip (OneUptime issue #3916), which
+ * scanWithDeadline stamps in place of a NetBIOS verdict and which is naming
+ * news exactly as much as a verdict is.
+ */
 function withoutNamingOutcomes(result: SubnetScanResult): SubnetScanResult {
   const copy: SubnetScanResult = { ...result };
   delete copy.reverseDnsOutcome;
   delete copy.netbiosOutcome;
+  delete copy.isNetbiosLookupSkippedOnGlobalProbe;
   return copy;
 }
 
@@ -1711,6 +1718,44 @@ function reverseDnsOutcomeGrid(): Array<GridEntry<ReverseDnsNamingOutcome>> {
           totalBudgetInMs: budget,
         }),
       });
+    });
+
+    /*
+     * Lookups that failed (OneUptime issue #3916): some of
+     * them beside names, every one of them with none, and alongside the time
+     * limit — the one other sentence the failure sentence is ever printed
+     * with. Every one of these reports something, so the silent entries stay
+     * the three at the top.
+     */
+    grid.push({
+      name: `failed ${total}/some`,
+      outcome: makeReverseDnsOutcome({
+        resolvedCount: someNamed,
+        addressCount: total,
+        namedAddressCount: someNamed,
+        failedAddressCount: total === 1 ? 1 : 40,
+      }),
+    });
+    grid.push({
+      name: `failed ${total}/all`,
+      outcome: makeReverseDnsOutcome({
+        resolvedCount: 0,
+        addressCount: total,
+        namedAddressCount: 0,
+        failedAddressCount: total,
+      }),
+    });
+    grid.push({
+      name: `exhausted-and-failed ${total}`,
+      outcome: makeReverseDnsOutcome({
+        resolvedCount: someNamed,
+        addressCount: total,
+        namedAddressCount: someNamed,
+        notLookedUpAddressCount: Math.floor((total - someNamed) / 2),
+        isTimeBudgetExhausted: true,
+        totalBudgetInMs: [undefined, 60000, 1200000][index],
+        failedAddressCount: Math.max(1, Math.floor(total / 10)),
+      }),
     });
   });
 
@@ -2445,28 +2490,40 @@ describe("buildHostNamingNote — reverse DNS got no answers", () => {
   });
 
   /*
-   * The resolver guarantees "unavailable" only with zero names. A double
-   * that reports both must not make the message claim NO host was named
-   * when some plainly were: it falls through to whatever else is true.
+   * "Unavailable" with names used to be only a double's contradiction, and
+   * the note fell silent for it. Since #3916 it is real: the probe's hosts
+   * file is read before DNS, so a probe whose resolver never answered still
+   * names the devices listed there. The resolver is still dead, and the note
+   * still says so — without claiming NO host was named, and without the
+   * budget advice, which cannot help a resolver that answers nothing.
    */
-  test("an 'unavailable' verdict with names falls through to the time limit, or to silence", () => {
+  test("an 'unavailable' verdict with names still says the resolver got no answers, crediting the hosts file", () => {
     const namedButUnavailable: ReverseDnsNamingOutcome = makeReverseDnsOutcome({
       namedAddressCount: 1200,
       isReverseDnsAvailable: false,
       failureReason: BROKEN_RESOLVER_REASON,
     });
 
-    expect(noteFor(namedButUnavailable)).toBe("");
+    const note: string = noteFor(namedButUnavailable);
 
-    const note: string = noteFor({
+    expect(note).toContain(
+      "Reverse DNS lookups from this probe got no answers",
+    );
+    expect(note).toContain(
+      "so only the 1,200 of 4,000 hosts listed in the probe's hosts file got a reverse DNS name",
+    );
+    expect(note).not.toContain("none of the");
+
+    const withTimeLimit: string = noteFor({
       ...namedButUnavailable,
       notLookedUpAddressCount: 2700,
       isTimeBudgetExhausted: true,
     });
 
-    expect(note).toBe(EXHAUSTED_REVERSE_DNS_NOTE);
-    expect(note).not.toContain("got no answers");
-    expect(note).not.toContain(BROKEN_RESOLVER_REASON);
+    expect(withTimeLimit).toBe(note);
+    expect(withTimeLimit).not.toContain(
+      "PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS",
+    );
   });
 });
 
@@ -4231,6 +4288,20 @@ describe("buildScanStatusMessage — no note leaves the message exactly as it wa
         }),
       },
       {
+        /*
+         * A pass that counted its failures and had none (OneUptime issue
+         * #3916): every address answered, named or "no record". The count
+         * being present must not change a byte.
+         */
+        reverseDnsOutcome: makeReverseDnsOutcome({ failedAddressCount: 0 }),
+      },
+      {
+        // A nonsense failure count reads as none, never as a sentence.
+        reverseDnsOutcome: makeReverseDnsOutcome({ failedAddressCount: NaN }),
+        // And a skip flag that is not exactly true is no skip.
+        isNetbiosLookupSkippedOnGlobalProbe: false,
+      },
+      {
         // Nothing to name: the flags are set but there were no addresses.
         reverseDnsOutcome: makeReverseDnsOutcome({
           resolvedCount: 0,
@@ -4922,10 +4993,13 @@ describe("buildScanStatusMessage — the composition ladder", () => {
   /*
    * No room at all: the rest is dropped, and what remains — the essential
    * sentences and the compact note — is joined by a single space and still
-   * inside the column. Past that, the final guard clips the note's tail
-   * rather than exceed the column; nothing the sweep produces gets there.
+   * inside the column. One character past that, the note no longer fits
+   * beside the essential sentences, and it gives up WHOLE sentences from its
+   * end, marking the cut (OneUptime issue #3916). The final guard used to
+   * clip the note's tail mid-word here instead, which the realistic pile-up
+   * pinned in "the #3916 sentences on the message" below also reached.
    */
-  test("no room drops the rest entirely, and the final guard still holds the column past that", () => {
+  test("no room drops the rest entirely, and past that the note gives up whole sentences from its end, marking the cut", () => {
     for (const room of [0, -1]) {
       const result: SubnetScanResult = findRoomSteeringResult(room, true);
       const message: string = buildScanStatusMessage(result, 0);
@@ -4938,11 +5012,34 @@ describe("buildScanStatusMessage — the composition ladder", () => {
     }
 
     const overflowing: SubnetScanResult = findRoomSteeringResult(-2, true);
+    const sentences: Array<string> = buildHostNamingNoteSentences(
+      overflowing,
+      "compact",
+    );
     const overflowingMessage: string = buildScanStatusMessage(overflowing, 0);
 
-    expect(overflowingMessage.length).toBe(STATUS_MESSAGE_COLUMN_LENGTH);
-    expect(overflowingMessage.startsWith(`${ROOM_ESSENTIAL} `)).toBe(true);
-    expect(overflowingMessage.endsWith("…")).toBe(true);
+    /*
+     * The premises: three compact sentences — reverse DNS out of time, the
+     * NetBIOS cap, the failed socket — that are the compact note, and one
+     * character too many to sit beside the essential sentences whole.
+     */
+    expect(sentences).toHaveLength(3);
+    expect(sentences.join(" ")).toBe(
+      buildHostNamingNote(overflowing, "compact"),
+    );
+    expect(`${ROOM_ESSENTIAL} ${sentences.join(" ")}`.length).toBe(
+      STATUS_MESSAGE_COLUMN_LENGTH + 1,
+    );
+    expect(sentences[2]!.startsWith("NetBIOS socket failed (")).toBe(true);
+
+    // The socket sentence goes whole, and the cut is marked once, at the end.
+    expect(overflowingMessage).toBe(
+      `${ROOM_ESSENTIAL} ${sentences[0]!} ${sentences[1]!} …`,
+    );
+    expect(overflowingMessage.length).toBeLessThanOrEqual(
+      STATUS_MESSAGE_COLUMN_LENGTH,
+    );
+    expect(countEllipses(overflowingMessage)).toBe(1);
   });
 
   /*
@@ -5179,7 +5276,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
     let fullCount: number = 0;
     let compactCount: number = 0;
     let clippedCount: number = 0;
-    let overflowCount: number = 0;
+    let noteCutCount: number = 0;
 
     for (let iteration: number = 0; iteration < 400; iteration++) {
       /*
@@ -5324,25 +5421,34 @@ describe("buildScanStatusMessage — the composition ladder", () => {
       clippedCount++;
 
       /*
-       * The note is whole at the end of every clipped message but the
-       * one-character window pinned above, where the room the ladder leaves
-       * does not allow for the full stop it then inserts and the final guard
-       * takes the note's last character. Counted rather than asserted away,
-       * and still held to the column and to a clip of what the ladder
-       * assembled — either the whole body and the note, or the essential
-       * sentences and the note with the rest dropped.
+       * Rung 4 (OneUptime issue #3916): the compact note does not fit even
+       * beside the essential sentences alone. The rest is dropped, and the
+       * note gives up WHOLE sentences from its end — as many kept as fit with
+       * the cut marked once after them, and not one more. Before, the final
+       * guard took the note's tail mid-word here: "... NetBIOS hit its 1…".
        */
       if (!message.endsWith(` ${compactNote}`)) {
-        overflowCount++;
+        noteCutCount++;
 
-        expect(message.length).toBe(STATUS_MESSAGE_COLUMN_LENGTH);
-        expect(
-          [joinedWith(compactNote), `${essential} ${compactNote}`].map(
-            (assembled: string) => {
-              return `${assembled.substring(0, STATUS_MESSAGE_COLUMN_LENGTH - 1)}…`;
-            },
-          ),
-        ).toContain(message);
+        const sentences: Array<string> = buildHostNamingNoteSentences(
+          result,
+          "compact",
+        );
+        const withKept: (keptCount: number) => string = (
+          keptCount: number,
+        ): string => {
+          return `${essential} ${[...sentences.slice(0, keptCount), "…"].join(" ")}`;
+        };
+        const keptCount: number = sentences.findIndex(
+          (_sentence: string, index: number) => {
+            return withKept(index) === message;
+          },
+        );
+
+        expect(keptCount).toBeGreaterThanOrEqual(0);
+        expect(withKept(keptCount + 1).length).toBeGreaterThan(
+          STATUS_MESSAGE_COLUMN_LENGTH,
+        );
         continue;
       }
 
@@ -5374,8 +5480,13 @@ describe("buildScanStatusMessage — the composition ladder", () => {
     expect(fullCount).toBeGreaterThan(15);
     expect(compactCount).toBeGreaterThan(15);
     expect(clippedCount).toBeGreaterThan(15);
-    // And the pinned window is the rarity it is claimed to be, not the rule.
-    expect(overflowCount).toBeLessThan(clippedCount / 4);
+    /*
+     * And rung 4 is reached — the grid's incomplete ping sweeps under its
+     * longest notes get there — but is the rarity it is claimed to be, not
+     * the rule.
+     */
+    expect(noteCutCount).toBeGreaterThan(0);
+    expect(noteCutCount).toBeLessThan(clippedCount / 4);
   });
 });
 
@@ -5863,6 +5974,634 @@ describe("buildScanStatusMessage — nonsense and secrets beside the note", () =
       expect(buildHostNamingNote(result).length).toBeGreaterThan(0);
       expect(message).not.toContain("s3cret-community");
       expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+    }
+  });
+});
+
+/*
+ * OneUptime issue #3916 — "hosts named by IP, and nothing says why".
+ *
+ * An ICMP-only scan of twelve kitchen displays named four of them by reverse
+ * DNS. The other eight were listed by address under a message that said only
+ * "12 answered ping", because the note reported a reverse-DNS problem only
+ * when the pass threw, ran out of time, or found the resolver unusable — and
+ * "unusable" takes 64 failures in a row with no answer at all. Lookups that
+ * timed out for SOME hosts on a small scan were invisible, and read exactly
+ * like addresses with no PTR record. So was a NetBIOS lookup the scan asked
+ * for and a global probe refused to send.
+ *
+ * Two sentences close those gaps. Both are pinned here in their full and
+ * compact forms, against the rules every other sentence of the note obeys.
+ */
+
+/*
+ * The failure sentence, written out whole rather than built from the
+ * builder's own pieces, so a change to its wording has to be made here too.
+ */
+function failedLookupsNote(failedOfTotal: string): string {
+  return (
+    `Reverse DNS lookups failed for ${failedOfTotal}; ` +
+    "hover the (i) beside an unnamed host for the reason, and rescan to try again."
+  );
+}
+
+function failedLookupsCompactNote(failedOfTotal: string): string {
+  return `Reverse DNS failed for ${failedOfTotal}; rescan to retry.`;
+}
+
+const NETBIOS_GLOBAL_PROBE_NOTE: string =
+  "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.";
+
+const NETBIOS_GLOBAL_PROBE_COMPACT_NOTE: string =
+  "NetBIOS skipped: this is a global probe.";
+
+// The reported scan's outcome: 12 hosts, 4 named, 2 lookups that failed.
+function makeCustomerReverseDnsOutcome(
+  overrides?: Partial<ReverseDnsNamingOutcome>,
+): ReverseDnsNamingOutcome {
+  return makeReverseDnsOutcome({
+    resolvedCount: 4,
+    addressCount: 12,
+    namedAddressCount: 4,
+    totalBudgetInMs: 60000,
+    failedAddressCount: 2,
+    ...overrides,
+  });
+}
+
+describe("buildHostNamingNote — reverse DNS lookups that failed (#3916)", () => {
+  test("says how many of how many failed, where to read why, and the fix", () => {
+    const outcome: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome();
+
+    expect(noteFor(outcome)).toBe(failedLookupsNote("2 of 12 hosts"));
+    expect(compactNoteFor(outcome)).toBe(
+      failedLookupsCompactNote("2 of 12 hosts"),
+    );
+  });
+
+  test("every lookup failed reads 'all N hosts', and a one-host sweep 'the one host'", () => {
+    /*
+     * "12 of 12 hosts" says the same thing less plainly; and "1 of 1 host"
+     * reads like a typo. Both are the resolver answering for nobody, below
+     * the 64 failures that would have called it unusable.
+     */
+    const allFailed: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+      resolvedCount: 0,
+      namedAddressCount: 0,
+      failedAddressCount: 12,
+    });
+    const oneHost: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+      resolvedCount: 0,
+      addressCount: 1,
+      namedAddressCount: 0,
+      failedAddressCount: 1,
+    });
+
+    expect(noteFor(allFailed)).toBe(failedLookupsNote("all 12 hosts"));
+    expect(compactNoteFor(allFailed)).toBe(
+      failedLookupsCompactNote("all 12 hosts"),
+    );
+    expect(noteFor(oneHost)).toBe(failedLookupsNote("the one host"));
+    expect(compactNoteFor(oneHost)).toBe(
+      failedLookupsCompactNote("the one host"),
+    );
+  });
+
+  test("counts are grouped by thousands, and the total keeps its own plural", () => {
+    expect(
+      noteFor(
+        makeReverseDnsOutcome({
+          resolvedCount: 1200,
+          addressCount: 20000,
+          namedAddressCount: 1200,
+          failedAddressCount: 1024,
+        }),
+      ),
+    ).toBe(failedLookupsNote("1,024 of 20,000 hosts"));
+    // "1 of 12 hosts": the count of failures is not what "hosts" agrees with.
+    expect(
+      noteFor(makeCustomerReverseDnsOutcome({ failedAddressCount: 1 })),
+    ).toBe(failedLookupsNote("1 of 12 hosts"));
+  });
+
+  test("zero, missing or nonsense failure counts say nothing, in either form", () => {
+    for (const failed of [
+      0,
+      undefined,
+      NaN,
+      -3,
+      Infinity,
+      -Infinity,
+      "2",
+      null,
+      0.5,
+    ]) {
+      const outcome: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+        failedAddressCount: failed as unknown as number,
+      });
+
+      expect(`${String(failed)}: ${noteFor(outcome)}`).toBe(
+        `${String(failed)}: `,
+      );
+      expect(`${String(failed)}: ${compactNoteFor(outcome)}`).toBe(
+        `${String(failed)}: `,
+      );
+    }
+  });
+
+  test("a fractional count is floored rather than printed", () => {
+    expect(
+      noteFor(makeCustomerReverseDnsOutcome({ failedAddressCount: 2.9 })),
+    ).toBe(failedLookupsNote("2 of 12 hosts"));
+  });
+
+  test("the count is clamped to the addresses left unnamed, and a pass that named everyone says nothing", () => {
+    /*
+     * A named address did not fail. The scanner bounds the figure the same
+     * way; this is the builder refusing to print "50 of 12" from any caller.
+     */
+    expect(
+      noteFor(makeCustomerReverseDnsOutcome({ failedAddressCount: 50 })),
+    ).toBe(failedLookupsNote("8 of 12 hosts"));
+    expect(
+      noteFor(
+        makeCustomerReverseDnsOutcome({
+          resolvedCount: 12,
+          namedAddressCount: 12,
+          failedAddressCount: 5,
+        }),
+      ),
+    ).toBe("");
+    // With nobody named, the clamp is the whole pass: "any of", not "13 of 12".
+    expect(
+      noteFor(
+        makeCustomerReverseDnsOutcome({
+          resolvedCount: 0,
+          namedAddressCount: 0,
+          failedAddressCount: 13,
+        }),
+      ),
+    ).toBe(failedLookupsNote("all 12 hosts"));
+  });
+
+  test("a pass that threw says only that it threw", () => {
+    const outcome: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+      error: "name table went away",
+    });
+
+    expect(noteFor(outcome)).toBe(
+      "Reverse DNS lookups failed on this probe (name table went away) after naming 4 of 12 hosts.",
+    );
+    expect(compactNoteFor(outcome)).toBe(
+      "Reverse DNS failed (name table went away).",
+    );
+  });
+
+  test("a resolver judged unusable says only that, and a verdict with names still reports its failures", () => {
+    const unusable: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+      resolvedCount: 0,
+      namedAddressCount: 0,
+      isReverseDnsAvailable: false,
+      failureReason: "queryPtr ETIMEOUT",
+      failedAddressCount: 12,
+    });
+
+    expect(noteFor(unusable)).toBe(
+      "Reverse DNS lookups from this probe got no answers (queryPtr ETIMEOUT), so none of the 12 hosts got a reverse DNS name - " +
+        "check the probe's DNS resolver and the reverse DNS zone for this range.",
+    );
+    expect(compactNoteFor(unusable)).toBe(
+      "Reverse DNS got no answers (queryPtr ETIMEOUT).",
+    );
+
+    /*
+     * "Unavailable" with names: the names came from the probe's hosts file
+     * (see the no-answers describe above), and the dead resolver is what the
+     * note leads with — it explains every failed lookup at once.
+     */
+    expect(
+      noteFor(makeCustomerReverseDnsOutcome({ isReverseDnsAvailable: false })),
+    ).toBe(
+      "Reverse DNS lookups from this probe got no answers, so only the 4 of 12 hosts listed in the probe's hosts file got a reverse DNS name - " +
+        "check the probe's DNS resolver and the reverse DNS zone for this range.",
+    );
+  });
+
+  test("beside the time limit, both are said, the time limit first, in both forms", () => {
+    const outcome: ReverseDnsNamingOutcome = makeReverseDnsOutcome({
+      notLookedUpAddressCount: 2700,
+      isTimeBudgetExhausted: true,
+      failedAddressCount: 50,
+    });
+
+    expect(noteFor(outcome)).toBe(
+      `${EXHAUSTED_REVERSE_DNS_NOTE} ${failedLookupsNote("50 of 4,000 hosts")}`,
+    );
+    expect(compactNoteFor(outcome)).toBe(
+      `${EXHAUSTED_REVERSE_DNS_COMPACT_NOTE} ${failedLookupsCompactNote("50 of 4,000 hosts")}`,
+    );
+  });
+
+  test("then NetBIOS, after a single space", () => {
+    const note: string = noteFor(
+      makeCustomerReverseDnsOutcome(),
+      makeNetbiosOutcome({
+        unnamedAddressCount: 3500,
+        eligibleAddressCount: 3500,
+        queriedAddressCount: 2000,
+        isHostCapReached: true,
+      }),
+    );
+
+    expect(note).toBe(
+      `${failedLookupsNote("2 of 12 hosts")} ${NETBIOS_CAP_NOTE}`,
+    );
+  });
+
+  test("the compact form is strictly shorter and keeps only the count and the fix", () => {
+    const outcomes: Array<ReverseDnsNamingOutcome> = [
+      makeCustomerReverseDnsOutcome(),
+      makeCustomerReverseDnsOutcome({
+        resolvedCount: 0,
+        namedAddressCount: 0,
+        failedAddressCount: 12,
+      }),
+      makeReverseDnsOutcome({
+        addressCount: 65534,
+        failedAddressCount: 65534 - 1200,
+      }),
+    ];
+
+    for (const outcome of outcomes) {
+      const full: string = noteFor(outcome);
+      const compact: string = compactNoteFor(outcome);
+
+      expect(compact.length).toBeLessThan(full.length);
+      expect(compact).not.toContain("(i)");
+      expect(compact).not.toContain("retry;");
+      expect(compact).not.toContain(REVERSE_DNS_BUDGET_ENV_VAR);
+      expect(compact.endsWith("rescan to retry.")).toBe(true);
+    }
+  });
+
+  test("never claims hosts are listed by address, and never quotes one resolver reason for a mix of failures", () => {
+    /*
+     * A host whose lookup failed can still be named by SNMP or NetBIOS, so
+     * the sentence is about reverse DNS only. And the resolver's reason is
+     * its FIRST failure: beside a count of failures that may be timeouts,
+     * SERVFAILs and REFUSEDs at once, quoting one would misdescribe the rest.
+     * Each host's own code, in its tooltip, is the per-host reason.
+     */
+    const outcome: ReverseDnsNamingOutcome = makeCustomerReverseDnsOutcome({
+      failureReason: "queryPtr ESERVFAIL 52.42.16.10.in-addr.arpa",
+    });
+
+    for (const note of [noteFor(outcome), compactNoteFor(outcome)]) {
+      expect(note).not.toContain("listed by");
+      expect(note).not.toContain("ESERVFAIL");
+      expect(note).not.toContain("in-addr.arpa");
+    }
+  });
+});
+
+describe("buildHostNamingNote — NetBIOS skipped on a global probe (#3916)", () => {
+  test("says the lookup did not run and why, in full and compact", () => {
+    const result: SubnetScanResult = makeResult({
+      isNetbiosLookupSkippedOnGlobalProbe: true,
+    });
+
+    expect(buildHostNamingNote(result)).toBe(NETBIOS_GLOBAL_PROBE_NOTE);
+    expect(buildHostNamingNote(result, "compact")).toBe(
+      NETBIOS_GLOBAL_PROBE_COMPACT_NOTE,
+    );
+    expect(NETBIOS_GLOBAL_PROBE_COMPACT_NOTE.length).toBeLessThan(
+      NETBIOS_GLOBAL_PROBE_NOTE.length,
+    );
+  });
+
+  test("only a literal true is a skip", () => {
+    for (const flag of [false, undefined, null, "true", 1, {}]) {
+      const result: SubnetScanResult = makeResult({
+        isNetbiosLookupSkippedOnGlobalProbe: flag as unknown as boolean,
+      });
+
+      expect(`${String(flag)}: ${buildHostNamingNote(result)}`).toBe(
+        `${String(flag)}: `,
+      );
+      expect(`${String(flag)}: ${buildHostNamingNote(result, "compact")}`).toBe(
+        `${String(flag)}: `,
+      );
+    }
+  });
+
+  test("a lookup that ran is described by its own verdict, whatever the flag says", () => {
+    /*
+     * The two cannot both be true of one sweep. If a caller says they are,
+     * the verdict is the record of a lookup that actually happened — so a
+     * complete one stays silent and a capped one reports its cap.
+     */
+    expect(
+      buildHostNamingNote(
+        makeResult({
+          isNetbiosLookupSkippedOnGlobalProbe: true,
+          netbiosOutcome: makeNetbiosOutcome(),
+        }),
+      ),
+    ).toBe("");
+    expect(
+      buildHostNamingNote(
+        makeResult({
+          isNetbiosLookupSkippedOnGlobalProbe: true,
+          netbiosOutcome: makeNetbiosOutcome({
+            unnamedAddressCount: 3500,
+            eligibleAddressCount: 3500,
+            queriedAddressCount: 2000,
+            isHostCapReached: true,
+          }),
+        }),
+      ),
+    ).toBe(NETBIOS_CAP_NOTE);
+  });
+
+  test("comes after the reverse-DNS half, in both forms", () => {
+    const result: SubnetScanResult = makeResult({
+      reverseDnsOutcome: makeCustomerReverseDnsOutcome(),
+      isNetbiosLookupSkippedOnGlobalProbe: true,
+    });
+
+    expect(buildHostNamingNote(result)).toBe(
+      `${failedLookupsNote("2 of 12 hosts")} ${NETBIOS_GLOBAL_PROBE_NOTE}`,
+    );
+    expect(buildHostNamingNote(result, "compact")).toBe(
+      `${failedLookupsCompactNote("2 of 12 hosts")} ${NETBIOS_GLOBAL_PROBE_COMPACT_NOTE}`,
+    );
+  });
+
+  test("across the whole reverse-DNS grid: never silent, compact no longer than full, and always last", () => {
+    let pairs: number = 0;
+
+    for (const entry of reverseDnsOutcomeGrid()) {
+      const result: SubnetScanResult = makeResult({
+        reverseDnsOutcome: entry.outcome,
+        isNetbiosLookupSkippedOnGlobalProbe: true,
+      });
+      const full: string = buildHostNamingNote(result, "full");
+      const compact: string = buildHostNamingNote(result, "compact");
+
+      pairs++;
+
+      expect(`${entry.name}: ${full.endsWith(NETBIOS_GLOBAL_PROBE_NOTE)}`).toBe(
+        `${entry.name}: true`,
+      );
+      expect(
+        `${entry.name}: ${compact.endsWith(NETBIOS_GLOBAL_PROBE_COMPACT_NOTE)}`,
+      ).toBe(`${entry.name}: true`);
+      expect(`${entry.name}: ${compact.length <= full.length}`).toBe(
+        `${entry.name}: true`,
+      );
+      expect(compact).not.toContain("  ");
+      expect(compact).not.toContain(REVERSE_DNS_BUDGET_ENV_VAR);
+    }
+
+    expect(pairs).toBeGreaterThan(40);
+  });
+});
+
+describe("buildScanStatusMessage — the #3916 sentences on the message", () => {
+  test("the reported scan: the headline, then the failure sentence", () => {
+    /*
+     * Before the fix this message was the headline alone — byte for byte
+     * the customer's screenshot — whatever had happened to the eight hosts.
+     */
+    expect(
+      buildScanStatusMessage(
+        makeIcmpOnlyResult({
+          scannedHostCount: 15,
+          respondedToPingCount: 12,
+          reverseDnsOutcome: makeCustomerReverseDnsOutcome(),
+        }),
+        0,
+      ),
+    ).toBe(`${icmpOnlyHeadline(15, 12)} ${failedLookupsNote("2 of 12 hosts")}`);
+  });
+
+  test("the reported scan on a global probe with NetBIOS ticked says both", () => {
+    expect(
+      buildScanStatusMessage(
+        makeIcmpOnlyResult({
+          scannedHostCount: 15,
+          respondedToPingCount: 12,
+          reverseDnsOutcome: makeCustomerReverseDnsOutcome(),
+          isNetbiosLookupSkippedOnGlobalProbe: true,
+        }),
+        0,
+      ),
+    ).toBe(
+      `${icmpOnlyHeadline(15, 12)} ${failedLookupsNote("2 of 12 hosts")} ${NETBIOS_GLOBAL_PROBE_NOTE}`,
+    );
+  });
+
+  test("a sweep whose last sentence is a quoted SNMP error gets a full stop before either sentence", () => {
+    for (const outcomes of [
+      { reverseDnsOutcome: makeCustomerReverseDnsOutcome() },
+      { isNetbiosLookupSkippedOnGlobalProbe: true },
+    ] as Array<Partial<SubnetScanResult>>) {
+      const message: string = buildScanStatusMessage(
+        makeResult({
+          respondedToPingCount: 12,
+          snmpErrorHostCount: 2,
+          mostCommonSnmpError: "Authentication failure",
+          ...outcomes,
+        }),
+        3,
+      );
+
+      expect(message).toContain("most common: Authentication failure. ");
+      expect(message).not.toContain("failure Reverse DNS");
+      expect(message).not.toContain("failure NetBIOS");
+    }
+  });
+
+  test("an incomplete ping sweep keeps its caveat and headline whole and falls to both compact sentences", () => {
+    /*
+     * The essential pair on this path is already over 280 characters, so the
+     * two full sentences (about 250 more) cannot fit beside it, and the two
+     * compact ones can. Nothing is clipped.
+     */
+    const result: SubnetScanResult = makeIcmpOnlyResult({
+      scannedHostCount: 32768,
+      respondedToPingCount: 20000,
+      isIcmpSweepIncomplete: true,
+      reverseDnsOutcome: makeReverseDnsOutcome({
+        addressCount: 20000,
+        failedAddressCount: 40,
+      }),
+      isNetbiosLookupSkippedOnGlobalProbe: true,
+    });
+    const essential: string = `${ICMP_STOPPED_EARLY_CAVEAT} ${icmpOnlyHeadline(32768, 20000)}`;
+    const message: string = buildScanStatusMessage(result, 0);
+
+    expect(
+      essential.length + 1 + buildHostNamingNote(result, "full").length,
+    ).toBeGreaterThan(STATUS_MESSAGE_COLUMN_LENGTH);
+    expect(message).toBe(
+      `${essential} ${failedLookupsCompactNote("40 of 20,000 hosts")} ${NETBIOS_GLOBAL_PROBE_COMPACT_NOTE}`,
+    );
+    expect(countEllipses(message)).toBe(0);
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  /*
+   * The pile-up the failure sentence made reachable (#3916). An incomplete
+   * ping sweep's essential pair is about 295 characters and never clipped. A
+   * reverse-DNS pass behind a slow DNS server runs out of time AND has
+   * lookups fail — the normal shape, not a coincidence — and a NetBIOS
+   * lookup over thousands of unnamed hosts hits its cap and then its time
+   * limit, or loses its socket. The compact note is then about 240
+   * characters, where the same outcome without the failure sentence was
+   * about 180 and fitted. The final guard used to cut the last NetBIOS
+   * sentence mid-word ("NetBIOS hit its 5…", "NetBIOS socket fa…"); now the
+   * sentences printed are whole, and the one that did not fit is left out
+   * with the cut marked.
+   */
+  test("an incomplete ping sweep whose compact note no longer fits beside it drops the last note sentence whole, never clips it", () => {
+    const essential: string = `${ICMP_STOPPED_EARLY_CAVEAT} ${icmpOnlyHeadline(32768, 6000)}`;
+    const reverseDnsOutcome: ReverseDnsNamingOutcome = makeReverseDnsOutcome({
+      resolvedCount: 50,
+      addressCount: 6000,
+      namedAddressCount: 50,
+      notLookedUpAddressCount: 2400,
+      isTimeBudgetExhausted: true,
+      totalBudgetInMs: 600000,
+      failedAddressCount: 1800,
+    });
+    const capped: Partial<NetbiosNamingOutcome> = {
+      resolvedCount: 3,
+      unnamedAddressCount: 5950,
+      namedAddressCount: 3,
+      eligibleAddressCount: 5950,
+      isHostCapReached: true,
+      maxHosts: 2000,
+      totalBudgetInMs: 53725,
+    };
+
+    for (const netbiosOutcome of [
+      makeNetbiosOutcome({
+        ...capped,
+        queriedAddressCount: 1800,
+        isTimeBudgetExhausted: true,
+      }),
+      makeNetbiosOutcome({
+        ...capped,
+        queriedAddressCount: 400,
+        isTimeBudgetExhausted: true,
+        failureReason: "send ENOBUFS 10.1.2.3:137",
+      }),
+    ]) {
+      const result: SubnetScanResult = makeIcmpOnlyResult({
+        scannedHostCount: 32768,
+        respondedToPingCount: 6000,
+        isIcmpSweepIncomplete: true,
+        reverseDnsOutcome: reverseDnsOutcome,
+        netbiosOutcome: netbiosOutcome,
+      });
+      const sentences: Array<string> = buildHostNamingNoteSentences(
+        result,
+        "compact",
+      );
+      const message: string = buildScanStatusMessage(result, 0);
+
+      /*
+       * The premises: four compact sentences, the failure sentence among
+       * them, and together too long to sit beside the essential pair — while
+       * the three that are kept do fit, with the cut mark.
+       */
+      expect(sentences).toEqual([
+        "Reverse DNS hit its 10m limit; 2,400 of 6,000 hosts not looked up.",
+        failedLookupsCompactNote("1,800 of 6,000 hosts"),
+        "NetBIOS skipped 3,950 hosts over its 2,000-host cap.",
+        netbiosOutcome.failureReason
+          ? "NetBIOS socket failed (send ENOBUFS 10.1.2.3:137)."
+          : "NetBIOS hit its 54s limit; 200 of 2,000 hosts not queried.",
+      ]);
+      expect(`${essential} ${sentences.join(" ")}`.length).toBeGreaterThan(
+        STATUS_MESSAGE_COLUMN_LENGTH,
+      );
+
+      expect(message).toBe(`${essential} ${sentences.slice(0, 3).join(" ")} …`);
+      expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+      // One cut, marked once, after the last whole sentence.
+      expect(countEllipses(message)).toBe(1);
+      expect(message).not.toContain("NetBIOS hit its 54s limit");
+      expect(message).not.toContain("NetBIOS socket");
+    }
+  });
+
+  test("a crowded SNMP body is clipped once below its headline, with both compact sentences whole at the end", () => {
+    const result: SubnetScanResult = makeResult({
+      scannedHostCount: 4096,
+      respondedToPingCount: 4096,
+      icmpFilteredFallbackHostCount: 4096,
+      snmpErrorHostCount: 4096,
+      mostCommonSnmpError: LONG_SNMP_ERROR,
+      scannedPorts: [161, 1161],
+      responderCountByConfigId: { "config-0": 12 },
+      reverseDnsOutcome: makeReverseDnsOutcome({
+        addressCount: 4096,
+        failedAddressCount: 300,
+      }),
+      isNetbiosLookupSkippedOnGlobalProbe: true,
+    });
+    const compactNote: string = `${failedLookupsCompactNote("300 of 4,096 hosts")} ${NETBIOS_GLOBAL_PROBE_COMPACT_NOTE}`;
+    const message: string = buildScanStatusMessage(
+      result,
+      12,
+      makeTenCrowdedConfigs(),
+    );
+
+    expect(buildHostNamingNote(result, "compact")).toBe(compactNote);
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+    expect(countEllipses(message)).toBe(1);
+
+    const middle: string = clippedMiddleOf(
+      message,
+      snmpHeadline(4096, 4096, 12),
+      compactNote,
+    );
+
+    expect(middle.endsWith("…")).toBe(true);
+    expect(message).not.toContain("s3cret-community");
+  });
+
+  test("nonsense on the new fields never renders as NaN, undefined or Infinity", () => {
+    for (const failed of [NaN, Infinity, -1, undefined]) {
+      const messages: Array<string> = [
+        buildScanStatusMessage(
+          makeIcmpOnlyResult({
+            reverseDnsOutcome: makeCustomerReverseDnsOutcome({
+              failedAddressCount: failed,
+              isTimeBudgetExhausted: true,
+              notLookedUpAddressCount: NaN,
+            }),
+            isNetbiosLookupSkippedOnGlobalProbe: true,
+          }),
+          0,
+        ),
+        buildHostNamingNote(
+          makeResult({
+            reverseDnsOutcome: makeCustomerReverseDnsOutcome({
+              failedAddressCount: failed,
+            }),
+          }),
+          "compact",
+        ),
+      ];
+
+      for (const message of messages) {
+        expect(message).not.toContain("NaN");
+        expect(message).not.toContain("undefined");
+        expect(message).not.toContain("Infinity");
+      }
     }
   });
 });

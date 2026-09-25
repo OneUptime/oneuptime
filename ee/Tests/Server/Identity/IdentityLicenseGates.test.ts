@@ -395,9 +395,9 @@ afterEach(() => {
 });
 
 describe("every identity route starts with the license gate for its feature", () => {
-  test("the enumeration sees all 44 routes of the eight routers", () => {
-    expect(IDENTITY_ROUTERS).toHaveLength(8);
-    expect(ALL_ROUTES).toHaveLength(44);
+  test("the enumeration sees all 46 routes of the nine routers", () => {
+    expect(IDENTITY_ROUTERS).toHaveLength(9);
+    expect(ALL_ROUTES).toHaveLength(46);
 
     const families: Record<GateFamily, number> = {
       "sso-json": 0,
@@ -409,7 +409,7 @@ describe("every identity route starts with the license gate for its feature", ()
       families[familyOf(route)]++;
     }
 
-    expect(families).toEqual({ "sso-json": 4, "sso-page": 14, scim: 26 });
+    expect(families).toEqual({ "sso-json": 4, "sso-page": 16, scim: 26 });
   });
 
   test("no route is missing its gate", () => {

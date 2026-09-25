@@ -49,9 +49,9 @@ export function readDrillStateFromUrl(): NetworkMapDrillState {
  * from wherever the user currently is.
  *
  * A plain Route to the map page cannot express that. Navigation.navigate()
- * drops any navigation whose target is already the current page, and
- * isOnThisPage() decides that on the pathname alone (Navigation.ts:216-243,
- * :285). The drill position lives in the query string, so from
+ * drops any navigation whose target is already the current page, and it
+ * decides that on the pathname alone (Navigation.isCurrentRoute). The drill
+ * position lives in the query string, so from
  * ".../network-sites/map?site=<deep>" a link to ".../network-sites/map" is the
  * same page by that test: the click is swallowed, no location change is
  * produced, and the user is stranded at whatever level they drilled to with no

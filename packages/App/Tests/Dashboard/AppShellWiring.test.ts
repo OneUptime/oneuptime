@@ -4,10 +4,11 @@ import path from "path";
 import ts from "typescript";
 
 /*
- * Source-pinning tests for the Dashboard app shell (App.tsx). The App suite
- * runs in a plain Node environment, so the shell cannot be rendered here;
- * instead these pin the INTENT of four perf/UX fixes with tolerant patterns
- * (never exact byte strings), in the style of NetworkTopologyPanelLayering:
+ * Source-pinning tests for the Dashboard app shell (App.tsx and its
+ * MasterPage). The App suite runs in a plain Node environment, so the shell
+ * cannot be rendered here; instead these pin the INTENT of five fixes with
+ * tolerant patterns (never exact byte strings), in the style of
+ * NetworkTopologyPanelLayering:
  *
  * 1. Every route group lazy()-imports its OWN module under ./Routes/, not the
  *    AllRoutes barrel — the barrel made the first navigation into ANY section
@@ -20,6 +21,9 @@ import ts from "typescript";
  * 4. onProjectSelected routes its navigate/forceNavigate choice through the
  *    pure ProjectNavigation helper, so a fresh login no longer triggers a
  *    full document reload.
+ * 5. The master page's SSO redirect runs in an effect, never during render,
+ *    and App clears the SSO error once it has been handled. (The behaviour
+ *    itself is covered by the render suites in Common/Tests/App/Dashboard.)
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -200,5 +204,93 @@ describe("project selection: navigation decisions come from the pure helper", ()
 
   test("navigation is gated on the helper's shouldNavigate verdict", () => {
     expect(APP_SOURCE).toMatch(/\.shouldNavigate/);
+  });
+});
+
+describe("SSO redirect: navigates from an effect, never during render", () => {
+  const MASTER_PAGE_SOURCE: string = stripComments(
+    fs.readFileSync(
+      path.join(DASHBOARD_SRC, "Components", "MasterPage", "MasterPage.tsx"),
+      "utf8",
+    ),
+  );
+
+  /*
+   * For each Navigation.navigate(...) call, whether it sits inside the
+   * callback of a useEffect(...). A navigate made while rendering updates the
+   * router mid-render, is dropped on the first render, and re-fires on every
+   * re-render, which bounced users who had left /sso straight back to it.
+   */
+  function navigateCallsInsideEffects(source: string): Array<boolean> {
+    const sourceFile: ts.SourceFile = ts.createSourceFile(
+      "MasterPage.tsx",
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+    const results: Array<boolean> = [];
+
+    const isUseEffectCall: (node: ts.Node) => boolean = (
+      node: ts.Node,
+    ): boolean => {
+      return (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "useEffect"
+      );
+    };
+
+    const visit: (node: ts.Node, insideEffect: boolean) => void = (
+      node: ts.Node,
+      insideEffect: boolean,
+    ): void => {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.getText(sourceFile) === "Navigation.navigate"
+      ) {
+        results.push(insideEffect);
+      }
+
+      const childInsideEffect: boolean = insideEffect || isUseEffectCall(node);
+      ts.forEachChild(node, (child: ts.Node) => {
+        visit(child, childInsideEffect);
+      });
+    };
+    visit(sourceFile, false);
+
+    return results;
+  }
+
+  test("tells an effect's navigate apart from a render-time one", () => {
+    expect(
+      navigateCallsInsideEffects(`
+        const Page = () => {
+          useEffect(() => { Navigation.navigate(a); }, [error]);
+          Navigation.navigate(b);
+          return null;
+        };
+      `),
+    ).toEqual([true, false]);
+  });
+
+  test("the master page still redirects to the SSO page", () => {
+    expect(MASTER_PAGE_SOURCE).toMatch(/PageMap\.PROJECT_SSO/);
+    expect(
+      navigateCallsInsideEffects(MASTER_PAGE_SOURCE).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("every navigate in the master page runs from a useEffect", () => {
+    for (const insideEffect of navigateCallsInsideEffects(MASTER_PAGE_SOURCE)) {
+      expect(insideEffect).toBe(true);
+    }
+  });
+
+  test("App hands the master page a way to clear a handled SSO error", () => {
+    // The handler must set the error back to "", not merely call setError.
+    expect(APP_SOURCE).toMatch(
+      /<MasterPage[\s\S]*?onSsoErrorHandled=\{[\s\S]{0,300}?setError\([\s\S]{0,300}?\?\s*""\s*:/,
+    );
   });
 });

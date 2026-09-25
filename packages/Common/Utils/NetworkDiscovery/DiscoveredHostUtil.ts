@@ -1,4 +1,10 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+  readDiscoveredHostNetbiosStatus,
+  readDiscoveredHostReverseDnsStatus,
+} from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { normalizeNetbiosName } from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
@@ -141,6 +147,32 @@ export function normalizeDiscoveredHosts(
       normalized.netbiosName = netbiosName;
     } else {
       delete normalized.netbiosName;
+    }
+
+    /*
+     * The two "why is this host unnamed" codes (OneUptime issue #3916). Not
+     * chosen by the scanned network, but still read out of the same verbatim
+     * jsonb, and the dialog turns them into tooltip copy — so only the exact
+     * codes survive, and anything else is DELETED for the reason the names
+     * above are. A code this build does not know (a newer probe's) goes the
+     * same way and the row falls back to the explanation older rows get.
+     */
+    const dnsHostnameStatus: DiscoveredHostReverseDnsStatus | undefined =
+      readDiscoveredHostReverseDnsStatus(host.dnsHostnameStatus);
+
+    if (dnsHostnameStatus) {
+      normalized.dnsHostnameStatus = dnsHostnameStatus;
+    } else {
+      delete normalized.dnsHostnameStatus;
+    }
+
+    const netbiosNameStatus: DiscoveredHostNetbiosStatus | undefined =
+      readDiscoveredHostNetbiosStatus(host.netbiosNameStatus);
+
+    if (netbiosNameStatus) {
+      normalized.netbiosNameStatus = netbiosNameStatus;
+    } else {
+      delete normalized.netbiosNameStatus;
     }
 
     cleaned.push(normalized);

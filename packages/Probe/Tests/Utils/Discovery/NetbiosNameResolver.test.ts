@@ -19,6 +19,10 @@ import NetbiosNameResolver, {
   isNetbiosQueryAddressAllowed,
 } from "../../../Utils/Discovery/NetbiosNameResolver";
 import { encodeNbstatQuery } from "../../../Utils/Discovery/NetbiosNbstatCodec";
+import {
+  DiscoveredHostNetbiosStatus,
+  readDiscoveredHostNetbiosStatus,
+} from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import {
   afterEach,
@@ -35,8 +39,8 @@ import { EventEmitter } from "events";
  * OneUptime issue #3677 — the probe's NetBIOS NBSTAT lookup, for hosts with
  * no DNS record and no SNMP.
  *
- * NO TEST HERE TOUCHES THE NETWORK except the single end-to-end test at the
- * bottom, which talks to a responder it binds itself on 127.0.0.1. Everything
+ * NO TEST HERE TOUCHES THE NETWORK except the end-to-end tests at the bottom,
+ * which talk only to a responder they bind themselves on 127.0.0.1. Everything
  * else runs against a fake socket (an EventEmitter that records what it was
  * asked to send and replies on cue) and a fake clock whose `sleep` advances
  * time instead of waiting for it, so pacing, listening windows and the
@@ -170,6 +174,17 @@ class FakeSocket extends EventEmitter implements DgramSocketLike {
   public throwOnSetRecvBufferSize: boolean = false;
   // Called for every datagram handed to send(), to decide how to answer.
   public responder: ((query: SentQuery) => void) | undefined = undefined;
+  /*
+   * When set, decides how send() reports on each datagram instead of the
+   * default "succeeded, on the next microtask" (OneUptime issue #3916). The
+   * per-host status tells "asked and silent" from "never got out" by counting
+   * what the socket reported for every send, so those tests need reports that
+   * come late, never come, or come twice. Runs after failSendTo and
+   * throwOnSendTo, which still win; the responder is still called after it.
+   */
+  public reportSend:
+    | ((query: SentQuery, callback: (error: Error | null) => void) => void)
+    | undefined = undefined;
 
   public constructor(private clock: FakeClock) {
     super();
@@ -220,6 +235,12 @@ class FakeSocket extends EventEmitter implements DgramSocketLike {
       queueMicrotask(() => {
         callback(new Error(`send EHOSTUNREACH ${address}`));
       });
+      return;
+    }
+
+    if (this.reportSend) {
+      this.reportSend(query, callback);
+      this.responder?.(query);
       return;
     }
 
@@ -330,6 +351,129 @@ function resolverFor(
 
 function namesOf(resolution: NetbiosNameResolution): Record<string, string> {
   return Object.fromEntries(resolution.nameByIpAddress);
+}
+
+/*
+ * The per-address statuses (OneUptime issue #3916) as a plain object, so a
+ * failing assertion prints which address got which code. A resolution with
+ * no map at all prints as `undefined`, not as {}, so "the resolver forgot to
+ * fill it" cannot pass for "nothing was left unnamed".
+ */
+function statusesOf(
+  resolution: NetbiosNameResolution,
+): Record<string, DiscoveredHostNetbiosStatus> | undefined {
+  return resolution.statusByIpAddress
+    ? Object.fromEntries(resolution.statusByIpAddress)
+    : undefined;
+}
+
+// A status map giving every one of `addresses` the same code.
+function sameStatusFor(
+  addresses: Array<string>,
+  status: DiscoveredHostNetbiosStatus,
+): Array<[string, DiscoveredHostNetbiosStatus]> {
+  return addresses.map(
+    (address: string): [string, DiscoveredHostNetbiosStatus] => {
+      return [address, status];
+    },
+  );
+}
+
+// The statuses that mean the host was never sent a datagram at all.
+const NEVER_ASKED_STATUSES: ReadonlySet<DiscoveredHostNetbiosStatus> =
+  new Set<DiscoveredHostNetbiosStatus>([
+    DiscoveredHostNetbiosStatus.Skipped,
+    DiscoveredHostNetbiosStatus.SkippedHostCap,
+    DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+  ]);
+
+/*
+ * The contract statusByIpAddress exists to keep (#3916), checked whole:
+ *
+ *   - every distinct STRING passed in is named or has a status — never both,
+ *     never neither — and nothing else is in either map;
+ *   - every status is a code the dashboard's whitelist reads back as itself,
+ *     so none of them is silently dropped on the way to the Review dialog;
+ *   - the statuses agree with the counts the scan's status message is built
+ *     from: the never-asked ones (plus any entry that is not a string at all)
+ *     are skippedCount, the rest plus the names are queriedCount, the host-cap
+ *     ones are eligibleCount - maxHosts, and the ineligible ones are the
+ *     distinct strings the policy refused.
+ *
+ * A status map that drifted from the counts would have the Review dialog and
+ * the scan's status line telling the operator two different stories.
+ */
+function expectStatusPartition(
+  resolution: NetbiosNameResolution,
+  inputs: Array<unknown>,
+): void {
+  const statuses: Map<string, DiscoveredHostNetbiosStatus> | undefined =
+    resolution.statusByIpAddress;
+
+  expect(statuses).toBeInstanceOf(Map);
+
+  const distinctInputs: Array<unknown> = Array.isArray(inputs)
+    ? [...new Set<unknown>(inputs)]
+    : [];
+  const distinctStrings: Array<string> = distinctInputs.filter(
+    (value: unknown): value is string => {
+      return typeof value === "string";
+    },
+  );
+
+  const misfiled: Array<string> = [];
+
+  for (const address of distinctStrings) {
+    const isNamed: boolean = resolution.nameByIpAddress.has(address);
+    const hasStatus: boolean = statuses!.has(address);
+
+    if (isNamed === hasStatus) {
+      misfiled.push(
+        `${JSON.stringify(address)} is ${isNamed ? "both named and given a status" : "neither named nor given a status"}`,
+      );
+    }
+  }
+
+  expect(misfiled).toEqual([]);
+  expect(resolution.nameByIpAddress.size + statuses!.size).toBe(
+    distinctStrings.length,
+  );
+
+  const counts: Map<DiscoveredHostNetbiosStatus, number> = new Map<
+    DiscoveredHostNetbiosStatus,
+    number
+  >();
+
+  for (const status of statuses!.values()) {
+    expect(readDiscoveredHostNetbiosStatus(status)).toBe(status);
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+
+  let neverAskedCount: number = 0;
+  let askedCount: number = 0;
+
+  for (const [status, count] of counts) {
+    if (NEVER_ASKED_STATUSES.has(status)) {
+      neverAskedCount += count;
+    } else {
+      askedCount += count;
+    }
+  }
+
+  const nonStringCount: number = distinctInputs.length - distinctStrings.length;
+
+  expect(neverAskedCount + nonStringCount).toBe(resolution.skippedCount);
+  expect(askedCount + resolution.nameByIpAddress.size).toBe(
+    resolution.queriedCount,
+  );
+  expect(counts.get(DiscoveredHostNetbiosStatus.SkippedHostCap) ?? 0).toBe(
+    resolution.isHostCapReached
+      ? resolution.eligibleCount - resolution.maxHosts
+      : 0,
+  );
+  expect(
+    counts.get(DiscoveredHostNetbiosStatus.SkippedIneligibleAddress) ?? 0,
+  ).toBe(distinctStrings.length - resolution.eligibleCount);
 }
 
 let warnedMessages: Array<string> = [];
@@ -856,6 +1000,8 @@ describe("NetbiosNameResolver — addresses that are never sent anything", () =>
     expect(setup.createSocketCalls()).toBe(0);
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      // Present and empty: nothing was passed in, so nothing is unexplained.
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(),
       queriedCount: 0,
       skippedCount: 0,
       isTimeBudgetExhausted: false,
@@ -1848,6 +1994,13 @@ describe("NetbiosNameResolver — a budget sized to the lookup it runs", () => {
       expect(setup.clock.time - start).toBe(expectedBudgetInMs);
       expect(resolution).toEqual({
         nameByIpAddress: new Map<string, string>(),
+        // Every host was due a query and none got one: the socket never bound.
+        statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(
+          sameStatusFor(
+            privateAddresses(hostCount),
+            DiscoveredHostNetbiosStatus.Skipped,
+          ),
+        ),
         queriedCount: 0,
         skippedCount: hostCount,
         isTimeBudgetExhausted: true,
@@ -2306,6 +2459,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
     expect(setup.createSocketCalls()).toBe(0);
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(),
       queriedCount: 0,
       skippedCount: 0,
       isTimeBudgetExhausted: false,
@@ -2320,9 +2474,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
   it("when every address is refused — public, loopback, link-local, IPv6, non-strings, duplicates", async () => {
     const setup: Harness = harness();
 
-    const resolution: NetbiosNameResolution = await resolverFor(
-      setup,
-    ).resolveNames([
+    const inputs: Array<string> = [
       "8.8.8.8",
       "8.8.8.8",
       "127.0.0.1",
@@ -2332,11 +2484,25 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       null as unknown as string,
       undefined as unknown as string,
       "127.0.0.1",
-    ]);
+    ];
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(inputs);
 
     expect(setup.createSocketCalls()).toBe(0);
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      /*
+       * One entry per distinct STRING. 42, null and undefined are not
+       * addresses and have no key to be filed under; they are counted in
+       * skippedCount and nowhere else.
+       */
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(
+        sameStatusFor(
+          ["8.8.8.8", "127.0.0.1", "169.254.169.254", "::1"],
+          DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+        ),
+      ),
       queriedCount: 0,
       // Seven distinct inputs; the repeats are not counted twice.
       skippedCount: 7,
@@ -2347,6 +2513,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
       failureReason: undefined,
     });
+    expectStatusPartition(resolution, inputs);
   });
 
   it("counts only allowed addresses as eligible when refused ones are mixed in", async () => {
@@ -2355,9 +2522,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       setup.socket.answer(query, workstation("MIXED"));
     };
 
-    const resolution: NetbiosNameResolution = await resolverFor(
-      setup,
-    ).resolveNames([
+    const inputs: Array<string> = [
       "10.0.0.1",
       "8.8.8.8",
       "10.0.0.2",
@@ -2367,7 +2532,10 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       "100.64.0.1",
       "172.16.0.1",
       "192.168.1.1",
-    ]);
+    ];
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(inputs);
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>([
@@ -2377,6 +2545,13 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
         ["100.64.0.1", "mixed"],
         ["172.16.0.1", "mixed"],
       ]),
+      // Every allowed host answered; only the two refused ones are explained.
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(
+        sameStatusFor(
+          ["8.8.8.8", "127.0.0.1"],
+          DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+        ),
+      ),
       queriedCount: 5,
       skippedCount: 2,
       isTimeBudgetExhausted: false,
@@ -2386,6 +2561,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
       failureReason: undefined,
     });
+    expectStatusPartition(resolution, inputs);
   });
 
   it("counts distinct addresses as eligible, so repeats cannot trip the host cap", async () => {
@@ -2504,13 +2680,31 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
     const setup: Harness = harness();
     setup.failCreateSocketWith(new Error("EMFILE: too many open files"));
 
+    const inputs: Array<string> = [
+      "10.0.0.1",
+      "10.0.0.2",
+      "8.8.8.8",
+      "10.0.0.3",
+    ];
+
     const resolution: NetbiosNameResolution = await resolverFor(setup, {
       sendIntervalInMs: 1000,
       perHostTimeoutInMs: 20000,
-    }).resolveNames(["10.0.0.1", "10.0.0.2", "8.8.8.8", "10.0.0.3"]);
+    }).resolveNames(inputs);
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      /*
+       * The private hosts were due a query and never got one — Skipped, not
+       * NoReply: nothing was sent, so nothing can be said about them. The
+       * public one would not have been asked even with a working socket.
+       */
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.1", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.2", DiscoveredHostNetbiosStatus.Skipped],
+        ["8.8.8.8", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+        ["10.0.0.3", DiscoveredHostNetbiosStatus.Skipped],
+      ]),
       queriedCount: 0,
       skippedCount: 4,
       isTimeBudgetExhausted: false,
@@ -2521,6 +2715,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: 55000,
       failureReason: "EMFILE: too many open files",
     });
+    expectStatusPartition(resolution, inputs);
     // Nothing was waited on.
     expect(setup.clock.sleeps).toEqual([]);
   });
@@ -2539,12 +2734,29 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       }
     };
 
-    const resolution: NetbiosNameResolution = await resolverFor(
-      setup,
-    ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4", "1.1.1.1"]);
+    const inputs: Array<string> = [
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+      "10.0.0.4",
+      "1.1.1.1",
+    ];
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(inputs);
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>([["10.0.0.1", "early"]]),
+      /*
+       * .2's query got out before the socket failed and nothing answered it:
+       * NoReply. .3 and .4 were next in line when it failed: Skipped.
+       */
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.2", DiscoveredHostNetbiosStatus.NoReply],
+        ["10.0.0.3", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.4", DiscoveredHostNetbiosStatus.Skipped],
+        ["1.1.1.1", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+      ]),
       queriedCount: 2,
       skippedCount: 3,
       isTimeBudgetExhausted: false,
@@ -2554,6 +2766,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
       failureReason: "recvmsg ENOMEM",
     });
+    expectStatusPartition(resolution, inputs);
   });
 
   it("when the bind emits an error", async () => {
@@ -2566,6 +2779,16 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      /*
+       * The cap is applied before the socket, so the third host would not
+       * have been asked even by a socket that bound: it keeps SkippedHostCap
+       * rather than being folded into the socket's failure.
+       */
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.1", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.2", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.3", DiscoveredHostNetbiosStatus.SkippedHostCap],
+      ]),
       queriedCount: 0,
       skippedCount: 3,
       isTimeBudgetExhausted: false,
@@ -2575,6 +2798,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
       failureReason: "bind EACCES",
     });
+    expectStatusPartition(resolution, privateAddresses(3));
   });
 
   it("when the bind throws", async () => {
@@ -2587,6 +2811,10 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.1", DiscoveredHostNetbiosStatus.Skipped],
+        ["127.0.0.1", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+      ]),
       queriedCount: 0,
       skippedCount: 2,
       isTimeBudgetExhausted: false,
@@ -2596,6 +2824,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: 9000,
       failureReason: "bind EADDRINUSE",
     });
+    expectStatusPartition(resolution, ["10.0.0.1", "127.0.0.1"]);
   });
 
   it("when the bind never completes, with the cap also reached", async () => {
@@ -2609,6 +2838,16 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>(),
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ...sameStatusFor(
+          ["10.0.0.1", "10.0.0.2"],
+          DiscoveredHostNetbiosStatus.Skipped,
+        ),
+        ...sameStatusFor(
+          ["10.0.0.3", "10.0.0.4", "10.0.0.5"],
+          DiscoveredHostNetbiosStatus.SkippedHostCap,
+        ),
+      ]),
       queriedCount: 0,
       skippedCount: 5,
       isTimeBudgetExhausted: true,
@@ -2618,6 +2857,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: 5000,
       failureReason: "The UDP socket did not bind in time.",
     });
+    expectStatusPartition(resolution, privateAddresses(5));
     expect(setup.clock.sleeps).toEqual([5000]);
   });
 
@@ -2627,10 +2867,12 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       setup.socket.answer(query, workstation(`B-${query.address.slice(-1)}`));
     };
 
+    const inputs: Array<string> = [...privateAddresses(6), "8.8.8.8"];
+
     const resolution: NetbiosNameResolution = await resolverFor(setup, {
       maxHosts: 5,
       totalBudgetInMs: 25,
-    }).resolveNames([...privateAddresses(6), "8.8.8.8"]);
+    }).resolveNames(inputs);
 
     // Sends at +0, +10 and +20 of the five under the cap.
     expect(resolution).toEqual({
@@ -2638,6 +2880,18 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
         ["10.0.0.1", "b-1"],
         ["10.0.0.2", "b-2"],
         ["10.0.0.3", "b-3"],
+      ]),
+      /*
+       * Three distinct reasons for three hosts that were never asked: the
+       * clock (.4, .5), the cap (.6) and the address policy (8.8.8.8). The
+       * scan's one-line note can only say "cut short"; this says which host
+       * it cut.
+       */
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.4", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.5", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.6", DiscoveredHostNetbiosStatus.SkippedHostCap],
+        ["8.8.8.8", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
       ]),
       queriedCount: 3,
       skippedCount: 4,
@@ -2648,6 +2902,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: 25,
       failureReason: undefined,
     });
+    expectStatusPartition(resolution, inputs);
   });
 
   it("on an ordinary successful lookup", async () => {
@@ -2670,6 +2925,10 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
         ["10.0.0.1", "ok-1"],
         ["10.0.0.2", "ok-2"],
       ]),
+      // Asked on both passes, never answered.
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.3", DiscoveredHostNetbiosStatus.NoReply],
+      ]),
       queriedCount: 3,
       skippedCount: 0,
       isTimeBudgetExhausted: false,
@@ -2679,17 +2938,1018 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
       failureReason: undefined,
     });
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
+  });
+});
+
+describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpAddress, #3916)", () => {
+  /*
+   * OneUptime issue #3916. An ICMP-only scan of twelve kitchen displays named
+   * four of them and listed the other eight by address, and nothing anywhere
+   * said why. For NetBIOS the resolver already KNEW: its per-host state tells
+   * "asked twice and silent" from "answered with nothing to call it" from
+   * "never asked, and why". It threw that away and returned only the names
+   * and some totals, so the Review dialog showed the same bare address for all
+   * of them.
+   *
+   * These tests pin the per-address status that now carries it: one code per
+   * unnamed address, decided by what actually happened to THAT address, with
+   * the names and the codes together covering every distinct input exactly
+   * once (expectStatusPartition). Where more than one code could apply, what
+   * the host said wins: a name, then "answered without one", then "a query
+   * got out" over "every send failed".
+   */
+
+  it("the reported case: eight kitchen displays asked twice that never answer are each NoReply, not a bare address", async () => {
+    /*
+     * Only hosts SNMP and reverse DNS left unnamed are passed in, so these
+     * are the report's eight. Each is asked on the first pass and again on
+     * the retry, and nothing comes back. Before #3916 the resolution said
+     * "queriedCount: 8" and nothing about any one of them.
+     */
+    const kitchenDisplays: Array<string> = [
+      "10.16.42.51",
+      "10.16.42.53",
+      "10.16.42.55",
+      "10.16.42.57",
+      "10.16.42.58",
+      "10.16.42.61",
+      "10.16.42.62",
+      "10.16.42.63",
+    ];
+    const setup: Harness = harness();
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(kitchenDisplays);
+
+    expect(setup.socket.sentAddresses()).toEqual([
+      ...kitchenDisplays,
+      ...kitchenDisplays,
+    ]);
+    expect(namesOf(resolution)).toEqual({});
+    expect(statusesOf(resolution)).toEqual(
+      Object.fromEntries(
+        sameStatusFor(kitchenDisplays, DiscoveredHostNetbiosStatus.NoReply),
+      ),
+    );
+    expect(resolution.queriedCount).toBe(8);
+    expect(resolution.failureReason).toBeUndefined();
+    expectStatusPartition(resolution, kitchenDisplays);
+  });
+
+  it.each([
+    [
+      "only group names",
+      [
+        { name: "WBHQ", suffix: 0x00, flags: GROUP_ACTIVE },
+        { name: "WBHQ", suffix: 0x1e, flags: GROUP_ACTIVE },
+      ],
+    ],
+    [
+      "only the browser-election and IIS pseudo-names",
+      [
+        { name: "__MSBROWSE__", suffix: 0x00 },
+        { name: "IS~WEB01", suffix: 0x00 },
+      ],
+    ],
+    [
+      "names the naming rules refuse",
+      [
+        { name: "KDS.01", suffix: 0x00 },
+        { name: "KDS$", suffix: 0x00 },
+        { name: "0024", suffix: 0x20 },
+      ],
+    ],
+    [
+      "a unique name in conflict, and one being deregistered",
+      [
+        { name: "WB0024KDS01", suffix: 0x00, flags: UNIQUE_ACTIVE | 0x0800 },
+        { name: "WB0024KDS01", suffix: 0x20, flags: UNIQUE_ACTIVE | 0x1000 },
+      ],
+    ],
+    ["only a <03> messenger name", [{ name: "WB0024KDS01", suffix: 0x03 }]],
+    ["an empty name table", []],
+  ] as Array<[string, Array<TableEntry>]>)(
+    "files a host whose reply holds %s as NoUsableName, and does not ask it again",
+    async (_description: string, entries: Array<TableEntry>) => {
+      /*
+       * The host ANSWERED — the one status here that says something about
+       * the device rather than the path to it. Asking again would return the
+       * same table, so it is asked once, and it must not be reported as
+       * silent: "it answered, with nothing to call it" and "it never
+       * answered" send an operator in opposite directions.
+       */
+      const setup: Harness = harness();
+      setup.socket.responder = (query: SentQuery): void => {
+        setup.socket.answer(query, entries);
+      };
+
+      const resolution: NetbiosNameResolution = await resolverFor(
+        setup,
+      ).resolveNames(["10.0.0.1"]);
+
+      expect(namesOf(resolution)).toEqual({});
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": DiscoveredHostNetbiosStatus.NoUsableName,
+      });
+      expect(setup.socket.sentAddresses()).toEqual(["10.0.0.1"]);
+      expectStatusPartition(resolution, ["10.0.0.1"]);
+    },
+  );
+
+  it("a host that misses the first pass and answers the retry is named, with no status", async () => {
+    /*
+     * What the retry is for — one datagram lost either way — and the proof
+     * that a host's first-pass silence is not left behind as a status once
+     * the retry names it. Its neighbour, silent on both, is NoReply.
+     */
+    const setup: Harness = harness();
+    const askedCount: Map<string, number> = new Map<string, number>();
+
+    setup.socket.responder = (query: SentQuery): void => {
+      const count: number = (askedCount.get(query.address) ?? 0) + 1;
+      askedCount.set(query.address, count);
+
+      if (query.address === "10.0.0.1" && count === 2) {
+        setup.socket.answer(query, workstation("SECOND-TIME"));
+      }
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.1",
+      "10.0.0.2",
+    ]);
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "second-time" });
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+    });
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2"]);
+  });
+
+  it("a late answer to the first pass, landing while the retry is paced, names the host", async () => {
+    const setup: Harness = harness();
+    const firstQueries: Array<SentQuery> = [];
+
+    setup.socket.responder = (query: SentQuery): void => {
+      firstQueries.push(query);
+    };
+
+    setup.clock.onSleep = (durationInMs: number): void => {
+      if (durationInMs === DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS) {
+        setup.socket.answer(firstQueries[0]!, workstation("SLOW"));
+      }
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "slow" });
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+    });
+  });
+
+  it("files a host whose send callback reports an error as SendFailed, asked once", async () => {
+    const setup: Harness = harness();
+    setup.socket.failSendTo.add("10.0.0.2");
+    setup.socket.responder = (query: SentQuery): void => {
+      setup.socket.answer(query, workstation(`OK-${query.address.slice(-1)}`));
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
+
+    expect(namesOf(resolution)).toEqual({
+      "10.0.0.1": "ok-1",
+      "10.0.0.3": "ok-3",
+    });
+    /*
+     * Not NoReply: the datagram never left the probe, so the host was never
+     * asked, and "it did not answer" would blame a device for the probe's
+     * own routing or firewall.
+     */
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.2": DiscoveredHostNetbiosStatus.SendFailed,
+    });
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+    ]);
+    // Counted as queried, as it always was: a query was handed to the socket.
+    expect(resolution.queriedCount).toBe(3);
+    expect(resolution.failureReason).toBeUndefined();
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
+  });
+
+  it("files a host whose send throws synchronously as SendFailed", async () => {
+    const setup: Harness = harness();
+    setup.socket.throwOnSendTo.add("10.0.0.1");
+    setup.socket.responder = (query: SentQuery): void => {
+      setup.socket.answer(query, workstation("SURVIVOR"));
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "survivor" });
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.SendFailed,
+    });
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2"]);
+  });
+
+  it("a host whose first query got out and whose retry failed to send is NoReply, not SendFailed", async () => {
+    /*
+     * The precedence the per-send counts exist for. .1's first query leaves
+     * the probe and goes unanswered; only then does its route break, so the
+     * retry fails. It WAS asked, and did not answer — the send failure is
+     * about the second datagram, not the host. .2, whose only send failed,
+     * is the contrast: never asked, never retried.
+     */
+    const setup: Harness = harness();
+    setup.socket.failSendTo.add("10.0.0.2");
+    setup.socket.responder = (query: SentQuery): void => {
+      if (query.address === "10.0.0.1") {
+        setup.socket.failSendTo.add("10.0.0.1");
+      }
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.1",
+    ]);
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.2": DiscoveredHostNetbiosStatus.SendFailed,
+    });
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2"]);
+  });
+
+  it("a host that answers although its send was reported failed is named — or NoUsableName — never SendFailed", async () => {
+    /*
+     * A send callback's error is the socket's opinion; a matching reply from
+     * the host's own port is proof the question arrived. acceptReply takes
+     * such a reply, and the status must follow the reply rather than the
+     * error: .2 answers with a name and is named, .3 answers with only a
+     * group and is NoUsableName. .1 stays silent throughout, which keeps the
+     * listening window open for the two replies to land in.
+     */
+    const setup: Harness = harness();
+    setup.socket.failSendTo.add("10.0.0.2");
+    setup.socket.failSendTo.add("10.0.0.3");
+
+    let hasAnswered: boolean = false;
+
+    setup.clock.onSleepStart = (durationInMs: number): void => {
+      if (
+        durationInMs !== DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS ||
+        hasAnswered
+      ) {
+        return;
+      }
+
+      hasAnswered = true;
+
+      const queryTo: (address: string) => SentQuery = (
+        address: string,
+      ): SentQuery => {
+        return setup.socket.sent.find((query: SentQuery) => {
+          return query.address === address;
+        })!;
+      };
+
+      setup.socket.answer(queryTo("10.0.0.2"), workstation("GOT-OUT-ANYWAY"));
+      setup.socket.answer(queryTo("10.0.0.3"), [
+        { name: "WBHQ", suffix: 0x00, flags: GROUP_ACTIVE },
+      ]);
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
+
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "got-out-anyway" });
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.3": DiscoveredHostNetbiosStatus.NoUsableName,
+    });
+    // Only the silent host is retried.
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+      "10.0.0.1",
+    ]);
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
+  });
+
+  it("a send the socket never reports on counts as one that got out: NoReply, and retried", async () => {
+    /*
+     * Only a REPORTED failure closes a host out. A send with no report yet
+     * was handed to the socket and may well have left, so the host stays
+     * outstanding, is asked again on the retry, and ends as NoReply — never
+     * SendFailed on the strength of a report that never came.
+     */
+    const setup: Harness = harness();
+    setup.socket.reportSend = (): void => {
+      // Never calls back.
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1"]);
+
+    expect(setup.socket.sentAddresses()).toEqual(["10.0.0.1", "10.0.0.1"]);
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+    });
+  });
+
+  it.each([
+    [
+      "both sends fail, reported only after the retry went out",
+      [new Error("send EHOSTUNREACH"), new Error("send EHOSTUNREACH")],
+      DiscoveredHostNetbiosStatus.SendFailed,
+    ],
+    [
+      "the first send fails late, but the retry got out",
+      [new Error("send EHOSTUNREACH"), null],
+      DiscoveredHostNetbiosStatus.NoReply,
+    ],
+    [
+      "the first send got out, and the retry failed",
+      [null, new Error("send EHOSTUNREACH")],
+      DiscoveredHostNetbiosStatus.NoReply,
+    ],
+    [
+      "the first send fails late, and the retry is never reported on",
+      [new Error("send EHOSTUNREACH"), undefined],
+      DiscoveredHostNetbiosStatus.NoReply,
+    ],
+  ] as Array<
+    [string, Array<Error | null | undefined>, DiscoveredHostNetbiosStatus]
+  >)(
+    "counts every send's report, however late: %s",
+    async (
+      _description: string,
+      reports: Array<Error | null | undefined>,
+      expectedStatus: DiscoveredHostNetbiosStatus,
+    ) => {
+      /*
+       * SendFailed means EVERY send failed — read from a count per send, not
+       * from hasSendFailed, which is set by the first failure and says
+       * nothing about the other datagram. Here neither send is reported on
+       * until the retry is already out, and then each gets its own report
+       * (undefined: none at all). One failure out of two sends is a host
+       * that was asked; two out of two is one that never was.
+       */
+      const setup: Harness = harness();
+      const callbacks: Array<(error: Error | null) => void> = [];
+      let windowCount: number = 0;
+
+      setup.socket.reportSend = (
+        _query: SentQuery,
+        callback: (error: Error | null) => void,
+      ): void => {
+        callbacks.push(callback);
+      };
+
+      setup.clock.onSleepStart = (durationInMs: number): void => {
+        if (durationInMs !== DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS) {
+          return;
+        }
+
+        windowCount++;
+
+        if (windowCount !== 2) {
+          return;
+        }
+
+        reports.forEach((report: Error | null | undefined, index: number) => {
+          if (report !== undefined) {
+            callbacks[index]!(report);
+          }
+        });
+      };
+
+      const resolution: NetbiosNameResolution = await resolverFor(
+        setup,
+      ).resolveNames(["10.0.0.1"]);
+
+      expect(callbacks).toHaveLength(2);
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": expectedStatus,
+      });
+      expect(resolution.queriedCount).toBe(1);
+      expectStatusPartition(resolution, ["10.0.0.1"]);
+    },
+  );
+
+  it.each([
+    [
+      "calls back with an error twice",
+      (callback: (error: Error | null) => void): void => {
+        queueMicrotask(() => {
+          callback(new Error("send EPERM"));
+          callback(new Error("send EPERM, again"));
+        });
+      },
+    ],
+    [
+      "calls back with an error and then throws",
+      (callback: (error: Error | null) => void): void => {
+        callback(new Error("send EPERM"));
+        throw new Error("send EPERM, thrown");
+      },
+    ],
+  ] as Array<[string, (callback: (error: Error | null) => void) => void]>)(
+    "a socket that %s for the retry cannot turn a host whose first query got out into SendFailed",
+    async (
+      _description: string,
+      reportRetry: (callback: (error: Error | null) => void) => void,
+    ) => {
+      /*
+       * One failed send, reported twice, is still one failed send. Counted
+       * twice it would equal the host's two sends, and a host that WAS asked
+       * — its first query got out — would be filed as one the probe could
+       * not reach.
+       */
+      const setup: Harness = harness();
+      let sendCount: number = 0;
+
+      setup.socket.reportSend = (
+        _query: SentQuery,
+        callback: (error: Error | null) => void,
+      ): void => {
+        sendCount++;
+
+        if (sendCount === 1) {
+          queueMicrotask(() => {
+            callback(null);
+          });
+          return;
+        }
+
+        reportRetry(callback);
+      };
+
+      const resolution: NetbiosNameResolution = await resolverFor(
+        setup,
+      ).resolveNames(["10.0.0.1"]);
+
+      expect(sendCount).toBe(2);
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      });
+      expect(resolution.failureReason).toBeUndefined();
+    },
+  );
+
+  it.each([
+    [
+      "calls back with success and then throws",
+      (callback: (error: Error | null) => void): void => {
+        callback(null);
+        throw new Error("send EPERM, thrown after reporting success");
+      },
+    ],
+    [
+      "calls back with success and then with an error",
+      (callback: (error: Error | null) => void): void => {
+        queueMicrotask(() => {
+          callback(null);
+          callback(new Error("send EPERM, reported after success"));
+        });
+      },
+    ],
+  ] as Array<[string, (callback: (error: Error | null) => void) => void]>)(
+    "a socket that %s on EVERY send still leaves a host whose datagrams left NoReply, retry and all",
+    async (
+      _description: string,
+      reportSend: (callback: (error: Error | null) => void) => void,
+    ) => {
+      /*
+       * The success report settles the send (#3916): the datagram left the
+       * probe, and whatever the socket says about it afterwards is not a
+       * second verdict. On EVERY send, not just the retry, because that is
+       * where a late "failure" would do its damage — counted against the
+       * first send, it equals the host's one send so far, the host is closed
+       * out as unreachable, and its retry is never sent. A host that was
+       * asked twice and stayed silent would be filed SendFailed after one
+       * query. (The it.each above varies only the retry, where one false
+       * failure is still fewer than two sends, so it cannot see this.)
+       *
+       * No real dgram socket does either — its callback is always
+       * asynchronous and its synchronous throws come before any callback —
+       * which is why this is pinned rather than observed.
+       */
+      const setup: Harness = harness();
+      let sendCount: number = 0;
+
+      setup.socket.reportSend = (
+        _query: SentQuery,
+        callback: (error: Error | null) => void,
+      ): void => {
+        sendCount++;
+        reportSend(callback);
+      };
+
+      const resolution: NetbiosNameResolution = await resolverFor(
+        setup,
+      ).resolveNames(["10.0.0.1"]);
+
+      // The first query and its retry: nothing closed the host out early.
+      expect(sendCount).toBe(2);
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      });
+      expect(resolution.queriedCount).toBe(1);
+      expect(resolution.failureReason).toBeUndefined();
+      expectStatusPartition(resolution, ["10.0.0.1"]);
+    },
+  );
+
+  it("files every address the policy refuses as SkippedIneligibleAddress, keyed exactly as passed in", async () => {
+    /*
+     * Keyed VERBATIM — " 10.0.0.1" with its space, "010.0.0.1" with its zero
+     * — because the caller looks each host up by the string it passed, and a
+     * normalised key would find nothing. Entries that are not strings are not
+     * addresses and get no key at all.
+     */
+    const setup: Harness = harness();
+    setup.socket.responder = (query: SentQuery): void => {
+      setup.socket.answer(query, workstation("PRIVATE"));
+    };
+
+    const refused: Array<string> = [
+      "8.8.8.8",
+      "127.0.0.1",
+      "169.254.169.254",
+      "::1",
+      "fe80::1",
+      "::ffff:10.0.0.1",
+      " 10.0.0.1",
+      "010.0.0.1",
+      "10.0.0.256",
+      "printer.corp.example.com",
+      "",
+    ];
+    const inputs: Array<string> = [
+      ...refused,
+      42 as unknown as string,
+      null as unknown as string,
+      undefined as unknown as string,
+      "10.0.0.5",
+    ];
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(inputs);
+
+    expect(setup.socket.sentAddresses()).toEqual(["10.0.0.5"]);
+    expect(namesOf(resolution)).toEqual({ "10.0.0.5": "private" });
+    expect(resolution.statusByIpAddress).toEqual(
+      new Map<string, DiscoveredHostNetbiosStatus>(
+        sameStatusFor(
+          refused,
+          DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+        ),
+      ),
+    );
+    expect(resolution.statusByIpAddress!.has(" 10.0.0.1")).toBe(true);
+    expect(resolution.statusByIpAddress!.has("10.0.0.1")).toBe(false);
+    expectStatusPartition(resolution, inputs);
+  });
+
+  it("files addresses by the policy's own verdict, including an injected policy and one that throws", async () => {
+    /*
+     * Eligibility is whatever the address policy said, not a second opinion
+     * formed here: a private address an injected policy refuses is
+     * ineligible, and a policy that throws has refused everything.
+     */
+    const pickySetup: Harness = harness();
+
+    const picky: NetbiosNameResolution = await resolverFor(pickySetup, {
+      retryPasses: 0,
+      isAddressAllowed: (ipAddress: string): boolean => {
+        return ipAddress === "10.0.0.2";
+      },
+    }).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(pickySetup.socket.sentAddresses()).toEqual(["10.0.0.2"]);
+    expect(statusesOf(picky)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+    });
+    expectStatusPartition(picky, ["10.0.0.1", "10.0.0.2"]);
+
+    const brokenSetup: Harness = harness();
+
+    const broken: NetbiosNameResolution = await resolverFor(brokenSetup, {
+      isAddressAllowed: (): boolean => {
+        throw new Error("policy exploded");
+      },
+    }).resolveNames(["10.0.0.1"]);
+
+    expect(brokenSetup.createSocketCalls()).toBe(0);
+    expect(statusesOf(broken)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+    });
+  });
+
+  it("files the eligible hosts past the cap as SkippedHostCap, in address order after the ones asked", async () => {
+    const setup: Harness = harness();
+
+    const resolution: NetbiosNameResolution = await resolverFor(setup, {
+      maxHosts: 2,
+      retryPasses: 0,
+    }).resolveNames(privateAddresses(5));
+
+    expect(setup.socket.sentAddresses()).toEqual(["10.0.0.1", "10.0.0.2"]);
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.3": DiscoveredHostNetbiosStatus.SkippedHostCap,
+      "10.0.0.4": DiscoveredHostNetbiosStatus.SkippedHostCap,
+      "10.0.0.5": DiscoveredHostNetbiosStatus.SkippedHostCap,
+    });
+    expect(resolution.eligibleCount - resolution.maxHosts).toBe(3);
+    expectStatusPartition(resolution, privateAddresses(5));
+  });
+
+  it("files the hosts the budget never reached as Skipped, and the ones it did as NoReply", async () => {
+    const setup: Harness = harness();
+
+    const resolution: NetbiosNameResolution = await resolverFor(setup, {
+      totalBudgetInMs: 25,
+    }).resolveNames(privateAddresses(5));
+
+    // Sends at +0, +10 and +20; the one due at +30 is past the 25ms budget.
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+    ]);
+    expect(resolution.isTimeBudgetExhausted).toBe(true);
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.3": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.4": DiscoveredHostNetbiosStatus.Skipped,
+      "10.0.0.5": DiscoveredHostNetbiosStatus.Skipped,
+    });
+    expectStatusPartition(resolution, privateAddresses(5));
+  });
+
+  it("a host the budget let be asked once but not retried is NoReply, not Skipped", async () => {
+    /*
+     * The budget runs out partway through the RETRY pass: .1 and .2 are
+     * asked twice, .3 only once. All three were asked and none answered —
+     * Skipped is only for a host that never got a single query.
+     */
+    const setup: Harness = harness();
+
+    const resolution: NetbiosNameResolution = await resolverFor(setup, {
+      perHostTimeoutInMs: 100,
+      totalBudgetInMs: 135,
+    }).resolveNames(privateAddresses(3));
+
+    // Pass one at +0/+10/+20, a 100ms window, then +120 and +130; +140 is late.
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+      "10.0.0.1",
+      "10.0.0.2",
+    ]);
+    expect(resolution.isTimeBudgetExhausted).toBe(true);
+    expect(statusesOf(resolution)).toEqual(
+      Object.fromEntries(
+        sameStatusFor(privateAddresses(3), DiscoveredHostNetbiosStatus.NoReply),
+      ),
+    );
+    expectStatusPartition(resolution, privateAddresses(3));
+  });
+
+  it.each([
+    ["the socket cannot be created", "create"],
+    ["the bind emits an error", "error"],
+    ["the bind throws", "throw"],
+    ["the bind never completes", "never"],
+  ] as Array<[string, "create" | "error" | "throw" | "never"]>)(
+    "when %s, every host due a query is Skipped, and the cap and policy keep their own codes",
+    async (
+      _description: string,
+      failure: "create" | "error" | "throw" | "never",
+    ) => {
+      /*
+       * Nothing was sent, so nothing can be said about any host that was due
+       * a query: Skipped, never NoReply. The scan's note carries WHY (the
+       * socket's failureReason); the per-host code says only that this host
+       * was never asked. The hosts the cap or the policy left out would not
+       * have been asked by a working socket either, and say so.
+       */
+      const setup: Harness = harness();
+
+      if (failure === "create") {
+        setup.failCreateSocketWith(new Error("EMFILE: too many open files"));
+      } else {
+        setup.socket.bindBehaviour = failure;
+      }
+
+      const inputs: Array<string> = [...privateAddresses(4), "8.8.8.8"];
+
+      const resolution: NetbiosNameResolution = await resolverFor(setup, {
+        maxHosts: 3,
+        totalBudgetInMs: 5000,
+      }).resolveNames(inputs);
+
+      expect(setup.socket.sent).toHaveLength(0);
+      expect(resolution.failureReason).toBeDefined();
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": DiscoveredHostNetbiosStatus.Skipped,
+        "10.0.0.2": DiscoveredHostNetbiosStatus.Skipped,
+        "10.0.0.3": DiscoveredHostNetbiosStatus.Skipped,
+        "10.0.0.4": DiscoveredHostNetbiosStatus.SkippedHostCap,
+        "8.8.8.8": DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+      });
+      expectStatusPartition(resolution, inputs);
+    },
+  );
+
+  it("when the socket fails during the listening window, the hosts already asked are NoReply", async () => {
+    const setup: Harness = harness();
+    setup.clock.onSleep = (durationInMs: number): void => {
+      if (durationInMs === DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS) {
+        setup.socket.emit("error", new Error("socket closed underneath"));
+      }
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(["10.0.0.1", "10.0.0.2"]);
+
+    expect(resolution.failureReason).toBe("socket closed underneath");
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
+    });
+    expectStatusPartition(resolution, ["10.0.0.1", "10.0.0.2"]);
+  });
+
+  it("gives one status per distinct address, however often it was passed in", async () => {
+    const setup: Harness = harness();
+    setup.socket.responder = (query: SentQuery): void => {
+      if (query.address === "10.0.0.2") {
+        setup.socket.answer(query, workstation("ONCE"));
+      }
+    };
+
+    const inputs: Array<string> = [
+      "10.0.0.1",
+      "10.0.0.1",
+      "8.8.8.8",
+      "10.0.0.2",
+      "8.8.8.8",
+      "10.0.0.1",
+      "10.0.0.2",
+    ];
+
+    const resolution: NetbiosNameResolution =
+      await resolverFor(setup).resolveNames(inputs);
+
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.1",
+    ]);
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "once" });
+    expect(resolution.statusByIpAddress).toEqual(
+      new Map<string, DiscoveredHostNetbiosStatus>([
+        ["10.0.0.1", DiscoveredHostNetbiosStatus.NoReply],
+        ["8.8.8.8", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+      ]),
+    );
+    expectStatusPartition(resolution, inputs);
+  });
+
+  it("partitions a batch holding every status the resolver can give, and agrees with every count", async () => {
+    /*
+     * Every way a host can come out of one lookup, at once:
+     *
+     *   .1  answers with a name                 named
+     *   .2  answers with only a group           NoUsableName
+     *   .3  silent                              NoReply
+     *   .4  its send callback reports an error  SendFailed
+     *   .5  its send throws                     SendFailed
+     *   .6  the 45ms budget runs out first      Skipped
+     *   .7, .8  past the cap of six             SkippedHostCap
+     *   8.8.8.8, "", ::1                        SkippedIneligibleAddress
+     *
+     * with duplicates and non-strings mixed in. Sends go out at +0 ... +40;
+     * the one due at +50 is past the budget.
+     */
+    const setup: Harness = harness();
+    setup.socket.failSendTo.add("10.0.0.4");
+    setup.socket.throwOnSendTo.add("10.0.0.5");
+    setup.socket.responder = (query: SentQuery): void => {
+      if (query.address === "10.0.0.1") {
+        setup.socket.answer(query, workstation("WB0024KDS02"));
+      }
+
+      if (query.address === "10.0.0.2") {
+        setup.socket.answer(query, [
+          { name: "WBHQ", suffix: 0x00, flags: GROUP_ACTIVE },
+        ]);
+      }
+    };
+
+    const inputs: Array<string> = [
+      "10.0.0.1",
+      "8.8.8.8",
+      "10.0.0.2",
+      "10.0.0.1",
+      "10.0.0.3",
+      "",
+      "10.0.0.4",
+      42 as unknown as string,
+      "10.0.0.5",
+      "::1",
+      "10.0.0.6",
+      "10.0.0.7",
+      "8.8.8.8",
+      "10.0.0.8",
+      null as unknown as string,
+    ];
+
+    const resolution: NetbiosNameResolution = await resolverFor(setup, {
+      maxHosts: 6,
+      totalBudgetInMs: 45,
+    }).resolveNames(inputs);
+
+    expect(setup.socket.sentAddresses()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+      "10.0.0.4",
+    ]);
+    expect(resolution).toEqual({
+      nameByIpAddress: new Map<string, string>([["10.0.0.1", "wb0024kds02"]]),
+      statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
+        ["8.8.8.8", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+        ["10.0.0.2", DiscoveredHostNetbiosStatus.NoUsableName],
+        ["10.0.0.3", DiscoveredHostNetbiosStatus.NoReply],
+        ["", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+        ["10.0.0.4", DiscoveredHostNetbiosStatus.SendFailed],
+        ["10.0.0.5", DiscoveredHostNetbiosStatus.SendFailed],
+        ["::1", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
+        ["10.0.0.6", DiscoveredHostNetbiosStatus.Skipped],
+        ["10.0.0.7", DiscoveredHostNetbiosStatus.SkippedHostCap],
+        ["10.0.0.8", DiscoveredHostNetbiosStatus.SkippedHostCap],
+      ]),
+      queriedCount: 5,
+      // 13 distinct inputs, five of them asked.
+      skippedCount: 8,
+      isTimeBudgetExhausted: true,
+      isHostCapReached: true,
+      eligibleCount: 8,
+      maxHosts: 6,
+      totalBudgetInMs: 45,
+      failureReason: undefined,
+    });
+    expectStatusPartition(resolution, inputs);
+
+    /*
+     * Every code the resolver owns was reached, and the one it does not —
+     * a global probe never runs this lookup at all, so that code is stamped
+     * by the scan job — never appears.
+     */
+    expect([...new Set(resolution.statusByIpAddress!.values())].sort()).toEqual(
+      [
+        DiscoveredHostNetbiosStatus.NoReply,
+        DiscoveredHostNetbiosStatus.NoUsableName,
+        DiscoveredHostNetbiosStatus.SendFailed,
+        DiscoveredHostNetbiosStatus.Skipped,
+        DiscoveredHostNetbiosStatus.SkippedHostCap,
+        DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+      ].sort(),
+    );
+  });
+
+  it("is present and empty when every host was named, and when nothing usable was passed in", async () => {
+    /*
+     * Always a Map, so a reader can tell "the resolver had nothing to
+     * explain" from "a resolver (or a stub) that predates #3916".
+     */
+    const setup: Harness = harness();
+    setup.socket.responder = (query: SentQuery): void => {
+      setup.socket.answer(query, workstation(`ALL-${query.address.slice(-1)}`));
+    };
+
+    const allNamed: NetbiosNameResolution = await resolverFor(
+      setup,
+    ).resolveNames(privateAddresses(3));
+
+    expect(Object.keys(namesOf(allNamed))).toHaveLength(3);
+    expect(statusesOf(allNamed)).toEqual({});
+
+    const notAnArray: NetbiosNameResolution = await resolverFor(
+      harness(),
+    ).resolveNames(undefined as unknown as Array<string>);
+
+    expect(statusesOf(notAnArray)).toEqual({});
+    expectStatusPartition(notAnArray, undefined as unknown as Array<unknown>);
+  });
+
+  it("is a snapshot: a send failure or reply reported after the lookup returned changes nothing", async () => {
+    /*
+     * nameByIpAddress is handed back live, but late events are ignored, and
+     * the status map is built fresh at the moment the lookup returns. A send
+     * callback that fires afterwards must not turn a reported NoReply into
+     * SendFailed in a resolution the scan has already been given.
+     */
+    const setup: Harness = harness();
+    const callbacks: Array<(error: Error | null) => void> = [];
+    const queries: Array<SentQuery> = [];
+
+    setup.socket.reportSend = (
+      query: SentQuery,
+      callback: (error: Error | null) => void,
+    ): void => {
+      queries.push(query);
+      callbacks.push(callback);
+    };
+
+    const resolution: NetbiosNameResolution = await resolverFor(setup, {
+      retryPasses: 0,
+    }).resolveNames(["10.0.0.1"]);
+
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+    });
+
+    callbacks[0]!(new Error("send EHOSTUNREACH, far too late"));
+    setup.socket.answer(queries[0]!, workstation("TOO-LATE"));
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+
+    expect(namesOf(resolution)).toEqual({});
+    expect(statusesOf(resolution)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+    });
+  });
+
+  it("builds each lookup's statuses afresh on a reused resolver", async () => {
+    const setup: Harness = harness();
+    const resolver: NetbiosNameResolver = resolverFor(setup, {
+      retryPasses: 0,
+    });
+
+    const first: NetbiosNameResolution = await resolver.resolveNames([
+      "10.0.0.1",
+    ]);
+
+    setup.socket.responder = (query: SentQuery): void => {
+      setup.socket.answer(query, workstation("NOW-ANSWERS"));
+    };
+
+    const second: NetbiosNameResolution = await resolver.resolveNames([
+      "10.0.0.1",
+    ]);
+
+    expect(statusesOf(first)).toEqual({
+      "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+    });
+    expect(namesOf(second)).toEqual({ "10.0.0.1": "now-answers" });
+    expect(statusesOf(second)).toEqual({});
+    expect(second.statusByIpAddress).not.toBe(first.statusByIpAddress);
   });
 });
 
 describe("NetbiosNameResolver — end to end over a real UDP socket", () => {
   /*
-   * The one test that opens real sockets, both of them on this machine: a
+   * The only tests that open real sockets, all of them on this machine: a
    * responder bound to an ephemeral port on 127.0.0.1 that answers NBSTAT the
-   * way a Windows host does, and the resolver's own socket. Loopback is
-   * refused by the production policy (see "the real address policy still
-   * refuses 127.0.0.1" above), so this test — and only this test — passes an
-   * address policy that allows it.
+   * way a Windows host does (or, for the #3916 status tests, stays silent or
+   * answers with nothing to call the host), and the resolver's own socket.
+   * Loopback is refused by the production policy (see "the real address
+   * policy still refuses 127.0.0.1" above), so these tests — and only these
+   * — pass an address policy that allows it.
    *
    * It proves what the fake socket cannot: that dgram's real bind/send/message
    * shapes match DgramSocketLike, that the query bytes survive the kernel, and
@@ -2733,6 +3993,8 @@ describe("NetbiosNameResolver — end to end over a real UDP socket", () => {
       ]);
 
       expect(namesOf(resolution)).toEqual({ "127.0.0.1": "loopback-host" });
+      // Named, so there is nothing to explain.
+      expect(statusesOf(resolution)).toEqual({});
       expect(resolution.failureReason).toBeUndefined();
       expect(resolution.queriedCount).toBe(1);
       expect(receivedQueries).toHaveLength(1);
@@ -2745,5 +4007,118 @@ describe("NetbiosNameResolver — end to end over a real UDP socket", () => {
         responder.close(resolve);
       });
     }
+  });
+
+  /*
+   * The same responder, made to hear every query and answer it with `reply`
+   * (or not at all, when `reply` returns undefined), then closed whatever
+   * happens. Loopback only: the resolver it hands over may ask 127.0.0.1 and
+   * nothing else.
+   */
+  async function withLoopbackResponder(
+    reply: (query: Buffer) => Buffer | undefined,
+    test: (
+      resolver: NetbiosNameResolver,
+      receivedQueries: Array<Buffer>,
+    ) => Promise<void>,
+  ): Promise<void> {
+    const responder: dgram.Socket = dgram.createSocket("udp4");
+    const receivedQueries: Array<Buffer> = [];
+
+    responder.on("message", (message: Buffer, remote: dgram.RemoteInfo) => {
+      receivedQueries.push(message);
+
+      const answer: Buffer | undefined = reply(message);
+
+      if (answer) {
+        responder.send(answer, remote.port, remote.address);
+      }
+    });
+
+    await new Promise<void>((resolve: () => void) => {
+      responder.bind(0, "127.0.0.1", resolve);
+    });
+
+    try {
+      await test(
+        new NetbiosNameResolver({
+          createSocket: (): DgramSocketLike => {
+            return dgram.createSocket("udp4");
+          },
+          port: responder.address().port,
+          // Short, so a silent responder costs two fifths of a second.
+          perHostTimeoutInMs: 200,
+          totalBudgetInMs: 8000,
+          isAddressAllowed: (ipAddress: string): boolean => {
+            return ipAddress === "127.0.0.1";
+          },
+        }),
+        receivedQueries,
+      );
+    } finally {
+      await new Promise<void>((resolve: () => void) => {
+        responder.close(resolve);
+      });
+    }
+  }
+
+  it("files a host that hears both real queries and answers neither as NoReply (#3916)", async () => {
+    /*
+     * The customer's case with the network taken out: the query demonstrably
+     * ARRIVED — twice, the first pass and the retry — and nothing came back.
+     * That is NoReply, and it takes a real dgram send callback reporting
+     * success to get there rather than to SendFailed. The public address
+     * beside it is refused by the policy before any socket sees it.
+     */
+    await withLoopbackResponder(
+      (): Buffer | undefined => {
+        return undefined;
+      },
+      async (
+        resolver: NetbiosNameResolver,
+        receivedQueries: Array<Buffer>,
+      ): Promise<void> => {
+        const inputs: Array<string> = ["127.0.0.1", "8.8.8.8"];
+        const resolution: NetbiosNameResolution =
+          await resolver.resolveNames(inputs);
+
+        expect(namesOf(resolution)).toEqual({});
+        expect(statusesOf(resolution)).toEqual({
+          "127.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+          "8.8.8.8": DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+        });
+        expect(receivedQueries).toHaveLength(2);
+        expect(resolution.failureReason).toBeUndefined();
+        expect(resolution.isTimeBudgetExhausted).toBe(false);
+        expectStatusPartition(resolution, inputs);
+      },
+    );
+  });
+
+  it("files a host whose real reply holds only group names as NoUsableName, asked once (#3916)", async () => {
+    await withLoopbackResponder(
+      (query: Buffer): Buffer | undefined => {
+        return buildReply(query.readUInt16BE(0), [
+          { name: "WBHQ", suffix: 0x00, flags: GROUP_ACTIVE },
+          { name: "WBHQ", suffix: 0x1e, flags: GROUP_ACTIVE },
+        ]);
+      },
+      async (
+        resolver: NetbiosNameResolver,
+        receivedQueries: Array<Buffer>,
+      ): Promise<void> => {
+        const resolution: NetbiosNameResolution = await resolver.resolveNames([
+          "127.0.0.1",
+        ]);
+
+        expect(namesOf(resolution)).toEqual({});
+        expect(statusesOf(resolution)).toEqual({
+          "127.0.0.1": DiscoveredHostNetbiosStatus.NoUsableName,
+        });
+        // It answered, so it was not asked again.
+        expect(receivedQueries).toHaveLength(1);
+        expect(resolution.failureReason).toBeUndefined();
+      },
+    );
   });
 });

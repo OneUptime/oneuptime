@@ -32,6 +32,17 @@ import { beforeEach, jest } from "@jest/globals";
  * naming (Jobs/Discovery/DiscoveryReverseDns.test.ts) install their own spy
  * instead.
  *
+ * It reports no per-address status either (OneUptime issue #3916), and no
+ * failure count — deliberately, although the real resolver reports both. A
+ * status table would stamp `dnsHostnameStatus: "no-record"` on every unnamed
+ * host in every suite that installs this, and each of their host literals
+ * would stop matching the sweep they describe for a reason that has nothing
+ * to do with what they test. A resolution without the table is the shape the
+ * scanner reads as "no codes reported", so hosts keep no key at all. Suites
+ * that ARE about the codes (Jobs/Discovery/DiscoveryHostNamingStatus.test.ts,
+ * Utils/Discovery/SubnetScannerNamingStatus.test.ts) install doubles that do
+ * report them.
+ *
  * The same sweep can end in a NetBIOS lookup too (OneUptime issue #3677), so
  * installing this stub installs the NetBIOS one as well (StubNetbios.ts). Both
  * seams sit at the same point after the sweep and every reason above applies
@@ -72,6 +83,11 @@ export function installReverseDnsStub(): void {
           lookedUpCount: new Set<string>(ipAddresses).size,
           notLookedUpCount: 0,
           totalBudgetInMs: DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+          /*
+           * No statusByIpAddress and no failedAddressCount, on purpose: see
+           * the note at the top. Absent is "no codes reported", and it keeps
+           * every host this stub touches free of a `dnsHostnameStatus` key.
+           */
         };
       },
     );

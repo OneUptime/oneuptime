@@ -471,8 +471,9 @@ const NetworkSiteMap: FunctionComponent<
    *
    * This only earns its keep because those links carry a query string: a
    * same-pathname navigation with none is dropped before it reaches the router
-   * (Navigation.ts:285), and no location change means no re-seed. Keep the two
-   * together — a bare route in the sidebar makes this effect dead code again.
+   * (Navigation.navigate's same-page check), and no location change means no
+   * re-seed. Keep the two together — a bare route in the sidebar makes this
+   * effect dead code again.
    *
    * Routing it through the same handlers the UI uses is deliberate: they are
    * what makes the transition atomic, and they no-op when the URL already
