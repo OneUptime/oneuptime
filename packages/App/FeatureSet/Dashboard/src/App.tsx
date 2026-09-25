@@ -12,6 +12,7 @@ import {
 import RouteMap from "./Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -433,6 +434,22 @@ const App: () => JSX.Element = () => {
       }}
       selectedProject={selectedProject}
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
+      onSsoAuthorizationRequired={() => {
+        setError(new SSOAuthorizationException().message);
+      }}
+      /*
+       * The master page has redirected to the SSO page. Clear the error so a
+       * later render cannot act on it again and a recurring SSO failure is a
+       * real state change. The functional form keeps any other error that
+       * landed in the same batch.
+       */
+      onSsoErrorHandled={() => {
+        setError((currentError: string): string => {
+          return SSOAuthorizationException.isException(currentError)
+            ? ""
+            : currentError;
+        });
+      }}
     >
       <UseTimezoneInitElement />
       <AIChatPanel />
