@@ -501,8 +501,8 @@ const replaceGroupMembersOfTeam: (data: {
     });
 
   /*
-   * Re-adding used to take the kept accounts out of the "Unassigned" team too;
-   * they still have a real group, so they still leave it.
+   * A kept account has a real group too, so it leaves the "Unassigned" team
+   * just as an added one does.
    */
   await removeUsersFromUnassignedTeam({
     projectId: data.projectId,
