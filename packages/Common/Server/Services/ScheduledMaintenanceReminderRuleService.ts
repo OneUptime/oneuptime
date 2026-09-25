@@ -102,10 +102,34 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  /*
+   * Re-matches the reminder rule for every open scheduled maintenance in the
+   * project and rewrites its nextReminderNotificationAt.
+   *
+   * Without options that is one read of at most LIMIT_MAX open scheduled
+   * maintenances, and it must stay one: the rule create, update and delete
+   * hooks run it inside the API request.
+   *
+   * `onlyWithoutNextReminder` narrows that to open scheduled maintenances with
+   * no reminder scheduled at all, and reads every one of them, in `_id`-ordered
+   * pages of LIMIT_MAX. It exists for backfills (see the
+   * ScheduleRemindersMissedByReminderRuleLookup data migration), which run in a
+   * worker rather than a request and must reach every such scheduled
+   * maintenance of the project, however many there are. The pages are cursored
+   * by `_id`, not offset, because refreshing a scheduled maintenance can take
+   * it out of the set being paged. A scheduled maintenance that already has a
+   * timestamp is left alone, because re-scheduling it would push a reminder
+   * that is due, or overdue, one full interval later.
+   */
   @CaptureSpan()
   public async refreshSchedulesForOpenScheduledMaintenances(
     projectId: ObjectID,
+    options?: { onlyWithoutNextReminder?: boolean | undefined } | undefined,
   ): Promise<void> {
+    const onlyWithoutNextReminder: boolean = Boolean(
+      options?.onlyWithoutNextReminder,
+    );
+
     try {
       const openStates: Array<ScheduledMaintenanceState> =
         await ScheduledMaintenanceStateService.findBy({
@@ -133,34 +157,55 @@ export class Service extends DatabaseService<Model> {
         return;
       }
 
-      const openScheduledMaintenances: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-          query: {
-            projectId: projectId,
-            currentScheduledMaintenanceStateId: QueryHelper.any(openStateIds),
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+      let afterId: ObjectID | null = null;
 
-      for (const scheduledMaintenance of openScheduledMaintenances) {
-        try {
-          await ScheduledMaintenanceService.refreshReminderSchedule({
-            scheduledMaintenanceId: scheduledMaintenance.id!,
+      while (true) {
+        const openScheduledMaintenances: Array<ScheduledMaintenance> =
+          await this.findOpenScheduledMaintenances({
             projectId: projectId,
+            openStateIds: openStateIds,
+            onlyWithoutNextReminder: onlyWithoutNextReminder,
+            afterId: afterId,
           });
-        } catch (error) {
-          logger.error(
-            `Failed to refresh reminder schedule for scheduled maintenance ${scheduledMaintenance.id}: ${error}`,
-            { projectId: projectId?.toString() } as LogAttributes,
+
+        for (const scheduledMaintenance of openScheduledMaintenances) {
+          try {
+            await ScheduledMaintenanceService.refreshReminderSchedule({
+              scheduledMaintenanceId: scheduledMaintenance.id!,
+              projectId: projectId,
+            });
+          } catch (error) {
+            logger.error(
+              `Failed to refresh reminder schedule for scheduled maintenance ${scheduledMaintenance.id}: ${error}`,
+              { projectId: projectId?.toString() } as LogAttributes,
+            );
+          }
+        }
+
+        // Without the option, the one read above is all there is.
+        if (
+          !onlyWithoutNextReminder ||
+          openScheduledMaintenances.length < LIMIT_MAX
+        ) {
+          return;
+        }
+
+        const lastId: ObjectID | null =
+          openScheduledMaintenances[openScheduledMaintenances.length - 1]!.id;
+
+        if (!lastId || (afterId && lastId.toString() <= afterId.toString())) {
+          /*
+           * A full page whose last row does not move the cursor forward
+           * would be read again forever. Not reachable with `_id ASC` and a
+           * `> afterId` filter; guarded so a broken sort cannot hang the
+           * backfill.
+           */
+          throw new Error(
+            "the open scheduled maintenance page did not advance its _id cursor",
           );
         }
+
+        afterId = lastId;
       }
     } catch (error) {
       logger.error(
@@ -168,6 +213,45 @@ export class Service extends DatabaseService<Model> {
         { projectId: projectId?.toString() } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * One read of the project's open scheduled maintenances: those whose current
+   * state is one of `openStateIds`. Both paths of
+   * refreshSchedulesForOpenScheduledMaintenances read through here, so what
+   * "open" means is written once.
+   *
+   * With `onlyWithoutNextReminder`, only those with no reminder scheduled,
+   * `_id` ascending and after `afterId` when there is one. Without it, no
+   * cursor and the default order: the read the rule hooks have always made.
+   */
+  private async findOpenScheduledMaintenances(data: {
+    projectId: ObjectID;
+    openStateIds: Array<ObjectID>;
+    onlyWithoutNextReminder: boolean;
+    afterId: ObjectID | null;
+  }): Promise<Array<ScheduledMaintenance>> {
+    return await ScheduledMaintenanceService.findBy({
+      query: {
+        projectId: data.projectId,
+        currentScheduledMaintenanceStateId: QueryHelper.any(data.openStateIds),
+        ...(data.onlyWithoutNextReminder
+          ? { nextReminderNotificationAt: QueryHelper.isNull() }
+          : {}),
+        ...(data.afterId ? { _id: QueryHelper.greaterThan(data.afterId) } : {}),
+      },
+      select: {
+        _id: true,
+      },
+      ...(data.onlyWithoutNextReminder
+        ? { sort: { _id: SortOrder.Ascending } }
+        : {}),
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()

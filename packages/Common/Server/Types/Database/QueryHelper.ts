@@ -28,9 +28,22 @@ export default class QueryHelper {
 
     return Raw(
       (alias: string) => {
+        /*
+         * SELECT builders hand Raw the unescaped `Alias.property` path and
+         * quote it afterwards, but only where the whole token is `Alias.<known
+         * property>`. `Alias."criteria"` is not such a token, so an unquoted
+         * qualifier reached Postgres as-is and folded to lowercase, which
+         * names no table in FROM ("missing FROM-clause entry for table
+         * "incidentreminderrule""). Quote the qualifier here instead.
+         *
+         * UPDATE and DELETE builders hand Raw the bare property name, with no
+         * alias, and there criteria stays a bare quoted column.
+         */
         const separatorIndex: number = alias.lastIndexOf(".");
         const qualifier: string =
-          separatorIndex >= 0 ? alias.slice(0, separatorIndex + 1) : "";
+          separatorIndex >= 0
+            ? `${QueryHelper.quoteIdentifier(alias.slice(0, separatorIndex))}.`
+            : "";
         const criteriaAlias: string = `${qualifier}"${criteriaColumnName}"`;
 
         return `((CASE WHEN ${criteriaAlias} IS NULL THEN COALESCE(${alias}, false) ELSE ${alias} IS NULL END) = :${rid})`;
@@ -39,6 +52,22 @@ export default class QueryHelper {
         [rid]: value,
       },
     );
+  }
+
+  /*
+   * A Postgres quoted identifier. TypeORM 0.3 always hands Raw an unescaped
+   * alias; one that is already quoted is kept as is, defensively.
+   */
+  private static quoteIdentifier(identifier: string): string {
+    if (
+      identifier.length >= 2 &&
+      identifier.startsWith('"') &&
+      identifier.endsWith('"')
+    ) {
+      return identifier;
+    }
+
+    return `"${identifier.replace(/"/g, '""')}"`;
   }
 
   @CaptureSpan()

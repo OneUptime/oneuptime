@@ -139,3 +139,20 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UserProjectSsoConsentPostgres.test.ts --forceExit
+
+      # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
+      # rule tables (with their junctions, the trigger that encodes a
+      # criteria-backed rule's enabled state, and the tables the reminder
+      # refresh reads and writes) into an isolated schema, so it must run
+      # after the registered migrations. The criteria-backed isEnabled filter
+      # is raw SQL only Postgres can judge (#4030).
+      - name: Test reminder rule lookup on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REMINDER_RULE_TESTS: "true"
+          REMINDER_RULE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REMINDER_RULE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REMINDER_RULE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ReminderRuleLookupPostgres.test.ts --forceExit
