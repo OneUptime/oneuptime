@@ -362,7 +362,17 @@ export default class PlatformResourceIdentity {
     }
 
     if (series.resourcePoolName || series.resourcePoolPath) {
-      return { ...series, ...above };
+      /*
+       * A pool's own name and inventory path are one object: a series
+       * grouped by the path may borrow the name (and vice versa), so it is
+       * titled the way the raw-scan list titles it.
+       */
+      return {
+        ...series,
+        ...above,
+        resourcePoolName: series.resourcePoolName || context.resourcePoolName,
+        resourcePoolPath: series.resourcePoolPath || context.resourcePoolPath,
+      };
     }
 
     if (series.hostName) {

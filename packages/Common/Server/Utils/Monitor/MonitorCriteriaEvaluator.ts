@@ -148,6 +148,17 @@ export interface TelemetryExplorerDeepLink {
 interface AffectedResourceBreachPredicate {
   matches: (value: number) => boolean;
   worstIsLowest: boolean;
+  /*
+   * Which of a raw-scan resource's samples to judge it by, when neither
+   * "the highest" nor "the lowest" is right on its own. Absent means:
+   * the lowest when worstIsLowest, else the highest.
+   */
+  pickValue?:
+    | ((resource: {
+        metricValue: number;
+        lowestMetricValue?: number | undefined;
+      }) => number)
+    | undefined;
 }
 
 /*
@@ -1632,6 +1643,10 @@ ${contextBlock}
           unit: ctx.unit,
           unitHeuristicMetricName: unitHeuristicMetricName,
           components: ctx.components || [],
+          seriesLabelKeys: [
+            ...ctx.groupBy,
+            ...Object.keys(ctx.seriesLabels || {}),
+          ],
         })}`,
       );
     }
@@ -1710,6 +1725,52 @@ ${contextBlock}
    * the client-side markdown viewer can localize them to the viewer's
    * timezone (without losing the canonical instant).
    */
+  /**
+   * The attributes worth printing under a breaching sample.
+   *
+   * A grouped monitor's sample does not carry its group-by values at the
+   * top level: the worker nests the datapoint's whole attribute map under
+   * a single `attributes` key. Printed as-is that became
+   * "`attributes`: `[object Object]`" under every sample — the one line
+   * that should have said which host breached. The series' own label keys
+   * are lifted out of it instead; the rest of the datapoint's attributes
+   * (every resource attribute the exporter stamped) are not what the
+   * reader is looking for here.
+   */
+  private static flattenSampleAttributes(input: {
+    attributes: JSONObject;
+    seriesLabelKeys: Set<string>;
+  }): Record<string, unknown> {
+    const flattened: Record<string, unknown> = {};
+
+    for (const key of Object.keys(input.attributes)) {
+      const value: unknown = input.attributes[key];
+
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        for (const nestedKey of Object.keys(value as JSONObject)) {
+          const nestedValue: unknown = (value as JSONObject)[nestedKey];
+
+          if (
+            input.seriesLabelKeys.has(nestedKey) &&
+            flattened[nestedKey] === undefined &&
+            nestedValue !== undefined &&
+            nestedValue !== null &&
+            typeof nestedValue !== "object"
+          ) {
+            flattened[nestedKey] = nestedValue;
+          }
+        }
+        continue;
+      }
+
+      if (flattened[key] === undefined) {
+        flattened[key] = value;
+      }
+    }
+
+    return flattened;
+  }
+
   private static formatBreachingSamplesSection(input: {
     samples: Array<MetricBreachingSample>;
     totalSamples?: number | undefined;
@@ -1720,6 +1781,12 @@ ${contextBlock}
      */
     unitHeuristicMetricName: string | undefined;
     components: Array<MetricComponent>;
+    /*
+     * The keys that identify the series (its group-by keys). A grouped
+     * sample carries its datapoint's whole attribute map nested under
+     * `attributes`; only these keys are lifted out of it.
+     */
+    seriesLabelKeys?: Array<string> | undefined;
   }): string {
     const MAX_SAMPLES_SHOWN: number = 20;
 
@@ -1741,9 +1808,22 @@ ${contextBlock}
      * Collect attribute keys that appear on any displayed sample, so every
      * item lists the attributes it has in the same order.
      */
+    const seriesLabelKeys: Set<string> = new Set<string>(
+      input.seriesLabelKeys || [],
+    );
+    const sampleAttributes: Map<
+      MetricBreachingSample,
+      Record<string, unknown>
+    > = new Map();
     const attrKeySet: Set<string> = new Set<string>();
     for (const s of displayedSamples) {
-      for (const k of Object.keys(s.attributes || {})) {
+      const flattened: Record<string, unknown> =
+        MonitorCriteriaEvaluator.flattenSampleAttributes({
+          attributes: s.attributes || {},
+          seriesLabelKeys: seriesLabelKeys,
+        });
+      sampleAttributes.set(s, flattened);
+      for (const k of Object.keys(flattened)) {
         attrKeySet.add(k);
       }
     }
@@ -1796,7 +1876,7 @@ ${contextBlock}
          * RootCauseList.code keeps whatever they contain inside the span.
          */
         for (const k of attrKeys) {
-          const v: unknown = (s.attributes as Record<string, unknown>)[k];
+          const v: unknown = sampleAttributes.get(s)?.[k];
 
           if (v === undefined || v === null) {
             continue;
@@ -2489,6 +2569,7 @@ ${contextBlock}
     worstIsLowest: boolean;
     toIdentity: (attributes: JSONObject) => I;
     withContext: (series: I, context: I) => I;
+    seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
   }): Array<PlatformAffectedRow<I>> {
     const rows: Array<PlatformAffectedRow<I>> = input.perSeriesMatches.map(
       (match: PerSeriesCriteriaMatch): PlatformAffectedRow<I> => {
@@ -2505,16 +2586,30 @@ ${contextBlock}
         const sampleAttributes: JSONObject | undefined =
           MonitorCriteriaEvaluator.getSampleRawAttributes(sample);
 
-        const identity: I = sampleAttributes
-          ? input.withContext(
-              seriesIdentity,
+        /*
+         * The breaching sample's own datapoint first; then a datapoint of
+         * each of the series' queries, because a FORMULA's sample carries
+         * only the group-by labels — a Proxmox ratio over `id` would
+         * otherwise never learn whether the id is a node or a guest.
+         * with<Platform>Context only ever borrows what the series' labels
+         * guarantee is shared, so a row from any of them is safe.
+         */
+        const contexts: Array<JSONObject> = [
+          ...(sampleAttributes ? [sampleAttributes] : []),
+          ...input.seriesContextAttributes(match.fingerprint),
+        ];
+
+        const identity: I = contexts.reduce(
+          (current: I, attributes: JSONObject): I => {
+            return input.withContext(
+              current,
               input.toIdentity(
-                PlatformResourceIdentity.withBothAttributeSpellings(
-                  sampleAttributes,
-                ),
+                PlatformResourceIdentity.withBothAttributeSpellings(attributes),
               ),
-            )
-          : seriesIdentity;
+            );
+          },
+          seriesIdentity,
+        );
 
         const value: number | null = MonitorCriteriaEvaluator.getWorstValue({
           context: context,
@@ -2569,9 +2664,11 @@ ${contextBlock}
            * A fall criteria breached on the resource's lowest sample in the
            * window, not its highest.
            */
-          const value: number = input.breach.worstIsLowest
-            ? resource.lowestMetricValue ?? resource.metricValue
-            : resource.metricValue;
+          const value: number = input.breach.pickValue
+            ? input.breach.pickValue(resource)
+            : input.breach.worstIsLowest
+              ? resource.lowestMetricValue ?? resource.metricValue
+              : resource.metricValue;
 
           return {
             identity: resource,
@@ -2650,6 +2747,41 @@ ${contextBlock}
   }
 
   /**
+   * One datapoint's attributes from each QUERY slot of a series (the
+   * formula slots after them carry only group-by labels). Per-series query
+   * rows keep their datapoint's full attribute map under `attributes`.
+   */
+  private static getSeriesQueryRowAttributes(input: {
+    seriesBreakdown: Array<MetricSeriesResult> | undefined;
+    fingerprint: string;
+    queryCount: number;
+  }): Array<JSONObject> {
+    const series: MetricSeriesResult | undefined = (
+      input.seriesBreakdown || []
+    ).find((s: MetricSeriesResult) => {
+      return s.fingerprint === input.fingerprint;
+    });
+
+    if (!series) {
+      return [];
+    }
+
+    const result: Array<JSONObject> = [];
+
+    for (let i: number = 0; i < input.queryCount; i++) {
+      const row: JSONObject | undefined = series.aggregatedResults[i]
+        ?.data?.[0] as unknown as JSONObject | undefined;
+      const attributes: unknown = row?.["attributes"];
+
+      if (attributes && typeof attributes === "object") {
+        result.push(attributes as JSONObject);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * The raw datapoint attributes a breaching sample carries. A sample from
    * a per-series query row keeps the datapoint's full attribute map under
    * `attributes`; a formula row carries only its group attributes there.
@@ -2696,13 +2828,26 @@ ${contextBlock}
     breach: AffectedResourceBreachPredicate;
     toIdentity: (attributes: JSONObject) => I;
     withContext: (series: I, context: I) => I;
+    metricResponse: MetricMonitorResponse;
+    monitorStep: MonitorStep;
   }): Array<PlatformAffectedRow<I>> | null {
     if (input.perSeriesMatches && input.perSeriesMatches.length > 0) {
+      const queryCount: number =
+        MonitorStep.getMetricsViewConfig(input.monitorStep)?.queryConfigs
+          ?.length || 0;
+
       return MonitorCriteriaEvaluator.buildSeriesAffectedRows<I>({
         perSeriesMatches: input.perSeriesMatches,
         worstIsLowest: input.breach.worstIsLowest,
         toIdentity: input.toIdentity,
         withContext: input.withContext,
+        seriesContextAttributes: (fingerprint: string): Array<JSONObject> => {
+          return MonitorCriteriaEvaluator.getSeriesQueryRowAttributes({
+            seriesBreakdown: input.metricResponse.seriesBreakdown,
+            fingerprint: fingerprint,
+            queryCount: queryCount,
+          });
+        },
       });
     }
 
@@ -2828,7 +2973,16 @@ ${contextBlock}
       input.perSeriesMatches && input.perSeriesMatches.length > 0,
     );
 
-    if (!breakdown && !hasSeries) {
+    /*
+     * Nothing to say only when there is neither a list nor a monitor to
+     * describe. An ungrouped formula criteria has no raw scan of its own
+     * and no series, but its cluster and formula are still worth naming.
+     */
+    if (
+      !breakdown &&
+      !hasSeries &&
+      !input.monitorStep.data?.kubernetesMonitor
+    ) {
       return null;
     }
 
@@ -2898,6 +3052,8 @@ ${contextBlock}
       >({
         platform: "kubernetes",
         perSeriesMatches: input.perSeriesMatches,
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
         breakdown: breakdown,
         breach: breach,
         toIdentity: PlatformResourceIdentity.kubernetes,
@@ -2938,30 +3094,36 @@ ${contextBlock}
       metricValue: topRow.value ?? 0,
     };
 
-    // Add root cause analysis based on metric type
+    /*
+     * Add root cause analysis based on metric type — unless the worst row
+     * is a series that matched with no data at all, which no sentence
+     * below ("memory usage is at ...") can describe.
+     */
     const analysis: string | null =
-      MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
-        breakdown: {
-          clusterName: clusterName,
-          metricName: analysisMetricName,
-          metricFriendlyName:
-            (target?.isFormula ? target.displayName : undefined) ||
-            (breakdown?.metricName === analysisMetricName
-              ? breakdown.metricFriendlyName
-              : undefined) ||
-            MonitorCriteriaEvaluator.getPlatformMetricFriendlyName({
-              platform: "kubernetes",
+      topRow.value === null
+        ? null
+        : MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
+            breakdown: {
+              clusterName: clusterName,
               metricName: analysisMetricName,
-            }) ||
-            analysisMetricName,
-          affectedResources: [],
-          attributes: breakdown?.attributes || {},
-          metricUnit: breakdown?.metricUnit,
-        },
-        topResource: topResource,
-        topResourceValue: topRow.formattedValue,
-        target: target,
-      });
+              metricFriendlyName:
+                (target?.isFormula ? target.displayName : undefined) ||
+                (breakdown?.metricName === analysisMetricName
+                  ? breakdown.metricFriendlyName
+                  : undefined) ||
+                MonitorCriteriaEvaluator.getPlatformMetricFriendlyName({
+                  platform: "kubernetes",
+                  metricName: analysisMetricName,
+                }) ||
+                analysisMetricName,
+              affectedResources: [],
+              attributes: breakdown?.attributes || {},
+              metricUnit: breakdown?.metricUnit,
+            },
+            topResource: topResource,
+            topResourceValue: topRow.formattedValue,
+            target: target,
+          });
 
     if (analysis) {
       sections.push(`\n\n**Root Cause Analysis**\n${analysis}`);
@@ -3399,6 +3561,8 @@ ${contextBlock}
       >({
         platform: "proxmox",
         perSeriesMatches: input.perSeriesMatches,
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -3708,6 +3872,8 @@ ${contextBlock}
       >({
         platform: "vmware",
         perSeriesMatches: input.perSeriesMatches,
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -3923,6 +4089,8 @@ ${contextBlock}
       >({
         platform: "dockerSwarm",
         perSeriesMatches: input.perSeriesMatches,
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -4053,6 +4221,50 @@ ${contextBlock}
           (f.value as number) <= 0
         );
       });
+
+    /*
+     * A firing criteria that asks for one exact, non-zero value —
+     * k8s-pod-pending fires on phase `= 1` (Pending) — lists exactly the
+     * rows that were at that value. The `> 0` rule below listed every pod
+     * with a phase, which is all of them, led by the one with the highest
+     * code (Unknown), and sent the reader to `kubectl describe` the wrong
+     * pod.
+     *
+     * A row was at the value if either end of its window was: pod-pending
+     * watches the phase at its Min (a pod that has since started Running
+     * still breached), a memory-pressure `= 1` watches the Max. `= 0` stays
+     * with the floor rule above, which each platform opts into.
+     */
+    const exactValues: Array<number> = metricFilters.map(
+      (f: CriteriaFilter) => {
+        return f.value as number;
+      },
+    );
+
+    const firesOnExactValue: boolean =
+      !firesWhenMetricFalls &&
+      opensIncidentOrAlert &&
+      metricFilters.length > 0 &&
+      metricFilters.every((f: CriteriaFilter) => {
+        return f.filterType === FilterType.EqualTo && (f.value as number) > 0;
+      });
+
+    if (firesOnExactValue) {
+      return {
+        matches: (value: number): boolean => {
+          return exactValues.includes(value);
+        },
+        worstIsLowest: false,
+        pickValue: (resource: {
+          metricValue: number;
+          lowestMetricValue?: number | undefined;
+        }): number => {
+          return exactValues.includes(resource.metricValue)
+            ? resource.metricValue
+            : resource.lowestMetricValue ?? resource.metricValue;
+        },
+      };
+    }
 
     if (!firesWhenMetricFalls) {
       return {
@@ -4241,6 +4453,8 @@ ${contextBlock}
       >({
         platform: "ceph",
         perSeriesMatches: input.perSeriesMatches,
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
