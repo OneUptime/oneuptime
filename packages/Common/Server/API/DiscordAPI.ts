@@ -134,6 +134,23 @@ export default class DiscordAPI {
     }
   }
 
+  public static async authorizeIncidentActionActor(
+    projectId: ObjectID,
+    userId: ObjectID,
+  ): Promise<void> {
+    const databaseProps: DatabaseCommonInteractionProps =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
+        projectId,
+        userId,
+      });
+    CommonAPI.assertPermittedInProject({
+      databaseProps,
+      allowedPermissions: new Incident().getUpdatePermissions(),
+      errorMessage:
+        "You do not have permission to update incidents from Discord.",
+    });
+  }
+
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
     router.use(
@@ -509,6 +526,23 @@ export default class DiscordAPI {
         data: {
           content:
             "Your Discord account is not linked to a member of this project. Link it in user settings to act on incidents.",
+          flags: 64,
+        },
+      });
+      return;
+    }
+
+    try {
+      await DiscordAPI.authorizeIncidentActionActor(
+        member.projectId,
+        member.userId,
+      );
+    } catch {
+      res.status(200).json({
+        type: 4,
+        data: {
+          content:
+            "You do not have permission to update incidents from Discord.",
           flags: 64,
         },
       });

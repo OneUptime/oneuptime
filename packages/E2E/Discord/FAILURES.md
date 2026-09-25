@@ -18,6 +18,8 @@ Required failures:
 10. Valid raw-body signed PING succeeds; altered bytes or signatures fail without provider side effects.
 11. The browser uses a trusted disposable test CA. External network access, unknown provider routes and uncaught browser errors fail verification.
 12. Every test produces a trace plus sanitized provider/persistence evidence. Record the baseline failures before enabling production implementation.
+13. A verified Discord account link does not preserve authorization after the OneUptime user is removed from the project. Every incident button click must revalidate accepted project membership.
+14. A linked project member cannot acknowledge or resolve an incident after their current team permissions stop granting incident updates. The handler must use the Incident model's update permissions, including explicit block permissions.
 
 Expired state, membership removal during OAuth and callback-after-disconnect require deterministic setup against the existing cache/membership APIs. Add them before the corresponding lifecycle code is implemented; do not claim that malformed state proves expiry or cancellation races.
 
