@@ -26,6 +26,11 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import { classifyContainer } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
 import {
+  classifyContainerCommand,
+  ContainerCommandRole,
+  reduceContainerCommand,
+} from "Common/Types/DatabaseServer/DatabaseContainerCommand";
+import {
   DatabaseAlertTemplate,
   getDatabaseAlertTemplates,
 } from "Common/Types/Monitor/DatabaseAlertTemplates";
@@ -1901,10 +1906,127 @@ describe("Databases docs", (): void => {
       expect(kubernetes).toContain(
         "one-off `kubectl run` pods that declare no port",
       );
-      // What the scan reads, now that it reads the program a container starts.
+      /*
+       * What the scan reads, now that it projects a container's command
+       * line: the program, a shell's flags and the known command names of
+       * its script (reduceContainerCommand) — never the values.
+       */
       expect(kubernetes).toContain(
-        "OneUptime reads pod metadata, labels, images, declared ports and the name of the program a container starts — never environment variables, other command arguments or secrets.",
+        "OneUptime reads pod metadata, labels, images, declared ports and what a container's command line runs — the program's name, a shell's flags and which well-known client, keep-alive and shell commands its script runs (any other command is only noted as unrecognised) — never environment variables, argument values, script text or secrets.",
       );
+      expect(kubernetes).toContain(
+        "only positive evidence makes it anything else",
+      );
+      expect(kubernetes).toContain("`redis-server --sentinel`");
+    });
+
+    /*
+     * Regression: the page listed `sleep` and "an interactive shell,
+     * directly or through `sh -c`" as client runs, but a `sh -c` script
+     * that sleeps and then starts the server IS the server (the classifier
+     * failed open only after CD-1). Every command line the page names is
+     * run through the classifier and must land on the side the page puts
+     * it on.
+     */
+    it("classifies every command line the Kubernetes section names the way it says", (): void => {
+      const kubernetes: string = section(readPage(), "### From Kubernetes");
+      const tooLongScript: string = `echo ${"x".repeat(20000)}`;
+
+      const notServers: Array<{
+        named: string;
+        argv: Array<string>;
+        role: ContainerCommandRole;
+      }> = [
+        { named: "`psql`", argv: ["psql", "-h", "db"], role: "client" },
+        { named: "`redis-cli`", argv: ["redis-cli", "ping"], role: "client" },
+        { named: "`mongosh`", argv: ["mongosh"], role: "client" },
+        { named: "`pg_dump`", argv: ["pg_dump", "shop"], role: "client" },
+        { named: "`mysql`", argv: ["mysql", "-e", "SELECT 1"], role: "client" },
+        {
+          named: "`sleep infinity`",
+          argv: ["sleep", "infinity"],
+          role: "keep-alive",
+        },
+        {
+          named: "`tail -f /dev/null`",
+          argv: ["tail", "-f", "/dev/null"],
+          role: "keep-alive",
+        },
+        { named: "an interactive shell", argv: ["bash"], role: "keep-alive" },
+        {
+          named:
+            "`sh -c` script runs nothing but such tools, shell builtins and plain utilities (`echo`, `cp`)",
+          argv: [
+            "sh",
+            "-c",
+            "until pg_isready -h db; do echo waiting; sleep 1; done; cp /seed.sql /tmp/ && psql -f /tmp/seed.sql",
+          ],
+          role: "client",
+        },
+        {
+          named: "`redis-sentinel`",
+          argv: ["redis-sentinel", "/etc/sentinel.conf"],
+          role: "companion",
+        },
+        {
+          named: "`redis-server --sentinel`",
+          argv: ["redis-server", "/etc/sentinel.conf", "--sentinel"],
+          role: "companion",
+        },
+      ];
+
+      const servers: Array<{ named: string; argv: Array<string> }> = [
+        {
+          named: "`sleep 5 && exec redis-server`",
+          argv: ["sh", "-c", "sleep 5 && exec redis-server /conf/redis.conf"],
+        },
+        {
+          named: "`bash -ecx 'exec cockroach start …'`",
+          argv: ["bash", "-ecx", "exec cockroach start --insecure"],
+        },
+        { named: "`sh /start.sh`", argv: ["sh", "/start.sh"] },
+        {
+          named: "`tini`",
+          argv: ["tini", "--", "docker-entrypoint.sh", "postgres"],
+        },
+        { named: "`gosu`", argv: ["gosu", "postgres", "postgres"] },
+        {
+          named: "a script too long to read",
+          argv: ["sh", "-c", tooLongScript],
+        },
+      ];
+
+      for (const example of notServers) {
+        expect({
+          named: example.named,
+          onPage: kubernetes.includes(example.named),
+          role: classifyContainerCommand({ command: example.argv }),
+        }).toEqual({ named: example.named, onPage: true, role: example.role });
+      }
+
+      for (const example of servers) {
+        expect({
+          named: example.named,
+          onPage: kubernetes.includes(example.named),
+          role: classifyContainerCommand({ command: example.argv }),
+        }).toEqual({ named: example.named, onPage: true, role: "server" });
+      }
+
+      // Whatever the classifier only notes as unrecognised is never read.
+      expect(
+        reduceContainerCommand([
+          "sh",
+          "-c",
+          "exec my-server --password=s3cret",
+        ]),
+      ).not.toContain("s3cret");
+      expect(
+        reduceContainerCommand([
+          "sh",
+          "-c",
+          "exec my-server --password=s3cret",
+        ]).join(" "),
+      ).not.toContain("my-server");
     });
 
     /*
@@ -2074,8 +2196,70 @@ describe("Databases docs", (): void => {
       );
       expect(lifecycle).toContain(`has seen for ${archiveDays} days`);
       expect(lifecycle).toContain(`stays restored for ${restoreDays} days`);
+      // A trace-created duplicate a person restored keeps its endpoints as long.
+      expect(endpoints).toContain(
+        `or restored from the archive in the last ${Math.max(restoreDays, archiveDays)} days`,
+      );
       expect(lifecycle).toContain("attached on their own do not count");
       expect(lifecycle).toContain("are not archived while it is dark");
+    });
+
+    /*
+     * Regression: the page said any source refines a database to a fork and
+     * that a fork is never undone, that traces restore a retired workload's
+     * database, that recommendations appear once "engine metrics" arrive
+     * (any batch did), and that scheduled maintenance "applies" to the
+     * monitors that filter on the id (it silenced only grouped series).
+     */
+    it("states engine refinement, restoring, recommendations and maintenance the way the code now decides them", (): void => {
+      const markdown: string = readPage();
+      const lookbackDays: number = sourceNumber(
+        "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseEngineMetricsProbe.ts",
+        "DATABASE_ENGINE_METRICS_LOOKBACK_DAYS",
+      );
+      const engine: string = section(
+        markdown,
+        "### Which engine a database shows",
+      );
+      const alerts: string = section(markdown, "## Alerts on a database");
+      const lifecycle: string = section(
+        markdown,
+        "## Lifecycle, archiving and retention",
+      );
+      const monitorResource: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Utils/Monitor/MonitorResource.ts",
+        ),
+        "utf8",
+      );
+
+      expect(markdown).not.toContain("any source may refine");
+      expect(markdown).not.toContain("never downgraded");
+      expect(markdown).not.toContain("once any source names it");
+      expect(engine).toContain(
+        "Application traces alone never refine an engine an image or a collector determined",
+      );
+      expect(engine).toContain(
+        "A fork is undone only by a container image naming its family engine",
+      );
+
+      expect(lifecycle).toContain(
+        "application traces that still name its Service neither restore it nor count as seeing it",
+      );
+
+      expect(section(alerts, "### Recommended monitors")).toContain(
+        `stamped with the database's \`oneuptime.database.server.id\` in the last ${lookbackDays} days`,
+      );
+
+      // The maintenance promise holds only while the evaluation wires it.
+      expect(alerts).toContain(
+        "those monitors open no new incidents or alerts, unless they also name a resource that is outside the window",
+      );
+      expect(markdown).not.toContain("scheduled maintenance applies to them");
+      expect(monitorResource).toContain(
+        "MonitorMaintenanceSuppression.isMonitorSuppressed(",
+      );
     });
 
     /*

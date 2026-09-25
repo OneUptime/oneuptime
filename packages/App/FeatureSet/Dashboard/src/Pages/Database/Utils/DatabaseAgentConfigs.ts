@@ -208,13 +208,18 @@ receivers:
         enabled: true
       postgresql.database.locks:
         enabled: true
+      # The replication time lag per replica (write / flush / replay). The
+      # receiver's postgresqlreceiver.preciselagmetrics feature gate, on by
+      # default, records it INSTEAD of postgresql.wal.lag, but the metric
+      # itself is off upstream. The Replica Replay Lag monitor reads it.
+      postgresql.wal.delay:
+        enabled: true
       # Other optional metrics the receiver can emit, all off by default.
       # Enable any of them the same way if you want them in OneUptime:
       #   postgresql.sequential_scans      (sequential scans per table; one series per table)
       #   postgresql.query.conflicts       (queries cancelled by recovery conflicts on a replica)
       #   postgresql.function.calls        (calls per user function; needs track_functions)
       #   postgresql.temp.io               (bytes written to temporary files)
-      #   postgresql.wal.delay             (replication delay, the planned replacement for wal.lag)
     # Query samples (pg_stat_activity) and top queries (pg_stat_statements)
     # arrive as logs on the database's Logs tab. Both are off unless
     # DATABASE_QUERY_EVENTS=true. Top queries also need the
@@ -753,12 +758,13 @@ receivers:
         enabled: true
     metrics:
       # Off by default upstream. Enabled because they answer the questions
-      # people ask first — member health, uptime for restart detection,
-      # operation latency, page faults, deadlocks, active readers and
-      # writers — on the database's Metrics tab. clusterMonitor covers all
-      # of them.
-      mongodb.health:
-        enabled: true
+      # people ask first — uptime for restart detection, operation latency,
+      # page faults, deadlocks, active readers and writers — on the
+      # database's Metrics tab. clusterMonitor covers all of them.
+      # Not mongodb.health, on purpose: the receiver records it from
+      # serverStatus's \`ok\` only after serverStatus succeeded, so it can
+      # only ever read 1. A server that is down sends nothing at all, which
+      # the Engine Metrics Stopped monitor catches.
       mongodb.uptime:
         enabled: true
       mongodb.operation.latency.time:

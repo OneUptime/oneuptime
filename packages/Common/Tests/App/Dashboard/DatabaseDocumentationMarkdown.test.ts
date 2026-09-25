@@ -928,6 +928,35 @@ describe("a database's own guide", () => {
   });
 
   /*
+   * Regression: the guide said the Recommendations tab fills "once its
+   * engine metrics have arrived" (any batch counted, logs included), that
+   * a summed chart becomes a monitor on the same number (a monitor cannot
+   * add series), and that scheduled maintenance "applies to" a filtered
+   * monitor (only grouped series were silenced).
+   */
+  test("says what the recommendations wait for, how a summed chart alerts, and what maintenance silences", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "postgresql",
+      serverAddress: "db.example.com",
+    });
+
+    expect(markdown).toContain(
+      "once the metrics they read (from the collector's receiver for this engine) have arrived",
+    );
+    expect(markdown).toContain(
+      "(a metric the chart adds up across series becomes a monitor that alerts on each series)",
+    );
+    expect(markdown).toContain(
+      "and none are opened for this database while it is in a scheduled maintenance window.",
+    );
+    expect(MARKDOWN_SOURCE).not.toContain("engine metrics have arrived");
+    expect(MARKDOWN_SOURCE).not.toContain(
+      "scheduled maintenance applies to them",
+    );
+  });
+
+  /*
    * Measured on SQL Server 2022 on Linux through the agent's config:
    * sqlserver.batch.request.rate read 8, 13, 18, 23 on consecutive scrapes
    * of an idle server — the counter's raw total, not a rate.

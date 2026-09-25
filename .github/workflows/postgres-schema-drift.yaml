@@ -85,7 +85,9 @@ jobs:
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
       # Kubernetes / Docker / Podman parents) into an isolated schema and runs
-      # the product's hand-written SQL against them.
+      # the product's hand-written SQL against them. The second suite holds
+      # the container command projection Postgres computes to its JavaScript
+      # twin (reduceContainerCommand), which the discovery job classifies by.
       - name: Test the Databases product's SQL against the migrated schema
         working-directory: packages/Common
         env:
@@ -95,7 +97,9 @@ jobs:
           DATABASE_SERVER_SQL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/DatabaseServerSqlPostgres.test.ts --forceExit
+          Tests/Server/Services/DatabaseServerSqlPostgres.test.ts
+          Tests/Types/DatabaseServer/DatabaseContainerCommandPostgres.test.ts
+          --forceExit
 
       # Clones the migrated Service table and holds a row lock from a second
       # connection: the SKIP LOCKED heartbeat write must yield AND report it.

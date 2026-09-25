@@ -67,13 +67,18 @@ receivers:
         enabled: true
       postgresql.database.locks:
         enabled: true
+      # The replication time lag per replica (write / flush / replay). The
+      # receiver's postgresqlreceiver.preciselagmetrics feature gate, on by
+      # default, records it INSTEAD of postgresql.wal.lag, but the metric
+      # itself is off upstream. The Replica Replay Lag monitor reads it.
+      postgresql.wal.delay:
+        enabled: true
       # Other optional metrics the receiver can emit, all off by default.
       # Enable any of them the same way if you want them in OneUptime:
       #   postgresql.sequential_scans      (sequential scans per table; one series per table)
       #   postgresql.query.conflicts       (queries cancelled by recovery conflicts on a replica)
       #   postgresql.function.calls        (calls per user function; needs track_functions)
       #   postgresql.temp.io               (bytes written to temporary files)
-      #   postgresql.wal.delay             (replication delay, the planned replacement for wal.lag)
     # Query samples (pg_stat_activity) and top queries (pg_stat_statements)
     # arrive as logs on the database's Logs tab. Both are off unless
     # DATABASE_QUERY_EVENTS=true. Top queries also need the

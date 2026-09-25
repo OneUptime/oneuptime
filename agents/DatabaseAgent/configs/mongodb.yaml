@@ -50,12 +50,13 @@ receivers:
         enabled: true
     metrics:
       # Off by default upstream. Enabled because they answer the questions
-      # people ask first — member health, uptime for restart detection,
-      # operation latency, page faults, deadlocks, active readers and
-      # writers — on the database's Metrics tab. clusterMonitor covers all
-      # of them.
-      mongodb.health:
-        enabled: true
+      # people ask first — uptime for restart detection, operation latency,
+      # page faults, deadlocks, active readers and writers — on the
+      # database's Metrics tab. clusterMonitor covers all of them.
+      # Not mongodb.health, on purpose: the receiver records it from
+      # serverStatus's `ok` only after serverStatus succeeded, so it can
+      # only ever read 1. A server that is down sends nothing at all, which
+      # the Engine Metrics Stopped monitor catches.
       mongodb.uptime:
         enabled: true
       mongodb.operation.latency.time:

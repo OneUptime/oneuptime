@@ -1152,8 +1152,9 @@ export function buildDatabaseCallerContext(
  * the form `instance|database` — or null. Only for SQL Server: other
  * engines give `db.namespace` other meanings. Returned raw (untrimmed);
  * canonicalizeDatabaseEndpoint validates it. Pass the result as its
- * `instance`, and include DATABASE_INSTANCE_ATTRIBUTES in anything that
- * memoizes on the attributes it reads.
+ * `instance`; anything that memoizes on the attributes it reads should key
+ * on this derived instance (as DatabaseCallEntityKeys does) or include
+ * DATABASE_INSTANCE_ATTRIBUTES.
  */
 export function readDatabaseInstanceName(input: {
   system: unknown;

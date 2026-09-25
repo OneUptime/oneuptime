@@ -708,7 +708,7 @@ function alertingSection(data: {
     : "**Recommendations**";
   const recommended: string =
     getDatabaseAlertTemplates(data.system).length > 0
-      ? `The ${recommendationsTab} tab offers ready-made ${engineLabel} monitors, each scoped to this database, once its engine metrics have arrived — among them one that fires when they stop. To build your own, create`
+      ? `The ${recommendationsTab} tab offers ready-made ${engineLabel} monitors, each scoped to this database, once the metrics they read (from the collector's receiver for this engine) have arrived — among them one that fires when they stop. To build your own, create`
       : "Create";
   /*
    * Over the agent's direct connection the sqlserver receiver reads
@@ -724,7 +724,7 @@ function alertingSection(data: {
   return `
 ## Alert on this database
 
-Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. ${recommended} a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute to cover several databases with one monitor — each series then lands on its own database): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and its scheduled maintenance applies to them. A chart opened from this database's **Metrics** tab has **Create monitor**, which fills that filter in for you. Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so turn it into per-interval deltas with the collector's \`cumulativetodelta\` processor before alerting on it.${sqlServerRates}
+Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. ${recommended} a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute to cover several databases with one monitor — each series then lands on its own database): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and none are opened for this database while it is in a scheduled maintenance window. A chart opened from this database's **Metrics** tab has **Create monitor**, which fills that filter in for you (a metric the chart adds up across series becomes a monitor that alerts on each series). Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so turn it into per-interval deltas with the collector's \`cumulativetodelta\` processor before alerting on it.${sqlServerRates}
 `;
 }
 

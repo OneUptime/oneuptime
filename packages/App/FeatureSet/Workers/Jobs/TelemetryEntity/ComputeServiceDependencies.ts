@@ -303,7 +303,9 @@ async function claimSiblingEndpoints(data: {
  *
  *   - owned: each owned endpoint is looked up WITHOUT permission to create
  *     (the steady state, which also restores a row auto-archived while it
- *     was quiet), and when they all belong to one row its still-unowned
+ *     was quiet - except the archived row of a workload that is gone,
+ *     which comes back as no row: it is neither sighted nor given sibling
+ *     endpoints), and when they all belong to one row its still-unowned
  *     siblings are claimed for it;
  *   - unowned: only an endpoint that passes the conservative create policy
  *     asks the project's auto-create budget (see AutoCreateBudget) and is
