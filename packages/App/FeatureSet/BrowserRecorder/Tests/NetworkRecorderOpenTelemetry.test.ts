@@ -5,10 +5,10 @@ import NetworkRecorder, {
 } from "../src/NetworkRecorder";
 
 /*
- * The REAL @opentelemetry/instrumentation-fetch (0.220, from Common's
- * node_modules) inside the recorder's wrapper - the order the docs
- * recommend: the page imports OpenTelemetry first, the recorder loads
- * asynchronously and wraps outside it.
+ * The REAL @opentelemetry/instrumentation-fetch (0.220, a test-only
+ * devDependency of this package, never bundled) inside the recorder's
+ * wrapper - the order the docs recommend: the page imports OpenTelemetry
+ * first, the recorder loads asynchronously and wraps outside it.
  *
  * Pinned here because the recorder's stand-down and read-back are built on
  * OpenTelemetry's actual behaviour, not on a description of it: shimmer's
@@ -34,7 +34,6 @@ interface OtelModules {
   };
 }
 
-const COMMON_NODE_MODULES: string = "../../../../Common/node_modules/";
 const SESSION_ID: string = "0123456789abcdef0123456789abcdef";
 const TRACEPARENT_SHAPE: RegExp = /^00-([0-9a-f]{32})-([0-9a-f]{16})-01$/;
 
@@ -118,13 +117,14 @@ describe("NetworkRecorder around the real OpenTelemetry FetchInstrumentation", (
     };
 
     const otel: OtelModules = {
-      ...(require(COMMON_NODE_MODULES + "@opentelemetry/sdk-trace-web") as Pick<
+      ...(require("@opentelemetry/sdk-trace-web") as Pick<
         OtelModules,
         "WebTracerProvider"
       >),
-      ...(require(
-        COMMON_NODE_MODULES + "@opentelemetry/instrumentation-fetch",
-      ) as Pick<OtelModules, "FetchInstrumentation">),
+      ...(require("@opentelemetry/instrumentation-fetch") as Pick<
+        OtelModules,
+        "FetchInstrumentation"
+      >),
     };
 
     const provider: { register: () => void } = new otel.WebTracerProvider({
