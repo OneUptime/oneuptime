@@ -22,6 +22,7 @@ import {
   DATABASE_SYSTEM_ATTRIBUTES,
   resolveDatabaseCallTarget,
 } from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
+import { DATABASE_CONNECTION_SPAN_NAMES } from "../../../Types/DatabaseServer/DatabaseConnectionSpan";
 import {
   CALLER_CLUSTER_ATTRIBUTE,
   CALLER_NAMESPACE_ATTRIBUTE,
@@ -107,6 +108,24 @@ const IP_LITERAL_ADDRESS_SQL: string = `(isIPv4String(${HOST_PART_SQL}) OR isIPv
   "^\\[([^\\]]*)\\]",
 )}')))`;
 
+/**
+ * ClickHouse predicate: true when the span in `nameColumn` is a query, not
+ * connection management (DATABASE_CONNECTION_SPAN_NAMES, compared trimmed
+ * and lowercased, exactly as isDatabaseConnectionSpanName does). A span
+ * with no name is a query. The discovery threshold counts only these, so
+ * a pooled client's `pg-pool.connect` / `pg.connect` around every query no
+ * longer doubles its calls.
+ */
+export function databaseQuerySpanSql(nameColumn: string = "name"): string {
+  const names: string = DATABASE_CONNECTION_SPAN_NAMES.map(
+    (name: string): string => {
+      return `'${escapeSql(name.toLowerCase())}'`;
+    },
+  ).join(", ");
+
+  return `NOT has([${names}], lower(trimBoth(ifNull(${nameColumn}, ''))))`;
+}
+
 export interface DatabaseEndpointQueryWindow {
   projectId: string;
   // ClickHouse DateTime64 expressions, e.g. toDateTime64('...', 9).
@@ -118,7 +137,9 @@ export interface DatabaseEndpointQueryWindow {
 
 /*
  * ClickHouse serializes UInt64 aggregates as JSON strings, so callCount can
- * arrive as a string and is Number()-coerced.
+ * arrive as a string and is Number()-coerced. callCount counts queries only
+ * (databaseQuerySpanSql): a group of nothing but connection spans comes
+ * back with 0, and still matches and sights a row that owns its endpoint.
  */
 export interface DatabaseEndpointRow {
   dbSystem?: string | undefined;
@@ -219,7 +240,10 @@ export function getDatabaseEndpointCallerContextNeeds(address: string): {
  * matters) with its call count, over the CLIENT spans of the window that
  * name a database system and an address. Spans without those attributes are
  * dropped on `attributeKeys` (bloom-indexed, far smaller than the attribute
- * map) before the map is read. Ordered host-named groups first, then by
+ * map) before the map is read. The call count is of queries only:
+ * connection-management spans (databaseQuerySpanSql) keep a group in the
+ * result - an existing row is still matched and sighted - but never count
+ * towards the min-calls threshold. Ordered host-named groups first, then by
  * calls, so the endpoints that can create a database survive the row cap.
  */
 export function buildDatabaseEndpointSql(
@@ -253,7 +277,7 @@ export function buildDatabaseEndpointSql(
       ${callerContext.callerNamespace} AS callerNamespace,
       ${callerContext.callerInKubernetes} AS callerInKubernetes,
       ${callerContext.callerCluster} AS callerCluster,
-      count() AS callCount
+      countIf(${databaseQuerySpanSql()}) AS callCount
     FROM ${SPAN_TABLE}
     WHERE projectId = '${escapeSql(window.projectId)}'
       AND startTime >= ${window.startSql}
@@ -619,8 +643,10 @@ export function getDiscoveredDatabaseEndpoints(
 /*
  * Calls an endpoint needs inside one window before client spans may create a
  * row for it on their own (env DATABASE_SERVER_MIN_CALLS, default 10, at
- * least 1). One stray connection string in a trace is not a database worth
- * listing; an existing row is matched and sighted whatever the count.
+ * least 1). Only queries count - a connection span is not a call (see
+ * databaseQuerySpanSql). One stray connection string in a trace is not a
+ * database worth listing; an existing row is matched and sighted whatever
+ * the count.
  */
 export function getDatabaseServerMinCalls(): number {
   const raw: string | undefined = process.env[DATABASE_SERVER_MIN_CALLS_ENV];

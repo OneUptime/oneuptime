@@ -339,7 +339,7 @@ describe("existing InventoryItem display-name convergence", () => {
 });
 
 describe("InventoryItemService.deriveDisplayName for inferred dependencies", () => {
-  test("a database reads as its namespace, then its host, then its engine", () => {
+  test("a database reads as '<namespace> @ <server>', then its server, then its namespace, then its engine", () => {
     expect(
       InventoryItemService.deriveDisplayName(
         entity({
@@ -351,7 +351,7 @@ describe("InventoryItemService.deriveDisplayName for inferred dependencies", () 
           },
         }),
       ),
-    ).toBe("orders");
+    ).toBe("orders @ db.internal");
     expect(
       InventoryItemService.deriveDisplayName(
         entity({
@@ -367,10 +367,136 @@ describe("InventoryItemService.deriveDisplayName for inferred dependencies", () 
       InventoryItemService.deriveDisplayName(
         entity({
           entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "sqlite",
+            "db.namespace": "orders",
+          },
+        }),
+      ),
+    ).toBe("orders");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
           identifyingAttributes: { "db.system.name": "sqlite" },
         }),
       ),
     ).toBe("sqlite");
+  });
+
+  /*
+   * e2e: the Service Map's table search for "orders" listed nine rows all
+   * reading "orders · Database · PostgreSQL" - InventoryItem rows for
+   * 172.20.0.2, e2e-receivers-postgres, legacy-db.example.com,
+   * orders-db.example.com, orders-db.prod, orders-db-receivers.example.com,
+   * pg16.rcv-e2e.example.net, pgdb.corp.internal and rare-db.example.com,
+   * every one displayName "orders". Only opening each told them apart.
+   */
+  test("the e2e project's 'orders' databases get ten different names", () => {
+    const servers: Array<[string, string]> = [
+      ["172.20.0.2", "5432"],
+      ["e2e-receivers-postgres", "5432"],
+      ["legacy-db.example.com", "5432"],
+      ["orders-db.example.com", "5432"],
+      ["orders-db.prod", "5432"],
+      ["orders-db-receivers.example.com", "5432"],
+      ["pg16.rcv-e2e.example.net", "5432"],
+      ["pgdb.corp.internal", "5432"],
+      ["rare-db.example.com", "5432"],
+      ["orders-db.example.com", "6432"],
+    ];
+
+    const names: Array<string> = servers.map(
+      ([host, port]: [string, string]): string => {
+        return InventoryItemService.deriveDisplayName(
+          entity({
+            entityType: EntityType.Database,
+            identifyingAttributes: {
+              "db.system.name": "postgresql",
+              "server.address": host,
+              "db.namespace": "orders",
+            },
+            descriptiveAttributes: {
+              "db.system.name": "postgresql",
+              "oneuptime.database.endpoint": `${host}:${port}`,
+              "server.port": port,
+            },
+          }),
+        );
+      },
+    );
+
+    expect(new Set<string>(names).size).toBe(servers.length);
+    expect(names[0]).toBe("orders @ 172.20.0.2:5432");
+    expect(names[8]).toBe("orders @ rare-db.example.com:5432");
+    expect(names[9]).toBe("orders @ orders-db.example.com:6432");
+  });
+
+  test("the port is the one the calls named - none, or several, leaves it off", () => {
+    const identifying: Record<string, string> = {
+      "db.system.name": "postgresql",
+      "server.address": "orders-db.example.com",
+      "db.namespace": "orders",
+    };
+
+    for (const port of ["", "not-a-port"]) {
+      expect(
+        InventoryItemService.deriveDisplayName(
+          entity({
+            entityType: EntityType.Database,
+            identifyingAttributes: identifying,
+            descriptiveAttributes: { "server.port": port },
+          }),
+        ),
+      ).toBe("orders @ orders-db.example.com");
+    }
+  });
+
+  test("an IPv6 server is bracketed before its port; a host list keeps its own ports", () => {
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "postgresql",
+            "server.address": "fd00::5",
+            "db.namespace": "orders",
+          },
+          descriptiveAttributes: { "server.port": "5432" },
+        }),
+      ),
+    ).toBe("orders @ [fd00::5]:5432");
+    expect(
+      InventoryItemService.deriveDisplayName(
+        entity({
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "mongodb",
+            "server.address": "mongo-a:27017,mongo-b:27017",
+            "db.namespace": "orders",
+          },
+          descriptiveAttributes: { "server.port": "27017" },
+        }),
+      ),
+    ).toBe("orders @ mongo-a:27017,mongo-b:27017");
+  });
+
+  test("the name never changes the node's identity", () => {
+    const node: ExtractedEntity = entity({
+      entityType: EntityType.Database,
+      identifyingAttributes: {
+        "db.system.name": "postgresql",
+        "server.address": "orders-db.example.com",
+        "db.namespace": "orders",
+      },
+      descriptiveAttributes: { "server.port": "5432" },
+    });
+    const identityBefore: string = JSON.stringify(node.identifyingAttributes);
+
+    InventoryItemService.deriveDisplayName(node);
+
+    expect(JSON.stringify(node.identifyingAttributes)).toBe(identityBefore);
+    expect(node.entityKey).toBe("0123456789abcdef");
   });
 
   test("a remote service reads as the name callers gave it, then its host", () => {
@@ -440,7 +566,7 @@ describe("a database node's server description", () => {
     ).buildDescriptiveUpdate(extracted, existing).descriptiveAttributes;
   }
 
-  test("never names the node", () => {
+  test("the canonical endpoint never names the node: the host its calls named does, with their port", () => {
     expect(
       InventoryItemService.deriveDisplayName(
         databaseNode({
@@ -450,7 +576,68 @@ describe("a database node's server description", () => {
           "server.port": "5432",
         }),
       ),
-    ).toBe("orders");
+    ).toBe("orders @ postgres.data:5432");
+  });
+
+  function displayNameUpdate(
+    extracted: ExtractedEntity,
+    existingName: string | undefined,
+  ): string | undefined {
+    const existing: InventoryItem = new InventoryItem();
+    existing.displayName = existingName as string;
+    return (
+      InventoryItemService as unknown as {
+        buildDescriptiveUpdate: (
+          incoming: ExtractedEntity,
+          row: InventoryItem,
+        ) => { displayName?: string };
+      }
+    ).buildDescriptiveUpdate(extracted, existing).displayName;
+  }
+
+  test("a node still named by the old rule ('orders') is renamed when seen again", () => {
+    expect(
+      displayNameUpdate(databaseNode({ "server.port": "5432" }), "orders"),
+    ).toBe("orders @ postgres.data:5432");
+    expect(displayNameUpdate(databaseNode({ "server.port": "5432" }), "")).toBe(
+      "orders @ postgres.data:5432",
+    );
+  });
+
+  test("a port-less generated name gains the port once the calls name one", () => {
+    expect(
+      displayNameUpdate(
+        databaseNode({ "server.port": "5432" }),
+        "orders @ postgres.data",
+      ),
+    ).toBe("orders @ postgres.data:5432");
+  });
+
+  test("a name a person typed is never replaced", () => {
+    expect(
+      displayNameUpdate(
+        databaseNode({ "server.port": "5432" }),
+        "Orders primary (eu)",
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a sighting that names no port does not undo a name that has one", () => {
+    expect(
+      displayNameUpdate(
+        databaseNode({ "server.port": "" }),
+        "orders @ postgres.data:5432",
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a current name writes nothing", () => {
+    expect(
+      displayNameUpdate(
+        databaseNode({ "server.port": "5432" }),
+        "orders @ postgres.data:5432",
+      ),
+    ).toBeUndefined();
   });
 
   test("an ambiguous ('') description overwrites a stale endpoint, keeping the rest", () => {

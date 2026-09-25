@@ -404,6 +404,57 @@ describePostgres("Databases SQL against Postgres", () => {
     );
   });
 
+  /*
+   * e2e, the Memcached agent: its heartbeat (behind the ingest fence) last
+   * wrote collectorLastSeenAt 1m51s before its last data, and the sweep
+   * flipped it 14m56s after that data - short of the documented 15 minutes.
+   * A heartbeat 16 minutes old may still be trailing data from 9 minutes
+   * ago; one 23 minutes old is 16 minutes of silence at the least.
+   */
+  test("the disconnect sweep waits for 15 minutes of silence, not 15 minutes after the fenced heartbeat", async () => {
+    const heartbeatSixteenMinutesAgo: ObjectID = await insertDatabase({
+      collectorStatus: "connected",
+      collectorLastSeenAt: ago(16 * 60 * 1000),
+    });
+    const heartbeatTwentyThreeMinutesAgo: ObjectID = await insertDatabase({
+      collectorStatus: "connected",
+      collectorLastSeenAt: ago(23 * 60 * 1000),
+    });
+
+    await expect(
+      DatabaseServerService.markDisconnectedDatabaseServers(),
+    ).resolves.toBe(1);
+
+    expect(
+      (await databaseState(heartbeatSixteenMinutesAgo)).otelCollectorStatus,
+    ).toBe("connected");
+    expect(
+      (await databaseState(heartbeatTwentyThreeMinutesAgo)).otelCollectorStatus,
+    ).toBe("disconnected");
+  });
+
+  test("a row the Database Agent creates stores the agent and engine versions in the same insert", async () => {
+    const created: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: projectId,
+        dbSystem: "mysql",
+        endpoint: { host: "mariamysql.rcv-e2e.example.net", port: 3306 },
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: true,
+        collector: {
+          agentVersion: "0.161.0",
+          dbVersion: "11.4.13-MariaDB-ubu2404",
+          reportedByDatabaseAgent: true,
+        },
+      });
+
+    const state: any = await databaseState(created!.id!);
+    expect(state.agentVersion).toBe("0.161.0");
+    expect(state.dbVersion).toBe("11.4.13-MariaDB-ubu2404");
+    expect(state.otelCollectorStatus).toBe("connected");
+    expect(state.collectorLastSeenAt).not.toBeNull();
+  });
+
   test("the auto-archive sweep archives exactly the stale rows nobody invested in", async () => {
     const archived: Map<string, ObjectID> = new Map();
     const kept: Map<string, ObjectID> = new Map();
@@ -1746,6 +1797,65 @@ describePostgres("Databases SQL against Postgres", () => {
         }),
       ).resolves.toBe(1);
       expect(await endpointsOf(ours)).toHaveLength(0);
+    });
+
+    /*
+     * e2e: aliases added and removed from the Endpoints tab never reached
+     * the database's Feed. Through the real create and delete pipelines,
+     * each lands there once, on its own database - and a refusal writes
+     * nothing.
+     */
+    test("an alias a person adds and removes each put one item on the database's Feed", async () => {
+      const teamA: ObjectID = await insertRow("Label", {
+        projectId: projectId,
+        name: "team-a",
+      });
+      const ours: ObjectID = await insertDatabase({ name: "orders (team A)" });
+      const primary: ObjectID = await insertEndpoint({
+        databaseServerId: ours,
+        endpoint: "orders-db.example.com:5432",
+        source: "auto",
+        isPrimary: true,
+      });
+      await link("DatabaseServerLabel", {
+        databaseServerId: ours,
+        labelId: teamA,
+      });
+
+      const created: any = await DatabaseServerEndpointService.create({
+        data: alias(ours, "Orders-Replica.Example.com"),
+        props: scopedProps(PermissionScope.Labels, [teamA]),
+      });
+      expect(feed).toHaveBeenCalledTimes(1);
+      expect(feed.mock.calls[0]![0].feedInfoInMarkdown).toBe(
+        "🔗 Added the endpoint `orders-replica.example.com:5432` to [Database x](/x).",
+      );
+      expect(feed.mock.calls[0]![0].databaseServerId.toString()).toBe(
+        ours.toString(),
+      );
+
+      // The primary cannot be removed, and the refusal writes nothing.
+      await expect(
+        DatabaseServerEndpointService.deleteOneById({
+          id: primary,
+          props: scopedProps(PermissionScope.Labels, [teamA]),
+        }),
+      ).rejects.toThrow("primary endpoint");
+      expect(feed).toHaveBeenCalledTimes(1);
+
+      await expect(
+        DatabaseServerEndpointService.deleteOneById({
+          id: new ObjectID(created._id.toString()),
+          props: scopedProps(PermissionScope.Labels, [teamA]),
+        }),
+      ).resolves.toBe(1);
+      expect(feed).toHaveBeenCalledTimes(2);
+      expect(feed.mock.calls[1]![0].feedInfoInMarkdown).toBe(
+        "🔗 Removed the endpoint `orders-replica.example.com:5432` from [Database x](/x).",
+      );
+      expect(feed.mock.calls[1]![0].projectId.toString()).toBe(
+        projectId.toString(),
+      );
     });
 
     test("an Owned-scoped editor removes aliases of databases they own only", async () => {

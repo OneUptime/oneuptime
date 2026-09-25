@@ -30,7 +30,9 @@ import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
-import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import DatabaseServerService, {
+  DatabaseServerCollectorReport,
+} from "Common/Server/Services/DatabaseServerService";
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
 } from "Common/Server/Services/DatabaseServerEndpointService";
@@ -47,6 +49,7 @@ import {
   isKnownDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
+  DATABASE_AGENT_ATTRIBUTE,
   DATABASE_SERVER_ID_ATTRIBUTE,
   DATABASE_SYSTEM_ATTRIBUTES,
   resolveDatabaseFromResourceAttributes,
@@ -2809,6 +2812,11 @@ export default abstract class OtelIngestBaseService {
 
       let databaseServerIdStr: string | null = null;
 
+      const agentVersion: string | null = this.getStringAttribute(
+        data.attributes,
+        "oneuptime.agent.version",
+      );
+
       if (resolved.linkedDatabaseServerId) {
         databaseServerIdStr = await this.findLinkedDatabaseServerId({
           projectId: data.projectId,
@@ -2824,6 +2832,20 @@ export default abstract class OtelIngestBaseService {
             projectId: data.projectId,
             resolved: resolved,
             endpoint: resolved.endpoint,
+            /*
+             * A row this batch creates starts with its versions (see
+             * FindOrCreateDatabaseServerByEndpointData.collector): the
+             * heartbeat below can lose its write to the create's own side
+             * effects, and nothing retries it until the fence expires.
+             */
+            collector: {
+              agentVersion: agentVersion || undefined,
+              dbVersion: resolved.version || undefined,
+              reportedByDatabaseAgent: this.hasAttributeKey(
+                data.attributes,
+                DATABASE_AGENT_ATTRIBUTE,
+              ),
+            },
           },
         );
       }
@@ -2843,10 +2865,6 @@ export default abstract class OtelIngestBaseService {
         await this.shouldRunMaintenance("database-server", databaseServerIdStr)
       ) {
         armedFences.push({ scope: "database-server", id: databaseServerIdStr });
-        const agentVersion: string | null = this.getStringAttribute(
-          data.attributes,
-          "oneuptime.agent.version",
-        );
         /*
          * The engine rides along as collector evidence: the endpoint path
          * weighs it in findOrCreateByEndpoint, but a batch linked by id
@@ -3010,6 +3028,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     resolved: DatabaseServerResourceResolution;
     endpoint: DatabaseEndpoint;
+    collector: DatabaseServerCollectorReport;
   }): Promise<string | null> {
     const cacheKey: string = `${data.projectId.toString()}:${formatDatabaseEndpoint(
       data.endpoint,
@@ -3046,6 +3065,7 @@ export default abstract class OtelIngestBaseService {
         discoverySource: DatabaseServerDiscoverySource.Collector,
         displayName: data.resolved.displayName || undefined,
         allowCreate: allowCreate,
+        collector: data.collector,
       });
 
     if (!databaseServer || !databaseServer._id) {

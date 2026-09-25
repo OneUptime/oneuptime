@@ -27,7 +27,9 @@ import DatabaseServerEndpointService, {
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "../../../Server/Services/DatabaseServerLabelRuleEngineService";
 import DatabaseServerOwnerRuleEngineService from "../../../Server/Services/DatabaseServerOwnerRuleEngineService";
+import DockerHostService from "../../../Server/Services/DockerHostService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -1460,6 +1462,141 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(row.name).toBe("Orders (collector)");
   });
 
+  /*
+   * e2e: the Database Agent (0.161.0) against MariaDB 11.4.13 created
+   * "MySQL mariamysql.rcv-e2e.example.net:3306" at 22:45:47.695, and the
+   * heartbeat right behind the create lost the row lock to the create's own
+   * Created feed item - so agentVersion and dbVersion read "-" until the
+   * ingest fence let the next heartbeat through at 22:51:47 (a Memcached
+   * agent that ran for 2 minutes never got one at all).
+   */
+  test("a collector-created row starts with the versions its first batch reported, not waiting for a heartbeat", async () => {
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "mysql",
+      endpoint: { host: "mariamysql.rcv-e2e.example.net", port: 3306 },
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      allowCreate: true,
+      collector: {
+        agentVersion: " 0.161.0 ",
+        dbVersion: "11.4.13-MariaDB-ubu2404",
+        reportedByDatabaseAgent: true,
+      },
+    });
+
+    const row: DatabaseServer = create.mock.calls[0]![0].data;
+    expect(row.otelCollectorStatus).toBe("connected");
+    expect(row.agentVersion).toBe("0.161.0");
+    expect(row.dbVersion).toBe("11.4.13-MariaDB-ubu2404");
+    // Still one insert, as root and without hooks.
+    expect(create.mock.calls[0]![0].props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
+  });
+
+  test("a collector batch without versions leaves them unset, never blank", async () => {
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "postgresql",
+      endpoint: ORDERS_ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      allowCreate: true,
+      collector: { agentVersion: "  ", dbVersion: undefined },
+    });
+
+    const row: DatabaseServer = create.mock.calls[0]![0].data;
+    expect(row.agentVersion).toBeUndefined();
+    expect(row.dbVersion).toBeUndefined();
+  });
+
+  test("versions reported to another discovery path are not a collector's: never written", async () => {
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "postgresql",
+      endpoint: ORDERS_ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      allowCreate: true,
+      collector: { agentVersion: "0.161.0", dbVersion: "16.4" },
+    });
+
+    const row: DatabaseServer = create.mock.calls[0]![0].data;
+    expect(row.agentVersion).toBeUndefined();
+    expect(row.dbVersion).toBeUndefined();
+  });
+
+  describe("the Created feed item says what found the database, and where", () => {
+    async function createdFeed(): Promise<{
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+      userId?: ObjectID;
+    }> {
+      await flushPromises();
+      await flushPromises();
+      const calls: Array<Array<any>> = sideEffects.feed.mock.calls;
+      expect(calls).toHaveLength(1);
+      return calls[0]![0];
+    }
+
+    test("the Database Agent: named with its version and the endpoint it reported", async () => {
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "mysql",
+        endpoint: { host: "mariamysql.rcv-e2e.example.net", port: 3306 },
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: true,
+        collector: { agentVersion: "0.161.0", reportedByDatabaseAgent: true },
+      });
+
+      const feed: any = await createdFeed();
+      expect(feed.feedInfoInMarkdown).toBe(
+        "🤖 [Database PostgreSQL orders-db.example.com:5432](/db) was created automatically: reported by the Database Agent 0.161.0, which sent engine metrics for mariamysql.rcv-e2e.example.net:3306.",
+      );
+      expect(feed.feedInfoInMarkdown).not.toContain("the first time telemetry");
+      expect(feed.moreInformationInMarkdown).toContain(
+        "**Discovered from**: OpenTelemetry Collector",
+      );
+      expect(feed.moreInformationInMarkdown).toContain(
+        "**Database identifier**: `mysql|mariamysql.rcv-e2e.example.net:3306`",
+      );
+      expect(feed.userId).toBeUndefined();
+    });
+
+    test("any other collector: its database receiver", async () => {
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ORDERS_ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: true,
+        collector: { reportedByDatabaseAgent: false },
+      });
+
+      const feed: any = await createdFeed();
+      expect(feed.feedInfoInMarkdown).toContain(
+        "was created automatically: reported by an OpenTelemetry Collector database receiver, which sent engine metrics for orders-db.example.com:5432.",
+      );
+    });
+
+    test("application traces: the endpoint they called", async () => {
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: { host: "rare-db.example.com", port: 5432 },
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: true,
+      });
+
+      const feed: any = await createdFeed();
+      expect(feed.feedInfoInMarkdown).toContain(
+        "was created automatically: detected from application traces calling rare-db.example.com:5432.",
+      );
+      expect(feed.moreInformationInMarkdown).toContain(
+        "**Discovered from**: Application traces",
+      );
+    });
+  });
+
   test("an engine that cannot be named creates nothing", async () => {
     await expect(
       DatabaseServerService.findOrCreateByEndpoint({
@@ -1607,6 +1744,172 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
       }),
     ).rejects.toThrow("connection terminated");
     expect(deleteBy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * e2e: the Created feed item of c961ace7, a database Kubernetes discovery
+ * found as StatefulSet data/postgres on cluster e2e-kind, read "was created
+ * automatically by OneUptime the first time telemetry for it arrived" - one
+ * sentence for five discovery paths, wrong for every workload one.
+ */
+describe("DatabaseServerService - the Created feed item of a discovered workload", () => {
+  let sideEffects: SideEffectSpies;
+  let findCluster: jest.SpyInstance;
+  let findDockerHost: jest.SpyInstance;
+  let findPodmanHost: jest.SpyInstance;
+
+  beforeEach(() => {
+    silenceLogs();
+    sideEffects = mockSideEffects();
+    findCluster = getJestSpyOn(
+      KubernetesClusterService,
+      "findOneById",
+    ).mockResolvedValue({ name: "e2e-kind" } as never);
+    findDockerHost = getJestSpyOn(
+      DockerHostService,
+      "findOneById",
+    ).mockResolvedValue({ name: "e2e-docker-host" } as never);
+    findPodmanHost = getJestSpyOn(
+      PodmanHostService,
+      "findOneById",
+    ).mockResolvedValue({ name: "podman-1" } as never);
+  });
+
+  async function writeCreatedFeed(row: DatabaseServer): Promise<any> {
+    await service.writeDatabaseServerCreatedFeed(row, undefined);
+    expect(sideEffects.feed).toHaveBeenCalledTimes(1);
+    return sideEffects.feed.mock.calls[0]![0];
+  }
+
+  test("Kubernetes: the pods of the workload, and the cluster they run on", async () => {
+    const row: DatabaseServer = databaseRow({
+      name: "PostgreSQL data/postgres",
+      discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+      databaseIdentifier: "postgresql|k8s|e2e-kind|data|StatefulSet|postgres",
+      kubernetesClusterId: CLUSTER_ID,
+      kubernetesNamespace: "data",
+      workloadKind: "StatefulSet",
+      workloadName: "postgres",
+    });
+
+    const feed: any = await writeCreatedFeed(row);
+
+    expect(feed.feedInfoInMarkdown).toBe(
+      "🤖 [Database PostgreSQL orders-db.example.com:5432](/db) was created automatically: detected from the pods of StatefulSet data/postgres on Kubernetes cluster e2e-kind.",
+    );
+    expect(feed.moreInformationInMarkdown).not.toContain("telemetry for it");
+    expect(feed.moreInformationInMarkdown).toContain(
+      "**Discovered from**: Kubernetes",
+    );
+    expect(feed.databaseServerFeedEventType).toBe(
+      DatabaseServerFeedEventType.DatabaseServerCreated,
+    );
+    expect(findCluster).toHaveBeenCalledWith({
+      id: CLUSTER_ID,
+      select: { name: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("Kubernetes: a bare pod is named as one", async () => {
+    const feed: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+        kubernetesClusterId: CLUSTER_ID,
+        kubernetesNamespace: "data",
+        workloadKind: "Pod",
+        workloadName: "pg-debug",
+      }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toContain(
+      "detected from pod data/pg-debug on Kubernetes cluster e2e-kind.",
+    );
+  });
+
+  test("a cluster that cannot be read is left out, never guessed", async () => {
+    findCluster.mockRejectedValue(new Error("connection terminated"));
+
+    const feed: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+        kubernetesClusterId: CLUSTER_ID,
+        kubernetesNamespace: "cache",
+        workloadKind: "Deployment",
+        workloadName: "sessions",
+      }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toContain(
+      "detected from the pods of Deployment cache/sessions.",
+    );
+  });
+
+  test("Docker: the container and its host", async () => {
+    const dockerHostId: ObjectID = ObjectID.generate();
+
+    const feed: any = await writeCreatedFeed(
+      databaseRow({
+        name: "MariaDB e2e-receivers-mariadb",
+        discoverySource: DatabaseServerDiscoverySource.Docker,
+        workloadKind: "Container",
+        workloadName: "e2e-receivers-mariadb",
+        dockerHostId: dockerHostId,
+      }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toContain(
+      "was created automatically: detected from container e2e-receivers-mariadb on Docker host e2e-docker-host.",
+    );
+    expect(feed.moreInformationInMarkdown).toContain(
+      "**Discovered from**: Docker",
+    );
+    expect(findDockerHost.mock.calls[0]![0].id).toBe(dockerHostId);
+    expect(findPodmanHost).not.toHaveBeenCalled();
+  });
+
+  test("Podman: the container and its host", async () => {
+    const feed: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Podman,
+        workloadKind: "Container",
+        workloadName: "orders-pg",
+        podmanHostId: ObjectID.generate(),
+      }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toContain(
+      "detected from container orders-pg on Podman host podman-1.",
+    );
+    expect(findDockerHost).not.toHaveBeenCalled();
+  });
+
+  test("a person's create still names the person", async () => {
+    await service.writeDatabaseServerCreatedFeed(
+      databaseRow({ discoverySource: DatabaseServerDiscoverySource.Manual }),
+      USER_ID,
+    );
+
+    const feed: any = sideEffects.feed.mock.calls[0]![0];
+    expect(feed.feedInfoInMarkdown).toBe(
+      "🚀 [Database PostgreSQL orders-db.example.com:5432](/db) was created by **Jane Doe (jane@example.com)**.",
+    );
+    expect(feed.moreInformationInMarkdown).toContain(
+      "**Discovered from**: Added manually",
+    );
+    expect(feed.userId).toBe(USER_ID);
+  });
+
+  test("a manual create with no person (an API key) is not called automatic", async () => {
+    const feed: any = await writeCreatedFeed(
+      databaseRow({ discoverySource: DatabaseServerDiscoverySource.Manual }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toBe(
+      "🚀 [Database PostgreSQL orders-db.example.com:5432](/db) was added manually.",
+    );
+    expect(feed.feedInfoInMarkdown).not.toContain("automatically");
   });
 });
 
@@ -2563,16 +2866,65 @@ describe("DatabaseServerService.markDisconnectedDatabaseServers", () => {
       // An application still querying the database must not hide a dead collector.
       expect(sql).not.toContain(`"lastSeenAt"`);
 
+      /*
+       * 15 minutes of silence, measured from the last data: the heartbeat
+       * behind the ingest fence can trail it by up to 7 minutes.
+       */
       const threshold: Date = params[0] as Date;
-      const fifteenMinutes: number = 15 * 60 * 1000;
+      const cutoffAge: number = (15 + 7) * 60 * 1000;
       expect(before - threshold.getTime()).toBeGreaterThanOrEqual(
-        fifteenMinutes - 1000,
+        cutoffAge - 1000,
       );
-      expect(after - threshold.getTime()).toBeLessThanOrEqual(
-        fifteenMinutes + 1000,
-      );
+      expect(after - threshold.getTime()).toBeLessThanOrEqual(cutoffAge + 1000);
     } finally {
       restore();
+    }
+  });
+
+  /*
+   * e2e, the MariaDB agent: its last data reached ClickHouse at 22:57:08,
+   * the heartbeat behind the ingest fence had last written
+   * collectorLastSeenAt at 22:51:47, and the 23:10:00 sweep flipped it -
+   * after 12m52s of silence, not the documented 15 minutes.
+   */
+  test("the e2e MariaDB agent is not Disconnected after 12m52s of silence, and is once 15 minutes have passed", () => {
+    const lastData: number = Date.parse("2026-09-24T22:57:08.000Z");
+    const collectorLastSeenAt: number = Date.parse("2026-09-24T22:51:47.000Z");
+    const sweep: number = Date.parse("2026-09-24T23:10:00.190Z");
+
+    // The old rule: 15 minutes after the heartbeat - flipped at 23:10.
+    expect(collectorLastSeenAt).toBeLessThan(sweep - 15 * 60 * 1000);
+
+    expect(
+      collectorLastSeenAt <
+        DatabaseServerService.getCollectorSilenceCutoff(
+          new Date(sweep),
+        ).getTime(),
+    ).toBe(false);
+
+    // The sweep runs every five minutes; the first that flips it.
+    let firstFlip: number = sweep;
+    while (
+      collectorLastSeenAt >=
+      DatabaseServerService.getCollectorSilenceCutoff(
+        new Date(firstFlip),
+      ).getTime()
+    ) {
+      firstFlip += 5 * 60 * 1000;
+    }
+    expect(firstFlip - lastData).toBeGreaterThanOrEqual(15 * 60 * 1000);
+  });
+
+  test("however far the fenced heartbeat trails the data, no database flips before 15 minutes of silence", () => {
+    const lastData: number = Date.parse("2026-09-24T22:05:04.000Z");
+    // The fence: 5 minutes, +25% jitter, +30 s refusal memo = up to 6.75 minutes.
+    for (let lagSeconds: number = 0; lagSeconds <= 405; lagSeconds += 15) {
+      const collectorLastSeenAt: number = lastData - lagSeconds * 1000;
+      const silentFor: number = 14 * 60 * 1000 + 59 * 1000;
+      const cutoff: Date = DatabaseServerService.getCollectorSilenceCutoff(
+        new Date(lastData + silentFor),
+      );
+      expect(collectorLastSeenAt < cutoff.getTime()).toBe(false);
     }
   });
 

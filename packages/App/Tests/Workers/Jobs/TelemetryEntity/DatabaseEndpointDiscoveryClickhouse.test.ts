@@ -12,13 +12,20 @@ import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   CALLER_CLUSTER_ATTRIBUTE,
   CALLER_NAMESPACE_ATTRIBUTE,
+  DEFAULT_DATABASE_SERVER_MIN_CALLS,
   DatabaseEndpointRow,
   DiscoveredDatabaseEndpoint,
   buildDatabaseEndpointSql,
+  databaseQuerySpanSql,
   getDatabaseEndpointCallerContextNeeds,
   getDiscoveredDatabaseEndpoints,
+  isDatabaseEndpointAutoCreateCandidate,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
+import {
+  DATABASE_CONNECTION_SPAN_NAMES,
+  isDatabaseConnectionSpanName,
+} from "Common/Types/DatabaseServer/DatabaseConnectionSpan";
 import {
   DatabaseEndpoint,
   buildDatabaseCallerContext,
@@ -131,6 +138,15 @@ interface SpanFixture {
   kind?: SpanKind;
   projectId?: string;
   minutesAgo?: number;
+  // The span name; "query" when absent, NULL when null.
+  name?: string | null;
+}
+
+// Spans a fixture adds to its group's call count: connection spans add none.
+function callsOf(fixture: SpanFixture): number {
+  const name: string | null =
+    fixture.name === undefined ? "query" : fixture.name;
+  return isDatabaseConnectionSpanName(name) ? 0 : fixture.count || 1;
 }
 
 function db(
@@ -298,6 +314,74 @@ const SPANS: Array<SpanFixture> = [
     caller: VM,
   },
   /*
+   * The e2e run's rare-db window, attributes as node-postgres
+   * (@opentelemetry/instrumentation-pg 0.74.0) sent them: each of 4 queries
+   * came with a pool checkout and a client connect. 4 calls, not 12.
+   */
+  {
+    attributes: db("postgresql", "rare-db.example.com", {
+      "server.port": "5432",
+      "db.namespace": "orders",
+      "db.query.text": "SELECT 1 AS ok",
+    }),
+    caller: VM,
+    name: "pg.query:SELECT orders",
+    count: 4,
+  },
+  {
+    attributes: db("postgresql", "rare-db.example.com", {
+      "server.port": "5432",
+      "db.namespace": "orders",
+      "db.postgresql.idle.timeout.millis": "10000",
+    }),
+    caller: VM,
+    name: "pg-pool.connect",
+    count: 4,
+  },
+  {
+    attributes: db("postgresql", "rare-db.example.com", {
+      "server.port": "5432",
+      "db.namespace": "orders",
+    }),
+    caller: VM,
+    name: "pg.connect",
+    count: 4,
+  },
+  // ioredis 0.70.0: its connect span carries db.query.text as well.
+  {
+    attributes: db("redis", "legacy-cache.example.com", {
+      "server.port": "6379",
+      "db.query.text": "connect",
+    }),
+    caller: VM,
+    name: "connect",
+  },
+  {
+    attributes: db("redis", "legacy-cache.example.com", {
+      "server.port": "6379",
+      "db.operation.name": "info",
+      "db.query.text": "info",
+    }),
+    caller: VM,
+    name: "info",
+    count: 2,
+  },
+  // Nothing but connection spans: the group is still read, with no calls.
+  {
+    attributes: db("postgresql", "idle-pool.example.com", {
+      "server.port": "5432",
+    }),
+    caller: VM,
+    name: " PG-POOL.CONNECT ",
+    count: 3,
+  },
+  // A span without a name is a query.
+  {
+    attributes: db("postgresql", "unnamed.example.com"),
+    caller: VM,
+    name: null,
+  },
+  /*
    * Never counted: a SERVER span, a span without a system, another
    * project, and a span outside the window.
    */
@@ -361,7 +445,7 @@ function spanRows(): Array<JSONObject> {
         attributeKeys: Object.keys(attributes),
         entityKeys: [],
         statusCode: 0,
-        name: "query",
+        name: fixture.name === undefined ? "query" : fixture.name,
         kind: fixture.kind || SpanKind.Client,
         retentionDate: retentionDate,
       });
@@ -532,7 +616,7 @@ integration("Client-span database discovery SQL against ClickHouse", () => {
     for (const fixture of SPANS) {
       const key: string | null = expectedGroupKey(fixture);
       if (key) {
-        expected.set(key, (expected.get(key) || 0) + (fixture.count || 1));
+        expected.set(key, (expected.get(key) || 0) + callsOf(fixture));
       }
     }
 
@@ -542,6 +626,72 @@ integration("Client-span database discovery SQL against ClickHouse", () => {
     }
 
     expect(Object.fromEntries(actual)).toEqual(Object.fromEntries(expected));
+  });
+
+  test("connection spans are read but never counted: the e2e rare-db window is 4 calls", () => {
+    const byEndpoint: Map<string, DiscoveredDatabaseEndpoint> = new Map<
+      string,
+      DiscoveredDatabaseEndpoint
+    >(
+      resolveDatabaseEndpointRows(rows).map(
+        (
+          entry: DiscoveredDatabaseEndpoint,
+        ): [string, DiscoveredDatabaseEndpoint] => {
+          return [formatDatabaseEndpoint(entry.endpoint), entry];
+        },
+      ),
+    );
+
+    // 4 queries + 4 pool checkouts + 4 client connects.
+    const rare: DiscoveredDatabaseEndpoint | undefined = byEndpoint.get(
+      "rare-db.example.com:5432",
+    );
+    expect(rare?.callCount).toBe(4);
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: rare!,
+        minCalls: DEFAULT_DATABASE_SERVER_MIN_CALLS,
+      }),
+    ).toBe(false);
+
+    // ioredis: 2 commands; its connect span carries db.query.text and still is not one.
+    expect(byEndpoint.get("legacy-cache.example.com:6379")?.callCount).toBe(2);
+
+    // A group of nothing but connection spans is read (it can sight a row) with no calls.
+    expect(byEndpoint.get("idle-pool.example.com:5432")?.callCount).toBe(0);
+
+    // A span with no name is a query.
+    expect(byEndpoint.get("unnamed.example.com:5432")?.callCount).toBe(1);
+  });
+
+  test("the ClickHouse predicate and isDatabaseConnectionSpanName agree on every listed name", async () => {
+    const probes: Array<string> = [
+      ...DATABASE_CONNECTION_SPAN_NAMES,
+      ...DATABASE_CONNECTION_SPAN_NAMES.map((name: string): string => {
+        return ` ${name.toUpperCase()} `;
+      }),
+      "pg.query:SELECT orders",
+      "SELECT connect",
+      "redis-GET",
+      "",
+    ];
+    const result: { json: () => Promise<unknown> } = await client.query({
+      query: `SELECT name, ${databaseQuerySpanSql("name")} AS isQuery FROM (SELECT arrayJoin({names:Array(String)}) AS name)`,
+      query_params: { names: probes },
+      format: "JSON",
+    });
+    const parsed: { data: Array<{ name: string; isQuery: number | string }> } =
+      (await result.json()) as {
+        data: Array<{ name: string; isQuery: number | string }>;
+      };
+
+    expect(parsed.data).toHaveLength(probes.length);
+    for (const entry of parsed.data) {
+      expect([entry.name, Number(entry.isQuery) === 1]).toEqual([
+        entry.name,
+        !isDatabaseConnectionSpanName(entry.name),
+      ]);
+    }
   });
 
   test("SERVER spans, spans without a system, other projects and old spans are never read", () => {
@@ -566,7 +716,7 @@ integration("Client-span database discovery SQL against ClickHouse", () => {
         });
       if (target) {
         const key: string = formatDatabaseEndpoint(target.endpoint);
-        ingest.set(key, (ingest.get(key) || 0) + (fixture.count || 1));
+        ingest.set(key, (ingest.get(key) || 0) + callsOf(fixture));
       }
     }
 

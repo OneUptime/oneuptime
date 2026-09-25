@@ -14,6 +14,7 @@ import {
   PRIVATE_IP_ADDRESS_PATTERN,
   buildDatabaseEndpointSql,
   databaseInstanceSql,
+  databaseQuerySpanSql,
   firstNonEmptyAttributeSql,
   getDatabaseEndpointCallerContextNeeds,
   getDatabaseServerMinCalls,
@@ -22,6 +23,10 @@ import {
   resolveDatabaseEndpointRows,
 } from "../../../../Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 import { QUERY_SETTINGS } from "../../../../Server/Utils/Telemetry/ServiceDependencyDiscovery";
+import {
+  DATABASE_CONNECTION_SPAN_NAMES,
+  isDatabaseConnectionSpanName,
+} from "../../../../Types/DatabaseServer/DatabaseConnectionSpan";
 import {
   DatabaseCallerContext,
   DatabaseEndpoint,
@@ -238,7 +243,8 @@ describe("buildDatabaseEndpointSql", () => {
     expect(sql).toContain(
       "GROUP BY dbSystem, serverAddress, serverPort, dbInstance, callerNamespace, callerInKubernetes, callerCluster",
     );
-    expect(sql).toContain("count() AS callCount");
+    // Queries only - see "connection spans are not calls".
+    expect(sql).toContain(`countIf(${databaseQuerySpanSql()}) AS callCount`);
   });
 
   test("drops spans without a system or an address on attributeKeys before reading the map", () => {
@@ -304,6 +310,106 @@ describe("buildDatabaseEndpointSql", () => {
     expect(sql).not.toContain("SELECT DISTINCT projectId");
     expect(sql).not.toContain("NOT IN");
     expect(sql).not.toContain("INNER JOIN");
+  });
+});
+
+/*
+ * The e2e run found rare-db.example.com created from 4 real queries: in its
+ * 15-minute window ClickHouse held 4 `pg.query:SELECT orders`, 4
+ * `pg-pool.connect` and 4 `pg.connect` CLIENT spans, every one carrying
+ * db.system.name + server.address, and `count()` read that as 12 calls. The
+ * ioredis `connect` span even carries `db.query.text = 'connect'`, so only
+ * the span name tells connection management from a query.
+ */
+describe("connection spans are not calls", () => {
+  const sql: string = collapse(buildDatabaseEndpointSql(WINDOW));
+
+  test("the call count counts queries only, never connection spans", () => {
+    expect(sql).toContain(`countIf(${databaseQuerySpanSql()}) AS callCount`);
+    expect(sql).not.toContain("count() AS callCount");
+  });
+
+  test("connection spans still reach the query, so a row owning the endpoint is sighted", () => {
+    // No WHERE predicate on the name: only the count ignores them.
+    const where: string = sql.substring(sql.indexOf(" WHERE "));
+    expect(where).not.toContain("pg.connect");
+  });
+
+  test("the predicate compares the trimmed, lowercased name with every listed name", () => {
+    const predicate: string = databaseQuerySpanSql();
+    expect(predicate.startsWith("NOT has([")).toBe(true);
+    expect(predicate.endsWith("], lower(trimBoth(ifNull(name, ''))))")).toBe(
+      true,
+    );
+    for (const name of DATABASE_CONNECTION_SPAN_NAMES) {
+      expect(predicate).toContain(`'${name.toLowerCase()}'`);
+    }
+    expect(databaseQuerySpanSql("s.name")).toContain("ifNull(s.name, '')");
+  });
+
+  test.each<[string, boolean]>([
+    // node-postgres, as the e2e app emitted them.
+    ["pg.connect", true],
+    ["pg-pool.connect", true],
+    ["pg.query:SELECT orders", false],
+    // ioredis: `connect` is management; the handshake commands are commands.
+    ["connect", true],
+    ["info", false],
+    ["client", false],
+    ["auth", false],
+    ["ping", false],
+    // psycopg2 (Python), as the e2e billing-api emitted it.
+    ["SELECT", false],
+    // node-redis v4 / v5.
+    ["redis-connect", true],
+    ["redis-GET", false],
+    // node-oracledb: connect-time round trips are management; execute is a query.
+    ["oracledb.getConnection", true],
+    ["oracledb.Pool.getConnection", true],
+    ["oracledb.AuthMessage", true],
+    ["oracledb.Connection.execute:SELECT orders", false],
+    // Case and padding do not matter; a query on a table called connect is a query.
+    ["  PG-POOL.CONNECT ", true],
+    ["SELECT connect", false],
+    ["", false],
+  ])("%s → connection span: %s", (name: string, expected: boolean) => {
+    expect(isDatabaseConnectionSpanName(name)).toBe(expected);
+  });
+
+  test("a span without a name is a query", () => {
+    expect(isDatabaseConnectionSpanName(undefined)).toBe(false);
+    expect(isDatabaseConnectionSpanName(null)).toBe(false);
+  });
+
+  test("the list is one spelling per name", () => {
+    const lowered: Array<string> = DATABASE_CONNECTION_SPAN_NAMES.map(
+      (name: string): string => {
+        return name.toLowerCase();
+      },
+    );
+    expect(new Set<string>(lowered).size).toBe(lowered.length);
+  });
+
+  test("the real rare-db window: 4 queries and their connects do not reach 10 calls", () => {
+    const window: Array<string> = [];
+    for (let run: number = 0; run < 4; run++) {
+      window.push("pg-pool.connect", "pg.connect", "pg.query:SELECT orders");
+    }
+    const queries: number = window.filter((name: string): boolean => {
+      return !isDatabaseConnectionSpanName(name);
+    }).length;
+
+    expect(window).toHaveLength(12);
+    expect(queries).toBe(4);
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: discovered({
+          endpoint: { host: "rare-db.example.com", port: 5432 },
+          callCount: queries,
+        }),
+        minCalls: DEFAULT_DATABASE_SERVER_MIN_CALLS,
+      }),
+    ).toBe(false);
   });
 });
 

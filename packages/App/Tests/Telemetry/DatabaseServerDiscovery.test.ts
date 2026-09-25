@@ -412,9 +412,59 @@ describe("autoDiscoverDatabaseServer receiver hint and explicit stamp", () => {
       discoverySource: DatabaseServerDiscoverySource.Collector,
       displayName: DISPLAY_NAME,
       allowCreate: true,
+      // A generic collector's receiver: no agent stamp, no versions.
+      collector: {
+        agentVersion: undefined,
+        dbVersion: undefined,
+        reportedByDatabaseAgent: false,
+      },
     });
     // Never by id: this batch carries no link.
     expect(findByIdInProject).not.toHaveBeenCalled();
+  });
+
+  /*
+   * e2e: "MySQL mariamysql.rcv-e2e.example.net:3306" was created at
+   * 22:45:47.695 and its agentVersion / dbVersion read "-" until 22:51:47:
+   * the heartbeat below the create lost the row lock to the create's own
+   * feed item, and the fence it runs behind held every retry off.
+   */
+  test("the batch that may create the row hands it the agent and engine versions, so no heartbeat has to", async () => {
+    await discover({
+      ...AGENT_ATTRIBUTES,
+      "db.system.name": "mysql",
+      "server.address": "mariamysql.rcv-e2e.example.net",
+      "server.port": "3306",
+      "db.system.version": "11.4.13-MariaDB-ubu2404",
+    });
+
+    expect(findOrCreateByEndpoint).toHaveBeenCalledTimes(1);
+    expect(findOrCreateByEndpoint.mock.calls[0]![0].collector).toEqual({
+      agentVersion: "0.161.0",
+      dbVersion: "11.4.13-MariaDB-ubu2404",
+      reportedByDatabaseAgent: true,
+    });
+    // The heartbeat still carries the same versions for rows that already existed.
+    expect(recordCollectorHeartbeat).toHaveBeenCalledWith(
+      expect.any(ObjectID),
+      expect.objectContaining({
+        agentVersion: "0.161.0",
+        dbVersion: "11.4.13-MariaDB-ubu2404",
+      }),
+    );
+  });
+
+  test("a batch whose fence is held still hands a row it creates its versions", async () => {
+    heldFences.add(`database-server:${DATABASE_ID}`);
+
+    await discover({ ...AGENT_ATTRIBUTES, "db.system.version": "16.2" });
+
+    expect(recordCollectorHeartbeat).not.toHaveBeenCalled();
+    expect(findOrCreateByEndpoint.mock.calls[0]![0].collector).toEqual({
+      agentVersion: "0.161.0",
+      dbVersion: "16.2",
+      reportedByDatabaseAgent: true,
+    });
   });
 
   test("an explicit db.system.name + server.address stamp needs no hint", async () => {
@@ -531,6 +581,11 @@ describe("autoDiscoverDatabaseServer receiver hint and explicit stamp", () => {
       discoverySource: DatabaseServerDiscoverySource.Collector,
       displayName: "SAP HANA hana.example.com:30015",
       allowCreate: true,
+      collector: {
+        agentVersion: undefined,
+        dbVersion: undefined,
+        reportedByDatabaseAgent: false,
+      },
     });
     expect(recordCollectorHeartbeat).toHaveBeenCalledWith(
       expect.any(ObjectID),

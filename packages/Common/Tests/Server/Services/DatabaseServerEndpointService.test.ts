@@ -22,9 +22,11 @@ import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
 } from "../../../Server/Services/DatabaseServerEndpointService";
+import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
+import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import logger from "../../../Server/Utils/Logger";
@@ -592,6 +594,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     });
     findOwner = getJestSpyOn(service, "findOwnerByEndpoint");
     findOwner.mockResolvedValue(null);
+    // The Feed item an added alias writes - see "the database's Feed".
+    getJestSpyOn(
+      DatabaseServerFeedService,
+      "createDatabaseServerFeedItem",
+    ).mockResolvedValue(undefined);
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
@@ -1168,6 +1175,98 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     expect(created.isPrimary).toBe(true);
     expect(created.source).toBe("auto");
   });
+
+  /*
+   * e2e: five aliases added and one removed on a database left its Feed
+   * with nothing but "created automatically" - although the Feed promises
+   * every change, and the docs call an alias an edit of the database.
+   */
+  describe("the database's Feed", () => {
+    let feed: jest.SpyInstance;
+
+    beforeEach(() => {
+      feed = getJestSpyOn(
+        DatabaseServerFeedService,
+        "createDatabaseServerFeedItem",
+      ).mockResolvedValue(undefined);
+      getJestSpyOn(
+        DatabaseServerService,
+        "getDatabaseServerMarkdownLink",
+      ).mockResolvedValue(
+        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+      );
+    });
+
+    test("an alias a person adds is an edit on the database's Feed, naming the endpoint and who added it", async () => {
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("Orders-Replica.Example.com"),
+        props: memberProps(),
+      });
+
+      expect(feed).toHaveBeenCalledTimes(1);
+      const item: any = feed.mock.calls[0]![0];
+      expect(item.databaseServerId.toString()).toBe(DATABASE_ID.toString());
+      expect(item.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(item.databaseServerFeedEventType).toBe(
+        DatabaseServerFeedEventType.DatabaseServerUpdated,
+      );
+      expect(item.feedInfoInMarkdown).toBe(
+        "🔗 Added the endpoint `orders-replica.example.com:5432` to [Database PostgreSQL orders-db.example.com:5432](/db).",
+      );
+      expect(item.userId.toString()).toBe(USER_ID.toString());
+    });
+
+    test("a refused alias writes nothing", async () => {
+      findOwner.mockResolvedValue({
+        databaseServerId: OTHER_DATABASE_ID,
+        isPrimary: true,
+      });
+      getJestSpyOn(
+        DatabaseServerService,
+        "getDatabaseServerNameIfReadable",
+      ).mockResolvedValue("");
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-replica.example.com:5432"),
+          props: memberProps(),
+        }),
+      ).rejects.toThrow();
+      expect(feed).not.toHaveBeenCalled();
+    });
+
+    test("discovery's claims (root) never reach the Feed", async () => {
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com:5432", {
+          projectId: PROJECT_ID,
+          isPrimary: true,
+          source: "auto",
+        }),
+        props: { isRoot: true },
+      });
+
+      expect(feed).not.toHaveBeenCalled();
+    });
+
+    test("a Feed that cannot be written never fails the alias", async () => {
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {
+          return undefined as never;
+        });
+      feed.mockRejectedValue(new Error("connection terminated"));
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-replica.example.com"),
+          props: memberProps(),
+        }),
+      ).resolves.toBeDefined();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("connection terminated"),
+      );
+    });
+  });
 });
 
 /*
@@ -1278,6 +1377,11 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       );
       return found ? found.row : null;
     });
+    // The Feed item a removed alias writes - see "the database's Feed".
+    getJestSpyOn(
+      DatabaseServerFeedService,
+      "createDatabaseServerFeedItem",
+    ).mockResolvedValue(undefined);
   });
 
   test("a person cannot remove the primary endpoint", async () => {
@@ -1470,6 +1574,81 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
 
     expect(findBy).not.toHaveBeenCalled();
     expect(findParent).not.toHaveBeenCalled();
+  });
+
+  describe("the database's Feed", () => {
+    let feed: jest.SpyInstance;
+
+    beforeEach(() => {
+      feed = getJestSpyOn(
+        DatabaseServerFeedService,
+        "createDatabaseServerFeedItem",
+      ).mockResolvedValue(undefined);
+      getJestSpyOn(
+        DatabaseServerService,
+        "getDatabaseServerMarkdownLink",
+      ).mockResolvedValue(
+        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+      );
+    });
+
+    test("an alias a person removes is an edit on its database's Feed, naming the endpoint and who removed it", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+
+      await expect(removeEndpoint(alias, memberProps())).resolves.toBe(1);
+
+      expect(feed).toHaveBeenCalledTimes(1);
+      const item: any = feed.mock.calls[0]![0];
+      expect(item.databaseServerId.toString()).toBe(DATABASE_ID.toString());
+      expect(item.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(item.databaseServerFeedEventType).toBe(
+        DatabaseServerFeedEventType.DatabaseServerUpdated,
+      );
+      expect(item.feedInfoInMarkdown).toBe(
+        "🔗 Removed the endpoint `orders-replica.example.com:5432` from [Database PostgreSQL orders-db.example.com:5432](/db).",
+      );
+      expect(item.userId.toString()).toBe(USER_ID.toString());
+    });
+
+    test("a refused removal (the primary endpoint) writes nothing", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const primary: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-db.example.com:5432",
+        isPrimary: true,
+      });
+
+      await expect(removeEndpoint(primary, memberProps())).rejects.toThrow();
+      expect(feed).not.toHaveBeenCalled();
+    });
+
+    test("an endpoint the delete did not actually remove gets no item", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+      // A racing delete took it first: the pipeline's own read finds nothing.
+      getJestSpyOn(service, "_findBy").mockResolvedValue([] as never);
+
+      await removeEndpoint(alias, memberProps());
+      expect(feed).not.toHaveBeenCalled();
+    });
+
+    test("discovery's releases (root) never reach the Feed", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+
+      await removeEndpoint(alias, { isRoot: true });
+      expect(feed).not.toHaveBeenCalled();
+    });
   });
 });
 

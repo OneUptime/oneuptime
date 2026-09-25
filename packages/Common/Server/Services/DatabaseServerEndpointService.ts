@@ -1,7 +1,9 @@
 import DatabaseService from "./DatabaseService";
+import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import Model from "../../Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
+import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -12,6 +14,7 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { Gray500, Red500 } from "../../Types/BrandColors";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -63,6 +66,11 @@ export interface DatabaseServerEndpointOwner {
  * busy endpoint costs one write an hour, not one per lookup.
  */
 export const ENDPOINT_MATCH_REFRESH_SECONDS: number = 60 * 60;
+
+// What onBeforeDelete hands onDeleteSuccess: the endpoints the delete matched.
+interface EndpointDeleteCarryForward {
+  endpointsToDelete: Array<Model>;
+}
 
 // What an alias looks like, for the refusal of an empty one.
 const ENDPOINT_EXAMPLE: string =
@@ -317,7 +325,132 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    return { deleteBy: deleteBy, carryForward: null };
+    // The rows are gone by onDeleteSuccess: its feed items are built from these.
+    const carryForward: EndpointDeleteCarryForward = {
+      endpointsToDelete: matched,
+    };
+
+    return { deleteBy: deleteBy, carryForward: carryForward };
+  }
+
+  /*
+   * A person added an alias: that is an edit of the database (it decides
+   * which traffic the database's pages show), so it goes on the database's
+   * Feed like any other edit, naming the endpoint and who added it. A
+   * discovery claim is root and never gets here.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem;
+    }
+
+    await this.writeEndpointFeedItem({
+      change: "added",
+      endpoint: createdItem,
+      projectId:
+        createdItem.projectId || onCreate.createBy.props.tenantId || undefined,
+      userId:
+        createdItem.createdByUserId ||
+        onCreate.createBy.props.userId ||
+        undefined,
+    });
+
+    return createdItem;
+  }
+
+  /*
+   * A person removed aliases: one feed item per endpoint actually removed,
+   * on its own database. Discovery's releases and moves are root writes and
+   * never get here.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carried: EndpointDeleteCarryForward | null =
+      (onDelete.carryForward as EndpointDeleteCarryForward | null) || null;
+
+    if (onDelete.deleteBy.props.isRoot || !carried) {
+      return onDelete;
+    }
+
+    const deletedIds: Set<string> = new Set<string>(
+      (itemIdsBeforeDelete || []).map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    const userId: ObjectID | undefined =
+      onDelete.deleteBy.deletedByUser?.id ||
+      onDelete.deleteBy.props.userId ||
+      undefined;
+
+    for (const endpoint of carried.endpointsToDelete || []) {
+      if (!endpoint._id || !deletedIds.has(endpoint._id.toString())) {
+        continue;
+      }
+
+      await this.writeEndpointFeedItem({
+        change: "removed",
+        endpoint: endpoint,
+        projectId:
+          endpoint.projectId || onDelete.deleteBy.props.tenantId || undefined,
+        userId: userId,
+      });
+    }
+
+    return onDelete;
+  }
+
+  // One "endpoint added / removed" item on the database's Feed. Never throws.
+  private async writeEndpointFeedItem(data: {
+    change: "added" | "removed";
+    endpoint: Model;
+    projectId: ObjectID | undefined;
+    userId: ObjectID | undefined;
+  }): Promise<void> {
+    const databaseServerId: ObjectID | undefined =
+      data.endpoint.databaseServerId || undefined;
+    const endpoint: string = (data.endpoint.endpoint || "").trim();
+
+    if (!databaseServerId || !data.projectId || !endpoint) {
+      return;
+    }
+
+    try {
+      const link: string =
+        await DatabaseServerService.getDatabaseServerMarkdownLink(
+          data.projectId,
+          databaseServerId,
+        );
+      const added: boolean = data.change === "added";
+
+      await DatabaseServerFeedService.createDatabaseServerFeedItem({
+        databaseServerId: databaseServerId,
+        projectId: data.projectId,
+        databaseServerFeedEventType:
+          DatabaseServerFeedEventType.DatabaseServerUpdated,
+        displayColor: added ? Gray500 : Red500,
+        feedInfoInMarkdown: added
+          ? `🔗 Added the endpoint \`${endpoint}\` to ${link}.`
+          : `🔗 Removed the endpoint \`${endpoint}\` from ${link}.`,
+        moreInformationInMarkdown: added
+          ? `**Endpoint**: \`${endpoint}\`\n\nCalls applications make to this endpoint now count as this database's traffic, and no other database can claim it.`
+          : `**Endpoint**: \`${endpoint}\`\n\nCalls to this endpoint no longer count as this database's traffic, and another database may claim it.`,
+        userId: data.userId,
+      });
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerEndpointService: could not write the feed item for endpoint ${endpoint} ${data.change}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /**

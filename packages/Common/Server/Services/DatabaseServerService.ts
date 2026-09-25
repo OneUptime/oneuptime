@@ -8,13 +8,17 @@ import DatabaseServerEndpointService, {
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "./DatabaseServerLabelRuleEngineService";
 import DatabaseServerOwnerRuleEngineService from "./DatabaseServerOwnerRuleEngineService";
+import DockerHostService from "./DockerHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import PodmanHostService from "./PodmanHostService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import DatabaseConfig from "../DatabaseConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CreateBy from "../Types/Database/CreateBy";
@@ -92,6 +96,15 @@ const AUTO_RESTORE_CHECK_WINDOW_SECONDS: number = 600;
 
 const DEFAULT_COLLECTOR_STALE_MINUTES: number = 15;
 const MIN_COLLECTOR_STALE_MINUTES: number = 10;
+
+/*
+ * How far collectorLastSeenAt may trail a collector's last data while it
+ * reports continuously: the heartbeat runs once per OTel ingest maintenance
+ * fence (MAINTENANCE_FENCE_TTL_SECONDS in OtelIngestBaseService: 5 minutes,
+ * jittered up to 25%, so 6.25) and a pod that saw the fence held waits up
+ * to its 30-second refusal memo more - 6.75 minutes, rounded up.
+ */
+const COLLECTOR_HEARTBEAT_LAG_MINUTES: number = 7;
 
 const DEFAULT_AUTO_ARCHIVE_DAYS: number = 7;
 const MIN_AUTO_ARCHIVE_DAYS: number = 1;
@@ -312,6 +325,43 @@ export interface FindOrCreateDatabaseServerByEndpointData {
   discoverySource: DatabaseServerDiscoverySource;
   displayName?: string | undefined;
   allowCreate: boolean;
+  /*
+   * The collector path only: what the batch that finds or creates the row
+   * reports. A row it creates carries the agent and engine versions from its
+   * first moment - the collector heartbeat that follows the create races the
+   * create's own feed item and rule runs for the row lock, and a skipped
+   * heartbeat is not retried until the ingest maintenance fence expires - and
+   * its Created feed item says whether the Database Agent found it.
+   */
+  collector?: DatabaseServerCollectorReport | undefined;
+}
+
+export interface DatabaseServerCollectorReport {
+  // `oneuptime.agent.version`.
+  agentVersion?: string | undefined;
+  // The engine's own version (`db.system.version`, the receiver's).
+  dbVersion?: string | undefined;
+  // The batch carries `oneuptime.database.agent`: the Database Agent sent it.
+  reportedByDatabaseAgent?: boolean | undefined;
+}
+
+/*
+ * What only the discovery path that creates a row knows, for its Created
+ * feed item: the endpoint it was found at and who reported it.
+ */
+interface DatabaseServerCreationContext {
+  endpoint?: string | undefined;
+  collector?: DatabaseServerCollectorReport | undefined;
+}
+
+// The Created feed item of a row no person added (describeCreationOrigin).
+interface DatabaseServerCreationOrigin {
+  emoji: string;
+  // Follows the database's link: "was created automatically: detected from ...".
+  summary: string;
+  // The "**Created by**" line.
+  createdBy: string;
+  explanation: string;
 }
 
 export interface UpsertWorkloadDatabaseData {
@@ -733,6 +783,7 @@ export class Service extends DatabaseService<Model> {
       formattedEndpoint: formatted,
       discoverySource: data.discoverySource,
       displayName: data.displayName,
+      collector: data.collector,
     });
   }
 
@@ -980,13 +1031,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Threshold must stay well above the 5-minute OTel ingest maintenance
-   * fence (MAINTENANCE_FENCE_TTL_SECONDS in OtelIngestBaseService) - the
-   * collector heartbeat sits behind that fence, so collectorLastSeenAt is
-   * legitimately up to ~7 minutes stale (the fence is jittered) during
-   * continuous telemetry. 15 minutes by default; an override below 10 is
-   * raised to 10 rather than allowed to flap healthy databases. Anything
-   * unparseable falls back to the default.
+   * Minutes of collector SILENCE before Engine metrics reads Disconnected
+   * (DATABASE_SERVER_COLLECTOR_STALE_MINUTES): 15 by default; an override
+   * below 10 is raised to 10 rather than allowed to flap healthy databases.
+   * Anything unparseable falls back to the default. It is measured from the
+   * last data, not from collectorLastSeenAt - see getCollectorSilenceCutoff.
    */
   public getCollectorStaleThresholdMinutes(): number {
     return readIntegerEnv({
@@ -996,18 +1045,37 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * The collectorLastSeenAt before which a collector has been silent for at
+   * least getCollectorStaleThresholdMinutes(). The heartbeat that moves
+   * collectorLastSeenAt runs behind the 5-minute OTel ingest maintenance
+   * fence, so while data arrives continuously the column trails the last
+   * data by up to COLLECTOR_HEARTBEAT_LAG_MINUTES. Comparing it with the
+   * threshold alone flipped databases after as little as ~8 minutes of real
+   * silence (e2e: 12m52s); adding the lag makes "15 minutes" a floor.
+   */
+  public getCollectorSilenceCutoff(now: Date): Date {
+    return OneUptimeDate.addRemoveMinutes(
+      now,
+      -(
+        this.getCollectorStaleThresholdMinutes() +
+        COLLECTOR_HEARTBEAT_LAG_MINUTES
+      ),
+    );
+  }
+
   /**
-   * Flip databases whose collector went quiet to "disconnected". Keyed on
-   * collectorLastSeenAt, NOT lastSeenAt: an application still querying the
-   * database keeps lastSeenAt fresh, and that must not hide a dead collector.
-   * One conditional statement, so a heartbeat landing mid-sweep cannot be
-   * overwritten. Returns how many rows were flipped.
+   * Flip databases whose collector went quiet to "disconnected": silent for
+   * at least getCollectorStaleThresholdMinutes() (getCollectorSilenceCutoff).
+   * Keyed on collectorLastSeenAt, NOT lastSeenAt: an application still
+   * querying the database keeps lastSeenAt fresh, and that must not hide a
+   * dead collector. One conditional statement, so a heartbeat landing
+   * mid-sweep cannot be overwritten. Returns how many rows were flipped.
    */
   @CaptureSpan()
   public async markDisconnectedDatabaseServers(): Promise<number> {
-    const threshold: Date = OneUptimeDate.addRemoveMinutes(
+    const threshold: Date = this.getCollectorSilenceCutoff(
       OneUptimeDate.getCurrentDate(),
-      -this.getCollectorStaleThresholdMinutes(),
     );
 
     const rows: Array<{ count: number | string }> =
@@ -1945,12 +2013,10 @@ export class Service extends DatabaseService<Model> {
       return false;
     }
 
+    // Live exactly as long as the disconnect sweep would leave it connected.
     return (
       new Date(row.collectorLastSeenAt).getTime() >
-      OneUptimeDate.addRemoveMinutes(
-        now,
-        -this.getCollectorStaleThresholdMinutes(),
-      ).getTime()
+      this.getCollectorSilenceCutoff(now).getTime()
     );
   }
 
@@ -2812,11 +2878,14 @@ export class Service extends DatabaseService<Model> {
     formattedEndpoint: string;
     discoverySource: DatabaseServerDiscoverySource;
     displayName?: string | undefined;
+    collector?: DatabaseServerCollectorReport | undefined;
   }): Promise<Model | null> {
     const now: Date = OneUptimeDate.getCurrentDate();
     const databaseIdentifier: string = truncateLongText(
       buildDatabaseServerIdentifier(data.dbSystem, data.endpoint),
     );
+    const isCollector: boolean =
+      data.discoverySource === DatabaseServerDiscoverySource.Collector;
 
     const newRow: Model = new Model();
     newRow.projectId = data.projectId;
@@ -2841,10 +2910,31 @@ export class Service extends DatabaseService<Model> {
      * other source leaves otelCollectorStatus empty - no collector has
      * reported, so none has "disconnected" either (the column has no
      * default).
+     *
+     * It also carries the agent and engine versions the creating batch
+     * reported, so it never depends on the heartbeat right after it: that
+     * write is FOR UPDATE SKIP LOCKED, the create's own Created feed item
+     * (its foreign key share-locks the row) and rule runs are still in
+     * flight, and a skipped heartbeat waits out the whole ingest maintenance
+     * fence - forever, if the agent stops before it expires.
      */
-    if (data.discoverySource === DatabaseServerDiscoverySource.Collector) {
+    if (isCollector) {
       newRow.otelCollectorStatus = "connected";
       newRow.collectorLastSeenAt = now;
+
+      const agentVersion: string | null = cleanShortText(
+        data.collector?.agentVersion,
+      );
+      if (agentVersion) {
+        newRow.agentVersion = agentVersion;
+      }
+
+      const dbVersion: string | null = cleanShortText(
+        data.collector?.dbVersion,
+      );
+      if (dbVersion) {
+        newRow.dbVersion = dbVersion;
+      }
     }
 
     let row: Model;
@@ -2945,7 +3035,10 @@ export class Service extends DatabaseService<Model> {
 
     if (createdHere) {
       this.noteAutoCreated(data.projectId);
-      this.runCreatedSideEffects(row, undefined);
+      this.runCreatedSideEffects(row, undefined, {
+        endpoint: data.formattedEndpoint,
+        collector: isCollector ? data.collector : undefined,
+      });
     } else {
       await this.restoreIfAutoArchived(row);
     }
@@ -3257,6 +3350,7 @@ export class Service extends DatabaseService<Model> {
   private runCreatedSideEffects(
     createdItem: Model,
     createdByUserId: ObjectID | undefined,
+    context?: DatabaseServerCreationContext | undefined,
   ): void {
     if (createdItem.projectId && createdItem.id) {
       Promise.resolve()
@@ -3281,16 +3375,19 @@ export class Service extends DatabaseService<Model> {
         });
     }
 
-    this.writeDatabaseServerCreatedFeed(createdItem, createdByUserId).catch(
-      (error: Error) => {
-        logger.error(error);
-      },
-    );
+    this.writeDatabaseServerCreatedFeed(
+      createdItem,
+      createdByUserId,
+      context,
+    ).catch((error: Error) => {
+      logger.error(error);
+    });
   }
 
   private async writeDatabaseServerCreatedFeed(
     createdItem: Model,
     createdByUserId: ObjectID | undefined,
+    context?: DatabaseServerCreationContext | undefined,
   ): Promise<void> {
     const projectId: ObjectID | undefined = createdItem.projectId;
     const databaseServerId: ObjectID | undefined = createdItem.id || undefined;
@@ -3299,31 +3396,65 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const markdown: {
+    const resourceMarkdownLink: string =
+      await this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
+
+    const discoveredFrom: string = `**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
+      createdItem.discoverySource,
+    )}`;
+
+    let markdown: {
       feedInfoInMarkdown: string;
       moreInformationInMarkdown: string;
-    } = await ResourceFeedUtil.getCreatedFeedMarkdown({
-      resourceTypeName: "database",
-      resourceMarkdownLink: await this.getDatabaseServerMarkdownLink(
-        projectId,
-        databaseServerId,
-      ),
-      projectId: projectId,
-      createdByUserId: createdByUserId,
-      identifierName: "Database identifier",
-      identifierValue: createdItem.databaseIdentifier,
-      description: createdItem.description,
-    });
+    };
 
-    /*
-     * "Created automatically from telemetry" covers five very different
-     * sources here; say which one found it.
-     */
-    const moreInformationInMarkdown: string = createdItem.discoverySource
-      ? `${markdown.moreInformationInMarkdown}\n\n**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
-          createdItem.discoverySource,
-        )}`
-      : markdown.moreInformationInMarkdown;
+    if (createdByUserId) {
+      const created: {
+        feedInfoInMarkdown: string;
+        moreInformationInMarkdown: string;
+      } = await ResourceFeedUtil.getCreatedFeedMarkdown({
+        resourceTypeName: "database",
+        resourceMarkdownLink: resourceMarkdownLink,
+        projectId: projectId,
+        createdByUserId: createdByUserId,
+        identifierName: "Database identifier",
+        identifierValue: createdItem.databaseIdentifier,
+        description: createdItem.description,
+      });
+
+      markdown = {
+        feedInfoInMarkdown: created.feedInfoInMarkdown,
+        moreInformationInMarkdown: `${created.moreInformationInMarkdown}\n\n${discoveredFrom}`,
+      };
+    } else {
+      /*
+       * Five discovery paths create rows on their own, and "the first time
+       * telemetry for it arrived" is true of none of the workload ones: say
+       * what found this database, where.
+       */
+      const origin: DatabaseServerCreationOrigin =
+        await this.describeCreationOrigin(createdItem, context);
+
+      const details: Array<string> = [];
+      if (createdItem.databaseIdentifier) {
+        details.push(
+          `**Database identifier**: \`${createdItem.databaseIdentifier}\``,
+        );
+      }
+      if (createdItem.description) {
+        details.push(`**Description**: ${createdItem.description}`);
+      }
+
+      markdown = {
+        feedInfoInMarkdown: `${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`,
+        moreInformationInMarkdown: [
+          origin.createdBy,
+          `**How it was created**: ${origin.explanation}`,
+          discoveredFrom,
+          ...details,
+        ].join("\n\n"),
+      };
+    }
 
     await DatabaseServerFeedService.createDatabaseServerFeedItem({
       databaseServerId: databaseServerId,
@@ -3332,9 +3463,166 @@ export class Service extends DatabaseService<Model> {
         DatabaseServerFeedEventType.DatabaseServerCreated,
       displayColor: Green500,
       feedInfoInMarkdown: markdown.feedInfoInMarkdown,
-      moreInformationInMarkdown: moreInformationInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
       userId: createdByUserId,
     });
+  }
+
+  /*
+   * What the Created feed item says about a row no person added: which
+   * discovery path found it, and where - the workload and its cluster or
+   * host, the endpoint applications called, the agent or collector that
+   * reported it. A name that cannot be read is left out, never guessed.
+   */
+  private async describeCreationOrigin(
+    row: Model,
+    context: DatabaseServerCreationContext | undefined,
+  ): Promise<DatabaseServerCreationOrigin> {
+    const automatic: string =
+      "**Created by**: No user. OneUptime created this database on its own.";
+    const endpoint: string = describeCreationEndpoint(row, context);
+
+    switch (row.discoverySource) {
+      case DatabaseServerDiscoverySource.Kubernetes: {
+        const clusterName: string | null = await this.readParentName(
+          "kubernetes",
+          row.kubernetesClusterId,
+        );
+        const workload: string = describeKubernetesWorkload(row);
+
+        return {
+          emoji: "🤖",
+          summary: `was created automatically: detected from ${workload}${
+            clusterName ? ` on Kubernetes cluster ${clusterName}` : ""
+          }`,
+          createdBy: automatic,
+          explanation:
+            "The Kubernetes agent reports the pods of the cluster. OneUptime found a database engine running in this workload's pods and registered the workload as one database; the Kubernetes Services in front of it became its endpoints.",
+        };
+      }
+      case DatabaseServerDiscoverySource.Docker:
+      case DatabaseServerDiscoverySource.Podman: {
+        const isDocker: boolean =
+          row.discoverySource === DatabaseServerDiscoverySource.Docker;
+        const platform: string = isDocker ? "Docker" : "Podman";
+        const hostName: string | null = isDocker
+          ? await this.readParentName("docker", row.dockerHostId)
+          : await this.readParentName("podman", row.podmanHostId);
+        const container: string = row.workloadName
+          ? `container ${row.workloadName}`
+          : "a container";
+
+        return {
+          emoji: "🤖",
+          summary: `was created automatically: detected from ${container}${
+            hostName
+              ? ` on ${platform} host ${hostName}`
+              : ` on a ${platform} host`
+          }`,
+          createdBy: automatic,
+          explanation: `The ${platform} agent reports the containers of the host. OneUptime found a database engine running in this container and registered it as a database.`,
+        };
+      }
+      case DatabaseServerDiscoverySource.ClientSpans:
+        return {
+          emoji: "🤖",
+          summary: `was created automatically: detected from application traces${
+            endpoint ? ` calling ${endpoint}` : ""
+          }`,
+          createdBy: automatic,
+          explanation:
+            "Instrumented applications sent database CLIENT spans (OpenTelemetry) that call this server, often enough in a 15-minute window, so OneUptime registered the server they call.",
+        };
+      case DatabaseServerDiscoverySource.Collector: {
+        const report: DatabaseServerCollectorReport | undefined =
+          context?.collector;
+        const agentVersion: string | null = cleanShortText(
+          report?.agentVersion,
+        );
+        const reporter: string =
+          report?.reportedByDatabaseAgent === true
+            ? `the Database Agent${agentVersion ? ` ${agentVersion}` : ""}`
+            : "an OpenTelemetry Collector database receiver";
+
+        return {
+          emoji: "🤖",
+          summary: `was created automatically: reported by ${reporter}${
+            endpoint ? `, which sent engine metrics for ${endpoint}` : ""
+          }`,
+          createdBy: automatic,
+          explanation: `${
+            report?.reportedByDatabaseAgent === true
+              ? "The OneUptime Database Agent"
+              : "An OpenTelemetry Collector with a database receiver"
+          } sent engine metrics for a database this project did not have yet, so OneUptime registered it so the metrics had somewhere to land.`,
+        };
+      }
+      case DatabaseServerDiscoverySource.Manual:
+        return {
+          emoji: "🚀",
+          summary: "was added manually",
+          createdBy:
+            "**Created by**: An API key or integration, not a signed-in user.",
+          explanation:
+            "Added from the OneUptime dashboard or through the OneUptime API.",
+        };
+      default:
+        return {
+          emoji: "🤖",
+          summary: "was created automatically by OneUptime",
+          createdBy: automatic,
+          explanation:
+            "A OneUptime discovery path reported a database this project did not have yet, so OneUptime registered it.",
+        };
+    }
+  }
+
+  // The name of a database's cluster or host, for its feed; null when unreadable.
+  private async readParentName(
+    parent: "kubernetes" | "docker" | "podman",
+    id: ObjectID | undefined,
+  ): Promise<string | null> {
+    if (!id) {
+      return null;
+    }
+
+    try {
+      let name: string | undefined = undefined;
+
+      if (parent === "kubernetes") {
+        const cluster: KubernetesCluster | null =
+          await KubernetesClusterService.findOneById({
+            id: id,
+            select: { name: true },
+            props: { isRoot: true },
+          });
+        name = cluster?.name;
+      } else if (parent === "docker") {
+        const host: DockerHost | null = await DockerHostService.findOneById({
+          id: id,
+          select: { name: true },
+          props: { isRoot: true },
+        });
+        name = host?.name;
+      } else {
+        const host: PodmanHost | null = await PodmanHostService.findOneById({
+          id: id,
+          select: { name: true },
+          props: { isRoot: true },
+        });
+        name = host?.name;
+      }
+
+      return cleanShortText(name);
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not read the name of ${id.toString()} for a Created feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return null;
+    }
   }
 
   private async writeDatabaseServerUpdatedFeed(
@@ -3817,6 +4105,54 @@ function cleanShortText(value: string | null | undefined): string | null {
 function cleanLongText(value: string | null | undefined): string | null {
   const trimmed: string = typeof value === "string" ? value.trim() : "";
   return trimmed ? truncateLongText(trimmed) : null;
+}
+
+/*
+ * "the pods of StatefulSet data/postgres", "pod data/pg-debug" - the
+ * workload a Kubernetes row was detected from, for its Created feed item.
+ */
+function describeKubernetesWorkload(row: Model): string {
+  const name: string = [
+    cleanShortText(row.kubernetesNamespace),
+    cleanLongText(row.workloadName),
+  ]
+    .filter((part: string | null): part is string => {
+      return Boolean(part);
+    })
+    .join("/");
+  const kind: string | null = cleanShortText(row.workloadKind);
+
+  if (!name) {
+    return "a Kubernetes workload's pods";
+  }
+
+  if (kind === "Pod") {
+    return `pod ${name}`;
+  }
+
+  return `the pods of ${kind ? `${kind} ` : ""}${name}`;
+}
+
+// The endpoint a row was created for: what discovery saw, else its own columns.
+function describeCreationEndpoint(
+  row: Model,
+  context: DatabaseServerCreationContext | undefined,
+): string {
+  const seen: string | null = cleanLongText(context?.endpoint);
+
+  if (seen) {
+    return seen;
+  }
+
+  const host: string | null = cleanLongText(row.serverAddress);
+
+  if (!host) {
+    return "";
+  }
+
+  return typeof row.serverPort === "number"
+    ? formatDatabaseEndpoint({ host: host, port: row.serverPort })
+    : host;
 }
 
 function toInstanceCount(value: unknown): number {

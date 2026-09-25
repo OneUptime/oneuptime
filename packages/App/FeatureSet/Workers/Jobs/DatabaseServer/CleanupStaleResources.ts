@@ -13,9 +13,10 @@ import DatabaseServerService from "Common/Server/Services/DatabaseServerService"
  *      (DatabaseServerService.markDisconnectedDatabaseServers). Keyed
  *      on collectorLastSeenAt, not lastSeenAt: an application still
  *      querying the database keeps lastSeenAt fresh, and that must not
- *      hide a dead collector. The threshold (default 15 minutes, well
- *      above the 5-minute ingest maintenance fence) lives in the
- *      service, so this cron carries no duplicate policy.
+ *      hide a dead collector. The threshold (default 15 minutes of
+ *      silence, measured from the last data: the heartbeat behind the
+ *      5-minute ingest maintenance fence may trail it by up to 7 more)
+ *      lives in the service, so this cron carries no duplicate policy.
  *   2. Archive DISCOVERED databases nobody has seen — or touched — for
  *      DATABASE_SERVER_AUTO_ARCHIVE_DAYS (autoArchiveStaleDatabaseServers).
  *      Discovery creates rows on its own, so without this sweep a
