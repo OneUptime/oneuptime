@@ -10,6 +10,7 @@ import PerEntityCriteriaFanOut, {
   FanOutEntity,
 } from "./PerEntityCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
+import CompareCriteria from "./Criteria/CompareCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
@@ -119,6 +120,7 @@ import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetric
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
+import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import PlatformResourceIdentity, {
   CephResourceIdentity,
   DockerSwarmResourceIdentity,
@@ -149,15 +151,13 @@ interface AffectedResourceBreachPredicate {
   matches: (value: number) => boolean;
   worstIsLowest: boolean;
   /*
-   * Which of a raw-scan resource's samples to judge it by, when neither
+   * Which end of a raw-scan resource's window to judge it by, when neither
    * "the highest" nor "the lowest" is right on its own. Absent means:
-   * the lowest when worstIsLowest, else the highest.
+   * the lowest when worstIsLowest, else the highest. Receives the two
+   * ends already in the criteria's comparison unit.
    */
-  pickValue?:
-    | ((resource: {
-        metricValue: number;
-        lowestMetricValue?: number | undefined;
-      }) => number)
+  pickEnd?:
+    | ((ends: { highest: number; lowest: number }) => "highest" | "lowest")
     | undefined;
 }
 
@@ -182,6 +182,12 @@ interface CriteriaMetricTargetComponent {
 interface CriteriaMetricTarget {
   alias: string;
   isFormula: boolean;
+  /*
+   * The unit the criteria compared its threshold in: the filter's own
+   * threshold unit, else the query's legendUnit (what the worker converted
+   * the samples into). Undefined means the metric's native unit.
+   */
+  comparisonUnit: string | undefined;
   /** The query's metric; undefined for a formula. */
   metricName: string | undefined;
   /** The legend the user gave the query or formula, when it is not just the alias. */
@@ -201,6 +207,19 @@ interface PlatformAffectedRow<I> {
   identity: I;
   value: number | null;
   formattedValue: string;
+  /*
+   * Set when the row's value belongs to a DIFFERENT filter than the one
+   * the list is about — a series that matched an "Any" criteria on its
+   * other filter. It names that filter's metric next to the value, and
+   * the row is never ranked against rows in the list's own unit.
+   */
+  valueNote?: string | undefined;
+  /*
+   * The series' labels, when none of them names a platform object (a
+   * monitor grouped by a PVC name, say). The row is then titled by them
+   * instead of as an anonymous "Cluster".
+   */
+  seriesLabels?: JSONObject | undefined;
 }
 
 export default class MonitorCriteriaEvaluator {
@@ -787,6 +806,9 @@ ${contextBlock}
         labels: entry.labels,
         rootCause: rootCauseLines.join("\n"),
         metricContext: matched[0]?.context,
+        metricContexts: matched.map((r: MetricSeriesEvaluationResult) => {
+          return r.context;
+        }),
       });
     }
 
@@ -2302,10 +2324,36 @@ ${contextBlock}
       return null;
     }
 
+    /*
+     * The filter that actually fired, when the criteria has several. An
+     * "Any" criteria (ceph-pg-damaged: PG_DAMAGED > 0 OR OSD_SCRUB_ERRORS
+     * > 0) is described — and its list taken from — whichever of them
+     * breached. Following the first filter instead found no scan for an
+     * inactive PG_DAMAGED check and dropped the list the scrub errors had.
+     * The evaluation leaves each filter's context on it; one with
+     * breaching samples is one that fired.
+     */
+    const firedFilter: CriteriaFilter | undefined = metricFilters.find(
+      (f: CriteriaFilter) => {
+        const context: MetricCriteriaContext | undefined =
+          f.metricCriteriaContext;
+
+        return Boolean(
+          (context?.breachingSamples && context.breachingSamples.length > 0) ||
+            context?.breachingSample,
+        );
+      },
+    );
+
     const filter: CriteriaFilter =
+      firedFilter ||
       metricFilters.find((f: CriteriaFilter) => {
         return Boolean(f.metricMonitorOptions?.metricAlias);
-      }) || metricFilters[0]!;
+      }) ||
+      metricFilters[0]!;
+
+    const thresholdUnit: string | undefined =
+      filter.metricMonitorOptions?.thresholdUnit || undefined;
 
     const alias: string = filter.metricMonitorOptions?.metricAlias || "";
     const queryConfigs: Array<MetricQueryConfigData> =
@@ -2358,6 +2406,8 @@ ${contextBlock}
       return {
         alias: alias,
         isFormula: true,
+        comparisonUnit:
+          thresholdUnit || formula.metricAliasData?.legendUnit || undefined,
         metricName: undefined,
         displayName: MetricMonitorCriteria.getAliasDisplayName({
           aliasData: formula.metricAliasData,
@@ -2378,6 +2428,8 @@ ${contextBlock}
     return {
       alias: aliasOf(matchedQuery) || alias,
       isFormula: false,
+      comparisonUnit:
+        thresholdUnit || matchedQuery.metricAliasData?.legendUnit || undefined,
       metricName:
         (matchedQuery.metricQueryData?.filterData?.metricName as
           | string
@@ -2570,10 +2622,38 @@ ${contextBlock}
     toIdentity: (attributes: JSONObject) => I;
     withContext: (series: I, context: I) => I;
     seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
+    targetAlias?: string | undefined;
   }): Array<PlatformAffectedRow<I>> {
+    const targetAlias: string = (input.targetAlias || "").toLowerCase();
+
     const rows: Array<PlatformAffectedRow<I>> = input.perSeriesMatches.map(
       (match: PerSeriesCriteriaMatch): PlatformAffectedRow<I> => {
-        const context: MetricCriteriaContext | undefined = match.metricContext;
+        /*
+         * Value the row with the filter the list is about. Under an "Any"
+         * criteria a series may have matched on another filter only; its
+         * value is then a different metric in a different unit, so it is
+         * shown with that metric named and never ranked against the rest.
+         */
+        const matchedContexts: Array<MetricCriteriaContext> =
+          match.metricContexts && match.metricContexts.length > 0
+            ? match.metricContexts
+            : match.metricContext
+              ? [match.metricContext]
+              : [];
+
+        const targetContext: MetricCriteriaContext | undefined = targetAlias
+          ? matchedContexts.find((c: MetricCriteriaContext) => {
+              return (c.alias || "").toLowerCase() === targetAlias;
+            })
+          : matchedContexts[0];
+
+        const context: MetricCriteriaContext | undefined =
+          targetContext || matchedContexts[0];
+
+        const valueNote: string | undefined =
+          !targetContext && context
+            ? context.displayName || `\`${context.alias}\``
+            : undefined;
 
         const seriesIdentity: I = input.toIdentity(
           PlatformResourceIdentity.withBothAttributeSpellings(
@@ -2616,9 +2696,16 @@ ${contextBlock}
           worstIsLowest: input.worstIsLowest,
         });
 
+        const seriesLabels: JSONObject | undefined =
+          MonitorCriteriaEvaluator.isEmptyIdentity(identity)
+            ? MonitorCriteriaEvaluator.getNonEmptyLabels(match.labels)
+            : undefined;
+
         return {
           identity: identity,
           value: value,
+          ...(valueNote ? { valueNote: valueNote } : {}),
+          ...(seriesLabels ? { seriesLabels: seriesLabels } : {}),
           formattedValue:
             value === null
               ? "no data"
@@ -2656,34 +2743,75 @@ ${contextBlock}
       affectedResources: Array<R>;
     };
     breach: AffectedResourceBreachPredicate;
+    comparisonUnit?: string | undefined;
   }): Array<PlatformAffectedRow<R>> {
-    const rows: Array<PlatformAffectedRow<R>> =
-      input.breakdown.affectedResources
-        .map((resource: R): PlatformAffectedRow<R> => {
-          /*
-           * A fall criteria breached on the resource's lowest sample in the
-           * window, not its highest.
-           */
-          const value: number = input.breach.pickValue
-            ? input.breach.pickValue(resource)
-            : input.breach.worstIsLowest
-              ? resource.lowestMetricValue ?? resource.metricValue
-              : resource.metricValue;
+    /*
+     * The scan's values are in the metric's own unit, but the criteria
+     * compared its threshold in the filter's threshold unit (or the
+     * query's legendUnit). Judge each row in that unit — a "< 1 min"
+     * uptime criteria must not test 30 seconds against 1 — and show it in
+     * its own.
+     */
+    const valueUnit: string | undefined = PlatformMetricUnitUtil.getMetricUnit({
+      platform: input.platform,
+      metricName: input.breakdown.metricName,
+      declaredUnit: input.breakdown.metricUnit,
+    });
 
-          return {
-            identity: resource,
-            value: value,
-            formattedValue: MonitorCriteriaEvaluator.formatPlatformMetricValue({
-              platform: input.platform,
-              metricName: input.breakdown.metricName,
-              metricUnit: input.breakdown.metricUnit,
-              value: value,
-            }),
-          };
-        })
-        .filter((row: PlatformAffectedRow<R>) => {
-          return row.value !== null && input.breach.matches(row.value);
-        });
+    const toComparisonUnit: (value: number) => number = (
+      value: number,
+    ): number => {
+      if (
+        !valueUnit ||
+        !input.comparisonUnit ||
+        valueUnit === input.comparisonUnit
+      ) {
+        return value;
+      }
+
+      return MetricUnitUtil.convertToMetricUnit({
+        value: value,
+        fromUnit: valueUnit,
+        metricUnit: input.comparisonUnit,
+      });
+    };
+
+    const rows: Array<PlatformAffectedRow<R>> = [];
+
+    for (const resource of input.breakdown.affectedResources) {
+      const highest: number = resource.metricValue;
+      const lowest: number = resource.lowestMetricValue ?? resource.metricValue;
+
+      /*
+       * A fall criteria breached on the resource's lowest sample in the
+       * window, not its highest.
+       */
+      const end: "highest" | "lowest" = input.breach.pickEnd
+        ? input.breach.pickEnd({
+            highest: toComparisonUnit(highest),
+            lowest: toComparisonUnit(lowest),
+          })
+        : input.breach.worstIsLowest
+          ? "lowest"
+          : "highest";
+
+      const value: number = end === "lowest" ? lowest : highest;
+
+      if (!input.breach.matches(toComparisonUnit(value))) {
+        continue;
+      }
+
+      rows.push({
+        identity: resource,
+        value: value,
+        formattedValue: MonitorCriteriaEvaluator.formatPlatformMetricValue({
+          platform: input.platform,
+          metricName: input.breakdown.metricName,
+          metricUnit: input.breakdown.metricUnit,
+          value: value,
+        }),
+      });
+    }
 
     return MonitorCriteriaEvaluator.sortAffectedRows({
       rows: rows,
@@ -2692,21 +2820,106 @@ ${contextBlock}
   }
 
   /*
-   * Worst first; a series with no value (a no-data trigger) last.
+   * Worst first. Rows valued by another filter (valueNote) follow, in the
+   * order they came — their numbers are in another unit and cannot be
+   * ranked against these — and a series with no value (a no-data trigger)
+   * comes last.
    */
   private static sortAffectedRows<I>(input: {
     rows: Array<PlatformAffectedRow<I>>;
     worstIsLowest: boolean;
   }): Array<PlatformAffectedRow<I>> {
+    const group: (row: PlatformAffectedRow<I>) => number = (
+      row: PlatformAffectedRow<I>,
+    ): number => {
+      if (row.value === null) {
+        return 2;
+      }
+
+      return row.valueNote ? 1 : 0;
+    };
+
     return [...input.rows].sort(
       (a: PlatformAffectedRow<I>, b: PlatformAffectedRow<I>): number => {
-        if (a.value === null || b.value === null) {
-          return (a.value === null ? 1 : 0) - (b.value === null ? 1 : 0);
+        if (group(a) !== group(b)) {
+          return group(a) - group(b);
+        }
+
+        if (group(a) !== 0 || a.value === null || b.value === null) {
+          return 0;
         }
 
         return input.worstIsLowest ? a.value - b.value : b.value - a.value;
       },
     );
+  }
+
+  /*
+   * The value cell of a platform list entry: bold, and — for a row valued
+   * by another filter than the list's — followed by that filter's metric.
+   */
+  private static renderAffectedRowValue<I>(
+    row: PlatformAffectedRow<I>,
+  ): string {
+    return row.valueNote
+      ? `**${row.formattedValue}** (${row.valueNote})`
+      : `**${row.formattedValue}**`;
+  }
+
+  /*
+   * True when a platform identity names nothing at all.
+   */
+  private static isEmptyIdentity<I>(identity: I): boolean {
+    return Object.values(identity as unknown as JSONObject).every(
+      (value: unknown) => {
+        return value === undefined || value === null || value === "";
+      },
+    );
+  }
+
+  private static getNonEmptyLabels(
+    labels: JSONObject | undefined,
+  ): JSONObject | undefined {
+    const result: JSONObject = {};
+
+    for (const key of Object.keys(labels || {})) {
+      const value: unknown = (labels || {})[key];
+
+      if (value !== undefined && value !== null && value !== "") {
+        result[key] = value as JSONObject[string];
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  /*
+   * A list entry for a series whose labels name no platform object: titled
+   * "Series" and named by its labels (their stored `resource.` prefix
+   * dropped), so rows stay distinguishable.
+   */
+  private static getSeriesLabelEntry(input: {
+    labels: JSONObject;
+    value: string;
+  }): AffectedResourceListEntry {
+    const name: string = Object.keys(input.labels)
+      .map((key: string) => {
+        const displayKey: string = key.startsWith("resource.")
+          ? key.substring("resource.".length)
+          : key;
+
+        return AffectedResourceList.code(
+          `${displayKey}=${String(input.labels[key])}`,
+        );
+      })
+      .join(", ");
+
+    return {
+      kind: "Series",
+      name: name,
+      value: input.value,
+      details: [],
+    };
   }
 
   /**
@@ -2830,6 +3043,7 @@ ${contextBlock}
     withContext: (series: I, context: I) => I;
     metricResponse: MetricMonitorResponse;
     monitorStep: MonitorStep;
+    target: CriteriaMetricTarget | null;
   }): Array<PlatformAffectedRow<I>> | null {
     if (input.perSeriesMatches && input.perSeriesMatches.length > 0) {
       const queryCount: number =
@@ -2841,6 +3055,7 @@ ${contextBlock}
         worstIsLowest: input.breach.worstIsLowest,
         toIdentity: input.toIdentity,
         withContext: input.withContext,
+        targetAlias: input.target?.alias,
         seriesContextAttributes: (fingerprint: string): Array<JSONObject> => {
           return MonitorCriteriaEvaluator.getSeriesQueryRowAttributes({
             seriesBreakdown: input.metricResponse.seriesBreakdown,
@@ -2859,6 +3074,7 @@ ${contextBlock}
       platform: input.platform,
       breakdown: input.breakdown,
       breach: input.breach,
+      comparisonUnit: input.target?.comparisonUnit,
     });
   }
 
@@ -3054,6 +3270,7 @@ ${contextBlock}
         perSeriesMatches: input.perSeriesMatches,
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
+        target: target,
         breakdown: breakdown,
         breach: breach,
         toIdentity: PlatformResourceIdentity.kubernetes,
@@ -3077,11 +3294,16 @@ ${contextBlock}
           (
             row: PlatformAffectedRow<KubernetesResourceIdentity>,
           ): AffectedResourceListEntry => {
-            return MonitorCriteriaEvaluator.getKubernetesAffectedResourceEntry({
-              resource: row.identity,
-              clusterName: clusterName,
-              value: `**${row.formattedValue}**`,
-            });
+            return row.seriesLabels
+              ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                  labels: row.seriesLabels,
+                  value: MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                })
+              : MonitorCriteriaEvaluator.getKubernetesAffectedResourceEntry({
+                  resource: row.identity,
+                  clusterName: clusterName,
+                  value: MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                });
           },
         ),
       }),
@@ -3096,11 +3318,12 @@ ${contextBlock}
 
     /*
      * Add root cause analysis based on metric type — unless the worst row
-     * is a series that matched with no data at all, which no sentence
-     * below ("memory usage is at ...") can describe.
+     * is a series that matched with no data at all, or one valued by a
+     * different filter than the one analysed, which no sentence below
+     * ("memory usage is at ...") can describe.
      */
     const analysis: string | null =
-      topRow.value === null
+      topRow.value === null || topRow.valueNote
         ? null
         : MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
             breakdown: {
@@ -3563,6 +3786,7 @@ ${contextBlock}
         perSeriesMatches: input.perSeriesMatches,
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
+        target: target,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -3578,7 +3802,8 @@ ${contextBlock}
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<ProxmoxResourceIdentity>) => {
         return Boolean(
-          row.identity.resourceId ||
+          row.seriesLabels ||
+            row.identity.resourceId ||
             row.identity.resourceName ||
             row.identity.nodeName,
         );
@@ -3597,13 +3822,18 @@ ${contextBlock}
               (
                 row: PlatformAffectedRow<ProxmoxResourceIdentity>,
               ): AffectedResourceListEntry => {
-                return MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry(
-                  {
-                    resource: row.identity,
-                    clusterName: clusterName,
-                    value: `**${row.formattedValue}**`,
-                  },
-                );
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry({
+                      resource: row.identity,
+                      clusterName: clusterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),
@@ -3874,6 +4104,7 @@ ${contextBlock}
         perSeriesMatches: input.perSeriesMatches,
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
+        target: target,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -3891,7 +4122,10 @@ ${contextBlock}
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<VMwareResourceIdentity>) => {
         return Boolean(
-          MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(row.identity),
+          row.seriesLabels ||
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(
+              row.identity,
+            ),
         );
       },
     );
@@ -3908,11 +4142,18 @@ ${contextBlock}
               (
                 row: PlatformAffectedRow<VMwareResourceIdentity>,
               ): AffectedResourceListEntry => {
-                return MonitorCriteriaEvaluator.getVMwareAffectedResourceEntry({
-                  resource: row.identity,
-                  vcenterName: vcenterName,
-                  value: `**${row.formattedValue}**`,
-                });
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getVMwareAffectedResourceEntry({
+                      resource: row.identity,
+                      vcenterName: vcenterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),
@@ -4091,6 +4332,7 @@ ${contextBlock}
         perSeriesMatches: input.perSeriesMatches,
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
+        target: target,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -4106,7 +4348,8 @@ ${contextBlock}
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<DockerSwarmResourceIdentity>) => {
         return Boolean(
-          row.identity.containerName ||
+          row.seriesLabels ||
+            row.identity.containerName ||
             row.identity.serviceName ||
             row.identity.nodeName,
         );
@@ -4125,13 +4368,20 @@ ${contextBlock}
               (
                 row: PlatformAffectedRow<DockerSwarmResourceIdentity>,
               ): AffectedResourceListEntry => {
-                return MonitorCriteriaEvaluator.getDockerSwarmAffectedResourceEntry(
-                  {
-                    resource: row.identity,
-                    clusterName: clusterName,
-                    value: `**${row.formattedValue}**`,
-                  },
-                );
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getDockerSwarmAffectedResourceEntry(
+                      {
+                        resource: row.identity,
+                        clusterName: clusterName,
+                        value:
+                          MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                      },
+                    );
               },
             ),
         }),
@@ -4194,11 +4444,26 @@ ${contextBlock}
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     floorEqualityFiresOnFall?: boolean | undefined;
   }): AffectedResourceBreachPredicate {
-    const metricFilters: Array<CriteriaFilter> = (
-      input.criteriaInstance?.data?.filters || []
-    ).filter((f: CriteriaFilter) => {
-      return f.checkOn === CheckOn.MetricValue && typeof f.value === "number";
-    });
+    /*
+     * Thresholds read exactly as the criteria evaluation reads them. The
+     * dashboard's criteria form saves the threshold as a string ("60"), so
+     * a `typeof === "number"` test dropped every filter a user had edited
+     * and quietly put their criteria back on the `> 0`, highest-first rule.
+     */
+    const metricFilters: Array<{ filter: CriteriaFilter; threshold: number }> =
+      (input.criteriaInstance?.data?.filters || [])
+        .filter((f: CriteriaFilter) => {
+          return f.checkOn === CheckOn.MetricValue;
+        })
+        .map((f: CriteriaFilter) => {
+          return {
+            filter: f,
+            threshold: CompareCriteria.convertToNumber(f.value) as number,
+          };
+        })
+        .filter((f: { filter: CriteriaFilter; threshold: number | null }) => {
+          return f.threshold !== null;
+        });
 
     const opensIncidentOrAlert: boolean =
       input.criteriaInstance?.data?.createIncidents === true ||
@@ -4206,21 +4471,23 @@ ${contextBlock}
 
     const firesWhenMetricFalls: boolean =
       metricFilters.length > 0 &&
-      metricFilters.every((f: CriteriaFilter) => {
-        if (
-          f.filterType === FilterType.LessThan ||
-          f.filterType === FilterType.LessThanOrEqualTo
-        ) {
-          return true;
-        }
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          if (
+            f.filter.filterType === FilterType.LessThan ||
+            f.filter.filterType === FilterType.LessThanOrEqualTo
+          ) {
+            return true;
+          }
 
-        return (
-          input.floorEqualityFiresOnFall === true &&
-          opensIncidentOrAlert &&
-          f.filterType === FilterType.EqualTo &&
-          (f.value as number) <= 0
-        );
-      });
+          return (
+            input.floorEqualityFiresOnFall === true &&
+            opensIncidentOrAlert &&
+            f.filter.filterType === FilterType.EqualTo &&
+            f.threshold <= 0
+          );
+        },
+      );
 
     /*
      * A firing criteria that asks for one exact, non-zero value —
@@ -4236,8 +4503,8 @@ ${contextBlock}
      * with the floor rule above, which each platform opts into.
      */
     const exactValues: Array<number> = metricFilters.map(
-      (f: CriteriaFilter) => {
-        return f.value as number;
+      (f: { filter: CriteriaFilter; threshold: number }) => {
+        return f.threshold;
       },
     );
 
@@ -4245,9 +4512,11 @@ ${contextBlock}
       !firesWhenMetricFalls &&
       opensIncidentOrAlert &&
       metricFilters.length > 0 &&
-      metricFilters.every((f: CriteriaFilter) => {
-        return f.filterType === FilterType.EqualTo && (f.value as number) > 0;
-      });
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          return f.filter.filterType === FilterType.EqualTo && f.threshold > 0;
+        },
+      );
 
     if (firesOnExactValue) {
       return {
@@ -4255,13 +4524,11 @@ ${contextBlock}
           return exactValues.includes(value);
         },
         worstIsLowest: false,
-        pickValue: (resource: {
-          metricValue: number;
-          lowestMetricValue?: number | undefined;
-        }): number => {
-          return exactValues.includes(resource.metricValue)
-            ? resource.metricValue
-            : resource.lowestMetricValue ?? resource.metricValue;
+        pickEnd: (ends: {
+          highest: number;
+          lowest: number;
+        }): "highest" | "lowest" => {
+          return exactValues.includes(ends.highest) ? "highest" : "lowest";
         },
       };
     }
@@ -4277,17 +4544,17 @@ ${contextBlock}
 
     return {
       matches: (value: number): boolean => {
-        return metricFilters.some((f: CriteriaFilter) => {
-          const threshold: number = f.value as number;
+        return metricFilters.some(
+          (f: { filter: CriteriaFilter; threshold: number }) => {
+            if (f.filter.filterType === FilterType.EqualTo) {
+              return value === f.threshold;
+            }
 
-          if (f.filterType === FilterType.EqualTo) {
-            return value === threshold;
-          }
-
-          return f.filterType === FilterType.LessThan
-            ? value < threshold
-            : value <= threshold;
-        });
+            return f.filter.filterType === FilterType.LessThan
+              ? value < f.threshold
+              : value <= f.threshold;
+          },
+        );
       },
       /*
        * A criteria that fires when the metric falls ranks the smallest
@@ -4455,6 +4722,7 @@ ${contextBlock}
         perSeriesMatches: input.perSeriesMatches,
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
+        target: target,
         breakdown: breakdown,
         breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
           criteriaInstance: input.criteriaInstance,
@@ -4471,7 +4739,8 @@ ${contextBlock}
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<CephResourceIdentity>) => {
         return Boolean(
-          row.identity.daemon ||
+          row.seriesLabels ||
+            row.identity.daemon ||
             row.identity.poolId ||
             row.identity.poolName ||
             row.identity.hostname,
@@ -4500,12 +4769,19 @@ ${contextBlock}
               (
                 row: PlatformAffectedRow<CephResourceIdentity>,
               ): AffectedResourceListEntry => {
-                return MonitorCriteriaEvaluator.getCephAffectedResourceEntry({
-                  resource: row.identity,
-                  clusterName: clusterName,
-                  metricName: rowsMetricName,
-                  value: `**${row.formattedValue}**`,
-                });
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getCephAffectedResourceEntry({
+                      resource: row.identity,
+                      clusterName: clusterName,
+                      metricName: rowsMetricName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),
