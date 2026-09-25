@@ -18,6 +18,7 @@ import Express, {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import StatusCode from "Common/Types/API/StatusCode";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -1978,8 +1979,9 @@ const handleUserUpdate: (
           },
         });
 
-        res.status(400);
-        return Response.sendJsonObjectResponse(req, res, errorResponse);
+        return Response.sendJsonObjectResponse(req, res, errorResponse, {
+          statusCode: new StatusCode(400),
+        });
       }
     }
 
