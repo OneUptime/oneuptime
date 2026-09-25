@@ -8,7 +8,6 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
@@ -46,7 +45,21 @@ const ServerlessArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived functions."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * View opens the resource's own page. The default view route (this
+         * list's URL + /<id>) would be ".../archived/<id>", which no route
+         * matches, so the user would land on a blank page.
+         */
+        onViewPage={(item: ServerlessFunction): Promise<Route> => {
+          return Promise.resolve(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW] as Route,
+              {
+                modelId: new ObjectID(item._id as string),
+              },
+            ),
+          );
+        }}
         searchableFields={["name", "description"]}
         selectMoreFields={{
           functionIdentifier: true,
