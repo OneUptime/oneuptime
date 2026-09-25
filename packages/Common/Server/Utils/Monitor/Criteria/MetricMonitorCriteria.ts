@@ -1,5 +1,6 @@
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
+import MetricAliasData from "../../../../Types/Metrics/MetricAliasData";
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
@@ -364,6 +365,19 @@ export default class MetricMonitorCriteria {
       },
     );
 
+    const finiteNumbers: Array<number> = numbersInDisplayUnit.filter(
+      (n: number) => {
+        return Number.isFinite(n);
+      },
+    );
+
+    if (finiteNumbers.length > 0) {
+      metricContext.sampleValueRange = {
+        min: Math.min(...finiteNumbers),
+        max: Math.max(...finiteNumbers),
+      };
+    }
+
     const comparisonMessage: string | null =
       CompareCriteria.compareCriteriaNumbers({
         value: numbersInDisplayUnit.length > 0 ? numbersInDisplayUnit : 0,
@@ -660,12 +674,20 @@ export default class MetricMonitorCriteria {
           formulaConfig: f,
           queryConfigs: input.queryConfigs,
           formulaConfigs: input.formulaConfigs,
+          nativeUnitsByMetricName: input.nativeUnitsByMetricName,
         })
       : undefined;
+
+    const displayName: string | undefined =
+      MetricMonitorCriteria.getAliasDisplayName({
+        aliasData: q?.metricAliasData || f?.metricAliasData,
+        metricAlias: input.metricAlias,
+      });
 
     return {
       metricName,
       alias: input.metricAlias,
+      ...(displayName ? { displayName } : {}),
       unit,
       aggregationType,
       isFormula: Boolean(f),
@@ -679,6 +701,36 @@ export default class MetricMonitorCriteria {
   }
 
   /**
+   * The human legend of a query or formula, or undefined when it is empty
+   * or just repeats the alias. The shipped templates title every single
+   * query with its own alias ("container_restarts"), which is not a name
+   * worth promoting over the metric name; the ratio templates give their
+   * formula a real legend ("Node Memory Utilization (%)").
+   */
+  public static getAliasDisplayName(input: {
+    aliasData: MetricAliasData | undefined;
+    metricAlias: string;
+  }): string | undefined {
+    const candidates: Array<string | undefined> = [
+      input.aliasData?.legend,
+      input.aliasData?.title,
+    ];
+
+    for (const candidate of candidates) {
+      const trimmed: string = (candidate || "").trim();
+
+      if (
+        trimmed &&
+        trimmed.toLowerCase() !== input.metricAlias.trim().toLowerCase()
+      ) {
+        return trimmed;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Resolve the variables the formula references to their source
    * query/formula definitions so the root cause can label each
    * component column with its metric name and native unit.
@@ -687,6 +739,7 @@ export default class MetricMonitorCriteria {
     formulaConfig: MetricFormulaConfigData;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Array<MetricComponent> {
     const formula: string =
       input.formulaConfig.metricFormulaData?.metricFormula || "";
@@ -718,10 +771,25 @@ export default class MetricMonitorCriteria {
             | undefined) ||
           queryMatch.metricAliasData?.title ||
           normalizedAlias;
+        /*
+         * A component's values are in its legendUnit when it has one (the
+         * worker converted them), and in the metric's own unit when it
+         * does not — the ratio templates leave both sides unconverted, so
+         * `used_mem` and `alloc_mem` are bytes. Without the fallback those
+         * printed as bare 12-digit numbers under a formula that read
+         * "88.82%".
+         */
+        const rawMetricName: string | undefined =
+          (queryMatch.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined) || undefined;
+        const nativeUnit: string | undefined = rawMetricName
+          ? input.nativeUnitsByMetricName?.[rawMetricName.toLowerCase()]
+          : undefined;
         components.push({
           alias: normalizedAlias,
           name,
-          unit: queryMatch.metricAliasData?.legendUnit || null,
+          unit: queryMatch.metricAliasData?.legendUnit || nativeUnit || null,
           isFormula: false,
         });
         continue;

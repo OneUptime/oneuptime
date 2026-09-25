@@ -6,7 +6,8 @@ export type KubernetesMetricCategory =
   | "Node"
   | "Container"
   | "Workload"
-  | "HPA";
+  | "HPA"
+  | "ControlPlane";
 
 export interface KubernetesMetricDefinition {
   id: string;
@@ -64,6 +65,28 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "bytes",
   },
   {
+    id: "pod-memory-limit-utilization",
+    friendlyName: "Pod Memory Limit Utilization",
+    description:
+      "The pod's memory usage divided by its memory limit, as a ratio (0 to 1) - 0.93 means 93% of the limit, and it is shown as a percentage. kubeletstats divides by the SUM of the pod's container limits, so a pod with a sidecar is measured against its whole budget, and emits nothing for a pod where any container has no memory limit. The kubelet's memory figure includes reclaimable page cache, so a value near 1 means approaching the limit, not necessarily about to be OOMKilled.",
+    metricName: "k8s.pod.memory_limit_utilization",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Pod,
+    unit: "ratio",
+  },
+  {
+    id: "pod-cpu-limit-utilization",
+    friendlyName: "Pod CPU Limit Utilization",
+    description:
+      "The pod's CPU usage divided by its CPU limit, as a ratio (0 to 1) - 0.93 means 93% of the limit, and it is shown as a percentage. kubeletstats divides by the SUM of the pod's container limits and emits nothing for a pod where any container has no CPU limit. Near 1 the kernel's CFS quota is throttling the pod: it gets slower rather than failing.",
+    metricName: "k8s.pod.cpu_limit_utilization",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Pod,
+    unit: "ratio",
+  },
+  {
     id: "pod-network-io",
     friendlyName: "Pod Network I/O (Cumulative, Both Directions)",
     description:
@@ -88,6 +111,17 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "cores",
   },
   {
+    id: "node-allocatable-cpu",
+    friendlyName: "Node Allocatable CPU",
+    description:
+      "CPU cores on the node that pods can be scheduled against: the node's capacity minus what the kubelet reserves for the operating system and Kubernetes daemons (system-reserved, kube-reserved). Reported by the k8s_cluster receiver. The scheduler never places pods whose CPU requests add up past it, so it is the right denominator for a node CPU percentage - usage or summed container requests divided by this.",
+    metricName: "k8s.node.allocatable_cpu",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "cores",
+  },
+  {
     id: "node-memory-usage",
     friendlyName: "Node Memory Usage",
     description: "Memory usage in bytes for nodes",
@@ -102,6 +136,17 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     friendlyName: "Node Filesystem Usage",
     description: "Filesystem usage in bytes for nodes",
     metricName: "k8s.node.filesystem.usage",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Avg,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
+  },
+  {
+    id: "node-allocatable-memory",
+    friendlyName: "Node Allocatable Memory",
+    description:
+      "Memory in bytes on the node that pods can use: the node's capacity minus what the kubelet reserves for the operating system and Kubernetes daemons (system-reserved, kube-reserved) and the hard eviction threshold. Reported by the k8s_cluster receiver. The scheduler never places pods whose memory requests add up past it, so it - not the node's physical RAM - is the denominator for a meaningful node memory percentage.",
+    metricName: "k8s.node.allocatable_memory",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Node,
@@ -316,6 +361,49 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Workload,
     unit: "count",
   },
+
+  /*
+   * Control Plane Metrics
+   *
+   * Prometheus metrics the agent scrapes from etcd, the API server and the
+   * scheduler, and only when its control-plane scrape is enabled
+   * (controlPlane.enabled). Managed clusters (EKS / GKE / AKS) do not
+   * expose these endpoints, so on those these metrics never report.
+   * Each is one cluster-wide signal, hence the Cluster scope.
+   */
+  {
+    id: "etcd-has-leader",
+    friendlyName: "etcd Has Leader",
+    description:
+      "Whether the etcd member sees an elected leader (1 = has a leader, 0 = no leader). A flag, not a count: without a leader etcd cannot commit writes, so the API server cannot persist any change. Min over the window catches a single leaderless sample.",
+    metricName: "etcd_server_has_leader",
+    category: "ControlPlane",
+    defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "",
+  },
+  {
+    id: "apiserver-inflight-requests",
+    friendlyName: "API Server In-Flight Requests",
+    description:
+      "Requests the Kubernetes API server is processing right now, one series per request_kind (mutating / readOnly). The server admits a bounded number at once (--max-requests-inflight, default 400; --max-mutating-requests-inflight, default 200) and rejects the rest with HTTP 429, so a value held at its limit means clients are being throttled.",
+    metricName: "apiserver_current_inflight_requests",
+    category: "ControlPlane",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "count",
+  },
+  {
+    id: "scheduler-pending-pods",
+    friendlyName: "Scheduler Pending Pods",
+    description:
+      "Pods waiting in the kube-scheduler's queues, one series per queue (active, backoff, unschedulable, and gated on newer versions). A count that stays above zero means pods the scheduler cannot place - usually not enough allocatable CPU or memory, or taints, affinity or volume constraints no node satisfies.",
+    metricName: "scheduler_pending_pods",
+    category: "ControlPlane",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "count",
+  },
 ];
 
 export function getAllKubernetesMetrics(): Array<KubernetesMetricDefinition> {
@@ -347,5 +435,16 @@ export function getKubernetesMetricByMetricName(
 }
 
 export function getAllKubernetesMetricCategories(): Array<KubernetesMetricCategory> {
-  return ["Pod", "Node", "Container", "Workload", "HPA"];
+  return ["Pod", "Node", "Container", "Workload", "HPA", "ControlPlane"];
+}
+
+/**
+ * How a category is titled in a picker. The category values are
+ * identifiers ("ControlPlane" matches the alert templates' category), not
+ * prose.
+ */
+export function getKubernetesMetricCategoryLabel(
+  category: KubernetesMetricCategory,
+): string {
+  return category === "ControlPlane" ? "Control Plane" : category;
 }

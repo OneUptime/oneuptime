@@ -139,9 +139,24 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.pod.memory_request_utilization",
 ];
 
+/*
+ * The control-plane Prometheus scrape — the agent Deployment's
+ * `prometheus` receiver (templates/configmap-deployment.yaml), on when
+ * `controlPlane.enabled` is set. The prometheus receiver keeps each
+ * component's own metric name, so these are etcd's, kube-apiserver's and
+ * kube-scheduler's names; only the ones OneUptime's catalog and control-
+ * plane templates use are listed.
+ */
+export const CONTROL_PLANE_SCRAPE_METRICS: ReadonlyArray<string> = [
+  "etcd_server_has_leader",
+  "apiserver_current_inflight_requests",
+  "scheduler_pending_pods",
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
+  ...CONTROL_PLANE_SCRAPE_METRICS,
 ]);
 
 const AGENT_CHART_VALUES_PATH: string = path.resolve(

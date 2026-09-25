@@ -1511,10 +1511,17 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
       });
 
       expect(context).toContain("**Kubernetes Cluster Details**");
+      expect(context).toContain("- Metric: Deployment Replica Shortfall");
       expect(context).toContain(
-        "- Metric: Deployment Replica Shortfall (`desired_replicas - available_replicas`)",
+        "- Formula: `desired_replicas - available_replicas`",
       );
-      expect(context).not.toContain("k8s.deployment.available");
+      /*
+       * The operands are NAMED (so an engineer knows what to query), but
+       * none of the raw scan's values is shown as the shortfall.
+       */
+      expect(context).toContain("`available_replicas` = ");
+      expect(context).not.toContain("**3**");
+      expect(context).not.toContain("**5**");
       expect(context).not.toContain("**Affected Resources**");
       expect(context).not.toContain("**Root Cause Analysis**");
       expect(context).not.toContain("`web`");

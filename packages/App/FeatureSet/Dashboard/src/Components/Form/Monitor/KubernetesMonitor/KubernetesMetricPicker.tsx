@@ -7,6 +7,7 @@ import Dropdown, {
 import {
   getAllKubernetesMetrics,
   getAllKubernetesMetricCategories,
+  getKubernetesMetricCategoryLabel,
   KubernetesMetricDefinition,
   KubernetesMetricCategory,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
@@ -32,7 +33,7 @@ const KubernetesMetricPicker: FunctionComponent<ComponentProps> = (
         });
 
       return {
-        label: category,
+        label: getKubernetesMetricCategoryLabel(category),
         options: categoryMetrics.map((m: KubernetesMetricDefinition) => {
           return {
             label: `${m.friendlyName}${m.unit ? ` (${m.unit})` : ""}`,

@@ -56,7 +56,10 @@ import MetricMonitorResponse, {
   CephAffectedResource,
   DockerSwarmResourceBreakdown,
   DockerSwarmAffectedResource,
+  PlatformResourceBreakdownSource,
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import PlatformResourceIdentity from "Common/Utils/Monitor/PlatformResourceIdentity";
+import PlatformMetricUnitUtil from "Common/Utils/Monitor/PlatformMetricUnitUtil";
 import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
@@ -117,26 +120,11 @@ import MonitorStepDockerSwarmMonitor, {
 import MonitorStepIoTMonitor, {
   IoTDeviceFilters,
 } from "Common/Types/Monitor/MonitorStepIoTMonitor";
-import {
-  getKubernetesMetricByMetricName,
-  KubernetesMetricDefinition,
-} from "Common/Types/Monitor/KubernetesMetricCatalog";
-import {
-  getProxmoxMetricByMetricName,
-  ProxmoxMetricDefinition,
-} from "Common/Types/Monitor/ProxmoxMetricCatalog";
-import {
-  getVMwareMetricByMetricName,
-  VMwareMetricDefinition,
-} from "Common/Types/Monitor/VMwareMetricCatalog";
-import {
-  getCephMetricByMetricName,
-  CephMetricDefinition,
-} from "Common/Types/Monitor/CephMetricCatalog";
-import {
-  getDockerSwarmMetricByMetricName,
-  DockerSwarmMetricDefinition,
-} from "Common/Types/Monitor/DockerSwarmMetricCatalog";
+import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
+import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
+import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryQueueService, {
@@ -384,6 +372,29 @@ type MonitorTelemetryMonitorFunction = (data: {
 }) => Promise<TelemetryMonitorResponse>;
 
 /**
+ * The metric name each query config reads, in query order. Queries
+ * without one are skipped.
+ */
+const getQueryMetricNames: (
+  queryConfigs: Array<MetricQueryConfigData>,
+) => Array<string> = (
+  queryConfigs: Array<MetricQueryConfigData>,
+): Array<string> => {
+  const names: Array<string> = [];
+
+  for (const queryConfig of queryConfigs) {
+    const name: string | undefined =
+      queryConfig.metricQueryData?.filterData?.metricName?.toString();
+
+    if (name) {
+      names.push(name);
+    }
+  }
+
+  return names;
+};
+
+/**
  * Fetch the native unit (as reported by OpenTelemetry and stored in
  * MetricType) for each metric name a query config references. Returned
  * as a lowercase-keyed map so lookups are case-insensitive.
@@ -395,14 +406,9 @@ const loadNativeUnitsByMetricName: (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   projectId: ObjectID;
 }): Promise<Map<string, string>> => {
-  const names: Set<string> = new Set<string>();
-  for (const queryConfig of input.queryConfigs) {
-    const name: string | undefined =
-      queryConfig.metricQueryData?.filterData?.metricName?.toString();
-    if (name) {
-      names.add(name);
-    }
-  }
+  const names: Set<string> = new Set<string>(
+    getQueryMetricNames(input.queryConfigs),
+  );
 
   if (names.size === 0) {
     return new Map<string, string>();
@@ -431,6 +437,179 @@ const loadNativeUnitsByMetricName: (input: {
     }
   }
   return unitsByName;
+};
+
+/**
+ * The unit map a monitor hands the criteria evaluator as
+ * `nativeUnitsByMetricName`: the unit each query's stored values are in,
+ * keyed by lowercased metric name.
+ *
+ * Kept apart from `declaredUnitsByMetricName` on purpose. The declared
+ * (MetricType) map is what MetricResultUnitConverter converts query
+ * results FROM when a query sets a legendUnit, and must stay exactly that.
+ * This map only answers "what unit is a query WITHOUT a legendUnit in",
+ * and for a platform monitor its catalog answers that better than the
+ * exporter does: docker_stats declares container.cpu.utilization as "1"
+ * but sends 0–100, and kubeletstats declares k8s.node.cpu.utilization as
+ * "1" but sends cores. A generic Metrics monitor has no catalog
+ * (platform null) and gets the declared units back unchanged.
+ *
+ * A plain dictionary rather than the Map, so it survives the JSON
+ * boundaries the response crosses (queue payloads, persisted evaluation
+ * data).
+ */
+const buildNativeUnitsByMetricName: (input: {
+  monitorType: MonitorType;
+  queryConfigs: Array<MetricQueryConfigData>;
+  declaredUnitsByMetricName: Map<string, string>;
+}) => Dictionary<string> = (input: {
+  monitorType: MonitorType;
+  queryConfigs: Array<MetricQueryConfigData>;
+  declaredUnitsByMetricName: Map<string, string>;
+}): Dictionary<string> => {
+  return PlatformMetricUnitUtil.buildUnitsByMetricName({
+    platform: PlatformMetricUnitUtil.getPlatformForMonitorType(
+      input.monitorType,
+    ),
+    metricNames: getQueryMetricNames(input.queryConfigs),
+    declaredUnitsByMetricName: input.declaredUnitsByMetricName,
+  });
+};
+
+/*
+ * A platform resource as the raw scan saw it: its identity plus the
+ * highest and lowest sample it reported in the window.
+ */
+type ScannedAffectedResource<TIdentity> = TIdentity & {
+  metricValue: number;
+  lowestMetricValue: number;
+};
+
+/**
+ * Name the platform resources behind one query's datapoints, for the
+ * "Affected Resources" list on the incident.
+ *
+ * Scans the query's most recent raw rows (limit 100), maps each row's
+ * attributes to a resource identity, and keeps one entry per identity
+ * key with both the highest (`metricValue`) and lowest
+ * (`lowestMetricValue`) sample seen. The evaluator reads whichever one
+ * the matched criteria breached on: the highest for "> N" criteria, the
+ * lowest for criteria that fire when the metric falls. Keeping only the
+ * highest hid a node that was NotReady (0) at any sample behind its
+ * Ready (1) samples.
+ *
+ * Returns undefined when the scan found no rows. Best effort: a failure
+ * is logged and also returns undefined, because the breakdown only
+ * decorates the notification and must never fail the evaluation — nor,
+ * on a multi-query monitor, cost the other queries their breakdowns.
+ */
+const scanAffectedResources: <TIdentity>(input: {
+  query: Query<Metric>;
+  projectId: ObjectID;
+  platformName: string;
+  getIdentity: (attributes: JSONObject) => TIdentity;
+  getIdentityKey: (identity: TIdentity) => string;
+}) => Promise<Array<ScannedAffectedResource<TIdentity>> | undefined> = async <
+  TIdentity,
+>(input: {
+  query: Query<Metric>;
+  projectId: ObjectID;
+  platformName: string;
+  getIdentity: (attributes: JSONObject) => TIdentity;
+  getIdentityKey: (identity: TIdentity) => string;
+}): Promise<Array<ScannedAffectedResource<TIdentity>> | undefined> => {
+  try {
+    const rawMetrics: Array<Metric> = await MetricService.findBy({
+      query: input.query,
+      select: {
+        attributes: true,
+        value: true,
+        time: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      limit: 100,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (rawMetrics.length === 0) {
+      return undefined;
+    }
+
+    const resourcesByKey: Map<
+      string,
+      ScannedAffectedResource<TIdentity>
+    > = new Map();
+
+    for (const metric of rawMetrics) {
+      const identity: TIdentity = input.getIdentity(
+        (metric.attributes as JSONObject) || {},
+      );
+      const resourceKey: string = input.getIdentityKey(identity);
+
+      const metricValue: number =
+        typeof metric.value === "number"
+          ? metric.value
+          : Number(metric.value) || 0;
+
+      const existing: ScannedAffectedResource<TIdentity> | undefined =
+        resourcesByKey.get(resourceKey);
+
+      if (!existing) {
+        resourcesByKey.set(resourceKey, {
+          ...identity,
+          metricValue: metricValue,
+          lowestMetricValue: metricValue,
+        });
+        continue;
+      }
+
+      existing.lowestMetricValue = Math.min(
+        existing.lowestMetricValue,
+        metricValue,
+      );
+      existing.metricValue = Math.max(existing.metricValue, metricValue);
+    }
+
+    return Array.from(resourcesByKey.values());
+  } catch (err) {
+    logger.error(`Failed to fetch ${input.platformName} resource breakdown`, {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    });
+    logger.error(err, {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    });
+    return undefined;
+  }
+};
+
+/**
+ * Tag each breakdown with the unit its scanned values are in, once the
+ * monitor's units are known (they are loaded after the query loop).
+ *
+ * Read from the very map the monitor returns as `nativeUnitsByMetricName`
+ * so a breakdown and the criteria sentence above it can never disagree
+ * about a metric's unit. The raw scan never passes through
+ * MetricResultUnitConverter, so this is the metric's own unit even when
+ * its query sets a legendUnit.
+ */
+const tagBreakdownsWithMetricUnit: (input: {
+  breakdowns: Array<PlatformResourceBreakdownSource & { metricName: string }>;
+  unitsByMetricName: Dictionary<string>;
+}) => void = (input: {
+  breakdowns: Array<PlatformResourceBreakdownSource & { metricName: string }>;
+  unitsByMetricName: Dictionary<string>;
+}): void => {
+  for (const breakdown of input.breakdowns) {
+    breakdown.metricUnit =
+      input.unitsByMetricName[breakdown.metricName.toLowerCase()];
+  }
 };
 
 /**
@@ -1347,18 +1526,12 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
   });
 
   /*
-   * Re-serialise the native-units Map to a plain dictionary so it
-   * survives any cross-process boundary the response may cross (queue
-   * payloads, JSON serialization, etc). The criteria evaluator uses
-   * this as a fallback when the user didn't pick an explicit
-   * `legendUnit` — without it, a metric whose native unit is the OTel
-   * dimensionless "1" can't be compared against a "%" threshold.
+   * The criteria evaluator uses this as a fallback when the user didn't
+   * pick an explicit `legendUnit` — without it, a metric whose native
+   * unit is the OTel dimensionless "1" can't be compared against a "%"
+   * threshold. A generic Metrics monitor has no catalog, so this is the
+   * declared (MetricType) unit of every query's metric.
    */
-  const nativeUnitsByMetricNameDict: { [key: string]: string } = {};
-  for (const [name, unit] of nativeUnitsByMetricName.entries()) {
-    nativeUnitsByMetricNameDict[name] = unit;
-  }
-
   return {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
@@ -1366,7 +1539,11 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
-    nativeUnitsByMetricName: nativeUnitsByMetricNameDict,
+    nativeUnitsByMetricName: buildNativeUnitsByMetricName({
+      monitorType: MonitorType.Metrics,
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      declaredUnitsByMetricName: nativeUnitsByMetricName,
+    }),
   };
 };
 
@@ -1502,7 +1679,7 @@ type MonitorKubernetesFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorKubernetes: MonitorKubernetesFunction = async (data: {
+export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -1520,8 +1697,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
-  let kubernetesResourceBreakdown: KubernetesResourceBreakdown | undefined =
-    undefined;
+
+  /*
+   * One breakdown per query, in query order. A ratio template has two
+   * queries (used ÷ allocatable) and a formula; keeping a single
+   * breakdown that each query overwrote left the DENOMINATOR's scan in
+   * the email — every node's allocatable bytes under a "> 85%" criteria.
+   */
+  const kubernetesResourceBreakdowns: Array<KubernetesResourceBreakdown> = [];
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     kubernetesMonitorConfig.metricViewConfig.queryConfigs,
@@ -1650,137 +1833,25 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     finalResult.push(aggregatedResults);
 
     // Fetch raw metrics to extract per-resource Kubernetes context
-    try {
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+    const affectedResources: Array<KubernetesAffectedResource> | undefined =
+      await scanAffectedResources({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        projectId: data.projectId,
+        platformName: "Kubernetes",
+        getIdentity: PlatformResourceIdentity.kubernetes,
+        getIdentityKey: PlatformResourceIdentity.kubernetesKey,
       });
 
-      if (rawMetrics.length > 0) {
-        const affectedResourcesMap: Map<string, KubernetesAffectedResource> =
-          new Map();
-
-        for (const metric of rawMetrics) {
-          const metricAttrs: JSONObject =
-            (metric.attributes as JSONObject) || {};
-          const podName: string | undefined = metricAttrs[
-            "resource.k8s.pod.name"
-          ] as string | undefined;
-          const namespace: string | undefined = metricAttrs[
-            "resource.k8s.namespace.name"
-          ] as string | undefined;
-          const nodeName: string | undefined = metricAttrs[
-            "resource.k8s.node.name"
-          ] as string | undefined;
-          const containerName: string | undefined = metricAttrs[
-            "resource.k8s.container.name"
-          ] as string | undefined;
-
-          // Detect workload type and name from attributes
-          let workloadType: string | undefined = undefined;
-          let workloadName: string | undefined = undefined;
-
-          if (metricAttrs["resource.k8s.deployment.name"]) {
-            workloadType = "Deployment";
-            workloadName = metricAttrs[
-              "resource.k8s.deployment.name"
-            ] as string;
-          } else if (metricAttrs["resource.k8s.statefulset.name"]) {
-            workloadType = "StatefulSet";
-            workloadName = metricAttrs[
-              "resource.k8s.statefulset.name"
-            ] as string;
-          } else if (metricAttrs["resource.k8s.daemonset.name"]) {
-            workloadType = "DaemonSet";
-            workloadName = metricAttrs["resource.k8s.daemonset.name"] as string;
-          } else if (metricAttrs["resource.k8s.job.name"]) {
-            workloadType = "Job";
-            workloadName = metricAttrs["resource.k8s.job.name"] as string;
-          } else if (metricAttrs["resource.k8s.cronjob.name"]) {
-            workloadType = "CronJob";
-            workloadName = metricAttrs["resource.k8s.cronjob.name"] as string;
-          } else if (metricAttrs["resource.k8s.replicaset.name"]) {
-            workloadType = "ReplicaSet";
-            workloadName = metricAttrs[
-              "resource.k8s.replicaset.name"
-            ] as string;
-          }
-
-          // Build unique key for deduplication
-          const resourceKey: string = [
-            podName || "",
-            namespace || "",
-            nodeName || "",
-            containerName || "",
-            workloadName || "",
-          ].join("|");
-
-          const metricValue: number =
-            typeof metric.value === "number"
-              ? metric.value
-              : Number(metric.value) || 0;
-
-          /*
-           * Keep both the highest and the lowest value per resource. The
-           * evaluator reads whichever one the matched criteria breached
-           * on: the highest for "> N" criteria, the lowest for criteria
-           * that fire when the metric falls. Keeping only the highest hid
-           * a node that was NotReady (0) at any sample behind its Ready
-           * (1) samples.
-           */
-          const existing: KubernetesAffectedResource | undefined =
-            affectedResourcesMap.get(resourceKey);
-          if (!existing) {
-            affectedResourcesMap.set(resourceKey, {
-              podName: podName || undefined,
-              namespace: namespace || undefined,
-              nodeName: nodeName || undefined,
-              containerName: containerName || undefined,
-              workloadType: workloadType || undefined,
-              workloadName: workloadName || undefined,
-              metricValue: metricValue,
-              lowestMetricValue: metricValue,
-            });
-          } else {
-            existing.lowestMetricValue = Math.min(
-              existing.lowestMetricValue ?? existing.metricValue,
-              metricValue,
-            );
-            existing.metricValue = Math.max(existing.metricValue, metricValue);
-          }
-        }
-
-        const metricDef: KubernetesMetricDefinition | undefined =
-          getKubernetesMetricByMetricName(metricName);
-
-        kubernetesResourceBreakdown = {
-          clusterName: kubernetesMonitorConfig.clusterIdentifier,
-          metricName: metricName,
-          metricFriendlyName: metricDef?.friendlyName || metricName,
-          affectedResources: Array.from(affectedResourcesMap.values()),
-          attributes: attributes,
-        };
-      }
-    } catch (err) {
-      logger.error("Failed to fetch Kubernetes resource breakdown", {
-        service: "workers",
-        projectId: data.projectId.toString(),
-      });
-      logger.error(err, {
-        service: "workers",
-        projectId: data.projectId.toString(),
+    if (affectedResources) {
+      kubernetesResourceBreakdowns.push({
+        clusterName: kubernetesMonitorConfig.clusterIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getKubernetesMetricByMetricName(metricName)?.friendlyName ||
+          metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
       });
     }
   }
@@ -1790,6 +1861,17 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
       projectId: data.projectId,
     });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.Kubernetes,
+    queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: kubernetesResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -1824,8 +1906,12 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
-    kubernetesResourceBreakdown: kubernetesResourceBreakdown,
+    kubernetesResourceBreakdowns:
+      kubernetesResourceBreakdowns.length > 0
+        ? kubernetesResourceBreakdowns
+        : undefined,
     seriesBreakdown: seriesBreakdown,
+    nativeUnitsByMetricName: unitsByMetricName,
   };
 };
 
@@ -1835,7 +1921,7 @@ type MonitorDockerFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorDocker: MonitorDockerFunction = async (data: {
+export const monitorDocker: MonitorDockerFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -2008,6 +2094,11 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: buildNativeUnitsByMetricName({
+      monitorType: MonitorType.Docker,
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      declaredUnitsByMetricName: nativeUnitsByMetricName,
+    }),
   };
 };
 
@@ -2017,7 +2108,7 @@ type MonitorHostFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorHost: MonitorHostFunction = async (data: {
+export const monitorHost: MonitorHostFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -2197,6 +2288,11 @@ const monitorHost: MonitorHostFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: buildNativeUnitsByMetricName({
+      monitorType: MonitorType.Host,
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      declaredUnitsByMetricName: nativeUnitsByMetricName,
+    }),
   };
 };
 
@@ -2206,7 +2302,7 @@ type MonitorPodmanFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorPodman: MonitorPodmanFunction = async (data: {
+export const monitorPodman: MonitorPodmanFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -2379,6 +2475,11 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: buildNativeUnitsByMetricName({
+      monitorType: MonitorType.Podman,
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      declaredUnitsByMetricName: nativeUnitsByMetricName,
+    }),
   };
 };
 
@@ -2388,7 +2489,7 @@ type MonitorProxmoxFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorProxmox: MonitorProxmoxFunction = async (data: {
+export const monitorProxmox: MonitorProxmoxFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -2406,8 +2507,9 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
-  let proxmoxResourceBreakdown: ProxmoxResourceBreakdown | undefined =
-    undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const proxmoxResourceBreakdowns: Array<ProxmoxResourceBreakdown> = [];
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     proxmoxMonitorConfig.metricViewConfig.queryConfigs,
@@ -2544,93 +2646,24 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     finalResult.push(aggregatedResults);
 
     // Fetch raw metrics to extract per-resource Proxmox context
-    try {
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+    const affectedResources: Array<ProxmoxAffectedResource> | undefined =
+      await scanAffectedResources({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        projectId: data.projectId,
+        platformName: "Proxmox",
+        getIdentity: PlatformResourceIdentity.proxmox,
+        getIdentityKey: PlatformResourceIdentity.proxmoxKey,
       });
 
-      if (rawMetrics.length > 0) {
-        const affectedResourcesMap: Map<string, ProxmoxAffectedResource> =
-          new Map();
-
-        for (const metric of rawMetrics) {
-          const metricAttrs: JSONObject =
-            (metric.attributes as JSONObject) || {};
-          const resourceId: string | undefined = metricAttrs["id"] as
-            | string
-            | undefined;
-          const resourceName: string | undefined = metricAttrs["name"] as
-            | string
-            | undefined;
-          const nodeName: string | undefined = metricAttrs["node"] as
-            | string
-            | undefined;
-          const scope: string | undefined = metricAttrs["pve.scope"] as
-            | string
-            | undefined;
-          const resourceType: string | undefined = metricAttrs["pve.type"] as
-            | string
-            | undefined;
-
-          // Build unique key for deduplication
-          const resourceKey: string = [
-            resourceId || "",
-            resourceName || "",
-            nodeName || "",
-          ].join("|");
-
-          const metricValue: number =
-            typeof metric.value === "number"
-              ? metric.value
-              : Number(metric.value) || 0;
-
-          // Keep the highest value per resource
-          const existing: ProxmoxAffectedResource | undefined =
-            affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
-            affectedResourcesMap.set(resourceKey, {
-              resourceId: resourceId || undefined,
-              resourceName: resourceName || undefined,
-              resourceType: resourceType || undefined,
-              scope: scope || undefined,
-              nodeName: nodeName || undefined,
-              metricValue: metricValue,
-            });
-          }
-        }
-
-        const metricDef: ProxmoxMetricDefinition | undefined =
-          getProxmoxMetricByMetricName(metricName);
-
-        proxmoxResourceBreakdown = {
-          clusterName: proxmoxMonitorConfig.clusterIdentifier,
-          metricName: metricName,
-          metricFriendlyName: metricDef?.friendlyName || metricName,
-          affectedResources: Array.from(affectedResourcesMap.values()),
-          attributes: attributes,
-        };
-      }
-    } catch (err) {
-      logger.error("Failed to fetch Proxmox resource breakdown", {
-        service: "workers",
-        projectId: data.projectId.toString(),
-      });
-      logger.error(err, {
-        service: "workers",
-        projectId: data.projectId.toString(),
+    if (affectedResources) {
+      proxmoxResourceBreakdowns.push({
+        clusterName: proxmoxMonitorConfig.clusterIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getProxmoxMetricByMetricName(metricName)?.friendlyName || metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
       });
     }
   }
@@ -2640,6 +2673,17 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
       queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
       projectId: data.projectId,
     });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.Proxmox,
+    queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: proxmoxResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -2672,9 +2716,13 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
-    proxmoxResourceBreakdown: proxmoxResourceBreakdown,
+    proxmoxResourceBreakdowns:
+      proxmoxResourceBreakdowns.length > 0
+        ? proxmoxResourceBreakdowns
+        : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
   };
 };
 
@@ -2766,7 +2814,9 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
-  let vmwareResourceBreakdown: VMwareResourceBreakdown | undefined = undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const vmwareResourceBreakdowns: Array<VMwareResourceBreakdown> = [];
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     vmwareMonitorConfig.metricViewConfig.queryConfigs,
@@ -2882,129 +2932,24 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
      * effort: a failure here is logged and the evaluation carries on
      * without the Affected Resources list — it must never fail the monitor.
      */
-    try {
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+    const affectedResources: Array<VMwareAffectedResource> | undefined =
+      await scanAffectedResources({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        projectId: data.projectId,
+        platformName: "VMware",
+        getIdentity: PlatformResourceIdentity.vmware,
+        getIdentityKey: PlatformResourceIdentity.vmwareKey,
       });
 
-      if (rawMetrics.length > 0) {
-        const affectedResourcesMap: Map<string, VMwareAffectedResource> =
-          new Map();
-
-        for (const metric of rawMetrics) {
-          const metricAttrs: JSONObject =
-            (metric.attributes as JSONObject) || {};
-
-          const readAttr: (key: string) => string | undefined = (
-            key: string,
-          ): string | undefined => {
-            const value: unknown = metricAttrs[key];
-            return typeof value === "string" && value.length > 0
-              ? value
-              : undefined;
-          };
-
-          /*
-           * Identity lives in the RESOURCE attributes the vcenter
-           * receiver stamps, stored `resource.`-prefixed. A VM template
-           * is a VM with `isTemplate` in the inventory, so its
-           * `vcenter.vm_template.*` identity folds into the VM fields.
-           */
-          const datacenterName: string | undefined = readAttr(
-            "resource.vcenter.datacenter.name",
-          );
-          const clusterName: string | undefined = readAttr(
-            "resource.vcenter.cluster.name",
-          );
-          const hostName: string | undefined = readAttr(
-            "resource.vcenter.host.name",
-          );
-          const vmName: string | undefined =
-            readAttr("resource.vcenter.vm.name") ||
-            readAttr("resource.vcenter.vm_template.name");
-          const vmId: string | undefined =
-            readAttr("resource.vcenter.vm.id") ||
-            readAttr("resource.vcenter.vm_template.id");
-          const datastoreName: string | undefined = readAttr(
-            "resource.vcenter.datastore.name",
-          );
-          const resourcePoolName: string | undefined = readAttr(
-            "resource.vcenter.resource_pool.name",
-          );
-          const resourcePoolPath: string | undefined = readAttr(
-            "resource.vcenter.resource_pool.inventory_path",
-          );
-
-          /*
-           * Dedupe on the full identity tuple: `vcenter.vm.id` alone
-           * identifies a VM, but hosts / datastores / clusters are only
-           * unique within their datacenter and pools within their path.
-           */
-          const resourceKey: string = [
-            datacenterName || "",
-            clusterName || "",
-            hostName || "",
-            vmId || "",
-            vmName || "",
-            datastoreName || "",
-            resourcePoolPath || resourcePoolName || "",
-          ].join("|");
-
-          const metricValue: number =
-            typeof metric.value === "number"
-              ? metric.value
-              : Number(metric.value) || 0;
-
-          // Keep the highest value per resource
-          const existing: VMwareAffectedResource | undefined =
-            affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
-            affectedResourcesMap.set(resourceKey, {
-              datacenterName: datacenterName,
-              clusterName: clusterName,
-              hostName: hostName,
-              vmName: vmName,
-              vmId: vmId,
-              datastoreName: datastoreName,
-              resourcePoolName: resourcePoolName,
-              resourcePoolPath: resourcePoolPath,
-              metricValue: metricValue,
-            });
-          }
-        }
-
-        const metricDef: VMwareMetricDefinition | undefined =
-          getVMwareMetricByMetricName(metricName);
-
-        vmwareResourceBreakdown = {
-          vcenterName: vmwareMonitorConfig.vcenterIdentifier,
-          metricName: metricName,
-          metricFriendlyName: metricDef?.friendlyName || metricName,
-          affectedResources: Array.from(affectedResourcesMap.values()),
-          attributes: attributes,
-        };
-      }
-    } catch (err) {
-      logger.error("Failed to fetch VMware resource breakdown", {
-        service: "workers",
-        projectId: data.projectId.toString(),
-      });
-      logger.error(err, {
-        service: "workers",
-        projectId: data.projectId.toString(),
+    if (affectedResources) {
+      vmwareResourceBreakdowns.push({
+        vcenterName: vmwareMonitorConfig.vcenterIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getVMwareMetricByMetricName(metricName)?.friendlyName || metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
       });
     }
   }
@@ -3014,6 +2959,17 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
       projectId: data.projectId,
     });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.VMware,
+    queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: vmwareResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -3046,9 +3002,13 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     metricViewConfig: vmwareMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
-    vmwareResourceBreakdown: vmwareResourceBreakdown,
+    vmwareResourceBreakdowns:
+      vmwareResourceBreakdowns.length > 0
+        ? vmwareResourceBreakdowns
+        : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
   };
 };
 
@@ -3058,7 +3018,7 @@ type MonitorIoTFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorIoT: MonitorIoTFunction = async (data: {
+export const monitorIoT: MonitorIoTFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -3268,6 +3228,11 @@ const monitorIoT: MonitorIoTFunction = async (data: {
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: buildNativeUnitsByMetricName({
+      monitorType: MonitorType.IoTDevice,
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      declaredUnitsByMetricName: nativeUnitsByMetricName,
+    }),
   };
 };
 
@@ -3277,7 +3242,7 @@ type MonitorDockerSwarmFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
+export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -3295,8 +3260,9 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
-  let dockerSwarmResourceBreakdown: DockerSwarmResourceBreakdown | undefined =
-    undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const dockerSwarmResourceBreakdowns: Array<DockerSwarmResourceBreakdown> = [];
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
@@ -3439,100 +3405,34 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
 
     finalResult.push(aggregatedResults);
 
-    // Fetch raw metrics to extract per-resource Docker Swarm context
-    try {
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+    /*
+     * Fetch raw metrics to extract per-resource Docker Swarm context.
+     * PlatformResourceIdentity.dockerSwarm reads the container identity
+     * `resource.`-prefixed, for the same reason as the filter above.
+     * Reading the bare key returned undefined for every row, which
+     * collapsed the whole "Affected Tasks" breakdown into one anonymous
+     * entry keyed "|||" and made MonitorCriteriaEvaluator suppress the
+     * Affected Tasks list entirely (hasIdentity was false).
+     */
+    const affectedResources: Array<DockerSwarmAffectedResource> | undefined =
+      await scanAffectedResources({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        projectId: data.projectId,
+        platformName: "Docker Swarm",
+        getIdentity: PlatformResourceIdentity.dockerSwarm,
+        getIdentityKey: PlatformResourceIdentity.dockerSwarmKey,
       });
 
-      if (rawMetrics.length > 0) {
-        const affectedResourcesMap: Map<string, DockerSwarmAffectedResource> =
-          new Map();
-
-        for (const metric of rawMetrics) {
-          const metricAttrs: JSONObject =
-            (metric.attributes as JSONObject) || {};
-          /*
-           * Prefixed, for the same reason as the filter above: the
-           * docker_stats receiver puts container identity on the RESOURCE,
-           * so ClickHouse stores `resource.container.name`. Reading the
-           * bare key returned undefined for every row, which collapsed the
-           * whole "Affected Tasks" breakdown into one anonymous entry
-           * keyed "|||" and made MonitorCriteriaEvaluator suppress the
-           * Affected Tasks list entirely (hasIdentity was false).
-           */
-          const containerName: string | undefined = metricAttrs[
-            "resource.container.name"
-          ] as string | undefined;
-          const containerImage: string | undefined = metricAttrs[
-            "resource.container.image.name"
-          ] as string | undefined;
-          const nodeName: string | undefined = metricAttrs[
-            "docker.swarm.node.name"
-          ] as string | undefined;
-          const serviceName: string | undefined = metricAttrs[
-            "docker.swarm.service.name"
-          ] as string | undefined;
-
-          // Build unique key for deduplication
-          const resourceKey: string = [
-            containerName || "",
-            containerImage || "",
-            nodeName || "",
-            serviceName || "",
-          ].join("|");
-
-          const metricValue: number =
-            typeof metric.value === "number"
-              ? metric.value
-              : Number(metric.value) || 0;
-
-          // Keep the highest value per resource
-          const existing: DockerSwarmAffectedResource | undefined =
-            affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
-            affectedResourcesMap.set(resourceKey, {
-              containerName: containerName || undefined,
-              containerImage: containerImage || undefined,
-              nodeName: nodeName || undefined,
-              serviceName: serviceName || undefined,
-              metricValue: metricValue,
-            });
-          }
-        }
-
-        const metricDef: DockerSwarmMetricDefinition | undefined =
-          getDockerSwarmMetricByMetricName(metricName);
-
-        dockerSwarmResourceBreakdown = {
-          clusterName: dockerSwarmMonitorConfig.clusterIdentifier,
-          metricName: metricName,
-          metricFriendlyName: metricDef?.friendlyName || metricName,
-          affectedResources: Array.from(affectedResourcesMap.values()),
-          attributes: attributes,
-        };
-      }
-    } catch (err) {
-      logger.error("Failed to fetch Docker Swarm resource breakdown", {
-        service: "workers",
-        projectId: data.projectId.toString(),
-      });
-      logger.error(err, {
-        service: "workers",
-        projectId: data.projectId.toString(),
+    if (affectedResources) {
+      dockerSwarmResourceBreakdowns.push({
+        clusterName: dockerSwarmMonitorConfig.clusterIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getDockerSwarmMetricByMetricName(metricName)?.friendlyName ||
+          metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
       });
     }
   }
@@ -3542,6 +3442,17 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
       projectId: data.projectId,
     });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.DockerSwarm,
+    queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: dockerSwarmResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -3575,9 +3486,13 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
-    dockerSwarmResourceBreakdown: dockerSwarmResourceBreakdown,
+    dockerSwarmResourceBreakdowns:
+      dockerSwarmResourceBreakdowns.length > 0
+        ? dockerSwarmResourceBreakdowns
+        : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
   };
 };
 
@@ -3587,7 +3502,7 @@ type MonitorCephFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorCeph: MonitorCephFunction = async (data: {
+export const monitorCeph: MonitorCephFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -3605,7 +3520,9 @@ const monitorCeph: MonitorCephFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
-  let cephResourceBreakdown: CephResourceBreakdown | undefined = undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const cephResourceBreakdowns: Array<CephResourceBreakdown> = [];
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     cephMonitorConfig.metricViewConfig.queryConfigs,
@@ -3731,92 +3648,24 @@ const monitorCeph: MonitorCephFunction = async (data: {
     finalResult.push(aggregatedResults);
 
     // Fetch raw metrics to extract per-resource Ceph context
-    try {
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
+    const affectedResources: Array<CephAffectedResource> | undefined =
+      await scanAffectedResources({
         query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        projectId: data.projectId,
+        platformName: "Ceph",
+        getIdentity: PlatformResourceIdentity.ceph,
+        getIdentityKey: PlatformResourceIdentity.cephKey,
       });
 
-      if (rawMetrics.length > 0) {
-        const affectedResourcesMap: Map<string, CephAffectedResource> =
-          new Map();
-
-        for (const metric of rawMetrics) {
-          const metricAttrs: JSONObject =
-            (metric.attributes as JSONObject) || {};
-          const daemon: string | undefined = metricAttrs["ceph_daemon"] as
-            | string
-            | undefined;
-          const poolIdRaw: unknown = metricAttrs["pool_id"];
-          const poolId: string | undefined =
-            poolIdRaw !== undefined && poolIdRaw !== null
-              ? String(poolIdRaw)
-              : undefined;
-          const poolName: string | undefined = metricAttrs["name"] as
-            | string
-            | undefined;
-          const hostname: string | undefined = metricAttrs["hostname"] as
-            | string
-            | undefined;
-
-          // Build unique key for deduplication
-          const resourceKey: string = [
-            daemon || "",
-            poolId || "",
-            poolName || "",
-            hostname || "",
-          ].join("|");
-
-          const metricValue: number =
-            typeof metric.value === "number"
-              ? metric.value
-              : Number(metric.value) || 0;
-
-          // Keep the highest value per resource
-          const existing: CephAffectedResource | undefined =
-            affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
-            affectedResourcesMap.set(resourceKey, {
-              daemon: daemon || undefined,
-              poolId: poolId || undefined,
-              poolName: poolName || undefined,
-              hostname: hostname || undefined,
-              metricValue: metricValue,
-            });
-          }
-        }
-
-        const metricDef: CephMetricDefinition | undefined =
-          getCephMetricByMetricName(metricName);
-
-        cephResourceBreakdown = {
-          clusterName: cephMonitorConfig.clusterIdentifier,
-          metricName: metricName,
-          metricFriendlyName: metricDef?.friendlyName || metricName,
-          affectedResources: Array.from(affectedResourcesMap.values()),
-          attributes: attributes,
-        };
-      }
-    } catch (err) {
-      logger.error("Failed to fetch Ceph resource breakdown", {
-        service: "workers",
-        projectId: data.projectId.toString(),
-      });
-      logger.error(err, {
-        service: "workers",
-        projectId: data.projectId.toString(),
+    if (affectedResources) {
+      cephResourceBreakdowns.push({
+        clusterName: cephMonitorConfig.clusterIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getCephMetricByMetricName(metricName)?.friendlyName || metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
       });
     }
   }
@@ -3826,6 +3675,17 @@ const monitorCeph: MonitorCephFunction = async (data: {
       queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
       projectId: data.projectId,
     });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.Ceph,
+    queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: cephResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -3858,9 +3718,11 @@ const monitorCeph: MonitorCephFunction = async (data: {
     metricViewConfig: cephMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
-    cephResourceBreakdown: cephResourceBreakdown,
+    cephResourceBreakdowns:
+      cephResourceBreakdowns.length > 0 ? cephResourceBreakdowns : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
   };
 };
 

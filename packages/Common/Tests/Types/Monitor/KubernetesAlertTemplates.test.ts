@@ -4,6 +4,10 @@ import {
   getAllKubernetesAlertTemplates,
   getKubernetesAlertTemplateById,
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  KubernetesMetricDefinition,
+  getKubernetesMetricByMetricName,
+} from "../../../Types/Monitor/KubernetesMetricCatalog";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
@@ -951,6 +955,86 @@ describe("KubernetesAlertTemplates - grouped alerts point at the right field", (
           );
         }
       }
+    }
+  });
+});
+
+/*
+ * BUG: a k8s-high-memory incident email listed each node with a value of
+ * `257760964608` — bytes of `k8s.node.allocatable_memory`, with no unit.
+ * The "Affected Resources" list takes its unit (and friendly name) from
+ * KubernetesMetricCatalog by metric name, and that metric — like seven
+ * others the templates query — had no catalog entry, so the value went
+ * out bare.
+ *
+ * Enumerated over every template and every query, so a template added or
+ * rewired later against a metric the catalog does not know fails here
+ * rather than in an on-call engineer's inbox.
+ */
+describe("KubernetesAlertTemplates - references only catalog metrics", () => {
+  /*
+   * k8s.node.cpu.usage (the High Node CPU Utilization numerator) is not a
+   * metric the kubeletstats receiver the agent pins (0.96.0) emits — see
+   * Utils/KubernetesAgentEmittedMetrics — so the catalog, which only
+   * offers what the agent sends, deliberately leaves it out. The template
+   * querying it is a separate defect; until it is fixed it is the one
+   * exception here.
+   */
+  const NOT_EMITTED_BY_THE_PINNED_AGENT: ReadonlySet<string> = new Set<string>([
+    "k8s.node.cpu.usage",
+  ]);
+
+  function getMetricNames(template: KubernetesAlertTemplate): Array<string> {
+    return (
+      getKubernetesMonitor(template.getMonitorStep(buildArgs()))
+        .metricViewConfig.queryConfigs as Array<any>
+    ).map((query: any) => {
+      return query.metricQueryData.filterData.metricName as string;
+    });
+  }
+
+  test("every template queries at least one metric (guards the guard)", () => {
+    for (const template of getAllKubernetesAlertTemplates()) {
+      expect(getMetricNames(template).length).toBeGreaterThan(0);
+    }
+  });
+
+  test.each(
+    getAllKubernetesAlertTemplates().map((t: KubernetesAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )("%s references only catalog metrics", (_id: unknown, template: unknown) => {
+    for (const metricName of getMetricNames(
+      template as KubernetesAlertTemplate,
+    )) {
+      if (NOT_EMITTED_BY_THE_PINNED_AGENT.has(metricName)) {
+        continue;
+      }
+
+      const entry: KubernetesMetricDefinition | undefined =
+        getKubernetesMetricByMetricName(metricName);
+
+      expect({ metricName, inCatalog: entry !== undefined }).toEqual({
+        metricName,
+        inCatalog: true,
+      });
+    }
+  });
+
+  test("the metrics that were missing now resolve, with a unit", () => {
+    const expectedUnits: Record<string, string> = {
+      "k8s.node.allocatable_memory": "bytes",
+      "k8s.node.allocatable_cpu": "cores",
+      "k8s.pod.memory_limit_utilization": "ratio",
+      "k8s.pod.cpu_limit_utilization": "ratio",
+      // A 0/1 flag: no dimension to print, deliberately.
+      etcd_server_has_leader: "",
+      apiserver_current_inflight_requests: "count",
+      scheduler_pending_pods: "count",
+    };
+
+    for (const [metricName, unit] of Object.entries(expectedUnits)) {
+      expect(getKubernetesMetricByMetricName(metricName)?.unit).toBe(unit);
     }
   });
 });

@@ -35,21 +35,38 @@ import ValueFormatter from "../ValueFormatter";
  *     sample arrive carrying the unit "GB", and ValueFormatter has a
  *     ladder for "bytes" but not for "GB" — so 2500 of them rendered
  *     "2.5K GB" instead of "2.5 TB". Anything in a MetricUnitUtil family
- *     is converted to that family's base before the ladder runs.
+ *     is converted to that family's base before the ladder runs. That
+ *     includes the binary (IEC) byte units the vcenter receiver reports
+ *     memory in: 2048 "MiBy" is restated as 2147483648 bytes and reads
+ *     "2.15 GB", where it used to read "2048 MiB" and, for a large host,
+ *     "1048576 MiB".
  *
  *  3. UNITS WORTH HIDING. OTel's dimensionless "1" and UCUM's
  *     annotation-only units ("{restarts}", "{packets}") are not
  *     dimensions, and printing them produces the "0.06 1" that
  *     CompareCriteria and MonitorCriteriaObservationBuilder each grew
- *     their own guard against. That rule lives here now.
+ *     their own guard against. That rule lives here now — with one
+ *     exception: braces around a REAL, scalable unit ("{KiBy/s}", which
+ *     the vcenter receiver uses for throughput) are unwrapped rather than
+ *     hidden, because the value in them is a quantity, not a count.
  */
 export default class MetricValueFormatter {
   /*
    * UCUM annotation-only units — "{thread}", "{packets}", "{errors}".
    * The braces describe what is being counted; the value is a plain
    * count and the text inside them is not a unit a reader should see.
+   *
+   * Only reached for braces whose inner text is NOT itself a scalable
+   * unit: canonicalizeUnit has already unwrapped "{KiBy/s}" to "KiBy/s"
+   * (see unwrapScalableAnnotation), so what still matches here is a
+   * genuine annotation.
    */
   private static readonly annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
+
+  /*
+   * The same shape, capturing the inner text.
+   */
+  private static readonly bracedUnitPattern: RegExp = /^\{([^{}]*)\}$/;
 
   /*
    * The per-platform metric catalogs (Kubernetes, Ceph, Proxmox, Docker
@@ -93,7 +110,8 @@ export default class MetricValueFormatter {
    * Whether `unit` names a real dimension for `metricName` — i.e. whether
    * it is worth attaching to a number at all. False for the empty unit,
    * for the dimensionless "1" on a non-fraction metric, and for
-   * annotation-only units.
+   * annotation-only units. True for a braced unit whose inner text is a
+   * scalable unit ("{KiBy/s}"), which format() renders as that unit.
    */
   public static hasDisplayableUnit(
     unit: string | null | undefined,
@@ -128,6 +146,8 @@ export default class MetricValueFormatter {
    *   format({ value: 1500, unit: "ms" })                  → "1.5 sec"
    *   format({ value: 3661, unit: "seconds" })             → "1.02 hours"
    *   format({ value: 1500000, unit: "By/s" })             → "1.5 MB/s"
+   *   format({ value: 2048, unit: "MiBy" })                → "2.15 GB"
+   *   format({ value: 2500000, unit: "{KiBy/s}" })         → "2.56 GB/s"
    *   format({ value: 0.2534, unit: "1",
    *            metricName: "system.cpu.utilization" })     → "25.34%"
    *   format({ value: 87.5, unit: "%" })                   → "87.50%"
@@ -139,6 +159,7 @@ export default class MetricValueFormatter {
    * A value with no dimension to report is left bare:
    *   format({ value: 1500 })                              → "1500"
    *   format({ value: 1500, unit: "{restarts}" })          → "1500"
+   *   format({ value: 1500, unit: "{errors/s}" })          → "1500"
    *   format({ value: 3.14159 })                           → "3.14"
    */
   public static format(input: {
@@ -198,7 +219,7 @@ export default class MetricValueFormatter {
      * becomes "m per s2" and "10*3/uL" becomes "10*3 per uL", both longer
      * and less recognisable than what the exporter wrote. getCompactUnit
      * keeps the slash and still expands what is worth expanding
-     * ("Cel" → "°C", "KiBy" → "KiB").
+     * ("Cel" → "°C").
      */
     const unitSymbol: string =
       ValueFormatter.getCompactUnit(unit, formatOptions) || unit;
@@ -229,11 +250,12 @@ export default class MetricValueFormatter {
   }
 
   /*
-   * Trim the unit and rewrite the catalogs' English spellings of "no
-   * dimension" into the UCUM ones the rest of the pipeline understands.
-   * Anything else is returned untouched — including its casing, which
-   * matters because an unrecognised unit is echoed verbatim next to the
-   * value ("5 widgets", not "5 Widgets").
+   * Trim the unit, unwrap a braced scalable unit ("{KiBy/s}" → "KiBy/s"),
+   * and rewrite the catalogs' English spellings of "no dimension" into the
+   * UCUM ones the rest of the pipeline understands. Anything else is
+   * returned untouched — including its casing, which matters because an
+   * unrecognised unit is echoed verbatim next to the value ("5 widgets",
+   * not "5 Widgets").
    */
   private static canonicalizeUnit(unit: string | null | undefined): string {
     const trimmed: string = (unit || "").trim();
@@ -242,10 +264,40 @@ export default class MetricValueFormatter {
       return "";
     }
 
-    const alias: string | undefined =
-      MetricValueFormatter.informalUnitAliases[trimmed.toLowerCase()];
+    const unwrapped: string =
+      MetricValueFormatter.unwrapScalableAnnotation(trimmed);
 
-    return alias === undefined ? trimmed : alias;
+    const alias: string | undefined =
+      MetricValueFormatter.informalUnitAliases[unwrapped.toLowerCase()];
+
+    return alias === undefined ? unwrapped : alias;
+  }
+
+  /*
+   * The vcenter receiver declares its throughput metrics as "{KiBy/s}":
+   * UCUM annotation braces around what is, in fact, a real unit. The
+   * annotation rule used to hide it, so 2500000 of them — about 2.56 GB/s
+   * of disk traffic — reached the inbox as a bare "2500000".
+   *
+   * So a braced unit is unwrapped when, and only when, its inner text is
+   * something this formatter can SCALE: a unit with a ladder, a member of
+   * a MetricUnitUtil family whose base has one ("KiBy", "GB", "min"), or
+   * a rate whose numerator is one of those ("KiBy/s", "By/s"). Every
+   * genuine annotation stays hidden exactly as before — "{restarts}",
+   * "{cpu}", "{packets/s}" and "{errors/s}" name no unit a ladder knows,
+   * so they keep rendering as the bare count.
+   */
+  private static unwrapScalableAnnotation(unit: string): string {
+    const match: RegExpMatchArray | null = unit.match(
+      MetricValueFormatter.bracedUnitPattern,
+    );
+    const inner: string = (match?.[1] || "").trim();
+
+    if (!inner) {
+      return unit;
+    }
+
+    return MetricValueFormatter.toScalableUnit(1, inner) ? inner : unit;
   }
 
   /**
@@ -273,8 +325,9 @@ export default class MetricValueFormatter {
    *   - it already has one ("bytes", "ms", "s", "ns");
    *   - it is a rate whose NUMERATOR does ("By/s" → scale the bytes, keep
    *     the "/s"), which is how 1500000 By/s reads "1.5 MB/s";
-   *   - it is a prefixed member of a MetricUnitUtil family ("GB", "hours"),
-   *     in which case the value is converted into that family's base first.
+   *   - it is a prefixed member of a MetricUnitUtil family ("GB", "hours",
+   *     and the binary "MiBy" / "KiBy"), in which case the value is
+   *     converted into that family's base first.
    */
   private static toScalableUnit(
     value: number,

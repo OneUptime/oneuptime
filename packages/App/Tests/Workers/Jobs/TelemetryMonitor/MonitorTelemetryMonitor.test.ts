@@ -630,7 +630,7 @@ describe("monitorVMware", () => {
           "resource.vcenter.host.name": "esx-01",
         },
       },
-      // Same host seen twice: the breakdown keeps the highest value.
+      // Same host seen twice: the breakdown keeps the highest and the lowest.
       {
         time: new Date(),
         value: 12.5,
@@ -674,8 +674,12 @@ describe("monitorVMware", () => {
         .sort(),
     ).toEqual(["esx-01", "esx-02"]);
 
+    // One breakdown per query; the legacy single field is no longer written.
+    expect(response.vmwareResourceBreakdown).toBeUndefined();
+    expect(response.vmwareResourceBreakdowns).toHaveLength(1);
+
     const breakdown: VMwareResourceBreakdown | undefined =
-      response.vmwareResourceBreakdown;
+      response.vmwareResourceBreakdowns![0];
     expect(breakdown).toBeDefined();
     expect(breakdown!.vcenterName).toBe("vcsa-prod");
     expect(breakdown!.metricName).toBe("vcenter.host.cpu.utilization");
@@ -684,13 +688,14 @@ describe("monitorVMware", () => {
     expect(
       breakdown!.affectedResources
         .map((resource: VMwareAffectedResource) => {
-          return `${resource.hostName}=${resource.metricValue}`;
+          return `${resource.hostName}=${resource.lowestMetricValue}..${resource.metricValue}`;
         })
         .sort(),
-    ).toEqual(["esx-01=42.5", "esx-02=97.25"]);
+    ).toEqual(["esx-01=12.5..42.5", "esx-02=97.25..97.25"]);
     expect(breakdown!.affectedResources[0]!.datacenterName).toBe("DC1");
     expect(breakdown!.affectedResources[0]!.clusterName).toBe("prod-cluster");
     expect(response.proxmoxResourceBreakdown).toBeUndefined();
+    expect(response.proxmoxResourceBreakdowns).toBeUndefined();
   });
 
   test("folds a VM template's identity into the VM fields of the breakdown", async () => {
@@ -713,7 +718,7 @@ describe("monitorVMware", () => {
       projectId,
     });
 
-    expect(response.vmwareResourceBreakdown!.affectedResources).toEqual([
+    expect(response.vmwareResourceBreakdowns![0]!.affectedResources).toEqual([
       {
         datacenterName: "DC1",
         clusterName: undefined,
@@ -724,6 +729,7 @@ describe("monitorVMware", () => {
         resourcePoolName: undefined,
         resourcePoolPath: undefined,
         metricValue: 1073741824,
+        lowestMetricValue: 1073741824,
       },
     ]);
   });
@@ -738,6 +744,7 @@ describe("monitorVMware", () => {
     });
 
     expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+    expect(response.vmwareResourceBreakdowns).toBeUndefined();
     expect(response.vmwareResourceBreakdown).toBeUndefined();
     expect(response.metricResult).toHaveLength(1);
     expect(response.monitorId).toBe(monitorId);
