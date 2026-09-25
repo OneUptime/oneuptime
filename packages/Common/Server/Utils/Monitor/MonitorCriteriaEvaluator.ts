@@ -132,7 +132,6 @@ import PlatformResourceIdentity, {
   ProxmoxResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
-import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 
