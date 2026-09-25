@@ -6,7 +6,10 @@ import {
   readDiscoveredHostReverseDnsStatus,
 } from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { DiscoveryScanStatus } from "./DiscoveryScanStatus";
-import { normalizeNetbiosName } from "./NetbiosNameUtil";
+import {
+  isNetbiosQueryableIPv4Address,
+  normalizeNetbiosName,
+} from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 import { ScanModeUtil } from "./ScanModeUtil";
 
@@ -151,11 +154,16 @@ export const SNMP_NO_SYSNAME_SENTENCE: string =
  * The one piece of advice that fits the reverse-DNS code best, when any
  * does. "No record" gets the one that matters most for the issue this came
  * from: the probe resolves through ITS OWN DNS server, which need not be the
- * one the operator checked with, so the comparison worth making is from the
- * probe's host.
+ * one the operator checked with, so the comparison worth making is from where
+ * the probe resolves. That is inside its container or pod, not the machine
+ * under it (#3916): a pod's resolver is the cluster DNS, not the node's
+ * /etc/resolv.conf, and a Docker container's can differ from its host's too,
+ * so "from the probe's host" sent the operator to a lookup that could name
+ * the device while the probe's could not. The probe image ships nslookup
+ * (dnsutils, Probe/Dockerfile.tpl), so the advice can be followed as written.
  */
 export const NO_RECORD_TIP: string =
-  "The probe uses its own DNS server, which may not be the one you checked with. Run nslookup on this address from the probe's host to compare.";
+  "The probe uses its own DNS server, which may not be the one you checked with. Run nslookup on this address inside the probe's container or pod to compare.";
 export const TRANSIENT_FAILURE_TIP: string =
   "Rescan to try again. If it keeps happening, check the DNS servers the probe's host uses.";
 
@@ -164,7 +172,9 @@ export const TRANSIENT_FAILURE_TIP: string =
  * its name switched off. Those are exactly the names the issue asked to see
  * first — the one configured on the device — so saying where they come from
  * is the useful answer to "but it has a hostname". Only the sources that were
- * actually off, and would run if turned on, are named.
+ * actually off, and would run if turned on, are named — for NetBIOS that
+ * means the probe is not a global one AND the address is one its lookup
+ * would query at all (isNetbiosQueryableIPv4Address).
  */
 export const ASK_THE_DEVICE_TIP: string =
   "Checking SNMP, or NetBIOS lookup for Windows hosts, asks the device for its own name.";
@@ -240,6 +250,7 @@ function describeNetbios(data: {
   status: DiscoveredHostNetbiosStatus | undefined;
   scan: DiscoveredHostNamingScan | null | undefined;
   isGlobalProbe: boolean;
+  isQueryableAddress: boolean;
 }): string | undefined {
   if (data.status) {
     return NETBIOS_SENTENCES[data.status];
@@ -261,6 +272,18 @@ function describeNetbios(data: {
    */
   if (data.isGlobalProbe) {
     return NETBIOS_SENTENCES[DiscoveredHostNetbiosStatus.SkippedGlobalProbe];
+  }
+
+  /*
+   * Likewise for an address outside the private and CGNAT ranges (#3916):
+   * the probe's refusal of those shipped in the same change as the
+   * isNetbiosLookupEnabled column, so no probe that honoured the setting
+   * ever asked one.
+   */
+  if (!data.isQueryableAddress) {
+    return NETBIOS_SENTENCES[
+      DiscoveredHostNetbiosStatus.SkippedIneligibleAddress
+    ];
   }
 
   return NETBIOS_NOT_RECORDED_SENTENCE;
@@ -326,10 +349,19 @@ export function explainUnnamedDiscoveredHost(data: {
     }
   }
 
+  /*
+   * Whether the probe's NetBIOS lookup would send this address a query at
+   * all. It refuses everything but private and CGNAT IPv4, whoever asks.
+   */
+  const isNetbiosQueryableAddress: boolean = isNetbiosQueryableIPv4Address(
+    host.ipAddress,
+  );
+
   const netbiosSentence: string | undefined = describeNetbios({
     status: netbiosNameStatus,
     scan: data.scan,
     isGlobalProbe: data.isGlobalProbe === true,
+    isQueryableAddress: isNetbiosQueryableAddress,
   });
 
   const sentences: Array<string> = [];
@@ -370,10 +402,14 @@ export function explainUnnamedDiscoveredHost(data: {
    * never sends NetBIOS queries whatever the scan asks for, so on one this
    * advice would send the operator to a setting whose only effect is the
    * "not asked" line on the next scan (#3916). The bundled self-hosted probes
-   * are global, so that is not a rare case.
+   * are global, so that is not a rare case. The same goes for an address the
+   * lookup refuses — public space, IPv6, anything not a strict dotted quad —
+   * where the next scan would only say "Only private addresses are asked".
    */
   const shouldSuggestNetbios: boolean =
-    netbiosSentence === NETBIOS_OFF_SENTENCE && data.isGlobalProbe !== true;
+    netbiosSentence === NETBIOS_OFF_SENTENCE &&
+    data.isGlobalProbe !== true &&
+    isNetbiosQueryableAddress;
 
   if (isSnmpOff && shouldSuggestNetbios) {
     sentences.push(ASK_THE_DEVICE_TIP);

@@ -772,6 +772,57 @@ describe("attachNetbiosNames — a code on every host it was asked about and lef
     });
   });
 
+  it("never stamps a host it named, even when an inconsistent double also reports a code for it", async () => {
+    /*
+     * The NetBIOS twin of the reverse-DNS rule above: the name wins. The real
+     * resolver never reports both for one address (describeUnnamedAddresses
+     * skips every address it named), so only the guard in attachNetbiosNames
+     * stands between an inconsistent double — or a future resolver — and a
+     * named host uploaded with "NetBIOS: no reply" beside its name.
+     */
+    const hosts: Array<DiscoveredHost> = [pingOnly("10.0.0.4")];
+
+    mockNetbios({
+      names: { "10.0.0.4": "kds04" },
+      statuses: netbiosStatuses({
+        "10.0.0.4": DiscoveredHostNetbiosStatus.NoReply,
+      }),
+    });
+
+    await SubnetScanner.attachNetbiosNames(hosts);
+
+    expect(hosts[0]).toStrictEqual({
+      ipAddress: "10.0.0.4",
+      snmpReachable: false,
+      netbiosName: "kds04",
+    });
+  });
+
+  it("never stamps a host that arrived already carrying a NetBIOS name", async () => {
+    /*
+     * The same guard, reached the other way: a host with no sysName and no
+     * PTR name is handed to the lookup whatever NetBIOS name it already
+     * has, and the lookup naming nothing this time does not make it unnamed.
+     */
+    const hosts: Array<DiscoveredHost> = [
+      { ipAddress: "10.0.0.4", snmpReachable: false, netbiosName: "OLD" },
+    ];
+
+    mockNetbios({
+      statuses: netbiosStatuses({
+        "10.0.0.4": DiscoveredHostNetbiosStatus.NoReply,
+      }),
+    });
+
+    await SubnetScanner.attachNetbiosNames(hosts);
+
+    expect(hosts[0]).toStrictEqual({
+      ipAddress: "10.0.0.4",
+      snmpReachable: false,
+      netbiosName: "OLD",
+    });
+  });
+
   it("stamps a code on a host whose reported name normalises to nothing", async () => {
     /*
      * The name the double reported is not usable, so the host is still
@@ -1099,6 +1150,150 @@ describe("stampNetbiosStatusOnUnnamedHosts — the global-probe skip, host by ho
     ).toBe(1);
     expect(frozen[0]!.netbiosNameStatus).toBe("skipped-global-probe");
     expect(frozen[1]).not.toHaveProperty("netbiosNameStatus");
+    expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+describe("countUnnamedHostsWhoseReverseDnsFailed — the hosts the failure sentence points at", () => {
+  /*
+   * OneUptime issue #3916. The status message's "Reverse DNS lookups failed
+   * for N of M hosts; hover the (i) beside an unnamed host" counts exactly the
+   * hosts that END the naming with no name from any source and a code saying
+   * their lookup FAILED — the hosts with an (i) that says so. scanWithDeadline
+   * narrows the pass's own count to this once NetBIOS has run; the runScan
+   * side is pinned in FetchScansNamingStatus.test.ts.
+   */
+  const FAILED_CODES: Array<DiscoveredHostReverseDnsStatus> = [
+    DiscoveredHostReverseDnsStatus.Timeout,
+    DiscoveredHostReverseDnsStatus.ServerFailure,
+    DiscoveredHostReverseDnsStatus.Refused,
+    DiscoveredHostReverseDnsStatus.Unreachable,
+    DiscoveredHostReverseDnsStatus.Failed,
+  ];
+
+  function withReverseDnsStatus(
+    host: DiscoveredHost,
+    status: unknown,
+  ): DiscoveredHost {
+    return {
+      ...host,
+      dnsHostnameStatus: status as DiscoveredHostReverseDnsStatus,
+    };
+  }
+
+  it("counts an unnamed host for every code that means the lookup failed, and for no other code", () => {
+    const failed: Array<DiscoveredHost> = FAILED_CODES.map(
+      (code: DiscoveredHostReverseDnsStatus, index: number): DiscoveredHost => {
+        return withReverseDnsStatus(pingOnly(`10.0.1.${index + 1}`), code);
+      },
+    );
+
+    expect(SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed(failed)).toBe(
+      5,
+    );
+
+    // The DNS server ANSWERED for these, or the pass never asked: no failure.
+    const notFailed: Array<DiscoveredHost> = Object.values(
+      DiscoveredHostReverseDnsStatus,
+    )
+      .filter((code: DiscoveredHostReverseDnsStatus) => {
+        return !FAILED_CODES.includes(code);
+      })
+      .map(
+        (
+          code: DiscoveredHostReverseDnsStatus,
+          index: number,
+        ): DiscoveredHost => {
+          return withReverseDnsStatus(pingOnly(`10.0.2.${index + 1}`), code);
+        },
+      );
+
+    expect(notFailed.length).toBe(4);
+    expect(
+      SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed(notFailed),
+    ).toBe(0);
+  });
+
+  it("does not count a failed lookup on a host named by its sysName, its PTR record or NetBIOS", () => {
+    const hosts: Array<DiscoveredHost> = [
+      withReverseDnsStatus(snmpHost("10.0.0.1", "core-switch-01"), "timeout"),
+      withReverseDnsStatus(
+        {
+          ipAddress: "10.0.0.2",
+          snmpReachable: false,
+          dnsHostname: "printer.corp.example.com",
+        },
+        "timeout",
+      ),
+      withReverseDnsStatus(
+        { ipAddress: "10.0.0.3", snmpReachable: false, netbiosName: "kds03" },
+        "server-failure",
+      ),
+      withReverseDnsStatus(pingOnly("10.0.0.4"), "refused"),
+      // Blank names are no names: these two are unnamed, and counted.
+      withReverseDnsStatus(
+        { ipAddress: "10.0.0.5", sysName: " ", snmpReachable: true },
+        "timeout",
+      ),
+      withReverseDnsStatus(
+        { ipAddress: "10.0.0.6", snmpReachable: false, netbiosName: "" },
+        "unreachable",
+      ),
+    ];
+
+    expect(SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed(hosts)).toBe(3);
+  });
+
+  it("counts a repeated address once, and a host with no code, or a junk one, not at all", () => {
+    const hosts: Array<DiscoveredHost> = [
+      withReverseDnsStatus(pingOnly("10.0.0.7"), "timeout"),
+      withReverseDnsStatus(pingOnly("10.0.0.7"), "timeout"),
+      pingOnly("10.0.0.8"),
+      withReverseDnsStatus(pingOnly("10.0.0.9"), "Timeout"),
+      withReverseDnsStatus(pingOnly("10.0.0.10"), " timeout"),
+      withReverseDnsStatus(pingOnly("10.0.0.11"), 7),
+      // A NetBIOS code is not a reverse-DNS code.
+      withReverseDnsStatus(
+        pingOnly("10.0.0.12"),
+        DiscoveredHostNetbiosStatus.SendFailed,
+      ),
+    ];
+
+    expect(SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed(hosts)).toBe(1);
+  });
+
+  it("never throws: a list that is not one counts nothing, holes are skipped, and a host that throws keeps the count so far", () => {
+    for (const notAList of [undefined, null, "10.0.0.1", 7, {}]) {
+      expect(
+        SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed(
+          notAList as unknown as Array<DiscoveredHost>,
+        ),
+      ).toBe(0);
+    }
+
+    expect(
+      SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed([
+        null as unknown as DiscoveredHost,
+        "10.0.0.9" as unknown as DiscoveredHost,
+        withReverseDnsStatus(pingOnly("10.0.0.4"), "timeout"),
+      ]),
+    ).toBe(1);
+
+    const exploding: DiscoveredHost = pingOnly("10.0.0.2");
+
+    Object.defineProperty(exploding, "dnsHostnameStatus", {
+      get: (): never => {
+        throw new Error("host went away");
+      },
+    });
+
+    expect(
+      SubnetScanner.countUnnamedHostsWhoseReverseDnsFailed([
+        withReverseDnsStatus(pingOnly("10.0.0.1"), "timeout"),
+        exploding,
+        withReverseDnsStatus(pingOnly("10.0.0.3"), "timeout"),
+      ]),
+    ).toBe(1);
     expect(logger.warn).toHaveBeenCalled();
   });
 });

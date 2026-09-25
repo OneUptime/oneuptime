@@ -499,9 +499,13 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
   });
 
   it("says why, once, in the probe log", async () => {
+    /*
+     * A timeout, not a SERVFAIL: since OneUptime issue #3916 a server that
+     * answers SERVFAIL has RESPONDED, and only silence spends the budget.
+     */
     const resolver: ReverseDnsResolver = resolverWith(
       async (): Promise<Array<string>> => {
-        throw dnsError("ESERVFAIL");
+        throw dnsError("ETIMEOUT");
       },
       { failureBudget: 2 },
     );
@@ -519,11 +523,11 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
      * failureReason is threaded through to the log at all. "reverse DNS" on
      * its own would be satisfied by the wall-clock message too — the two warn
      * paths share that phrase — so an operator reading it would be told the
-     * pass ran out of time when in fact their resolver is answering SERVFAIL.
+     * pass ran out of time when in fact their resolver is timing out.
      * Asserting the injected code pins that the message an operator acts on
      * came from the failure they actually have.
      */
-    expect(warnedMessages[0]).toContain("ESERVFAIL");
+    expect(warnedMessages[0]).toContain("ETIMEOUT");
     expect(warnedMessages[0]).toContain("not usable from this probe");
     // And that it says the remaining hosts were skipped rather than scanned.
     expect(warnedMessages[0]).toContain("skipped");
@@ -718,7 +722,8 @@ describe("ReverseDnsResolver — a probe with no usable resolver", () => {
           return ["gateway.corp.example.com"];
         }
 
-        throw dnsError("ESERVFAIL");
+        // Silence: since #3916 a SERVFAIL would not spend the budget at all.
+        throw dnsError("ETIMEOUT");
       },
     );
 
@@ -1398,9 +1403,11 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
      * Deciding at a wave boundary removes the race instead of managing it:
      * every lookup that started has settled, so a wave containing ANY answer
      * never trips in the first place. Here the first wave carries two
-     * ESERVFAILs against a budget of two — enough to trip on the old
+     * timeouts against a budget of two — enough to trip on the old
      * counting — alongside two answers. Nothing trips, nothing is skipped,
      * and the operator is not warned about a resolver that plainly works.
+     * (Timeouts, not SERVFAILs: since #3916 a SERVFAIL is a server
+     * responding, which never spends the budget, so it could not show this.)
      */
     const asked: Array<string> = [];
     const firstWave: Array<DeferredLookup> = [];
@@ -1431,8 +1438,8 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
     const pass: Promise<ReverseDnsResolution> =
       resolver.resolveHostnames(addresses);
 
-    firstWave[0]!.reject(dnsError("ESERVFAIL"));
-    firstWave[1]!.reject(dnsError("ESERVFAIL"));
+    firstWave[0]!.reject(dnsError("ETIMEOUT"));
+    firstWave[1]!.reject(dnsError("ETIMEOUT"));
     firstWave[2]!.resolve(["sw-core-01.corp.example.com"]);
     firstWave[3]!.resolve(["sw-core-02.corp.example.com"]);
 
@@ -1449,7 +1456,7 @@ describe("ReverseDnsResolver — the failure budget at the SHIPPED concurrency o
      * documented as "the first infrastructure failure seen" and must never be
      * read without isReverseDnsAvailable beside it.
      */
-    expect(result.failureReason).toContain("ESERVFAIL");
+    expect(result.failureReason).toContain("ETIMEOUT");
   });
 
   it("skips the rest only after a whole wave in which nothing answered", async () => {
@@ -1680,8 +1687,9 @@ describe("ReverseDnsResolver — the default lookup", () => {
    * path that cannot reach the network: `reverse()` on an unparseable address
    * fails inside ares_inet_pton and rejects with EINVAL without emitting
    * anything. The real resolver against a real (loopback) DNS server is
-   * ReverseDnsResolverRealResolver.test.ts; the seam's query choice, hosts-file
-   * fallback and retry walk are ReverseDnsResolverDefaultLookup.test.ts.
+   * ReverseDnsResolverRealResolver.test.ts; the seam's query choice and retry
+   * walk are ReverseDnsResolverDefaultLookup.test.ts, and the hosts file,
+   * read before any of it, is ReverseDnsResolverHostsFile.test.ts.
    *
    * CHANGED for OneUptime issue #3916. The address these tests use,
    * 10.18.166.51, is IPv4, so the default lookup now asks it with
@@ -3499,7 +3507,8 @@ describe("ReverseDnsResolver — how much of a pass was actually asked", () => {
         return {
           result: await resolverWith(
             async (): Promise<Array<string>> => {
-              throw dnsError("ESERVFAIL");
+              // Silence: a SERVFAIL is a response and cuts nothing (#3916).
+              throw dnsError("ETIMEOUT");
             },
             { concurrency: 5, failureBudget: 7 },
           ).resolveHostnames(addressList(33)),

@@ -4,7 +4,9 @@ process.env["PROBE_KEY"] = "test-probe-key";
 
 import ReverseDnsResolver, {
   buildDefaultLookup,
+  buildDefaultRescueLookup,
   buildDefaultRetryLookup,
+  buildSystemHostsFileLookup,
   DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
   DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
   REVERSE_DNS_RETRY_RACE_SLACK_IN_MS,
@@ -39,6 +41,8 @@ import {
 } from "@jest/globals";
 import dns from "dns";
 import fs from "fs";
+import os from "os";
+import path from "path";
 
 /*
  * OneUptime issue #3916, against the REAL resolver.
@@ -65,9 +69,9 @@ import fs from "fs";
  * exactly as each scenario needs, and assert what the probe now makes of
  * it. Every resolver is built by a factory that calls setServers() with the
  * loopback server, so the machine's own resolver configuration is never
- * consulted and nothing leaves the loopback interface. (The one exception
- * is the hosts file, which c-ares reads for reverse() — that is a behaviour
- * under test, and the test that relies on it reads the file first.)
+ * consulted and nothing leaves the loopback interface. No pass here reads
+ * the machine's /etc/hosts either: the lookups are injected, which leaves
+ * the pass no hosts file, and the one suite about the file writes its own.
  *
  * They run at the SHIPPED timeouts — two seconds for the first attempt,
  * four for the retry — because the timing is the bug: "an answer after 2.5
@@ -111,8 +115,8 @@ function loopbackResolverFactory(
 }
 
 /*
- * A resolver wired exactly as the probe wires its default one, first pass
- * and retry alike, but pointed at the loopback servers.
+ * A resolver wired exactly as the probe wires its default one — first pass,
+ * retry and breaker rescue alike — but pointed at the loopback servers.
  */
 function loopbackReverseDnsResolver(
   servers: Array<string>,
@@ -122,6 +126,10 @@ function loopbackReverseDnsResolver(
   return new ReverseDnsResolver({
     lookup: buildDefaultLookup(DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS, factory),
     retryLookup: buildDefaultRetryLookup(
+      DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+      factory,
+    ),
+    rescueLookup: buildDefaultRescueLookup(
       DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
       factory,
     ),
@@ -233,7 +241,6 @@ function secondaryResponder(query: FakeDnsQuery): FakeDnsReply {
  * setServers(). The two-server assertions about WHICH server was asked first
  * only hold without it; the names they assert hold either way.
  */
-const DOTTED_QUAD_PATTERN: RegExp = /^\d{1,3}(\.\d{1,3}){3}$/;
 const RESOLV_CONF_ROTATE_PATTERN: RegExp = /^\s*options\b.*\brotate\b/m;
 const RES_OPTIONS_ROTATE_PATTERN: RegExp = /\brotate\b/;
 
@@ -327,17 +334,17 @@ describe("the real resolver: twelve kitchen displays on one nameserver, first pa
     );
 
     /*
-     * Two queries each, not one — and not three. The second is the
-     * hosts-file fallback: reverse() reads the hosts file and then asks DNS
-     * once more, which is the price of keeping /etc/hosts names now that the
-     * probe asks with resolvePtr. A third would be the retry pass re-asking
-     * an address that ANSWERED, which it must never do.
+     * ONE query each. A second would be the retry pass re-asking an address
+     * that ANSWERED, which it must never do — or the old hosts-file
+     * fallback, a reverse() that asked DNS again after every NXDOMAIN and
+     * could turn a slow server's in-time answer into a timeout (#3916). The
+     * hosts file is read by the pass now, before any query.
      */
     expect(kitchenServer.queriesFor("52.42.16.10.in-addr.arpa")).toHaveLength(
-      2,
+      1,
     );
     expect(kitchenServer.queriesFor("53.42.16.10.in-addr.arpa")).toHaveLength(
-      2,
+      1,
     );
   });
 
@@ -602,6 +609,10 @@ describe("the real resolver: the codes the default lookup now sees", () => {
         DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
         deadFactory,
       ),
+      rescueLookup: buildDefaultRescueLookup(
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+        deadFactory,
+      ),
     }).resolveHostnames(["10.16.42.51", "10.16.42.62", "10.16.42.52"]);
 
     expect([...result.statusByIpAddress!.values()]).toEqual([
@@ -614,99 +625,128 @@ describe("the real resolver: the codes the default lookup now sees", () => {
     expect(result.isReverseDnsAvailable).toBe(true);
     expect(result.failureReason).toContain("ECONNREFUSED");
   });
-
-  /*
-   * The hosts file. c-ares reads it for reverse() before asking DNS, and the
-   * bundled probes run with host networking, so an operator who listed
-   * devices in the probe host's /etc/hosts got those names — and switching
-   * to resolvePtr, which never reads it, would have taken them away. The
-   * fallback puts them back for any address DNS says has no record.
-   *
-   * c-ares reads the real /etc/hosts and offers no way to point it elsewhere
-   * for this call, so this uses the first IPv4 entry the machine already has
-   * (every Linux and Docker image has at least "127.0.0.1 localhost") and is
-   * skipped where there is none. The loopback server answers NXDOMAIN for
-   * it, so any name that comes back can only have come from the file.
-   */
-  const hostsFile: HostsFileContents = readHostsFile();
-
-  (hostsFile.firstIpv4Address ? it : it.skip)(
-    "names an address from the hosts file when DNS says it has no record",
-    async () => {
-      const ipAddress: string = hostsFile.firstIpv4Address!;
-      const reverseName: string = `${ipAddress
-        .split(".")
-        .reverse()
-        .join(".")}.in-addr.arpa`;
-      const before: number = server.queriesFor(reverseName).length;
-
-      const names: Array<string> = await lookup(ipAddress);
-
-      /*
-       * Names FROM the file, though not necessarily that line's first: c-ares
-       * merges hosts-file lines that share a name, so 127.0.0.1 comes back
-       * as the "::1 localhost ip6-localhost" line's "ip6-localhost" on a
-       * stock Debian file.
-       */
-      expect(names.length).toBeGreaterThan(0);
-
-      for (const name of names) {
-        expect(hostsFile.names.has(name)).toBe(true);
-      }
-
-      // DNS was asked first, and said NXDOMAIN.
-      expect(server.queriesFor(reverseName).length).toBeGreaterThan(before);
-    },
-  );
 });
 
-interface HostsFileContents {
-  firstIpv4Address: string | undefined;
-  // Every name on every line.
-  names: Set<string>;
-}
+/*
+ * The hosts file (#3916). c-ares read it for reverse() before asking DNS,
+ * and the bundled probes run with host networking, so an operator who
+ * listed devices in the probe host's /etc/hosts got those names; resolvePtr
+ * never reads it. The pass now reads it itself, FIRST, and a listed address
+ * is never asked of DNS — so its name survives a DNS server that says
+ * NXDOMAIN, answers SERVFAIL, or is not there at all.
+ *
+ * c-ares offers no way to point reverse() at another file, which is why the
+ * old test had to borrow the machine's own; buildSystemHostsFileLookup takes
+ * a path, so this writes its own.
+ */
+describe("the real resolver: the hosts file, read before any query", () => {
+  let server: FakeDnsServer;
+  let directory: string;
+  let hostsPath: string;
 
-function readHostsFile(): HostsFileContents {
-  const contents: HostsFileContents = {
-    firstIpv4Address: undefined,
-    names: new Set<string>(),
-  };
+  beforeAll(async () => {
+    server = await startFakeDnsServer(kitchenResponder);
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-hosts-"));
+    hostsPath = path.join(directory, "hosts");
+    fs.writeFileSync(
+      hostsPath,
+      [
+        "127.0.0.1 localhost",
+        // DNS says NXDOMAIN for this one.
+        "10.16.42.52 kds02.wbhq.com kds02",
+        // SERVFAIL, every time — and a line with ONE name.
+        "10.16.42.54 kds04",
+        // Black-holed.
+        "10.16.42.61 kds11.wbhq.com kds11 # behind the dead switch",
+      ].join("\n"),
+    );
+  });
 
-  let text: string = "";
+  afterAll(async () => {
+    await server?.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
 
-  try {
-    text = fs.readFileSync("/etc/hosts", "utf8");
-  } catch {
-    return contents;
-  }
+  it("names listed addresses from the file without sending them a single query, and asks DNS for the rest", async () => {
+    const factory: ReverseDnsResolverFactory = loopbackResolverFactory([
+      server.address,
+    ]);
 
-  for (const line of text.split("\n")) {
-    const fields: Array<string> = line
-      .replace(/#.*/, "")
-      .trim()
-      .split(/\s+/)
-      .filter((field: string): boolean => {
-        return field.length > 0;
-      });
+    const result: ReverseDnsResolution = await new ReverseDnsResolver({
+      lookup: buildDefaultLookup(DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS, factory),
+      retryLookup: buildDefaultRetryLookup(
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+        factory,
+      ),
+      rescueLookup: buildDefaultRescueLookup(
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+        factory,
+      ),
+      hostsFileLookup: buildSystemHostsFileLookup(hostsPath),
+    }).resolveHostnames([
+      "10.16.42.51",
+      "10.16.42.52",
+      "10.16.42.54",
+      "10.16.42.61",
+    ]);
 
-    if (fields.length < 2) {
-      continue;
+    expect(result.hostnameByIpAddress.get("10.16.42.52")).toBe(
+      "kds02.wbhq.com",
+    );
+    expect(result.hostnameByIpAddress.get("10.16.42.54")).toBe("kds04");
+    expect(result.hostnameByIpAddress.get("10.16.42.61")).toBe(
+      "kds11.wbhq.com",
+    );
+    // Not listed: named by DNS, as ever.
+    expect(result.hostnameByIpAddress.get("10.16.42.51")).toBe(
+      "wb0024kds01.wbhq.example",
+    );
+    expect(result.statusByIpAddress!.size).toBe(0);
+    expect(result.failedAddressCount).toBe(0);
+
+    for (const listed of ["52", "54", "61"]) {
+      expect(server.queriesFor(`${listed}.42.16.10.in-addr.arpa`)).toHaveLength(
+        0,
+      );
     }
+  });
 
-    for (const name of fields.slice(1)) {
-      contents.names.add(name);
-    }
+  it("names listed addresses on a probe with no DNS server at all", async () => {
+    /*
+     * The air-gapped probe: resolv.conf names a host with nothing listening.
+     * Before the fix it named its listed devices at once through reverse();
+     * the first version of the fix named none of them.
+     */
+    const closedPort: number = await reserveClosedUdpPort();
+    const deadFactory: ReverseDnsResolverFactory = loopbackResolverFactory([
+      `127.0.0.1:${closedPort}`,
+    ]);
 
-    if (
-      contents.firstIpv4Address === undefined &&
-      DOTTED_QUAD_PATTERN.test(fields[0]!)
-    ) {
-      contents.firstIpv4Address = fields[0];
-    }
-  }
+    const result: ReverseDnsResolution = await new ReverseDnsResolver({
+      lookup: buildDefaultLookup(
+        DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
+        deadFactory,
+      ),
+      retryLookup: buildDefaultRetryLookup(
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+        deadFactory,
+      ),
+      rescueLookup: buildDefaultRescueLookup(
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+        deadFactory,
+      ),
+      hostsFileLookup: buildSystemHostsFileLookup(hostsPath),
+    }).resolveHostnames(["10.16.42.52", "10.16.42.53"]);
 
-  return contents;
-}
+    expect(result.hostnameByIpAddress.get("10.16.42.52")).toBe(
+      "kds02.wbhq.com",
+    );
+    expect(result.statusByIpAddress!.get("10.16.42.53")).toBe(
+      DiscoveredHostReverseDnsStatus.Unreachable,
+    );
+    expect(result.failedAddressCount).toBe(1);
+  });
+});
 
 /*
  * A DEAD first nameserver behind a working second one, on a sweep big enough
@@ -796,12 +836,13 @@ describe("the real resolver: a dead primary nameserver on a seventy-host sweep",
 
   it("pays for the dead server about once, not once per host", () => {
     /*
-     * Two first-try waves (two seconds each), one thorough attempt that
-     * waits out the dead server before the secondary answers, and then —
-     * because the retry lookup now asks first the server that answered with
-     * a name — everything else at loopback speed. Asking the dead server
-     * first for each of the remaining addresses would cost at least one more
-     * retry timeout per wave.
+     * Two first-try waves (two seconds each), one rescue walk — its three
+     * canaries side by side — that waits out the dead server before the
+     * secondary answers, and then, because the retry lookup now asks a
+     * server that has only ever been silent LAST, everything else at
+     * loopback speed. Asking the dead server first for each of the
+     * remaining addresses would cost at least one more retry timeout per
+     * wave.
      */
     expect(rescuedDurationInMs).toBeLessThan(
       2 * DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS +

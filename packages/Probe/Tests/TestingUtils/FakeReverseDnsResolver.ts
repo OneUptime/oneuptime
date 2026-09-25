@@ -5,12 +5,14 @@ import { ReverseDnsResolverLike } from "../../Utils/Discovery/ReverseDnsResolver
  * and buildDefaultRetryLookup (OneUptime issue #3916).
  *
  * Those two functions are where the probe decides WHICH query to send
- * (resolvePtr for IPv4, reverse for anything else and for the hosts-file
- * fallback), WHICH server to send it to (the retry's one-server-at-a-time
- * walk) and WHEN to give up (the race, and the cancel() inside it). None of
- * that is observable from a result alone — a lookup that asked the wrong
- * question of the right server can still come back with a name — so these
- * fakes RECORD every call, in order, and the tests assert on the record.
+ * (resolvePtr for IPv4, reverse for anything else — never a second query:
+ * the hosts file is read by the pass, not through here), WHICH server to
+ * send it to (the retry's one-server-at-a-time walk, and the order its
+ * server health gives it) and WHEN to give up (the race, and the cancel()
+ * inside it). None of that is observable from a result alone — a lookup
+ * that asked the wrong question of the right server can still come back
+ * with a name — so these fakes RECORD every call, in order, and the tests
+ * assert on the record.
  *
  * Nothing here touches the network. A method the test did not script
  * rejects with an error saying so, which surfaces as a failed lookup rather

@@ -2,7 +2,9 @@ import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDn
 import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import dns from "dns";
+import fs from "fs";
 import net from "net";
+import path from "path";
 
 /*
  * PTR lookups for the addresses a discovery sweep found alive (OneUptime
@@ -46,7 +48,8 @@ export const DEFAULT_REVERSE_DNS_CONCURRENCY: number = 32;
 
 /*
  * How many infrastructure failures are tolerated before the rest of the pass
- * is skipped — and only while NOT ONE lookup has come back, NXDOMAIN included.
+ * is skipped — and only while NOT ONE lookup has come back and no DNS server
+ * has responded at all: NXDOMAIN, SERVFAIL and REFUSED each disarm it (#3916).
  * See isReverseDnsUnusable in resolveHostnames.
  *
  * It is a FLOOR rather than a cap, because the decision is taken at a wave
@@ -61,6 +64,15 @@ export const DEFAULT_REVERSE_DNS_CONCURRENCY: number = 32;
  * giving up there would reproduce the exact symptom this feature exists to
  * fix. Sixty-four consecutive addresses answering nothing at all is a
  * different claim.
+ *
+ * "Nothing at all" is meant literally (#3916). A recursive resolver in front
+ * of a dead or DNSSEC-bogus zone usually says so, quickly, with SERVFAIL —
+ * and a SERVFAIL, like a REFUSED, is the probe's DNS server RESPONDING. Those
+ * are still failed lookups, retried and reported, but they prove the probe
+ * can reach its resolver, so they disarm this budget exactly as NXDOMAIN
+ * does; only silence (timeouts, nothing listening, errors nobody recognises)
+ * can spend it. Counting them once let the first sixty-four hosts of a sweep,
+ * all in one SERVFAILing zone, skip every healthy zone behind them.
  */
 export const DEFAULT_REVERSE_DNS_FAILURE_BUDGET: number = 64;
 
@@ -227,8 +239,11 @@ export const MAX_REVERSE_DNS_RETRY_SERVERS: number = 3;
  * timeout plus the slack. The retry is started a wave at a time under the
  * pass's own deadline, exactly as the first pass is, so this — not the
  * first pass's two seconds — is now the most a pass can overrun its budget
- * by. Exported so the reaper arithmetic that adds "one wave in flight" can
- * quote the real figure.
+ * by. The breaker rescue's canaries (see rescueFromBreaker) are asked
+ * CONCURRENTLY, so they too cost one retry lookup, not three, and the
+ * deadline is read again before anything starts after them. The hosts file
+ * is read once per pass and sends nothing. Exported so the reaper
+ * arithmetic that adds "one wave in flight" can quote the real figure.
  */
 export const MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS: number =
   MAX_REVERSE_DNS_RETRY_SERVERS *
@@ -294,9 +309,12 @@ const MALFORMED_INPUT_ERROR_CODES: Set<string> = new Set<string>([
 /*
  * The per-address statuses that mean the lookup itself FAILED — the ones a
  * retry can change and the ones failedAddressCount counts. NoRecord and
- * UnusableName are answers; the Skipped* codes were never asked.
+ * UnusableName are answers; the Skipped* codes were never asked. Exported so
+ * SubnetScanner narrows the status message's failure count by these SAME
+ * five codes rather than by a hand-kept copy that could drift (OneUptime
+ * issue #3916).
  */
-const FAILED_LOOKUP_STATUSES: ReadonlySet<DiscoveredHostReverseDnsStatus> =
+export const FAILED_LOOKUP_STATUSES: ReadonlySet<DiscoveredHostReverseDnsStatus> =
   new Set<DiscoveredHostReverseDnsStatus>([
     DiscoveredHostReverseDnsStatus.Timeout,
     DiscoveredHostReverseDnsStatus.ServerFailure,
@@ -306,14 +324,35 @@ const FAILED_LOOKUP_STATUSES: ReadonlySet<DiscoveredHostReverseDnsStatus> =
   ]);
 
 /*
- * How one rejected lookup is read.
+ * How one rejected lookup is read, on two independent axes.
+ *
+ * `kind` — what it means for the ADDRESS:
  *
  * - "no-record": the DNS server answered that this address has no name.
- *   A SUCCESSFUL lookup for the failure budget, and final.
+ *   Final for the first pass; see buildDefaultRetryLookup and
+ *   buildDefaultRescueLookup for when a walk's "no record" is.
  * - "malformed-input": the address could not be asked about. Counted like a
  *   lookup that came back (see MALFORMED_INPUT_ERROR_CODES), never retried.
- * - "failure": no answer was obtained. An infrastructure failure for the
- *   budget, and what the retry pass re-asks.
+ * - "failure": no answer about the address was obtained. What the retry pass
+ *   re-asks, and what failedAddressCount counts.
+ *
+ * `isServerResponse` — whether a DNS server RESPONDED at all (#3916), which
+ * is the only thing the failure budget needs to know about the probe's DNS.
+ * The table, code by code:
+ *
+ *   code                          kind             status         response
+ *   ENOTFOUND ENODATA (+ bare)    no-record        NoRecord       yes
+ *   ESERVFAIL                     failure          ServerFailure  yes
+ *   EREFUSED                      failure          Refused        yes
+ *   ENOTIMP EFORMERR              failure          Failed         yes
+ *   ETIMEOUT (c-ares or the race) failure          Timeout        no
+ *   ECONNREFUSED                  failure          Unreachable    no
+ *   EINVAL EBADNAME EBADSTR       malformed-input  Failed         no
+ *   anything else, or no code     failure          Failed         no
+ *
+ * A responded failure is still a failure — reported, retried and counted —
+ * but it disarms the failure budget exactly as NXDOMAIN does: a server that
+ * says SERVFAIL is a server the probe can reach. Silence alone convicts.
  */
 export type ReverseDnsLookupErrorKind =
   | "no-record"
@@ -323,6 +362,8 @@ export type ReverseDnsLookupErrorKind =
 export interface ReverseDnsLookupErrorClassification {
   kind: ReverseDnsLookupErrorKind;
   status: DiscoveredHostReverseDnsStatus;
+  // A DNS server sent a response, whatever its code. See the table above.
+  isServerResponse: boolean;
 }
 
 /**
@@ -343,13 +384,19 @@ export function classifyReverseDnsLookupError(
     return {
       kind: "no-record",
       status: DiscoveredHostReverseDnsStatus.NoRecord,
+      isServerResponse: true,
     };
   }
 
   if (MALFORMED_INPUT_ERROR_CODES.has(code)) {
+    /*
+     * Not a response: c-ares refused the argument before a packet was
+     * built. It still counts as a lookup that came back, through its kind.
+     */
     return {
       kind: "malformed-input",
       status: DiscoveredHostReverseDnsStatus.Failed,
+      isServerResponse: false,
     };
   }
 
@@ -363,38 +410,55 @@ export function classifyReverseDnsLookupError(
       return {
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.Timeout,
+        isServerResponse: false,
       };
     case "ESERVFAIL":
       return {
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.ServerFailure,
+        isServerResponse: true,
       };
     case "EREFUSED":
       return {
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.Refused,
+        isServerResponse: true,
+      };
+    /*
+     * The server's own NOTIMP and FORMERR response codes. Rare, and nothing
+     * the dashboard explains specifically, so the generic status — but a
+     * server sent them, and that is what the budget reads.
+     */
+    case "ENOTIMP":
+    case "EFORMERR":
+      return {
+        kind: "failure",
+        status: DiscoveredHostReverseDnsStatus.Failed,
+        isServerResponse: true,
       };
     /*
      * "Could not contact DNS servers": c-ares' reading of an ICMP port
      * unreachable, which is what a resolv.conf naming a host with nothing
-     * listening on port 53 produces.
+     * listening on port 53 produces. Nothing answered.
      */
     case "ECONNREFUSED":
       return {
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.Unreachable,
+        isServerResponse: false,
       };
     /*
-     * Everything else — ENOTIMP, EFORMERR, EBADRESP, a code-less Error, a
-     * thrown string — is still evidence the probe could not get an answer,
-     * which is what the failure budget is for. The unrecognised case must
-     * default to COUNTING, or the budget would be unreachable exactly when a
-     * resolver fails in a way nobody anticipated.
+     * Everything else — EBADRESP, ECANCELLED, a code-less Error, a thrown
+     * string — is still evidence the probe could not get an answer, which is
+     * what the failure budget is for. The unrecognised case must default to
+     * COUNTING, as silence, or the budget would be unreachable exactly when
+     * a resolver fails in a way nobody anticipated.
      */
     default:
       return {
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.Failed,
+        isServerResponse: false,
       };
   }
 }
@@ -431,8 +495,10 @@ export interface ReverseDnsResolution {
   failedAddressCount?: number | undefined;
   /*
    * False when the failure budget ran out and the remaining addresses were
-   * skipped: not one lookup came back, NXDOMAIN included, so this probe cannot
-   * resolve at all. No names will have been found, by construction.
+   * skipped: not one lookup came back and no DNS server responded at all —
+   * not with NXDOMAIN, not even with SERVFAIL or REFUSED — so this probe
+   * cannot resolve at all. No names will have been found from DNS, by
+   * construction (the hosts file may still have named some).
    *
    * Distinct from `isTimeBudgetExhausted`: this one says the resolver does not
    * work from here, which is a probe-configuration fact, while that one says
@@ -521,11 +587,12 @@ function getErrorCode(error: unknown): string {
  * no longer holds — and deleting it broke no test, which is exactly the state
  * a piece of cleanup code should never be in.
  *
- * The four methods are the four the lookups use, and each is a method of
+ * The five methods are the five the lookups use, and each is a method of
  * dns.promises.Resolver with this signature, so the real class is its own
- * implementation: resolvePtr for an IPv4 address, reverse for anything else
- * and for the hosts-file fallback, getServers/setServers for the retry's
- * one-server-at-a-time walk (OneUptime issue #3916), and cancel for the race.
+ * implementation: resolvePtr for an IPv4 address, reverse for anything else,
+ * getServers/setServers for the retry's one-server-at-a-time walk (OneUptime
+ * issue #3916), and cancel for the race. None of them is used for the hosts
+ * file, which is read directly (buildSystemHostsFileLookup).
  */
 export interface ReverseDnsResolverLike {
   resolvePtr(hostname: string): Promise<Array<string>>;
@@ -620,46 +687,27 @@ function buildLookupTimeoutError(
  * reverse() as before — IPv6, and the malformed values that must be
  * rejected without touching the network.
  *
- * THE HOSTS FILE. reverse() had one property resolvePtr lacks: c-ares reads
- * the hosts file for it BEFORE asking DNS, so a device an operator listed in
- * the probe host's /etc/hosts was named from there — and the bundled probes
- * run with host networking, where that file is the host's own. Dropping it
- * would silently un-name those devices. So when the DNS server answers that
- * there is no record (ENOTFOUND/ENODATA), the same resolver is asked once
- * more with reverse(), inside the SAME race, and its names are used if it
- * has any. If it has none the ORIGINAL rejection is what the caller sees:
- * reverse()'s own error is the collapsed ENOTFOUND this change exists to get
- * away from, and a no-record answer must stay exactly that.
- *
- * Its cost: reverse() asks DNS again after reading the file, so an address
- * with no record now costs two queries instead of one — both NXDOMAINs, the
- * fastest answer a server gives. Only "no record" pays it; a failure is not
- * followed by reverse(), which would only turn its real code back into
- * ENOTFOUND. (A device listed in the hosts file whose PTR lookup FAILS is
- * therefore no longer named from the file on that attempt.)
+ * ONE query, and only DNS. The hosts file that reverse() used to read first
+ * is read by the pass itself, before any lookup is made (see
+ * buildSystemHostsFileLookup). It used to be read here, by a second
+ * reverse() after an NXDOMAIN — and reverse() asks DNS again after the file,
+ * so on a server slow enough to answer the first query at 1.1 seconds, the
+ * second one lost the two-second race and a "no record" that had ARRIVED in
+ * time was reported as a timeout; and a device listed in the file whose PTR
+ * lookup failed outright was never named from it at all.
  */
 async function lookupOnResolver(data: {
   resolver: ReverseDnsResolverLike;
   ipAddress: string;
   raceTimeoutInMs: number;
-  /*
-   * Told when the DNS server itself answered with PTR records — not when the
-   * hosts file did, and not on a "no record". The retry lookup uses it to
-   * learn which nameserver is actually serving the reverse zone.
-   */
-  onPtrNames?: (() => void) | undefined;
 }): Promise<Array<string>> {
   const resolver: ReverseDnsResolverLike = data.resolver;
   const ipAddress: string = data.ipAddress;
 
   /*
-   * Set by the race timer. Read before the hosts-file fallback is started,
-   * because a no-record answer can land in the same instant the race is
-   * lost: cancel() has already run by then, and a reverse() started after
-   * it would be a query nobody waits for and nothing cancels.
+   * Async, so a resolver method that throws synchronously rejects the
+   * attempt like any other failure instead of escaping the race.
    */
-  const race: { isAbandoned: boolean } = { isAbandoned: false };
-
   const attempt: () => Promise<Array<string>> = async (): Promise<
     Array<string>
   > => {
@@ -670,35 +718,7 @@ async function lookupOnResolver(data: {
       return await resolver.reverse(ipAddress);
     }
 
-    try {
-      const answers: Array<string> =
-        await resolver.resolvePtr(reverseLookupName);
-
-      if (!race.isAbandoned && Array.isArray(answers) && answers.length > 0) {
-        data.onPtrNames?.();
-      }
-
-      return answers;
-    } catch (err) {
-      if (race.isAbandoned || !NO_RECORD_ERROR_CODES.has(getErrorCode(err))) {
-        throw err;
-      }
-
-      let hostsFileNames: Array<string> | undefined = undefined;
-
-      try {
-        hostsFileNames = await resolver.reverse(ipAddress);
-      } catch {
-        // Nothing there either; the DNS server's answer stands.
-        hostsFileNames = undefined;
-      }
-
-      if (Array.isArray(hostsFileNames) && hostsFileNames.length > 0) {
-        return hostsFileNames;
-      }
-
-      throw err;
-    }
+    return await resolver.resolvePtr(reverseLookupName);
   };
 
   const lookup: Promise<Array<string>> = attempt();
@@ -708,7 +728,6 @@ async function lookupOnResolver(data: {
   const timeout: Promise<never> = new Promise<never>(
     (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
       timer = setTimeout(() => {
-        race.isAbandoned = true;
         /*
          * Tell c-ares to stop as well as stopping waiting for it. Without
          * this the abandoned query stays outstanding on a resolver object
@@ -796,10 +815,29 @@ function readConfiguredServers(
   ];
 }
 
-/**
- * The retry pass's lookup (OneUptime issue #3916): for an address whose
- * first lookup FAILED, ask each configured nameserver in turn, one at a
- * time, with a longer timeout.
+/*
+ * How one walk over the configured nameservers is ordered and when it may
+ * stop, for the two lookups below that walk them (OneUptime issue #3916).
+ */
+interface ReverseDnsServerWalkPolicy {
+  /*
+   * The order to ask the configured servers in. `primary` is the first
+   * configured server the resolver can be pinned to.
+   */
+  orderServers: (
+    configuredServers: Array<string>,
+    primary: string | undefined,
+  ) => Array<string>;
+  // Whether a "no record" (NXDOMAIN/NODATA) from `server` ends the walk.
+  isNoRecordFinal: (server: string, primary: string | undefined) => boolean;
+  // Told when `server` answered with PTR records.
+  onNamed?: ((server: string) => void) | undefined;
+}
+
+/*
+ * Each configured nameserver explicitly, one at a time, with a longer
+ * timeout — the shared walk behind buildDefaultRetryLookup and
+ * buildDefaultRescueLookup.
  *
  * Each server explicitly, rather than one resolver with them all configured,
  * because c-ares will not move on by itself in the two cases that matter
@@ -810,44 +848,41 @@ function readConfiguredServers(
  * always ends first. A dead or misbehaving primary nameserver therefore left
  * every address it was asked about unnamed, however healthy the secondary.
  *
- * - In configured order, because the primary is the server the probe
- *   normally uses, and a longer timeout alone is what rescues a slow answer
- *   or one dropped datagram from it.
- * - At most MAX_REVERSE_DNS_RETRY_SERVERS of them.
- * - Stopping at the first DEFINITIVE answer: names, or NXDOMAIN/NODATA
- *   (after the hosts-file fallback). A server that says "no record" is not
- *   second-guessed against the next one — resolvers that disagree about
- *   whether a record exists are a zone problem, and hunting across them for
- *   a name would make naming depend on which server happened to be asked.
- *   A malformed-input rejection ends it too; no server can fix the argument.
- * - Rejecting with the error of the first server in CONFIGURED order when
- *   every server fails, whichever was asked first: the primary's failure is
- *   the one that describes the probe's normal path.
- * - Remembering, for the rest of the pass, the server that last answered
- *   with a PTR NAME, and asking it first. Without this a primary that is
- *   simply down charges every address its full timeout before the secondary
- *   is asked, and a sweep behind it spends its whole budget waiting on a
- *   server that will never answer. Only a name earns the preference, never a
- *   "no record": a server that answers NXDOMAIN for everything — a public
- *   resolver listed after the internal one, which has no private reverse
- *   zones — must not become the server the rest of the sweep trusts. Each
- *   lookup this function returns keeps its own preference, and the resolver
- *   builds one per pass, so nothing carries over between scans.
+ * What every walk does, whatever its policy:
+ *
+ * - At most MAX_REVERSE_DNS_RETRY_SERVERS servers, each asked once.
+ * - Stopping at the first NAME, from whichever server gives one.
+ * - Stopping at a "no record" only when the policy trusts that server's word
+ *   on it; anyone else's is noted and the walk goes on.
+ * - Stopping at a malformed-input rejection; no server can fix the argument.
+ * - When the walk ends with no name and no trusted "no record", rejecting
+ *   with the error of the first server in CONFIGURED order that failed,
+ *   whichever was asked first: the primary's failure is the one that
+ *   describes the probe's normal path, and a public resolver's NXDOMAIN
+ *   says nothing about the address.
  *
  * With no servers to read, one attempt on a default resolver. A value that is
- * not an IPv4 address gets one reverse() attempt with the retry's timeout
- * and no walk: reverse() has no per-server form worth the complexity, and the
+ * not an IPv4 address gets one reverse() attempt with the walk's timeout and
+ * no walk: reverse() has no per-server form worth the complexity, and the
  * sweep never produces one.
  */
-export function buildDefaultRetryLookup(
-  timeoutInMs: number = DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
-  createResolver: ReverseDnsResolverFactory = defaultResolverFactory,
-): ReverseDnsLookupFunction {
+function buildServerWalkLookup(data: {
+  timeoutInMs: number;
+  createResolver: ReverseDnsResolverFactory;
+  policy: ReverseDnsServerWalkPolicy;
+}): ReverseDnsLookupFunction {
+  const timeoutInMs: number = data.timeoutInMs;
+  const createResolver: ReverseDnsResolverFactory = data.createResolver;
+  const policy: ReverseDnsServerWalkPolicy = data.policy;
   const raceTimeoutInMs: number =
     timeoutInMs + REVERSE_DNS_RETRY_RACE_SLACK_IN_MS;
 
-  // The server that last answered with a name; see the note above.
-  const preference: { server: string | undefined } = { server: undefined };
+  /*
+   * Servers the resolver refused to be pinned to. A refused spelling is
+   * refused every time, so such a server is never the primary: the next
+   * configured one is, or its "no record" could never be final.
+   */
+  const unpinnableServers: Set<string> = new Set<string>();
 
   return async (ipAddress: string): Promise<Array<string>> => {
     /*
@@ -865,24 +900,7 @@ export function buildDefaultRetryLookup(
             MAX_REVERSE_DNS_RETRY_SERVERS,
           );
 
-    /*
-     * The preferred server first, and the rest in configured order. Read into
-     * a local first: concurrent lookups in the same wave can update it while
-     * this one is between servers, and each lookup should walk one order.
-     */
-    const preferred: string | undefined = preference.server;
-
-    const servers: Array<string> =
-      preferred !== undefined && configuredServers.includes(preferred)
-        ? [
-            preferred,
-            ...configuredServers.filter((server: string): boolean => {
-              return server !== preferred;
-            }),
-          ]
-        : configuredServers;
-
-    if (servers.length === 0) {
+    if (configuredServers.length === 0) {
       return await lookupOnResolver({
         resolver: configuredResolver,
         ipAddress: ipAddress,
@@ -890,18 +908,32 @@ export function buildDefaultRetryLookup(
       });
     }
 
+    const primaryOf: () => string | undefined = (): string | undefined => {
+      return configuredServers.find((configured: string): boolean => {
+        return !unpinnableServers.has(configured);
+      });
+    };
+
+    // The ORDER is fixed when the walk starts; see the policies.
+    const servers: Array<string> = policy.orderServers(
+      configuredServers,
+      primaryOf(),
+    );
+
     /*
      * Boxed, so that a thrown `undefined` still counts as "a failure was
      * seen". A lookup's failure is preferred over a server the resolver
      * refused to be pinned to: the first describes DNS, the second only a
-     * spelling. Kept per server, because the walk may start at the preferred
-     * server while the error reported is still the PRIMARY's.
+     * spelling. Kept per server, because a walk may ask the primary last
+     * while the error reported is still the PRIMARY's.
      */
     const lookupFailureByServer: Map<string, { error: unknown }> = new Map<
       string,
       { error: unknown }
     >();
     let firstPinningFailure: { error: unknown } | undefined = undefined;
+    // An untrusted "no record": what is left if nothing else was seen.
+    let firstNoRecord: ReverseDnsWalkNoRecord | undefined = undefined;
 
     for (const server of servers) {
       const resolver: ReverseDnsResolverLike = createResolver(timeoutInMs);
@@ -914,29 +946,61 @@ export function buildDefaultRetryLookup(
          * than asked through the full configuration, which would quietly
          * turn "this server" into "the primary again".
          */
+        unpinnableServers.add(server);
         firstPinningFailure = firstPinningFailure || { error: err };
         continue;
       }
 
+      let answers: Array<string>;
+
       try {
-        return await lookupOnResolver({
+        answers = await lookupOnResolver({
           resolver: resolver,
           ipAddress: ipAddress,
           raceTimeoutInMs: raceTimeoutInMs,
-          onPtrNames: (): void => {
-            preference.server = server;
-          },
         });
       } catch (err) {
-        if (classifyReverseDnsLookupError(err).kind !== "failure") {
+        const classification: ReverseDnsLookupErrorClassification =
+          classifyReverseDnsLookupError(err);
+
+        if (classification.kind === "malformed-input") {
           throw err;
         }
 
+        if (classification.kind === "no-record") {
+          if (policy.isNoRecordFinal(server, primaryOf())) {
+            throw err;
+          }
+
+          firstNoRecord = firstNoRecord || { isRejection: true, error: err };
+          continue;
+        }
+
         lookupFailureByServer.set(server, { error: err });
+        continue;
       }
+
+      if (Array.isArray(answers) && answers.length > 0) {
+        policy.onNamed?.(server);
+        return answers;
+      }
+
+      /*
+       * An empty list is "no record" said without rejecting — resolvePtr
+       * never does it, a scripted resolver can — and is trusted exactly as
+       * NXDOMAIN is.
+       */
+      if (policy.isNoRecordFinal(server, primaryOf())) {
+        return answers;
+      }
+
+      firstNoRecord = firstNoRecord || {
+        isRejection: false,
+        answers: answers,
+      };
     }
 
-    // Every server was tried and none answered; `servers` was not empty.
+    // No name, and no "no record" from a server trusted to say so.
     const firstLookupFailure: { error: unknown } | undefined = configuredServers
       .map((server: string): { error: unknown } | undefined => {
         return lookupFailureByServer.get(server);
@@ -945,8 +1009,311 @@ export function buildDefaultRetryLookup(
         return failure !== undefined;
       });
 
-    throw (firstLookupFailure || firstPinningFailure)?.error;
+    const failure: { error: unknown } | undefined =
+      firstLookupFailure || firstPinningFailure;
+
+    /*
+     * Only a walk that saw no failure at all ends on an untrusted "no
+     * record" — in practice unreachable, since the primary is always asked
+     * and its own "no record" is trusted — and then that is what it says.
+     */
+    if (failure || !firstNoRecord) {
+      throw failure?.error;
+    }
+
+    if (firstNoRecord.isRejection) {
+      throw firstNoRecord.error;
+    }
+
+    return firstNoRecord.answers;
   };
+}
+
+/**
+ * The retry pass's lookup (OneUptime issue #3916): for an address whose
+ * first lookup FAILED, ask each configured nameserver in turn, in CONFIGURED
+ * order, with a longer timeout — see buildServerWalkLookup for the walk.
+ *
+ * Configured order because the primary is the server the probe normally
+ * uses, and a longer timeout alone is what rescues a slow answer or one
+ * dropped datagram from it.
+ *
+ * A "no record" ends the walk only from the PRIMARY. Nobody else's is
+ * trusted, because the defaults make that wrong: the Helm chart gives the
+ * probe pod [CoreDNS, 8.8.8.8, 1.1.1.1], and a public resolver answers
+ * NXDOMAIN for every private address (RFC 6303). Taking that as final after
+ * the primary SERVFAILed or timed out filed a failed lookup as "no PTR
+ * record" and told the operator nothing had failed — the exact symptom this
+ * issue is about. So after a failing primary, a later server can still NAME
+ * the address, but if none does the address keeps the primary's failure,
+ * which is the truth: the probe's own DNS server did not answer for it.
+ *
+ * STATELESS: every walk is independent of every other, so what an address is
+ * called never depends on which address happened to be asked before it. The
+ * one situation that warrants learning across walks — a primary that has
+ * answered nothing at all — is handled only by the breaker rescue, with its
+ * own lookup (buildDefaultRescueLookup).
+ */
+export function buildDefaultRetryLookup(
+  timeoutInMs: number = DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+  createResolver: ReverseDnsResolverFactory = defaultResolverFactory,
+): ReverseDnsLookupFunction {
+  return buildServerWalkLookup({
+    timeoutInMs: timeoutInMs,
+    createResolver: createResolver,
+    policy: {
+      orderServers: (configuredServers: Array<string>): Array<string> => {
+        return configuredServers;
+      },
+      isNoRecordFinal: (
+        server: string,
+        primary: string | undefined,
+      ): boolean => {
+        return server === primary;
+      },
+    },
+  });
+}
+
+/**
+ * The breaker rescue's lookup (OneUptime issue #3916), used only once the
+ * first pass has met sixty-four or more lookups with SILENCE and not one
+ * response — the evidence that the primary nameserver is down, not merely
+ * slow or unhappy about one zone. See rescueFromBreaker.
+ *
+ * It walks the servers like the retry does (buildServerWalkLookup), with two
+ * differences that only that evidence justifies:
+ *
+ * - The primary goes LAST unless it has named something this pass: asking a
+ *   server that has just been silent sixty-four times first, for every
+ *   address, would charge each walk its whole timeout before anyone who
+ *   answers is asked. Servers that HAVE named something this pass go first.
+ * - A "no record" is trusted from the primary, as always, and from a server
+ *   that has NAMED something this pass. A name for a private address is what
+ *   a public resolver never gives, so it is what shows a server holds the
+ *   reverse zones and can speak for the addresses it has no record of.
+ *
+ * The record of which servers have named something is kept per lookup
+ * function; the resolver builds one per pass, so nothing carries over.
+ */
+export function buildDefaultRescueLookup(
+  timeoutInMs: number = DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+  createResolver: ReverseDnsResolverFactory = defaultResolverFactory,
+): ReverseDnsLookupFunction {
+  const namingServers: Set<string> = new Set<string>();
+
+  return buildServerWalkLookup({
+    timeoutInMs: timeoutInMs,
+    createResolver: createResolver,
+    policy: {
+      orderServers: (
+        configuredServers: Array<string>,
+        primary: string | undefined,
+      ): Array<string> => {
+        const isNaming: (server: string) => boolean = (
+          server: string,
+        ): boolean => {
+          return namingServers.has(server);
+        };
+
+        return [
+          ...configuredServers.filter(isNaming),
+          ...configuredServers.filter((server: string): boolean => {
+            return !isNaming(server) && server !== primary;
+          }),
+          ...configuredServers.filter((server: string): boolean => {
+            return !isNaming(server) && server === primary;
+          }),
+        ];
+      },
+      isNoRecordFinal: (
+        server: string,
+        primary: string | undefined,
+      ): boolean => {
+        return server === primary || namingServers.has(server);
+      },
+      onNamed: (server: string): void => {
+        namingServers.add(server);
+      },
+    },
+  });
+}
+
+type ReverseDnsWalkNoRecord =
+  | { isRejection: true; error: unknown }
+  | { isRejection: false; answers: Array<string> };
+
+/*
+ * THE HOSTS FILE (OneUptime issue #3916).
+ *
+ * Before #3916 the probe asked every address with Resolver#reverse, and
+ * c-ares reads the hosts file for that call BEFORE it asks DNS — so a device
+ * an operator listed in the probe host's /etc/hosts was named from there,
+ * whatever DNS did. The bundled probes run with host networking, where that
+ * file is the host's own, and an air-gapped probe may have nothing else.
+ * resolvePtr, which the probe now asks instead, never reads it.
+ *
+ * So the pass reads it itself, FIRST, for every address, and an address the
+ * file names is never asked of DNS at all. That restores the old precedence
+ * exactly, keeps those names when DNS is down, refusing or slow (they used to
+ * be lost whenever the PTR lookup failed), costs no query, and names a line
+ * with ONE name — "10.16.42.55 kds05" — which reverse() never did: Node's
+ * reverse() returns only a line's aliases.
+ *
+ * The answer: an address's names, canonical name first, or undefined for an
+ * address the file does not list. Injectable so tests never read the
+ * machine's file.
+ */
+export type HostsFileLookup = (ipAddress: string) => Array<string> | undefined;
+
+// Reads a whole file as text; throws when it cannot. Injectable for tests.
+export type HostsFileReader = (filePath: string) => string;
+
+/*
+ * Where the operating system keeps it. c-ares reads the same file: the
+ * Windows path is what it reads there, and a probe run natively on Windows
+ * should not lose names reverse() used to find.
+ */
+export const SYSTEM_HOSTS_FILE_PATH: string =
+  process.platform === "win32"
+    ? path.join(
+        process.env["SystemRoot"] || "C:\\Windows",
+        "System32",
+        "drivers",
+        "etc",
+        "hosts",
+      )
+    : "/etc/hosts";
+
+/**
+ * The IPv4 entries of a hosts file, keyed by address: each address's names
+ * in the order the line lists them — the canonical name, then its aliases.
+ *
+ * Deliberately narrow, and pure so every rule is pinned directly:
+ *
+ * - A `#` starts a comment, anywhere on a line.
+ * - Fields are separated by any whitespace.
+ * - The first field must be exactly a dotted-quad IPv4 address (net.isIPv4:
+ *   no leading zeros, no CIDR, no port). IPv6 lines are skipped — the sweep
+ *   only finds IPv4 hosts — and so is anything that merely looks like an
+ *   address; nothing is repaired.
+ * - A line with an address and no name says nothing, and is skipped.
+ * - The FIRST line for an address wins, as it does for the system resolver;
+ *   a later line for the same address adds nothing.
+ *
+ * The names are returned as written; the pass normalises them exactly as it
+ * normalises a PTR answer, and falls through to DNS when none survives.
+ */
+export function parseHostsFile(contents: string): Map<string, Array<string>> {
+  const namesByAddress: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+
+  if (typeof contents !== "string") {
+    return namesByAddress;
+  }
+
+  for (const line of contents.split("\n")) {
+    const fields: Array<string> = line
+      .replace(/#.*/, "")
+      .trim()
+      .split(/\s+/)
+      .filter((field: string): boolean => {
+        return field.length > 0;
+      });
+
+    if (fields.length < 2) {
+      continue;
+    }
+
+    const ipAddress: string = fields[0]!;
+
+    if (!net.isIPv4(ipAddress) || namesByAddress.has(ipAddress)) {
+      continue;
+    }
+
+    namesByAddress.set(ipAddress, fields.slice(1));
+  }
+
+  return namesByAddress;
+}
+
+const readFileAsText: HostsFileReader = (filePath: string): string => {
+  return fs.readFileSync(filePath, "utf8");
+};
+
+/**
+ * A HostsFileLookup over the probe host's hosts file.
+ *
+ * LAZY, and read ONCE. Nothing is read until the first address is looked
+ * up, so building a resolver — which every caller of the pass does, some
+ * only to read its budget — touches no file; and the parsed file is then
+ * kept for every later address. The resolver builds one of these per
+ * instance and SubnetScanner builds one instance per pass, so it is read at
+ * most once a pass, and an edit to the file is seen by the next scan.
+ *
+ * NEVER throws. A file that is missing, unreadable or not text is a file
+ * with no entries: the hosts file is a nicety on top of DNS, and a pass must
+ * not fail over it.
+ */
+export function buildSystemHostsFileLookup(
+  filePath: string = SYSTEM_HOSTS_FILE_PATH,
+  readFile: HostsFileReader = readFileAsText,
+): HostsFileLookup {
+  const cache: { namesByAddress: Map<string, Array<string>> | undefined } = {
+    namesByAddress: undefined,
+  };
+
+  return (ipAddress: string): Array<string> | undefined => {
+    if (cache.namesByAddress === undefined) {
+      let contents: unknown = "";
+
+      try {
+        contents = readFile(filePath);
+      } catch {
+        contents = "";
+      }
+
+      cache.namesByAddress = parseHostsFile(
+        typeof contents === "string" ? contents : "",
+      );
+    }
+
+    return cache.namesByAddress.get(ipAddress);
+  };
+}
+
+/*
+ * The first name a hosts-file lookup gives for an address that survives the
+ * same normalisation a PTR answer does, or undefined. Never throws: an
+ * injected lookup that fails is a file with no entry for this address.
+ */
+function readHostsFileName(
+  hostsFileLookup: HostsFileLookup,
+  ipAddress: string,
+): string | undefined {
+  let names: unknown = undefined;
+
+  try {
+    names = hostsFileLookup(ipAddress);
+  } catch {
+    return undefined;
+  }
+
+  if (!Array.isArray(names)) {
+    return undefined;
+  }
+
+  for (const name of names) {
+    const normalized: string | undefined = normalizeReverseDnsName(name);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return undefined;
 }
 
 export type NowFunction = () => number;
@@ -958,6 +1325,13 @@ export default class ReverseDnsResolver {
    * for no retry pass. See the constructor for when each applies.
    */
   private retryLookup: ReverseDnsLookupFunction | undefined;
+  /*
+   * How the breaker rescue asks its canaries, and how the rest of a rescued
+   * pass is asked; undefined for no rescue. See the constructor.
+   */
+  private rescueLookup: ReverseDnsLookupFunction | undefined;
+  // Consulted before DNS for every address, or undefined for none.
+  private hostsFileLookup: HostsFileLookup | undefined;
   private timeoutInMs: number;
   private concurrency: number;
   private failureBudget: number;
@@ -986,6 +1360,24 @@ export default class ReverseDnsResolver {
      * says how it should ask by injecting this too.
      */
     retryLookup?: ReverseDnsLookupFunction | undefined;
+    /*
+     * The breaker rescue's lookup (OneUptime issue #3916). Omit every lookup
+     * and it is buildDefaultRescueLookup. Inject `lookup` without this and
+     * the rescue asks through `retryLookup` — and there is no rescue when
+     * that is absent too — for the reason an injected `lookup` alone means
+     * no retry pass.
+     */
+    rescueLookup?: ReverseDnsLookupFunction | undefined;
+    /*
+     * The hosts file, read before DNS for every address (OneUptime issue
+     * #3916; see buildSystemHostsFileLookup). Omit it and the probe host's
+     * own file is read — unless `lookup` is injected, in which case there is
+     * none, for the reason an injected `lookup` means no retry pass: a caller
+     * who replaced the lookup so that nothing of this machine's leaks into
+     * the result must not get names from its /etc/hosts. Inject this too to
+     * have one.
+     */
+    hostsFileLookup?: HostsFileLookup | undefined;
     timeoutInMs?: number | undefined;
     concurrency?: number | undefined;
     failureBudget?: number | undefined;
@@ -1006,13 +1398,21 @@ export default class ReverseDnsResolver {
      * first-pass timeout above the retry's default would otherwise retry a
      * slow answer with less patience than it failed with.
      */
+    const retryTimeoutInMs: number = Math.max(
+      DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS,
+      this.timeoutInMs,
+    );
     this.retryLookup =
       options?.retryLookup ??
+      (options?.lookup ? undefined : buildDefaultRetryLookup(retryTimeoutInMs));
+    this.rescueLookup =
+      options?.rescueLookup ??
       (options?.lookup
-        ? undefined
-        : buildDefaultRetryLookup(
-            Math.max(DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS, this.timeoutInMs),
-          ));
+        ? options.retryLookup
+        : buildDefaultRescueLookup(retryTimeoutInMs));
+    this.hostsFileLookup =
+      options?.hostsFileLookup ??
+      (options?.lookup ? undefined : buildSystemHostsFileLookup());
     this.concurrency = Math.max(
       1,
       options?.concurrency ?? DEFAULT_REVERSE_DNS_CONCURRENCY,
@@ -1061,12 +1461,15 @@ export default class ReverseDnsResolver {
    * resolves to "no name for that address" and leaves the sweep's result
    * exactly as it would have been before this existed.
    *
-   * Two passes. The first asks every address once, in waves, under the
-   * failure budget and the wall-clock budget. The second asks AGAIN only the
-   * addresses whose first lookup failed — timed out, SERVFAIL, REFUSED, no
-   * server listening — through the retry lookup, which waits longer and asks
-   * each configured nameserver in turn. An address that answered, with a
-   * name or with NXDOMAIN, is never asked twice.
+   * The hosts file first: an address it names (see
+   * buildSystemHostsFileLookup) is named from there and never asked of DNS.
+   *
+   * Then two passes. The first asks every other address once, in waves,
+   * under the failure budget and the wall-clock budget. The second asks
+   * AGAIN only the addresses whose first lookup failed — timed out,
+   * SERVFAIL, REFUSED, no server listening — through the retry lookup, which
+   * waits longer and asks each configured nameserver in turn. An address
+   * that answered, with a name or with NXDOMAIN, is never asked twice.
    */
   public async resolveHostnames(
     ipAddresses: Array<string>,
@@ -1124,15 +1527,19 @@ export default class ReverseDnsResolver {
     const state: {
       resolvedCount: number;
       /*
-       * Distinct addresses whose lookup has been started. Advanced by whole
-       * waves, before each wave is awaited, so a pass that stops at a wave
-       * boundary has asked exactly this many.
+       * Distinct addresses whose lookup has been started: every address the
+       * hosts file named, and then the DNS lookups, advanced by whole waves
+       * before each wave is awaited, so a pass that stops at a wave boundary
+       * has asked exactly this many.
        */
       lookedUpCount: number;
       /*
-       * Lookups that came BACK, whether or not any answer survived
-       * normalisation. This — not `resolvedCount` — is what disarms the
-       * failure budget.
+       * DNS lookups that came BACK, whether or not any answer survived
+       * normalisation — and, since #3916, lookups a DNS server answered with
+       * a FAILURE code (SERVFAIL, REFUSED, NOTIMP, FORMERR; see
+       * classifyReverseDnsLookupError). This — not `resolvedCount` — is what
+       * disarms the failure budget. The hosts file never adds to it: a name
+       * from the file says nothing about DNS.
        *
        * The distinction is not academic. A resolver that answers every query
        * with a name that normalises away (a wildcard zone echoing
@@ -1140,7 +1547,8 @@ export default class ReverseDnsResolver {
        * resolver; counting only usable names would let a run of unusable
        * answers sit alongside a handful of unrelated timeouts and convict the
        * probe of having no resolver at all, skipping the addresses further
-       * down the list that do have good names.
+       * down the list that do have good names. A resolver that answers
+       * SERVFAIL for one dead zone is a working resolver for the same reason.
        *
        * The retry pass adds to this too: an answer on the second try proves
        * DNS works from here exactly as much as one on the first.
@@ -1148,7 +1556,10 @@ export default class ReverseDnsResolver {
       successfulLookupCount: number;
       /*
        * FIRST-PASS failures only, one per distinct address. The retry pass
-       * never adds to it — see retryOne.
+       * never adds to it — see retryOne. A responded failure is counted here
+       * too, because it IS a failed lookup and the log reports these; it is
+       * also counted as having come back, above, which is what keeps it from
+       * convicting the probe.
        */
       infrastructureFailureCount: number;
       failureReason?: string | undefined;
@@ -1163,7 +1574,7 @@ export default class ReverseDnsResolver {
       retryAnsweredCount: number;
       // See rescueFromBreaker.
       hasTriedBreakerRescue: boolean;
-      isFirstPassOnRetryLookup: boolean;
+      isRescued: boolean;
     } = {
       resolvedCount: 0,
       lookedUpCount: 0,
@@ -1174,12 +1585,48 @@ export default class ReverseDnsResolver {
       retriedCount: 0,
       retryAnsweredCount: 0,
       hasTriedBreakerRescue: false,
-      isFirstPassOnRetryLookup: false,
+      isRescued: false,
     };
+
+    /*
+     * THE HOSTS FILE, before any query (#3916; see
+     * buildSystemHostsFileLookup). Every address, up front, rather than as
+     * each wave reaches it: it costs no query and no time, so neither of the
+     * pass's limits has any reason to stop it, and a device the operator
+     * listed must keep its name even when the failure budget or the clock
+     * ends the DNS lookups before its turn. What the file names never enters
+     * a DNS wave, and touches none of the DNS counters — the file says
+     * nothing about whether DNS works from here.
+     */
+    const dnsAddresses: Array<string> = [];
+
+    for (const ipAddress of uniqueAddresses) {
+      const hostsFileName: string | undefined = this.hostsFileLookup
+        ? readHostsFileName(this.hostsFileLookup, ipAddress)
+        : undefined;
+
+      if (hostsFileName) {
+        hostnameByIpAddress.set(ipAddress, hostsFileName);
+        state.resolvedCount++;
+        state.lookedUpCount++;
+        continue;
+      }
+
+      dnsAddresses.push(ipAddress);
+    }
+
+    const hostsFileNamedCount: number = state.lookedUpCount;
 
     /*
      * The failure budget, asked only where the answer cannot be a lie: BETWEEN
      * waves, when every lookup started so far has settled.
+     *
+     * What it asks (#3916): has the probe's DNS been SILENT for a budget's
+     * worth of addresses, with not one lookup coming back and not one server
+     * responding? A name, an NXDOMAIN, a SERVFAIL or a REFUSED each count as
+     * having come back (successfulLookupCount), so only timeouts, "nothing
+     * listening" and errors nobody recognises can convict the probe of
+     * having no usable resolver.
      *
      * Two designs failed before this one, and both failures are worth keeping
      * written down because each looked correct.
@@ -1328,6 +1775,19 @@ export default class ReverseDnsResolver {
 
         state.infrastructureFailureCount++;
         state.failureReason = state.failureReason || describeError(err);
+
+        if (classification.isServerResponse) {
+          /*
+           * SERVFAIL, REFUSED, NOTIMP, FORMERR: a failed lookup — the status
+           * above says so, it is retried, it is counted — but the probe's DNS
+           * server RESPONDED, which is all the budget asks. Without this, the
+           * first sixty-four addresses of a sweep sitting in one zone a
+           * recursive resolver SERVFAILs (a dead delegation, a DNSSEC-bogus
+           * zone) convicted a working resolver and skipped every healthy
+           * zone behind them.
+           */
+          state.successfulLookupCount++;
+        }
       }
     };
 
@@ -1343,14 +1803,18 @@ export default class ReverseDnsResolver {
      * Its status is updated from the retry — "timed out, then SERVFAIL" is
      * reported as SERVFAIL, the most recent thing the server said — while
      * failureReason keeps the first failure the pass saw.
+     *
+     * Answers whether the lookup CAME BACK — names, "no record", or a
+     * failure a DNS server responded with — as opposed to silence. The
+     * breaker rescue reads it.
      */
     const retryOne: (
       ipAddress: string,
       retryLookup: ReverseDnsLookupFunction,
-    ) => Promise<void> = async (
+    ) => Promise<boolean> = async (
       ipAddress: string,
       retryLookup: ReverseDnsLookupFunction,
-    ): Promise<void> => {
+    ): Promise<boolean> => {
       try {
         const answers: unknown = await retryLookup(ipAddress);
 
@@ -1358,6 +1822,7 @@ export default class ReverseDnsResolver {
         state.retryAnsweredCount++;
 
         recordAnswers(ipAddress, answers);
+        return true;
       } catch (err) {
         const classification: ReverseDnsLookupErrorClassification =
           classifyReverseDnsLookupError(err);
@@ -1371,10 +1836,18 @@ export default class ReverseDnsResolver {
            */
           state.successfulLookupCount++;
           state.retryAnsweredCount++;
-          return;
+          return true;
         }
 
         state.failureReason = state.failureReason || describeError(err);
+
+        if (classification.isServerResponse) {
+          // Still failed; but a server responded, exactly as in lookupOne.
+          state.successfulLookupCount++;
+          return true;
+        }
+
+        return false;
       }
     };
 
@@ -1385,9 +1858,57 @@ export default class ReverseDnsResolver {
     let firstPassLookup: ReverseDnsLookupFunction = this.lookup;
 
     /*
+     * One breaker-rescue canary, asked through the rescue lookup. NEVER
+     * rejects. Answers whether it came back with a NAME or with a "no record"
+     * the rescue lookup trusts — the two outcomes that show DNS working from
+     * here — as opposed to a failure or silence.
+     *
+     * Unlike retryOne, a failure a server RESPONDED with (SERVFAIL, REFUSED)
+     * is recorded but does not count as having come back. The breaker is
+     * about to conclude the probe has no DNS; a primary that has been silent
+     * sixty-four times and then SERVFAILs after three seconds does not
+     * contradict that in any way an operator could use, and letting it
+     * disarm the breaker would send the rest of the pass through a lookup
+     * that waits on that server for every address, until the time budget
+     * runs out, and then advise raising it.
+     */
+    const askCanary: (
+      ipAddress: string,
+      rescueLookup: ReverseDnsLookupFunction,
+    ) => Promise<boolean> = async (
+      ipAddress: string,
+      rescueLookup: ReverseDnsLookupFunction,
+    ): Promise<boolean> => {
+      try {
+        const answers: unknown = await rescueLookup(ipAddress);
+
+        state.successfulLookupCount++;
+        state.retryAnsweredCount++;
+
+        recordAnswers(ipAddress, answers);
+        return true;
+      } catch (err) {
+        const classification: ReverseDnsLookupErrorClassification =
+          classifyReverseDnsLookupError(err);
+
+        statusByIpAddress.set(ipAddress, classification.status);
+
+        if (classification.kind === "no-record") {
+          // Trusted by the rescue lookup, or it would not have ended on it.
+          state.successfulLookupCount++;
+          state.retryAnsweredCount++;
+          return true;
+        }
+
+        state.failureReason = state.failureReason || describeError(err);
+        return false;
+      }
+    };
+
+    /*
      * THE BREAKER RESCUE (OneUptime issue #3916), asked at most once per pass
-     * and only when the breaker is about to stop it: every lookup so far has
-     * failed and not one has answered.
+     * and only when the breaker is about to stop it: a budget's worth of
+     * lookups has met silence, and not one server has responded.
      *
      * That verdict is drawn from the FIRST-TRY lookup, and there is one
      * common setup it gets wrong: a probe host whose first nameserver is down
@@ -1399,28 +1920,32 @@ export default class ReverseDnsResolver {
      * sixty-four hosts is listed entirely by address — while a resolver that
      * does move on, on the same host, names every one of them.
      *
-     * So before stopping, ONE of the failed addresses is asked again the way
-     * the retry pass asks: each configured server in turn, with the longer
-     * timeout. If that gets any answer at all — a name, or even NXDOMAIN —
-     * DNS does work from here, just not through the fast path, and the rest
-     * of the pass is made with the retry lookup instead. That lookup learns
-     * which server answers with names and asks it first (see
-     * buildDefaultRetryLookup), so after the first slow wave a dead primary
-     * costs nothing further. If it gets no answer either, the verdict stands
-     * and the pass stops exactly as it always did.
+     * So before stopping, up to THREE of the failed addresses — CANARIES:
+     * the first, the middle and the last of them — are asked again,
+     * concurrently, through the rescue lookup (buildDefaultRescueLookup),
+     * which asks the other servers before the silent primary. The rescue
+     * succeeds only on evidence that DNS works from here: a canary NAMED, or
+     * told "no record" by a server the rescue lookup trusts (the primary, or
+     * one that has named something). Then the rest of the pass — the first
+     * pass's remaining waves AND its retry pass — is asked through the rescue
+     * lookup, which by then asks a server that answers first. Anything less
+     * leaves the verdict standing, and the pass stops exactly as it always
+     * did. In particular a dead primary behind a PUBLIC resolver, which
+     * answers NXDOMAIN for every private address and names none, does not
+     * rescue: nothing it says shows it holds the zones.
      *
-     * Only with a retry lookup to ask (none when a test injects the lookup
+     * Only with a rescue lookup to ask (none when a test injects the lookup
      * alone), only while the deadline has not passed, and never twice: a
-     * probe that really has no DNS pays for one extra thorough lookup, not
-     * one per wave.
+     * probe that really has no DNS pays for one extra walk, not one per wave
+     * — the canaries run side by side, so three cost no longer than one.
      */
     const rescueFromBreaker: () => Promise<boolean> =
       async (): Promise<boolean> => {
-        const retryLookup: ReverseDnsLookupFunction | undefined =
-          this.retryLookup;
+        const rescueLookup: ReverseDnsLookupFunction | undefined =
+          this.rescueLookup;
 
         if (
-          !retryLookup ||
+          !rescueLookup ||
           state.hasTriedBreakerRescue ||
           this.now() >= deadline
         ) {
@@ -1429,32 +1954,57 @@ export default class ReverseDnsResolver {
 
         state.hasTriedBreakerRescue = true;
 
-        const canaryAddress: string | undefined = uniqueAddresses.find(
+        const failedAddresses: Array<string> = uniqueAddresses.filter(
           (ipAddress: string): boolean => {
             return retryableAddresses.has(ipAddress);
           },
         );
 
-        if (canaryAddress === undefined) {
+        if (failedAddresses.length === 0) {
           return false;
         }
 
-        state.retriedCount++;
+        // Distinct, in address order: fewer than three failed, fewer asked.
+        const canaryAddresses: Array<string> = [
+          ...new Set<string>([
+            failedAddresses[0]!,
+            failedAddresses[Math.floor((failedAddresses.length - 1) / 2)]!,
+            failedAddresses[failedAddresses.length - 1]!,
+          ]),
+        ];
 
-        await retryOne(canaryAddress, retryLookup);
+        state.retriedCount += canaryAddresses.length;
 
-        if (isReverseDnsUnusable()) {
+        const hasCanaryComeBack: Array<boolean> = await Promise.all(
+          canaryAddresses.map((ipAddress: string): Promise<boolean> => {
+            return askCanary(ipAddress, rescueLookup);
+          }),
+        );
+
+        if (
+          !hasCanaryComeBack.some((hasComeBack: boolean): boolean => {
+            return hasComeBack;
+          })
+        ) {
           return false;
         }
 
-        // Answered, one way or the other: it is not left for the retry pass.
-        retryableAddresses.delete(canaryAddress);
+        /*
+         * A canary that came back has had its thorough attempt and is not
+         * left for the retry pass; one that did not is, and is asked again
+         * through the rescue lookup once it knows which server answers.
+         */
+        canaryAddresses.forEach((ipAddress: string, index: number): void => {
+          if (hasCanaryComeBack[index]) {
+            retryableAddresses.delete(ipAddress);
+          }
+        });
 
-        firstPassLookup = retryLookup;
-        state.isFirstPassOnRetryLookup = true;
+        firstPassLookup = rescueLookup;
+        state.isRescued = true;
 
         logger.warn(
-          `Discovery reverse DNS: the first ${state.infrastructureFailureCount} lookup(s) all failed on the first try, but asking each nameserver in turn with a longer timeout got an answer, so the rest of this pass asks that way. The probe host's first nameserver may be down or unreachable. Resolver reported: ${state.failureReason || "unknown error"}`,
+          `Discovery reverse DNS: the first ${state.infrastructureFailureCount} lookup(s) got no answer from the probe's first nameserver, but another nameserver answered, so the rest of this pass asks the nameservers that answer first. The probe host's first nameserver may be down or unreachable. It reported: ${state.failureReason || "unknown error"}`,
         );
 
         return true;
@@ -1474,10 +2024,12 @@ export default class ReverseDnsResolver {
      * long as its slowest address, which is bounded by the per-address budget
      * (2s) — and DNS is the one protocol where that variance is small, because
      * an address either answers in milliseconds or times out.
+     *
+     * Over the addresses the hosts file did not name, in the same order.
      */
     for (
       let start: number = 0;
-      start < uniqueAddresses.length;
+      start < dnsAddresses.length;
       start += this.concurrency
     ) {
       /*
@@ -1496,9 +2048,10 @@ export default class ReverseDnsResolver {
 
       if (isReverseDnsUnusable() && (await rescueFromBreaker())) {
         /*
-         * The rescue itself took time — up to one whole retry lookup — so the
-         * deadline is asked again before the next wave is launched, or a
-         * pass could overrun by the rescue AND a wave.
+         * The rescue itself took time — up to one whole retry lookup, its
+         * canaries being asked side by side — so the deadline is asked again
+         * before the next wave is launched, or a pass could overrun by the
+         * rescue AND a wave.
          */
         if (this.now() >= deadline) {
           state.isTimeBudgetExhausted = true;
@@ -1517,7 +2070,7 @@ export default class ReverseDnsResolver {
         break;
       }
 
-      const wave: Array<string> = uniqueAddresses.slice(
+      const wave: Array<string> = dnsAddresses.slice(
         start,
         start + this.concurrency,
       );
@@ -1526,7 +2079,7 @@ export default class ReverseDnsResolver {
 
       // Read once per wave: the rescue only ever switches between waves.
       const waveLookup: ReverseDnsLookupFunction = firstPassLookup;
-      const isThoroughWave: boolean = state.isFirstPassOnRetryLookup;
+      const isThoroughWave: boolean = state.isRescued;
 
       await Promise.all(
         wave.map((ipAddress: string) => {
@@ -1546,7 +2099,9 @@ export default class ReverseDnsResolver {
         ? DiscoveredHostReverseDnsStatus.SkippedTimeBudget
         : DiscoveredHostReverseDnsStatus.SkippedNoResolver;
 
-    for (const ipAddress of uniqueAddresses.slice(state.lookedUpCount)) {
+    for (const ipAddress of dnsAddresses.slice(
+      state.lookedUpCount - hostsFileNamedCount,
+    )) {
       statusByIpAddress.set(ipAddress, skippedStatus);
     }
 
@@ -1563,19 +2118,21 @@ export default class ReverseDnsResolver {
      *
      * Its rules, each of which is pinned by a test:
      *
-     * - Only addresses whose first lookup FAILED. NXDOMAIN and NODATA are
-     *   answers, and a malformed address is malformed twice.
+     * - Only addresses whose first lookup FAILED — SERVFAIL and REFUSED
+     *   included, though they disarm the failure budget. NXDOMAIN and NODATA
+     *   are answers, and a malformed address is malformed twice.
      * - Not at all when the failure budget STOPPED the first pass: every
-     *   lookup the probe made failed — including the breaker rescue's one
-     *   thorough attempt — and it skipped the rest, and asking the same dead
-     *   resolver again, each server in turn at twice the timeout, would
+     *   lookup the probe made was met with silence — including the breaker
+     *   rescue's canaries — and it skipped the rest, and asking the same
+     *   dead resolver again, each server in turn at twice the timeout, would
      *   spend up to a quarter of a minute per wave learning nothing.
      * - Not for addresses the first pass already asked with the retry lookup
-     *   (after a breaker rescue switched it over): they have had the
-     *   thorough attempt. When the budget's verdict merely lands on the final wave,
-     *   nothing was skipped and the retry DOES run: a small sweep behind a
-     *   dead primary nameserver is exactly the case it exists for, and an
-     *   answer on the retry disarms that verdict.
+     *   (after a breaker rescue switched it over), nor for a rescue canary
+     *   that came back: they have had the thorough attempt. When the
+     *   budget's verdict merely lands on the final wave, nothing was skipped
+     *   and the retry DOES run: a small sweep behind a dead primary
+     *   nameserver is exactly the case it exists for, and an answer on the
+     *   retry disarms that verdict.
      * - Not when the WALL CLOCK stopped the first pass. The deadline has
      *   passed, and the pass has already said so.
      * - In waves of the same width, each started only while the SAME
@@ -1588,7 +2145,15 @@ export default class ReverseDnsResolver {
      *   than a first-pass one — up to MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS —
      *   so that, not two seconds, is the most a pass now overruns by.
      */
-    const retryLookup: ReverseDnsLookupFunction | undefined = this.retryLookup;
+    /*
+     * A rescued pass retries through the rescue lookup, for the reason the
+     * rest of its first pass was made through it: the retry lookup asks the
+     * primary first, and on a rescued pass the primary is the server that
+     * has been silent for a budget's worth of addresses.
+     */
+    const retryLookup: ReverseDnsLookupFunction | undefined = state.isRescued
+      ? this.rescueLookup
+      : this.retryLookup;
 
     if (
       retryLookup &&

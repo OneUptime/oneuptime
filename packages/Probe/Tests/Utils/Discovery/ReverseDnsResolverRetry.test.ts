@@ -366,27 +366,29 @@ describe("ReverseDnsResolver retry — what is never retried", () => {
     );
   });
 
-  it("skips the retry pass when the failure budget stopped the first pass, after ONE thorough attempt", async () => {
+  it("skips the retry pass when the failure budget stopped the first pass, after ONE thorough walk of three canaries", async () => {
     /*
      * A hundred addresses at the shipped width and budget, and not one
      * answer from either lookup: the breaker is about to stop the pass after
-     * two waves (64 failures), asks ONE failed address again the thorough
-     * way (the breaker rescue, #3916), gets nothing there either, and skips
-     * the other 36. Retrying the 64 — each server in turn, at twice the
-     * timeout — would spend up to a quarter of a minute per wave asking a
-     * resolver that has already failed sixty-five times running; a probe
-     * with no DNS pays for one extra lookup, not a wave of them.
+     * two waves (64 failures), asks three failed addresses again the
+     * thorough way, side by side (the breaker rescue, #3916), gets nothing
+     * there either, and skips the other 36. Retrying the 64 — each server in
+     * turn, at twice the timeout — would spend up to a quarter of a minute
+     * per wave asking a resolver that has already failed sixty-seven times
+     * running; a probe with no DNS pays for one extra walk, not a wave of
+     * them.
      */
     const retry: RecordingLookup = recordingLookup(failingWith("ECONNREFUSED"));
+    const addresses: Array<string> = addressList(100);
 
     const result: ReverseDnsResolution = await resolverWith(
       failingWith("ECONNREFUSED"),
       retry.lookup,
       { concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY },
-    ).resolveHostnames(addressList(100));
+    ).resolveHostnames(addresses);
 
-    // The canary: the first address whose lookup failed, and nothing else.
-    expect(retry.asked).toEqual([addressList(1)[0]]);
+    // The canaries — the first, middle and last failed address — and no more.
+    expect(retry.asked).toEqual([addresses[0], addresses[31], addresses[63]]);
     expect(result.isReverseDnsAvailable).toBe(false);
     expect(result.lookedUpCount).toBe(64);
     expect(result.failedAddressCount).toBe(64);
@@ -464,9 +466,10 @@ describe("ReverseDnsResolver retry — the failure budget counts an address once
   });
 
   it("keeps sixty-three hosts that fail twice below the budget — one short of it", async () => {
+    // Silence: a SERVFAIL never spends the budget at all (#3916).
     const result: ReverseDnsResolution = await resolverWith(
-      failingWith("ESERVFAIL"),
-      failingWith("ESERVFAIL"),
+      failingWith("ETIMEOUT"),
+      failingWith("ETIMEOUT"),
       { concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY },
     ).resolveHostnames(addressList(DEFAULT_REVERSE_DNS_FAILURE_BUDGET - 1));
 
@@ -530,6 +533,25 @@ describe("ReverseDnsResolver retry — an answer on the retry disarms the verdic
       DiscoveredHostReverseDnsStatus.NoRecord,
     ]);
   });
+
+  it.each(["ESERVFAIL", "EREFUSED"])(
+    "is disarmed by a %s on the retry too: a server responded, though the lookup failed",
+    async (code: string) => {
+      /*
+       * #3916: silence alone convicts. The retry still failed — the status
+       * and the count say so — but a DNS server answered it, so this probe
+       * does have a resolver it can reach.
+       */
+      const result: ReverseDnsResolution = await resolverWith(
+        failingWith("ETIMEOUT"),
+        failingWith(code),
+        { concurrency: 4, failureBudget: 5 },
+      ).resolveHostnames(addressList(8));
+
+      expect(result.isReverseDnsAvailable).toBe(true);
+      expect(result.failedAddressCount).toBe(8);
+    },
+  );
 
   it("leaves the verdict standing when the retry fails too", async () => {
     const result: ReverseDnsResolution = await resolverWith(
@@ -759,6 +781,61 @@ describe("ReverseDnsResolver retry — the default wiring", () => {
       { method: "resolvePtr", argument: "51.42.16.10.in-addr.arpa" },
     ]);
   });
+
+  it("never retries with less patience than the first attempt had: a six-second first pass retries at six seconds", async () => {
+    /*
+     * The constructor's Math.max. With the shipped two-second first pass it
+     * and the four-second retry default agree, so only a first-pass timeout
+     * ABOVE the retry's default shows which one wins: the retry's resolvers
+     * must be built with the longer of the two, or a slow answer would be
+     * asked again with less patience than it failed with.
+     *
+     * The hosts file is injected empty so nothing of this machine's
+     * /etc/hosts can name the address; the DNS wiring stays the default.
+     */
+    const created: Array<FakeReverseDnsResolver> = [];
+    const attemptsByName: Map<string, number> = new Map<string, number>();
+
+    jest.spyOn(dns.promises, "Resolver").mockImplementation(((options?: {
+      timeout?: number;
+    }): FakeReverseDnsResolver => {
+      const resolver: FakeReverseDnsResolver = fakeReverseDnsResolver(
+        {
+          servers: ["192.0.2.53"],
+          resolvePtr: (hostname: string): Promise<Array<string>> => {
+            const attempt: number = (attemptsByName.get(hostname) ?? 0) + 1;
+            attemptsByName.set(hostname, attempt);
+
+            return attempt === 1
+              ? Promise.reject(fakeDnsError("ETIMEOUT"))
+              : Promise.resolve(["kds-01.wbhq.example"]);
+          },
+        },
+        options?.timeout ?? 0,
+      );
+      created.push(resolver);
+      return resolver;
+    }) as never);
+
+    const result: ReverseDnsResolution = await new ReverseDnsResolver({
+      lookup: undefined,
+      hostsFileLookup: (): undefined => {
+        return undefined;
+      },
+      timeoutInMs: 6000,
+    }).resolveHostnames(["10.16.42.51"]);
+
+    expect(result.hostnameByIpAddress.get("10.16.42.51")).toBe(
+      "kds-01.wbhq.example",
+    );
+    expect(6000).toBeGreaterThan(DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS);
+    // First pass, then the retry's configuration read and its pinned attempt.
+    expect(
+      created.map((resolver: FakeReverseDnsResolver): number => {
+        return resolver.timeoutInMs;
+      }),
+    ).toEqual([6000, 6000, 6000]);
+  });
 });
 
 /*
@@ -767,9 +844,10 @@ describe("ReverseDnsResolver retry — the default wiring", () => {
  * seconds on the first server and c-ares only moves on after that server's
  * whole timeout, so every first-try lookup fails and — past sixty-four of
  * them — the breaker used to conclude the probe had no DNS at all and list a
- * whole sweep by address. Before it stops now, it asks one failed address
- * again the thorough way, and if THAT gets an answer the rest of the pass is
- * made that way.
+ * whole sweep by address. Before it stops now, it asks three failed
+ * addresses — the first, the middle and the last — again the thorough way,
+ * side by side, and if ANY of them comes back the rest of the pass is made
+ * that way.
  */
 describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a working second", () => {
   function nameFor(ipAddress: string): string {
@@ -823,10 +901,10 @@ describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a
     expect(first.asked).toEqual(addresses.slice(0, 64));
 
     /*
-     * The canary, then the thirty-six the switched first pass asked, then
-     * the sixty-three the retry pass asked again. No address twice: the
-     * canary is not left for the retry pass, and an address the switched
-     * pass asked has already had the thorough attempt.
+     * The three canaries, then the thirty-six the switched first pass asked,
+     * then the sixty-one the retry pass asked again. No address twice: a
+     * canary that came back is not left for the retry pass, and an address
+     * the switched pass asked has already had the thorough attempt.
      */
     expect(retry.asked[0]).toBe(addresses[0]);
     expect([...retry.asked].sort()).toEqual([...addresses].sort());
@@ -844,7 +922,13 @@ describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a
     expect(warnedMessages[0]).not.toContain("not usable from this probe");
   });
 
-  it("switches on NXDOMAIN too: any answer proves DNS works from here", async () => {
+  it("switches on NXDOMAIN too: any answer the retry lookup stands by proves DNS works from here", async () => {
+    /*
+     * The retry lookup only rejects with "no record" when a server it
+     * TRUSTS said so (buildDefaultRetryLookup): a public fallback's NXDOMAIN
+     * after a dead primary comes back as the primary's timeout instead, and
+     * rescues nothing — ReverseDnsResolverRealRescue.test.ts.
+     */
     const result: ReverseDnsResolution = await resolverWith(
       failingWith("ETIMEOUT"),
       failingWith("ENOTFOUND"),
@@ -911,7 +995,7 @@ describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a
      * The rescue can take a whole retry lookup — up to fifteen seconds on a
      * resolver with three silent servers. A pass that re-launched a wave
      * after it without looking at the clock could overrun by the rescue AND
-     * a wave. Here the clock jumps past the deadline while the canary is
+     * a wave. Here the clock jumps past the deadline while the canaries are
      * being asked.
      */
     const clock: { now: number } = { now: 0 };
@@ -932,9 +1016,18 @@ describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a
       },
     ).resolveHostnames(addresses);
 
-    expect(result.hostnameByIpAddress.get(addresses[0]!)).toBe(
-      `canary-${addresses[0]}.example`,
-    );
+    const canaries: Array<string> = [
+      addresses[0]!,
+      addresses[31]!,
+      addresses[63]!,
+    ];
+
+    for (const canary of canaries) {
+      expect(result.hostnameByIpAddress.get(canary)).toBe(
+        `canary-${canary}.example`,
+      );
+    }
+
     expect(result.isTimeBudgetExhausted).toBe(true);
     expect(result.lookedUpCount).toBe(64);
     expect(result.notLookedUpCount).toBe(36);
@@ -947,12 +1040,184 @@ describe("ReverseDnsResolver breaker rescue — a dead first nameserver behind a
       );
     }
 
-    // The other 63 first-wave failures were never retried: time was up.
-    for (const ipAddress of addresses.slice(1, 64)) {
+    // The other 61 first-wave failures were never retried: time was up.
+    for (const ipAddress of addresses.slice(0, 64)) {
+      if (canaries.includes(ipAddress)) {
+        continue;
+      }
+
       expect(result.statusByIpAddress!.get(ipAddress)).toBe(
         DiscoveredHostReverseDnsStatus.Timeout,
       );
     }
+  });
+
+  it("asks three canaries — the first, middle and last failed address — side by side", async () => {
+    /*
+     * Spread across the failed range so one dead zone at the bottom of it
+     * cannot speak for the rest, and concurrent so three cost one walk: the
+     * rescue's time is part of the most a pass can overrun its budget by.
+     */
+    const addresses: Array<string> = addressList(100);
+    const settledBeforeStart: Array<number> = [];
+    const progress: { settled: number } = { settled: 0 };
+
+    const retry: RecordingLookup = recordingLookup(
+      async (ipAddress: string): Promise<Array<string>> => {
+        settledBeforeStart.push(progress.settled);
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 1);
+        });
+        progress.settled++;
+        return [nameFor(ipAddress)];
+      },
+    );
+
+    await resolverWith(failingWith("ETIMEOUT"), retry.lookup, {
+      concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY,
+    }).resolveHostnames(addresses);
+
+    expect(retry.asked.slice(0, 3)).toEqual([
+      addresses[0],
+      addresses[31],
+      addresses[63],
+    ]);
+    // All three were started before any of them came back.
+    expect(settledBeforeStart.slice(0, 3)).toEqual([0, 0, 0]);
+  });
+
+  it("rescues the pass when only ONE canary comes back, and leaves a silent one for the retry pass", async () => {
+    /*
+     * The first two canaries sit in a zone that never answers; the last one
+     * is named. One is enough: DNS works from here. The silent two have not
+     * been answered, so the retry pass asks them again — by then the retry
+     * knows which servers are dead — while the one that came back is not
+     * asked twice.
+     */
+    const addresses: Array<string> = addressList(100);
+    const silent: Array<string> = [addresses[0]!, addresses[31]!];
+
+    const retry: RecordingLookup = recordingLookup(
+      (ipAddress: string): Promise<Array<string>> => {
+        return silent.includes(ipAddress)
+          ? Promise.reject(fakeDnsError("ETIMEOUT"))
+          : Promise.resolve([nameFor(ipAddress)]);
+      },
+    );
+
+    const result: ReverseDnsResolution = await resolverWith(
+      failingWith("ETIMEOUT"),
+      retry.lookup,
+      { concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY },
+    ).resolveHostnames(addresses);
+
+    expect(result.isReverseDnsAvailable).toBe(true);
+    expect(result.lookedUpCount).toBe(100);
+    expect(result.hostnameByIpAddress.size).toBe(98);
+
+    const timesAsked: (ipAddress: string) => number = (
+      ipAddress: string,
+    ): number => {
+      return retry.asked.filter((asked: string): boolean => {
+        return asked === ipAddress;
+      }).length;
+    };
+
+    expect(timesAsked(addresses[0]!)).toBe(2);
+    expect(timesAsked(addresses[31]!)).toBe(2);
+    expect(timesAsked(addresses[63]!)).toBe(1);
+    expect(result.statusByIpAddress!.get(addresses[0]!)).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+  });
+
+  it.each(["ESERVFAIL", "EREFUSED"])(
+    "does NOT rescue the pass when the canaries only come back %s",
+    async (code: string) => {
+      /*
+       * #3916. A server responding is enough to keep the breaker from firing
+       * during the first pass — but at the rescue the question is different:
+       * does DNS WORK from here? A SERVFAIL or REFUSED does not say so, and
+       * treating it as if it did sent the rest of the pass through a lookup
+       * that waited on the failing server for every address until the time
+       * budget ran out, then advised raising it. Only a name, or a "no
+       * record" the rescue lookup trusts, rescues. The canaries' failures are
+       * still recorded as what they were.
+       */
+      const addresses: Array<string> = addressList(100);
+      const canaries: Array<string> = [
+        addresses[0]!,
+        addresses[31]!,
+        addresses[63]!,
+      ];
+
+      const retry: RecordingLookup = recordingLookup(
+        (ipAddress: string): Promise<Array<string>> => {
+          return canaries.includes(ipAddress)
+            ? Promise.reject(fakeDnsError(code))
+            : Promise.resolve([nameFor(ipAddress)]);
+        },
+      );
+
+      const result: ReverseDnsResolution = await resolverWith(
+        failingWith("ETIMEOUT"),
+        retry.lookup,
+        { concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY },
+      ).resolveHostnames(addresses);
+
+      expect(retry.asked).toEqual(canaries);
+      expect(result.isReverseDnsAvailable).toBe(false);
+      expect(result.lookedUpCount).toBe(64);
+      expect(result.hostnameByIpAddress.size).toBe(0);
+
+      for (const canary of canaries) {
+        expect(result.statusByIpAddress!.get(canary)).toBe(
+          code === "ESERVFAIL"
+            ? DiscoveredHostReverseDnsStatus.ServerFailure
+            : DiscoveredHostReverseDnsStatus.Refused,
+        );
+      }
+
+      expect(warnedMessages).toHaveLength(1);
+      expect(warnedMessages[0]).toContain("not usable from this probe");
+    },
+  );
+
+  it.each([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ])(
+    "asks each failed address once when only %i failed before the breaker (concurrency %i, budget %i)",
+    async (failedCount: number, concurrency: number, failureBudget: number) => {
+      const addresses: Array<string> = addressList(10);
+      const retry: RecordingLookup = recordingLookup(failingWith("ETIMEOUT"));
+
+      await resolverWith(failingWith("ETIMEOUT"), retry.lookup, {
+        concurrency: concurrency,
+        failureBudget: failureBudget,
+      }).resolveHostnames(addresses);
+
+      expect(retry.asked).toEqual(addresses.slice(0, failedCount));
+    },
+  );
+
+  it("counts the canaries among the addresses it says it retried", async () => {
+    const debugged: Array<string> = [];
+
+    jest
+      .spyOn(logger, "debug")
+      .mockImplementation((message: unknown): never => {
+        debugged.push(String(message));
+        return undefined as never;
+      });
+
+    await resolverWith(failingWith("ETIMEOUT"), failingWith("ETIMEOUT"), {
+      concurrency: DEFAULT_REVERSE_DNS_CONCURRENCY,
+    }).resolveHostnames(addressList(100));
+
+    expect(debugged).toHaveLength(1);
+    expect(debugged[0]).toContain("retried 3 address(es)");
   });
 
   it("does not rescue when there is no retry lookup to ask", async () => {

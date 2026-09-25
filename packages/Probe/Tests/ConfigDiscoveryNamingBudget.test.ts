@@ -52,7 +52,11 @@ const SERVER_STALE_IN_PROGRESS_IN_MS: number =
  * under the SAME deadline, and one retry wave can run to
  * MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS (every configured server asked in turn at
  * the longer retry timeout). A wave of either kind is only STARTED before the
- * deadline, so the overrun is the longer of the two, not their sum.
+ * deadline, so the overrun is the longer of the two, not their sum. The
+ * breaker rescue's three canaries do not change that: they are asked side by
+ * side, so they cost one retry lookup, and the deadline is read again before
+ * anything is started after them. Nor does the hosts file, read from disk
+ * once per pass with no query sent.
  */
 const REVERSE_DNS_WAVE_IN_FLIGHT_IN_MS: number = Math.max(
   DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,

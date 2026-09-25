@@ -4,7 +4,10 @@ import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
-import ReverseDnsResolver, { ReverseDnsResolution } from "./ReverseDnsResolver";
+import ReverseDnsResolver, {
+  FAILED_LOOKUP_STATUSES,
+  ReverseDnsResolution,
+} from "./ReverseDnsResolver";
 import NetbiosNameResolver, {
   NetbiosNameResolution,
 } from "./NetbiosNameResolver";
@@ -305,6 +308,19 @@ export interface ReverseDnsNamingOutcome {
    * have failed. Undefined when the resolver did not say — a test double, an
    * older resolver — which the note reads as "nothing to report", never as a
    * failure.
+   *
+   * Two readings, one after the other. attachReverseDnsHostnames reports the
+   * PASS's count: every address reverse DNS itself left unnamed whose lookup
+   * failed, including hosts SNMP had already named by sysName, since the
+   * pass asks about every host. FetchScans.scanWithDeadline then NARROWS it,
+   * once NetBIOS has run, to the distinct addresses that end the naming with
+   * no name from any source and a failure code on them
+   * (countUnnamedHostsWhoseReverseDnsFailed). That is the number the status
+   * message prints, because its sentence sends the operator to "the (i)
+   * beside an unnamed host": counting a switch SNMP named, or a workstation
+   * NetBIOS named, pointed at tooltips that do not exist — twelve SNMP-named
+   * hosts behind a dead PTR path read "failed for all 12 hosts" with not one
+   * (i) in the Review dialog (#3916).
    */
   failedAddressCount?: number | undefined;
   /*
@@ -1675,10 +1691,13 @@ export default class SubnetScanner {
 
       /*
        * Addresses whose lookup failed (issue #3916) — on its retry too,
-       * unless the pass ran out of time first — for the status message. Bounded by the addresses left unnamed for the
-       * reason notLookedUpAddressCount is: a double reporting more failures
-       * than there are unnamed addresses is describing some other list.
-       * Left ABSENT when the resolver did not say, rather than zeroed, so a
+       * unless the pass ran out of time first — for the status message, which
+       * reads it only after scanWithDeadline has narrowed it to the hosts no
+       * source named (see ReverseDnsNamingOutcome.failedAddressCount).
+       * Bounded by the addresses left unnamed for the reason
+       * notLookedUpAddressCount is: a double reporting more failures than
+       * there are unnamed addresses is describing some other list. Left
+       * ABSENT when the resolver did not say, rather than zeroed, so a
        * verdict from a resolver that never counted failures is the same
        * object it always was.
        */
@@ -2053,6 +2072,82 @@ export default class SubnetScanner {
     }
 
     return stampedCount;
+  }
+
+  /*
+   * How many distinct addresses END the naming with no name from any source
+   * — no sysName, no dnsHostname, no netbiosName — and a reverse-DNS code
+   * saying their lookup FAILED (OneUptime issue #3916).
+   *
+   * The count the status message's "Reverse DNS lookups failed for N of M
+   * hosts; hover the (i) beside an unnamed host" prints, and so exactly the
+   * hosts that sentence sends the operator to: the Review dialog shows an (i)
+   * only beside an unnamed host, and says "did not answer in time" (or
+   * SERVFAIL, or REFUSED) only for one carrying such a code. The pass's own
+   * failedAddressCount cannot be used for it. Reverse DNS asks about every
+   * host, so a switch SNMP already named whose PTR lookup timed out is
+   * counted there; and NetBIOS runs afterwards, so a workstation it named
+   * whose PTR lookup failed is counted there too. Either way the sentence
+   * pointed at no (i), or at ones that say "no PTR record" — the opposite of
+   * what it claimed. FetchScans.scanWithDeadline calls this once NetBIOS has
+   * run, so "unnamed" is the naming's final word.
+   *
+   * Read off the hosts rather than off the resolution, so it agrees with
+   * what is uploaded. Distinct by address, like every other count on the
+   * verdict: a repeated address is one lookup and one row the operator
+   * hovers. NEVER throws; a host that cannot be read is skipped, and the
+   * addresses counted before one that throws are kept.
+   */
+  public static countUnnamedHostsWhoseReverseDnsFailed(
+    hosts: Array<DiscoveredHost>,
+  ): number {
+    if (!Array.isArray(hosts)) {
+      return 0;
+    }
+
+    const failedAddresses: Set<string> = new Set<string>();
+
+    try {
+      for (const host of hosts) {
+        if (
+          !host ||
+          typeof host !== "object" ||
+          SubnetScanner.hasText(host.sysName) ||
+          SubnetScanner.hasText(host.dnsHostname) ||
+          SubnetScanner.hasText(host.netbiosName)
+        ) {
+          continue;
+        }
+
+        // Through the whitelist: the field is typed, but the host is shared.
+        const dnsHostnameStatus: DiscoveredHostReverseDnsStatus | undefined =
+          readDiscoveredHostReverseDnsStatus(host.dnsHostnameStatus);
+
+        /*
+         * The resolver's own lookup-failed set — no answer in time, SERVFAIL,
+         * REFUSED, nothing listening, any other failure — the five codes its
+         * failedAddressCount counts, so this can only narrow that count to
+         * the hosts left unnamed, never count a code the pass did not.
+         */
+        if (
+          dnsHostnameStatus &&
+          FAILED_LOOKUP_STATUSES.has(dnsHostnameStatus)
+        ) {
+          failedAddresses.add(host.ipAddress);
+        }
+      }
+    } catch (err) {
+      /*
+       * Unreachable for a host list the sweep built — a host whose getter
+       * throws is the only way here — and caught because a count on a status
+       * message is never worth a finished sweep's results.
+       */
+      logger.warn(
+        `Discovery could not count the unnamed hosts whose reverse DNS lookup failed. ${SubnetScanner.describeEnrichmentError(err)}`,
+      );
+    }
+
+    return failedAddresses.size;
   }
 
   // A string with something in it besides whitespace.

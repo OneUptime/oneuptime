@@ -142,6 +142,7 @@ describe("classifyReverseDnsLookupError — what each rejection means", () => {
       string,
       ReverseDnsLookupErrorClassification["kind"],
       DiscoveredHostReverseDnsStatus,
+      boolean,
     ]
   > = [
     // The two ordinary "no record" answers resolvePtr gives, and their other spellings.
@@ -150,19 +151,28 @@ describe("classifyReverseDnsLookupError — what each rejection means", () => {
       "ENOTFOUND",
       "no-record",
       DiscoveredHostReverseDnsStatus.NoRecord,
+      true,
     ],
-    ["NODATA", "ENODATA", "no-record", DiscoveredHostReverseDnsStatus.NoRecord],
+    [
+      "NODATA",
+      "ENODATA",
+      "no-record",
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      true,
+    ],
     [
       "NOTFOUND",
       "NOTFOUND",
       "no-record",
       DiscoveredHostReverseDnsStatus.NoRecord,
+      true,
     ],
     [
       "NODATA (bare)",
       "NODATA",
       "no-record",
       DiscoveredHostReverseDnsStatus.NoRecord,
+      true,
     ],
     // An argument c-ares could not use: the address's fault, not the resolver's.
     [
@@ -170,73 +180,110 @@ describe("classifyReverseDnsLookupError — what each rejection means", () => {
       "EINVAL",
       "malformed-input",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
     [
       "a bad name",
       "EBADNAME",
       "malformed-input",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
     [
       "a bad string",
       "EBADSTR",
       "malformed-input",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
-    // The failures reverse() used to report as ENOTFOUND.
+    /*
+     * The failures reverse() used to report as ENOTFOUND. The last column is
+     * whether a DNS server RESPONDED (#3916): a SERVFAIL or a REFUSED is a
+     * failed lookup, but it proves the probe can reach its resolver, and
+     * only silence may spend the failure budget.
+     */
     [
       "a timeout",
       "ETIMEOUT",
       "failure",
       DiscoveredHostReverseDnsStatus.Timeout,
+      false,
     ],
     [
       "SERVFAIL",
       "ESERVFAIL",
       "failure",
       DiscoveredHostReverseDnsStatus.ServerFailure,
+      true,
     ],
-    ["REFUSED", "EREFUSED", "failure", DiscoveredHostReverseDnsStatus.Refused],
+    [
+      "REFUSED",
+      "EREFUSED",
+      "failure",
+      DiscoveredHostReverseDnsStatus.Refused,
+      true,
+    ],
     [
       "nothing listening",
       "ECONNREFUSED",
       "failure",
       DiscoveredHostReverseDnsStatus.Unreachable,
+      false,
     ],
-    // Everything else is a failure the budget must count.
-    ["NOTIMP", "ENOTIMP", "failure", DiscoveredHostReverseDnsStatus.Failed],
-    ["FORMERR", "EFORMERR", "failure", DiscoveredHostReverseDnsStatus.Failed],
+    /*
+     * The server's own NOTIMP and FORMERR codes are responses; everything
+     * else is silence, a failure the budget must count.
+     */
+    [
+      "NOTIMP",
+      "ENOTIMP",
+      "failure",
+      DiscoveredHostReverseDnsStatus.Failed,
+      true,
+    ],
+    [
+      "FORMERR",
+      "EFORMERR",
+      "failure",
+      DiscoveredHostReverseDnsStatus.Failed,
+      true,
+    ],
     [
       "a bad response",
       "EBADRESP",
       "failure",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
     [
       "a cancelled query",
       "ECANCELLED",
       "failure",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
     [
       "a lower-case spelling",
       "etimeout",
       "failure",
       DiscoveredHostReverseDnsStatus.Failed,
+      false,
     ],
   ];
 
   it.each(table)(
-    "reads %s (%s) as %s / %s",
+    "reads %s (%s) as %s / %s, a server response: %p",
     (
       _label: string,
       code: string,
       kind: ReverseDnsLookupErrorClassification["kind"],
       status: DiscoveredHostReverseDnsStatus,
+      isServerResponse: boolean,
     ) => {
       expect(classifyReverseDnsLookupError(fakeDnsError(code))).toEqual({
         kind: kind,
         status: status,
+        isServerResponse: isServerResponse,
       });
     },
   );
@@ -251,13 +298,15 @@ describe("classifyReverseDnsLookupError — what each rejection means", () => {
     "reads %s as a failure the budget counts",
     (_label: string, thrown: unknown) => {
       /*
-       * The unrecognised case defaults to COUNTING. The opposite default
-       * would make the failure budget unreachable exactly when a resolver
-       * fails in a way nobody anticipated.
+       * The unrecognised case defaults to COUNTING — as silence, never as a
+       * response. The opposite default would make the failure budget
+       * unreachable exactly when a resolver fails in a way nobody
+       * anticipated.
        */
       expect(classifyReverseDnsLookupError(thrown)).toEqual({
         kind: "failure",
         status: DiscoveredHostReverseDnsStatus.Failed,
+        isServerResponse: false,
       });
     },
   );
@@ -279,6 +328,7 @@ describe("classifyReverseDnsLookupError — what each rejection means", () => {
     ).toEqual({
       kind: "failure",
       status: DiscoveredHostReverseDnsStatus.Failed,
+      isServerResponse: false,
     });
   });
 });
@@ -350,19 +400,16 @@ describe("ReverseDnsResolver — the status of an address whose lookup rejected"
 
   it.each([
     ["ETIMEOUT", DiscoveredHostReverseDnsStatus.Timeout],
-    ["ESERVFAIL", DiscoveredHostReverseDnsStatus.ServerFailure],
-    ["EREFUSED", DiscoveredHostReverseDnsStatus.Refused],
     ["ECONNREFUSED", DiscoveredHostReverseDnsStatus.Unreachable],
-    ["ENOTIMP", DiscoveredHostReverseDnsStatus.Failed],
+    ["EBADRESP", DiscoveredHostReverseDnsStatus.Failed],
   ])(
     "records %s as %s and spends the failure budget on it",
     async (code: string, status: DiscoveredHostReverseDnsStatus) => {
       /*
        * Budget of two, one at a time: two failures are counted, the breaker
        * trips at the third wave boundary, and the third address is never
-       * asked. The status and the budget have to read the same rejection the
-       * same way, or the tooltip would call "SERVFAIL" something the budget
-       * treated as an answer.
+       * asked. These are SILENCE — nothing answered — which is the only
+       * thing that may spend the budget (#3916).
        */
       const input: Array<string> = addressList(3);
 
@@ -382,6 +429,89 @@ describe("ReverseDnsResolver — the status of an address whose lookup rejected"
       expect(result.failedAddressCount).toBe(2);
       expect(result.failureReason).toContain(code);
       expectPartition(result, input);
+    },
+  );
+
+  it.each([
+    ["ESERVFAIL", DiscoveredHostReverseDnsStatus.ServerFailure],
+    ["EREFUSED", DiscoveredHostReverseDnsStatus.Refused],
+    ["ENOTIMP", DiscoveredHostReverseDnsStatus.Failed],
+    ["EFORMERR", DiscoveredHostReverseDnsStatus.Failed],
+  ])(
+    "records %s as %s, a failed lookup, WITHOUT spending the failure budget: the server responded",
+    async (code: string, status: DiscoveredHostReverseDnsStatus) => {
+      /*
+       * OneUptime issue #3916. The same budget of two that the silent codes
+       * above trip at the third address — and every address is asked,
+       * because a DNS server that answers SERVFAIL or REFUSED is a server
+       * the probe can reach. Each is still a FAILED lookup: its status says
+       * so, failedAddressCount counts it, failureReason and the log keep it.
+       * Reading them as silence once let the first sixty-four addresses of a
+       * sweep, all in one zone a recursive resolver SERVFAILs, skip every
+       * healthy zone behind them and blame the probe's DNS.
+       */
+      const input: Array<string> = addressList(5);
+
+      const result: ReverseDnsResolution = await resolverWith(
+        async (): Promise<Array<string>> => {
+          throw fakeDnsError(code);
+        },
+        { failureBudget: 2 },
+      ).resolveHostnames(input);
+
+      for (const ipAddress of input) {
+        expect(result.statusByIpAddress!.get(ipAddress)).toBe(status);
+      }
+
+      expect(result.lookedUpCount).toBe(5);
+      expect(result.notLookedUpCount).toBe(0);
+      expect(result.isReverseDnsAvailable).toBe(true);
+      expect(result.failedAddressCount).toBe(5);
+      expect(result.failureReason).toContain(code);
+      expect(warnedMessages).toHaveLength(0);
+      expectPartition(result, input);
+    },
+  );
+
+  it.each(["ESERVFAIL", "EREFUSED"])(
+    "names the hosts behind sixty-four %s answers at the SHIPPED budget and width",
+    async (code: string) => {
+      /*
+       * The reported shape at full scale: the lowest seventy live addresses
+       * sit in a zone the resolver answers SERVFAIL or REFUSED for, and ten
+       * more further up have good PTR records. Every one is asked and the
+       * ten are named; the seventy stay failed lookups, and the resolver is
+       * not called unusable.
+       */
+      const deadZone: Array<string> = addressList(70);
+      const healthyZone: Array<string> = Array.from(
+        { length: 10 },
+        (_unused: unknown, index: number): string => {
+          return `10.0.1.${index + 1}`;
+        },
+      );
+
+      const result: ReverseDnsResolution = await resolverWith(
+        async (ipAddress: string): Promise<Array<string>> => {
+          if (ipAddress.startsWith("10.0.1.")) {
+            return [`host-${ipAddress.split(".").pop()}.example.com`];
+          }
+
+          throw fakeDnsError(code);
+        },
+        { concurrency: 32 },
+      ).resolveHostnames([...deadZone, ...healthyZone]);
+
+      for (const ipAddress of healthyZone) {
+        expect(result.hostnameByIpAddress.get(ipAddress)).toBe(
+          `host-${ipAddress.split(".").pop()}.example.com`,
+        );
+      }
+
+      expect(result.isReverseDnsAvailable).toBe(true);
+      expect(result.notLookedUpCount).toBe(0);
+      expect(result.failedAddressCount).toBe(70);
+      expect(warnedMessages).toHaveLength(0);
     },
   );
 

@@ -3420,6 +3420,70 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
     },
   );
 
+  it.each([
+    [
+      "calls back with success and then throws",
+      (callback: (error: Error | null) => void): void => {
+        callback(null);
+        throw new Error("send EPERM, thrown after reporting success");
+      },
+    ],
+    [
+      "calls back with success and then with an error",
+      (callback: (error: Error | null) => void): void => {
+        queueMicrotask(() => {
+          callback(null);
+          callback(new Error("send EPERM, reported after success"));
+        });
+      },
+    ],
+  ] as Array<[string, (callback: (error: Error | null) => void) => void]>)(
+    "a socket that %s on EVERY send still leaves a host whose datagrams left NoReply, retry and all",
+    async (
+      _description: string,
+      reportSend: (callback: (error: Error | null) => void) => void,
+    ) => {
+      /*
+       * The success report settles the send (#3916): the datagram left the
+       * probe, and whatever the socket says about it afterwards is not a
+       * second verdict. On EVERY send, not just the retry, because that is
+       * where a late "failure" would do its damage — counted against the
+       * first send, it equals the host's one send so far, the host is closed
+       * out as unreachable, and its retry is never sent. A host that was
+       * asked twice and stayed silent would be filed SendFailed after one
+       * query. (The it.each above varies only the retry, where one false
+       * failure is still fewer than two sends, so it cannot see this.)
+       *
+       * No real dgram socket does either — its callback is always
+       * asynchronous and its synchronous throws come before any callback —
+       * which is why this is pinned rather than observed.
+       */
+      const setup: Harness = harness();
+      let sendCount: number = 0;
+
+      setup.socket.reportSend = (
+        _query: SentQuery,
+        callback: (error: Error | null) => void,
+      ): void => {
+        sendCount++;
+        reportSend(callback);
+      };
+
+      const resolution: NetbiosNameResolution = await resolverFor(
+        setup,
+      ).resolveNames(["10.0.0.1"]);
+
+      // The first query and its retry: nothing closed the host out early.
+      expect(sendCount).toBe(2);
+      expect(statusesOf(resolution)).toEqual({
+        "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
+      });
+      expect(resolution.queriedCount).toBe(1);
+      expect(resolution.failureReason).toBeUndefined();
+      expectStatusPartition(resolution, ["10.0.0.1"]);
+    },
+  );
+
   it("files every address the policy refuses as SkippedIneligibleAddress, keyed exactly as passed in", async () => {
     /*
      * Keyed VERBATIM — " 10.0.0.1" with its space, "010.0.0.1" with its zero

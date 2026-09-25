@@ -801,6 +801,29 @@ describe("runScan — a reverse-DNS pass whose resolver never answered", () => {
    * operator to raise the budget would send them to the one knob that cannot
    * help: more time asking a resolver that answers nothing names nothing.
    */
+  /*
+   * #3916: the probe reads its hosts file before DNS, so a pass whose
+   * resolver never answered can still have named the few devices listed
+   * there. The note used to say nothing whenever a pass had named anyone —
+   * which, now, would let one /etc/hosts entry hide a dead resolver from the
+   * operator. It says so, and says where those names came from.
+   */
+  test("still reports a resolver that never answered when the hosts file named a few hosts", async () => {
+    mockReverseDnsPass({
+      namedCount: 2,
+      lookedUpCount: 66,
+      isReverseDnsAvailable: false,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Reverse DNS lookups from this probe got no answers, so only the 2 of 300 hosts listed in the probe's hosts file got a reverse DNS name " +
+        "- check the probe's DNS resolver and the reverse DNS zone for this range.",
+    );
+  });
+
   test("does not advise raising the budget when the time limit was also hit", async () => {
     mockReverseDnsPass({
       namedCount: 0,
@@ -1052,12 +1075,14 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
     ).toBe(true);
   });
 
-  test("hosts named by SNMP are counted among the failed lookups but carry no code", async () => {
+  test("hosts named by SNMP are not counted among the failed lookups, and carry no code", async () => {
     /*
-     * Reverse DNS asks about every host, sysName or not, so a failed lookup
-     * for an SNMP-named switch is a real failure and is counted. But that
-     * switch is named, the dialog shows it no hint, and a code on it would be
-     * a status nobody reads — so the code goes only on the unnamed.
+     * Reverse DNS asks about every host, sysName or not, so the pass itself
+     * counts eight failures here. But five of them are SNMP-named switches:
+     * the dialog shows them no (i), and a code on them would be a status
+     * nobody reads. The sentence sends the operator to "the (i) beside an
+     * unnamed host", so it counts the three hosts that have one (#3916) —
+     * it used to say 8, and five of those pointed at nothing.
      */
     scanSpy.mockResolvedValue(makeSnmpResult(makeHosts(20, 5)) as never);
     // The double fails the five SNMP hosts first: they lead the address list.
@@ -1067,7 +1092,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
 
     expect(finalStatusMessage()).toBe(
       "Swept 4094 hosts: 20 answered ICMP ping, 5 answered SNMP. " +
-        "Reverse DNS lookups failed for 8 of 20 hosts; " +
+        "Reverse DNS lookups failed for 3 of 20 hosts; " +
         "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
     );
 
@@ -1087,6 +1112,167 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
     expect(devices[8]!.dnsHostnameStatus).toBe(
       DiscoveredHostReverseDnsStatus.NoRecord,
     );
+  });
+
+  /*
+   * The sentence counts the hosts it sends the operator to (#3916): no name
+   * from ANY source — sysName, PTR or NetBIOS — and a code saying the lookup
+   * failed. A failed PTR lookup on a host something else named is still a
+   * failure the pass counts, but the Review dialog shows that host no (i),
+   * and "hover the (i) beside an unnamed host" about it pointed at nothing.
+   * Counted in scanWithDeadline once NetBIOS has run, so these are pinned
+   * through runScan: the builder alone cannot see which hosts ended unnamed.
+   */
+  test("every failing host has a sysName: no sentence, and no host carries a code", async () => {
+    /*
+     * Twelve switches, all named by SNMP, behind a dead PTR path: twelve
+     * failures, below the 64 that would call the resolver unusable. This
+     * used to read "Reverse DNS lookups failed for all 12 hosts; hover the
+     * (i) beside an unnamed host" on a dialog with no unnamed host and not
+     * one (i) — and, the PTR path staying dead, on every scan.
+     */
+    scanSpy.mockResolvedValue(
+      makeSnmpResult(makeHosts(12, 12), { scannedHostCount: 254 }) as never,
+    );
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 12, failedCount: 12 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 254 hosts: 12 answered ICMP ping, 12 answered SNMP.",
+    );
+
+    for (const device of uploadedDevices(finalUpload())) {
+      expect(device.sysName).toEqual(expect.any(String));
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+    }
+  });
+
+  test("a host NetBIOS named after its PTR lookup failed is not counted", async () => {
+    /*
+     * The reported scan with NetBIOS on: the two addresses whose PTR lookup
+     * timed out lead the hosts NetBIOS is handed, so a NetBIOS double naming
+     * one host names one of them, and naming two names both. The one it
+     * names keeps its reverse-DNS code (it is still true) but has a name, so
+     * no (i); the sentence counts only the other, and goes silent when
+     * NetBIOS named both.
+     */
+    for (const [netbiosNamedCount, expectedTail] of [
+      [
+        1,
+        " Reverse DNS lookups failed for 1 of 12 hosts; " +
+          "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+      ],
+      [2, ""],
+    ] as Array<[number, string]>) {
+      fetchSpy.mockClear();
+      scanSpy.mockResolvedValue(
+        makeIcmpOnlyResult(makeHosts(12), { scannedHostCount: 15 }) as never,
+      );
+      mockReverseDnsPass({ namedCount: 4, lookedUpCount: 12, failedCount: 2 });
+      mockNetbiosPass({ namedCount: netbiosNamedCount, queriedCount: 8 });
+
+      await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+      expect(finalStatusMessage()).toBe(`${CUSTOMER_HEADLINE}${expectedTail}`);
+
+      const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+
+      // The premise: NetBIOS named exactly the failed hosts it was meant to.
+      expect(
+        devices
+          .slice(4, 4 + netbiosNamedCount)
+          .map((device: DiscoveredHost) => {
+            return [device.netbiosName, device.dnsHostnameStatus];
+          }),
+      ).toEqual(
+        Array.from(
+          { length: netbiosNamedCount },
+          (_value: unknown, index: number) => {
+            return [`ws${index + 1}`, DiscoveredHostReverseDnsStatus.Timeout];
+          },
+        ),
+      );
+    }
+  });
+
+  test("a mix of SNMP-named, NetBIOS-named and unnamed failures counts exactly the unnamed ones, distinct by address", async () => {
+    /*
+     * Twenty hosts, the first five SNMP-named; the first ten PTR lookups
+     * fail (five of them on the SNMP hosts), the other ten answer "no
+     * record". NetBIOS is handed the fifteen unnamed hosts and names the
+     * first two — both failed PTR lookups. Left: three unnamed hosts whose
+     * lookup failed, and ten unnamed with no record. The sentence says 3,
+     * and the Review dialog has exactly three (i)s that say the lookup failed.
+     *
+     * The sweep also lists one of those three twice. One address is one
+     * lookup and one row to hover, so it is counted once; "of 20" is the
+     * distinct addresses the pass was handed, as it always was.
+     */
+    const hosts: Array<DiscoveredHost> = makeHosts(20, 5);
+
+    hosts.push({ ipAddress: hostAddress(9), snmpReachable: false });
+
+    scanSpy.mockResolvedValue(makeSnmpResult(hosts) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 20, failedCount: 10 });
+    mockNetbiosPass({ namedCount: 2, queriedCount: 15 });
+
+    await runScan(makeScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 21 answered ICMP ping, 5 answered SNMP. " +
+        "Reverse DNS lookups failed for 3 of 20 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+
+    // The three the sentence counts are the three unnamed hosts with a failure code.
+    const unnamedWithFailure: Set<string> = new Set<string>(
+      uploadedDevices(finalUpload())
+        .filter((device: DiscoveredHost) => {
+          return (
+            !device.sysName &&
+            !device.dnsHostname &&
+            !device.netbiosName &&
+            device.dnsHostnameStatus === DiscoveredHostReverseDnsStatus.Timeout
+          );
+        })
+        .map((device: DiscoveredHost) => {
+          return device.ipAddress;
+        }),
+    );
+
+    expect(Array.from(unnamedWithFailure).sort()).toEqual(
+      [hostAddress(7), hostAddress(8), hostAddress(9)].sort(),
+    );
+  });
+
+  test("a sweep whose failures all landed on named hosts, beside hosts with no record, stays silent", async () => {
+    /*
+     * The other shape the old count got wrong: ten SNMP-named hosts whose
+     * PTR lookups failed, and two ping-only hosts the DNS server answered
+     * "no record" for. The message used to say "failed for 10 of 12 hosts;
+     * hover the (i)", and the only two (i)s said the opposite — "no PTR
+     * record". Nothing that failed is unnamed, so nothing is said; the two
+     * (i)s speak for themselves.
+     */
+    scanSpy.mockResolvedValue(makeSnmpResult(makeHosts(12, 10)) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 12, failedCount: 10 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 12 answered ICMP ping, 10 answered SNMP.",
+    );
+    expect(
+      uploadedDevices(finalUpload())
+        .slice(10)
+        .map((device: DiscoveredHost) => {
+          return device.dnsHostnameStatus;
+        }),
+    ).toEqual([
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    ]);
   });
 
   test("a pass that ran out of time AND had lookups fail says both, the time limit first", async () => {
@@ -1128,11 +1314,17 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
   });
 
   test("failures beside a NetBIOS cap: reverse DNS first, then NetBIOS", async () => {
+    /*
+     * 180 PTR lookups fail, on the first 180 addresses; NetBIOS then names
+     * the first 150 of the hosts it is handed — which are those same
+     * addresses. The 150 it named have no (i) to hover, so the sentence
+     * counts the 30 it did not (#3916).
+     */
     scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(2500)) as never);
     mockReverseDnsPass({
       namedCount: 0,
       lookedUpCount: 2500,
-      failedCount: 30,
+      failedCount: 180,
     });
     mockNetbiosPass({
       namedCount: 150,
@@ -2238,6 +2430,54 @@ describe("runScan — the uploaded message fits the column", () => {
     );
     // The socket's reason still beats the time budget it also reported.
     expect(message).not.toContain("time limit");
+  });
+
+  /*
+   * The pile-up the reverse-DNS failure sentence made reachable (OneUptime
+   * issue #3916): the same essential pair, a reverse-DNS pass that ran out of
+   * time AND had lookups fail, and a capped NetBIOS lookup whose socket then
+   * failed. Four compact sentences no longer fit beside the caveat and the
+   * headline. The upload used to end with the last one cut mid-word —
+   * "NetBIOS socket fa…" — and now leaves it out whole, marking the cut.
+   */
+  test("an ICMP-only sweep that stopped early, beside failed lookups and a capped NetBIOS whose socket failed, drops the last note sentence whole", async () => {
+    scanSpy.mockResolvedValue(
+      makeIcmpOnlyResult(makeHosts(6000), {
+        scannedHostCount: 32768,
+        isIcmpSweepIncomplete: true,
+      }) as never,
+    );
+    mockReverseDnsPass({
+      namedCount: 50,
+      lookedUpCount: 3600,
+      isTimeBudgetExhausted: true,
+      totalBudgetInMs: 600000,
+      failedCount: 1800,
+    });
+    // Names nobody, so all 1,800 failed lookups stay on unnamed hosts.
+    mockNetbiosPass({
+      namedCount: 0,
+      queriedCount: 400,
+      isHostCapReached: true,
+      isTimeBudgetExhausted: true,
+      maxHosts: 2000,
+      failureReason: "send ENOBUFS 10.20.1.3:137",
+    });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    const message: string = finalStatusMessage();
+
+    expect(message).toBe(
+      INCOMPLETE_ICMP_SWEEP_CAVEAT +
+        " Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 6000 answered ping." +
+        " Reverse DNS hit its 10m limit; 2,400 of 6,000 hosts not looked up." +
+        " Reverse DNS failed for 1,800 of 6,000 hosts; rescan to retry." +
+        " NetBIOS skipped 3,950 hosts over its 2,000-host cap." +
+        " …",
+    );
+    expect(message.split("…")).toHaveLength(2);
+    expect(message).not.toContain("NetBIOS socket");
   });
 });
 

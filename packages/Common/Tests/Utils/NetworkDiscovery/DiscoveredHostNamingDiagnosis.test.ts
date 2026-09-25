@@ -402,8 +402,10 @@ const ALL_NAMING_CASES: Array<NamingCase> = allNamingCases();
 /*
  * A tooltip is a few lines, not a page. The dialog's (i) is Tippy with a
  * 350px maximum width, where 420 characters is already eight or nine lines.
- * The longest text today is about 400 characters, so a new sentence that
- * pushes past this is a sign the copy needs trimming, not the limit raising.
+ * The longest text today is 415 characters (it grew from 401 when the
+ * no-record tip learnt to say "inside the probe's container or pod"), so a
+ * new sentence that pushes past this is a sign the copy needs trimming, not
+ * the limit raising.
  */
 const MAX_EXPLANATION_LENGTH: number = 420;
 
@@ -459,7 +461,7 @@ describe("the fixed copy", () => {
     [
       "NO_RECORD_TIP",
       NO_RECORD_TIP,
-      "The probe uses its own DNS server, which may not be the one you checked with. Run nslookup on this address from the probe's host to compare.",
+      "The probe uses its own DNS server, which may not be the one you checked with. Run nslookup on this address inside the probe's container or pod to compare.",
     ],
     [
       "TRANSIENT_FAILURE_TIP",
@@ -1464,6 +1466,19 @@ describe("explainUnnamedDiscoveredHost — the tips", () => {
     );
   });
 
+  test("the no-record tip sends the operator to where the probe resolves, not the machine under it", () => {
+    /*
+     * The probe runs in a container or a Kubernetes pod. A pod resolves
+     * through the cluster DNS, not the node's resolv.conf, and a container's
+     * resolver can differ from its host's, so nslookup "from the probe's
+     * host" could name the device while the probe's own lookup could not —
+     * the very mismatch this tip exists to expose (#3916).
+     */
+    expect(NO_RECORD_TIP).toContain("nslookup");
+    expect(NO_RECORD_TIP).toContain("inside the probe's container or pod");
+    expect(NO_RECORD_TIP).not.toContain("probe's host");
+  });
+
   test.each([
     DiscoveredHostReverseDnsStatus.Timeout,
     DiscoveredHostReverseDnsStatus.ServerFailure,
@@ -1604,6 +1619,267 @@ describe("explainUnnamedDiscoveredHost — the tips", () => {
         ASK_THE_DEVICE_TIP,
       ].join(" "),
     );
+  });
+});
+
+describe("explainUnnamedDiscoveredHost — NetBIOS advice follows the address", () => {
+  /*
+   * The probe only ever sends a NetBIOS query to private and CGNAT IPv4
+   * (isNetbiosQueryAddressAllowed, Probe/Utils/Discovery
+   * /NetbiosNameResolver.ts); every other address is "not asked" whoever
+   * asks (#3916). So "NetBIOS lookup asks Windows hosts for their own name"
+   * on a public or IPv6 address sent the operator to turn NetBIOS on and
+   * rescan, for nothing but a "not asked" line.
+   *
+   * Each address is annotated BY HAND with whether the probe would query it,
+   * rather than asking the helper, so a wrong range cannot agree with itself
+   * here. Every address before this block is 10.16.42.51, which is why none
+   * of them caught it.
+   */
+  const NETBIOS_ADDRESS_CASES: Array<[string, boolean]> = [
+    ["10.16.42.51", true],
+    ["10.0.0.0", true],
+    ["10.255.255.255", true],
+    ["172.16.0.1", true],
+    ["172.31.255.254", true],
+    ["192.168.1.20", true],
+    ["100.64.0.1", true],
+    ["100.127.255.254", true],
+    ["9.255.255.255", false],
+    ["11.0.0.1", false],
+    ["172.15.255.254", false],
+    ["172.32.0.1", false],
+    ["192.169.0.1", false],
+    ["100.63.255.254", false],
+    ["100.128.0.1", false],
+    ["203.0.113.7", false],
+    ["8.8.4.4", false],
+    ["127.0.0.1", false],
+    ["169.254.169.254", false],
+    ["2001:db8::5", false],
+    ["fd00::5", false],
+    ["::ffff:10.16.42.51", false],
+    ["010.16.42.51", false],
+    [" 10.16.42.51", false],
+  ];
+
+  const INELIGIBLE_ADDRESS_SENTENCE: string = netbiosSentence(
+    DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+  );
+
+  test("a public host on an SNMP scan with NetBIOS off is not told to turn NetBIOS on", () => {
+    // The review's reproduction, word for word.
+    expect(
+      textOf({
+        host: pingOnlyHost({
+          ipAddress: "203.0.113.7",
+          dnsHostnameStatus: DiscoveredHostReverseDnsStatus.NoRecord,
+        }),
+        scan: SNMP_SCAN,
+        isGlobalProbe: false,
+      }),
+    ).toBe(
+      [
+        SNMP_NO_ANSWER_SENTENCE,
+        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
+        NETBIOS_OFF_SENTENCE,
+        NO_RECORD_TIP,
+      ].join(" "),
+    );
+  });
+
+  test("a public host on a ping-only scan is told about SNMP only", () => {
+    expect(
+      textOf({
+        host: pingOnlyHost({ ipAddress: "8.8.4.4" }),
+        scan: ICMP_ONLY_SCAN,
+        isGlobalProbe: false,
+      }),
+    ).toBe(
+      [
+        SNMP_NOT_CHECKED_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
+        NETBIOS_OFF_SENTENCE,
+        ASK_THE_DEVICE_SNMP_TIP,
+      ].join(" "),
+    );
+  });
+
+  test.each(NETBIOS_ADDRESS_CASES)(
+    "%s on a scan with NetBIOS off: NetBIOS is suggested only if the probe would ask it (%p)",
+    (ipAddress: string, isQueryable: boolean) => {
+      expect(
+        textOf({
+          host: pingOnlyHost({ ipAddress: ipAddress }),
+          scan: SNMP_SCAN,
+          isGlobalProbe: false,
+        }).endsWith(` ${ASK_THE_DEVICE_NETBIOS_TIP}`),
+      ).toBe(isQueryable);
+      expect(
+        textOf({
+          host: pingOnlyHost({ ipAddress: ipAddress }),
+          scan: ICMP_ONLY_SCAN,
+          isGlobalProbe: false,
+        }).endsWith(
+          ` ${isQueryable ? ASK_THE_DEVICE_TIP : ASK_THE_DEVICE_SNMP_TIP}`,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  test("NetBIOS on with no code, on an address the probe never asks, says it was not asked", () => {
+    /*
+     * The probe's private-only rule shipped with the NetBIOS setting itself,
+     * so for an older probe's row, too, "not asked" is the truth.
+     */
+    expect(
+      textOf({
+        host: pingOnlyHost({ ipAddress: "203.0.113.7" }),
+        scan: SNMP_AND_NETBIOS_SCAN,
+        isGlobalProbe: false,
+      }),
+    ).toBe(
+      [
+        SNMP_NO_ANSWER_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
+        INELIGIBLE_ADDRESS_SENTENCE,
+      ].join(" "),
+    );
+  });
+
+  test("on a global probe, the global-probe reason wins over the address", () => {
+    /*
+     * A global probe refuses NetBIOS for the whole scan before any address
+     * is looked at, so that is the reason to give.
+     */
+    expect(
+      textOf({
+        host: pingOnlyHost({ ipAddress: "203.0.113.7" }),
+        scan: SNMP_AND_NETBIOS_SCAN,
+        isGlobalProbe: true,
+      }),
+    ).toContain(GLOBAL_PROBE_NETBIOS_SENTENCE);
+  });
+
+  test("a code on the row always wins over what the address suggests", () => {
+    // The code is what the probe saw. The address is only an inference.
+    for (const [code, sentence] of NETBIOS_COPY) {
+      const text: string = textOf({
+        host: pingOnlyHost({
+          ipAddress: "203.0.113.7",
+          netbiosNameStatus: code,
+        }),
+        scan: SNMP_AND_NETBIOS_SCAN,
+        isGlobalProbe: false,
+      });
+
+      expect(text).toContain(sentence);
+      expect(text).not.toContain(NETBIOS_NOT_RECORDED_SENTENCE);
+    }
+  });
+
+  test("every address, code, scan and probe: the NetBIOS line and the tip follow from first principles", () => {
+    const wrong: Set<string> = new Set<string>();
+    let casesChecked: number = 0;
+    let netbiosSuggestedCount: number = 0;
+
+    for (const [ipAddress, isQueryable] of NETBIOS_ADDRESS_CASES) {
+      for (const code of NETBIOS_CODE_OPTIONS) {
+        const scans: Array<DiscoveredHostNamingScan | undefined> = [undefined];
+
+        for (const isSnmpEnabled of FLAG_OPTIONS) {
+          for (const isNetbiosLookupEnabled of FLAG_OPTIONS) {
+            scans.push({
+              status: DiscoveryScanStatus.Completed,
+              isSnmpEnabled: isSnmpEnabled,
+              isNetbiosLookupEnabled: isNetbiosLookupEnabled,
+            });
+          }
+        }
+
+        for (const scan of scans) {
+          for (const isGlobalProbe of GLOBAL_PROBE_OPTIONS) {
+            casesChecked++;
+
+            const text: string = textOf({
+              host: pingOnlyHost({
+                ipAddress: ipAddress,
+                netbiosNameStatus: code,
+              }),
+              scan: scan,
+              isGlobalProbe: isGlobalProbe,
+            });
+            const sentences: Array<KnownSentence> | undefined =
+              splitIntoKnownSentences(text);
+
+            if (!sentences) {
+              wrong.add(`not all fixed copy: ${text}`);
+              continue;
+            }
+
+            const netbiosLine: string | undefined = sentences.find(
+              (entry: KnownSentence): boolean => {
+                return entry.group === NETBIOS_GROUP;
+              },
+            )?.sentence;
+            const tip: string | undefined = sentences.find(
+              (entry: KnownSentence): boolean => {
+                return entry.group === ASK_THE_DEVICE_GROUP;
+              },
+            )?.sentence;
+
+            let expectedNetbiosLine: string | undefined = undefined;
+
+            if (code) {
+              expectedNetbiosLine = netbiosSentence(code);
+            } else if (!scan) {
+              expectedNetbiosLine = undefined;
+            } else if (scan.isNetbiosLookupEnabled !== true) {
+              expectedNetbiosLine = NETBIOS_OFF_SENTENCE;
+            } else if (isGlobalProbe === true) {
+              expectedNetbiosLine = GLOBAL_PROBE_NETBIOS_SENTENCE;
+            } else if (!isQueryable) {
+              expectedNetbiosLine = INELIGIBLE_ADDRESS_SENTENCE;
+            } else {
+              expectedNetbiosLine = NETBIOS_NOT_RECORDED_SENTENCE;
+            }
+
+            const isSnmpOff: boolean =
+              Boolean(scan) && scan!.isSnmpEnabled === false;
+            const isNetbiosSuggested: boolean =
+              Boolean(scan) &&
+              scan!.isNetbiosLookupEnabled !== true &&
+              !code &&
+              isGlobalProbe !== true &&
+              isQueryable;
+
+            let expectedTip: string | undefined = undefined;
+
+            if (isSnmpOff && isNetbiosSuggested) {
+              expectedTip = ASK_THE_DEVICE_TIP;
+            } else if (isSnmpOff) {
+              expectedTip = ASK_THE_DEVICE_SNMP_TIP;
+            } else if (isNetbiosSuggested) {
+              expectedTip = ASK_THE_DEVICE_NETBIOS_TIP;
+            }
+
+            if (isNetbiosSuggested) {
+              netbiosSuggestedCount++;
+            }
+
+            if (netbiosLine !== expectedNetbiosLine || tip !== expectedTip) {
+              wrong.add(`${ipAddress}: ${text}`);
+            }
+          }
+        }
+      }
+    }
+
+    expect(Array.from(wrong).slice(0, 5)).toEqual([]);
+    // 24 addresses x 8 codes x (1 + 5 x 5) scans x 3 probes.
+    expect(casesChecked).toBe(24 * 8 * (1 + 5 * 5) * 3);
+    // A guard on the guard: the suggesting branch was reached.
+    expect(netbiosSuggestedCount).toBeGreaterThan(0);
   });
 });
 
@@ -1909,7 +2185,7 @@ describe("explainUnnamedDiscoveredHost — every combination", () => {
     /*
      * And the enumeration really reached the long combinations: the longest
      * text today is the reporter's scan with a missing PTR record and no
-     * NetBIOS reply, at about 400 characters.
+     * NetBIOS reply, at 415 characters.
      */
     expect(longest).toBeGreaterThan(350);
   });

@@ -100,7 +100,10 @@ export enum DiscoveredHostNetbiosStatus {
   SkippedHostCap = "skipped-host-cap",
   /*
    * Never queried: NetBIOS is only ever sent to private and CGNAT IPv4
-   * addresses, whoever asks.
+   * addresses, whoever asks. The dashboard's copy of that rule,
+   * isNetbiosQueryableIPv4Address (NetbiosNameUtil.ts), keeps the Review
+   * dialog from suggesting NetBIOS for such an address, and gives an older
+   * probe's row this code's sentence (#3916).
    */
   SkippedIneligibleAddress = "skipped-ineligible-address",
   /*
