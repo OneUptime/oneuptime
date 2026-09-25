@@ -2,9 +2,14 @@ import {
   buildRequest,
   buildResponse,
   createMockIdentityRouter,
+  expectNoUserSecrets,
   MockIdentityRouter,
   RouteHandler,
+  sentEntityBody,
+  withSecretColumns,
 } from "./IdentityRouterTestUtil";
+import User from "Common/Models/DatabaseModels/User";
+import { JSONObject } from "Common/Types/JSON";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
@@ -724,6 +729,65 @@ describe("POST /signup on a self-hosted install (billing disabled)", () => {
     await invoke("/signup", signupBody());
 
     expect(entityResponse().miscData["emailVerificationToken"]).toBeUndefined();
+  });
+
+  describe("the account in the response body", () => {
+    beforeEach(() => {
+      /*
+       * What `UserService.create` really hands back: the model this handler
+       * built from the request, with the password hashed in place and its
+       * salt minted onto it -- plus, for good measure, every other secret
+       * column a stored row can carry.
+       */
+      userCreateUserOnSignup.mockImplementation(
+        async (data: Record<string, any>): Promise<unknown> => {
+          const user: User = data["user"] as User;
+          user._id = NEW_USER_ID;
+          return withSecretColumns(user);
+        },
+      );
+    });
+
+    it("never carries the password hash, its salt, or any other secret column", async () => {
+      /*
+       * The regression test for the reported leak: this route answered every
+       * self-hosted signup with the saved model as-is, and the serializer
+       * writes out whatever is set on it -- so the caller received the new
+       * account's scrypt hash and salt.
+       */
+      await invoke("/signup", signupBody());
+
+      expectNoUserSecrets(sentEntityBody(sendEntityResponse.mock.calls[0]!));
+    });
+
+    it("still carries what the sign-in page reads to start the session", async () => {
+      await invoke("/signup", signupBody());
+
+      const body: JSONObject = sentEntityBody(
+        sendEntityResponse.mock.calls[0]!,
+      );
+
+      expect(body["_id"]).toBe(NEW_USER_ID);
+      expect(body["email"]).toEqual({ _type: "Email", value: NEW_USER_EMAIL });
+      expect(body["name"]).toEqual({ _type: "Name", value: "New User" });
+      expect(body["isMasterAdmin"]).toBe(false);
+    });
+
+    it("does not echo back the rest of the saved row", async () => {
+      /*
+       * An allow-list, not a deny-list: columns nobody named -- here ones the
+       * request body itself set -- stay out, so a secret column added to User
+       * later cannot ride out on this response by default.
+       */
+      await invoke("/signup", signupBody({ utmSource: "newsletter" }));
+
+      const body: JSONObject = sentEntityBody(
+        sendEntityResponse.mock.calls[0]!,
+      );
+
+      expect(body).not.toHaveProperty("companyName");
+      expect(body).not.toHaveProperty("utmSource");
+    });
   });
 
   it("still registers with the self-hosted registry when asked to", async () => {

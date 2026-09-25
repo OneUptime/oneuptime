@@ -56,7 +56,7 @@ El SCIM de proyectos permite que los proveedores de identidad gestionen los miem
 
 1. **Asignación de usuario en el IdP**: Cuando se asigna un usuario a OneUptime en tu IdP
 2. **Aprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para crear el usuario
-3. **Membresía en el equipo**: El usuario se agrega automáticamente a los equipos predeterminados configurados
+3. **Membresía en el equipo**: El usuario se agrega automáticamente a los equipos predeterminados configurados. En OneUptime Cloud, una persona que ya tenía una cuenta de OneUptime recibe en cambio una invitación y se une cuando la acepta (consulta las preguntas frecuentes más abajo)
 4. **Acceso concedido**: El usuario ahora puede acceder al proyecto de OneUptime
 5. **Desasignación de usuario**: Cuando se desasigna al usuario en el IdP
 6. **Desaprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para eliminar al usuario
@@ -409,7 +409,21 @@ Sí, SCIM y SSO son características independientes. Puedes usar SCIM para el ap
 
 ### ¿Cómo gestiono los usuarios que ya existen en OneUptime?
 
-Cuando SCIM intenta crear un usuario que ya existe (coincidiendo por correo electrónico), OneUptime simplemente lo agregará a los equipos predeterminados configurados en lugar de crear un usuario duplicado.
+Cuando SCIM intenta crear un usuario que ya existe (coincidiendo por correo electrónico), OneUptime no crea un usuario duplicado. Lo que ocurre después depende de dónde se ejecute OneUptime:
+
+- **Autoalojado**: El usuario existente se agrega de inmediato a los equipos predeterminados configurados (o al equipo del grupo, con Grupos de Push).
+- **OneUptime Cloud**: Una cuenta de OneUptime pertenece a la persona, no a un proyecto concreto, así que SCIM no puede convertir a alguien en miembro de tu proyecto por su propia cuenta. En su lugar, el usuario existente es **invitado** a los equipos y recibe el correo de invitación habitual. Se une cuando acepta las invitaciones desde **Invitaciones del proyecto** en OneUptime, o cuando confirma el inicio de sesión único (SSO) de tu proyecto desde el correo que OneUptime envía en su primer inicio de sesión con SSO. Hasta entonces figura como pendiente. Lo mismo ocurre cuando un grupo agrega a un usuario existente que aún no es miembro de tu proyecto.
+
+Los usuarios que crea el propio SCIM, los usuarios que ya se han unido a tu proyecto y los usuarios que han confirmado el SSO de tu proyecto se agregan de inmediato en ambos casos.
+
+### ¿Puede SCIM cambiar la dirección de correo electrónico o el nombre de un usuario?
+
+La dirección de correo electrónico de una cuenta de OneUptime es con la que esa persona inicia sesión en todos los proyectos a los que pertenece, y adonde llegan sus enlaces para restablecer la contraseña. Por eso:
+
+- **OneUptime Cloud**: SCIM nunca cambia una dirección de correo electrónico. Una solicitud que la cambiaría se rechaza con un error SCIM `400` de tipo `mutability` y no se aplica nada de esa solicitud; tu proveedor de identidad muestra el motivo. Pide al usuario que cambie su dirección desde su propio perfil de OneUptime. Una solicitud que repite la dirección que la cuenta ya tiene no es un cambio y se completa correctamente.
+- **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Cualquier otro cambio se rechaza de la misma manera.
+
+Los nombres siguen la misma regla en ambos casos: SCIM actualiza el nombre solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, el nombre se deja como está y el resto de la solicitud se completa igualmente.
 
 ### ¿Cuál es la diferencia entre equipos predeterminados y grupos de inserción?
 

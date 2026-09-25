@@ -114,6 +114,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DatabaseServiceUpdateColumnsIfUnlockedPostgres.test.ts --forceExit
 
+      # Clones the migrated IoTDevice and sibling inventory tables into an
+      # isolated schema and executes each service's hand-built
+      # UPDATE ... FROM (VALUES ...) latest-metric mirror write against them.
+      # A VALUES tuple / alias / param mismatch only fails on a real driver.
+      - name: Test the inventory latest-metric mirror writes against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LATEST_METRICS_TESTS: "true"
+          LATEST_METRICS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LATEST_METRICS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LATEST_METRICS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IoTDeviceLatestMetricsPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres
