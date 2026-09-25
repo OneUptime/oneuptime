@@ -12,6 +12,17 @@ import logger from "Common/Server/Utils/Logger";
  * Safe to re-run (MODIFY SETTING is idempotent). Only the time-partitioned
  * tables are touched — applying this to a sipHash-partitioned table would
  * effectively disable row-level TTL (no partition ever fully expires).
+ *
+ * No metric table is in the list any more. MetricItemV3 and MetricItemAggMV1m
+ * were removed because a metric partition is time-uniform but NOT
+ * lifetime-uniform: monitor metrics write into it with a retention of their
+ * own, so a part never expires as a whole and TTL stops dropping anything.
+ * DropTtlOnlyDropPartsFromMetricTables runs later in the chain and clears the
+ * setting on installs this migration already touched; the models no longer
+ * carry it for fresh installs. MetricItemAggMV1mByHost was never here: it is
+ * sipHash-partitioned and DropUnusedTelemetryTables drops it later in the
+ * chain (or the operator renames it to `…_backup` pre-upgrade); fresh V3
+ * installs use the model-owned …ByHostV2 instead.
  */
 export default class AddTtlOnlyDropPartsToTelemetryV3 extends DataMigrationBase {
   public constructor() {
@@ -25,20 +36,10 @@ export default class AddTtlOnlyDropPartsToTelemetryV3 extends DataMigrationBase 
   public override async migrate(): Promise<void> {
     const tables: Array<string> = [
       "LogItemV3",
-      "MetricItemV3",
       "SpanItemV3",
       "ExceptionItemV3",
       "ProfileItemV3",
       "ProfileSampleItemV3",
-      "MetricItemAggMV1m",
-      /*
-       * MetricItemAggMV1mByHost deliberately absent: it is
-       * sipHash-partitioned (see header) and is dropped by
-       * DropUnusedTelemetryTables later in the chain (or renamed to
-       * `…_backup` by the operator pre-upgrade); fresh V3 installs use
-       * the model-owned ...ByHostV2, which carries this setting from its
-       * model tableSettings.
-       */
       "MetricBaselineHourly",
     ];
     for (const table of tables) {

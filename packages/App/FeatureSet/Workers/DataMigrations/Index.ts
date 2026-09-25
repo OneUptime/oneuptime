@@ -75,6 +75,7 @@ import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import DropTtlOnlyDropPartsFromMetricTables from "./DropTtlOnlyDropPartsFromMetricTables";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -499,6 +500,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the same refresh for them.
    */
   new ScheduleRemindersMissedByReminderRuleLookup(),
+  /*
+   * Clears ttl_only_drop_parts on the metric tables, which
+   * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a
+   * metric partition mixes telemetry retention with monitor retention, so it
+   * never expires as a whole and TTL evicts nothing. Appended at the end
+   * because it only has to run after that migration, and cluster-aware so it
+   * actually reaches an existing install.
+   */
+  new DropTtlOnlyDropPartsFromMetricTables(),
 ];
 
 export default DataMigrations;
