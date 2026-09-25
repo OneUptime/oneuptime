@@ -453,7 +453,10 @@ export default class MetricMonitorCriteria {
         } = {
           value: convertedValue,
           timestamp: sample.timestamp,
-          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+          attributes: MetricMonitorCriteria.extractLabelAttributes(
+            sample,
+            input.seriesLabels,
+          ),
         };
 
         if (componentValueLookup && metricContext.components) {
@@ -586,7 +589,10 @@ export default class MetricMonitorCriteria {
     }
   }
 
-  private static extractLabelAttributes(sample: AggregateModel): JSONObject {
+  private static extractLabelAttributes(
+    sample: AggregateModel,
+    seriesLabels?: JSONObject | undefined,
+  ): JSONObject {
     /*
      * AggregatedModel has a string index signature that holds group-by
      * attributes alongside `timestamp` and `value`. Strip the known keys
@@ -594,7 +600,7 @@ export default class MetricMonitorCriteria {
      */
     const labels: JSONObject = {};
     for (const key of Object.keys(sample)) {
-      if (key === "timestamp" || key === "value") {
+      if (key === "timestamp" || key === "value" || key === "attributes") {
         continue;
       }
       const v: unknown = (sample as unknown as JSONObject)[key];
@@ -603,6 +609,50 @@ export default class MetricMonitorCriteria {
       }
       labels[key] = v as JSONObject[string];
     }
+
+    /*
+     * Grouped rows carry their labels NESTED under `attributes` — both
+     * MetricService.aggregateBy with groupByAttributeKeys and the
+     * infrastructure monitors' raw-scan path return them that way. The
+     * map used to be copied through as a single `attributes` label, which
+     * the Breaching Samples list rendered as "`attributes`:
+     * `[object Object]`".
+     *
+     * The raw scan nests EVERY datapoint attribute of the bucket's first
+     * row, not just the grouped ones, so when the series labels are known
+     * only those keys are lifted out: they are what identifies the series.
+     * A formula's rows carry no attributes at all, so each key falls back
+     * to the series' own label — every sample of a series belongs to it.
+     */
+    const nested: unknown = (sample as unknown as JSONObject)["attributes"];
+    const nestedAttributes: JSONObject =
+      nested && typeof nested === "object" && !Array.isArray(nested)
+        ? (nested as JSONObject)
+        : {};
+
+    if (nested !== undefined && nested !== null && typeof nested !== "object") {
+      // A flat label that happens to be called `attributes`.
+      labels["attributes"] = nested as JSONObject[string];
+    }
+
+    const labelKeys: Array<string> = Object.keys(seriesLabels || {});
+    const keys: Array<string> =
+      labelKeys.length > 0 ? labelKeys : Object.keys(nestedAttributes);
+
+    for (const key of keys) {
+      if (key in labels) {
+        continue;
+      }
+
+      const v: unknown = nestedAttributes[key] ?? seriesLabels?.[key];
+
+      if (v === undefined || v === null || v === "" || typeof v === "object") {
+        continue;
+      }
+
+      labels[key] = v as JSONObject[string];
+    }
+
     return labels;
   }
 
@@ -1035,7 +1085,10 @@ export default class MetricMonitorCriteria {
         breachingSamples.push({
           value: sample.value,
           timestamp: ts,
-          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+          attributes: MetricMonitorCriteria.extractLabelAttributes(
+            sample,
+            input.seriesLabels,
+          ),
         });
         if (!firstBreach) {
           firstBreach = { sample, baseline, sigma: observedSigma };
