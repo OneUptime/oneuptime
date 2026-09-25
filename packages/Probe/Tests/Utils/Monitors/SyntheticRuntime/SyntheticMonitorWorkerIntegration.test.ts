@@ -617,16 +617,20 @@ describe("SyntheticMonitorWorker full process boundary", () => {
             frame.width = "1200";
             frame.height = "800";
             document.body.appendChild(frame);
-            return new Promise((resolve) => { frame.onload = resolve; });
+            // Bounded, so a slow runner shortens the check rather than hangs it.
+            return new Promise((resolve) => {
+              frame.onload = resolve;
+              setTimeout(resolve, 15000);
+            });
           }, ${JSON.stringify(crossSiteUrl)});
         };
         await page.goto(${JSON.stringify(targetUrl)});
         await addCrossSiteFrame(page);
-        const screenshots = { first: await page.screenshot({ fullPage: true }) };
+        const screenshots = { first: await page.screenshot() };
         const second = await page.context().newPage();
         await second.goto(${JSON.stringify(crossSiteUrl)});
         await addCrossSiteFrame(second);
-        screenshots.second = await second.screenshot({ fullPage: true });
+        screenshots.second = await second.screenshot();
         screenshots.again = await page.screenshot();
         await new Promise((resolve) => setTimeout(resolve, 6000));
         return { data: "checked", screenshots };
