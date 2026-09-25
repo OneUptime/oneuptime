@@ -242,25 +242,33 @@ const NODES: Array<NodeSample> = [
     node: "gke-gke-test-cluster-default-pool-662f6819-1nd7",
     allocatableBytes: 257760964608,
     // 86.26% .. 88.82% of allocatable
-    usedBytes: [222344608010, 224000000000, 226000000000, 228000000000, 228943289000],
+    usedBytes: [
+      222344608010, 224000000000, 226000000000, 228000000000, 228943289000,
+    ],
   },
   {
     node: "gke-gke-test-cluster-default-pool-662f6819-7qrq",
     allocatableBytes: 257760956416,
     // ~86.5% .. ~87.4%
-    usedBytes: [223000000000, 224500000000, 225000000000, 225000000000, 225300000000],
+    usedBytes: [
+      223000000000, 224500000000, 225000000000, 225000000000, 225300000000,
+    ],
   },
   {
     node: "gke-gke-test-cluster-db-pool-3e2bfa3b-3am6",
     allocatableBytes: 191483559936,
     // ~52%
-    usedBytes: [99000000000, 99500000000, 100000000000, 100000000000, 99800000000],
+    usedBytes: [
+      99000000000, 99500000000, 100000000000, 100000000000, 99800000000,
+    ],
   },
   {
     node: "gke-gke-test-cluster-db-pool-3e2bfa3b-rqyt",
     allocatableBytes: 191483551744,
     // ~41%
-    usedBytes: [78000000000, 78500000000, 79000000000, 79000000000, 78800000000],
+    usedBytes: [
+      78000000000, 78500000000, 79000000000, 79000000000, 78800000000,
+    ],
   },
 ];
 
@@ -324,7 +332,9 @@ describe("Kubernetes ratio-template email: High Node Memory Utilization", () => 
     expect(rootCause).toContain(
       "Node `gke-gke-test-cluster-default-pool-662f6819-1nd7` memory usage is at **88.82%**.",
     );
-    expect(rootCause).not.toContain("Kubernetes metric `k8s.node.allocatable_memory`");
+    expect(rootCause).not.toContain(
+      "Kubernetes metric `k8s.node.allocatable_memory`",
+    );
   });
 
   test("the Filter Conditions Met sentence and the list agree on units", async () => {

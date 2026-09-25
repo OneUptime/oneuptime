@@ -153,7 +153,12 @@ interface AffectedResourceBreachPredicate {
 /*
  * The platforms whose monitors carry a per-resource breakdown.
  */
-type PlatformName = "kubernetes" | "proxmox" | "vmware" | "dockerSwarm" | "ceph";
+type PlatformName =
+  | "kubernetes"
+  | "proxmox"
+  | "vmware"
+  | "dockerSwarm"
+  | "ceph";
 
 interface CriteriaMetricTargetComponent {
   alias: string;
@@ -2154,8 +2159,7 @@ ${contextBlock}
       case "vmware":
         return getVMwareMetricByMetricName(input.metricName)?.friendlyName;
       case "dockerSwarm":
-        return getDockerSwarmMetricByMetricName(input.metricName)
-          ?.friendlyName;
+        return getDockerSwarmMetricByMetricName(input.metricName)?.friendlyName;
       case "ceph":
         return getCephMetricByMetricName(input.metricName)?.friendlyName;
       default:
@@ -2325,9 +2329,11 @@ ${contextBlock}
       return target.metricName;
     }
 
-    return target.components.find((component: CriteriaMetricTargetComponent) => {
-      return Boolean(component.metricName);
-    })?.metricName;
+    return target.components.find(
+      (component: CriteriaMetricTargetComponent) => {
+        return Boolean(component.metricName);
+      },
+    )?.metricName;
   }
 
   /**
@@ -2342,9 +2348,7 @@ ${contextBlock}
   private static describeCriteriaMetric(input: {
     platform: PlatformName;
     target: CriteriaMetricTarget | null;
-    breakdown?:
-      | { metricName: string; metricFriendlyName: string }
-      | undefined;
+    breakdown?: { metricName: string; metricFriendlyName: string } | undefined;
     fallbackMetricName?: string | undefined;
   }): Array<string> {
     const target: CriteriaMetricTarget | null = input.target;
@@ -2558,30 +2562,31 @@ ${contextBlock}
     };
     breach: AffectedResourceBreachPredicate;
   }): Array<PlatformAffectedRow<R>> {
-    const rows: Array<PlatformAffectedRow<R>> = input.breakdown.affectedResources
-      .map((resource: R): PlatformAffectedRow<R> => {
-        /*
-         * A fall criteria breached on the resource's lowest sample in the
-         * window, not its highest.
-         */
-        const value: number = input.breach.worstIsLowest
-          ? (resource.lowestMetricValue ?? resource.metricValue)
-          : resource.metricValue;
+    const rows: Array<PlatformAffectedRow<R>> =
+      input.breakdown.affectedResources
+        .map((resource: R): PlatformAffectedRow<R> => {
+          /*
+           * A fall criteria breached on the resource's lowest sample in the
+           * window, not its highest.
+           */
+          const value: number = input.breach.worstIsLowest
+            ? resource.lowestMetricValue ?? resource.metricValue
+            : resource.metricValue;
 
-        return {
-          identity: resource,
-          value: value,
-          formattedValue: MonitorCriteriaEvaluator.formatPlatformMetricValue({
-            platform: input.platform,
-            metricName: input.breakdown.metricName,
-            metricUnit: input.breakdown.metricUnit,
+          return {
+            identity: resource,
             value: value,
-          }),
-        };
-      })
-      .filter((row: PlatformAffectedRow<R>) => {
-        return row.value !== null && input.breach.matches(row.value);
-      });
+            formattedValue: MonitorCriteriaEvaluator.formatPlatformMetricValue({
+              platform: input.platform,
+              metricName: input.breakdown.metricName,
+              metricUnit: input.breakdown.metricUnit,
+              value: value,
+            }),
+          };
+        })
+        .filter((row: PlatformAffectedRow<R>) => {
+          return row.value !== null && input.breach.matches(row.value);
+        });
 
     return MonitorCriteriaEvaluator.sortAffectedRows({
       rows: rows,
@@ -2681,11 +2686,13 @@ ${contextBlock}
   >(input: {
     platform: PlatformName;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-    breakdown: {
-      metricName: string;
-      metricUnit?: string | undefined;
-      affectedResources: Array<R>;
-    } | undefined;
+    breakdown:
+      | {
+          metricName: string;
+          metricUnit?: string | undefined;
+          affectedResources: Array<R>;
+        }
+      | undefined;
     breach: AffectedResourceBreachPredicate;
     toIdentity: (attributes: JSONObject) => I;
     withContext: (series: I, context: I) => I;
@@ -3340,8 +3347,10 @@ ${contextBlock}
           platform: "proxmox",
           target: target,
           breakdown: breakdown,
-          fallbackMetricName: proxmoxMonitor?.metricViewConfig?.queryConfigs?.[0]
-            ?.metricQueryData?.filterData?.metricName as string | undefined,
+          fallbackMetricName: proxmoxMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
         }),
       );
 
@@ -4540,8 +4549,7 @@ ${contextBlock}
       const target: CriteriaMetricTarget | null | undefined = input.target;
 
       if (target?.isFormula) {
-        const formulaName: string =
-          target.displayName || `\`${target.alias}\``;
+        const formulaName: string = target.displayName || `\`${target.alias}\``;
         const expression: string = target.formulaExpression
           ? ` (\`${target.formulaExpression}\`)`
           : "";

@@ -154,8 +154,7 @@ export interface CephAffectedResource {
   lowestMetricValue?: number | undefined;
 }
 
-export interface CephResourceBreakdown
-  extends PlatformResourceBreakdownSource {
+export interface CephResourceBreakdown extends PlatformResourceBreakdownSource {
   clusterName: string;
   metricName: string;
   metricFriendlyName: string;
