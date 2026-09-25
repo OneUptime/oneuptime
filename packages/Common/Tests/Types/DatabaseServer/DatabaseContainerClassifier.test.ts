@@ -2552,7 +2552,10 @@ describe("classifyKubernetesPod — client runs and one-off pods are not databas
           pod({
             name: "pg-client-loop-58fdcb4994-4v59m",
             namespace: "data",
-            labels: { app: "pg-client-loop", "pod-template-hash": "58fdcb4994" },
+            labels: {
+              app: "pg-client-loop",
+              "pod-template-hash": "58fdcb4994",
+            },
             owner: { kind: "ReplicaSet", name: "pg-client-loop-58fdcb4994" },
             containers: [{ name: "client", image: "postgres:16", command }],
           }),
