@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
+import SignupUser from "../Utils/SignupUser";
 import UserResponse from "../Utils/UserResponse";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
@@ -557,11 +558,13 @@ router.post(
         throw new BadDataException(passwordValidationError);
       }
 
-      /* Creating a type that is a partial of the TBaseModel type. */
-      const partialUser: User = BaseModel.fromJSON(
-        data as JSONObject,
-        User,
-      ) as User;
+      /*
+       * Only the columns a signup may set. The create below runs as root,
+       * which skips column create permissions, so anything else in the body --
+       * an `_id` naming somebody else's account above all -- would be written
+       * verbatim. See SignupUser.
+       */
+      const partialUser: User = SignupUser.fromRequestData(data);
       partialUser.password = new HashedString(password as string);
 
       /*

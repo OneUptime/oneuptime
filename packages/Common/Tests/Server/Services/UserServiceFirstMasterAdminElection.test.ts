@@ -684,6 +684,77 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
     });
   });
 
+  describe("a signup that names an existing row", () => {
+    /*
+     * TypeORM's save() UPDATEs the row an entity's `_id` names, and this create
+     * runs as root, which DatabaseService.create exempts from its supplied-id
+     * check. A signup carrying a victim's id therefore rewrote the victim's
+     * email and password in place (UserSignupIdTakeoverPostgres.test.ts shows
+     * it against a real table). Refused before anything is read or written.
+     */
+    const VICTIM_ID: string = "33333333-3333-4333-8333-333333333333";
+
+    type BuildUserWithIdFunction = (modules: LoadedModules) => any;
+
+    const buildUserWithId: BuildUserWithIdFunction = (
+      modules: LoadedModules,
+    ): any => {
+      const user: any = buildUser({ modules, email: "attacker@example.com" });
+      user._id = VICTIM_ID;
+      return user;
+    };
+
+    test("self-hosted: refuses it without taking the lock or touching a row", async () => {
+      userRows.push({ email: "victim@example.com" });
+
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUserWithId(selfHosted),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("An id cannot be supplied when signing up.");
+
+      expect(events).toEqual([]);
+      expect(selfHosted.userService.create).not.toHaveBeenCalled();
+      expect(selfHosted.semaphore.lock).not.toHaveBeenCalled();
+      expect(userRows).toHaveLength(1);
+    });
+
+    test("self-hosted: refuses it on an empty instance, so the id cannot win the election either", async () => {
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUserWithId(selfHosted),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("An id cannot be supplied when signing up.");
+
+      expect(selfHosted.userService.create).not.toHaveBeenCalled();
+      expect(userRows).toHaveLength(0);
+    });
+
+    test("hosted: refuses it without touching a row", async () => {
+      await expect(
+        hosted.userService.createUserOnSignup({
+          user: buildUserWithId(hosted),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("An id cannot be supplied when signing up.");
+
+      expect(events).toEqual([]);
+      expect(hosted.userService.create).not.toHaveBeenCalled();
+    });
+
+    test("a user with no id is still created", async () => {
+      const created: any = await hosted.userService.createUserOnSignup({
+        user: buildUser({ modules: hosted, email: "new@example.com" }),
+        props: { isRoot: true },
+      });
+
+      expect(created).toBeTruthy();
+      expect(hosted.userService.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("the race itself", () => {
     test("two simultaneous signups produce exactly one Master Admin", async () => {
       const [first, second]: Array<any> = await Promise.all([
