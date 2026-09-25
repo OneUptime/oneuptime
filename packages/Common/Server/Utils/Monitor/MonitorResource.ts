@@ -1133,6 +1133,7 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceMap,
           });
 
         const openAlerts: Array<Alert> =
@@ -1148,6 +1149,7 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceAlertMap,
           });
 
         /*
