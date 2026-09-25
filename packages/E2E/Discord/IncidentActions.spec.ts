@@ -15,6 +15,7 @@ import {
   deleteItem,
   getItem,
   listItems,
+  toId,
 } from "../Tests/Dashboard/Helpers/MonitorAlerting";
 import identities from "./Fixture/identities.json";
 
@@ -46,10 +47,13 @@ interface ProviderEvent {
   path: string;
   status: number;
   body?: unknown;
+  channel_id?: string;
+  content?: string;
 }
 interface ProviderState {
   events: Array<ProviderEvent>;
   unhandled: Array<string>;
+  postedMessages: Array<ProviderEvent>;
 }
 interface IncidentRow {
   _id: string;
@@ -149,6 +153,29 @@ async function install(): Promise<Binding> {
   return row;
 }
 
+/*
+ * Links the signed-in dashboard user to the fixture Discord user via the
+ * real user OAuth flow, so resolveLinkedMember can authorize button clicks.
+ * Mirrors the verified pattern in Installation.spec.ts ("linked account is
+ * verified and unlink leaves project installed").
+ */
+async function linkUser(): Promise<Binding> {
+  const response: APIResponse = await page.request.get(url("sign-in-url"), {
+    headers: headers(),
+  });
+  expect(response.status(), "User link initiation must exist").toBe(200);
+  const body: { authorizationUrl: string } = (await response.json()) as {
+    authorizationUrl: string;
+  };
+  await page.goto(body.authorizationUrl);
+  await expect
+    .poll(async (): Promise<number> => (await bindings(userTokens)).length)
+    .toBe(1);
+  const row: Binding = (await bindings(userTokens))[0]!;
+  expect(row.workspaceUserId).toBe(identities.userId);
+  return row;
+}
+
 async function setIncidentChannel(channelId: string): Promise<void> {
   const response: APIResponse = await page.request.put(
     url("incident-channel"),
@@ -191,17 +218,38 @@ async function createIncident(title: string): Promise<IncidentRow> {
 async function currentIncidentState(
   incidentId: string,
 ): Promise<{ order?: number; name?: string; id?: string }> {
+  // /api/incident/{id}/get-item does not expand the currentIncidentState
+  // relation; read the scalar state id and resolve it through /api/incident-state.
   const row: unknown = await getItem({
     page,
     projectId,
     path: "/api/incident",
     id: incidentId,
+    select: {
+      currentIncidentStateId: true,
+    },
   });
   const incident: IncidentRow = row as IncidentRow;
+  const stateId: string = toId(incident.currentIncidentStateId);
+  if (!stateId) {
+    return {};
+  }
+  const stateRow: unknown = await getItem({
+    page,
+    projectId,
+    path: "/api/incident-state",
+    id: stateId,
+    select: {
+      order: true,
+      name: true,
+    },
+  });
+  const state: { order?: number; name?: string } =
+    stateRow as { order?: number; name?: string };
   return {
-    order: incident.currentIncidentState?.order,
-    name: incident.currentIncidentState?.name,
-    id: incident.currentIncidentStateId,
+    order: state?.order,
+    name: state?.name,
+    id: stateId,
   };
 }
 
@@ -285,27 +333,36 @@ test("incident created in a bound project posts a lifecycle message to the incid
   );
   expect(incident._id).toBeTruthy();
   // Lifecycle dispatch is asynchronous: poll the fixture for a message POST.
-  const posted: ProviderEvent | undefined = await expect
+  // Bodies are recorded in postedMessages (a762d355); events only carries the
+  // method/path access log. Playwright expect.poll matchers return void, so
+  // poll a boolean and read the recorded message from state afterwards.
+  await expect
     .poll(
-      async (): Promise<ProviderEvent | undefined> =>
-        (await fixture("state")).events.find(
-          (event: ProviderEvent): boolean =>
-            event.method === "POST" &&
-            event.path.endsWith(
-              "/channels/" + identities.channelId + "/messages",
-            ),
+      async (): Promise<boolean> =>
+        (await fixture("state")).postedMessages.some(
+          (message: ProviderEvent): boolean =>
+            message.channel_id === identities.channelId &&
+            (message.content || "").includes("HOM-35 lifecycle created"),
         ),
       { timeout: 30_000 },
     )
-    .toBeTruthy();
+    .toBe(true);
+  const posted: ProviderEvent | undefined = (
+    await fixture("state")
+  ).postedMessages.find(
+    (message: ProviderEvent): boolean =>
+      message.channel_id === identities.channelId &&
+      (message.content || "").includes("HOM-35 lifecycle created"),
+  );
   expect(
-    JSON.stringify(posted?.body || ""),
+    posted?.content || "",
     "The lifecycle message must name the incident",
   ).toContain("HOM-35 lifecycle created");
 });
 
 test("component interaction acknowledges an incident and replies with the new state", async (): Promise<void> => {
   await install();
+  await linkUser();
   await setIncidentChannel(identities.channelId);
   const incident: IncidentRow = await createIncident("HOM-35 ack target");
   const before: { order?: number } = await currentIncidentState(incident._id);
@@ -329,6 +386,7 @@ test("component interaction acknowledges an incident and replies with the new st
 
 test("component interaction resolves an incident", async (): Promise<void> => {
   await install();
+  await linkUser();
   await setIncidentChannel(identities.channelId);
   const incident: IncidentRow = await createIncident("HOM-35 resolve target");
   const response: APIResponse = await postInteraction(
@@ -348,6 +406,7 @@ test("component interaction resolves an incident", async (): Promise<void> => {
 
 test("resolved incidents cannot be regressed by an acknowledge button", async (): Promise<void> => {
   await install();
+  await linkUser();
   await setIncidentChannel(identities.channelId);
   const incident: IncidentRow = await createIncident("HOM-35 no-regress");
   await postInteraction(
