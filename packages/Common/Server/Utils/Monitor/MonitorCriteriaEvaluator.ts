@@ -6,6 +6,7 @@ import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
 import PerEntityCriteriaFanOut, {
   FanOutEntity,
 } from "./PerEntityCriteriaFanOut";
@@ -71,6 +72,8 @@ import { JSONObject } from "../../../Types/JSON";
 import Dictionary from "../../../Types/Dictionary";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import {
   CrossSignalQueryParams,
@@ -107,6 +110,7 @@ import MetricCriteriaContext, {
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
+import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
@@ -1301,6 +1305,11 @@ ${contextBlock}
       return MonitorCriteriaEvaluator.buildPodmanRootCauseContext(input);
     }
 
+    // Handle IoT device monitors with fleet / device context
+    if (input.monitor.monitorType === MonitorType.IoTDevice) {
+      return MonitorCriteriaEvaluator.buildIoTRootCauseContext(input);
+    }
+
     // Handle Proxmox monitors with resource context
     if (input.monitor.monitorType === MonitorType.Proxmox) {
       return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
@@ -1450,19 +1459,15 @@ ${contextBlock}
     return sections.join("\n");
   }
 
-  private static buildMetricRootCauseContext(input: {
-    criteriaInstance: MonitorCriteriaInstance;
-    monitor: Monitor;
-    monitorStep?: MonitorStep | undefined;
-  }): string | null {
-    /*
-     * Pick the first populated metric context across the instance's filters.
-     * Only metric-value filters populate this at evaluation time, so this
-     * effectively returns the context for the filter that ran.
-     */
-    const ctx: MetricCriteriaContext | undefined = (
-      input.criteriaInstance.data?.filters || []
-    )
+  /*
+   * The first populated metric context across the instance's filters.
+   * Only metric-value filters populate this at evaluation time, so this
+   * effectively returns the context for the filter that ran.
+   */
+  private static getMetricCriteriaContext(
+    criteriaInstance: MonitorCriteriaInstance | undefined,
+  ): MetricCriteriaContext | undefined {
+    return (criteriaInstance?.data?.filters || [])
       .map((f: CriteriaFilter) => {
         return f.metricCriteriaContext;
       })
@@ -1471,6 +1476,15 @@ ${contextBlock}
           return Boolean(c);
         },
       );
+  }
+
+  private static buildMetricRootCauseContext(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+    monitor: Monitor;
+    monitorStep?: MonitorStep | undefined;
+  }): string | null {
+    const ctx: MetricCriteriaContext | undefined =
+      MonitorCriteriaEvaluator.getMetricCriteriaContext(input.criteriaInstance);
 
     if (!ctx) {
       return null;
@@ -1579,6 +1593,7 @@ ${contextBlock}
       MonitorCriteriaEvaluator.buildMetricExplorerDeepLink({
         monitor: input.monitor,
         ctx,
+        monitorStep: input.monitorStep,
       });
 
     if (deepLink) {
@@ -1800,6 +1815,7 @@ ${contextBlock}
   private static buildMetricExplorerDeepLink(input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
   }): string | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -1813,27 +1829,56 @@ ${contextBlock}
      * for its own URL round-trip — so this deep link can never drift
      * from what the explorer parses.
      */
-    const queryConfig: MetricQueryConfigData = {
-      metricQueryData: {
-        filterData: {
-          metricName: input.ctx.metricName,
-          attributes: MetricExplorerUrl.sanitizeAttributes(
-            input.ctx.filterAttributes,
-          ),
-          ...(input.ctx.aggregationType
-            ? { aggegationType: input.ctx.aggregationType }
-            : {}),
+    let queryConfigs: Array<MetricQueryConfigData> = [
+      {
+        metricQueryData: {
+          filterData: {
+            metricName: input.ctx.metricName,
+            attributes: MetricExplorerUrl.sanitizeAttributes(
+              input.ctx.filterAttributes,
+            ),
+            ...(input.ctx.aggregationType
+              ? { aggegationType: input.ctx.aggregationType }
+              : {}),
+          },
         },
       },
-    };
+    ];
+    let formulaConfigs: Array<MetricFormulaConfigData> = [];
+
+    /*
+     * A formula's metricName is its EXPRESSION, not a metric the explorer
+     * can chart — linking it as one opened an empty chart. Open the
+     * step's own queries and formulas instead, which is what the formula
+     * was computed from. With no step config to rebuild it from, no link
+     * beats a dead one.
+     */
+    if (input.ctx.isFormula) {
+      const metricViewConfig: MetricsViewConfig | undefined =
+        MonitorStep.getMetricsViewConfig(input.monitorStep);
+
+      if (
+        !metricViewConfig ||
+        !(metricViewConfig.formulaConfigs || []).some(
+          (formula: MetricFormulaConfigData) => {
+            return formula.metricAliasData?.metricVariable === input.ctx.alias;
+          },
+        )
+      ) {
+        return null;
+      }
+
+      queryConfigs = metricViewConfig.queryConfigs || [];
+      formulaConfigs = metricViewConfig.formulaConfigs || [];
+    }
 
     const breachWindow: { startTime: Date; endTime: Date } =
       MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
 
     const urlParams: Dictionary<string> =
       MetricExplorerUrl.buildQueryParamsFromMetricViewData({
-        queryConfigs: [queryConfig],
-        formulaConfigs: [],
+        queryConfigs: queryConfigs,
+        formulaConfigs: formulaConfigs,
         startAndEndDate: new InBetween(
           breachWindow.startTime,
           breachWindow.endTime,
@@ -2354,23 +2399,135 @@ ${contextBlock}
     return sections.join("\n");
   }
 
-  private static buildDockerRootCauseContext(input: {
-    dataToProcess: DataToProcess;
-    monitorStep: MonitorStep;
-    monitor: Monitor;
+  /**
+   * The "- Metric:" line of a telemetry resource's details block: what
+   * the matched criteria actually compared.
+   *
+   * It used to name `queryConfigs[0]` unconditionally, so a criteria on a
+   * formula — Host CPU busy `(host_cpu_user + host_cpu_system) * 100`,
+   * Docker restarts `max - min` — was reported as its first operand. The
+   * metric context MetricMonitorCriteria records at evaluation time
+   * already says whether the criteria resolved to a query or a formula
+   * (including its fall back to the first query when the alias names
+   * nothing), so the line is read from there.
+   *
+   * A formula is named by its legend, which is what the threshold was
+   * written against ("CPU Busy (%)"); its expression and the metric behind
+   * each variable are spelled out in the Metric Details below. With no
+   * metric context — a criteria with no metric-value filter — the step's
+   * first query is named, as before.
+   */
+  private static describeCriteriaMetricLine(input: {
+    ctx: MetricCriteriaContext | undefined;
+    metricViewConfig: MetricsViewConfig | undefined;
   }): string | null {
-    const metricResponse: MetricMonitorResponse =
-      input.dataToProcess as MetricMonitorResponse;
+    const ctx: MetricCriteriaContext | undefined = input.ctx;
 
+    if (ctx?.isFormula) {
+      const formula: MetricFormulaConfigData | undefined = (
+        input.metricViewConfig?.formulaConfigs || []
+      ).find((f: MetricFormulaConfigData) => {
+        return f.metricAliasData?.metricVariable === ctx.alias;
+      });
+
+      const legend: string = (
+        formula?.metricAliasData?.legend ||
+        formula?.metricAliasData?.title ||
+        ""
+      ).trim();
+
+      if (legend && legend !== ctx.alias) {
+        return `- Metric: ${legend}`;
+      }
+
+      return `- Metric: \`${ctx.alias}\` (formula)`;
+    }
+
+    if (ctx?.metricName) {
+      return `- Metric: \`${ctx.metricName}\``;
+    }
+
+    const firstQueryMetricName: string | undefined = input.metricViewConfig
+      ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+      | string
+      | undefined;
+
+    return firstQueryMetricName
+      ? `- Metric: \`${firstQueryMetricName}\``
+      : null;
+  }
+
+  /**
+   * Root-cause context for a telemetry monitor that watches one host,
+   * container set or device fleet: the resource it is scoped to, then the
+   * same Metric Details and Breaching Samples a Metrics monitor gets.
+   *
+   * These monitors used to follow the identity lines with a "Metric
+   * Summary" that only counted the data points in each result — one line
+   * per query AND per formula, so the Host CPU template printed three
+   * identical "- 5 metric data point(s) returned" lines and never the
+   * value that breached. MetricMonitorCriteria fills the filter's metric
+   * context for every metric-backed monitor type, so the unit, formula,
+   * components and unit-formatted samples were there all along.
+   *
+   * `identityLines` is null when the step carries no config for the
+   * monitor type; the metric details are still rendered from the context.
+   */
+  private static buildTelemetryResourceRootCauseContext(input: {
+    heading: string;
+    identityLines: Array<string> | null;
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
     const sections: Array<string> = [];
 
+    if (input.identityLines) {
+      const metricLine: string | null =
+        MonitorCriteriaEvaluator.describeCriteriaMetricLine({
+          ctx: MonitorCriteriaEvaluator.getMetricCriteriaContext(
+            input.criteriaInstance,
+          ),
+          metricViewConfig: MonitorStep.getMetricsViewConfig(input.monitorStep),
+        });
+
+      const lines: Array<string> = metricLine
+        ? [...input.identityLines, metricLine]
+        : input.identityLines;
+
+      sections.push(`**${input.heading}**\n${lines.join("\n")}`);
+    }
+
+    const metricDetails: string | null = input.criteriaInstance
+      ? MonitorCriteriaEvaluator.buildMetricRootCauseContext({
+          criteriaInstance: input.criteriaInstance,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+        })
+      : null;
+
+    if (metricDetails) {
+      sections.push(
+        sections.length > 0 ? `\n\n${metricDetails}` : metricDetails,
+      );
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildDockerRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
     // Docker host context
     const dockerMonitor: MonitorStepDockerMonitor | undefined =
       input.monitorStep.data?.dockerMonitor;
 
+    let hostDetails: Array<string> | null = null;
+
     if (dockerMonitor) {
-      const hostDetails: Array<string> = [];
-      hostDetails.push(`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`);
+      hostDetails = [`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`];
 
       if (dockerMonitor.containerFilters?.containerName) {
         hostDetails.push(
@@ -2383,112 +2540,50 @@ ${contextBlock}
           `- Container Image Filter: ${dockerMonitor.containerFilters.containerImage}`,
         );
       }
-
-      // Add metric name from the query config
-      if (
-        dockerMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
-        dockerMonitor.metricViewConfig.queryConfigs[0]
-      ) {
-        const metricName: string = dockerMonitor.metricViewConfig
-          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
-        if (metricName) {
-          hostDetails.push(`- Metric: \`${metricName}\``);
-        }
-      }
-
-      sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
     }
 
-    // Metric results summary
-    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
-      const resultDetails: Array<string> = [];
-
-      for (const result of metricResponse.metricResult) {
-        if (result.data && result.data.length > 0) {
-          resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
-          );
-        }
-      }
-
-      if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
-      }
-    }
-
-    return sections.length > 0 ? sections.join("\n") : null;
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Docker Host Details",
+      identityLines: hostDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
   }
 
   private static buildHostRootCauseContext(input: {
-    dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
   }): string | null {
-    const metricResponse: MetricMonitorResponse =
-      input.dataToProcess as MetricMonitorResponse;
-
-    const sections: Array<string> = [];
-
     // Host context
     const hostMonitor: MonitorStepHostMonitor | undefined =
       input.monitorStep.data?.hostMonitor;
 
-    if (hostMonitor) {
-      const hostDetails: Array<string> = [];
-      hostDetails.push(`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`);
-
-      // Add metric name from the query config
-      if (
-        hostMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
-        hostMonitor.metricViewConfig.queryConfigs[0]
-      ) {
-        const metricName: string = hostMonitor.metricViewConfig.queryConfigs[0]
-          .metricQueryData?.filterData?.metricName as string;
-        if (metricName) {
-          hostDetails.push(`- Metric: \`${metricName}\``);
-        }
-      }
-
-      sections.push(`**Host Details**\n${hostDetails.join("\n")}`);
-    }
-
-    // Metric results summary
-    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
-      const resultDetails: Array<string> = [];
-
-      for (const result of metricResponse.metricResult) {
-        if (result.data && result.data.length > 0) {
-          resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
-          );
-        }
-      }
-
-      if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
-      }
-    }
-
-    return sections.length > 0 ? sections.join("\n") : null;
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Host Details",
+      identityLines: hostMonitor
+        ? [`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`]
+        : null,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
   }
 
   private static buildPodmanRootCauseContext(input: {
-    dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
   }): string | null {
-    const metricResponse: MetricMonitorResponse =
-      input.dataToProcess as MetricMonitorResponse;
-
-    const sections: Array<string> = [];
-
     // Podman host context
     const podmanMonitor: MonitorStepPodmanMonitor | undefined =
       input.monitorStep.data?.podmanMonitor;
 
+    let hostDetails: Array<string> | null = null;
+
     if (podmanMonitor) {
-      const hostDetails: Array<string> = [];
-      hostDetails.push(`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`);
+      hostDetails = [`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`];
 
       if (podmanMonitor.containerFilters?.containerName) {
         hostDetails.push(
@@ -2501,40 +2596,78 @@ ${contextBlock}
           `- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
         );
       }
+    }
 
-      // Add metric name from the query config
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Podman Host Details",
+      identityLines: hostDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  private static buildIoTRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    // IoT fleet / device context
+    const iotMonitor: MonitorStepIoTMonitor | undefined =
+      input.monitorStep.data?.iotMonitor;
+
+    let deviceDetails: Array<string> | null = null;
+
+    if (iotMonitor) {
+      deviceDetails = [`- Fleet: ${iotMonitor.fleetIdentifier || "Unknown"}`];
+
+      /*
+       * The device that breached. Every IoT template groups by the
+       * `device.id` label, so the matched series names it; an ungrouped
+       * monitor has no series labels and falls back to the step's own
+       * device filter below.
+       */
+      const breachingDeviceId: unknown =
+        MonitorCriteriaEvaluator.getMetricCriteriaContext(
+          input.criteriaInstance,
+        )?.seriesLabels?.[IOT_DEVICE_ID_ATTRIBUTE_KEY];
+
       if (
-        podmanMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
-        podmanMonitor.metricViewConfig.queryConfigs[0]
+        breachingDeviceId !== undefined &&
+        breachingDeviceId !== null &&
+        String(breachingDeviceId) !== ""
       ) {
-        const metricName: string = podmanMonitor.metricViewConfig
-          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
-        if (metricName) {
-          hostDetails.push(`- Metric: \`${metricName}\``);
-        }
+        deviceDetails.push(
+          `- Device: ${AffectedResourceList.code(String(breachingDeviceId))}`,
+        );
       }
 
-      sections.push(`**Podman Host Details**\n${hostDetails.join("\n")}`);
-    }
-
-    // Metric results summary
-    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
-      const resultDetails: Array<string> = [];
-
-      for (const result of metricResponse.metricResult) {
-        if (result.data && result.data.length > 0) {
-          resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
-          );
-        }
+      if (iotMonitor.resourceFilters?.deviceId) {
+        deviceDetails.push(
+          `- Device ID Filter: ${iotMonitor.resourceFilters.deviceId}`,
+        );
       }
 
-      if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      if (iotMonitor.resourceFilters?.deviceType) {
+        deviceDetails.push(
+          `- Device Type Filter: ${iotMonitor.resourceFilters.deviceType}`,
+        );
+      }
+
+      if (iotMonitor.resourceFilters?.scope) {
+        deviceDetails.push(
+          `- Scope Filter: ${iotMonitor.resourceFilters.scope}`,
+        );
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "IoT Device Details",
+      identityLines: deviceDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
   }
 
   /*
