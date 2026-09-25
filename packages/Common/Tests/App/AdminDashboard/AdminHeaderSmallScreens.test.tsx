@@ -36,6 +36,34 @@ jest.mock("../../../UI/Images/logos/OneUptimeSVG/3-transparent.svg", () => {
   return ASSET_DATA_URL;
 });
 
+/*
+ * BILLING_ENABLED is read from the environment (UI/Config), and EditionLabel
+ * returns an empty fragment when it is on — oneuptime.com bounds plans through
+ * subscriptions and shows no edition pill at all. So the pill these tests are
+ * about only exists on a self-hosted header, and without pinning the flag the
+ * suite passes or fails depending on whether BILLING_ENABLED happened to be
+ * exported into the jest process: green locally, red in CI, which is how it
+ * reached master.
+ *
+ * Pinned false, which is the deployment whose layout is under test. Same
+ * approach as EditionLabelLicenseStatus.test.tsx.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 type LocaleValue = string | { [key: string]: LocaleValue };
 
 const lookUpTranslation: (key: string) => string | undefined = (
