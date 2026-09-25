@@ -126,3 +126,16 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentAlertPostgres.test.ts --forceExit
+
+      # Clones the migrated UserProjectSsoConsent table (and its unique index)
+      # into an isolated schema: two racing confirmations must leave one row.
+      - name: Test project SSO consent records on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SSO_CONSENT_TESTS: "true"
+          SSO_CONSENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_CONSENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_CONSENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserProjectSsoConsentPostgres.test.ts --forceExit

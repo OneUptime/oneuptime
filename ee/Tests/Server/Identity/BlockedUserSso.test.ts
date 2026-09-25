@@ -105,6 +105,23 @@ jest.mock("Common/Server/Services/AccessTokenService", () => {
   };
 });
 
+/*
+ * On the hosted service a project's SSO needs the account's consent before it
+ * may sign it in (ProjectSsoSignInConfirmation.test.ts). Given here, so that
+ * the block is the only thing deciding these tests.
+ */
+jest.mock("Common/Server/Services/UserProjectSsoConsentService", () => {
+  return {
+    __esModule: true,
+    default: {
+      hasConsent: (): Promise<boolean> => {
+        return Promise.resolve(true);
+      },
+      recordConsent: jest.fn(),
+    },
+  };
+});
+
 const providerFindOneBy: jest.Mock = jest.fn();
 const attachmentsFindBy: jest.Mock = jest.fn();
 

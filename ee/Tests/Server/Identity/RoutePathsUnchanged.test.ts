@@ -122,6 +122,19 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["GET", "/status-page-oidc-callback/:statusPageId/:statusPageOidcId"],
     ],
   },
+  /*
+   * Added after the move to ee/, so not from the commit above. Nobody pastes
+   * this one into an identity provider, but it is written into confirmation
+   * emails that are already sitting in inboxes, so it is just as fixed once
+   * shipped.
+   */
+  {
+    name: "ProjectSsoSignInConfirmation",
+    routes: [
+      ["GET", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
+      ["POST", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
+    ],
+  },
 ];
 
 // Express 4 keeps these on each stack layer; its typings leave them out.
@@ -162,7 +175,7 @@ const getRoutes: (router: ExpressRouter) => Array<PinnedRoute> = (
 const SCIM_ROUTER_NAMES: Array<string> = ["SCIM", "StatusPageSCIM"];
 
 describe("ee identity routers", () => {
-  test("are the eight routers core used to mount, in the same order", () => {
+  test("are the routers core mounts, in the same order", () => {
     expect(
       IDENTITY_ROUTERS.map((entry: IdentityRouterEntry) => {
         return entry.name;
@@ -188,17 +201,17 @@ describe("ee identity routers", () => {
     },
   );
 
-  test("the Identity area hands core all 44 routes, in mount order", () => {
+  test("the Identity area hands core all 46 routes, in mount order", () => {
     const routers: Array<ExpressRouter> =
       IdentityArea.getIdentityRouters!() as Array<ExpressRouter>;
 
-    expect(routers).toHaveLength(8);
+    expect(routers).toHaveLength(9);
     expect(routers.flatMap(getRoutes)).toEqual(
       PINNED_ROUTES.flatMap((pinned: { routes: Array<PinnedRoute> }) => {
         return pinned.routes;
       }),
     );
-    expect(routers.flatMap(getRoutes)).toHaveLength(44);
+    expect(routers.flatMap(getRoutes)).toHaveLength(46);
   });
 
   test("returns the same router instances on every call (core mounts them once)", () => {

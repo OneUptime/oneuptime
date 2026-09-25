@@ -1,6 +1,7 @@
 import GlobalOidcAPI from "./API/GlobalOIDC";
 import GlobalSsoAPI from "./API/GlobalSSO";
 import OidcAPI from "./API/OIDC";
+import ProjectSsoSignInConfirmationAPI from "./API/ProjectSsoSignInConfirmation";
 import SCIMAPI from "./API/SCIM";
 import SsoAPI from "./API/SSO";
 import StatusPageOidcAPI from "./API/StatusPageOIDC";
@@ -53,6 +54,15 @@ export const IDENTITY_ROUTERS: ReadonlyArray<IdentityRouterEntry> = [
   { name: "StatusPageSCIM", router: StatusPageSCIMAPI },
   { name: "StatusPageSSO", router: StatusPageSsoAPI },
   { name: "StatusPageOIDC", router: StatusPageOidcAPI },
+  /*
+   * Not configured in any identity provider: the page a project-SSO
+   * confirmation email links to (hosted service only). Emails already sent
+   * carry its URL, so RoutePathsUnchanged.test.ts pins it all the same.
+   */
+  {
+    name: "ProjectSsoSignInConfirmation",
+    router: ProjectSsoSignInConfirmationAPI,
+  },
 ];
 
 const IdentityArea: EnterpriseArea = {
