@@ -113,6 +113,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Alert",
       "Audit Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_INCIDENTS, [
+      "Project",
+      "Alerts",
+      "View Alert",
+      "Linked Incidents",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_CREATE, [
       "Project",
       "Alerts",

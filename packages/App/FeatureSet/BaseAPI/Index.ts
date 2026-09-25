@@ -239,6 +239,9 @@ import IncidentEpisodeInternalNoteService, {
 import IncidentEpisodeMemberService, {
   Service as IncidentEpisodeMemberServiceType,
 } from "Common/Server/Services/IncidentEpisodeMemberService";
+import IncidentAlertService, {
+  Service as IncidentAlertServiceType,
+} from "Common/Server/Services/IncidentAlertService";
 import IncidentEpisodeOwnerTeamService, {
   Service as IncidentEpisodeOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentEpisodeOwnerTeamService";
@@ -1247,6 +1250,7 @@ import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/Sched
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -2438,6 +2442,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentEpisodeMember, IncidentEpisodeMemberServiceType>(
         IncidentEpisodeMember,
         IncidentEpisodeMemberService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentAlert, IncidentAlertServiceType>(
+        IncidentAlert,
+        IncidentAlertService,
       ).getRouter(),
     );
 

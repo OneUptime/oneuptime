@@ -41,6 +41,8 @@ export enum AlertFeedEventType {
   OnCallNotification = "OnCallNotification",
   AddedToEpisode = "AddedToEpisode",
   RemovedFromEpisode = "RemovedFromEpisode",
+  LinkedToIncident = "LinkedToIncident",
+  UnlinkedFromIncident = "UnlinkedFromIncident",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",

@@ -273,6 +273,28 @@ describe("PermissionGate", () => {
       expect(result.disabledReason).toContain("this Monitor Template");
     });
 
+    test("uses the caller's verb in the reason, but still checks the operation", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const denied: PermissionGateResult = PermissionGate.check(
+        new Monitor(),
+        ModelAction.Delete,
+        { verb: "Unlink" },
+      );
+
+      expect(denied.isAllowed).toBe(false);
+      expect(denied.disabledReason).toContain("permission to unlink this");
+      expect(denied.disabledReason).not.toContain("delete this");
+
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      expect(
+        PermissionGate.check(new Monitor(), ModelAction.Delete, {
+          verb: "Unlink",
+        }).isAllowed,
+      ).toBe(true);
+    });
+
     /*
      * Both model hierarchies are unrelated classes that happen to expose the
      * same permission API, and the gate is structurally typed so one
@@ -464,6 +486,60 @@ describe("PermissionGate", () => {
       expect(
         PermissionGate.getMissingPermissionMessage(monitor, ModelAction.Update),
       ).toContain("permission to update this Monitor");
+    });
+
+    /*
+     * A table of links calls its delete "Unlink". The sentence follows the
+     * label, but the permissions it lists are still the delete ones.
+     */
+    test("uses the caller's verb when one is supplied", () => {
+      const monitor: Monitor = new Monitor();
+
+      const withVerb: string = PermissionGate.getMissingPermissionMessage(
+        monitor,
+        ModelAction.Delete,
+        { verb: "Unlink" },
+      );
+      const withoutVerb: string = PermissionGate.getMissingPermissionMessage(
+        monitor,
+        ModelAction.Delete,
+      );
+
+      expect(withVerb).toContain("permission to unlink this Monitor.");
+      expect(withVerb).not.toContain("delete this Monitor");
+      expect(withVerb).toBe(
+        withoutVerb.replace("to delete this", "to unlink this"),
+      );
+    });
+
+    test("ignores a blank verb", () => {
+      const monitor: Monitor = new Monitor();
+
+      expect(
+        PermissionGate.getMissingPermissionMessage(
+          monitor,
+          ModelAction.Delete,
+          { verb: "  " },
+        ),
+      ).toBe(
+        PermissionGate.getMissingPermissionMessage(monitor, ModelAction.Delete),
+      );
+    });
+
+    test("uses the verb in the bare sentence too", () => {
+      const model: PermissionCheckableModel = {
+        ...modelWithNoDeletePermissions,
+        getDeletePermissions: (): Array<Permission> => {
+          return ["NotARealPermission" as Permission];
+        },
+      };
+
+      expect(
+        PermissionGate.getMissingPermissionMessage(model, ModelAction.Delete, {
+          verb: "Unlink",
+          singularName: "Link",
+        }),
+      ).toBe("You do not have permission to unlink this Link.");
     });
   });
 

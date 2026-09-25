@@ -36,6 +36,7 @@ import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
 import AlertViewOwner from "../Pages/Alerts/View/Owners";
 import AlertViewRunbooks from "../Pages/Alerts/View/Runbooks";
 import AlertViewAuditLogs from "../Pages/Alerts/View/AuditLogs";
+import AlertViewIncidents from "../Pages/Alerts/View/Incidents";
 
 import AlertViewRootCause from "../Pages/Alerts/View/RootCause";
 
@@ -657,6 +658,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertViewAuditLogs
               {...props}
               pageRoute={RouteMap[PageMap.ALERT_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_INCIDENTS)}
+          element={
+            <AlertViewIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_INCIDENTS] as Route}
             />
           }
         />
