@@ -27,17 +27,26 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
 );
 
+/*
+ * Spy handles are held through this rather than a SpiedFunction/SpyInstance
+ * type: two such declarations are in scope in this project (the global jest
+ * namespace's and @jest/globals'), jest.spyOn returns the latter, and naming
+ * the wrong one passes the jest run and fails only in compile-common. These
+ * tests read exactly one thing off a spy, so that is all this names.
+ */
+interface SpyCalls {
+  mock: { calls: Array<Array<unknown>> };
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("UserProjectSsoConsentService.hasConsent", () => {
   test("asks about this user in this project, as root", async () => {
-    const countBy: jest.SpiedFunction<
-      typeof UserProjectSsoConsentService.countBy
-    > = jest
+    const countBy: SpyCalls = jest
       .spyOn(UserProjectSsoConsentService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1));
+      .mockResolvedValue(new PositiveNumber(1)) as unknown as SpyCalls;
 
     await expect(
       UserProjectSsoConsentService.hasConsent({
@@ -75,18 +84,16 @@ describe("UserProjectSsoConsentService.recordConsent", () => {
     jest
       .spyOn(UserProjectSsoConsentService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
-    const create: jest.SpiedFunction<
-      typeof UserProjectSsoConsentService.create
-    > = jest
+    const create: SpyCalls = jest
       .spyOn(UserProjectSsoConsentService, "create")
-      .mockResolvedValue(new UserProjectSsoConsent());
+      .mockResolvedValue(new UserProjectSsoConsent()) as unknown as SpyCalls;
 
     await UserProjectSsoConsentService.recordConsent({
       userId: USER_ID,
       projectId: PROJECT_ID,
     });
 
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls).toHaveLength(1);
 
     const call: Record<string, any> = create.mock.calls[0]![0] as Record<
       string,
@@ -103,16 +110,17 @@ describe("UserProjectSsoConsentService.recordConsent", () => {
     jest
       .spyOn(UserProjectSsoConsentService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    const create: jest.SpiedFunction<
-      typeof UserProjectSsoConsentService.create
-    > = jest.spyOn(UserProjectSsoConsentService, "create");
+    const create: SpyCalls = jest.spyOn(
+      UserProjectSsoConsentService,
+      "create",
+    ) as unknown as SpyCalls;
 
     await UserProjectSsoConsentService.recordConsent({
       userId: USER_ID,
       projectId: PROJECT_ID,
     });
 
-    expect(create).not.toHaveBeenCalled();
+    expect(create.mock.calls).toHaveLength(0);
   });
 
   test("absorbs losing an insert race to a concurrent click", async () => {
