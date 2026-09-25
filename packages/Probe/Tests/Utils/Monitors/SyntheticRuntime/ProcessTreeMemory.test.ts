@@ -803,6 +803,58 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
     });
   });
 
+  describe("getStartupWarning", () => {
+    const missingHelperPath: string = "/nonexistent/synthetic-process-memory";
+
+    test("warns a root supervisor on Linux that has no helper", () => {
+      const warning: string | null = ProcessTreeMemory.getStartupWarning({
+        platform: "linux",
+        uid: 0,
+        helperPath: missingHelperPath,
+      });
+
+      expect(warning).toContain(missingHelperPath);
+      expect(warning).toContain("summed RSS");
+    });
+
+    test("names the image's helper path by default", () => {
+      mockHelperPresent(false);
+
+      expect(
+        ProcessTreeMemory.getStartupWarning({ platform: "linux", uid: 0 }),
+      ).toContain(PROCESS_MEMORY_HELPER_PATH);
+    });
+
+    test.each<[string, NodeJS.Platform, number | null, string]>([
+      ["the helper is there", "linux", 0, __filename],
+      [
+        "the checks run as the supervisor, which reads their PSS itself",
+        "linux",
+        1000,
+        missingHelperPath,
+      ],
+      [
+        "the host has no /proc to read PSS from",
+        "darwin",
+        0,
+        missingHelperPath,
+      ],
+      ["the process has no uid", "linux", null, missingHelperPath],
+    ])(
+      "says nothing when %s",
+      (
+        _description: string,
+        platform: NodeJS.Platform,
+        uid: number | null,
+        helperPath: string,
+      ) => {
+        expect(
+          ProcessTreeMemory.getStartupWarning({ platform, uid, helperPath }),
+        ).toBeNull();
+      },
+    );
+  });
+
   const linuxOnly: jest.It = process.platform === "linux" ? test : test.skip;
 
   linuxOnly(

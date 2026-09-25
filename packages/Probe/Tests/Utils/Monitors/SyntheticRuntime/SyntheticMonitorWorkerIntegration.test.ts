@@ -14,6 +14,9 @@ import {
   SyntheticMonitorWorkerResult,
   isSyntheticMonitorWorkerResult,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorkerTypes";
+import ProcessTreeMemory, {
+  ResidentProcessMemory,
+} from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 
 jest.setTimeout(1_500_000);
 
@@ -571,7 +574,232 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     },
     1_200_000,
   );
+
+  /*
+   * The regression test for synthetic checks failing the memory limit on
+   * memory they never held ("Synthetic worker process tree exceeded RSS limit
+   * of 1610612736 bytes (observed 1612525568 bytes)"), against a real Desktop
+   * Chromium check.
+   *
+   * Every Chromium process maps the same browser binary, so summing their
+   * VmRSS counts it once per process. The check below opens two pages at
+   * 1920x1080 with a cross-site iframe each and screenshots them, which gives
+   * it about a dozen processes, like the customer checks that failed.
+   *
+   * The limit a check just fits under depends on the machine, so the test
+   * measures first: it runs the check with no effective limit and samples its
+   * process tree, and requires the summed VmRSS to far exceed the tree's PSS
+   * -- the over-count itself. Then the same check runs with the limit between
+   * the two, where the old watchdog stopped it, and must pass, with the
+   * watchdog having measured it by PSS. Last, it runs with the limit below its
+   * PSS and must be stopped, so the PSS measurement still holds the line.
+   *
+   * The test reads the tree's smaps_rollup itself, which it may only do when
+   * the check runs as the test's own user: run as root, the runner puts the
+   * check under a sandbox uid whose PSS only the probe image's helper reads.
+   */
+  (process.platform === "linux" &&
+    !(typeof process.getuid === "function" && process.getuid() === 0)
+    ? test
+    : test.skip)(
+    "holds a Desktop Chromium check to its PSS, not to its processes' summed RSS",
+    async () => {
+      const address: ReturnType<Server["address"]> = targetServer.address();
+      if (!address || typeof address === "string") {
+        throw new Error("Expected a TCP test server address.");
+      }
+      const crossSiteUrl: string = `http://localhost:${address.port}/`;
+      const code: string = `
+        const addCrossSiteFrame = async (target) => {
+          await target.evaluate((frameUrl) => {
+            const frame = document.createElement("iframe");
+            frame.src = frameUrl;
+            frame.width = "1200";
+            frame.height = "800";
+            document.body.appendChild(frame);
+            return new Promise((resolve) => { frame.onload = resolve; });
+          }, ${JSON.stringify(crossSiteUrl)});
+        };
+        await page.goto(${JSON.stringify(targetUrl)});
+        await addCrossSiteFrame(page);
+        const screenshots = { first: await page.screenshot({ fullPage: true }) };
+        const second = await page.context().newPage();
+        await second.goto(${JSON.stringify(crossSiteUrl)});
+        await addCrossSiteFrame(second);
+        screenshots.second = await second.screenshot({ fullPage: true });
+        screenshots.again = await page.screenshot();
+        await new Promise((resolve) => setTimeout(resolve, 6000));
+        return { data: "checked", screenshots };
+      `;
+      const config: SyntheticMonitorWorkerConfig = {
+        ...createWorkerConfig({
+          browserType: BrowserType.Chromium,
+          executablePath: chromium.executablePath(),
+          code,
+          timeoutInMs: 120_000,
+        }),
+        viewport: { width: 1_920, height: 1_080 },
+      };
+      const run: (
+        limits: Parameters<typeof createWorkerRunner>[0],
+      ) => Promise<ProcessRunResult<SyntheticMonitorWorkerResult>> = (
+        limits: Parameters<typeof createWorkerRunner>[0],
+      ): Promise<ProcessRunResult<SyntheticMonitorWorkerResult>> => {
+        return createWorkerRunner(limits).run<
+          SyntheticMonitorWorkerConfig,
+          SyntheticMonitorWorkerResult
+        >({
+          payload: config,
+          timeoutInMs: 180_000,
+          validateResult: isSyntheticMonitorWorkerResult,
+        });
+      };
+
+      // 1. Measure the check with no effective limit.
+      const peaks: { residentBytes: number; proportionalBytes: number } = {
+        residentBytes: 0,
+        proportionalBytes: 0,
+      };
+      let sampling: boolean = true;
+      const sampler: Promise<void> = (async (): Promise<void> => {
+        while (sampling) {
+          const tree: ResidentProcessMemory[] = readWorkerProcessTree();
+          if (tree.length > 0) {
+            peaks.residentBytes = Math.max(
+              peaks.residentBytes,
+              tree.reduce((total: number, entry: ResidentProcessMemory) => {
+                return total + (entry.residentBytes ?? 0);
+              }, 0),
+            );
+            peaks.proportionalBytes = Math.max(
+              peaks.proportionalBytes,
+              await ProcessTreeMemory.measureProportionalBytes({
+                processes: tree,
+                identity: null,
+              }),
+            );
+          }
+          await delay(100);
+        }
+      })();
+      const measured: ProcessRunResult<SyntheticMonitorWorkerResult> =
+        await run({
+          maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE,
+        }).finally(() => {
+          sampling = false;
+        });
+      await sampler;
+
+      expect(measured.result.scriptError).toBeUndefined();
+      expect(peaks.proportionalBytes).toBeGreaterThan(0);
+      // The over-count this fixes: shared pages summed once per process.
+      expect(peaks.residentBytes).toBeGreaterThan(
+        peaks.proportionalBytes * 1.6,
+      );
+
+      // 2. A limit it is over by summed RSS and well under by PSS.
+      const fittingLimitBytes: number = Math.ceil(
+        peaks.proportionalBytes * 1.3,
+      );
+      expect(fittingLimitBytes).toBeLessThan(peaks.residentBytes);
+      const measureProportionalBytes: typeof ProcessTreeMemory.measureProportionalBytes =
+        ProcessTreeMemory.measureProportionalBytes.bind(ProcessTreeMemory);
+      const watchdogReadings: number[] = [];
+      jest
+        .spyOn(ProcessTreeMemory, "measureProportionalBytes")
+        .mockImplementation(
+          async (
+            data: Parameters<
+              typeof ProcessTreeMemory.measureProportionalBytes
+            >[0],
+          ): Promise<number> => {
+            const reading: number = await measureProportionalBytes(data);
+            watchdogReadings.push(reading);
+            return reading;
+          },
+        );
+
+      const fitted: ProcessRunResult<SyntheticMonitorWorkerResult> = await run({
+        maxProcessTreeRssBytes: fittingLimitBytes,
+        rssPollIntervalInMs: 100,
+      });
+
+      expect(fitted.result.scriptError).toBeUndefined();
+      expect(fitted.result.returnValue).toEqual(
+        expect.objectContaining({ data: "checked" }),
+      );
+      expect(watchdogReadings.length).toBeGreaterThan(0);
+      expect(Math.max(...watchdogReadings)).toBeLessThanOrEqual(
+        fittingLimitBytes,
+      );
+
+      // 3. A limit below what the check holds still stops it.
+      const tightLimitBytes: number = Math.floor(peaks.proportionalBytes * 0.6);
+      await expect(
+        run({
+          maxProcessTreeRssBytes: tightLimitBytes,
+          rssPollIntervalInMs: 100,
+        }),
+      ).rejects.toThrow(
+        `Synthetic worker process tree exceeded memory limit of ${tightLimitBytes} bytes`,
+      );
+    },
+    600_000,
+  );
 });
+
+/*
+ * The runner's worker -- the one child of this process running
+ * SyntheticMonitorWorker -- and every process under it, each with its VmRSS.
+ */
+function readWorkerProcessTree(): ResidentProcessMemory[] {
+  const childrenOf: (pid: number) => number[] = (pid: number): number[] => {
+    const children: number[] = [];
+    try {
+      for (const taskId of fs.readdirSync(`/proc/${pid}/task`)) {
+        const contents: string = fs.readFileSync(
+          `/proc/${pid}/task/${taskId}/children`,
+          "utf8",
+        );
+        for (const value of contents.trim().split(/\s+/)) {
+          if (value) {
+            children.push(Number(value));
+          }
+        }
+      }
+    } catch {
+      // Exited while being read.
+    }
+    return children;
+  };
+  const isWorker: (pid: number) => boolean = (pid: number): boolean => {
+    try {
+      return fs
+        .readFileSync(`/proc/${pid}/cmdline`, "utf8")
+        .includes("SyntheticMonitorWorker");
+    } catch {
+      return false;
+    }
+  };
+
+  const tree: ResidentProcessMemory[] = [];
+  const pending: number[] = childrenOf(process.pid).filter(isWorker);
+  while (pending.length > 0) {
+    const pid: number = pending.shift() as number;
+    try {
+      tree.push({
+        pid,
+        residentBytes: ProcessTreeMemory.parseStatusResidentBytes(
+          fs.readFileSync(`/proc/${pid}/status`, "utf8"),
+        ),
+      });
+    } catch {
+      continue;
+    }
+    pending.push(...childrenOf(pid));
+  }
+  return tree;
+}
 
 function createWorkerRunner(
   limits: Pick<

@@ -71,6 +71,36 @@ export interface ResidentProcessMemory {
 
 export default class ProcessTreeMemory {
   /**
+   * What to warn the operator about at startup, or null. A root supervisor on
+   * Linux gives every check its own uid and so can read a check's PSS only
+   * through the helper; without it, checks are held to their processes'
+   * summed RSS, which fails ordinary Chromium checks for memory they never
+   * held.
+   */
+  public static getStartupWarning(
+    data: {
+      readonly platform?: NodeJS.Platform | undefined;
+      readonly uid?: number | null | undefined;
+      readonly helperPath?: string | undefined;
+    } = {},
+  ): string | null {
+    const platform: NodeJS.Platform = data.platform ?? process.platform;
+    const uid: number | null =
+      data.uid !== undefined
+        ? data.uid
+        : typeof process.getuid === "function"
+          ? process.getuid()
+          : null;
+    const helperPath: string = data.helperPath ?? PROCESS_MEMORY_HELPER_PATH;
+
+    if (platform !== "linux" || uid !== 0 || fs.existsSync(helperPath)) {
+      return null;
+    }
+
+    return `Synthetic monitor memory helper ${helperPath} is missing, so synthetic checks are held to their browser processes' summed RSS, which counts the browser's shared pages once per process and can stop ordinary checks well below the memory limit. Use the official probe image, which builds it from Utils/Monitors/SyntheticRuntime/Native/synthetic-process-memory.c.`;
+  }
+
+  /**
    * VmRSS, in bytes, from the contents of a /proc/<pid>/status file, or null
    * if it has none: a kernel thread, a zombie, or a process whose main thread
    * has exited while its other threads run on.
