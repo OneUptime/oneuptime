@@ -20,7 +20,9 @@ const codes = new Map();
 const tokens = new Map();
 let events = [];
 let unhandled = [];
-const snapshot = () => ({ scenario, events, unhandled });
+let postedMessages = [];
+let messageCounter = 0;
+const snapshot = () => ({ scenario, events, unhandled, postedMessages });
 const send = (res, status, body) => {
   res.writeHead(status, {
     "content-type": "application/json",
@@ -110,6 +112,8 @@ const server = https.createServer(
           tokens.clear();
           events = [];
           unhandled = [];
+          postedMessages = [];
+          messageCounter = 0;
           return send(res, 200, snapshot());
         }
         if (pathname === "/__fixture/scenario" && req.method === "POST") {
@@ -319,6 +323,54 @@ const server = https.createServer(
           channel ? 200 : 404,
           channel || { message: "Unknown Channel", code: 10003 },
         );
+      }
+      // Bot message posts: record the body so lifecycle specs can assert on
+      // message content, then model a successful Discord message response.
+      const messageRoute = route.match(/^\/channels\/(\d+)\/messages$/);
+      if (req.method === "POST" && bot && messageRoute) {
+        const channel = channels().find(
+          (item) => item.id === messageRoute[1],
+        );
+        if (!channel)
+          return send(res, 404, { message: "Unknown Channel", code: 10003 });
+        let body;
+        try {
+          body = JSON.parse(await readBody(req));
+        } catch {
+          return send(res, 400, { message: "Malformed message body" });
+        }
+        const message = {
+          id: `3000000000000${String(++messageCounter).padStart(4, "0")}`,
+          channel_id: channel.id,
+          content: body.content || "",
+          embeds: body.embeds || [],
+          components: body.components || [],
+          timestamp: new Date().toISOString(),
+        };
+        postedMessages.push(message);
+        return send(res, 200, message);
+      }
+      // Interaction followups use the interaction token as the resource id.
+      const followupRoute = route.match(
+        /^\/webhooks\/(\d+)\/([A-Za-z0-9_.-]+)$/,
+      );
+      if (req.method === "POST" && followupRoute) {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req));
+        } catch {
+          return send(res, 400, { message: "Malformed followup body" });
+        }
+        postedMessages.push({
+          id: `3000000000000${String(++messageCounter).padStart(4, "0")}`,
+          channel_id: identities.channelId,
+          content: body.content || "",
+          embeds: body.embeds || [],
+          components: body.components || [],
+          interaction_token: followupRoute[2],
+          timestamp: new Date().toISOString(),
+        });
+        return send(res, 200, { message: "Fixture followup accepted" });
       }
       unhandled.push(`${req.method} ${pathname}`);
       return send(res, 404, { message: "Unmodeled Discord fixture request" });
