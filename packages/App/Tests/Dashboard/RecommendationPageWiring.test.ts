@@ -277,7 +277,7 @@ describe("every resource type routes its Recommendations page through the shared
 
     expect(shell).toContain(
       squash(
-        "RecommendationResourceRegistry.readContext({ resourceType: props.resourceType, model: resource, })",
+        "await RecommendationResourceRegistry.loadContext({ resourceType: props.resourceType, model: item, })",
       ),
     );
     expect(shell).toContain("resourceContext={resourceContext}");
@@ -446,7 +446,7 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
   test("the badge fetches the resource before it asks the catalog", () => {
     const fetchIndex: number = BADGE_CODE.indexOf("await ModelAPI.getItem({");
     const contextIndex: number = BADGE_CODE.indexOf(
-      "RecommendationResourceRegistry.readContext({",
+      "await RecommendationResourceRegistry.loadContext({",
     );
     const catalogIndex: number = BADGE_CODE.indexOf(
       "MonitorRecommendationCatalog.getRecommendations(",

@@ -3260,3 +3260,266 @@ describe("hasDatabaseWorkloadLabels — the store-side pre-filter's twin", () =>
     }
   });
 });
+
+/*
+ * The dashboard's workload badge (DatabaseWorkloadLookup) runs this
+ * classifier on a StatefulSet or Deployment page, and on a pod listed
+ * without its spec, from the object's LABELS alone: `spec.containers` is
+ * empty, and a StatefulSet / Deployment stands in as the owner of a pod of
+ * its own name. That is how those pages ask for the name discovery gave the
+ * database (Bitnami's `shop-redis-master` for `shop-redis`, Percona's
+ * `cluster1-pxc` for `cluster1`).
+ *
+ * So an empty container list must mean "not known", never "none that could
+ * be the server": the two container checks inside the label rules only run
+ * when there are containers, while the label-only rejections (a chart's
+ * non-member component, an operator's pooler / backup pods) still apply.
+ */
+describe("classifyKubernetesPod — label rules for an object whose containers are not known", () => {
+  function labelsOnly(data: {
+    name: string;
+    labels: Record<string, unknown>;
+    owner: { kind: string; name: string };
+  }): KubernetesPodLike {
+    return {
+      namespaceKey: "data",
+      name: data.name,
+      phase: null,
+      labels: data.labels,
+      ownerReferences: { items: [data.owner] },
+      spec: { containers: [] },
+    };
+  }
+
+  type MemberCase = {
+    labels: Record<string, unknown>;
+    owner: { kind: string; name: string };
+    // The server container a real member pod runs.
+    image: string;
+    system: string;
+    workloadName: string;
+  };
+
+  const MEMBERS: Array<[string, MemberCase]> = [
+    [
+      "a CloudNativePG instance",
+      {
+        labels: {
+          "cnpg.io/cluster": "pg-main",
+          "cnpg.io/podRole": "instance",
+          "cnpg.io/instanceRole": "primary",
+        },
+        owner: { kind: "Cluster", name: "pg-main" },
+        image: "ghcr.io/cloudnative-pg/postgresql:16.2",
+        system: "postgresql",
+        workloadName: "pg-main",
+      },
+    ],
+    [
+      "a Zalando (Spilo) StatefulSet",
+      {
+        labels: {
+          application: "spilo",
+          "cluster-name": "acid-main",
+          "spilo-role": "master",
+        },
+        owner: { kind: "StatefulSet", name: "acid-main" },
+        image: "ghcr.io/zalando/spilo-16:3.2-p2",
+        system: "postgresql",
+        workloadName: "acid-main",
+      },
+    ],
+    [
+      "a Percona XtraDB StatefulSet",
+      {
+        labels: {
+          "app.kubernetes.io/managed-by": "percona-xtradb-cluster-operator",
+          "app.kubernetes.io/name": "percona-xtradb-cluster",
+          "app.kubernetes.io/instance": "cluster1",
+          "app.kubernetes.io/component": "pxc",
+        },
+        owner: { kind: "StatefulSet", name: "cluster1-pxc" },
+        image: "percona/percona-xtradb-cluster:8.0.36",
+        system: "mysql",
+        workloadName: "cluster1",
+      },
+    ],
+    [
+      "a Bitnami Redis replication StatefulSet",
+      {
+        labels: {
+          "app.kubernetes.io/name": "redis",
+          "app.kubernetes.io/instance": "shop",
+          "app.kubernetes.io/component": "master",
+          "app.kubernetes.io/managed-by": "Helm",
+        },
+        owner: { kind: "StatefulSet", name: "shop-redis-master" },
+        image: "bitnami/redis:7.2.4",
+        system: "redis",
+        workloadName: "shop-redis",
+      },
+    ],
+  ];
+
+  test.each(MEMBERS)(
+    "%s is named from its labels exactly as its member pods are",
+    (_label: string, member: MemberCase) => {
+      const fromLabels: KubernetesDatabaseCandidate | null =
+        classifyKubernetesPod(
+          labelsOnly({
+            name: member.owner.name,
+            labels: member.labels,
+            owner: member.owner,
+          }),
+        );
+
+      const fromMemberPod: KubernetesDatabaseCandidate | null =
+        classifyKubernetesPod(
+          pod({
+            name: `${member.owner.name}-0`,
+            labels: member.labels,
+            owner: member.owner,
+            containers: [{ name: "server", image: member.image }],
+          }),
+        );
+
+      expect(fromLabels).not.toBeNull();
+      expect(fromLabels).toMatchObject({
+        system: member.system,
+        workloadName: member.workloadName,
+        // No container stands in for the server's image, version or ports.
+        containerName: "",
+        image: null,
+        version: null,
+        ports: [],
+      });
+
+      // Discovery's name for the database, whichever of the two asks.
+      expect(fromMemberPod).not.toBeNull();
+      expect({
+        system: fromLabels!.system,
+        workloadKind: fromLabels!.workloadKind,
+        workloadName: fromLabels!.workloadName,
+        operator: fromLabels!.operator,
+        role: fromLabels!.role,
+      }).toEqual({
+        system: fromMemberPod!.system,
+        workloadKind: fromMemberPod!.workloadKind,
+        workloadName: fromMemberPod!.workloadName,
+        operator: fromMemberPod!.operator,
+        role: fromMemberPod!.role,
+      });
+    },
+  );
+
+  test("an object with no spec at all is treated like an empty container list", () => {
+    const withoutSpec: KubernetesPodLike = {
+      namespaceKey: "data",
+      name: "pg-main-1",
+      phase: null,
+      labels: { "cnpg.io/cluster": "pg-main" },
+      ownerReferences: { items: [{ kind: "Cluster", name: "pg-main" }] },
+    };
+
+    expect(classifyKubernetesPod(withoutSpec)?.workloadName).toBe("pg-main");
+  });
+
+  test.each([
+    [
+      "a chart's pooler component (Bitnami postgresql-ha's pgpool)",
+      {
+        "app.kubernetes.io/name": "postgresql-ha",
+        "app.kubernetes.io/instance": "shop",
+        "app.kubernetes.io/component": "pgpool",
+      },
+      { kind: "Deployment", name: "shop-postgresql-ha-pgpool" },
+    ],
+    [
+      "a chart's metrics component",
+      {
+        "app.kubernetes.io/name": "redis",
+        "app.kubernetes.io/instance": "shop",
+        "app.kubernetes.io/component": "metrics",
+      },
+      { kind: "Deployment", name: "shop-redis-metrics" },
+    ],
+    [
+      "a CloudNativePG pooler",
+      {
+        "cnpg.io/cluster": "pg-main",
+        "cnpg.io/poolerName": "pg-main-pooler-rw",
+      },
+      { kind: "Deployment", name: "pg-main-pooler-rw" },
+    ],
+    [
+      "a Crunchy pgbouncer Deployment",
+      {
+        "postgres-operator.crunchydata.com/cluster": "hippo",
+        "postgres-operator.crunchydata.com/role": "pgbouncer",
+      },
+      { kind: "Deployment", name: "hippo-pgbouncer" },
+    ],
+    [
+      "a Crunchy backup repo host",
+      {
+        "postgres-operator.crunchydata.com/cluster": "hippo",
+        "postgres-operator.crunchydata.com/pgbackrest-dedicated": "",
+      },
+      { kind: "StatefulSet", name: "hippo-repo-host" },
+    ],
+    [
+      "a Zalando connection pooler",
+      {
+        application: "db-connection-pooler",
+        "cluster-name": "acid-main",
+      },
+      { kind: "Deployment", name: "acid-main-pooler" },
+    ],
+  ])(
+    "%s is still not a member without its containers",
+    (
+      _label: string,
+      labels: Record<string, unknown>,
+      owner: { kind: string; name: string },
+    ) => {
+      expect(
+        classifyKubernetesPod(
+          labelsOnly({ name: owner.name, labels: labels, owner: owner }),
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("known containers still decide: the same labels on a pod running only an exporter are not a member", () => {
+    const labels: Record<string, unknown> = {
+      "cnpg.io/cluster": "pg-main",
+      "cnpg.io/podRole": "instance",
+    };
+    const owner: { kind: string; name: string } = {
+      kind: "Cluster",
+      name: "pg-main",
+    };
+
+    expect(
+      classifyKubernetesPod(
+        labelsOnly({ name: "pg-main-1", labels: labels, owner: owner }),
+      )?.workloadName,
+    ).toBe("pg-main");
+
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "pg-main-1",
+          labels: labels,
+          owner: owner,
+          containers: [
+            {
+              name: "exporter",
+              image: "quay.io/prometheuscommunity/postgres-exporter:v0.15.0",
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+});

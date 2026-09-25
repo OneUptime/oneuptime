@@ -174,6 +174,35 @@ describe("MetricValueFormatter", () => {
       ).toBe("0.18");
     });
 
+    /*
+     * A monitor built from the Redis chart ("Create monitor") or in the
+     * Metrics explorer carries the receiver's native "1" (or the catalog's
+     * "ratio"), not the recommended template's legend unit. Its alert must
+     * still read 1.62 against a threshold of 1.5, never 162% against 150%.
+     */
+    test("Redis' memory fragmentation ratio is the ratio, not a percentage", () => {
+      expect(
+        MetricValueFormatter.format({
+          value: 1.62,
+          unit: "1",
+          metricName: "redis.memory.fragmentation_ratio",
+        }),
+      ).toBe("1.62");
+      expect(
+        MetricValueFormatter.format({
+          value: 1.5,
+          unit: "ratio",
+          metricName: "redis.memory.fragmentation_ratio",
+        }),
+      ).toBe("1.5");
+      expect(
+        MetricValueFormatter.hasDisplayableUnit(
+          "1",
+          "redis.memory.fragmentation_ratio",
+        ),
+      ).toBe(false);
+    });
+
     test("a fraction unit with no metric name stays a bare number", () => {
       expect(MetricValueFormatter.format({ value: 0.25, unit: "1" })).toBe(
         "0.25",
