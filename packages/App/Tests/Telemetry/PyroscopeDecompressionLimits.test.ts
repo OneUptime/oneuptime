@@ -6,7 +6,7 @@ import { describe, expect, jest, test } from "@jest/globals";
  * shape GHSA-cp58-wc9q-qv53 fixed in the global request reader, one
  * layer in. It sits behind TelemetryIngest.isAuthorizedServiceMiddleware,
  * so it needs a valid project ingest key, but any holder of one could
- * turn the ~1 MiB nginx allows on /pyroscope into roughly a gigabyte of
+ * turn every MiB nginx allows on /pyroscope into roughly a gigabyte of
  * resident Buffer.
  *
  * Two ceilings, because on the push route neither one alone is enough:

@@ -13,7 +13,13 @@ OneUptime exposes a **Pyroscope-compatible ingest API**. Anything that can push 
 | Base URL (Pyroscope server address) | `https://oneuptime.com/pyroscope`                   |
 | Authentication header               | `x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN` |
 
-Pyroscope SDKs append `/ingest` to the base URL and Grafana Alloy appends `/push.v1.PusherService/Push` — you always configure just the base URL. SDKs that take an `authToken` / `auth_token` option send it as `Authorization: Bearer <token>`, which OneUptime accepts as an alias for the `x-oneuptime-token` header.
+Clients append their own path to the base URL — `/ingest` for most Pyroscope SDKs, `/push.v1.PusherService/Push` for Grafana Alloy and the .NET SDK from v0.14 — so you always configure just the base URL, with no trailing slash.
+
+OneUptime reads the ingestion token from any of these, so use whichever your client supports:
+
+- the `x-oneuptime-token` header (for clients that let you add custom headers);
+- `Authorization: Bearer <token>` — what SDKs with an `authToken` / `auth_token` option send;
+- HTTP basic auth with the token as the **password** (any username) — for clients that only offer a basic-auth user and password.
 
 **Self Hosted OneUptime:** replace `https://oneuptime.com` with your own host, e.g. `http(s)://YOUR-ONEUPTIME-HOST/pyroscope`.
 
@@ -152,7 +158,50 @@ pyroscope.configure(
 )
 ```
 
-**.NET** (uploads pprof), **Ruby** and **Rust** (upload folded text) work the same way: install the [Pyroscope SDK for your language](https://grafana.com/docs/pyroscope/latest/configure-client/) and set the server address to `https://oneuptime.com/pyroscope` with your ingestion token as the auth token.
+**Ruby** and **Rust** work the same way: install the [Pyroscope SDK for your language](https://grafana.com/docs/pyroscope/latest/configure-client/) and set the server address to `https://oneuptime.com/pyroscope` with your ingestion token as the auth token (or, if your SDK version only offers basic auth, as the basic-auth password).
+
+### .NET
+
+The Pyroscope .NET profiler is a native CLR profiler: it needs no code changes and is switched on entirely through environment variables. Download the release for your image from [pyroscope-dotnet releases](https://github.com/grafana/pyroscope-dotnet/releases) — `glibc` or `musl` (Alpine), `x86_64` or `aarch64` — and load it into the runtime:
+
+```dockerfile
+FROM alpine:3.20 AS pyroscope-profiler
+ARG PYROSCOPE_DOTNET_VERSION=0.13.0
+ADD https://github.com/grafana/pyroscope-dotnet/releases/download/v${PYROSCOPE_DOTNET_VERSION}-pyroscope/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz /tmp/pyroscope.tar.gz
+RUN mkdir -p /pyroscope && tar -xzf /tmp/pyroscope.tar.gz -C /pyroscope
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# ... your application ...
+COPY --from=pyroscope-profiler /pyroscope /pyroscope
+ENV CORECLR_ENABLE_PROFILING=1
+ENV CORECLR_PROFILER={BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}
+ENV CORECLR_PROFILER_PATH=/pyroscope/Pyroscope.Profiler.Native.so
+ENV LD_PRELOAD=/pyroscope/Pyroscope.Linux.ApiWrapper.x64.so
+ENV LD_LIBRARY_PATH=/pyroscope
+```
+
+Then point it at OneUptime, for example in your Kubernetes / Helm environment:
+
+```bash
+PYROSCOPE_APPLICATION_NAME=my-service
+PYROSCOPE_PROFILING_ENABLED=1
+PYROSCOPE_SERVER_ADDRESS=https://oneuptime.com/pyroscope
+PYROSCOPE_AUTH_TOKEN=YOUR_ONEUPTIME_INGESTION_TOKEN
+```
+
+How the token is passed depends on the profiler release:
+
+| pyroscope-dotnet release | Uploads to                              | Token setting                                                                                                                                                     |
+| ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.13 and earlier        | `/pyroscope/ingest`                     | `PYROSCOPE_AUTH_TOKEN`                                                                                                                                            |
+| v0.14 to 1.4             | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_AUTH_TOKEN`                                                                                                                                            |
+| 1.5 and later            | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_BASIC_AUTH_USER=oneuptime` and `PYROSCOPE_BASIC_AUTH_PASSWORD=<token>` (both must be set), or `PYROSCOPE_HTTP_HEADERS={"x-oneuptime-token":"<token>"}` |
+
+From 1.x the release tags are named `pyroscope-<version>` (for example `https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-1.5.1/pyroscope.1.5.1-glibc-x86_64.tar.gz`); the profiler GUID and file names are unchanged.
+
+CPU profiling is on by default. Wall-time, allocation, exception and lock-contention profiling are opt-in: set `PYROSCOPE_PROFILING_WALLTIME_ENABLED`, `PYROSCOPE_PROFILING_ALLOCATION_ENABLED`, `PYROSCOPE_PROFILING_EXCEPTION_ENABLED` or `PYROSCOPE_PROFILING_LOCK_ENABLED` to `true`. Static labels go in `PYROSCOPE_LABELS` (`key:value,key:value`).
+
+The profiler uploads every 15 seconds and does **not** compress its uploads, so a busy service can send several MB per upload. OneUptime's own ingress accepts up to 16 MB on `/pyroscope`; if another proxy sits in front of OneUptime (for example ingress-nginx, whose default `proxy-body-size` is 1 MB), raise its body-size limit for `/pyroscope` as well, or large uploads are rejected with `413` before they reach OneUptime.
 
 ### Java
 
@@ -160,7 +209,7 @@ The Pyroscope Java agent uploads profiles in JFR format, which OneUptime does no
 
 ## Supported Profile Types
 
-Each uploaded profile is classified by the first sample type it declares (the standard pprof / Pyroscope convention). Any type is stored and viewable; the types below get first-class grouping, units, and labels in the OneUptime UI:
+A pprof can declare several sample types; each uploaded profile is stored under one of them — CPU time (`cpu` in nanoseconds) if it has it, otherwise wall time, otherwise in-use then allocated bytes, otherwise the first type it declares. Any type is stored and viewable; the types below get first-class grouping, units, and labels in the OneUptime UI:
 
 | Profile type                         | Shown as               | Unit        |
 | ------------------------------------ | ---------------------- | ----------- |
@@ -175,7 +224,7 @@ Anything else (for example a custom sample type) appears under "Other" with its 
 
 ## Verify It Is Working
 
-1. **Check your token.** The ingest endpoints intentionally return HTTP 200 even for an invalid token (so a misconfigured agent does not retry-storm the server), which means a silent token typo is invisible from the agent side. Ask the validation endpoint instead:
+1. **Check your token.** The ingest endpoints answer a missing or invalid token with `401`, but most profilers do not surface that anywhere you will see it (the .NET profiler, for one, logs HTTP responses only at debug level). Ask the validation endpoint directly:
 
    ```bash
    curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
@@ -184,9 +233,11 @@ Anything else (for example a custom sample type) appears under "Other" with its 
 
    A valid token returns `200` with `{"valid": true, ...}`; an unknown or revoked token returns `401`.
 
-2. **Open the Profiles page.** In the OneUptime Dashboard go to **Products > Performance Profiles**. With Alloy's default 15-second collect interval (or the SDKs' ~10-second upload interval), the first profiles and their flamegraphs appear within a minute or two of the agent starting.
+2. **Open the Profiles page.** In the OneUptime Dashboard go to **Products > Performance Profiles**. With Alloy's default 15-second collect interval (or the SDKs' 10- to 15-second upload interval), the first profiles and their flamegraphs appear within a minute or two of the agent starting.
 
-3. **Check the service.** Profiles are attached to the telemetry service named by the SDK's `application_name` / `appName` (or the process executable name under Alloy's default relabel rule above).
+3. **Check the service.** Profiles are attached to the telemetry service named by the SDK's `application_name` / `appName` / `PYROSCOPE_APPLICATION_NAME` (or the process executable name under Alloy's default relabel rule above).
+
+4. **Still nothing? Look at the upload status.** For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: it then logs a `PyroscopePprofSink <status>` line for every upload. `200` means OneUptime accepted it; `401` is the token; `404` usually means `PYROSCOPE_SERVER_ADDRESS` is missing the `/pyroscope` suffix; `413` means a proxy in front of OneUptime rejected the upload's size (see the .NET section above). If you run OneUptime yourself, the ingress (nginx) access log records the same status for every `/pyroscope` request.
 
 ## Features
 

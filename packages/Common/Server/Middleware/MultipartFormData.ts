@@ -21,7 +21,7 @@ import { RequestHandler } from "express";
  *
  * The sizes match the 50 MiB body-parser limit the rest of the app uses,
  * and nginx cuts the shipped deployment lower still (50M on
- * /incoming-email, its 1M default on /pyroscope). The COUNTS are the part
+ * /incoming-email, 16M on /pyroscope). The COUNTS are the part
  * that was genuinely missing: without them a body of ten thousand
  * one-byte parts costs ten thousand allocations and passes every size
  * check.
