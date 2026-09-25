@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/ops-tests",
-  "version": "14.0.3",
+  "version": "14.0.4",
   "private": true,
   "description": "Static/structural tests for the repo's ops config: ClickHouse config.d drop-ins, docker-compose mounts, the container agents' collector configs, the backup/restore scripts, and how the Community and Enterprise editions are built and tested. `npm test` needs no services; `npm run validate-collector-configs` additionally needs docker and helm, and `npm run lint-app-dockerfile` docker.",
   "type": "commonjs",
