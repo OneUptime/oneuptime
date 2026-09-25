@@ -6,6 +6,7 @@ import protobuf from "protobufjs";
 import { Readable } from "stream";
 import zlib from "zlib";
 import {
+  MISSING_INGESTION_TOKEN_MESSAGE,
   OTLP_PROTO_LOADER_OPTIONS,
   handleExport,
   startGrpcServer,
@@ -1658,9 +1659,8 @@ describe("OTLP metrics wire-format round trip (GH#3978)", () => {
 
       expect(reply.error).not.toBeNull();
       expect(reply.error!.code).toBe(grpc.status.UNAUTHENTICATED);
-      expect(reply.error!.details).toBe(
-        "Invalid or missing OneUptime ingestion key. Set the x-oneuptime-token header to a valid server ingestion key.",
-      );
+      // No token was sent, so the missing-token sentence, not any other.
+      expect(reply.error!.details).toBe(MISSING_INGESTION_TOKEN_MESSAGE);
       expect(mockEnqueuedJobs).toHaveLength(0);
       expect(mockStoredBodies.size).toBe(0);
       expect(rows).toHaveLength(0);
@@ -2302,20 +2302,17 @@ describe("OTLP metrics wire-format round trip (GH#3978)", () => {
     );
 
     /*
-     * PRODUCTION BUG (pre-existing, not introduced by the GH#3978 fix):
-     * a Summary quantile whose `quantile` (or `value`) is 0 is DROPPED.
+     * A Summary quantile whose `quantile` or `value` is 0 must be stored.
      *
-     * SummaryDataPoint.ValueAtQuantile's fields are plain proto3 doubles, so
-     * every canonical encoder elides 0 - the Collector (Go), the Java SDK,
-     * and the Collector's OTLP/JSON marshaler. The decoded entry therefore
-     * has no `quantile` key, and completeMetricRow skips any entry whose
-     * quantile or value is missing ("fail to parse"). The minimum quantile
-     * of every Prometheus summary scraped through the Collector - e.g. the
-     * `go_gc_duration_seconds{quantile="0"}` series every Go service
-     * exports - never reaches storage, and summaryQuantiles /
-     * summaryValues come out one entry short. Proto3 semantics say an
-     * absent double IS 0. Remove `.failing` once completeMetricRow reads a
-     * missing quantile / value as 0.
+     * SummaryDataPoint.ValueAtQuantile's fields are plain proto3 doubles, and
+     * the Collector elides a 0 in both encodings: its generated protobuf
+     * marshaler writes each field only `if != 0`, and its OTLP/JSON marshaler
+     * is gogo jsonpb without EmitDefaults. Every decoder here then leaves the
+     * key out. completeMetricRow used to skip an entry with a missing key, so
+     * a quantile-0 series - e.g. `go_gc_duration_seconds{quantile="0"}` from
+     * the Prometheus Go client's Go collector - never reached storage, and
+     * summaryQuantiles / summaryValues came out one entry short. Proto3 says
+     * an absent double IS 0.
      */
     const goGcDurationSeconds: Buffer = wireExportRequest([
       wireMetric(
@@ -2408,26 +2405,24 @@ describe("OTLP metrics wire-format round trip (GH#3978)", () => {
       ],
     ];
 
-    summaryRoutes.forEach(([label, run]: [string, () => Promise<void>]) => {
-      test.failing(
-        `${label}: a Summary's quantile 0 (elided on the wire) is stored`,
-        async () => {
-          await run();
+    test.each(summaryRoutes)(
+      "%s: a Summary's quantile 0 (elided on the wire) is stored",
+      async (_label: string, run: () => Promise<void>) => {
+        await run();
 
-          expect(rows).toHaveLength(1);
-          expect(rows[0]!["metricPointType"]).toBe(MetricPointType.Summary);
-          expect(rows[0]!["summaryQuantiles"]).toEqual([0, 0.5, 1]);
-          expect(rows[0]!["summaryValues"]).toEqual([
-            0.0000321, 0.0000452, 0.000434,
-          ]);
-        },
-      );
-    });
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!["metricPointType"]).toBe(MetricPointType.Summary);
+        expect(rows[0]!["summaryQuantiles"]).toEqual([0, 0.5, 1]);
+        expect(rows[0]!["summaryValues"]).toEqual([
+          0.0000321, 0.0000452, 0.000434,
+        ]);
+      },
+    );
 
     /*
-     * The parts of that same datapoint that hold both before and after the
-     * fix: the row lands, carries no temporality, and every non-zero
-     * quantile keeps its own value (the two arrays stay index-aligned).
+     * The rest of that same datapoint: the row lands, carries no
+     * temporality, and every quantile keeps its own value (the two arrays
+     * stay index-aligned).
      */
     test.each(summaryRoutes)(
       "%s: the rest of a Summary with an elided quantile is stored intact",
@@ -2455,13 +2450,633 @@ describe("OTLP metrics wire-format round trip (GH#3978)", () => {
             return [quantile, values[index]!];
           },
         );
-        expect(pairs).toEqual(
-          expect.arrayContaining([
-            [0.5, 0.0000452],
-            [1, 0.000434],
-          ]),
-        );
+        expect(pairs).toEqual([
+          [0, 0.0000321],
+          [0.5, 0.0000452],
+          [1, 0.000434],
+        ]);
       },
     );
+
+    /*
+     * A zero VALUE is elided the same way, and a quantile 0 whose value is
+     * also 0 goes on the wire as an EMPTY ValueAtQuantile message - both
+     * fields absent. A summary whose smallest observations are 0 produces
+     * exactly this.
+     */
+    const zeroValueSummaryWire: (explicitZeros: boolean) => Buffer = (
+      explicitZeros: boolean,
+    ): Buffer => {
+      const zero: (fieldNumber: number) => WireBytes = (
+        fieldNumber: number,
+      ): WireBytes => {
+        return explicitZeros ? wireDoubleField(fieldNumber, 0) : [];
+      };
+      return wireExportRequest([
+        wireMetric(
+          "queue.wait.seconds",
+          WireMetricData.Summary,
+          wireMessage(
+            1,
+            wireFixed64Field(3, TIME_UNIX_NANO),
+            wireFixed64Field(4, "9"),
+            wireDoubleField(5, 0.03),
+            // quantile 0, value 0.
+            wireMessage(6, zero(1), zero(2)),
+            // quantile 0.25, value 0.
+            wireMessage(6, wireDoubleField(1, 0.25), zero(2)),
+            wireMessage(6, wireDoubleField(1, 0.5), wireDoubleField(2, 0.002)),
+            wireMessage(6, wireDoubleField(1, 0.99), wireDoubleField(2, 0.01)),
+          ),
+        ),
+      ]);
+    };
+
+    const zeroValueSummaryJson: (explicitZeros: boolean) => Buffer = (
+      explicitZeros: boolean,
+    ): Buffer => {
+      const zeros: JSONObject = explicitZeros ? { quantile: 0, value: 0 } : {};
+      return Buffer.from(
+        JSON.stringify({
+          resourceMetrics: [
+            {
+              resource: {
+                attributes: [
+                  {
+                    key: "service.name",
+                    value: { stringValue: SERVICE_NAME },
+                  },
+                ],
+              },
+              scopeMetrics: [
+                {
+                  scope: { name: SCOPE_NAME },
+                  metrics: [
+                    {
+                      name: "queue.wait.seconds",
+                      summary: {
+                        dataPoints: [
+                          {
+                            timeUnixNano: TIME_UNIX_NANO,
+                            count: "9",
+                            sum: 0.03,
+                            quantileValues: [
+                              zeros,
+                              explicitZeros
+                                ? { quantile: 0.25, value: 0 }
+                                : { quantile: 0.25 },
+                              { quantile: 0.5, value: 0.002 },
+                              { quantile: 0.99, value: 0.01 },
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+        "utf-8",
+      );
+    };
+
+    test.each([
+      [
+        "HTTP protobuf, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zeroValueSummaryWire(false),
+              contentType: "application/x-protobuf",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP gzip protobuf, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zlib.gzipSync(zeroValueSummaryWire(false)),
+              contentType: "application/x-protobuf",
+              contentEncoding: "gzip",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP protobuf, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zeroValueSummaryWire(true),
+              contentType: "application/x-protobuf",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP OTLP/JSON, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zeroValueSummaryJson(false),
+              contentType: "application/json",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP OTLP/JSON, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zeroValueSummaryJson(true),
+              contentType: "application/json",
+            }),
+          );
+        },
+      ],
+      [
+        "gRPC, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await exportViaGrpcHandler(zeroValueSummaryWire(false)),
+          );
+        },
+      ],
+      [
+        "gRPC, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(
+            await exportViaGrpcHandler(zeroValueSummaryWire(true)),
+          );
+        },
+      ],
+    ])(
+      "%s: a Summary's value 0, and quantile 0 with value 0, are stored",
+      async (_label: string, run: () => Promise<void>) => {
+        await run();
+
+        expect(rows).toHaveLength(1);
+        const row: JSONObject = rows[0]!;
+        expect(row["name"]).toBe("queue.wait.seconds");
+        expect(row["metricPointType"]).toBe(MetricPointType.Summary);
+        expect(row["count"]).toBe(9);
+        expect(row["sum"]).toBe(0.03);
+        expect(row["summaryQuantiles"]).toEqual([0, 0.25, 0.5, 0.99]);
+        expect(row["summaryValues"]).toEqual([0, 0, 0.002, 0.01]);
+      },
+    );
+
+    /*
+     * Absent is not the same as unreadable. The proto3 JSON mapping reads a
+     * `null` field as its default (0), but a value present as a non-finite
+     * double ("NaN" / "Infinity" in OTLP/JSON) still drops its whole pair,
+     * as does an entry that is not an object at all - so the two arrays stay
+     * index-aligned.
+     */
+    test("OTLP/JSON: a null field is 0; a non-finite value or a non-object entry drops the pair", async () => {
+      const request: JSONObject = {
+        resourceMetrics: [
+          {
+            resource: {
+              attributes: [
+                { key: "service.name", value: { stringValue: SERVICE_NAME } },
+              ],
+            },
+            scopeMetrics: [
+              {
+                metrics: [
+                  {
+                    name: "queue.wait.seconds",
+                    summary: {
+                      dataPoints: [
+                        {
+                          timeUnixNano: TIME_UNIX_NANO,
+                          count: "4",
+                          sum: 3.5,
+                          quantileValues: [
+                            { quantile: null, value: 0.001 },
+                            { quantile: 0.25, value: null },
+                            { quantile: 0.5, value: "NaN" },
+                            { quantile: 0.9, value: "Infinity" },
+                            null,
+                            { quantile: 1, value: 3 },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      await ingestDecodedBody(
+        await decodeStoredBody({
+          bytes: Buffer.from(JSON.stringify(request), "utf-8"),
+          format: OtelPayloadFormat.Json,
+          encoding: "none",
+        }),
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!["summaryQuantiles"]).toEqual([0, 0.25, 1]);
+      expect(rows[0]!["summaryValues"]).toEqual([0.001, 0, 3]);
+    });
+
+    /*
+     * An idle data point: nothing was observed in the interval, so `count` is
+     * 0 and a Summary's `sum` is 0. Both are plain proto3 scalars
+     * (`fixed64 count` on Histogram, ExponentialHistogram and Summary points;
+     * `double sum` on Summary points), and the Collector writes them only
+     * `if m.Count != 0` / `if m.Sum != 0`, so they arrive absent. That must be
+     * stored as 0, not null - and the Summary row's `value`, which is its
+     * sum, as 0 too. A Prometheus summary with no observations yet and an
+     * empty delta-histogram interval both look like this. So does a Summary
+     * whose observations were all 0 (count written, sum elided): stored
+     * with a null sum, MetricService's distribution-aware Count / Avg did
+     * not recognise it as a distribution row and counted none of them.
+     *
+     * Histogram and ExponentialHistogram `sum` (like `min` / `max`) is
+     * `optional double`: the Collector writes it `if m.Sum_ != nil`, so
+     * absent there means "not recorded" and stays null. A Gauge point has no
+     * count or sum at all, so both stay null.
+     */
+    type IdleForm = "elided" | "explicit" | "null";
+
+    const idleWire: (form: Exclude<IdleForm, "null">) => Buffer = (
+      form: Exclude<IdleForm, "null">,
+    ): Buffer => {
+      const explicit: boolean = form === "explicit";
+      const count: WireBytes = explicit ? wireFixed64Field(4, "0") : [];
+      const summarySum: WireBytes = explicit ? wireDoubleField(5, 0) : [];
+      const summaryZeroValue: WireBytes = explicit ? wireDoubleField(2, 0) : [];
+      return wireExportRequest([
+        // SummaryDataPoint { time = 3, count = 4, sum = 5 }
+        wireMetric(
+          "rpc.idle.summary",
+          WireMetricData.Summary,
+          wireMessage(
+            1,
+            wireFixed64Field(3, TIME_UNIX_NANO),
+            count,
+            summarySum,
+          ),
+        ),
+        /*
+         * Four observations, all 0: count is written, the sum 0 and every
+         * quantile's value 0 are not.
+         */
+        wireMetric(
+          "rpc.zero.summary",
+          WireMetricData.Summary,
+          wireMessage(
+            1,
+            wireFixed64Field(3, TIME_UNIX_NANO),
+            wireFixed64Field(4, "4"),
+            summarySum,
+            wireMessage(6, wireDoubleField(1, 0.5), summaryZeroValue),
+            wireMessage(6, wireDoubleField(1, 1), summaryZeroValue),
+          ),
+        ),
+        /*
+         * HistogramDataPoint { time = 3, count = 4, bucket_counts = 6,
+         * explicit_bounds = 7 }; the optional sum = 5 is not recorded.
+         */
+        wireMetric(
+          "http.idle.duration",
+          WireMetricData.Histogram,
+          wireMessage(
+            1,
+            wireFixed64Field(3, TIME_UNIX_NANO),
+            count,
+            wirePackedFixed64Field(6, ["0", "0"]),
+            wirePackedDoubleField(7, [1]),
+          ),
+          wireVarintField(2, 1),
+        ),
+        // ExponentialHistogramDataPoint { time = 3, count = 4 }
+        wireMetric(
+          "http.idle.size",
+          WireMetricData.ExponentialHistogram,
+          wireMessage(1, wireFixed64Field(3, TIME_UNIX_NANO), count),
+          wireVarintField(2, 1),
+        ),
+        // NumberDataPoint { time = 3, as_double = 4 }: a oneof, always written.
+        wireMetric(
+          "idle.temperature",
+          WireMetricData.Gauge,
+          wireMessage(
+            1,
+            wireFixed64Field(3, TIME_UNIX_NANO),
+            wireDoubleField(4, 0),
+          ),
+        ),
+      ]);
+    };
+
+    const idleJson: (form: IdleForm) => Buffer = (form: IdleForm): Buffer => {
+      // The proto3 JSON mapping reads a `null` field as its default.
+      const zero: JSONValue | undefined =
+        form === "elided" ? undefined : form === "null" ? null : 0;
+      const count: JSONObject =
+        zero === undefined ? {} : { count: zero === 0 ? "0" : null };
+      const summarySum: JSONObject = zero === undefined ? {} : { sum: zero };
+      const summaryZeroValue: JSONObject =
+        zero === undefined ? {} : { value: zero };
+      // An optional sum sent as null is "not recorded", like an absent one.
+      const histogramSum: JSONObject = form === "null" ? { sum: null } : {};
+      return Buffer.from(
+        JSON.stringify({
+          resourceMetrics: [
+            {
+              resource: {
+                attributes: [
+                  {
+                    key: "service.name",
+                    value: { stringValue: SERVICE_NAME },
+                  },
+                ],
+              },
+              scopeMetrics: [
+                {
+                  scope: { name: SCOPE_NAME },
+                  metrics: [
+                    {
+                      name: "rpc.idle.summary",
+                      summary: {
+                        dataPoints: [
+                          {
+                            timeUnixNano: TIME_UNIX_NANO,
+                            ...count,
+                            ...summarySum,
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      name: "rpc.zero.summary",
+                      summary: {
+                        dataPoints: [
+                          {
+                            timeUnixNano: TIME_UNIX_NANO,
+                            count: "4",
+                            ...summarySum,
+                            quantileValues: [
+                              { quantile: 0.5, ...summaryZeroValue },
+                              { quantile: 1, ...summaryZeroValue },
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      name: "http.idle.duration",
+                      histogram: {
+                        aggregationTemporality: 1,
+                        dataPoints: [
+                          {
+                            timeUnixNano: TIME_UNIX_NANO,
+                            ...count,
+                            ...histogramSum,
+                            bucketCounts: ["0", "0"],
+                            explicitBounds: [1],
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      name: "http.idle.size",
+                      exponentialHistogram: {
+                        aggregationTemporality: 1,
+                        dataPoints: [
+                          {
+                            timeUnixNano: TIME_UNIX_NANO,
+                            ...count,
+                            ...histogramSum,
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      name: "idle.temperature",
+                      gauge: {
+                        dataPoints: [
+                          { timeUnixNano: TIME_UNIX_NANO, asDouble: 0 },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+        "utf-8",
+      );
+    };
+
+    const expectedIdleRows: Dictionary<JSONObject> = {
+      "rpc.idle.summary": {
+        metricPointType: MetricPointType.Summary,
+        count: 0,
+        sum: 0,
+        value: 0,
+        min: null,
+        max: null,
+        summaryQuantiles: [],
+        summaryValues: [],
+      },
+      "rpc.zero.summary": {
+        metricPointType: MetricPointType.Summary,
+        count: 4,
+        sum: 0,
+        value: 0,
+        summaryQuantiles: [0.5, 1],
+        summaryValues: [0, 0],
+      },
+      "http.idle.duration": {
+        metricPointType: MetricPointType.Histogram,
+        count: 0,
+        sum: null,
+        value: null,
+        min: null,
+        max: null,
+        bucketCounts: [0, 0],
+        explicitBounds: [1],
+      },
+      "http.idle.size": {
+        metricPointType: MetricPointType.ExponentialHistogram,
+        count: 0,
+        sum: null,
+        value: null,
+        min: null,
+        max: null,
+        zeroCount: 0,
+        scale: 0,
+      },
+      "idle.temperature": {
+        metricPointType: MetricPointType.Gauge,
+        count: null,
+        sum: null,
+        value: 0,
+      },
+    };
+
+    test.each([
+      [
+        "HTTP protobuf, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: idleWire("elided"),
+              contentType: "application/x-protobuf",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP gzip protobuf, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: zlib.gzipSync(idleWire("elided")),
+              contentType: "application/x-protobuf",
+              contentEncoding: "gzip",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP protobuf, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: idleWire("explicit"),
+              contentType: "application/x-protobuf",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP OTLP/JSON, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: idleJson("elided"),
+              contentType: "application/json",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP OTLP/JSON, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: idleJson("explicit"),
+              contentType: "application/json",
+            }),
+          );
+        },
+      ],
+      [
+        "HTTP OTLP/JSON, zeros sent as null",
+        async (): Promise<void> => {
+          await runWorker(
+            await postOverHttp({
+              bytes: idleJson("null"),
+              contentType: "application/json",
+            }),
+          );
+        },
+      ],
+      [
+        "gRPC, zeros elided",
+        async (): Promise<void> => {
+          await runWorker(await exportViaGrpcHandler(idleWire("elided")));
+        },
+      ],
+      [
+        "gRPC, zeros written explicitly",
+        async (): Promise<void> => {
+          await runWorker(await exportViaGrpcHandler(idleWire("explicit")));
+        },
+      ],
+    ])(
+      "%s: count 0 and a Summary's sum 0 are stored, and an unrecorded optional sum stays null",
+      async (_label: string, run: () => Promise<void>) => {
+        await run();
+
+        const byName: Map<string, JSONObject> = rowsByName();
+        expect(Array.from(byName.keys()).sort()).toEqual(
+          Object.keys(expectedIdleRows).sort(),
+        );
+        for (const [name, fields] of Object.entries(expectedIdleRows)) {
+          expect({
+            name,
+            ...pick(byName.get(name)!, Object.keys(fields)),
+          }).toEqual({ name, ...fields });
+        }
+      },
+    );
+
+    /*
+     * Absent is not the same as unreadable here either: a count or Summary
+     * sum that is present but not a finite number is unknown, and stays null
+     * rather than being passed off as an idle 0.
+     */
+    test("OTLP/JSON: a non-finite Summary sum or count stays null", async () => {
+      const request: JSONObject = {
+        resourceMetrics: [
+          {
+            resource: {
+              attributes: [
+                { key: "service.name", value: { stringValue: SERVICE_NAME } },
+              ],
+            },
+            scopeMetrics: [
+              {
+                metrics: [
+                  {
+                    name: "queue.wait.seconds",
+                    summary: {
+                      dataPoints: [
+                        {
+                          timeUnixNano: TIME_UNIX_NANO,
+                          count: "not-a-number",
+                          sum: "NaN",
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      await ingestDecodedBody(
+        await decodeStoredBody({
+          bytes: Buffer.from(JSON.stringify(request), "utf-8"),
+          format: OtelPayloadFormat.Json,
+          encoding: "none",
+        }),
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(pick(rows[0]!, ["count", "sum", "value"])).toEqual({
+        count: null,
+        sum: null,
+        value: null,
+      });
+    });
   });
 });
