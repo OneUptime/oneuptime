@@ -1585,7 +1585,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         <div className="lg:grid lg:min-h-[30rem] lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
           <aside
             className={`${
-              isPaneOpenOnMobile ? "hidden" : "block"
+              isPaneOpenOnMobile ? "max-lg:hidden" : "block"
             } rounded-b-xl bg-gray-50 px-5 py-5 lg:block lg:rounded-br-none lg:border-r lg:border-gray-200 md:px-6`}
             data-testid="status-page-resource-navigator-pane"
           >
@@ -1599,7 +1599,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
           <section
             className={`${
-              isPaneOpenOnMobile ? "block" : "hidden"
+              isPaneOpenOnMobile ? "block" : "max-lg:hidden"
             } px-5 py-5 lg:block lg:min-w-0 md:px-6`}
             data-testid="status-page-resource-detail-pane"
           >
