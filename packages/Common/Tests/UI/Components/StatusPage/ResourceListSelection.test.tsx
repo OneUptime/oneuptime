@@ -5,6 +5,12 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  isVisibleAtWidth,
+} from "../../../ResponsiveVisibility";
 
 /*
  * Contract under test - the checkbox column on a status page group's resource
@@ -327,6 +333,7 @@ describe("ResourceList - selecting rows", () => {
 
       expect(header.className).toContain("flex");
       expect(header.className).not.toContain("hidden sm:flex");
+      expect(isVisibleAtWidth(header, PHONE_WIDTH_IN_PX)).toBe(true);
       expect(within(header).getByText("Select all")).toBeInTheDocument();
     });
 
@@ -417,9 +424,35 @@ describe("ResourceList - selecting rows", () => {
         "status-page-resource-list-header",
       );
 
-      expect(header.className).toContain("hidden");
       expect(header.className).toContain("sm:flex");
+      expect(isVisibleAtWidth(header, PHONE_WIDTH_IN_PX)).toBe(false);
+      expect(isVisibleAtWidth(header, TABLET_WIDTH_IN_PX)).toBe(true);
       expect(within(header).queryByText("Select all")).not.toBeInTheDocument();
+    });
+
+    /*
+     * Held back on a phone with `max-sm:hidden`, not the bare `hidden`: a
+     * foreign `.hidden { display: none !important }` rule would beat `sm:flex`
+     * and take the column labels off every width, desktop included.
+     */
+    test("a foreign .hidden rule cannot take the column labels off a desktop", () => {
+      renderList({ isSelectable: false });
+
+      const header: HTMLElement = screen.getByTestId(
+        "status-page-resource-list-header",
+      );
+
+      const monitorLabel: HTMLElement = within(header).getByText("Monitor");
+
+      expect(header).not.toHaveClass("hidden");
+      expect(monitorLabel).not.toHaveClass("hidden");
+      // The label is checked through its ancestors, the header included.
+      expect(
+        isVisibleAtWidth(monitorLabel, LAPTOP_WIDTH_IN_PX, {
+          withForeignHiddenRule: true,
+        }),
+      ).toBe(true);
+      expect(isVisibleAtWidth(monitorLabel, PHONE_WIDTH_IN_PX)).toBe(false);
     });
 
     test("no row claims to be selected", () => {

@@ -277,3 +277,30 @@ export function describeVisibility(
     "class",
   )}">`;
 }
+
+// A max-width hide, e.g. `max-lg:hidden` — the form the foreign-rule fix introduced.
+export const MAX_WIDTH_HIDDEN_CLASS: RegExp = /^max-(sm|md|lg|xl|2xl):hidden$/;
+
+/**
+ * Put the pre-fix idiom back on everything rendered under `root`: every
+ * `max-<breakpoint>:hidden` becomes the bare `hidden` it replaced. Nothing in
+ * the UI used a max-width hide before that fix, so this rebuilds the old class
+ * strings exactly — and lets a test show that its own assertion fails against
+ * them, rather than passing whatever the markup says.
+ */
+export function restorePreFixMarkup(root: ParentNode = document): void {
+  for (const element of Array.from(root.querySelectorAll("[class]"))) {
+    const tokens: Array<string> = (element.getAttribute("class") || "").split(
+      /\s+/,
+    );
+
+    element.setAttribute(
+      "class",
+      tokens
+        .map((token: string): string => {
+          return MAX_WIDTH_HIDDEN_CLASS.test(token) ? "hidden" : token;
+        })
+        .join(" "),
+    );
+  }
+}
