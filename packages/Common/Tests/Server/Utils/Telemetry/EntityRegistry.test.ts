@@ -81,12 +81,19 @@ describe("REGISTRY_PROMOTED_TYPES", () => {
     expect(REGISTRY_PROMOTED_TYPES.has(entityType)).toBe(false);
   });
 
+  test("database.server is membership-only (the DatabaseServer table is its row)", () => {
+    expect(REGISTRY_PROMOTED_TYPES.has(EntityType.DatabaseServer)).toBe(false);
+    // The logical, dependency-discovered database type still promotes.
+    expect(REGISTRY_PROMOTED_TYPES.has(EntityType.Database)).toBe(true);
+  });
+
   test("every other entity type is promoted", () => {
     const membershipOnly: Array<EntityType> = [
       EntityType.Container,
       EntityType.Process,
       EntityType.ServiceInstance,
       EntityType.TelemetrySdk,
+      EntityType.DatabaseServer,
     ];
 
     for (const entityType of Object.values(EntityType)) {

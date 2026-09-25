@@ -12,6 +12,7 @@ import BaseModel, {
 } from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../../../Models/DatabaseModels/DatabaseServer";
 import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarmCluster";
 import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../../../../Models/DatabaseModels/IoTFleet";
@@ -98,6 +99,13 @@ const INFRASTRUCTURE: Array<InfrastructureCase> = [
     fkColumn: "networkDeviceId",
     readPermission: Permission.ReadNetworkDevice,
     serviceType: ServiceType.NetworkDevice,
+  },
+  {
+    name: "DatabaseServer",
+    modelType: DatabaseServer,
+    fkColumn: "databaseServerId",
+    readPermission: Permission.ReadDatabaseServer,
+    serviceType: ServiceType.DatabaseServer,
   },
 ];
 

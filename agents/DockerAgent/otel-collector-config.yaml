@@ -40,6 +40,26 @@ receivers:
         enabled: true
       container.uptime:
         enabled: true
+    # Copy the container labels OneUptime's database discovery reads onto
+    # every metric of the container, as RESOURCE attributes of the same name
+    # (verified against otel/opentelemetry-collector-contrib:0.161.0 and a
+    # real daemon; a label the container lacks is simply absent). They
+    # group the replicas of one Compose / Swarm service into one database
+    # and keep Testcontainers runs, `docker compose run` one-offs and
+    # kubelet-managed containers from becoming databases. Keep this list
+    # equal to CONTAINER_CLASSIFIER_LABEL_KEYS
+    # (packages/Common/Types/DatabaseServer/DatabaseContainerClassifier.ts).
+    # container.command_line stays OFF: a command line can carry secrets.
+    container_labels_to_metric_labels:
+      com.docker.compose.oneoff: com.docker.compose.oneoff
+      com.docker.compose.project: com.docker.compose.project
+      com.docker.compose.service: com.docker.compose.service
+      com.docker.swarm.service.name: com.docker.swarm.service.name
+      io.kubernetes.pod.name: io.kubernetes.pod.name
+      io.podman.compose.project: io.podman.compose.project
+      io.podman.compose.service: io.podman.compose.service
+      org.testcontainers: org.testcontainers
+      org.testcontainers.sessionId: org.testcontainers.sessionId
 
   filelog:
     include:

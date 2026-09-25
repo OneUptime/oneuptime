@@ -70,6 +70,7 @@ const AUTO_DISCOVERY_MOCKS_RETURNING_NULL: Array<string> = [
   "autoDiscoverCloudResource",
   "autoDiscoverRum",
   "autoDiscoverIoTFleet",
+  "autoDiscoverDatabaseServer",
 ];
 
 // 2026-08-10T10:00:00.000Z / one hour earlier, as OTLP unix-nano strings.

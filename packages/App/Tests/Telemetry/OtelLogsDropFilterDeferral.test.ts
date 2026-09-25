@@ -104,6 +104,7 @@ const AUTO_DISCOVERY_MOCKS_RETURNING_NULL: Array<string> = [
   "autoDiscoverServerless",
   "autoDiscoverCloudResource",
   "autoDiscoverRum",
+  "autoDiscoverDatabaseServer",
 ];
 
 type OtlpAttribute = { key: string; value: { stringValue: string } };

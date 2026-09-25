@@ -12,6 +12,10 @@ import ServerlessFunctionService from "../../../../Server/Services/ServerlessFun
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
+import ResourceEntityFilter, {
+  ResourceEntityScope,
+} from "../../../../Server/Utils/Telemetry/ResourceEntityFilter";
 import MetricService, {
   MetricService as MetricServiceClass,
 } from "../../../../Server/Services/MetricService";
@@ -176,6 +180,21 @@ const cases: Array<ResourceCase> = [
     service: NetworkDeviceService,
     read: Permission.ReadNetworkDevice,
   },
+  {
+    type: AIResourceType.DatabaseServer,
+    service: DatabaseServerService,
+    read: Permission.ReadDatabaseServer,
+  },
+];
+
+/*
+ * A database's telemetry scope is its whole key set (endpoints + workload
+ * members), resolved by the same ResourceEntityFilter the explorer facet
+ * uses; stubbed here, and pinned to the parent id it was asked for.
+ */
+const DATABASE_ENTITY_KEYS: Array<string> = [
+  "0123456789abcdef",
+  "fedcba9876543210",
 ];
 
 function context(
@@ -259,11 +278,25 @@ let metric: jest.SpyInstance;
 let logs: jest.SpyInstance;
 let traces: jest.SpyInstance;
 let accessible: jest.SpyInstance;
+let resolveScopes: jest.SpyInstance;
 
 beforeEach(() => {
   for (const item of cases) {
     jest.spyOn(item.service, "findBy").mockResolvedValue([resource(item)]);
   }
+  resolveScopes = jest
+    .spyOn(ResourceEntityFilter, "resolveScopes")
+    .mockImplementation(
+      async (data: {
+        selections: Record<string, Array<string>>;
+      }): Promise<Array<ResourceEntityScope>> => {
+        return (data.selections["databaseServerId"] || []).map(
+          (id: string): ResourceEntityScope => {
+            return { entityIds: [id], entityKeys: DATABASE_ENTITY_KEYS };
+          },
+        );
+      },
+    );
   metric = jest
     .spyOn(MetricService, "aggregateBy")
     .mockResolvedValue({ data: [] });
@@ -775,6 +808,19 @@ describe("resource membership", () => {
             "resource.cloud.account.id": "account-1",
             "resource.cloud.region": "eu-west-1",
           });
+        } else if (item.type === AIResourceType.DatabaseServer) {
+          // Its own rows, plus every endpoint / member key it owns.
+          expect(scopes).toEqual([
+            {
+              entityIds: [resourceId.toString()],
+              entityKeys: DATABASE_ENTITY_KEYS,
+            },
+          ]);
+          expect(scopeQuery["attributes"]).toBeUndefined();
+          expect(resolveScopes).toHaveBeenLastCalledWith({
+            projectId,
+            selections: { databaseServerId: [resourceId.toString()] },
+          });
         } else if (signal === "logs") {
           expect(scopeQuery["attributes"]).toEqual({
             "networkDevice.id": resourceId.toString(),
@@ -820,6 +866,94 @@ describe("resource membership", () => {
       expect(logs).not.toHaveBeenCalled();
     },
   );
+
+  test("a Database's key set is resolved only after its parent read succeeds", async () => {
+    (DatabaseServerService.findBy as jest.Mock).mockResolvedValue([]);
+
+    await expect(
+      QueryResourceTelemetryTool.execute(
+        args(AIResourceType.DatabaseServer, "logs"),
+        context(),
+      ),
+    ).rejects.toThrow("not found or you do not have access");
+    expect(resolveScopes).not.toHaveBeenCalled();
+    expect(logs).not.toHaveBeenCalled();
+  });
+
+  test("a Database scope that cannot be resolved narrows to the row's own data - never wider", () => {
+    for (const resolvedScopes of [
+      undefined,
+      [],
+      // Another row's scope is never borrowed.
+      [{ entityIds: [otherId.toString()], entityKeys: DATABASE_ENTITY_KEYS }],
+    ]) {
+      const scope: AIResourceTelemetryScope = buildAIResourceTelemetryScope({
+        type: AIResourceType.DatabaseServer,
+        id: resourceId,
+        projectId,
+        signal: "metrics",
+        resource: {},
+        resolvedScopes: resolvedScopes,
+      });
+      expect(scope.resourceScopes).toEqual([
+        { entityIds: [resourceId.toString()], entityKeys: [] },
+      ]);
+      expect(scope.attributes).toBeUndefined();
+    }
+  });
+
+  test("a Database scope explains what a database's telemetry is", async () => {
+    const result: ToolExecutionResult =
+      await QueryResourceTelemetryTool.execute(
+        args(AIResourceType.DatabaseServer, "traces"),
+        context(),
+      );
+    expect(result.dataForLlm).toContain(
+      "everything carrying one of its endpoints or workload members",
+    );
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: {
+        resourceType: AIResourceType.DatabaseServer,
+        resourceId: resourceId.toString(),
+      },
+    });
+  });
+
+  test("Database inventory reports the engine, version and endpoint - and nothing else", async () => {
+    (DatabaseServerService.findBy as jest.Mock).mockResolvedValue([
+      {
+        _id: resourceId.toString(),
+        name: "PostgreSQL orders-db:5432",
+        lastSeenAt: end,
+        isArchived: false,
+        otelCollectorStatus: "connected",
+        dbSystem: "postgresql",
+        dbVersion: "16.4",
+        serverAddress: "orders-db.example.com",
+        serverPort: 5432,
+        discoverySource: "kubernetes",
+        instanceCount: 3,
+        collectorLastSeenAt: end,
+        memberEntityKeys: { "0123456789abcdef": end.toISOString() },
+        automaticAssignments: { labelIds: ["secret-label"] },
+      },
+    ]);
+
+    const result: ToolExecutionResult =
+      await QueryTelemetryResourcesTool.execute(
+        { resourceType: AIResourceType.DatabaseServer },
+        context([Permission.ReadDatabaseServer]),
+      );
+
+    expect(result.dataForLlm).toContain("dbSystem=postgresql");
+    expect(result.dataForLlm).toContain("dbVersion=16.4");
+    expect(result.dataForLlm).toContain("serverPort=5432");
+    expect(result.dataForLlm).toContain("instanceCount=3");
+    expect(result.dataForLlm).not.toMatch(
+      /memberEntityKeys|0123456789abcdef|automaticAssignments|secret-label/,
+    );
+  });
 
   test("Cloud trims known attributes and omits absent account/region", () => {
     const scope: AIResourceTelemetryScope = buildAIResourceTelemetryScope({

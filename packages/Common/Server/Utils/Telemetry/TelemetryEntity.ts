@@ -15,6 +15,14 @@ import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
 import crypto from "crypto";
 
 /*
+ * `keyForContainer` moved to the isomorphic EntityKey module (the Databases
+ * product needs it in the browser too). Re-exported here so the existing
+ * server-side importers (MetricService's container rollup read path and its
+ * tests) keep working unchanged.
+ */
+export { keyForContainer } from "../../../Utils/Telemetry/EntityKey";
+
+/*
  * Generalized OpenTelemetry entity extraction (the identity layer of the
  * entity model — see Internal/Docs/OpenTelemetryEntities.md, phase 1).
  *
@@ -211,11 +219,18 @@ export default class InventoryItem {
    * entries is usable and extraction falls back to heuristics. We never infer a
    * retirement across that boundary; in particular, an explicitly referenced
    * Host must remain authoritative on a Kubernetes resource.
+   *
+   * `suppressHeuristicEntityTypes` drops those types from the HEURISTIC
+   * resolvers only — for a resource the caller knows the heuristic would
+   * misread (a database receiver's batch carries the host.name of the
+   * machine the collector runs on, which is not what it describes). A type a
+   * producer declared through `entity_refs` is never suppressed.
    */
   public static extractEntitiesWithRetirements(data: {
     projectId: string;
     attributes: EntityAttributes;
     entityRefs?: Array<ResourceEntityRef> | undefined;
+    suppressHeuristicEntityTypes?: ReadonlyArray<EntityType> | undefined;
   }): EntityExtractionResult {
     let out: Array<ExtractedEntity> = [];
     const hasAuthoritativeEntityRefs: boolean = Boolean(
@@ -285,9 +300,15 @@ export default class InventoryItem {
   private static entitiesFromResolvers(data: {
     projectId: string;
     attributes: EntityAttributes;
+    suppressHeuristicEntityTypes?: ReadonlyArray<EntityType> | undefined;
   }): Array<ExtractedEntity> {
     const out: Array<ExtractedEntity> = [];
     const seen: Set<string> = new Set<string>();
+    const suppressed: ReadonlyArray<EntityType> = Array.isArray(
+      data.suppressHeuristicEntityTypes,
+    )
+      ? data.suppressHeuristicEntityTypes
+      : [];
 
     for (const resolve of this.resolvers) {
       const identity: {
@@ -295,7 +316,7 @@ export default class InventoryItem {
         id: Dictionary<string>;
       } | null = resolve(data.attributes);
 
-      if (!identity) {
+      if (!identity || suppressed.includes(identity.entityType)) {
         continue;
       }
 
@@ -1448,25 +1469,4 @@ export default class InventoryItem {
     }
     return out;
   }
-}
-
-/**
- * `container.id` is the container identity (mirrors the container
- * resolver above — id-only). Read-side helper in the mold of
- * `EntityKey.keyForHost` & co.; it lives here rather than in the
- * isomorphic EntityKey module because its only consumer today is the
- * server-side container metric-rollup read path
- * (`MetricService.tryBuildEntityAggregateMVStatement` against
- * `MetricItemAggMV1mByContainer`), so there is no reason to widen the
- * browser bundle. Pass the raw `container.id` attribute value.
- */
-export function keyForContainer(
-  projectId: string,
-  containerId: string,
-): string {
-  return computeEntityKeyShared({
-    projectId,
-    entityType: EntityType.Container,
-    identifyingAttributes: { "container.id": containerId },
-  });
 }

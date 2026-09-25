@@ -429,6 +429,7 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   cloudResourceId: "cloud resources",
   rumApplicationId: "RUM applications",
   iotFleetId: "IoT fleets",
+  databaseServerId: "databases",
 };
 
 type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;

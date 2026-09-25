@@ -109,6 +109,15 @@ describe("resource facet counting covers the whole catalog", () => {
         );
       });
 
+      test("databaseServerId is counted under DatabaseServer — the receiver batches primary-keyed on the row", () => {
+        const statement: Statement = service.build({
+          facetKey: "databaseServerId",
+        });
+
+        expect(paramValues(statement)).toContain(ServiceType.DatabaseServer);
+        expect(statement.query).not.toContain("mapContains(attributes");
+      });
+
       test("iotFleetId is counted under IoTDevice — ingest stamps the fleet id with that type", () => {
         const statement: Statement = service.build({ facetKey: "iotFleetId" });
 

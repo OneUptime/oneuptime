@@ -33,6 +33,14 @@ enum ServiceType {
   CloudResource = "CloudResource",
   RealUserMonitor = "RealUserMonitor",
   /*
+   * A DatabaseServer row: telemetry collected from the database itself by an
+   * OTel Collector database receiver / the OneUptime Database Agent, when the
+   * resource carries no service.name. Application CLIENT spans that merely
+   * call the database keep their own service as primary entity and reach the
+   * database through its endpoint entity keys instead.
+   */
+  DatabaseServer = "DatabaseServer",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

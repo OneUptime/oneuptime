@@ -17,6 +17,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -254,7 +255,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Other Affected Resources",
                 stepId: "on-call",
                 description:
-                  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
+                  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -269,12 +270,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
                       podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      databaseServers={
+                        values.databaseServers as Array<DatabaseServer>
+                      }
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
                         "KubernetesCluster",
                         "DockerHost",
                         "PodmanHost",
+                        "DatabaseServer",
                         "Service",
                       ]}
                       onChange={(payload: unknown) => {
@@ -297,6 +302,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
+                        databaseServers: payload.databaseServers,
                         services: payload.services,
                       } as FormValues<Alert>);
                     });
@@ -314,6 +320,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     item.kubernetesClusters,
                     item.dockerHosts,
                     item.podmanHosts,
+                    item.databaseServers,
                     item.services,
                   ].some((resources: unknown): boolean => {
                     return Array.isArray(resources) && resources.length > 0;
@@ -330,12 +337,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       }
                       dockerHosts={item.dockerHosts as Array<DockerHost>}
                       podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                      databaseServers={
+                        item.databaseServers as Array<DatabaseServer>
+                      }
                       services={item.services as Array<Service>}
                       resourceTypes={[
                         "Host",
                         "KubernetesCluster",
                         "DockerHost",
                         "PodmanHost",
+                        "DatabaseServer",
                         "Service",
                       ]}
                       onChange={() => {
@@ -347,7 +358,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               /*
                * Hidden registrations so ModelForm.getSelectFields includes
-               * kubernetesClusters/dockerHosts/services. (hosts is already the
+               * kubernetesClusters/dockerHosts/podmanHosts/databaseServers/
+               * services. (hosts is already the
                * picker's anchor field above so it doesn't need an extra
                * registration.)
                */
@@ -373,6 +385,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { podmanHosts: true },
+                stepId: "on-call",
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { databaseServers: true },
                 stepId: "on-call",
                 title: "",
                 fieldType: FormFieldSchemaType.Text,

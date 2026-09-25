@@ -20,6 +20,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
+import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -46,9 +47,10 @@ import {
 /*
  * Every resource type's liveness heartbeat, pinned together.
  *
- * Twelve services write the same two liveness columns (lastSeenAt +
- * otelCollectorStatus) alongside optional columns harvested from
- * OpenTelemetry resource attributes, and each has its own markDisconnected*
+ * Thirteen services write the same two liveness columns (lastSeenAt +
+ * otelCollectorStatus; a database adds collectorLastSeenAt) alongside
+ * optional columns harvested from OpenTelemetry resource attributes, and
+ * each has its own markDisconnected*
  * job that flips the resource to "disconnected" 15 minutes after lastSeenAt
  * stops advancing. They now share one implementation — ResourceHeartbeat —
  * because eleven hand-copied versions meant eleven copies of the same defect
@@ -109,10 +111,48 @@ type ServiceCase = {
    * These are what defeated the old throttle — see the header.
    */
   churningExtras?: Array<Record<string, unknown>>;
+  /**
+   * The columns every heartbeat writes, when not just lastSeenAt +
+   * otelCollectorStatus. A database also stamps collectorLastSeenAt: an
+   * application querying it moves lastSeenAt too, so only that column says
+   * the COLLECTOR is alive.
+   */
+  livenessColumns?: Array<string>;
 };
 
 /** Longer than any bounded column on any of these models. */
 const OVERSIZED: string = "x".repeat(5000);
+
+const DEFAULT_LIVENESS_COLUMNS: Array<string> = [
+  "lastSeenAt",
+  "otelCollectorStatus",
+];
+
+/*
+ * The database heartbeat is recordCollectorHeartbeat (a CLIENT span calling
+ * the database is a separate, sighting-only heartbeat). This view of the real
+ * service gives it the updateLastSeen shape the table drives - `this` stays
+ * the view, so the write spies below still see every UPDATE - and answers
+ * the one read the heartbeat makes afterwards (the auto-archive restore
+ * check) with "no row", so the suite still never reaches Postgres.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const databaseServerHeartbeat: any = Object.assign(
+  Object.create(DatabaseServerService),
+  {
+    updateLastSeen: function (
+      this: typeof DatabaseServerService,
+      id: ObjectID,
+      extra?: { agentVersion?: string; dbVersion?: string },
+    ): Promise<void> {
+      return this.recordCollectorHeartbeat(id, extra);
+    },
+    findOneById: async (): Promise<null> => {
+      return null;
+    },
+  },
+);
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const SERVICE_CASES: Array<ServiceCase> = [
@@ -257,6 +297,19 @@ const SERVICE_CASES: Array<ServiceCase> = [
       { osType: "linux", processCount: 413, totalMemoryBytes: 17179869184 },
     ],
   },
+  {
+    name: "DatabaseServerService",
+    service: databaseServerHeartbeat,
+    namespace: "database-server-last-seen",
+    extra: { agentVersion: "0.118.0" },
+    otherExtra: { agentVersion: "0.119.0" },
+    oversizedExtra: { dbVersion: OVERSIZED },
+    livenessColumns: [
+      "collectorLastSeenAt",
+      "lastSeenAt",
+      "otelCollectorStatus",
+    ],
+  },
 ];
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -269,7 +322,11 @@ describe.each(SERVICE_CASES)(
     otherExtra,
     oversizedExtra,
     churningExtras,
+    livenessColumns,
   }: ServiceCase) => {
+    const liveness: Array<string> = [
+      ...(livenessColumns || DEFAULT_LIVENESS_COLUMNS),
+    ].sort();
     let writes: Array<WriteCall>;
     let cache: Map<string, string>;
     let deletedCacheKeys: Array<string>;
@@ -329,8 +386,8 @@ describe.each(SERVICE_CASES)(
     }
 
     /**
-     * Fails any write carrying more than the two liveness columns — the
-     * shape of a Postgres rejection caused by one bad optional column.
+     * Fails any write carrying more than the liveness columns — the shape
+     * of a Postgres rejection caused by one bad optional column.
      */
     function mockEnrichedWriteFailing(): void {
       jest
@@ -340,7 +397,7 @@ describe.each(SERVICE_CASES)(
             ...(input.data as Record<string, unknown>),
           };
           writes.push({ id: input.id, data: data });
-          if (Object.keys(data).length > 2) {
+          if (Object.keys(data).length > liveness.length) {
             throw new Error("value too long for type character varying(100)");
           }
           return true;
@@ -505,10 +562,7 @@ describe.each(SERVICE_CASES)(
         await service.updateLastSeen(RESOURCE_ID, oversizedExtra as never);
 
         expect(writes).toHaveLength(2);
-        expect(Object.keys(lastWrite()).sort()).toEqual([
-          "lastSeenAt",
-          "otelCollectorStatus",
-        ]);
+        expect(Object.keys(lastWrite()).sort()).toEqual(liveness);
         expect(lastWrite()["otelCollectorStatus"]).toBe("connected");
         expect(lastWrite()["lastSeenAt"]).toBeInstanceOf(Date);
       });
@@ -553,10 +607,7 @@ describe.each(SERVICE_CASES)(
 
         await service.updateLastSeen(RESOURCE_ID, oversizedExtra as never);
 
-        expect(Object.keys(lastWrite()).sort()).toEqual([
-          "lastSeenAt",
-          "otelCollectorStatus",
-        ]);
+        expect(Object.keys(lastWrite()).sort()).toEqual(liveness);
       });
 
       test("surfaces a genuinely broken database instead of hiding it", async () => {
@@ -617,10 +668,7 @@ describe.each(SERVICE_CASES)(
         await service.updateLastSeen(RESOURCE_ID, extra as never);
 
         expect(writes).toHaveLength(1);
-        expect(Object.keys(lastWrite()).sort()).toEqual([
-          "lastSeenAt",
-          "otelCollectorStatus",
-        ]);
+        expect(Object.keys(lastWrite()).sort()).toEqual(liveness);
       });
     });
 
@@ -668,11 +716,11 @@ describe.each(SERVICE_CASES)(
 describe("liveness fallback coverage", () => {
   test("covers every service that writes liveness on the hook-free path", () => {
     /*
-     * If a thirteenth resource type grows an updateLastSeen, it belongs in
+     * If a fourteenth resource type grows an updateLastSeen, it belongs in
      * SERVICE_CASES — that is the whole point of this suite. Bumping this
      * number without adding the case defeats it.
      */
-    expect(SERVICE_CASES).toHaveLength(12);
+    expect(SERVICE_CASES).toHaveLength(13);
   });
 
   test("no service is listed twice", () => {

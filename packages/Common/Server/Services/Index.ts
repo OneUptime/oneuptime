@@ -106,6 +106,12 @@ import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
+import DatabaseServerService from "./DatabaseServerService";
+import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
+import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
+import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
+import DatabaseServerOwnerTeamService from "./DatabaseServerOwnerTeamService";
+import DatabaseServerOwnerUserService from "./DatabaseServerOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
@@ -150,6 +156,7 @@ import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import DockerHostFeedService from "./DockerHostFeedService";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
+import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
@@ -573,6 +580,12 @@ const services: Array<BaseService> = [
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
+  DatabaseServerService,
+  DatabaseServerEndpointService,
+  DatabaseServerLabelRuleService,
+  DatabaseServerOwnerRuleService,
+  DatabaseServerOwnerTeamService,
+  DatabaseServerOwnerUserService,
   LlmProviderService,
   DataSourceService,
 
@@ -600,6 +613,7 @@ const services: Array<BaseService> = [
   DockerHostFeedService,
   DockerSwarmClusterFeedService,
   CephClusterFeedService,
+  DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
   VMwareVCenterFeedService,

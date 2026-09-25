@@ -105,6 +105,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.IoTDevice]: "IoT",
   [MonitorRecommendationResourceType.RumApplication]: "Rum",
   [MonitorRecommendationResourceType.Service]: "Service",
+  [MonitorRecommendationResourceType.DatabaseServer]: "Database",
 };
 
 /*
@@ -145,7 +146,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(11);
+    expect(ALL_RESOURCE_TYPES.length).toBe(12);
     expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {
@@ -276,7 +277,7 @@ describe("every resource type routes its Recommendations page through the shared
 
     expect(shell).toContain(
       squash(
-        "RecommendationResourceRegistry.readContext({ resourceType: props.resourceType, model: resource, })",
+        "await RecommendationResourceRegistry.loadContext({ resourceType: props.resourceType, model: item, })",
       ),
     );
     expect(shell).toContain("resourceContext={resourceContext}");
@@ -445,7 +446,7 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
   test("the badge fetches the resource before it asks the catalog", () => {
     const fetchIndex: number = BADGE_CODE.indexOf("await ModelAPI.getItem({");
     const contextIndex: number = BADGE_CODE.indexOf(
-      "RecommendationResourceRegistry.readContext({",
+      "await RecommendationResourceRegistry.loadContext({",
     );
     const catalogIndex: number = BADGE_CODE.indexOf(
       "MonitorRecommendationCatalog.getRecommendations(",

@@ -196,6 +196,7 @@ Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt
 - **Proxmox** — noder, VM'er, containere, lager, HA-tilstand, backup-dækning og replikeringssundhed. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-værter, virtuelle maskiner, datastores, klynger, ressourcepuljer og vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — klyngesundhed, kapacitetsprognoser og OSD-/pool-/PG-/monitor-indsigt. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Databaser** — PostgreSQL, MySQL, Redis, MongoDB m.fl., fundet automatisk fra applikationstraces, Kubernetes og Docker, med motor-metrikker, forespørgselsprøver og logs fra en collector-agent, der kun består af konfiguration. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

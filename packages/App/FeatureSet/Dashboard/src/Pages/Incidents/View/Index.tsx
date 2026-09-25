@@ -68,6 +68,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -1312,6 +1313,9 @@ const IncidentView: FunctionComponent<
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
                       }
                       iotFleets={values.iotFleets as Array<IoTFleet>}
+                      databaseServers={
+                        values.databaseServers as Array<DatabaseServer>
+                      }
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Monitor",
@@ -1324,6 +1328,7 @@ const IncidentView: FunctionComponent<
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
+                        "DatabaseServer",
                         "Service",
                       ]}
                       onChange={(payload: unknown) => {
@@ -1352,6 +1357,7 @@ const IncidentView: FunctionComponent<
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
+                        databaseServers: payload.databaseServers,
                         services: payload.services,
                       } as FormValues<Incident>);
                     });
@@ -1444,6 +1450,15 @@ const IncidentView: FunctionComponent<
                 },
               },
               {
+                field: { databaseServers: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
                 field: { services: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
@@ -1524,6 +1539,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    databaseServers: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -1555,6 +1574,7 @@ const IncidentView: FunctionComponent<
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
+                        databaseServers={item.databaseServers || []}
                         services={item.services || []}
                         serviceLevelObjectives={
                           item.serviceLevelObjectives || []

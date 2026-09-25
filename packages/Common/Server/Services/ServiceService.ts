@@ -502,7 +502,7 @@ export class Service extends DatabaseService<Model> {
     };
 
     return crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(JSON.stringify(normalized))
       .digest("hex");
   }

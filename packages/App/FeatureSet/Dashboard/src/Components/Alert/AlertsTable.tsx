@@ -719,6 +719,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          databaseServers: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -907,6 +912,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              databaseServers: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -934,6 +944,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   cephClusters={item.cephClusters || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
+                  databaseServers={item.databaseServers || []}
                   services={item.services || []}
                   serviceLevelObjectives={item.serviceLevelObjectives || []}
                 />

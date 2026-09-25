@@ -118,6 +118,20 @@ export const RESOURCE_FACET_CATALOG: ReadonlyArray<ResourceFacetDefinition> = [
     pluralLabel: "IoT Fleets",
     icon: IconProp.IoT,
   },
+  /*
+   * A DatabaseServer row. Only a DB receiver batch without service.name is
+   * primary-keyed on it (so the count is `primaryEntityType =
+   * DatabaseServer`); a selection also matches the application CLIENT spans
+   * and `db.client.*` datapoints that name one of its endpoints, through
+   * the row's entity keys (see ResourceEntityFilter).
+   */
+  {
+    facetKey: "databaseServerId",
+    serviceType: ServiceType.DatabaseServer,
+    label: "Database",
+    pluralLabel: "Databases",
+    icon: IconProp.Database,
+  },
 ];
 
 // Catalog order — the order the sidebars list resource facets in.

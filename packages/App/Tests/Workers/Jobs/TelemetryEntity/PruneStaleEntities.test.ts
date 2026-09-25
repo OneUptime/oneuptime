@@ -184,6 +184,23 @@ describe("entity pruning is scoped to discovered rows", () => {
     }
   });
 
+  test("database.server is never swept: it is membership-only", async () => {
+    /*
+     * Its keys only ride along on signals so the Databases product can scope
+     * telemetry; no registry row of the type is ever written, so a TTL would
+     * only be a sweep over nothing.
+     */
+    await runTick();
+
+    const swept: Array<EntityType | undefined> = entityDeleteCalls().map(
+      (call: DeleteCall) => {
+        return call.query.entityType;
+      },
+    );
+
+    expect(swept).not.toContain(EntityType.DatabaseServer);
+  });
+
   test("every swept type is one with a telemetry heartbeat", async () => {
     /*
      * The belt to the source predicate's braces: even if the predicate were

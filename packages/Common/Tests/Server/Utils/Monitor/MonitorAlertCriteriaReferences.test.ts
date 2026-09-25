@@ -210,6 +210,7 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
+        databaseServerIds: [],
       });
 
     jest

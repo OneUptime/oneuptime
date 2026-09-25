@@ -101,6 +101,11 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["oncall", "On-Call Duty", PageMap.ON_CALL_DUTY],
   ["escalation", "On-Call Duty", PageMap.ON_CALL_DUTY],
   ["rca", "Insights", PageMap.AI_INSIGHTS],
+  ["postgres", "Databases", PageMap.DATABASE_SERVERS],
+  ["mysql", "Databases", PageMap.DATABASE_SERVERS],
+  ["redis", "Databases", PageMap.DATABASE_SERVERS],
+  ["mongodb", "Databases", PageMap.DATABASE_SERVERS],
+  ["sql server", "Databases", PageMap.DATABASE_SERVERS],
 ];
 
 function navbar(): React.ReactElement {

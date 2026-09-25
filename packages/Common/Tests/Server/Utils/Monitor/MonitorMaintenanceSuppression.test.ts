@@ -1,3 +1,6 @@
+import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
 } from "../../../../Server/Utils/Monitor/MonitorMaintenanceSuppression";
@@ -5,6 +8,7 @@ import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "../../../../Server/Utils/Monitor/SeriesResourceLabels";
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
 
 function emptyMaintained(): MaintainedResourceKeys {
@@ -19,6 +23,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
+    databaseServers: { ids: new Set<string>(), names: new Set<string>() },
   };
 }
 
@@ -153,6 +158,40 @@ describe("SeriesResourceLabels", () => {
           "iot.fleet.name": "fleet-2",
         });
       expect(refsUnprefixed.iotFleetNames).toEqual(["fleet-2"]);
+    });
+
+    it("maps database server id keys (prefixed and unprefixed)", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.oneuptime.database.server.id":
+            "d0000000-0000-4000-8000-000000000001",
+          "oneuptime.database.server.id":
+            "d0000000-0000-4000-8000-000000000002",
+        },
+      );
+      expect(refs.databaseServerIds.sort()).toEqual([
+        "d0000000-0000-4000-8000-000000000001",
+        "d0000000-0000-4000-8000-000000000002",
+      ]);
+      // A database stamp names no host, service or cluster.
+      expect(refs.hostIds).toEqual([]);
+      expect(refs.hostNames).toEqual([]);
+      expect(refs.serviceNames).toEqual([]);
+    });
+
+    it("never reads the database display-name stamp as an identity", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+          "resource.oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+        },
+      );
+      expect(refs.databaseServerIds).toEqual([]);
+      expect(
+        Object.values(refs).every((values: Array<string>): boolean => {
+          return values.length === 0;
+        }),
+      ).toBe(true);
     });
   });
 });
@@ -297,6 +336,77 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
     expect(Array.from(result)).toEqual(["fpVCenter"]);
   });
 
+  it("suppresses only the series whose database is under maintenance", () => {
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.databaseServers.ids.add("d0000000-0000-4000-8000-000000000001");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpDb", {
+              "oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000001",
+            }),
+            series("fpDbPrefixed", {
+              "resource.oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000001",
+            }),
+            series("fpOther", {
+              "oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000002",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(Array.from(result).sort()).toEqual(["fpDb", "fpDbPrefixed"]);
+  });
+
+  it("does not suppress a database series that carries only the display name", () => {
+    /*
+     * The name set is never filled for databases, and a name label is
+     * never read — the display name is not unique across clusters.
+     */
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.databaseServers.ids.add("d0000000-0000-4000-8000-000000000001");
+    maintained.databaseServers.names.add("PostgreSQL db.prod:5432");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpName", {
+              "oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(result.size).toBe(0);
+  });
+
+  it("does not let a database id match a host with the same id string", () => {
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.databaseServers.ids.add("5a000000-0000-4000-8000-000000000001");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpHost", {
+              "oneuptime.host.id": "5a000000-0000-4000-8000-000000000001",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(result.size).toBe(0);
+  });
+
   it("does not cross-match resource types that happen to share a name", () => {
     /*
      * A service named the same string as the breaching host must not
@@ -347,5 +457,100 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
       );
 
     expect(result.size).toBe(0);
+  });
+});
+
+describe("MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints — databases", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "11111111-1111-4111-8111-111111111111",
+  );
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function ongoingEventWithDatabases(ids: Array<string>): ScheduledMaintenance {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = "event-1";
+    event.databaseServers = ids.map((id: string): DatabaseServer => {
+      const databaseServer: DatabaseServer = new DatabaseServer();
+      databaseServer._id = id;
+      databaseServer.name = `PostgreSQL ${id}:5432`;
+      return databaseServer;
+    });
+    return event;
+  }
+
+  it("selects the databases of ongoing events and suppresses their series", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockResolvedValue([
+        ongoingEventWithDatabases(["d0000000-0000-4000-8000-000000000001"]),
+      ]);
+
+    const result: Set<string> =
+      await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+        projectId: PROJECT_ID,
+        matchesPerSeries: [
+          series("fpDb", {
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-000000000001",
+          }),
+          series("fpOther", {
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-000000000002",
+          }),
+        ],
+      });
+
+    expect(Array.from(result)).toEqual(["fpDb"]);
+
+    const args: {
+      query: { projectId: ObjectID };
+      select: { databaseServers?: unknown };
+    } = findBy.mock.calls[0]![0] as {
+      query: { projectId: ObjectID };
+      select: { databaseServers?: unknown };
+    };
+    expect(args.query.projectId).toBe(PROJECT_ID);
+    // Only the id is read — the display name is never an identity.
+    expect(args.select.databaseServers).toEqual({ _id: true });
+  });
+
+  it("does not suppress by the database name even when the event holds one", async () => {
+    jest
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockResolvedValue([
+        ongoingEventWithDatabases(["d0000000-0000-4000-8000-000000000001"]),
+      ]);
+
+    const result: Set<string> =
+      await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+        projectId: PROJECT_ID,
+        matchesPerSeries: [
+          series("fpName", {
+            "oneuptime.database.server.name":
+              "PostgreSQL d0000000-0000-4000-8000-000000000001:5432",
+          }),
+        ],
+      });
+
+    expect(result.size).toBe(0);
+  });
+
+  it("skips the maintenance query entirely when there are no per-series matches", async () => {
+    const findBy: jest.SpyInstance = jest.spyOn(
+      ScheduledMaintenanceService,
+      "findBy",
+    );
+
+    const result: Set<string> =
+      await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+        projectId: PROJECT_ID,
+        matchesPerSeries: [],
+      });
+
+    expect(result.size).toBe(0);
+    expect(findBy).not.toHaveBeenCalled();
   });
 });

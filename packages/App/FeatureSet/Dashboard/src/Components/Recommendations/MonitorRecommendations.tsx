@@ -737,6 +737,23 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
   const getEmptyState: GetEmptyStateFunction = (): ReactElement => {
     if (counts.total === 0) {
+      /*
+       * With a context note, the empty list is about THIS resource, not its
+       * type — a database whose engine metrics have not arrived yet, or whose
+       * engine has no library — and the note above already says why and what
+       * would change it. "for this resource type" would contradict it.
+       */
+      if (props.resourceContextNote) {
+        return (
+          <EmptyState
+            id="monitor-recommendations-none-for-resource"
+            icon={IconProp.Sparkles}
+            title={`No recommendations for this ${definition.resourceLabel.toLowerCase()} yet`}
+            description="The note above explains why. You can still create monitors by hand."
+          />
+        );
+      }
+
       return (
         <EmptyState
           id="monitor-recommendations-none"

@@ -45,6 +45,7 @@ const NEWLY_FILTERABLE_KEYS: Array<string> = [
   "cloudResourceId",
   "rumApplicationId",
   "iotFleetId",
+  "databaseServerId",
 ];
 
 function facetMap(
@@ -86,7 +87,7 @@ describe("ResourceEntityFacet", () => {
       expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual([
         ...RESOURCE_FACET_CATALOG_KEYS,
       ]);
-      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(12);
+      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(13);
     });
 
     test("the non-Service group is a copy, not the catalog's own array", () => {
@@ -99,6 +100,8 @@ describe("ResourceEntityFacet", () => {
         "ProxmoxClusterId",
         "cephclusterid",
         " iotFleetId",
+        "DatabaseServerId",
+        "databaseId",
         "constructor",
         "__proto__",
       ]) {

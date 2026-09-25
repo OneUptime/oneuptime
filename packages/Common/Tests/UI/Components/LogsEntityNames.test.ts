@@ -233,6 +233,7 @@ describe("LOGS_RESOURCE_FACET_ENTITY_TYPES", () => {
       cloudResourceId: ServiceType.CloudResource,
       rumApplicationId: ServiceType.RealUserMonitor,
       iotFleetId: ServiceType.IoTDevice,
+      databaseServerId: ServiceType.DatabaseServer,
     });
   });
 
@@ -1499,7 +1500,7 @@ describe("catalog resource types the viewer does not preload", () => {
       },
     );
 
-  test("are exactly the eight new catalog types", () => {
+  test("are exactly the catalog types beyond the four preloaded ones", () => {
     expect(
       unpreloaded.map((definition: ResourceFacetDefinition): string => {
         return definition.facetKey;
@@ -1513,6 +1514,7 @@ describe("catalog resource types the viewer does not preload", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]);
   });
 
@@ -1672,6 +1674,19 @@ describe("catalog resource types the viewer does not preload", () => {
     ).toEqual({ [id]: ServiceType.IoTDevice });
     expect(TELEMETRY_ENTITY_TYPES[ServiceType.IoTDevice].label).toBe(
       "IoT Fleet",
+    );
+  });
+
+  test("a Database id is hinted DatabaseServer, straight to its own table", () => {
+    const id: string = idFor(8);
+    expect(
+      collectLogsEntityIdsToResolve({
+        filters: [chip("databaseServerId", id, "Database")],
+        maps,
+      }).typeHints,
+    ).toEqual({ [id]: ServiceType.DatabaseServer });
+    expect(TELEMETRY_ENTITY_TYPES[ServiceType.DatabaseServer].label).toBe(
+      "Database",
     );
   });
 

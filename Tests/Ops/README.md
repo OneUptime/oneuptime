@@ -204,8 +204,10 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
-image over the four agent configs and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart.
+image over the four agent configs, over the Database Agent's per-receiver
+configs (as shipped, and again with every optional metric their comments list
+switched on), and over both collector ConfigMaps rendered out of the
+`kubernetes-agent` chart.
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -217,6 +219,62 @@ or an expr string one backslash short. It runs on every PR from the
 ```sh
 cd Tests/Ops && npm run validate-collector-configs
 ```
+
+### `DatabaseAgentConfigs.test.js`
+
+The Database Agent (`agents/DatabaseAgent`) is config-only: a stock collector
+image plus one config per receiver
+(`configs/{postgresql,mysql,redis,mongodb,sqlserver,oracledb,elasticsearch,memcached}.yaml`;
+a fork such as MariaDB or Valkey runs its family's config). OneUptime registers
+a database from what those configs stamp, so their shape is pinned, per
+config:
+
+- the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
+  so a fork reports itself), `server.address`,
+  `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
+  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+  deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
+  `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
+  Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
+  `host.name` is switched off;
+- `oneuptime.database.server.id` is set by a transform and deleted again when
+  `DATABASE_SERVER_ID` is blank, on metrics and logs, and never by the
+  resource processor (which refuses an empty value);
+- no `resourcedetection` processor, one receiver instance per pipeline, the
+  processor order `memory_limiter → resource → transform → batch` (the `logs`
+  pipeline adds `transform/query_event_body` before `batch`), and a
+  single `otlphttp` exporter to `${env:ONEUPTIME_URL}/otlp` with the
+  ingestion-key header;
+- where the receiver emits query samples and top queries (PostgreSQL, MySQL,
+  MongoDB, SQL Server, Oracle), `transform/query_event_body` copies
+  `db.query.text` into the empty log body — otherwise the Logs tab shows `{}`
+  as every event's message — and leaves a body that is already there alone;
+- TLS flags and event toggles stay unquoted (booleans), query events exist only
+  where the receiver has them, and Redis / MongoDB turn on the receiver's own
+  `server.address` / `server.port`;
+- every `${env:...}` is passed by `docker-compose.yml`, `install.sh` reuses and
+  writes exactly the compose variables, accepts only engines that have a
+  config, and shares its host classifiers and its engine → config table with
+  `troubleshoot.sh`; the systemd unit runs the directory `install.sh` installs
+  to.
+
+### `DatabaseAgentScripts.test.js`
+
+Runs the Database Agent's `install.sh` and `troubleshoot.sh` for real in a
+scratch directory, with `docker` and `curl` replaced by recording stubs (no
+daemon or network needed). It pins what they do with a user's values: the
+login reaches the container with every `$` doubled (the collector expands
+`$$` and `${...}` once more — measured against 0.161.0 and a live database),
+a re-run neither re-escapes nor loses it, an `.env` from an older script is read
+as typed, the first `docker compose up` runs from `.env` alone, an edited
+compose file or config is kept as `<file>.bak.<timestamp>` on a re-run, a
+re-run recreates the container on the config it just downloaded (Compose does
+not compare a bind-mounted file's content, so it needs `--force-recreate`, and
+so does every `compose up` the script advises), forks run their family's
+config under their own name; and that the diagnostic reads
+only a log line's `error` field, reports a failed EXPLAIN as a warning rather
+than a missing grant, and hands the ingestion key to a digest-pinned curl image
+on stdin, never on a command line.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 
@@ -302,6 +360,20 @@ daemon, and any case the daemon cannot demonstrate (for example `1.25` on a
 daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
+
+### `DatabaseAgentQueryEventBodyRuntime.test.js`
+
+The runtime counterpart of the query-event check above. It runs each query-event
+config's `logs` pipeline processors, as shipped, in the pinned collector image,
+feeds them the records the receivers really produced (an empty body, the query
+in `db.query.text`, the event's name) through an OTLP JSON file, and reads back
+what the pipeline exports: the query text as the body with the attribute kept,
+the event name for an event without query text, and a filelog line untouched.
+Off by default, like the suite above:
+
+```bash
+RUN_CONTAINER_AGENT_RUNTIME_TESTS=1 npm test
+```
 
 ### `EnterpriseEditionBuild.test.js`
 

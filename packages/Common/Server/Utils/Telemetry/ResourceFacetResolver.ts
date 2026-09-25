@@ -18,6 +18,7 @@ import ServerlessFunctionService from "../../Services/ServerlessFunctionService"
 import CloudResourceService from "../../Services/CloudResourceService";
 import RumApplicationService from "../../Services/RumApplicationService";
 import IoTFleetService from "../../Services/IoTFleetService";
+import DatabaseServerService from "../../Services/DatabaseServerService";
 import CaptureSpan from "./CaptureSpan";
 
 /*
@@ -164,6 +165,17 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
       { service: RumApplicationService, identifierField: "appIdentifier" },
     ],
     ["iotFleetId", { service: IoTFleetService, identifierField: null }],
+    /*
+     * A database's `name` is a display name ("PostgreSQL db.prod:5432"),
+     * so its stable identifier is searched too.
+     */
+    [
+      "databaseServerId",
+      {
+        service: DatabaseServerService,
+        identifierField: "databaseIdentifier",
+      },
+    ],
   ]);
 
   return resourceFacetListings;

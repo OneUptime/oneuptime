@@ -54,6 +54,9 @@ import {
 } from "Common/Utils/Rum/SessionTraceState";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import DatabaseCallEntityKeyResolver, {
+  DatabaseCallerSource,
+} from "./DatabaseCallEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
@@ -359,6 +362,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
+      /*
+       * CLIENT spans that call a database get that server's endpoint key on
+       * their own row. Memoized for this request only — see
+       * DatabaseCallEntityKeys.
+       */
+      const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
+        new DatabaseCallEntityKeyResolver(projectId);
+
       // Load trace pipeline artifacts once per batch (60s cached inside services).
       let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
@@ -535,6 +546,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               prefixKeysWithString: "resource",
             }),
           };
+
+          /*
+           * The calling application's side of database endpoint
+           * canonicalization (namespace, cluster), built lazily on this
+           * block's first database CLIENT span.
+           */
+          const databaseCaller: DatabaseCallerSource = new DatabaseCallerSource(
+            resourceAttributes,
+          );
 
           const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
 
@@ -807,6 +827,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       pipelines,
                     );
                   }
+
+                  /*
+                   * A CLIENT span that calls a database belongs to that
+                   * database too. Keyed off the FINAL row — a scrubbed
+                   * server.address never becomes an identity — and added
+                   * as a new array: until now the row's entityKeys IS the
+                   * resource's shared array (sibling spans and exception
+                   * rows read it), which must never change.
+                   */
+                  databaseCallEntityKeys.appendToClientSpanRow(
+                    spanRow,
+                    databaseCaller,
+                  );
 
                   /*
                    * Exception rows are only built for spans that survived

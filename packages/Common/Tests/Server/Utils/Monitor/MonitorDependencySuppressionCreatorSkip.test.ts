@@ -224,6 +224,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
+        databaseServerIds: [],
       }) as unknown as SpyLike;
 
     jest

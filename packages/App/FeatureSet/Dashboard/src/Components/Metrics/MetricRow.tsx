@@ -11,6 +11,7 @@ import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
 import { getVisibleMetricServices } from "./MetricRowData";
+import { getMetricServicesWithin } from "./Utils/MetricRowScope";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
@@ -20,7 +21,28 @@ export interface MetricRowProps {
   sparklineLoading?: boolean;
   lastValue?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
-  onClick?: () => void;
+  /*
+   * When set, the row names only these services — strictly, so an empty
+   * list names none. An entity-scoped list passes the services that
+   * reported the metric under its keys (see Utils/MetricRowScope); left
+   * unset, `serviceIds` applies as before.
+   */
+  restrictServicesToIds?: ReadonlyArray<string> | undefined;
+  // Appended to the value, e.g. "/s" when the host charts a rate.
+  valueSuffix?: string | undefined;
+  // One short line under the value saying what the number is.
+  valueCaption?: string | undefined;
+  /*
+   * The unit the value is in, when the host knows the metric's declared
+   * unit is wrong for its scope. Unset: the metric's own unit.
+   */
+  valueUnit?: string | undefined;
+  /*
+   * Without a handler the row is a plain entry: no button, no "Explore"
+   * affordance (a host that cannot drill down with its scope intact — see
+   * MetricsViewer's disableMetricDrillDown).
+   */
+  onClick?: (() => void) | undefined;
 }
 
 const MetricRow: FunctionComponent<MetricRowProps> = (
@@ -50,11 +72,16 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.time)
     : null;
 
-  const services: Array<Service> = getVisibleMetricServices({
-    services: metric.services,
-    serviceIds: props.serviceIds,
-  });
-  const rawUnit: string = metric.unit || "";
+  const services: Array<Service> = props.restrictServicesToIds
+    ? getMetricServicesWithin({
+        services: metric.services,
+        allowedServiceIds: props.restrictServicesToIds,
+      })
+    : getVisibleMetricServices({
+        services: metric.services,
+        serviceIds: props.serviceIds,
+      });
+  const rawUnit: string = props.valueUnit || metric.unit || "";
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",
   };
@@ -63,86 +90,93 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     formatterOptions,
   );
 
-  return (
-    <button
-      type="button"
-      className="group block w-full border-b border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400"
-      onClick={props.onClick}
-    >
-      <div className="flex items-center gap-6">
-        {/* Left: metric info */}
-        <div className="min-w-0 flex-1">
-          {/* Name + unit */}
-          <div className="flex items-center gap-2">
-            <span className="truncate font-mono text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
-              {metric.name || "(unnamed)"}
+  const isInteractive: boolean = Boolean(props.onClick);
+
+  const content: ReactElement = (
+    <div className="flex items-center gap-6">
+      {/* Left: metric info */}
+      <div className="min-w-0 flex-1">
+        {/* Name + unit */}
+        <div className="flex items-center gap-2">
+          <span className="truncate font-mono text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
+            {metric.name || "(unnamed)"}
+          </span>
+          {readableUnit && (
+            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
+              {readableUnit}
             </span>
-            {readableUnit && (
-              <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
-                {readableUnit}
+          )}
+        </div>
+        {/* Description */}
+        {metric.description && (
+          <p className="mt-1 truncate text-xs text-gray-500">
+            {metric.description}
+          </p>
+        )}
+        {/* Services */}
+        {services.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {services.slice(0, 4).map((service: Service): ReactElement => {
+              const color: string =
+                service.serviceColor?.toString() || "#9ca3af";
+              return (
+                <span
+                  key={service._id?.toString() || service.name}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-700"
+                >
+                  <span
+                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="truncate">{service.name}</span>
+                </span>
+              );
+            })}
+            {services.length > 4 && (
+              <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
+                +{services.length - 4} more
               </span>
             )}
           </div>
-          {/* Description */}
-          {metric.description && (
-            <p className="mt-1 truncate text-xs text-gray-500">
-              {metric.description}
-            </p>
-          )}
-          {/* Services */}
-          {services.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1">
-              {services.slice(0, 4).map((service: Service): ReactElement => {
-                const color: string =
-                  service.serviceColor?.toString() || "#9ca3af";
-                return (
-                  <span
-                    key={service._id?.toString() || service.name}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-700"
-                  >
-                    <span
-                      className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="truncate">{service.name}</span>
-                  </span>
-                );
-              })}
-              {services.length > 4 && (
-                <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
-                  +{services.length - 4} more
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* Right: sparkline + last value */}
-        <div className="flex flex-shrink-0 items-center gap-4">
-          {displayedValue !== undefined && (
-            <div className="text-right">
-              <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {ValueFormatter.formatValue(
-                  displayedValue,
-                  rawUnit,
-                  formatterOptions,
-                )}
-              </div>
-              {displayedTime && (
-                <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
-                  {displayedTime}
-                </div>
+      {/* Right: sparkline + last value */}
+      <div className="flex flex-shrink-0 items-center gap-4">
+        {displayedValue !== undefined && (
+          <div className="text-right">
+            <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
+              {ValueFormatter.formatValue(
+                displayedValue,
+                rawUnit,
+                formatterOptions,
               )}
+              {props.valueSuffix || ""}
             </div>
-          )}
-          <MetricSparkline
-            points={props.sparklinePoints || []}
-            isLoading={props.sparklineLoading}
-            widthClassName="w-40"
-            heightClassName="h-10"
-            onHoverPoint={handleHoverPoint}
-          />
-          {/* Deep-link affordance — visible on hover/focus */}
+            {displayedTime && (
+              <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
+                {displayedTime}
+              </div>
+            )}
+            {!displayedTime && props.valueCaption && (
+              <div
+                data-testid="metric-row-value-caption"
+                className="mt-0.5 text-[10px] text-gray-400"
+              >
+                {props.valueCaption}
+              </div>
+            )}
+          </div>
+        )}
+        <MetricSparkline
+          points={props.sparklinePoints || []}
+          isLoading={props.sparklineLoading}
+          widthClassName="w-40"
+          heightClassName="h-10"
+          onHoverPoint={handleHoverPoint}
+        />
+        {/* Deep-link affordance — visible on hover/focus */}
+        {isInteractive && (
           <span
             aria-hidden="true"
             className="hidden items-center gap-0.5 text-xs font-medium text-gray-400 opacity-0 transition-opacity group-hover:text-indigo-600 group-hover:opacity-100 group-focus-visible:opacity-100 sm:flex"
@@ -150,8 +184,30 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             Explore
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </span>
-        </div>
+        )}
       </div>
+    </div>
+  );
+
+  if (!isInteractive) {
+    return (
+      <div
+        data-testid="metric-row"
+        className="block w-full border-b border-gray-100 px-5 py-4 text-left"
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      data-testid="metric-row"
+      className="group block w-full border-b border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400"
+      onClick={props.onClick}
+    >
+      {content}
     </button>
   );
 };

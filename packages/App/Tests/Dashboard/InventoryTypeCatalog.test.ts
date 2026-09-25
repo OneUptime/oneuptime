@@ -174,6 +174,26 @@ describe("categories partition the vocabulary", () => {
   });
 });
 
+describe("the two database types read differently", () => {
+  test("database.server is a Database Endpoint; Database stays the logical type", () => {
+    /*
+     * The span-inferred logical database already owns "Database", and the
+     * singular labels must be unique, so the membership-only endpoint type
+     * the Databases product scopes telemetry by reads as an endpoint.
+     */
+    expect(getInventoryTypeLabel(EntityType.DatabaseServer)).toBe(
+      "Database Endpoint",
+    );
+    expect(getInventoryTypePluralLabel(EntityType.DatabaseServer)).toBe(
+      "Database Endpoints",
+    );
+    expect(getInventoryTypeLabel(EntityType.Database)).toBe("Database");
+    expect(getInventoryTypeCategory(EntityType.DatabaseServer)).toBe(
+      getInventoryTypeCategory(EntityType.Database),
+    );
+  });
+});
+
 describe("unknown types degrade instead of breaking", () => {
   const UNKNOWN: string = "quantum.flux.capacitor";
 

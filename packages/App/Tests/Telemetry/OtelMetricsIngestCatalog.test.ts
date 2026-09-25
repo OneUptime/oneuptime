@@ -39,6 +39,7 @@ const AUTO_DISCOVERY_METHODS: Array<string> = [
   "autoDiscoverServerless",
   "autoDiscoverCloudResource",
   "autoDiscoverRum",
+  "autoDiscoverDatabaseServer",
 ];
 
 let metadataByName: Map<string, TelemetryServiceMetadata>;

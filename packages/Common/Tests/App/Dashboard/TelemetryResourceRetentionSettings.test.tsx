@@ -23,6 +23,7 @@ import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import ServerlessSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Settings";
+import DatabaseServerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -32,6 +33,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import LogSeverity from "../../../Types/Log/LogSeverity";
@@ -193,6 +195,14 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     modelType: ServerlessFunction,
     settingsKey: PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS,
     detailIdPrefix: "serverless-function",
+    hasSessionReplayRetention: false,
+  },
+  {
+    name: "database",
+    Page: DatabaseServerSettings,
+    modelType: DatabaseServer,
+    settingsKey: PageMap.DATABASE_SERVER_VIEW_SETTINGS,
+    detailIdPrefix: "database-server",
     hasSessionReplayRetention: false,
   },
 ];

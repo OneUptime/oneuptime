@@ -104,6 +104,9 @@ jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
 jest.mock("../../../../Server/Services/CephClusterService", () => {
   return { __esModule: true, default: {} };
 });
+jest.mock("../../../../Server/Services/DatabaseServerService", () => {
+  return { __esModule: true, default: {} };
+});
 jest.mock("../../../../Server/Services/IoTFleetService", () => {
   return { __esModule: true, default: {} };
 });

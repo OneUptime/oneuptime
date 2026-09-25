@@ -64,6 +64,7 @@ const RELATIONS: Array<ResourceRelationDefinition> = [
   { attribute: "iotFleetId", relation: "iotFleets" },
   { attribute: "dockerSwarmClusterId", relation: "dockerSwarmClusters" },
   { attribute: "cephClusterId", relation: "cephClusters" },
+  { attribute: "databaseServerId", relation: "databaseServers" },
   { attribute: "dockerResourceId", relation: "dockerResources" },
   { attribute: "podmanResourceId", relation: "podmanResources" },
   { attribute: "serviceId", relation: "services" },

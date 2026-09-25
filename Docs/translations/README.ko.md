@@ -196,6 +196,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — 노드, VM, 컨테이너, 스토리지, HA 상태, 백업 커버리지 및 복제 상태. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀 및 vSAN. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — 클러스터 상태, 용량 예측, OSD/풀/PG/모니터 가시성. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **데이터베이스** — PostgreSQL, MySQL, Redis, MongoDB 등. 애플리케이션 트레이스, Kubernetes, Docker에서 자동 감지하며, 설정만으로 구성된 Collector 에이전트로 엔진 메트릭, 쿼리 샘플, 로그를 수집. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

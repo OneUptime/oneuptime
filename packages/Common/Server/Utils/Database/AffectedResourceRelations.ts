@@ -1,4 +1,5 @@
 import CephClusterService from "../../Services/CephClusterService";
+import DatabaseServerService from "../../Services/DatabaseServerService";
 import DockerHostService from "../../Services/DockerHostService";
 import DockerResourceService from "../../Services/DockerResourceService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
@@ -107,6 +108,11 @@ function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
       column: "cephClusters",
       modelName: "Ceph Cluster",
       service: CephClusterService,
+    },
+    {
+      column: "databaseServers",
+      modelName: "Database",
+      service: DatabaseServerService,
     },
     {
       column: "dockerResources",

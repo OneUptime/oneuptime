@@ -285,6 +285,7 @@ describe.each(ENTITY_KINDS)(
           cephClusterIds: [],
           dockerSwarmClusterIds: [],
           iotFleetIds: [],
+          databaseServerIds: [],
         });
       jest.spyOn(HostService, "findBy").mockResolvedValue([]);
       jest

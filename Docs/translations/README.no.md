@@ -196,6 +196,7 @@ Slipp inn kopier-og-lim-inn-agenter basert på **OpenTelemetry** for å følge m
 - **Proxmox** — noder, VM-er, containere, lagring, HA-tilstand, sikkerhetskopidekning og replikeringshelse. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — klyngehelse, kapasitetsprognoser og innsyn i OSD/pool/PG/monitor. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Databaser** — PostgreSQL, MySQL, Redis, MongoDB med flere, oppdaget automatisk fra applikasjonsspor, Kubernetes og Docker, med motormetrikker, spørringsutvalg og logger fra en collector-agent som bare består av konfigurasjon. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

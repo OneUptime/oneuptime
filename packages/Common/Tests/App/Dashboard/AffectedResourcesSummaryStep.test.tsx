@@ -112,6 +112,7 @@ const RESOURCE_PROPS: Record<ResourceProp, true> = {
   cephClusters: true,
   dockerSwarmClusters: true,
   iotFleets: true,
+  databaseServers: true,
   networkSites: true,
   services: true,
 };
@@ -285,6 +286,24 @@ describe("the Resources Affected summary step", () => {
       );
       expect(renderSummary(step!, { podmanHosts: ids(2) })).toContain(
         "2 Podman hosts",
+      );
+    });
+
+    test("offers databases and names them, singular and plural", async () => {
+      const [step] = findPickerSteps(await openForm(page));
+
+      expect(step!.resourceProps).toContain("databaseServers");
+      expect(renderSummary(step!, { databaseServers: ids(1) })).toContain(
+        "1 database",
+      );
+      expect(renderSummary(step!, { databaseServers: ids(1) })).not.toContain(
+        "1 databases",
+      );
+      expect(renderSummary(step!, { databaseServers: ids(2) })).toContain(
+        "2 databases",
+      );
+      expect(renderSummary(step!, { databaseServers: ids(2) })).not.toMatch(
+        NOTHING_SELECTED_PATTERN,
       );
     });
 

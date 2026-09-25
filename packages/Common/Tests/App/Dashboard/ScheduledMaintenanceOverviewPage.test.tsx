@@ -1102,6 +1102,7 @@ describe("Scheduled maintenance overview page", () => {
       "cephClusters",
       "dockerSwarmClusters",
       "iotFleets",
+      "databaseServers",
       "networkSites",
       "services",
     ];
@@ -1130,6 +1131,7 @@ describe("Scheduled maintenance overview page", () => {
         "CephCluster",
         "DockerSwarmCluster",
         "IoTFleet",
+        "DatabaseServer",
         "NetworkSite",
         "Service",
       ]);

@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -15,6 +16,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
+import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
@@ -39,6 +41,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   /*
@@ -62,6 +65,7 @@ export interface ComponentProps {
   hideCephClusters?: boolean | undefined;
   hideDockerSwarmClusters?: boolean | undefined;
   hideIoTFleets?: boolean | undefined;
+  hideDatabaseServers?: boolean | undefined;
   hideNetworkSites?: boolean | undefined;
   hideServices?: boolean | undefined;
   hideServiceLevelObjectives?: boolean | undefined;
@@ -257,6 +261,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const dockerSwarmClusters: Array<DockerSwarmCluster> =
     props.dockerSwarmClusters || [];
   const iotFleets: Array<IoTFleet> = props.iotFleets || [];
+  const databaseServers: Array<DatabaseServer> = props.databaseServers || [];
   const networkSites: Array<NetworkSite> = props.networkSites || [];
   const services: Array<Service> = props.services || [];
   const serviceLevelObjectives: Array<ServiceLevelObjective> =
@@ -276,6 +281,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showSwarm: boolean =
     !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
   const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
+  const showDatabases: boolean =
+    !props.hideDatabaseServers && databaseServers.length > 0;
   const showNetworkSites: boolean =
     !props.hideNetworkSites && networkSites.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
@@ -293,6 +300,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showCeph &&
     !showSwarm &&
     !showIoTFleets &&
+    !showDatabases &&
     !showNetworkSites &&
     !showServices &&
     !showSlos
@@ -325,6 +333,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showCeph ? cephClusters.length : 0) +
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
+    (showDatabases ? databaseServers.length : 0) +
     (showNetworkSites ? networkSites.length : 0) +
     (showServices ? services.length : 0) +
     (showSlos ? serviceLevelObjectives.length : 0);
@@ -339,6 +348,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showCeph ? 1 : 0) +
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
+    (showDatabases ? 1 : 0) +
     (showNetworkSites ? 1 : 0) +
     (showServices ? 1 : 0) +
     (showSlos ? 1 : 0);
@@ -512,6 +522,21 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={iotFleets}
             renderItem={(fleet: IoTFleet) => {
               return <IoTFleetElement iotFleet={fleet} />;
+            }}
+          />
+        )}
+        {showDatabases && (
+          <CategoryCard<DatabaseServer>
+            icon={IconProp.Database}
+            label="Databases"
+            iconBgClass="bg-purple-50"
+            iconColorClass="text-purple-600"
+            accentBarClass="bg-purple-500"
+            countBgClass="bg-purple-50"
+            countTextClass="text-purple-700"
+            items={databaseServers}
+            renderItem={(databaseServer: DatabaseServer) => {
+              return <DatabaseServerElement databaseServer={databaseServer} />;
             }}
           />
         )}

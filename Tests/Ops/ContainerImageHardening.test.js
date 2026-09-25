@@ -691,6 +691,7 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/PodmanAgent/Dockerfile.tpl",
     "agents/DockerSwarmAgent/docker-compose.yml",
     "agents/VMwareAgent/docker-compose.yml",
+    "agents/DatabaseAgent/docker-compose.yml",
     "Tests/Ops/validate-collector-configs.sh",
     "Tests/Ops/ContainerAgentDockerApiVersionRuntime.test.js",
     "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown.ts",
@@ -718,10 +719,11 @@ describe("the OpenTelemetry collector pin", () => {
     );
   });
 
-  test("the Swarm and VMware compose files run the pinned collector", () => {
+  test("the Swarm, VMware and Database compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
+      "agents/DatabaseAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
       const images = Object.values(compose.services)

@@ -1,7 +1,9 @@
 import MonitorRecommendationCreateUtil, {
   MonitorRecommendationCreatePlanItem,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateUtil";
-import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import MonitorRecommendationCatalog, {
+  MonitorRecommendationResourceTypeDefinition,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import {
   MonitorRecommendation,
@@ -446,8 +448,18 @@ describe("MonitorRecommendationCreateUtil", () => {
 
     it("works for every resource type in the catalog", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
-        const recommendation: MonitorRecommendation =
-          definition.getRecommendations()[0]!;
+        /*
+         * Every template the type can EVER offer, not the context-free
+         * subset: with no context a database is offered nothing at all
+         * (there is no engine-agnostic database template).
+         */
+        const recommendations: Array<MonitorRecommendation> =
+          MonitorRecommendationCatalog.getAllPossibleRecommendations(
+            definition.resourceType,
+          );
+        expect(recommendations.length).toBeGreaterThan(0);
+
+        const recommendation: MonitorRecommendation = recommendations[0]!;
 
         const monitor: Monitor = MonitorRecommendationCreateUtil.buildMonitor({
           recommendation: recommendation,
@@ -459,6 +471,53 @@ describe("MonitorRecommendationCreateUtil", () => {
 
         expect(monitor.monitorType).toBe(recommendation.monitorType);
         expect(definition.monitorTypes).toContain(recommendation.monitorType);
+        expect(
+          MonitorSteps.getValidationError(
+            monitor.monitorSteps!,
+            recommendation.monitorType,
+          ),
+        ).toBeNull();
+      }
+    });
+
+    it("builds a valid monitor from every database template, whatever the engine", () => {
+      /*
+       * Database templates are only ever offered per engine, so no
+       * context-free path reaches them; this is the one place every one of
+       * them goes through buildMonitor and the create form's validation.
+       */
+      const definition:
+        | MonitorRecommendationResourceTypeDefinition
+        | undefined = MonitorRecommendationCatalog.getResourceTypeDefinition(
+        MonitorRecommendationResourceType.DatabaseServer,
+      );
+      expect(definition).toBeDefined();
+
+      const recommendations: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+        );
+      expect(recommendations.length).toBeGreaterThan(0);
+      // With no engine known, nothing is offered: there is no generic template.
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+        ),
+      ).toEqual([]);
+
+      for (const recommendation of recommendations) {
+        const monitor: Monitor = MonitorRecommendationCreateUtil.buildMonitor({
+          recommendation: recommendation,
+          args: buildArgs(),
+          resourceDisplayName: "PostgreSQL orders-db.example.com:5432",
+          defaultMonitorStatusId: DEFAULT_STATUS_ID,
+          notificationSettings: {},
+        });
+
+        expect(monitor.name).toBe(
+          `PostgreSQL orders-db.example.com:5432 - ${recommendation.name}`,
+        );
+        expect(definition!.monitorTypes).toContain(monitor.monitorType);
         expect(
           MonitorSteps.getValidationError(
             monitor.monitorSteps!,

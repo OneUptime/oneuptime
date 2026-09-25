@@ -45,6 +45,7 @@ const STANDARD_TELEMETRY_RESOURCES: Array<ResourceSettingsSpec> = [
   { resource: "IoT", model: "IoTFleet" },
   { resource: "Proxmox", model: "ProxmoxCluster" },
   { resource: "Service", model: "Service" },
+  { resource: "Database", model: "DatabaseServer" },
 ];
 
 const SHARED_RETENTION_COMPONENT: string = "TelemetryResourceRetentionSettings";
@@ -202,8 +203,8 @@ function assertOwnModelAndId(
 }
 
 describe("standard telemetry resource retention Settings", () => {
-  test("the inventory contains all 13 standard resource types", () => {
-    expect(STANDARD_TELEMETRY_RESOURCES).toHaveLength(13);
+  test("the inventory contains all 14 standard resource types", () => {
+    expect(STANDARD_TELEMETRY_RESOURCES).toHaveLength(14);
   });
 
   test.each(STANDARD_TELEMETRY_RESOURCES)(
@@ -359,6 +360,7 @@ describe("RUM session replay retention Settings", () => {
   test.each([
     { resource: "Cloud", model: "CloudResource" },
     { resource: "Serverless", model: "ServerlessFunction" },
+    { resource: "Database", model: "DatabaseServer" },
   ])(
     "$resource does not enable the RUM-only replay retention control",
     (spec: ResourceSettingsSpec): void => {

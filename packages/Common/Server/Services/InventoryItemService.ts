@@ -31,6 +31,11 @@ import {
   shouldWarnEntityBudgetOnce,
 } from "../Utils/Telemetry/EntityRegistry";
 
+// A database node's port, as its calls named it (deriveDatabaseDisplayName).
+const PORT_REGEX: RegExp = /^\d{1,5}$/;
+// A bare IPv6 address - bracketed before a port.
+const IPV6_LITERAL_REGEX: RegExp = /^[0-9a-f:.]+$/i;
+
 export class InventoryItemService extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -427,6 +432,39 @@ export class InventoryItemService extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * A database dependency node named by the old rule - its bare namespace,
+     * "orders" for every Postgres a project calls - is renamed to
+     * "<namespace> @ <server>" the next time it is seen. Same guard as above:
+     * only a name this service generated is replaced, never one a person
+     * typed, and a later sighting that cannot name the port does not undo a
+     * name that has it.
+     */
+    if (entity.entityType === EntityType.Database) {
+      const desiredDisplayName: string =
+        InventoryItemService.deriveDatabaseDisplayName(entity).substring(
+          0,
+          ColumnLength.ShortText,
+        );
+      const existingDisplayName: string = existing.displayName || "";
+      const generatedBefore: Array<string> = [
+        InventoryItemService.deriveLegacyDatabaseDisplayName(entity),
+        InventoryItemService.deriveDatabaseDisplayName(entity, {
+          withPort: false,
+        }),
+      ].map((name: string): string => {
+        return name.substring(0, ColumnLength.ShortText);
+      });
+
+      if (
+        desiredDisplayName &&
+        existingDisplayName !== desiredDisplayName &&
+        (!existingDisplayName || generatedBefore.includes(existingDisplayName))
+      ) {
+        update.displayName = desiredDisplayName;
+      }
+    }
+
     const incoming: Record<string, string> = entity.descriptiveAttributes || {};
     if (Object.keys(incoming).length > 0) {
       const current: Record<string, unknown> =
@@ -498,6 +536,13 @@ export class InventoryItemService extends DatabaseService<Model> {
       }
     }
 
+    if (entity.entityType === EntityType.Database) {
+      const databaseName: string = this.deriveDatabaseDisplayName(entity);
+      if (databaseName) {
+        return databaseName;
+      }
+    }
+
     for (const key of this.dependencyDisplayNameOrderByType[
       entity.entityType
     ] || []) {
@@ -510,12 +555,75 @@ export class InventoryItemService extends DatabaseService<Model> {
   }
 
   /*
+   * A database dependency node is named after the logical database AND the
+   * server it lives on: "<db.namespace> @ <host[:port]>". The namespace alone
+   * ("orders") is shared by every copy of an application's schema - an e2e
+   * project showed ten different PostgreSQL servers all named "orders" on
+   * the Service Map and in Inventory. The host is the node's identifying
+   * `server.address`; the port is the descriptive `server.port` its calls
+   * named (left off when they named none, or several). Only the name
+   * changes: the node's identity (engine, host, namespace) does not.
+   * Without a namespace it is the server alone, without a host the
+   * namespace, and with neither the engine. '' when nothing names it.
+   */
+  public static deriveDatabaseDisplayName(
+    entity: ExtractedEntity,
+    options?: { withPort?: boolean | undefined },
+  ): string {
+    const id: Record<string, string> = entity.identifyingAttributes || {};
+    const descriptive: Record<string, string> =
+      entity.descriptiveAttributes || {};
+
+    const namespace: string = (id["db.namespace"] || "").trim();
+    const host: string = (id["server.address"] || "").trim();
+    const port: string = (descriptive["server.port"] || "").trim();
+
+    let server: string = host;
+    if (host && options?.withPort !== false && PORT_REGEX.test(port)) {
+      if (!host.includes(":")) {
+        server = `${host}:${port}`;
+      } else if (IPV6_LITERAL_REGEX.test(host)) {
+        // A bare IPv6 address takes brackets before a port.
+        server = `[${host}]:${port}`;
+      }
+      // Anything else with a colon (a host list) already names its ports.
+    }
+
+    if (namespace && server) {
+      return `${namespace} @ ${server}`;
+    }
+
+    return server || namespace || (id["db.system.name"] || "").trim();
+  }
+
+  /*
+   * What deriveDisplayName named a database node before it named the server
+   * too: the first of namespace, host, engine. Only a row still carrying
+   * this (or the port-less new name) is renamed - see buildDescriptiveUpdate.
+   */
+  private static deriveLegacyDatabaseDisplayName(
+    entity: ExtractedEntity,
+  ): string {
+    const id: Record<string, string> = entity.identifyingAttributes || {};
+
+    for (const key of this.dependencyDisplayNameOrderByType[
+      EntityType.Database
+    ] || []) {
+      if (id[key]) {
+        return id[key]!;
+      }
+    }
+
+    return this.deriveFallbackDisplayName(entity);
+  }
+
+  /*
    * Dependency endpoints have composite identities in which the most
-   * recognisable part is not a `*.name` key: a database reads best as its
-   * namespace ("orders"), then the host it lives on, and only as a last
-   * resort as its engine ("postgresql" is shared by every Postgres a project
-   * calls). Remote endpoints read best as the service name their callers gave
-   * them, then their host.
+   * recognisable part is not a `*.name` key. A database is named by
+   * deriveDatabaseDisplayName; its order here is the old rule (namespace,
+   * then host, then engine), which deriveLegacyDatabaseDisplayName reads to
+   * recognise the names it generated. Remote endpoints read best as the
+   * service name their callers gave them, then their host.
    */
   private static readonly dependencyDisplayNameOrderByType: Partial<
     Record<EntityType, Array<string>>

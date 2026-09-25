@@ -5,12 +5,16 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { DatabaseWorkloadTarget } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import useContainerDatabaseWorkloadTarget from "../../../Components/DatabaseServer/useContainerDatabaseWorkloadTarget";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -228,6 +232,20 @@ const PodmanHostContainerDetail: FunctionComponent<
     return [cpuQuery, memPctQuery];
   }, [host?.hostIdentifier, containerName]);
 
+  /*
+   * The Database discovered in this container, if any: by its name, or the
+   * Compose service discovery groups a database image under — read from the
+   * container's inventory row (its labels, and its image when no recent
+   * metric carried one).
+   */
+  const databaseTarget: DatabaseWorkloadTarget | null =
+    useContainerDatabaseWorkloadTarget({
+      platform: "podman",
+      hostId: modelId,
+      containerName: containerName,
+      imageName: containerImage,
+    });
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -295,7 +313,15 @@ const PodmanHostContainerDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      <DatabaseServerWorkloadBadge
+        resourceLabel="container"
+        target={databaseTarget}
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default PodmanHostContainerDetail;

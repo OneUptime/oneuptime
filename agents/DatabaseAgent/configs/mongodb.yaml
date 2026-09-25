@@ -1,0 +1,208 @@
+# OneUptime Database Agent — MongoDB.
+#
+# ONE agent monitors ONE mongod (or mongos) process. The resource processor
+# below stamps every batch with that server's identity (server.address /
+# server.port), so a second server added to this pipeline would be merged
+# into the first one in OneUptime. Run a second agent (a second install
+# directory) for each replica-set member you want to see on its own.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every ${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  mongodb:
+    hosts:
+      # host:port the agent CONNECTS to. This may be localhost:27017 when
+      # the agent runs next to the database — the identity OneUptime shows
+      # comes from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below,
+      # never from this value.
+      - endpoint: "${env:DATABASE_ENDPOINT}"
+    # One agent, one member: never follow the replica set to the other
+    # members, whose metrics would be stamped with this member's identity.
+    direct_connection: true
+    # A dedicated monitoring user holding the built-in clusterMonitor role
+    # (see README.md). Leave both empty for a server without
+    # authentication; the receiver refuses one without the other.
+    username: "${env:DATABASE_USERNAME}"
+    password: "${env:DATABASE_PASSWORD}"
+    collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    tls:
+      # true (the default in docker-compose.yml) connects WITHOUT TLS.
+      # false turns TLS on; insecure_skip_verify true then accepts a
+      # certificate the image does not trust.
+      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
+      # is a string and fails these boolean fields at startup.
+      insecure: ${env:DATABASE_TLS_INSECURE}
+      insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
+    resource_attributes:
+      # server.address is on by default upstream; the port is not. The
+      # resource processor below overwrites both with the identity you
+      # configured; they are enabled so the receiver's own view is there if
+      # you remove that stamp.
+      server.address:
+        enabled: true
+      server.port:
+        enabled: true
+      # The server version, shown on the database's page.
+      db.system.version:
+        enabled: true
+    metrics:
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — uptime for restart detection, operation latency,
+      # page faults, deadlocks, active readers and writers — on the
+      # database's Metrics tab. clusterMonitor covers all of them.
+      # Not mongodb.health, on purpose: the receiver records it from
+      # serverStatus's `ok` only after serverStatus succeeded, so it can
+      # only ever read 1. A server that is down sends nothing at all, which
+      # the Engine Metrics Stopped monitor catches.
+      mongodb.uptime:
+        enabled: true
+      mongodb.operation.latency.time:
+        enabled: true
+      mongodb.page_faults:
+        enabled: true
+      mongodb.lock.deadlock.count:
+        enabled: true
+      mongodb.active.reads:
+        enabled: true
+      mongodb.active.writes:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   mongodb.operation.repl.count          (replicated operations applied on a secondary)
+      #   mongodb.lock.acquire.count            (lock acquisitions by lock type and mode)
+      #   mongodb.lock.acquire.wait_count       (lock acquisitions that had to wait)
+      #   mongodb.wtcache.bytes.read            (bytes read into the WiredTiger cache)
+      #   mongodb.wt.concurrent_transaction.ticket.in_use   (WiredTiger read/write tickets in use)
+    # Query samples ($currentOp) and top queries (system.profile or getLog)
+    # arrive as logs on the database's Logs tab. Both are off unless
+    # DATABASE_QUERY_EVENTS=true. Explain plans on top queries additionally
+    # need `read` on each monitored database (see README.md). They carry
+    # query shapes, so review what your queries contain before turning them
+    # on.
+    events:
+      db.server.query_sample:
+        enabled: ${env:DATABASE_QUERY_EVENTS}
+      db.server.top_query:
+        enabled: ${env:DATABASE_QUERY_EVENTS}
+
+  # Optional: ship mongod's own log (JSON lines since MongoDB 4.4).
+  # Uncomment this receiver, add it to the logs pipeline at the bottom, and
+  # mount the server's log directory at /var/log/database in
+  # docker-compose.yml, e.g.
+  #   - /var/log/mongodb:/var/log/database:ro
+  # The collector runs as a non-root user, so the files must be readable
+  # by "other" (or run the container as a user in the mongodb group).
+  # filelog:
+  #   include:
+  #     - /var/log/database/*.log
+  #   start_at: end
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the queries your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (mongodb).
+      - key: db.system.name
+        value: "${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: ${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  # Query samples and top queries arrive with an EMPTY body: the receiver
+  # puts the query in the db.query.text attribute, so OneUptime's Logs tab
+  # would show "{}" as their message. This copies the query text into the
+  # body (the attribute stays, for filters and Logs monitors), and gives a
+  # record without query text its event name (db.server.query_sample,
+  # db.server.top_query). A record that already has a body — a line from
+  # the optional filelog receiver — is left alone.
+  transform/query_event_body:
+    error_mode: ignore
+    log_statements:
+      - set(log.body, log.attributes["db.query.text"]) where (log.body == nil or log.body == "") and log.attributes["db.query.text"] != nil and log.attributes["db.query.text"] != ""
+      - set(log.body, log.event_name) where (log.body == nil or log.body == "") and log.event_name != ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its `system` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [mongodb]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+    # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
+    # filelog to the receivers when you enable it above.
+    logs:
+      receivers: [mongodb]
+      processors: [memory_limiter, resource, transform/optional_identity, transform/query_event_body, batch]
+      exporters: [otlphttp]

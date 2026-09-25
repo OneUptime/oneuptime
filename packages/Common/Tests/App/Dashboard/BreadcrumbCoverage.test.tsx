@@ -6,6 +6,7 @@ import { matchRoutes } from "react-router-dom";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   AlertsRoutePath,
+  DatabaseRoutePath,
   IncidentsRoutePath,
   MonitorsRoutePath,
   ScheduledMaintenanceEventsRoutePath,
@@ -16,6 +17,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
+import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
@@ -81,6 +83,18 @@ const products: Array<Product> = [
     landing: PageMap.SLOS,
     routes: SloRoutePath,
     getBreadcrumbs: getSloBreadcrumbs,
+  },
+  {
+    /*
+     * DatabaseRoutePath mixes list-layout pages (archived, documentation,
+     * settings/label-rules/:id) with the `:id` view pages, so this also
+     * proves `archived` and `documentation` are not matched as a database
+     * id — and the Archived list, unlike some older products, has a trail.
+     */
+    name: "Databases",
+    landing: PageMap.DATABASE_SERVERS,
+    routes: DatabaseRoutePath,
+    getBreadcrumbs: getDatabaseBreadcrumbs,
   },
   {
     /*

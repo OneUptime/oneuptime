@@ -119,6 +119,7 @@ describe("LOGS_SCOPE_FACET_ENTITY_TYPES", () => {
        * resolver's IoTDevice entry reads the IoTFleet table.
        */
       iotFleetId: ServiceType.IoTDevice,
+      databaseServerId: ServiceType.DatabaseServer,
     });
     expect(LOGS_SCOPE_FACET_ENTITY_TYPES["primaryEntityId"]).toBeUndefined();
     expect(LOGS_SCOPE_FACET_ENTITY_TYPES["serviceId"]).toBeUndefined();
@@ -240,6 +241,7 @@ describe("describeLogsResource", () => {
     ["CloudResource", "Cloud Resource"],
     ["NetworkDevice", "Network Device"],
     ["RealUserMonitor", "RUM Application"],
+    ["DatabaseServer", "Database"],
     ["Unknown", "Service"],
   ])(
     "server type %p is labelled %p",

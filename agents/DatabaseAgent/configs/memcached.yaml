@@ -1,0 +1,116 @@
+# OneUptime Database Agent — Memcached.
+#
+# ONE agent monitors ONE memcached server. The resource processor below
+# stamps every batch with that server's identity (server.address /
+# server.port), so a second server added to this pipeline would be merged
+# into the first one in OneUptime. Run a second agent (a second install
+# directory) for a second server.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every ${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  memcached:
+    # host:port the agent CONNECTS to. This may be localhost:11211 when the
+    # agent runs next to the server — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never
+    # from this value.
+    endpoint: "${env:DATABASE_ENDPOINT}"
+    # Required: the receiver refuses to start without a transport.
+    transport: tcp
+    # The receiver runs `stats` over the plain text protocol, so it needs
+    # no login (and cannot use SASL or TLS).
+    collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    # Every metric the receiver emits — connections, commands, hits and
+    # misses, evictions, memory, threads, CPU — is on by default.
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the commands your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (memcached).
+      - key: db.system.name
+        value: "${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: ${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its `system` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [memcached]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]

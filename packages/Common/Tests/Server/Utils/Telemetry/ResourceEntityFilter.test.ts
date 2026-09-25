@@ -7,13 +7,20 @@ import {
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   keyForCephCluster,
+  keyForContainer,
+  keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
   keyForDockerSwarmCluster,
   keyForHost,
   keyForKubernetesCluster,
+  keyForKubernetesPod,
   keyForProxmoxCluster,
   keyForVMwareVCenter,
 } from "../../../../Utils/Telemetry/EntityKey";
+import { getDatabaseServerSignalEntityKeys } from "../../../../Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerScopeKeys } from "../../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseTelemetryScope";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 
 /*
  * The resource tables are mocked at module level: the unit under test is
@@ -33,6 +40,8 @@ const serverlessFunctionFindBy: jest.Mock = jest.fn();
 const iotFleetFindBy: jest.Mock = jest.fn();
 const cloudResourceFindBy: jest.Mock = jest.fn();
 const rumApplicationFindBy: jest.Mock = jest.fn();
+const databaseServerFindBy: jest.Mock = jest.fn();
+const databaseServerEndpointFindBy: jest.Mock = jest.fn();
 
 jest.mock("../../../../Server/Services/HostService", () => {
   return { __esModule: true, default: { findBy: hostFindBy } };
@@ -70,6 +79,15 @@ jest.mock("../../../../Server/Services/CloudResourceService", () => {
 jest.mock("../../../../Server/Services/RumApplicationService", () => {
   return { __esModule: true, default: { findBy: rumApplicationFindBy } };
 });
+jest.mock("../../../../Server/Services/DatabaseServerService", () => {
+  return { __esModule: true, default: { findBy: databaseServerFindBy } };
+});
+jest.mock("../../../../Server/Services/DatabaseServerEndpointService", () => {
+  return {
+    __esModule: true,
+    default: { findBy: databaseServerEndpointFindBy },
+  };
+});
 
 import ResourceEntityFilter, {
   ResourceEntityScope,
@@ -98,6 +116,8 @@ const ALL_FIND_BY_MOCKS: Array<jest.Mock> = [
   iotFleetFindBy,
   cloudResourceFindBy,
   rumApplicationFindBy,
+  databaseServerFindBy,
+  databaseServerEndpointFindBy,
 ];
 
 /*
@@ -598,6 +618,556 @@ describe("ResourceEntityFilter", () => {
       expect(statement.query).toBe(
         "AND (primaryEntityId IN ({p0:Array(String)})) AND (primaryEntityId IN ({p1:Array(String)}) OR hasAny(entityKeys, {p2:Array(String)}) OR attributes[{p3:String}] IN ({p4:Array(String)}))",
       );
+    });
+  });
+
+  describe("resolveScopes — databases (entity-key set)", () => {
+    const PROJECT: string = PROJECT_ID.toString();
+    const POD_KEY: string = keyForKubernetesPod(PROJECT, {
+      clusterName: "prod-eu",
+      namespace: "data",
+      podName: "postgres-0",
+    });
+    const OLD_POD_KEY: string = keyForKubernetesPod(PROJECT, {
+      clusterName: "prod-eu",
+      namespace: "data",
+      podName: "postgres-0-before-restart",
+    });
+    const CONTAINER_KEY: string = keyForContainer(
+      PROJECT,
+      "4f1c9a2b7d3e8f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a",
+    );
+
+    const POSTGRES_ROW: Record<string, unknown> = {
+      _id: RESOURCE_ID,
+      dbSystem: "postgresql",
+      memberEntityKeys: {
+        [POD_KEY]: "2026-09-23T10:00:00.000Z",
+        [OLD_POD_KEY]: "2026-09-01T10:00:00.000Z",
+      },
+    };
+    const REDIS_ROW: Record<string, unknown> = {
+      _id: OTHER_RESOURCE_ID,
+      dbSystem: "redis",
+      memberEntityKeys: { [CONTAINER_KEY]: "2026-09-22T08:30:00.000Z" },
+    };
+
+    // Endpoint rows in the order the lookup returns them (primary first).
+    const ENDPOINT_ROWS: Array<Record<string, unknown>> = [
+      { databaseServerId: RESOURCE_ID, endpoint: "db.prod.example.com:5432" },
+      {
+        databaseServerId: RESOURCE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-eu",
+      },
+      // A legacy port-less alias: the engine default port applies.
+      { databaseServerId: RESOURCE_ID, endpoint: "pg-replica.example.com" },
+      {
+        databaseServerId: OTHER_RESOURCE_ID,
+        endpoint: "cache.example.com:6379",
+      },
+    ];
+
+    function endpointsOf(id: string): Array<string> {
+      return ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+        return row["databaseServerId"] === id;
+      }).map((row: Record<string, unknown>): string => {
+        return row["endpoint"] as string;
+      });
+    }
+
+    // The key ingest stamps on every batch that resolved to a row.
+    function rowKey(id: string): string {
+      return keyForDatabaseServerRow(PROJECT, id);
+    }
+
+    // What the Database page computes for one row (the shared helper).
+    function pageKeysFor(row: Record<string, unknown>): Array<string> {
+      return getDatabaseServerSignalEntityKeys({
+        projectId: PROJECT,
+        databaseServerId: row["_id"] as string,
+        endpoints: endpointsOf(row["_id"] as string),
+        dbSystem: row["dbSystem"] as string,
+        memberEntityKeys: row["memberEntityKeys"],
+      });
+    }
+
+    test("selects a database by exactly the entity keys its page scopes Logs / Traces / Metrics with", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(
+        ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+          return row["databaseServerId"] === RESOURCE_ID;
+        }),
+      );
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes).toHaveLength(1);
+      expect(scopes[0]!.entityIds).toEqual([RESOURCE_ID]);
+      expect(scopes[0]!.entityKeys).toEqual(pageKeysFor(POSTGRES_ROW));
+      // No attribute branch: no single resource attribute names a database.
+      expect(scopes[0]!.attributeKey).toBeUndefined();
+      expect(scopes[0]!.attributeValues).toBeUndefined();
+    });
+
+    test("equals what the Database page's own scope helper (DatabaseTelemetryScope) queries for the same row", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(
+        ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+          return row["databaseServerId"] === RESOURCE_ID;
+        }),
+      );
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      /*
+       * The page loads the row and its endpoints (primary first) and hands
+       * them to getDatabaseServerScopeKeys; the explorer facet must select
+       * exactly those rows, key for key and in the same order.
+       */
+      const pageKeys: Array<string> = getDatabaseServerScopeKeys({
+        projectId: PROJECT_ID,
+        id: new ObjectID(RESOURCE_ID),
+        endpoints: endpointsOf(RESOURCE_ID).map(
+          (endpoint: string): { endpoint: string } => {
+            return { endpoint };
+          },
+        ),
+        dbSystem: POSTGRES_ROW["dbSystem"] as string,
+        memberEntityKeys: POSTGRES_ROW["memberEntityKeys"],
+      });
+
+      expect(pageKeys.length).toBeGreaterThan(0);
+      expect(scopes[0]!.entityKeys).toEqual(pageKeys);
+    });
+
+    test("the key set is the row key and endpoint keys ingest stamps plus the member keys — engine default port applied", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(
+        ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+          return row["databaseServerId"] === RESOURCE_ID;
+        }),
+      );
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(new Set(scopes[0]!.entityKeys)).toEqual(
+        new Set<string>([
+          // Telemetry linked by oneuptime.database.server.id, any address.
+          rowKey(RESOURCE_ID),
+          keyForDatabaseEndpoint(PROJECT, {
+            host: "db.prod.example.com",
+            port: 5432,
+          }),
+          keyForDatabaseEndpoint(PROJECT, {
+            host: "postgres.data.svc.cluster.local",
+            port: 5432,
+            kubernetesClusterName: "prod-eu",
+          }),
+          keyForDatabaseEndpoint(PROJECT, {
+            host: "pg-replica.example.com",
+            port: 5432,
+          }),
+          POD_KEY,
+          // A pod seen before a restart keeps its logs on the page.
+          OLD_POD_KEY,
+        ]),
+      );
+    });
+
+    test("several databases OR inside one scope: the union of each page's keys", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW, REDIS_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(ENDPOINT_ROWS);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID, OTHER_RESOURCE_ID] },
+        });
+
+      expect(scopes).toHaveLength(1);
+      expect(scopes[0]!.entityIds).toEqual([RESOURCE_ID, OTHER_RESOURCE_ID]);
+      expect(scopes[0]!.entityKeys).toEqual(
+        Array.from(
+          new Set<string>([
+            ...pageKeysFor(POSTGRES_ROW),
+            ...pageKeysFor(REDIS_ROW),
+          ]),
+        ),
+      );
+      // Each endpoint is attributed to its own row, never the other's.
+      expect(scopes[0]!.entityKeys).toContain(
+        keyForDatabaseEndpoint(PROJECT, {
+          host: "cache.example.com",
+          port: 6379,
+        }),
+      );
+      expect(scopes[0]!.entityKeys).toContain(CONTAINER_KEY);
+    });
+
+    test("an endpoint is parsed with its OWN row's engine for the default port", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+        { _id: OTHER_RESOURCE_ID, dbSystem: "redis", memberEntityKeys: {} },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([
+        { databaseServerId: RESOURCE_ID, endpoint: "pg.example.com" },
+        { databaseServerId: OTHER_RESOURCE_ID, endpoint: "redis.example.com" },
+      ]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID, OTHER_RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
+        keyForDatabaseEndpoint(PROJECT, { host: "pg.example.com", port: 5432 }),
+        rowKey(OTHER_RESOURCE_ID),
+        keyForDatabaseEndpoint(PROJECT, {
+          host: "redis.example.com",
+          port: 6379,
+        }),
+      ]);
+    });
+
+    test("looks up the rows and then their endpoints, both project-scoped and as root", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW, REDIS_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(ENDPOINT_ROWS);
+
+      await ResourceEntityFilter.resolveScopes({
+        projectId: PROJECT_ID,
+        selections: { databaseServerId: [RESOURCE_ID, OTHER_RESOURCE_ID] },
+      });
+
+      expect(databaseServerFindBy).toHaveBeenCalledTimes(1);
+      const rowCall: Record<string, any> = databaseServerFindBy.mock
+        .calls[0]![0] as Record<string, any>;
+      expect(rowCall["query"]["projectId"]).toBe(PROJECT_ID);
+      expect(rowCall["query"]["_id"].values.map(String)).toEqual([
+        RESOURCE_ID,
+        OTHER_RESOURCE_ID,
+      ]);
+      expect(rowCall["select"]).toEqual({
+        _id: true,
+        dbSystem: true,
+        memberEntityKeys: true,
+      });
+      expect(rowCall["props"]).toEqual({ isRoot: true });
+      expect(rowCall["limit"].toNumber()).toBe(2);
+      expect(rowCall["skip"].toNumber()).toBe(0);
+
+      expect(databaseServerEndpointFindBy).toHaveBeenCalledTimes(1);
+      const endpointCall: Record<string, any> = databaseServerEndpointFindBy
+        .mock.calls[0]![0] as Record<string, any>;
+      expect(endpointCall["query"]["projectId"]).toBe(PROJECT_ID);
+      // Only the rows that resolved in THIS project are asked about.
+      expect(
+        endpointCall["query"]["databaseServerId"].values.map(String),
+      ).toEqual([RESOURCE_ID, OTHER_RESOURCE_ID]);
+      expect(endpointCall["select"]).toEqual({
+        databaseServerId: true,
+        endpoint: true,
+      });
+      // The page's order, so the per-row key cap keeps the same keys.
+      expect(endpointCall["sort"]).toEqual({
+        isPrimary: SortOrder.Descending,
+        createdAt: SortOrder.Ascending,
+      });
+      expect(endpointCall["props"]).toEqual({ isRoot: true });
+
+      // No other resource table is consulted.
+      for (const findBy of ALL_FIND_BY_MOCKS) {
+        if (
+          findBy !== databaseServerFindBy &&
+          findBy !== databaseServerEndpointFindBy
+        ) {
+          expect(findBy).not.toHaveBeenCalled();
+        }
+      }
+    });
+
+    test("an id from another project resolves to nothing and skips the endpoint lookup", async () => {
+      databaseServerFindBy.mockResolvedValue([]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes).toEqual([{ entityIds: [RESOURCE_ID], entityKeys: [] }]);
+      expect(databaseServerEndpointFindBy).not.toHaveBeenCalled();
+    });
+
+    test("endpoint rows owned by an unselected database are ignored", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([
+        { databaseServerId: RESOURCE_ID, endpoint: "db.prod.example.com:5432" },
+        {
+          databaseServerId: OTHER_RESOURCE_ID,
+          endpoint: "someone-else.example.com:5432",
+        },
+      ]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
+        keyForDatabaseEndpoint(PROJECT, {
+          host: "db.prod.example.com",
+          port: 5432,
+        }),
+      ]);
+      expect(scopes[0]!.entityKeys).not.toContain(rowKey(OTHER_RESOURCE_ID));
+    });
+
+    test("a database with no endpoints and no members is still selected by its row key — linked telemetry that reported no address", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "memcached", memberEntityKeys: null },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes).toEqual([
+        { entityIds: [RESOURCE_ID], entityKeys: [rowKey(RESOURCE_ID)] },
+      ]);
+
+      const statement: Statement = new Statement();
+      appendResourceScopeFilters(statement, scopes);
+      expect(statement.query).toBe(
+        "AND (primaryEntityId IN ({p0:Array(String)}) OR hasAny(entityKeys, {p1:Array(String)}))",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: [RESOURCE_ID],
+        p1: [rowKey(RESOURCE_ID)],
+      });
+    });
+
+    test("a row whose endpoint is owned elsewhere still selects its linked host-agent rows (not primary-keyed on it) by the row key", async () => {
+      /*
+       * A host agent's block that also scrapes a database keeps its Host as
+       * the primary entity; only the row key (and the id stamp) ties it to
+       * the database. The id branch alone would miss it.
+       */
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toContain(rowKey(RESOURCE_ID));
+    });
+
+    test("unparseable endpoints and malformed member keys are skipped, never thrown on", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        {
+          _id: RESOURCE_ID,
+          dbSystem: "postgresql",
+          memberEntityKeys: {
+            "not-a-key": "2026-09-23T10:00:00.000Z",
+            [POD_KEY]: "not-a-date",
+          },
+        },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([
+        { databaseServerId: RESOURCE_ID, endpoint: "localhost:5432" },
+        { databaseServerId: RESOURCE_ID, endpoint: "" },
+        { databaseServerId: RESOURCE_ID, endpoint: null },
+        { databaseServerId: null, endpoint: "orphan.example.com:5432" },
+        { databaseServerId: RESOURCE_ID, endpoint: "db.prod.example.com:5432" },
+      ]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
+        keyForDatabaseEndpoint(PROJECT, {
+          host: "db.prod.example.com",
+          port: 5432,
+        }),
+      ]);
+    });
+
+    test("the same endpoint key reached twice is bound once", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+        {
+          _id: OTHER_RESOURCE_ID,
+          dbSystem: "postgresql",
+          memberEntityKeys: {},
+        },
+      ]);
+      // Port-less and explicit-default forms name the same listener.
+      databaseServerEndpointFindBy.mockResolvedValue([
+        { databaseServerId: RESOURCE_ID, endpoint: "db.prod.example.com" },
+        {
+          databaseServerId: OTHER_RESOURCE_ID,
+          endpoint: "db.prod.example.com:5432",
+        },
+      ]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID, OTHER_RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
+        keyForDatabaseEndpoint(PROJECT, {
+          host: "db.prod.example.com",
+          port: 5432,
+        }),
+        rowKey(OTHER_RESOURCE_ID),
+      ]);
+    });
+
+    test.each([
+      ["the row lookup", "rows"],
+      ["the endpoint lookup", "endpoints"],
+    ])(
+      "a failure in %s degrades to the id branch instead of throwing",
+      async (_label: string, which: string) => {
+        databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+        databaseServerEndpointFindBy.mockResolvedValue(ENDPOINT_ROWS);
+        (which === "rows"
+          ? databaseServerFindBy
+          : databaseServerEndpointFindBy
+        ).mockRejectedValue(new Error("connection refused") as never);
+
+        const scopes: Array<ResourceEntityScope> =
+          await ResourceEntityFilter.resolveScopes({
+            projectId: PROJECT_ID,
+            selections: { databaseServerId: [RESOURCE_ID] },
+          });
+
+        expect(scopes).toEqual([{ entityIds: [RESOURCE_ID], entityKeys: [] }]);
+      },
+    );
+
+    test("compiles to id OR hasAny(entityKeys) — the receiver batches primary-keyed or row-keyed on the row, and every span naming an endpoint", async () => {
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([
+        { databaseServerId: RESOURCE_ID, endpoint: "db.prod.example.com:5432" },
+      ]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      const statement: Statement = new Statement();
+      appendResourceScopeFilters(statement, scopes);
+
+      expect(statement.query).toBe(
+        "AND (primaryEntityId IN ({p0:Array(String)}) OR hasAny(entityKeys, {p1:Array(String)}))",
+      );
+      expect(statement.query).not.toContain("attributes[");
+      expect(statement.query_params).toStrictEqual({
+        p0: [RESOURCE_ID],
+        p1: [
+          rowKey(RESOURCE_ID),
+          keyForDatabaseEndpoint(PROJECT, {
+            host: "db.prod.example.com",
+            port: 5432,
+          }),
+        ],
+      });
+    });
+
+    test("a database selection intersects with a host selection", async () => {
+      hostFindBy.mockResolvedValue([{ hostIdentifier: "web-1" }]);
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(ENDPOINT_ROWS);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: {
+            databaseServerId: [RESOURCE_ID],
+            hostId: [HOST_ID],
+          },
+        });
+
+      expect(scopes).toHaveLength(2);
+      expect(
+        scopes.map((scope: ResourceEntityScope): string => {
+          return scope.entityIds[0]!;
+        }),
+      ).toEqual([RESOURCE_ID, HOST_ID]);
+    });
+
+    test("without a tenant the database scope keeps its ids and skips both lookups", async () => {
+      const query: Record<string, unknown> = {
+        resourceFilters: { databaseServerId: [RESOURCE_ID] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({ query });
+
+      expect(query["resourceEntityScopes"]).toEqual([
+        { entityIds: [RESOURCE_ID], entityKeys: [] },
+      ]);
+      expect(databaseServerFindBy).not.toHaveBeenCalled();
+      expect(databaseServerEndpointFindBy).not.toHaveBeenCalled();
+    });
+
+    test("rewrites an analytics query's database selection to its entity keys", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(
+        ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+          return row["databaseServerId"] === RESOURCE_ID;
+        }),
+      );
+
+      const query: Record<string, unknown> = {
+        resourceFilters: { databaseServerId: [RESOURCE_ID] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({
+        query,
+        projectId: PROJECT_ID,
+      });
+
+      expect(query["resourceFilters"]).toBeUndefined();
+      expect(query["resourceEntityScopes"]).toEqual([
+        { entityIds: [RESOURCE_ID], entityKeys: pageKeysFor(POSTGRES_ROW) },
+      ]);
     });
   });
 

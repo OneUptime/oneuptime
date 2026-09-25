@@ -1,0 +1,213 @@
+# OneUptime Database Agent — PostgreSQL.
+#
+# ONE agent monitors ONE PostgreSQL server. The resource processor below
+# stamps every batch with that server's identity (server.address /
+# server.port), so a second server added to this pipeline would be merged
+# into the first one in OneUptime. Run a second agent (a second install
+# directory) for a second server.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every ${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  postgresql:
+    # host:port the agent CONNECTS to. This may be localhost:5432 when the
+    # agent runs next to the database — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never
+    # from this value.
+    endpoint: "${env:DATABASE_ENDPOINT}"
+    transport: tcp
+    # A dedicated monitoring login holding the built-in pg_monitor role
+    # (see README.md). The receiver refuses to start without a password.
+    username: "${env:DATABASE_USERNAME}"
+    password: "${env:DATABASE_PASSWORD}"
+    collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    # Internal databases of managed services that no customer login can
+    # connect to. Excluding a database that does not exist is harmless, so
+    # the list is safe on a self-hosted server too.
+    exclude_databases:
+      - rdsadmin
+      - azure_maintenance
+      - cloudsqladmin
+      - alloydbadmin
+      - alloydbmetadata
+    tls:
+      # true (the default in docker-compose.yml) connects WITHOUT TLS
+      # (sslmode=disable). false turns TLS on; with insecure_skip_verify
+      # true that is sslmode=require, with false it is verify-full.
+      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
+      # is a string and fails these boolean fields at startup.
+      insecure: ${env:DATABASE_TLS_INSECURE}
+      insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
+    metrics:
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — buffer cache hit ratio, deadlocks, temp files,
+      # row throughput, lock counts — on the database's Metrics tab. All of
+      # them read pg_stat_database / pg_locks, which pg_monitor already
+      # covers.
+      postgresql.blks_hit:
+        enabled: true
+      postgresql.blks_read:
+        enabled: true
+      postgresql.deadlocks:
+        enabled: true
+      postgresql.temp_files:
+        enabled: true
+      postgresql.tup_fetched:
+        enabled: true
+      postgresql.tup_returned:
+        enabled: true
+      postgresql.tup_inserted:
+        enabled: true
+      postgresql.tup_updated:
+        enabled: true
+      postgresql.tup_deleted:
+        enabled: true
+      postgresql.database.locks:
+        enabled: true
+      # The replication time lag per replica (write / flush / replay). The
+      # receiver's postgresqlreceiver.preciselagmetrics feature gate, on by
+      # default, records it INSTEAD of postgresql.wal.lag, but the metric
+      # itself is off upstream. The Replica Replay Lag monitor reads it.
+      postgresql.wal.delay:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   postgresql.sequential_scans      (sequential scans per table; one series per table)
+      #   postgresql.query.conflicts       (queries cancelled by recovery conflicts on a replica)
+      #   postgresql.function.calls        (calls per user function; needs track_functions)
+      #   postgresql.temp.io               (bytes written to temporary files)
+    # Query samples (pg_stat_activity) and top queries (pg_stat_statements)
+    # arrive as logs on the database's Logs tab. Both are off unless
+    # DATABASE_QUERY_EVENTS=true. Top queries also need the
+    # pg_stat_statements extension in every monitored database (see
+    # README.md), and their explain plans need SELECT on the tables the
+    # queries touch — pg_monitor grants none, so without it top queries
+    # still arrive but with empty plans, and the collector logs "failed to
+    # explain" for each one. They carry query text, so review what your
+    # queries contain before turning them on.
+    events:
+      db.server.query_sample:
+        enabled: ${env:DATABASE_QUERY_EVENTS}
+      db.server.top_query:
+        enabled: ${env:DATABASE_QUERY_EVENTS}
+
+  # Optional: ship PostgreSQL's own log file. Uncomment this receiver, add
+  # it to the logs pipeline at the bottom, and mount the server's log
+  # directory at /var/log/database in docker-compose.yml, e.g.
+  #   - /var/log/postgresql:/var/log/database:ro
+  # The collector runs as a non-root user, so the files must be readable
+  # by "other" (or run the container as a user in the postgres group).
+  # filelog:
+  #   include:
+  #     - /var/log/database/*.log
+  #   start_at: end
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the queries your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (postgresql).
+      - key: db.system.name
+        value: "${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: ${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  # Query samples and top queries arrive with an EMPTY body: the receiver
+  # puts the query in the db.query.text attribute, so OneUptime's Logs tab
+  # would show "{}" as their message. This copies the query text into the
+  # body (the attribute stays, for filters and Logs monitors), and gives a
+  # record without query text its event name (db.server.query_sample,
+  # db.server.top_query). A record that already has a body — a line from
+  # the optional filelog receiver — is left alone.
+  transform/query_event_body:
+    error_mode: ignore
+    log_statements:
+      - set(log.body, log.attributes["db.query.text"]) where (log.body == nil or log.body == "") and log.attributes["db.query.text"] != nil and log.attributes["db.query.text"] != ""
+      - set(log.body, log.event_name) where (log.body == nil or log.body == "") and log.event_name != ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its `system` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [postgresql]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+    # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
+    # filelog to the receivers when you enable it above.
+    logs:
+      receivers: [postgresql]
+      processors: [memory_limiter, resource, transform/optional_identity, transform/query_event_body, batch]
+      exporters: [otlphttp]

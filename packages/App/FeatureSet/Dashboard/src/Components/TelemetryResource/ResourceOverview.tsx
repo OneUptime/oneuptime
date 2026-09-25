@@ -56,12 +56,25 @@ export interface ResourceOverviewQuickLink {
   icon: IconProp;
 }
 
+// The status pill's colour: green, amber or gray.
+export type ResourceOverviewStatusTone = "positive" | "warning" | "neutral";
+
 export interface ResourceOverviewProps {
   icon: IconProp;
   title: string;
   identifier: string;
   identifierLabel: string;
   status: string | undefined;
+  /*
+   * The pill's words and colour when "Connected" / "Disconnected" (read off
+   * `status`) would say the wrong thing — a Database's pill is about when
+   * ANY source last saw it, and must not echo its engine-metrics status.
+   * Unset, the pill is exactly what `status` has always produced.
+   */
+  statusLabel?: string | undefined;
+  statusTone?: ResourceOverviewStatusTone | undefined;
+  // What the pill means, as its hover text.
+  statusDescription?: string | undefined;
   lastSeenAt: Date | undefined;
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
@@ -97,6 +110,31 @@ const tileColorClasses: Record<
   slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
   sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
   rose: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-600" },
+};
+
+/*
+ * The hero's title block (icon, name, identifier, "Last seen") asks for
+ * this much of the row before the controls may sit beside it: 24rem, the
+ * icon plus 20rem of text. Any narrower and the controls wrap under it.
+ */
+export const RESOURCE_OVERVIEW_TITLE_BASIS_CLASS: string = "basis-96";
+
+const STATUS_TONE_CLASSES: Record<
+  ResourceOverviewStatusTone,
+  { badge: string; dot: string }
+> = {
+  positive: {
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  warning: {
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+  neutral: {
+    badge: "bg-gray-50 text-gray-700 ring-gray-200",
+    dot: "bg-gray-400",
+  },
 };
 
 const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
@@ -229,13 +267,12 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
     ? OneUptimeDate.fromNow(props.lastSeenAt)
     : "never";
 
-  const statusBadgeClass: string = isConnected
-    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-    : "bg-amber-50 text-amber-700 ring-amber-200";
-  const statusDotClass: string = isConnected
-    ? "bg-emerald-500"
-    : "bg-amber-500";
-  const statusLabel: string = isConnected ? "Connected" : "Disconnected";
+  const statusTone: ResourceOverviewStatusTone =
+    props.statusTone || (isConnected ? "positive" : "warning");
+  const statusBadgeClass: string = STATUS_TONE_CLASSES[statusTone].badge;
+  const statusDotClass: string = STATUS_TONE_CLASSES[statusTone].dot;
+  const statusLabel: string =
+    props.statusLabel || (isConnected ? "Connected" : "Disconnected");
 
   return (
     <Fragment>
@@ -248,8 +285,23 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           />
         </div>
         <div className="relative px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4 min-w-0">
+          {/*
+           * The controls (time range, refresh) sit beside the title only
+           * while the title keeps its RESOURCE_OVERVIEW_TITLE_BASIS_CLASS
+           * width; otherwise they wrap under it. A fixed breakpoint cannot
+           * say when that is — the side menu and the controls vary — and
+           * with md (768 px, side menu shown) the title was 0 px wide, 109
+           * px at 900 and 181 px at 1024: the name hidden and "Last seen"
+           * one word per line.
+           */}
+          <div
+            data-testid="resource-overview-header-row"
+            className="flex flex-wrap items-start justify-between gap-4"
+          >
+            <div
+              data-testid="resource-overview-title-block"
+              className={`flex min-w-0 grow items-start gap-4 ${RESOURCE_OVERVIEW_TITLE_BASIS_CLASS}`}
+            >
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
                 <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
               </div>
@@ -259,6 +311,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     {props.title}
                   </h1>
                   <span
+                    data-testid="resource-overview-status"
+                    title={props.statusDescription}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                   >
                     <span
@@ -280,7 +334,12 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
               </div>
             </div>
             {props.controls ? (
-              <div className="ml-auto flex-shrink-0">{props.controls}</div>
+              <div
+                data-testid="resource-overview-controls"
+                className="max-w-full"
+              >
+                {props.controls}
+              </div>
             ) : (
               <></>
             )}

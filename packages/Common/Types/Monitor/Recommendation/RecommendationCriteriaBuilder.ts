@@ -228,6 +228,40 @@ export interface UnhealthyCriteriaArgs {
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
   treatNoDataAsZero?: boolean | undefined;
+  /*
+   * Fire when the window holds NO samples at all, whatever the threshold.
+   * For heartbeat-style criteria, where the metric going silent is itself
+   * the outage — a database receiver that cannot connect emits nothing, so
+   * "the engine's own metrics stopped" is the only telemetry-side signal of
+   * a database that is down. Takes precedence over `treatNoDataAsZero`:
+   * the two are different answers to the same question and a criteria can
+   * only give one.
+   *
+   * Only ever set on the UNHEALTHY side. The recovery criteria keeps the
+   * default Ignore, so a silent window matches neither criteria and the
+   * monitor holds its offline status until data comes back.
+   */
+  triggerOnNoData?: boolean | undefined;
+}
+
+/*
+ * The no-data policy a criteria's filters carry. Undefined — the field left
+ * off entirely — rather than an explicit Ignore, so every criteria that never
+ * asked for one serializes exactly as it did before either option existed.
+ */
+function getNoDataPolicy(data: {
+  treatNoDataAsZero?: boolean | undefined;
+  triggerOnNoData?: boolean | undefined;
+}): NoDataPolicy | undefined {
+  if (data.triggerOnNoData) {
+    return NoDataPolicy.Trigger;
+  }
+
+  if (data.treatNoDataAsZero) {
+    return NoDataPolicy.TreatAsZero;
+  }
+
+  return undefined;
 }
 
 export function buildUnhealthyCriteriaInstance(
@@ -253,9 +287,10 @@ export function buildUnhealthyCriteriaInstance(
       value: args.value,
       metricAggregationType: args.metricAggregationType ?? SustainedEvaluation,
       additionalFilters: args.additionalFilters,
-      onNoDataPolicy: args.treatNoDataAsZero
-        ? NoDataPolicy.TreatAsZero
-        : undefined,
+      onNoDataPolicy: getNoDataPolicy({
+        treatNoDataAsZero: args.treatNoDataAsZero,
+        triggerOnNoData: args.triggerOnNoData,
+      }),
     }),
     incidents: [
       {
@@ -348,9 +383,9 @@ export function buildHealthyCriteriaInstance(
       value: value,
       metricAggregationType: args.metricAggregationType ?? SustainedEvaluation,
       additionalFilters: args.additionalFilters,
-      onNoDataPolicy: args.treatNoDataAsZero
-        ? NoDataPolicy.TreatAsZero
-        : undefined,
+      onNoDataPolicy: getNoDataPolicy({
+        treatNoDataAsZero: args.treatNoDataAsZero,
+      }),
       /*
        * Give every additional recovery comparison its own dead band too,
        * derived the same way as the primary one.

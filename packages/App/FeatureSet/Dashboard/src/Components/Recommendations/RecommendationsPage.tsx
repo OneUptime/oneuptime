@@ -42,6 +42,8 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resource, setResource] = useState<BaseModel | null>(null);
+  const [resourceContext, setResourceContext] =
+    useState<MonitorRecommendationContext>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -60,13 +62,30 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
-      setResource(
-        await ModelAPI.getItem({
-          modelType: definition.modelType,
-          id: modelId,
-          select: RecommendationResourceRegistry.getSelect(props.resourceType),
-        }),
-      );
+      const item: BaseModel | null = await ModelAPI.getItem({
+        modelType: definition.modelType,
+        id: modelId,
+        select: RecommendationResourceRegistry.getSelect(props.resourceType),
+      });
+
+      /*
+       * What narrows the catalog, from the SAME fetched row the identifier
+       * comes from — rather than fetched separately — so the page cannot end
+       * up showing one service's recommendations narrowed by another's
+       * runtime. Loaded, not just read: some resources need telemetry to
+       * finish the answer (a database's heartbeat says that a batch arrived,
+       * not that the metrics its monitors read did), and the side-menu badge
+       * asks exactly the same question. Set together with the row, behind
+       * the loader, so the list never renders from the row alone first.
+       */
+      const context: MonitorRecommendationContext =
+        await RecommendationResourceRegistry.loadContext({
+          resourceType: props.resourceType,
+          model: item,
+        });
+
+      setResource(item);
+      setResourceContext(context);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -98,17 +117,6 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
 
   const { resourceIdentifier, resourceDisplayName } =
     RecommendationResourceRegistry.readResourceFields({
-      resourceType: props.resourceType,
-      model: resource,
-    });
-
-  /*
-   * Read from the SAME fetched row the identifier came from, rather than
-   * fetched separately, so the page cannot end up showing one service's
-   * recommendations narrowed by another's runtime.
-   */
-  const resourceContext: MonitorRecommendationContext =
-    RecommendationResourceRegistry.readContext({
       resourceType: props.resourceType,
       model: resource,
     });

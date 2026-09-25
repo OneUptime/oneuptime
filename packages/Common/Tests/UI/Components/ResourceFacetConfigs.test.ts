@@ -26,7 +26,7 @@ describe("buildResourceFacetConfigs", () => {
         return config.key;
       }),
     ).toEqual([...RESOURCE_FACET_CATALOG_KEYS]);
-    expect(configs).toHaveLength(12);
+    expect(configs).toHaveLength(13);
   });
 
   test("covers every resource type, not only the original four", () => {
@@ -49,6 +49,7 @@ describe("buildResourceFacetConfigs", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]) {
       expect(keys).toContain(key);
     }

@@ -193,6 +193,10 @@ describe("TraceTableData.dimensionLabel", () => {
     expect(dimensionLabel("iotFleetId")).toBe("IoT Fleet");
   });
 
+  test("a Database dimension reads Database", () => {
+    expect(dimensionLabel("databaseServerId")).toBe("Database");
+  });
+
   test("every catalog resource type has a header that is not its raw key", () => {
     for (const definition of RESOURCE_FACET_CATALOG) {
       const label: string = dimensionLabel(definition.facetKey);

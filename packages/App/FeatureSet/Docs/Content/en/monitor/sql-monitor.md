@@ -14,6 +14,8 @@ The SQL Query Monitor supports the following database engines:
 
 MySQL-compatible and PostgreSQL-compatible engines that speak the same wire protocol and SQL dialect generally work as well, but only the three engines above are officially tested.
 
+When the host and port the monitor connects to is one of the endpoints of a database on the [Databases](/docs/telemetry/databases) page, its alerts and incidents also appear on that database's page (see [Alerts on a database](/docs/telemetry/databases#alerts-on-a-database)).
+
 ## How it works
 
 On each check, the probe connects to your database, runs your query in a read-only context, reads back at most a bounded number of rows, and reports a compact projection to OneUptime. Your monitor's criteria are then evaluated against that projection.

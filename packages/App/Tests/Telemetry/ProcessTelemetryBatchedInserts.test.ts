@@ -146,6 +146,7 @@ const AUTO_DISCOVERY_METHODS_RETURNING_NULL: Array<string> = [
   "autoDiscoverServerless",
   "autoDiscoverCloudResource",
   "autoDiscoverRum",
+  "autoDiscoverDatabaseServer",
 ];
 
 function setupIngestMocks(): void {

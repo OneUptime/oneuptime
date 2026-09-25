@@ -49,6 +49,14 @@ export const ATTRIBUTE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   "resource.vmware.vcenter.name": "vCenter",
   "resource.iot.fleet.name": "Fleet",
   /*
+   * Databases: ingest stamps these on DB receiver batches (the Database
+   * Agent / an OTel Collector DB receiver); the engine is semconv.
+   */
+  "resource.oneuptime.database.server.id": "Database",
+  "resource.oneuptime.database.server.name": "Database",
+  "resource.db.system.name": "Engine",
+  "resource.db.system": "Engine",
+  /*
    * Network device logs are scoped by the device's own id (see
    * Pages/NetworkDevice/View/Logs.tsx); the page overrides the value with
    * the device name, and this gives the key a readable label.
