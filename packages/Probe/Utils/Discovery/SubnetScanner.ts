@@ -12,6 +12,8 @@ import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameU
 import {
   DiscoveredHostNetbiosStatus,
   DiscoveredHostReverseDnsStatus,
+  readDiscoveredHostNetbiosStatus,
+  readDiscoveredHostReverseDnsStatus,
 } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import DiscoveryPing from "./DiscoveryPing";
@@ -53,8 +55,8 @@ export interface DiscoveredHost {
   netbiosName?: string | undefined;
   /*
    * Why reverse DNS left this host unnamed (OneUptime issue #3916): no PTR
-   * record, a lookup that failed even on its retry, a lookup the pass never
-   * reached. Stamped by attachReverseDnsHostnames ONLY on hosts it leaves with
+   * record, a lookup that failed (on its retry too, when the pass reached
+   * it), a lookup the pass never reached. Stamped by attachReverseDnsHostnames ONLY on hosts it leaves with
    * neither a sysName nor a dnsHostname, and only with a code the resolver
    * reported. ABSENT, not undefined, everywhere else, for the reason
    * netbiosName is.
@@ -285,6 +287,27 @@ export interface ReverseDnsNamingOutcome {
    */
   failureReason?: string | undefined;
   /*
+   * Distinct addresses whose lookup FAILED — timed out, SERVFAIL, REFUSED,
+   * no server listening — on the first try and on the retry, or on the first
+   * try alone when the pass ran out of time before retrying it (OneUptime
+   * issue #3916). Not "addresses without a name": an address with no PTR
+   * record was ANSWERED, and is not counted here.
+   *
+   * This is the number the status message was missing. The customer's
+   * twelve-host ICMP-only scan named four hosts and said nothing at all,
+   * because the only failure the note reported was a resolver judged unusable
+   * — which takes 64 failures in a row and zero answers, so a small scan whose
+   * lookups partly timed out could never reach it. A pass that answered for
+   * some hosts and not for others read exactly like a network with no PTR
+   * records.
+   *
+   * Bounded by the addresses left unnamed, since a named address cannot also
+   * have failed. Undefined when the resolver did not say — a test double, an
+   * older resolver — which the note reads as "nothing to report", never as a
+   * failure.
+   */
+  failedAddressCount?: number | undefined;
+  /*
    * Set only when the pass itself threw — unreachable by design, since the
    * resolver never rejects — so every host was left unnamed for a reason
    * that is neither the budget nor the resolver.
@@ -452,6 +475,26 @@ export interface SubnetScanResult {
    * when the lookup did not run on this result.
    */
   netbiosOutcome?: NetbiosNamingOutcome | undefined;
+  /*
+   * True when the scan ASKED for NetBIOS names, the probe running it is a
+   * global probe — which never sends NetBIOS queries, whatever the scan says
+   * — and at least one host was left with no name at all because of it
+   * (OneUptime issue #3916). Set by FetchScans.scanWithDeadline, never by
+   * scan(), and absent in every other case.
+   *
+   * netbiosOutcome is absent on this path, exactly as for a scan that never
+   * asked, because no lookup ran. Before this flag the two were therefore
+   * indistinguishable: the operator ticked "NetBIOS name lookup", got bare
+   * addresses back, and the only trace of why was a debug line in a probe log
+   * that runs at ERROR by default. The bundled self-hosted probes register
+   * with REGISTER_PROBE_KEY and so ARE global probes, which makes this the
+   * default experience rather than an edge case.
+   *
+   * Only for a sweep that left somebody unnamed: when SNMP and reverse DNS
+   * named every host, NetBIOS would not have been sent anyway, and a sentence
+   * about skipping it would be noise.
+   */
+  isNetbiosLookupSkippedOnGlobalProbe?: boolean | undefined;
 }
 
 /*
@@ -1503,6 +1546,18 @@ export default class SubnetScanner {
    * resolver that does not work from here. The caller puts that on the scan's
    * status message, because a cut-short pass is otherwise invisible to anyone
    * not reading the probe log (see ReverseDnsNamingOutcome).
+   *
+   * And stamps WHY on each host it leaves unnamed (OneUptime issue #3916):
+   * `dnsHostnameStatus`, the resolver's per-address code — no PTR record, a
+   * lookup that timed out or failed (on its retry too, when the pass reached
+   * it), one the pass never reached. The Review dialog turns it into the tooltip beside a bare
+   * address, which is the only place an operator can learn that eight of
+   * twelve hosts were not "missing a record" but "the probe's DNS server did
+   * not answer". Stamped only on hosts with neither a sysName nor a
+   * dnsHostname — a host with a name needs no explanation, and a status on it
+   * would be thousands of copies of nothing — and only with a code the
+   * resolver actually reported: no default is ever invented, so a host the
+   * resolver said nothing about keeps no key at all.
    */
   public static async attachReverseDnsHostnames(
     hosts: Array<DiscoveredHost>,
@@ -1550,6 +1605,41 @@ export default class SubnetScanner {
       }
 
       outcome.namedAddressCount = namedAddresses.size;
+
+      /*
+       * Why the rest were left unnamed (issue #3916), AFTER every name is on,
+       * so a host is judged unnamed on the pass's final word rather than
+       * part-way through it.
+       *
+       * The map is read only when it IS a Map, and each value only through
+       * the whitelist: the seam is public and spied on, and a double that
+       * hands back an object literal, or a code this probe does not know,
+       * must leave the host exactly as it was — with no key — rather than
+       * upload something the dashboard would have to guess the meaning of.
+       */
+      const statusByIpAddress: Map<unknown, unknown> | undefined =
+        SubnetScanner.readStatusMap(resolution.statusByIpAddress);
+
+      if (statusByIpAddress) {
+        for (const host of hosts) {
+          if (
+            SubnetScanner.hasText(host.sysName) ||
+            SubnetScanner.hasText(host.dnsHostname)
+          ) {
+            continue;
+          }
+
+          const dnsHostnameStatus: DiscoveredHostReverseDnsStatus | undefined =
+            readDiscoveredHostReverseDnsStatus(
+              statusByIpAddress.get(host.ipAddress),
+            );
+
+          if (dnsHostnameStatus) {
+            host.dnsHostnameStatus = dnsHostnameStatus;
+          }
+        }
+      }
+
       /*
        * Read as flags only when they are exactly booleans. The seam is public
        * and spied on, and a double that leaves a field out must not read as a
@@ -1583,10 +1673,33 @@ export default class SubnetScanner {
         resolution.failureReason,
       );
 
+      /*
+       * Addresses whose lookup failed (issue #3916) — on its retry too,
+       * unless the pass ran out of time first — for the status message. Bounded by the addresses left unnamed for the
+       * reason notLookedUpAddressCount is: a double reporting more failures
+       * than there are unnamed addresses is describing some other list.
+       * Left ABSENT when the resolver did not say, rather than zeroed, so a
+       * verdict from a resolver that never counted failures is the same
+       * object it always was.
+       */
+      const reportedFailedCount: number | undefined = SubnetScanner.readCount(
+        resolution.failedAddressCount,
+      );
+
+      if (reportedFailedCount !== undefined) {
+        outcome.failedAddressCount = Math.min(
+          reportedFailedCount,
+          addresses.size - namedAddresses.size,
+        );
+      }
+
       logger.debug(
         `Discovery reverse DNS named ${outcome.resolvedCount} of ${hosts.length} discovered host(s)` +
           (outcome.isTimeBudgetExhausted
             ? `, stopping at its time budget with ${outcome.notLookedUpAddressCount ?? "some"} address(es) not looked up`
+            : "") +
+          (outcome.failedAddressCount
+            ? `, with ${outcome.failedAddressCount} address(es) whose lookup failed`
             : "") +
           (outcome.isReverseDnsAvailable
             ? ""
@@ -1644,13 +1757,24 @@ export default class SubnetScanner {
       }
     }
 
-    return {
+    const described: ReverseDnsNamingOutcome = {
       ...outcome,
       resolvedCount: resolvedCount,
       namedAddressCount: namedAddresses.size,
       notLookedUpAddressCount: undefined,
       error: describedError,
     };
+
+    /*
+     * A failure count read off the resolution before the throw is dropped,
+     * key and all: the throw path's verdict is `error` alone, for the reason
+     * it carries no failureReason. Any status a host was already stamped
+     * with stays — it is what the resolver said about that address, and it
+     * is uploaded either way.
+     */
+    delete described.failedAddressCount;
+
+    return described;
   }
 
   /*
@@ -1703,6 +1827,13 @@ export default class SubnetScanner {
    * reason attachReverseDnsHostnames does: a lookup stopped by its host cap,
    * its time budget or a failed socket is otherwise visible only in the probe
    * log (see NetbiosNamingOutcome).
+   *
+   * And stamps `netbiosNameStatus` — no reply, no usable name, never asked and
+   * why — on each host it was handed and did not name (OneUptime issue
+   * #3916), for the Review dialog's tooltip. Only those hosts: a host SNMP or
+   * reverse DNS already named was never this lookup's business, and "NetBIOS:
+   * not asked" beside a host with a perfectly good name would be noise. Only
+   * with a code the resolver reported, for the reason reverse DNS gives.
    */
   public static async attachNetbiosNames(
     hosts: Array<DiscoveredHost>,
@@ -1770,6 +1901,33 @@ export default class SubnetScanner {
       }
 
       outcome.namedAddressCount = namedAddresses.size;
+
+      /*
+       * Why the rest got no NetBIOS name (issue #3916): read the way reverse
+       * DNS reads its statuses — a real Map, whitelisted codes, no default —
+       * and stamped only on the hosts this lookup was handed, after every name
+       * is on.
+       */
+      const statusByIpAddress: Map<unknown, unknown> | undefined =
+        SubnetScanner.readStatusMap(resolution.statusByIpAddress);
+
+      if (statusByIpAddress) {
+        for (const host of unnamedHosts) {
+          if (SubnetScanner.hasText(host.netbiosName)) {
+            continue;
+          }
+
+          const netbiosNameStatus: DiscoveredHostNetbiosStatus | undefined =
+            readDiscoveredHostNetbiosStatus(
+              statusByIpAddress.get(host.ipAddress),
+            );
+
+          if (netbiosNameStatus) {
+            host.netbiosNameStatus = netbiosNameStatus;
+          }
+        }
+      }
+
       // Exactly-boolean reads, for the reason given in attachReverseDnsHostnames.
       outcome.isHostCapReached = resolution.isHostCapReached === true;
       outcome.isTimeBudgetExhausted = resolution.isTimeBudgetExhausted === true;
@@ -1839,9 +1997,80 @@ export default class SubnetScanner {
     }).resolveNames(ipAddresses);
   }
 
+  /*
+   * Stamps `status` as the NetBIOS status of every host still without any
+   * name — no sysName, no dnsHostname, no netbiosName — and answers how many
+   * it stamped (OneUptime issue #3916).
+   *
+   * For the one way NetBIOS is skipped wholesale rather than host by host: a
+   * scan that asked for it running on a global probe, which never sends it
+   * (FetchScans.scanWithDeadline). No lookup ran, so no resolver reported a
+   * code; the caller knows why every host went unasked and says so here, on
+   * exactly the hosts attachNetbiosNames would have been handed.
+   *
+   * The code goes through the same whitelist as a resolver's, and nothing is
+   * stamped for one it does not recognise. NEVER throws, like every other
+   * naming step on the way to a finished sweep's upload.
+   */
+  public static stampNetbiosStatusOnUnnamedHosts(
+    hosts: Array<DiscoveredHost>,
+    status: DiscoveredHostNetbiosStatus,
+  ): number {
+    const netbiosNameStatus: DiscoveredHostNetbiosStatus | undefined =
+      readDiscoveredHostNetbiosStatus(status);
+
+    if (!netbiosNameStatus || !Array.isArray(hosts)) {
+      return 0;
+    }
+
+    let stampedCount: number = 0;
+
+    try {
+      for (const host of hosts) {
+        if (
+          !host ||
+          typeof host !== "object" ||
+          SubnetScanner.hasText(host.sysName) ||
+          SubnetScanner.hasText(host.dnsHostname) ||
+          SubnetScanner.hasText(host.netbiosName)
+        ) {
+          continue;
+        }
+
+        host.netbiosNameStatus = netbiosNameStatus;
+        stampedCount++;
+      }
+    } catch (err) {
+      /*
+       * Unreachable for a host list the sweep built — a frozen host, say, is
+       * the only way to get here — and caught because a status is never worth
+       * a sweep's results. The hosts stamped so far keep their status and are
+       * counted.
+       */
+      logger.warn(
+        `Discovery could not record why NetBIOS skipped some hosts. ${SubnetScanner.describeEnrichmentError(err)}`,
+      );
+    }
+
+    return stampedCount;
+  }
+
   // A string with something in it besides whitespace.
   private static hasText(value: unknown): boolean {
     return typeof value === "string" && value.trim().length > 0;
+  }
+
+  /*
+   * A resolution's per-address status table, or undefined when it is not a
+   * Map (OneUptime issue #3916). The naming seams are public and spied on,
+   * and a double that hands back a plain object — or anything else with a
+   * `get` — must read as "no statuses reported", never as a table to call
+   * into. The values are still untrusted: every reader whitelists them.
+   */
+  private static readStatusMap(
+    value: unknown,
+  ): Map<unknown, unknown> | undefined {
+    return value instanceof Map ? (value as Map<unknown, unknown>) : undefined;
   }
 
   /*

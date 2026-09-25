@@ -12,6 +12,7 @@ import {
   DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
   DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
   MAX_AUTOMATIC_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+  MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS,
   MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS,
   getReverseDnsTotalBudgetInMs,
 } from "../Utils/Discovery/ReverseDnsResolver";
@@ -42,6 +43,21 @@ interface DiscoveryNamingBudgetConfig {
 const SERVER_STALE_IN_PROGRESS_HOURS: number = 2;
 const SERVER_STALE_IN_PROGRESS_IN_MS: number =
   SERVER_STALE_IN_PROGRESS_HOURS * 60 * 60 * 1000;
+
+/*
+ * The longest a reverse-DNS pass can run past its deadline: the one wave
+ * already in flight when the deadline is checked. That used to be a single
+ * first-pass lookup, DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS. Since OneUptime issue
+ * #3916 the pass ends by retrying the lookups that failed, a wave at a time
+ * under the SAME deadline, and one retry wave can run to
+ * MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS (every configured server asked in turn at
+ * the longer retry timeout). A wave of either kind is only STARTED before the
+ * deadline, so the overrun is the longer of the two, not their sum.
+ */
+const REVERSE_DNS_WAVE_IN_FLIGHT_IN_MS: number = Math.max(
+  DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
+  MAX_REVERSE_DNS_RETRY_LOOKUP_IN_MS,
+);
 
 describe("discovery host naming budget configuration", () => {
   const environmentKeys: Array<string> = [
@@ -320,10 +336,11 @@ describe("discovery host naming budget configuration", () => {
      * worst case that must finish inside the reaper's window is: a sweep that
      * uses its whole default deadline, then a reverse-DNS pass at the largest
      * budget an operator can configure plus the one wave already in flight
-     * when the deadline is checked, then a NetBIOS lookup at its automatic
-     * ceiling plus the listening window it finishes, then the upload running
-     * to its request timeout. If this sum reaches two hours, a sweep that
-     * already succeeded gets marked Failed for the sake of its hostnames.
+     * when the deadline is checked (a retry wave, the longer kind, since
+     * #3916), then a NetBIOS lookup at its automatic ceiling plus the
+     * listening window it finishes, then the upload running to its request
+     * timeout. If this sum reaches two hours, a sweep that already succeeded
+     * gets marked Failed for the sake of its hostnames.
      */
     test("the default sweep deadline plus the longest naming passes and the upload end inside two hours", () => {
       const defaults: DiscoveryNamingBudgetConfig = loadConfig();
@@ -336,7 +353,7 @@ describe("discovery host naming budget configuration", () => {
       const worstCaseSilenceInMs: number =
         defaults.PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS +
         overrideMaximumInMs +
-        DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS +
+        REVERSE_DNS_WAVE_IN_FLIGHT_IN_MS +
         MAX_AUTOMATIC_NETBIOS_TOTAL_BUDGET_IN_MS +
         DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS +
         defaults.PROBE_API_REQUEST_TIMEOUT_IN_MS;
@@ -477,7 +494,7 @@ describe("discovery host naming budget configuration", () => {
       const worstCaseSilenceInMs: number =
         defaults.PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS +
         reverseDnsMaximumInMs +
-        DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS +
+        REVERSE_DNS_WAVE_IN_FLIGHT_IN_MS +
         getNetbiosTotalBudgetInMs({ targetCount: maxHosts }) +
         DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS +
         defaults.PROBE_API_REQUEST_TIMEOUT_IN_MS;

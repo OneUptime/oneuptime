@@ -21,6 +21,7 @@ import SubnetScanner, {
   type SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import { fetchAndRunScans, runScan } from "../../../Jobs/Discovery/FetchScans";
+import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
@@ -497,6 +498,53 @@ describe("runScan — what an ICMP-only sweep uploads", () => {
       { ipAddress: "10.0.0.5", snmpReachable: false },
       { ipAddress: "10.0.0.9", snmpReachable: false },
     ]);
+  });
+
+  /*
+   * OneUptime issue #3916. An ICMP-only sweep's hosts have no sysName to fall
+   * back on, so a host reverse DNS cannot name is listed by address — and the
+   * reason it could not is what the Review dialog's tooltip is built from. It
+   * has to reach the server exactly as the resolver reported it, on exactly
+   * the hosts it applies to. (The stub above reports no codes, which is why
+   * the test before this one uploads none.)
+   */
+  test("uploads each unnamed host's reverse-DNS code verbatim, and none on a named host", async () => {
+    jest.spyOn(SubnetScanner, "resolveReverseDnsHostnames").mockResolvedValue({
+      hostnameByIpAddress: new Map<string, string>([
+        ["10.0.0.5", "kds05.corp.example.com"],
+      ]),
+      statusByIpAddress: new Map<string, DiscoveredHostReverseDnsStatus>([
+        ["10.0.0.9", DiscoveredHostReverseDnsStatus.Timeout],
+      ]),
+      failedAddressCount: 1,
+      isReverseDnsAvailable: true,
+      isTimeBudgetExhausted: false,
+      lookedUpCount: 2,
+      notLookedUpCount: 0,
+      totalBudgetInMs: 60000,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    const body: JSONObject = fetchCalls()[0]!.body;
+
+    expect(body["discoveredDevices"]).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        snmpReachable: false,
+        dnsHostname: "kds05.corp.example.com",
+      },
+      {
+        ipAddress: "10.0.0.9",
+        snmpReachable: false,
+        dnsHostnameStatus: "timeout",
+      },
+    ]);
+    expect(body["statusMessage"]).toBe(
+      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping. " +
+        "Reverse DNS lookups failed for 1 of 2 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
   });
 
   test("reports the sweep as a success with the full scanned host count", async () => {

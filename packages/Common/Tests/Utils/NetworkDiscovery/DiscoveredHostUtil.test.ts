@@ -1,4 +1,8 @@
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "../../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
 import {
   DiscoveredHostNaming,
@@ -640,5 +644,316 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
     ]);
 
     expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe("reg01");
+  });
+});
+
+/*
+ * OneUptime issue #3916 — why a host is unnamed.
+ *
+ * `dnsHostnameStatus` and `netbiosNameStatus` are short codes the probe
+ * stamps on a host that reverse DNS or NetBIOS left without a name. The
+ * Review dialog turns them into the sentence beside a bare address. Unlike
+ * the names above they are not chosen by the scanned network, but they come
+ * out of the same verbatim jsonb, so they get the same treatment: only an
+ * exact code survives, and anything else is DELETED, not blanked.
+ *
+ * Deleted matters for the same `in`-versus-truthiness reason as the names.
+ * It matters more for the explanation, because "this row carries a code" is
+ * what tells a still-sweeping scan's previous results apart from its fresh
+ * ones. A key left behind holding junk would make one reader say "a code"
+ * and another say "no code" about the same row.
+ */
+describe("normalizeDiscoveredHosts — the naming status codes (issue #3916)", () => {
+  /*
+   * Values that are not a code, as the column can hold them. The other
+   * field's codes are added per test: a reverse-DNS code is junk in the
+   * NetBIOS field, and the reverse.
+   */
+  const NOT_A_CODE: Array<[string, unknown]> = [
+    ["an unknown string", "dnssec-bogus"],
+    ["an upper-case code", "TIMEOUT"],
+    ["a padded code", " no-reply "],
+    ["an underscored code", "no_record"],
+    ["the empty string", ""],
+    ["a prototype key", "constructor"],
+    ["another prototype key", "__proto__"],
+    ["markup", "<img src=x onerror=1>"],
+    ["a number", 3],
+    ["zero", 0],
+    ["an object", { code: "timeout" }],
+    ["an array holding a code", ["timeout"]],
+    ["true", true],
+    ["null", null],
+  ];
+
+  test.each(Object.values(DiscoveredHostReverseDnsStatus))(
+    "keeps the reverse-DNS code %p exactly as stored",
+    (code: DiscoveredHostReverseDnsStatus) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({ dnsHostnameStatus: code }),
+      ]);
+
+      expect(normalized?.dnsHostnameStatus).toBe(code);
+    },
+  );
+
+  test.each(Object.values(DiscoveredHostNetbiosStatus))(
+    "keeps the NetBIOS code %p exactly as stored",
+    (code: DiscoveredHostNetbiosStatus) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({ netbiosNameStatus: code }),
+      ]);
+
+      expect(normalized?.netbiosNameStatus).toBe(code);
+    },
+  );
+
+  test.each([
+    ...NOT_A_CODE,
+    ...Object.values(DiscoveredHostNetbiosStatus).map(
+      (code: string): [string, unknown] => {
+        return [`the NetBIOS code ${code}`, code];
+      },
+    ),
+  ])(
+    "deletes %s from the reverse-DNS field",
+    (_label: string, value: unknown) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({
+          dnsHostnameStatus: value as DiscoveredHostReverseDnsStatus,
+        }),
+      ]);
+
+      expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    },
+  );
+
+  test.each([
+    ...NOT_A_CODE,
+    ...Object.values(DiscoveredHostReverseDnsStatus).map(
+      (code: string): [string, unknown] => {
+        return [`the reverse-DNS code ${code}`, code];
+      },
+    ),
+  ])("deletes %s from the NetBIOS field", (_label: string, value: unknown) => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosNameStatus: value as DiscoveredHostNetbiosStatus }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("an explicitly undefined code is removed rather than kept as a key", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostnameStatus: undefined, netbiosNameStatus: undefined }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    expect(normalized).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("a host with no codes gains no keys", () => {
+    /*
+     * Named hosts, rows stored before the codes existed, and rows from an
+     * older probe all have neither key, and must still have neither: a
+     * normaliser that added them would change what `in` says about every
+     * row in every scan.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ snmpReachable: false }),
+    ]);
+
+    expect(normalized).toStrictEqual({
+      ipAddress: "10.0.0.1",
+      snmpReachable: false,
+    });
+    expect(Object.keys(normalized!).sort()).toEqual([
+      "ipAddress",
+      "snmpReachable",
+    ]);
+  });
+
+  test("the two codes are cleaned independently of each other", () => {
+    const [badDnsGoodNetbios, goodDnsBadNetbios] = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: "TIMEOUT" as DiscoveredHostReverseDnsStatus,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+        netbiosNameStatus: 7 as unknown as DiscoveredHostNetbiosStatus,
+      }),
+    ]);
+
+    expect(badDnsGoodNetbios).not.toHaveProperty("dnsHostnameStatus");
+    expect(badDnsGoodNetbios?.netbiosNameStatus).toBe(
+      DiscoveredHostNetbiosStatus.NoReply,
+    );
+
+    expect(goodDnsBadNetbios?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(goodDnsBadNetbios).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("the codes and the names are cleaned independently", () => {
+    /*
+     * A rejected PTR name must not take the code with it, and a rejected
+     * code must not take a good name with it. The code on the first row is
+     * exactly the one a probe stamps for a PTR answer that normalised away.
+     */
+    const [rejectedName, rejectedCode] = normalizeDiscoveredHosts([
+      host({
+        dnsHostname: "51.0.0.10.in-addr.arpa",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.UnusableName,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        netbiosName: "REG01",
+        netbiosNameStatus: "no reply" as DiscoveredHostNetbiosStatus,
+      }),
+    ]);
+
+    expect(rejectedName).not.toHaveProperty("dnsHostname");
+    expect(rejectedName?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.UnusableName,
+    );
+
+    expect(rejectedCode?.netbiosName).toBe("reg01");
+    expect(rejectedCode).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("a code on a host that has a name is kept, not judged", () => {
+    /*
+     * This function whitelists values; it does not decide what a row means.
+     * A valid code on a named row is harmless, because the explanation is
+     * only ever shown for a row whose name line is its address, and deleting
+     * it here would be a second copy of that rule.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        netbiosName: "REG01",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.NoRecord,
+      }),
+    ]);
+
+    expect(normalized?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    );
+  });
+
+  test("normalising is stable when applied twice, key for key", () => {
+    /*
+     * toStrictEqual, so a key left behind as `undefined` would fail it, and
+     * the key lists too, so a failure names the key.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.ServerFailure,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostnameStatus: "server_failure" as DiscoveredHostReverseDnsStatus,
+        netbiosNameStatus: {} as unknown as DiscoveredHostNetbiosStatus,
+      }),
+      host({ ipAddress: "10.0.0.3", dnsHostnameStatus: undefined }),
+    ]);
+    const twice: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(once);
+
+    expect(twice).toStrictEqual(once);
+    expect(
+      twice.map((entry: DiscoveredNetworkDevice): Array<string> => {
+        return Object.keys(entry).sort();
+      }),
+    ).toEqual([
+      ["dnsHostnameStatus", "ipAddress", "netbiosNameStatus"],
+      ["ipAddress"],
+      ["ipAddress"],
+    ]);
+  });
+
+  test("the codes survive a JSON round trip of the normalised rows", () => {
+    /*
+     * The normalised rows are what the server's auto-import engine works
+     * from and what a re-serialised response carries. The codes are plain
+     * strings, so nothing is lost or reshaped on the way.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.SkippedNoResolver,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.SkippedHostCap,
+      }),
+    ]);
+    const roundTripped: Array<DiscoveredNetworkDevice> = JSON.parse(
+      JSON.stringify(once),
+    ) as Array<DiscoveredNetworkDevice>;
+
+    expect(normalizeDiscoveredHosts(roundTripped)).toStrictEqual(once);
+  });
+
+  test("the row the caller passed in is not changed", () => {
+    /*
+     * The dialog normalises the scan's stored array on every render. If
+     * this deleted keys from the rows it was handed, the stored copy would
+     * change underneath the next reader.
+     */
+    const raw: DiscoveredNetworkDevice = host({
+      dnsHostnameStatus: "junk" as DiscoveredHostReverseDnsStatus,
+      netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+    });
+
+    const [normalized] = normalizeDiscoveredHosts([raw]);
+
+    expect(normalized).not.toBe(raw);
+    expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    expect(raw.dnsHostnameStatus).toBe("junk");
+    expect(raw.netbiosNameStatus).toBe(DiscoveredHostNetbiosStatus.NoReply);
+  });
+
+  test("a row marked registered because of another row keeps its codes", () => {
+    /*
+     * The registered-address pass rebuilds the rows it flips. The codes on
+     * those rows must come through it.
+     */
+    const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        ipAddress: "10.0.0.40",
+        isAlreadyRegistered: false,
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Refused,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoUsableName,
+      }),
+      host({ ipAddress: "10.0.0.40", isAlreadyRegistered: true }),
+    ]);
+
+    expect(result[0]).toStrictEqual({
+      ipAddress: "10.0.0.40",
+      isAlreadyRegistered: true,
+      dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Refused,
+      netbiosNameStatus: DiscoveredHostNetbiosStatus.NoUsableName,
+    });
+  });
+
+  test("cleaning the codes leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      {
+        ipAddress: " 10.16.42.51 ",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+        sysDescr: "KDS terminal",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+        netbiosNameStatus: "?" as DiscoveredHostNetbiosStatus,
+      },
+    ]);
+
+    expect(normalized).toStrictEqual({
+      ipAddress: "10.16.42.51",
+      snmpReachable: false,
+      isAlreadyRegistered: false,
+      sysDescr: "KDS terminal",
+      dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+    });
   });
 });

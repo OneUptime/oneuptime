@@ -47,9 +47,13 @@ export enum DiscoveredHostReverseDnsStatus {
    * with a space in it, a name that merely restates the address).
    */
   UnusableName = "unusable-name",
-  // No answer in time, on the first try or the retry.
+  /*
+   * No answer in time. The probe retries a lookup that fails this way, but
+   * only while the pass's time budget lasts, so a host can carry this code
+   * after one try. The copy that explains it must not claim a retry.
+   */
   Timeout = "timeout",
-  // The DNS server answered SERVFAIL, on the first try and the retry.
+  // The DNS server answered SERVFAIL. Retried like Timeout, on the same terms.
   ServerFailure = "server-failure",
   // The DNS server answered REFUSED.
   Refused = "refused",
@@ -78,7 +82,10 @@ export enum DiscoveredHostReverseDnsStatus {
  * thousands of copies of one scan-wide fact.
  */
 export enum DiscoveredHostNetbiosStatus {
-  // Queried on UDP 137 (and retried), and never answered.
+  /*
+   * Queried on UDP 137 (and retried, unless the lookup was cut short first),
+   * and never answered.
+   */
   NoReply = "no-reply",
   // Answered, but reported no name the naming rules accept.
   NoUsableName = "no-usable-name",

@@ -49,6 +49,7 @@ import SnmpPrivProtocol, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
+import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 
 /*
  * Assembles the SnmpV3Auth the scanner needs from one credential set's
@@ -405,9 +406,12 @@ function formatBudgetLimit(
  *
  * A pass that got through every host says NOTHING, however few names it
  * found: most addresses on most networks have no PTR record, and a clause on
- * every healthy scan would teach operators to skip it. Only the three ways
+ * every healthy scan would teach operators to skip it. Only the four ways
  * the pass can leave hosts unnamed for a reason other than "no record" are
- * reported, most fundamental first.
+ * reported, most fundamental first: the pass threw, the resolver never
+ * answered, the time budget ran out, and — since OneUptime issue #3916 —
+ * individual lookups failed. A pass reported as threw or as never answering
+ * says only that, since it already explains every host.
  */
 function buildReverseDnsNote(
   outcome: ReverseDnsNamingOutcome | undefined,
@@ -467,54 +471,184 @@ function buildReverseDnsNote(
     );
   }
 
-  if (outcome.isTimeBudgetExhausted) {
-    const budget: string = formatBudgetLimit(outcome.totalBudgetInMs, form);
-    const notLookedUp: number | undefined = outcome.notLookedUpAddressCount;
+  /*
+   * The last two are not exclusive: a pass can run out of time AND have had
+   * lookups fail before it did, and each is a different reason for a
+   * different set of hosts, with a different fix. The time limit leads - it
+   * is usually the larger number, and it is the one with a knob.
+   */
+  return [
+    outcome.isTimeBudgetExhausted
+      ? buildReverseDnsTimeLimitSentence(outcome, total, named, form)
+      : "",
+    buildReverseDnsFailureSentence(outcome, total, named, form),
+  ]
+    .filter((sentence: string) => {
+      return sentence.length > 0;
+    })
+    .join(" ");
+}
 
-    if (isCompact) {
-      return notLookedUp !== undefined && notLookedUp > 0
-        ? `Reverse DNS hit its ${budget}; ${formatCount(notLookedUp)} of ${formatHosts(total)} not looked up.`
-        : `Reverse DNS hit its ${budget} after naming ${formatCount(named)} of ${formatHosts(total)}.`;
-    }
+// The sentence for a pass cut short by its wall-clock budget.
+function buildReverseDnsTimeLimitSentence(
+  outcome: ReverseDnsNamingOutcome,
+  total: number,
+  named: number,
+  form: HostNamingNoteForm,
+): string {
+  const budget: string = formatBudgetLimit(outcome.totalBudgetInMs, form);
+  const notLookedUp: number | undefined = outcome.notLookedUpAddressCount;
 
-    /*
-     * No advice to raise the variable when the pass already ran under its
-     * maximum: Config falls back to AUTOMATIC sizing (at most ten minutes) for
-     * a value above it, so following the advice there would cut the budget,
-     * not extend it.
-     */
-    const canBeRaised: boolean = !(
-      (outcome.totalBudgetInMs as number) >=
-      MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS
-    );
-
-    return (
-      `Reverse DNS named ${formatCount(named)} of ${formatHosts(total)} before its ${budget}` +
-      (notLookedUp === undefined
-        ? "; the hosts it did not reach got no reverse DNS name"
-        : notLookedUp > 0
-          ? `; ${formatCountWas(notLookedUp)} never looked up`
-          : "") +
-      (canBeRaised
-        ? ` (raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer).`
-        : ".")
-    );
+  if (form === "compact") {
+    return notLookedUp !== undefined && notLookedUp > 0
+      ? `Reverse DNS hit its ${budget}; ${formatCount(notLookedUp)} of ${formatHosts(total)} not looked up.`
+      : `Reverse DNS hit its ${budget} after naming ${formatCount(named)} of ${formatHosts(total)}.`;
   }
 
-  return "";
+  /*
+   * No advice to raise the variable when the pass already ran under its
+   * maximum: Config falls back to AUTOMATIC sizing (at most ten minutes) for
+   * a value above it, so following the advice there would cut the budget,
+   * not extend it.
+   */
+  const canBeRaised: boolean = !(
+    (outcome.totalBudgetInMs as number) >=
+    MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS
+  );
+
+  return (
+    `Reverse DNS named ${formatCount(named)} of ${formatHosts(total)} before its ${budget}` +
+    (notLookedUp === undefined
+      ? "; the hosts it did not reach got no reverse DNS name"
+      : notLookedUp > 0
+        ? `; ${formatCountWas(notLookedUp)} never looked up`
+        : "") +
+    (canBeRaised
+      ? ` (raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer).`
+      : ".")
+  );
 }
+
+/*
+ * The sentence for lookups that FAILED — timed out, SERVFAIL, REFUSED, no
+ * server listening — or "" when none did (OneUptime issue #3916).
+ *
+ * This is the case the issue was reported against, and the one the note used
+ * to be silent about: a twelve-host ICMP-only scan whose DNS server answered
+ * for four addresses and not for the other eight. That is far below the 64
+ * straight failures it takes to call the resolver unusable, so the pass
+ * "completed", and the message was byte for byte the one a network with no
+ * PTR records produces. The operator, who knew the devices had names, had
+ * nothing to go on.
+ *
+ * Still silent for the addresses that simply have no PTR record: the DNS
+ * server ANSWERED for those, and saying so on every scan would bury this
+ * sentence (see buildReverseDnsNote). What this reports is the probe's lookup
+ * failing, which a rescan can fix, and which is otherwise indistinguishable
+ * from a missing record.
+ *
+ * Phrased about reverse DNS only, for the reason formatNoneGotReverseDnsName
+ * gives: a host whose lookup failed may still be named by SNMP or NetBIOS, so
+ * the sentence never claims these hosts are listed by address. Which ones are,
+ * and why, is what the (i) beside each unnamed host in the Review dialog says
+ * — so the full sentence points there, and the compact one keeps only the
+ * count and the fix.
+ *
+ * "Failed", not "got no answer" and not "even after a retry": a SERVFAIL or
+ * REFUSED is an answer, just not a name, and failedAddressCount also counts
+ * addresses the resolver's retry never reached — the retry is skipped when
+ * the wall clock stopped the first pass, and cut short when the budget runs
+ * out mid-retry (see ReverseDnsResolver.resolveHostnames). The sentence says
+ * only what is true of every address it counts.
+ */
+function buildReverseDnsFailureSentence(
+  outcome: ReverseDnsNamingOutcome,
+  total: number,
+  named: number,
+  form: HostNamingNoteForm,
+): string {
+  const reported: unknown = outcome.failedAddressCount;
+
+  /*
+   * A figure that is not a finite count reads as no failures at all, and one
+   * past the addresses left unnamed is clamped to them: a named address did
+   * not fail. The scanner bounds it the same way; this is the builder refusing
+   * to print a nonsense number from any other caller.
+   */
+  if (typeof reported !== "number" || !Number.isFinite(reported)) {
+    return "";
+  }
+
+  const failed: number = Math.min(Math.floor(reported), total - named);
+
+  if (!(failed > 0)) {
+    return "";
+  }
+
+  const failedOfTotal: string =
+    failed < total
+      ? `${formatCount(failed)} of ${formatHosts(total)}`
+      : total === 1
+        ? "the one host"
+        : `all ${formatHosts(total)}`;
+
+  if (form === "compact") {
+    return `Reverse DNS failed for ${failedOfTotal}; rescan to retry.`;
+  }
+
+  return (
+    `Reverse DNS lookups failed for ${failedOfTotal}; ` +
+    `hover the (i) beside an unnamed host for the reason, and rescan to try again.`
+  );
+}
+
+/*
+ * Said when the scan asked for NetBIOS names and ran on a global probe
+ * (OneUptime issue #3916), which never sends NetBIOS queries — see
+ * DiscoveryNetbiosPolicy. The policy is deliberate; what was wrong was that
+ * it was silent. The scan's own "NetBIOS name lookup" box was ticked, the
+ * hosts came back as bare addresses, and nothing but a debug line in the
+ * probe log (which runs at ERROR by default) said the lookup never happened.
+ * The bundled self-hosted probes register as global, so for many operators
+ * this is what NetBIOS lookup does out of the box.
+ *
+ * Fixed copy, and no count: the (i) beside each host says the same thing
+ * per host, and the fact is scan-wide.
+ */
+const NETBIOS_SKIPPED_ON_GLOBAL_PROBE_NOTE: string =
+  "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.";
+
+const NETBIOS_SKIPPED_ON_GLOBAL_PROBE_COMPACT_NOTE: string =
+  "NetBIOS skipped: this is a global probe.";
 
 /*
  * The NetBIOS half of the naming note, or "" when the lookup did not run or
  * got through every host it was allowed to ask. Hosts refused by the address
  * policy (public addresses) are never reported: that is the lookup working as
  * designed, not being cut short.
+ *
+ * The one way a lookup that did NOT run is reported: the scan asked for it
+ * and a global probe refused (`isSkippedOnGlobalProbe`, read as exactly
+ * true). A lookup that ran is described by its outcome whatever the flag
+ * says — the two cannot both be true of one sweep, and the outcome is the
+ * record of what actually happened.
  */
 function buildNetbiosNote(
   outcome: NetbiosNamingOutcome | undefined,
   form: HostNamingNoteForm,
+  isSkippedOnGlobalProbe: boolean = false,
 ): string {
-  if (!outcome || !(outcome.unnamedAddressCount > 0)) {
+  if (!outcome) {
+    if (!isSkippedOnGlobalProbe) {
+      return "";
+    }
+
+    return form === "compact"
+      ? NETBIOS_SKIPPED_ON_GLOBAL_PROBE_COMPACT_NOTE
+      : NETBIOS_SKIPPED_ON_GLOBAL_PROBE_NOTE;
+  }
+
+  if (!(outcome.unnamedAddressCount > 0)) {
     return "";
   }
 
@@ -631,9 +765,10 @@ function buildNetbiosNote(
 
 /*
  * The clause a FINAL status message carries when naming the sweep's hosts
- * was cut short (reverse DNS out of time, failing, or with no answers at all;
- * NetBIOS capped, out of time, failing or without a socket) or "" when there
- * is nothing to say.
+ * was cut short (reverse DNS out of time, failing, with no answers at all,
+ * or with individual lookups that failed; NetBIOS capped, out
+ * of time, failing, without a socket, or skipped on a global probe) or ""
+ * when there is nothing to say.
  *
  * `form` picks the full sentences (the default) or the compact ones
  * finishStatusMessage falls back to when the full ones do not fit.
@@ -646,6 +781,9 @@ export function buildHostNamingNote(
   scanResult: SubnetScanResult,
   form: HostNamingNoteForm = "full",
 ): string {
+  const isNetbiosSkippedOnGlobalProbe: boolean =
+    scanResult.isNetbiosLookupSkippedOnGlobalProbe === true;
+
   return [
     shorterNoteForm(
       buildReverseDnsNote(scanResult.reverseDnsOutcome, "full"),
@@ -653,8 +791,16 @@ export function buildHostNamingNote(
       form,
     ),
     shorterNoteForm(
-      buildNetbiosNote(scanResult.netbiosOutcome, "full"),
-      buildNetbiosNote(scanResult.netbiosOutcome, "compact"),
+      buildNetbiosNote(
+        scanResult.netbiosOutcome,
+        "full",
+        isNetbiosSkippedOnGlobalProbe,
+      ),
+      buildNetbiosNote(
+        scanResult.netbiosOutcome,
+        "compact",
+        isNetbiosSkippedOnGlobalProbe,
+      ),
       form,
     ),
   ]
@@ -1464,6 +1610,44 @@ export async function scanWithDeadline(
         logger.debug(
           `Discovery scan ${scanId} asked for NetBIOS names, but this is a global probe, which never sends NetBIOS queries. Skipped.`,
         );
+
+        /*
+         * And said where the operator will see it (OneUptime issue #3916).
+         * The debug line above is all this skip used to leave behind, on a
+         * probe that logs at ERROR by default — so a scan with "NetBIOS name
+         * lookup" ticked came back with bare addresses and no hint that the
+         * lookup had never run. The bundled self-hosted probes register as
+         * global, which made that the out-of-the-box experience.
+         *
+         * Each host the lookup WOULD have asked — still with no sysName, no
+         * PTR name and no NetBIOS name — carries the reason for the Review
+         * dialog's tooltip, and the status message gets one sentence for the
+         * scan. Only when there is such a host: with every host already
+         * named, NetBIOS would have sent nothing anyway, and there is nothing
+         * to explain. netbiosOutcome stays absent: no lookup ran.
+         *
+         * The policy itself is unchanged — global probes still never send
+         * UDP 137 on a tenant's say-so (see DiscoveryNetbiosPolicy).
+         *
+         * In its own try/catch although the stamping never throws, for the
+         * reason the lookup below has one: nothing escaping here may turn a
+         * finished sweep into a Failed scan with no hosts.
+         */
+        try {
+          const skippedHostCount: number =
+            SubnetScanner.stampNetbiosStatusOnUnnamedHosts(
+              result.discoveredHosts,
+              DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+            );
+
+          if (skippedHostCount > 0) {
+            result.isNetbiosLookupSkippedOnGlobalProbe = true;
+          }
+        } catch (err) {
+          logger.warn(
+            `Discovery scan ${scanId}: could not record that NetBIOS was skipped on this global probe. ${err}`,
+          );
+        }
       } else {
         try {
           const netbiosOutcome: NetbiosNamingOutcome =

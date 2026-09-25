@@ -81,27 +81,33 @@ export const IN_PROGRESS_EXPLANATION: string =
 export const FAILED_SCAN_EXPLANATION: string =
   "This scan stopped before it looked up names, so its hosts are listed by address. Run it again to name them.";
 
-const REVERSE_DNS_SENTENCES: Record<DiscoveredHostReverseDnsStatus, string> =
-  {
-    [DiscoveredHostReverseDnsStatus.NoRecord]:
-      "Reverse DNS: the probe's DNS server has no PTR record for this address.",
-    [DiscoveredHostReverseDnsStatus.UnusableName]:
-      "Reverse DNS: a PTR record came back, but it is not a valid hostname, so it was not used.",
-    [DiscoveredHostReverseDnsStatus.Timeout]:
-      "Reverse DNS: the probe's DNS server did not answer in time, even on a retry.",
-    [DiscoveredHostReverseDnsStatus.ServerFailure]:
-      "Reverse DNS: the probe's DNS server answered with a server failure (SERVFAIL), even on a retry.",
-    [DiscoveredHostReverseDnsStatus.Refused]:
-      "Reverse DNS: the probe's DNS server refused the query.",
-    [DiscoveredHostReverseDnsStatus.Unreachable]:
-      "Reverse DNS: the probe could not reach its DNS server.",
-    [DiscoveredHostReverseDnsStatus.Failed]:
-      "Reverse DNS: the lookup failed on the probe.",
-    [DiscoveredHostReverseDnsStatus.SkippedTimeBudget]:
-      "Reverse DNS: not looked up. The scan ran out of time for name lookups before reaching this address.",
-    [DiscoveredHostReverseDnsStatus.SkippedNoResolver]:
-      "Reverse DNS: not looked up. No lookup from this probe was getting an answer, so it stopped asking.",
-  };
+/*
+ * One sentence per code. None of them says how many times the probe asked:
+ * a retry has to fit in the naming pass's time budget, so "even on a retry"
+ * could be false for exactly the hosts a slow DNS server pushed past the
+ * deadline. The tip that follows these codes says to rescan, which is the
+ * part the operator can act on.
+ */
+const REVERSE_DNS_SENTENCES: Record<DiscoveredHostReverseDnsStatus, string> = {
+  [DiscoveredHostReverseDnsStatus.NoRecord]:
+    "Reverse DNS: the probe's DNS server has no PTR record for this address.",
+  [DiscoveredHostReverseDnsStatus.UnusableName]:
+    "Reverse DNS: a PTR record came back, but it is not a valid hostname, so it was not used.",
+  [DiscoveredHostReverseDnsStatus.Timeout]:
+    "Reverse DNS: the probe's DNS server did not answer in time.",
+  [DiscoveredHostReverseDnsStatus.ServerFailure]:
+    "Reverse DNS: the probe's DNS server answered with a server failure (SERVFAIL).",
+  [DiscoveredHostReverseDnsStatus.Refused]:
+    "Reverse DNS: the probe's DNS server refused the query.",
+  [DiscoveredHostReverseDnsStatus.Unreachable]:
+    "Reverse DNS: the probe could not reach its DNS server.",
+  [DiscoveredHostReverseDnsStatus.Failed]:
+    "Reverse DNS: the lookup failed on the probe.",
+  [DiscoveredHostReverseDnsStatus.SkippedTimeBudget]:
+    "Reverse DNS: not looked up. The scan ran out of time for name lookups before reaching this address.",
+  [DiscoveredHostReverseDnsStatus.SkippedNoResolver]:
+    "Reverse DNS: not looked up. No lookup from this probe was getting an answer, so it stopped asking.",
+};
 
 /*
  * A row with no reverse-DNS code: stored by a probe older than the codes, or
@@ -158,7 +164,7 @@ export const TRANSIENT_FAILURE_TIP: string =
  * its name switched off. Those are exactly the names the issue asked to see
  * first — the one configured on the device — so saying where they come from
  * is the useful answer to "but it has a hostname". Only the sources that were
- * actually off are named.
+ * actually off, and would run if turned on, are named.
  */
 export const ASK_THE_DEVICE_TIP: string =
   "Checking SNMP, or NetBIOS lookup for Windows hosts, asks the device for its own name.";
@@ -167,6 +173,16 @@ export const ASK_THE_DEVICE_SNMP_TIP: string =
 export const ASK_THE_DEVICE_NETBIOS_TIP: string =
   "NetBIOS lookup asks Windows hosts for their own name.";
 
+/*
+ * The codes that get TRANSIENT_FAILURE_TIP: the lookup failed rather than
+ * answered, so a rescan may name the host, and the DNS servers the probe's
+ * host uses are where to look when it does not.
+ *
+ * SkippedNoResolver is one of them although its address was never looked up
+ * (#3916). The probe stopped asking only because every lookup before it had
+ * failed in these same ways, so the advice is the same. Without it, the hosts
+ * a pass gave up on were the only failed lookups with nothing to check.
+ */
 const TRANSIENT_REVERSE_DNS_STATUSES: ReadonlySet<DiscoveredHostReverseDnsStatus> =
   new Set<DiscoveredHostReverseDnsStatus>([
     DiscoveredHostReverseDnsStatus.Timeout,
@@ -174,6 +190,7 @@ const TRANSIENT_REVERSE_DNS_STATUSES: ReadonlySet<DiscoveredHostReverseDnsStatus
     DiscoveredHostReverseDnsStatus.Refused,
     DiscoveredHostReverseDnsStatus.Unreachable,
     DiscoveredHostReverseDnsStatus.Failed,
+    DiscoveredHostReverseDnsStatus.SkippedNoResolver,
   ]);
 
 // A string with something in it besides whitespace.
@@ -254,7 +271,8 @@ function describeNetbios(data: {
  * no address, which its row already explains).
  *
  * `isGlobalProbe` is whether the scan's probe is a global one, when the
- * caller knows. It only matters for rows that carry no NetBIOS code.
+ * caller knows. It matters only for rows that carry no NetBIOS code, and for
+ * whether a scan with NetBIOS off is advised to turn it on.
  */
 export function explainUnnamedDiscoveredHost(data: {
   host: DiscoveredNetworkDevice | null | undefined;
@@ -346,13 +364,22 @@ export function explainUnnamedDiscoveredHost(data: {
   }
 
   const isSnmpOff: boolean = snmpSentence === SNMP_NOT_CHECKED_SENTENCE;
-  const isNetbiosOff: boolean = netbiosSentence === NETBIOS_OFF_SENTENCE;
 
-  if (isSnmpOff && isNetbiosOff) {
+  /*
+   * NetBIOS is suggested only where turning it on could work. A global probe
+   * never sends NetBIOS queries whatever the scan asks for, so on one this
+   * advice would send the operator to a setting whose only effect is the
+   * "not asked" line on the next scan (#3916). The bundled self-hosted probes
+   * are global, so that is not a rare case.
+   */
+  const shouldSuggestNetbios: boolean =
+    netbiosSentence === NETBIOS_OFF_SENTENCE && data.isGlobalProbe !== true;
+
+  if (isSnmpOff && shouldSuggestNetbios) {
     sentences.push(ASK_THE_DEVICE_TIP);
   } else if (isSnmpOff) {
     sentences.push(ASK_THE_DEVICE_SNMP_TIP);
-  } else if (isNetbiosOff) {
+  } else if (shouldSuggestNetbios) {
     sentences.push(ASK_THE_DEVICE_NETBIOS_TIP);
   }
 
