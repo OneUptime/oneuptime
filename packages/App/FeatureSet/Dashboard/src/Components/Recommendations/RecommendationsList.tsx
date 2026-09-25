@@ -97,7 +97,7 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                   </span>
                 )}
                 {handledInGroup > 0 && availableInGroup.length > 0 ? (
-                  <span className="hidden text-xs text-gray-400 sm:inline">
+                  <span className="max-sm:hidden text-xs text-gray-400 sm:inline">
                     {handledInGroup} handled
                   </span>
                 ) : (

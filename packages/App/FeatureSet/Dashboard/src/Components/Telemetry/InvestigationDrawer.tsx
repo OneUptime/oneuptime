@@ -665,7 +665,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                           <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700 group-hover:text-gray-900">
                             {pattern.sampleBody || pattern.pattern}
                           </span>
-                          <span className="hidden shrink-0 text-[11px] text-gray-400 sm:inline">
+                          <span className="max-sm:hidden shrink-0 text-[11px] text-gray-400 sm:inline">
                             {describeOccurrenceCount(
                               pattern.count,
                               pinnedTimeRange,

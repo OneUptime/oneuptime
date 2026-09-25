@@ -232,7 +232,7 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
                 <li key={row} className="flex items-center gap-3 py-3">
                   <div className="h-5 w-12 flex-shrink-0 rounded-md bg-gray-100" />
                   <div className="h-4 min-w-0 flex-1 rounded bg-gray-200" />
-                  <div className="hidden h-5 w-20 rounded-full bg-gray-100 sm:block" />
+                  <div className="max-sm:hidden h-5 w-20 rounded-full bg-gray-100 sm:block" />
                 </li>
               );
             })}

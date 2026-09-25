@@ -175,7 +175,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
         style={{ height: "calc(100vh - 220px)", minHeight: "560px" }}
       >
         {/* Conversation rail */}
-        <div className="hidden w-[264px] flex-shrink-0 flex-col border-r border-gray-200 bg-gray-50/70 md:flex">
+        <div className="max-md:hidden w-[264px] flex-shrink-0 flex-col border-r border-gray-200 bg-gray-50/70 md:flex">
           <div className="px-3 pt-3">
             <button
               type="button"

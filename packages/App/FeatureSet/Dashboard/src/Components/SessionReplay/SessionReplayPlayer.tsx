@@ -3335,7 +3335,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 aria-label="Resize the events rail"
                 title="Drag to resize the rail"
                 data-testid="replay-rail-resize-handle"
-                className="absolute -left-2 top-0 hidden h-full w-3 cursor-col-resize xl:block"
+                className="absolute -left-2 top-0 max-xl:hidden h-full w-3 cursor-col-resize xl:block"
                 onPointerDown={handleRailResizeStart}
               />
             )}

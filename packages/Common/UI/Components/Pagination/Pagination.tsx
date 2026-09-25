@@ -210,7 +210,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
     const isCurrentPage: boolean = pageNumber === currentPageNumber;
 
     return (
-      <li className="hidden sm:flex" key={`page-${pageNumber}`}>
+      <li className="max-sm:hidden sm:flex" key={`page-${pageNumber}`}>
         <button
           type="button"
           data-testid={`pagination-page-${pageNumber}`}
@@ -244,7 +244,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
   const getEllipsis: GetEllipsisFunction = (key: string): ReactElement => {
     return (
-      <li className="hidden sm:flex" key={key}>
+      <li className="max-sm:hidden sm:flex" key={key}>
         <button
           type="button"
           data-testid={`pagination-${key}`}
@@ -372,7 +372,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
             </li>
 
             {isHasMoreMode && (
-              <li className="hidden sm:flex">
+              <li className="max-sm:hidden sm:flex">
                 <span
                   data-testid="pagination-current-page-indicator-desktop"
                   aria-current="page"

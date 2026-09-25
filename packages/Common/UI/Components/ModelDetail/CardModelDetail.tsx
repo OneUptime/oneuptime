@@ -97,7 +97,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         title: "View Documentation",
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.OUTLINE,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
             openInNewTab: true,
@@ -112,7 +112,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         title: "Watch Demo",
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.OUTLINE,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.videoLink!, {
             openInNewTab: true,

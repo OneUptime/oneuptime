@@ -499,7 +499,7 @@ const HostServices: FunctionComponent<
       </div>
       <span
         aria-hidden="true"
-        className="hidden h-5 w-px bg-gray-200 sm:inline-block"
+        className="max-sm:hidden h-5 w-px bg-gray-200 sm:inline-block"
       />
       <FilterChipDropdown
         label="Status"

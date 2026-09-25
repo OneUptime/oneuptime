@@ -391,7 +391,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                         : "Searches title, description, and category."}
                     </span>
                     {!hasSearchTerm && (
-                      <span className="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-500 sm:inline-flex">
+                      <span className="max-sm:hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-500 sm:inline-flex">
                         <kbd className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
                           /
                         </kbd>
@@ -399,7 +399,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                       </span>
                     )}
                     {hasSearchTerm && (
-                      <span className="hidden items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-medium text-indigo-600 sm:inline-flex">
+                      <span className="max-sm:hidden items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-medium text-indigo-600 sm:inline-flex">
                         <kbd className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 ring-1 ring-indigo-100">
                           Esc
                         </kbd>

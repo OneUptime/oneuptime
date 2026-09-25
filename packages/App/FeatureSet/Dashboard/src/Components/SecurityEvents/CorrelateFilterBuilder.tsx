@@ -229,7 +229,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               {index === 0 ? (
                 <div
                   data-testid={`correlate-condition-lead-${index}`}
-                  className="hidden shrink-0 md:block md:w-14"
+                  className="max-md:hidden shrink-0 md:block md:w-14"
                 >
                   <span className="text-xs font-medium text-gray-500">
                     {t("Where")}

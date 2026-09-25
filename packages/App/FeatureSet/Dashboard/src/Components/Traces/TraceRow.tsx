@@ -218,7 +218,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
 
           {/* Kind — only when meaningful */}
           {kindLabel && (
-            <span className="hidden flex-shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 md:inline-block">
+            <span className="max-md:hidden flex-shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 md:inline-block">
               {kindLabel}
             </span>
           )}
@@ -236,7 +236,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
         {/* Right column: inline duration sparkbar + value + time, fixed width for tabular alignment */}
         <div className="flex flex-shrink-0 items-center gap-4">
           {/* Inline duration bar */}
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="max-sm:hidden items-center gap-2 sm:flex">
             <div
               className={`relative h-1 w-24 overflow-hidden rounded-full ${theme.barTrack}`}
             >
@@ -255,7 +255,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Time */}
           {startTimeDate && (
             <div
-              className="hidden w-20 text-right text-xs text-gray-400 md:block"
+              className="max-md:hidden w-20 text-right text-xs text-gray-400 md:block"
               title={`${formatAbsoluteTime(startTimeDate)} — ${startTimeDate.toISOString()}`}
             >
               {formatRelativeTime(startTimeDate)}

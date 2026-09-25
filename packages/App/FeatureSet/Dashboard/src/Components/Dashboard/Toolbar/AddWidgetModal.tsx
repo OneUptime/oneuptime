@@ -225,7 +225,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
             {railSections.map((section: WidgetCategoryGroupSection) => {
               return (
                 <div key={section.group} className="contents md:block">
-                  <h5 className="mt-4 hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
+                  <h5 className="mt-4 max-md:hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
                     {translateString(section.group)}
                   </h5>
                   {section.categories.map((category: WidgetCatalogCategory) => {

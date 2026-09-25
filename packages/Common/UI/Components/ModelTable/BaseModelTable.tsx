@@ -2433,7 +2433,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
             openInNewTab: true,
@@ -2463,7 +2463,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
-        className: "hidden md:flex",
+        className: "max-md:hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.videoLink!, {
             openInNewTab: true,
@@ -4067,7 +4067,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               </button>
             ) : (
               <kbd
-                className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
                 title="Press / to focus search"
               >
                 /
@@ -4416,7 +4416,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             <span className="flex-1 truncate text-left text-gray-400">
               Search…
             </span>
-            <kbd className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
+            <kbd className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
               /
             </kbd>
           </button>

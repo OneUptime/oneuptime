@@ -33,16 +33,16 @@ const InsightListSkeleton: FunctionComponent<ComponentProps> = (
                 <div className="h-3.5 w-2/5 rounded bg-gray-100" />
                 <div className="h-3 w-1/4 rounded bg-gray-100" />
               </div>
-              <div className="hidden w-32 flex-shrink-0 xl:block">
+              <div className="max-xl:hidden w-32 flex-shrink-0 xl:block">
                 <div className="h-5 w-24 rounded-full bg-gray-100" />
               </div>
-              <div className="hidden w-24 flex-shrink-0 xl:block">
+              <div className="max-xl:hidden w-24 flex-shrink-0 xl:block">
                 <div className="ml-auto h-3.5 w-8 rounded bg-gray-100" />
               </div>
-              <div className="hidden w-36 flex-shrink-0 xl:block">
+              <div className="max-xl:hidden w-36 flex-shrink-0 xl:block">
                 <div className="ml-auto h-3.5 w-20 rounded bg-gray-100" />
               </div>
-              <div className="hidden w-5 flex-shrink-0 xl:block" />
+              <div className="max-xl:hidden w-5 flex-shrink-0 xl:block" />
             </div>
           </li>
         );

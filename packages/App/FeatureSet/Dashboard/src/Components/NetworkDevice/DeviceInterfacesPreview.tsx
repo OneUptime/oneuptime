@@ -187,7 +187,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-4 text-sm text-gray-600">
-                  <span className="hidden sm:inline">
+                  <span className="max-sm:hidden sm:inline">
                     {row.inRateMbps !== undefined && row.inRateMbps !== null
                       ? `${row.inRateMbps} / ${row.outRateMbps ?? "—"} Mbps`
                       : "—"}

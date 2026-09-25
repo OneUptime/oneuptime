@@ -189,7 +189,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {renderValue(row.oldValue)}
                         </div>
                       </div>
-                      <div className="hidden md:flex items-center justify-center pt-5 text-gray-400">
+                      <div className="max-md:hidden md:flex items-center justify-center pt-5 text-gray-400">
                         <Icon
                           icon={IconProp.ArrowRight}
                           size={SizeProp.Small}

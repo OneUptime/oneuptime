@@ -1663,7 +1663,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               icon={IconProp.ChevronRight}
               ariaLabel="Collapse the events rail"
               title="Collapse the events rail"
-              className="hidden xl:inline-flex"
+              className="max-xl:hidden xl:inline-flex"
               onClick={props.onCollapse}
             />
           )}

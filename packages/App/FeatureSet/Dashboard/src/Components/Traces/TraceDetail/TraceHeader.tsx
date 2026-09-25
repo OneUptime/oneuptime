@@ -379,7 +379,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                   <span className="tabular-nums text-gray-500">
                     {formatPercent(service.percent)}
                   </span>
-                  <span className="hidden tabular-nums text-gray-400 sm:inline">
+                  <span className="max-sm:hidden tabular-nums text-gray-400 sm:inline">
                     {pluralize(service.spanCount, "span")}
                   </span>
                   {service.errorCount > 0 && (

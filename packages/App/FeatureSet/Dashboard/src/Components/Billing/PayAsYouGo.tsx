@@ -81,7 +81,7 @@ function openPricingPage(): void {
 
 /*
  * The page level card. Card's own description is hidden on mobile
- * (`hidden md:block`), so every fact the user needs is repeated inside the
+ * (`max-md:hidden md:block`), so every fact the user needs is repeated inside the
  * body panel rather than living in the description alone.
  */
 const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
