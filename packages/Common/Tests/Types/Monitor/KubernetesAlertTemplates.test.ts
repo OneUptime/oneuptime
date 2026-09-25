@@ -1077,20 +1077,22 @@ describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
   });
 
   /*
-   * The same bug, generalised: any template reading a k8s_cluster workload
-   * series must read one the receiver actually has. (Node and pod metrics
-   * come from kubeletstats too, whose optional families the chart enables
-   * selectively, so they are not swept up here.)
+   * The same bug, generalised: any template reading a k8s_cluster or
+   * kubeletstats series must read one the agent actually sends. That
+   * covers node, pod and container metrics too, including the kubeletstats
+   * ones that are off upstream and on only because the chart enables them
+   * (see the high node CPU block below). Undotted names come from the
+   * chart's Prometheus scrapes (control plane, cAdvisor, kube-state-metrics),
+   * which this list does not cover.
    */
-  test("no template queries a workload metric the agent does not emit", () => {
-    const workloadMetric: RegExp =
-      /^k8s\.(deployment|statefulset|daemonset|replicaset|job|cronjob|hpa)\./;
+  test("no template queries a k8s_cluster or kubeletstats metric the agent does not emit", () => {
+    const receiverMetric: RegExp = /^(k8s|container)\./;
 
     for (const template of getAllKubernetesAlertTemplates()) {
       for (const query of getQueryConfigs(template.id)) {
         const metricName: string = query.metricQueryData.filterData.metricName;
 
-        if (!workloadMetric.test(metricName)) {
+        if (!receiverMetric.test(metricName)) {
           continue;
         }
 
@@ -1101,5 +1103,67 @@ describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
         );
       }
     }
+  });
+});
+
+/*
+ * BUG: k8s-high-cpu divides `k8s.node.cpu.usage` by
+ * `k8s.node.allocatable_cpu`. The kubeletstats receiver in the collector the
+ * agent chart ships (0.96.0) defines `k8s.node.cpu.usage` but leaves it
+ * `enabled: false`, and the chart only switched on the
+ * *_limit/_request_utilization family, so the numerator never arrived: the
+ * formula had no operand and the monitor could never fire. The chart now
+ * enables it unconditionally (HelmChart/Public/kubernetes-agent/tests/
+ * kubeletstats-cpu-usage_test.yaml pins that), and these tests pin the
+ * template to the names the agent sends.
+ */
+describe("KubernetesAlertTemplates - high node CPU", () => {
+  const ID: string = "k8s-high-cpu";
+
+  test("queries only metrics the shipped agent emits", () => {
+    const queryConfigs: Array<any> = getQueryConfigs(ID);
+
+    expect(queryConfigs.length).toBeGreaterThan(0);
+
+    for (const query of queryConfigs) {
+      const metricName: string = query.metricQueryData.filterData.metricName;
+
+      expect(
+        `${metricName} emitted: ${AGENT_EMITTED_METRIC_NAMES.has(metricName)}`,
+      ).toBe(`${metricName} emitted: true`);
+    }
+  });
+
+  test("divides node CPU usage by node allocatable CPU, both in cores", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(ID),
+    );
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    const formulaConfigs: Array<any> = monitor.metricViewConfig
+      .formulaConfigs as Array<any>;
+
+    /*
+     * Not `k8s.node.cpu.utilization`, although the receiver sends it by
+     * default with the same value (cores, despite the name). It is
+     * deprecated upstream in favour of `k8s.node.cpu.usage`, and later
+     * collectors switch it off and then drop it, so reading it would put
+     * this monitor back where it started on the next collector bump.
+     */
+    expect(
+      queryConfigs.map((query: any) => {
+        return query.metricQueryData.filterData.metricName;
+      }),
+    ).toEqual(["k8s.node.cpu.usage", "k8s.node.allocatable_cpu"]);
+    expect(
+      queryConfigs.map((query: any) => {
+        return query.metricAliasData.metricVariable;
+      }),
+    ).toEqual(["used_cpu", "alloc_cpu"]);
+
+    expect(formulaConfigs).toHaveLength(1);
+    expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+      "(used_cpu / alloc_cpu) * 100",
+    );
   });
 });
