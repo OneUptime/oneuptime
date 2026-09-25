@@ -22,7 +22,18 @@ let events = [];
 let unhandled = [];
 let postedMessages = [];
 let messageCounter = 0;
-const snapshot = () => ({ scenario, events, unhandled, postedMessages });
+// Threads created by POST /channels/{parent}/threads persist across
+// channels() calls so subsequent GET /channels/{id} and message posts can
+// resolve them, like a real guild.
+let createdThreads = [];
+let threadCounter = 0;
+const snapshot = () => ({
+  scenario,
+  events,
+  unhandled,
+  postedMessages,
+  createdThreads,
+});
 const send = (res, status, body) => {
   res.writeHead(status, {
     "content-type": "application/json",
@@ -42,6 +53,7 @@ async function readBody(req) {
 }
 
 const channels = () => [
+  ...createdThreads,
   {
     id: ids.channelId,
     guild_id: ids.guildId,
@@ -114,6 +126,8 @@ const server = https.createServer(
           unhandled = [];
           postedMessages = [];
           messageCounter = 0;
+          createdThreads = [];
+          threadCounter = 0;
           return send(res, 200, snapshot());
         }
         if (pathname === "/__fixture/scenario" && req.method === "POST") {
@@ -349,6 +363,36 @@ const server = https.createServer(
         };
         postedMessages.push(message);
         return send(res, 200, message);
+      }
+      // Thread creation: OneUptime creates incident threads under the
+      // configured parent channel via POST /channels/{parent}/threads.
+      const threadRoute = route.match(/^\/channels\/(\d+)\/threads$/);
+      if (req.method === "POST" && bot && threadRoute) {
+        const parent = channels().find(
+          (item) => item.id === threadRoute[1],
+        );
+        if (!parent)
+          return send(res, 404, { message: "Unknown Channel", code: 10003 });
+        if (parent.type !== 0)
+          return send(res, 400, {
+            message: "Thread parent must be a text channel",
+          });
+        let body;
+        try {
+          body = JSON.parse(await readBody(req));
+        } catch {
+          return send(res, 400, { message: "Malformed thread body" });
+        }
+        const thread = {
+          id: `4000000000000${String(++threadCounter).padStart(4, "0")}`,
+          guild_id: parent.guild_id,
+          type: body.type === 12 ? 12 : 11,
+          name: body.name || "",
+          parent_id: parent.id,
+          permission_overwrites: [],
+        };
+        createdThreads.push(thread);
+        return send(res, 200, thread);
       }
       // Interaction followups use the interaction token as the resource id.
       const followupRoute = route.match(
