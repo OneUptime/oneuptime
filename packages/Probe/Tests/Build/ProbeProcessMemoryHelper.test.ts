@@ -68,13 +68,26 @@ describe("Probe process-memory helper image step", () => {
   });
 
   test("checks the production image can still run it once the toolchain is gone", () => {
-    const purgeIndex: number = dockerfile.indexOf("apt-get purge -y");
-    const runCheckIndex: number = dockerfile.indexOf(
-      `{ ${PROCESS_MEMORY_HELPER_PATH} 2>/dev/null; test $? -eq 2; }`,
+    /*
+     * In the same RUN step as the toolchain purge, after it: the helper links
+     * only against libc, and this proves the purge left it so.
+     */
+    const purgeIndex: number = dockerfile.indexOf(
+      "apt-get purge -y --auto-remove python3 make g++ unixodbc-dev",
+    );
+    const runCheck: string = `{ ${PROCESS_MEMORY_HELPER_PATH} 2>/dev/null; test $? -eq 2; }`;
+    const runCheckIndex: number = dockerfile.indexOf(runCheck);
+    const purgeStep: string = dockerfile.slice(
+      purgeIndex,
+      dockerfile.indexOf("\n", runCheckIndex),
     );
 
     expect(purgeIndex).toBeGreaterThan(-1);
     expect(runCheckIndex).toBeGreaterThan(purgeIndex);
+    // Every line between them continues the purge's RUN instruction.
+    for (const line of purgeStep.split("\n").slice(0, -1)) {
+      expect(line.trimEnd().endsWith("\\")).toBe(true);
+    }
   });
 });
 
@@ -131,6 +144,11 @@ describe("Probe process-memory helper source", () => {
     ]) {
       expect(code).not.toContain(forbidden);
     }
+  });
+
+  test("reads the Pss line, not Rss or one of the Pss_ breakdown lines", () => {
+    expect(code).toContain('strncmp(line, "Pss:", 4)');
+    expect(code).not.toMatch(/"Rss:|"Pss_/);
   });
 
   test("accepts no more pids than ProcessTreeMemory ever sends it", () => {

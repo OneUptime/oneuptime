@@ -4,8 +4,9 @@ import fs from "fs";
 import ProcessTreeMemory, {
   PROCESS_MEMORY_HELPER_MAX_PIDS,
   PROCESS_MEMORY_HELPER_PATH,
-  PROCESS_MEMORY_HELPER_TIMEOUT_IN_MS,
-  ResidentProcessMemory,
+  PROCESS_MEMORY_READ_TIMEOUT_IN_MS,
+  ProportionalMemoryReading,
+  ResidentBytesReader,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 
 jest.mock("child_process", () => {
@@ -180,12 +181,37 @@ function sumOf(
   }, 0);
 }
 
-function residentProcesses(
-  shapes: ReadonlyArray<ChromiumProcessShape>,
-): ResidentProcessMemory[] {
+function pidsOf(shapes: ReadonlyArray<ChromiumProcessShape>): number[] {
   return shapes.map((shape: ChromiumProcessShape) => {
-    return { pid: shape.pid, residentBytes: shape.residentBytes };
+    return shape.pid;
   });
+}
+
+/*
+ * Reads VmRSS the way /proc would now: each process at its shape's value,
+ * except those that have exited since.
+ */
+function residentReader(
+  shapes: ReadonlyArray<ChromiumProcessShape>,
+  exitedPids: ReadonlySet<number> = new Set<number>(),
+): ResidentBytesReader {
+  return (pid: number): number | null => {
+    if (exitedPids.has(pid)) {
+      return null;
+    }
+    const shape: ChromiumProcessShape | undefined = shapes.find(
+      (candidate: ChromiumProcessShape) => {
+        return candidate.pid === pid;
+      },
+    );
+    return shape ? shape.residentBytes : null;
+  };
+}
+
+function shapeOf(pid: number): ChromiumProcessShape {
+  return CUSTOMER_TREE.find((shape: ChromiumProcessShape) => {
+    return shape.pid === pid;
+  }) as ChromiumProcessShape;
 }
 
 function helperOutputFor(
@@ -344,34 +370,75 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
   });
 
   describe("parseHelperOutput", () => {
-    test("maps each readable pid to its PSS in bytes and leaves unreadable ones out", () => {
-      const parsed: Map<number, number> = ProcessTreeMemory.parseHelperOutput({
+    test("maps each readable pid to its PSS in bytes, leaves unreadable ones out, and is complete", () => {
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
         output: "101 2048\n102 -\n103 0\n",
         requestedPids: new Set<number>([101, 102, 103]),
       });
 
-      expect([...parsed.entries()]).toEqual([
+      expect([...parsed.proportionalBytesByPid.entries()]).toEqual([
         [101, 2048 * KILOBYTE],
         [103, 0],
       ]);
+      expect(parsed.isComplete).toBe(true);
     });
 
-    test("ignores a pid that was not asked about", () => {
-      const parsed: Map<number, number> = ProcessTreeMemory.parseHelperOutput({
+    test("is incomplete when a pid was not answered for", () => {
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
+        output: "101 2048\n",
+        requestedPids: new Set<number>([101, 102]),
+      });
+
+      expect([...parsed.proportionalBytesByPid.keys()]).toEqual([101]);
+      expect(parsed.isComplete).toBe(false);
+    });
+
+    test("is incomplete for no output at all", () => {
+      // What a helper killed before it printed anything leaves behind.
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
+        output: "",
+        requestedPids: new Set<number>([101]),
+      });
+
+      expect(parsed.proportionalBytesByPid.size).toBe(0);
+      expect(parsed.isComplete).toBe(false);
+    });
+
+    test("ignores a pid that was not asked about, and is then incomplete", () => {
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
         output: "101 2048\n999 1\n",
         requestedPids: new Set<number>([101]),
       });
 
-      expect([...parsed.keys()]).toEqual([101]);
+      expect([...parsed.proportionalBytesByPid.keys()]).toEqual([101]);
+      expect(parsed.isComplete).toBe(false);
     });
 
     test("drops a pid reported twice rather than choosing between the answers", () => {
-      const parsed: Map<number, number> = ProcessTreeMemory.parseHelperOutput({
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
         output: "101 1\n101 2048\n101 4\n102 8\n",
         requestedPids: new Set<number>([101, 102]),
       });
 
-      expect([...parsed.entries()]).toEqual([[102, 8 * KILOBYTE]]);
+      expect([...parsed.proportionalBytesByPid.entries()]).toEqual([
+        [102, 8 * KILOBYTE],
+      ]);
+      expect(parsed.isComplete).toBe(false);
     });
 
     test.each<[string, string]>([
@@ -385,97 +452,191 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       ["a unit", "101 2048 kB"],
       ["words", "pid 101 pss 2048"],
       ["an absurd value", "101 9999999999999999"],
-    ])("ignores a line with %s", (_description: string, line: string) => {
-      const parsed: Map<number, number> = ProcessTreeMemory.parseHelperOutput({
-        output: `${line}\n`,
-        requestedPids: new Set<number>([101]),
-      });
+      ["a blank line", ""],
+    ])(
+      "ignores a line with %s, and is then incomplete",
+      (_description: string, line: string) => {
+        const parsed: {
+          proportionalBytesByPid: Map<number, number>;
+          isComplete: boolean;
+        } = ProcessTreeMemory.parseHelperOutput({
+          output: `${line}\n101 -\n`,
+          requestedPids: new Set<number>([101]),
+        });
 
-      expect(parsed.size).toBe(0);
-    });
+        expect(parsed.proportionalBytesByPid.size).toBe(0);
+        expect(parsed.isComplete).toBe(false);
+      },
+    );
 
     test("leaves out a value too large to add up safely", () => {
-      const parsed: Map<number, number> = ProcessTreeMemory.parseHelperOutput({
+      const parsed: {
+        proportionalBytesByPid: Map<number, number>;
+        isComplete: boolean;
+      } = ProcessTreeMemory.parseHelperOutput({
         output: "101 999999999999999\n",
         requestedPids: new Set<number>([101]),
       });
 
-      expect(parsed.size).toBe(0);
-    });
-
-    test("returns nothing for no output", () => {
-      expect(
-        ProcessTreeMemory.parseHelperOutput({
-          output: "",
-          requestedPids: new Set<number>([101]),
-        }).size,
-      ).toBe(0);
+      expect(parsed.proportionalBytesByPid.size).toBe(0);
     });
   });
 
   describe("sumProportionalBytes", () => {
-    test("counts each process at its PSS where it was read and at its VmRSS where not", () => {
+    test("counts each process at its PSS where it was read and at its current VmRSS where not", () => {
+      const residentReads: number[] = [];
+
       expect(
         ProcessTreeMemory.sumProportionalBytes({
-          processes: [
-            { pid: 1, residentBytes: 100 },
-            { pid: 2, residentBytes: 200 },
-            { pid: 3, residentBytes: 300 },
-          ],
+          pids: [1, 2, 3],
           proportionalBytesByPid: new Map<number, number>([
             [1, 40],
             [3, 90],
           ]),
+          readResidentBytes: (pid: number): number | null => {
+            residentReads.push(pid);
+            return pid * 100;
+          },
         }),
-      ).toBe(40 + 200 + 90);
+      ).toEqual({ observedBytes: 40 + 200 + 90, residentFallbackCount: 1 });
+      // VmRSS is read only for the process whose PSS is missing.
+      expect(residentReads).toEqual([2]);
     });
 
-    test("uses a PSS reading that is newer and larger than the VmRSS reading", () => {
-      // The tree kept growing between the two reads.
+    test("counts nothing for a process that has exited", () => {
       expect(
         ProcessTreeMemory.sumProportionalBytes({
-          processes: [{ pid: 1, residentBytes: 100 }],
-          proportionalBytesByPid: new Map<number, number>([[1, 150]]),
+          pids: [1, 2],
+          proportionalBytesByPid: new Map<number, number>([[1, 40]]),
+          readResidentBytes: (): null => {
+            return null;
+          },
         }),
-      ).toBe(150);
-    });
-
-    test("adds nothing for a process with neither reading", () => {
-      expect(
-        ProcessTreeMemory.sumProportionalBytes({
-          processes: [
-            { pid: 1, residentBytes: null },
-            { pid: 2, residentBytes: 200 },
-          ],
-          proportionalBytesByPid: new Map<number, number>(),
-        }),
-      ).toBe(200);
+      ).toEqual({ observedBytes: 40, residentFallbackCount: 0 });
     });
 
     test("saturates instead of overflowing", () => {
       expect(
         ProcessTreeMemory.sumProportionalBytes({
-          processes: [
-            { pid: 1, residentBytes: Number.MAX_SAFE_INTEGER },
-            { pid: 2, residentBytes: 4096 },
-          ],
-          proportionalBytesByPid: new Map<number, number>(),
-        }),
+          pids: [1, 2],
+          proportionalBytesByPid: new Map<number, number>([
+            [1, Number.MAX_SAFE_INTEGER],
+          ]),
+          readResidentBytes: (): number => {
+            return 4096;
+          },
+        }).observedBytes,
       ).toBe(Number.MAX_SAFE_INTEGER);
     });
 
     test("is zero for an empty tree", () => {
       expect(
         ProcessTreeMemory.sumProportionalBytes({
-          processes: [],
+          pids: [],
           proportionalBytesByPid: new Map<number, number>(),
+          readResidentBytes: (): number => {
+            return 4096;
+          },
         }),
-      ).toBe(0);
+      ).toEqual({ observedBytes: 0, residentFallbackCount: 0 });
+    });
+  });
+
+  describe("readResidentBytes", () => {
+    function mockProc(files: Record<string, string>, tasks: string[]): void {
+      const realReadFileSync: typeof fs.readFileSync = fs.readFileSync;
+      jest.spyOn(fs, "readFileSync").mockImplementation(((
+        filePath: fs.PathOrFileDescriptor,
+        options?: unknown,
+      ): string | Buffer => {
+        const pathText: string = String(filePath);
+        if (!pathText.startsWith("/proc/")) {
+          return realReadFileSync(
+            filePath,
+            options as Parameters<typeof fs.readFileSync>[1],
+          );
+        }
+        const contents: string | undefined = files[pathText];
+        if (contents === undefined) {
+          throw Object.assign(new Error(`ENOENT: ${pathText}`), {
+            code: "ENOENT",
+          });
+        }
+        return contents;
+      }) as typeof fs.readFileSync);
+      jest.spyOn(fs, "readdirSync").mockImplementation(((
+        directory: fs.PathLike,
+      ): string[] => {
+        if (String(directory) === "/proc/4242/task") {
+          return tasks;
+        }
+        throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      }) as unknown as typeof fs.readdirSync);
+    }
+
+    test("reads VmRSS from the process's status", () => {
+      mockProc(
+        {
+          "/proc/4242/status": statusFile({
+            anonKb: 1000,
+            fileKb: 2000,
+            shmemKb: 0,
+          }),
+        },
+        ["4242"],
+      );
+
+      expect(ProcessTreeMemory.readResidentBytes(4242)).toBe(3000 * KILOBYTE);
+    });
+
+    test("reads it from a remaining thread once the main thread has exited", () => {
+      mockProc(
+        {
+          "/proc/4242/status": "Name:\tchrome\nState:\tZ (zombie)\n",
+          "/proc/4242/task/4243/status": statusFile({
+            anonKb: 500_000,
+            fileKb: 100_000,
+            shmemKb: 0,
+          }),
+        },
+        ["4242", "4243"],
+      );
+
+      expect(ProcessTreeMemory.readResidentBytes(4242)).toBe(
+        600_000 * KILOBYTE,
+      );
+    });
+
+    test("is null for a process that has exited", () => {
+      mockProc({}, []);
+
+      expect(ProcessTreeMemory.readResidentBytes(4242)).toBeNull();
+    });
+
+    test("is null for a zombie with no thread left", () => {
+      mockProc({ "/proc/4242/status": "Name:\tchrome\nState:\tZ (zombie)\n" }, [
+        "4242",
+      ]);
+
+      expect(ProcessTreeMemory.readResidentBytes(4242)).toBeNull();
     });
   });
 
   describe("measureProportionalBytes through the helper", () => {
     const identity: { uid: number; gid: number } = { uid: 20_001, gid: 20_002 };
+
+    function measure(
+      overrides: Partial<
+        Parameters<typeof ProcessTreeMemory.measureProportionalBytes>[0]
+      > = {},
+    ): Promise<ProportionalMemoryReading> {
+      return ProcessTreeMemory.measureProportionalBytes({
+        pids: pidsOf(CUSTOMER_TREE),
+        identity,
+        readResidentBytes: residentReader(CUSTOMER_TREE),
+        ...overrides,
+      });
+    }
 
     test("asks the helper for the check's identity and every pid, and sums the PSS it reports", async () => {
       mockHelperPresent(true);
@@ -483,22 +644,22 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         output: helperOutputFor(CUSTOMER_TREE),
       });
 
-      const observedBytes: number =
-        await ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-        });
+      const reading: ProportionalMemoryReading = await measure();
 
-      expect(observedBytes).toBe(sumOf(CUSTOMER_TREE, "proportionalBytes"));
-      expect(observedBytes).toBeLessThan(DEFAULT_LIMIT_BYTES);
+      expect(reading).toEqual({
+        observedBytes: sumOf(CUSTOMER_TREE, "proportionalBytes"),
+        processCount: CUSTOMER_TREE.length,
+        residentFallbackCount: 0,
+        isComplete: true,
+        failure: null,
+      });
+      expect(reading.observedBytes).toBeLessThan(DEFAULT_LIMIT_BYTES);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.file).toBe(PROCESS_MEMORY_HELPER_PATH);
       expect(calls[0]?.args).toEqual([
         "20001",
         "20002",
-        ...CUSTOMER_TREE.map((shape: ChromiumProcessShape) => {
-          return String(shape.pid);
-        }),
+        ...pidsOf(CUSTOMER_TREE).map(String),
       ]);
     });
 
@@ -506,15 +667,12 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({ output: "" });
 
-      await ProcessTreeMemory.measureProportionalBytes({
-        processes: residentProcesses(CUSTOMER_TREE),
-        identity,
-      });
+      await measure();
 
       expect(calls[0]?.options).toEqual(
         expect.objectContaining({
           env: {},
-          timeout: PROCESS_MEMORY_HELPER_TIMEOUT_IN_MS,
+          timeout: PROCESS_MEMORY_READ_TIMEOUT_IN_MS,
           killSignal: "SIGKILL",
         }),
       );
@@ -527,141 +685,195 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({ output: "7 4\n" });
 
-      const observedBytes: number =
-        await ProcessTreeMemory.measureProportionalBytes({
-          processes: [
-            { pid: 7, residentBytes: 10 * KILOBYTE },
-            { pid: 7, residentBytes: 10 * KILOBYTE },
-          ],
-          identity,
-        });
+      const reading: ProportionalMemoryReading = await measure({
+        pids: [7, 7],
+        readResidentBytes: (): number => {
+          return 10 * KILOBYTE;
+        },
+      });
 
       expect(calls[0]?.args).toEqual(["20001", "20002", "7"]);
-      // The duplicate record still counts; the tree snapshot never has one.
-      expect(observedBytes).toBe(8 * KILOBYTE);
+      expect(reading.observedBytes).toBe(4 * KILOBYTE);
+      expect(reading.processCount).toBe(1);
     });
 
-    test("counts a process the helper could not read at its VmRSS", async () => {
+    test("counts a process the helper could not read at its VmRSS as read now", async () => {
       mockHelperPresent(true);
       const hiddenPid: number = 50_008;
       mockHelper({
         output: helperOutputFor(CUSTOMER_TREE, new Set<number>([hiddenPid])),
       });
+      const grownResidentBytes: number = 700 * MEGABYTE;
 
-      const observedBytes: number =
-        await ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-        });
-
-      const hidden: ChromiumProcessShape = CUSTOMER_TREE.find(
-        (shape: ChromiumProcessShape) => {
-          return shape.pid === hiddenPid;
+      const reading: ProportionalMemoryReading = await measure({
+        readResidentBytes: (pid: number): number | null => {
+          return pid === hiddenPid
+            ? grownResidentBytes
+            : shapeOf(pid).residentBytes;
         },
-      ) as ChromiumProcessShape;
-      expect(observedBytes).toBe(
+      });
+
+      expect(reading.observedBytes).toBe(
         sumOf(CUSTOMER_TREE, "proportionalBytes") -
-          hidden.proportionalBytes +
-          hidden.residentBytes,
+          shapeOf(hiddenPid).proportionalBytes +
+          grownResidentBytes,
       );
+      expect(reading.residentFallbackCount).toBe(1);
+      expect(reading.isComplete).toBe(true);
     });
 
-    test("counts a process the helper left out entirely at its VmRSS", async () => {
+    test("counts nothing for processes that exited before the helper reached them", async () => {
+      /*
+       * Renderers come and go as a script navigates and closes pages. One
+       * that exits between the VmRSS snapshot and the helper's read holds
+       * nothing, and counting it at its old VmRSS brought back the very
+       * over-count this measurement exists to avoid.
+       */
       mockHelperPresent(true);
-      mockHelper({ output: helperOutputFor(CUSTOMER_TREE.slice(1)) });
+      const exitedPids: Set<number> = new Set<number>([50_008, 50_009, 50_010]);
+      mockHelper({ output: helperOutputFor(CUSTOMER_TREE, exitedPids) });
 
-      const observedBytes: number =
-        await ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-        });
+      const reading: ProportionalMemoryReading = await measure({
+        readResidentBytes: residentReader(CUSTOMER_TREE, exitedPids),
+      });
 
-      expect(observedBytes).toBe(
-        sumOf(CUSTOMER_TREE.slice(1), "proportionalBytes") +
-          (CUSTOMER_TREE[0] as ChromiumProcessShape).residentBytes,
+      const survivors: ChromiumProcessShape[] = CUSTOMER_TREE.filter(
+        (shape: ChromiumProcessShape) => {
+          return !exitedPids.has(shape.pid);
+        },
       );
+      expect(reading.observedBytes).toBe(sumOf(survivors, "proportionalBytes"));
+      expect(reading.residentFallbackCount).toBe(0);
+      expect(reading.isComplete).toBe(true);
     });
 
-    test.each<[string, Error]>([
-      ["exits non-zero", Object.assign(new Error("exit 3"), { code: 3 })],
+    test.each<[string, Error, RegExp]>([
+      [
+        "exits non-zero",
+        Object.assign(new Error("exit 3"), { code: 3 }),
+        /exited with code 3/,
+      ],
       [
         "times out",
         Object.assign(new Error("timed out"), {
           killed: true,
           signal: "SIGKILL",
         }),
+        /did not finish within 5000 ms/,
       ],
       [
         "floods its output",
         Object.assign(new Error("stdout maxBuffer length exceeded"), {
           code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
         }),
+        /ERR_CHILD_PROCESS_STDIO_MAXBUFFER/,
       ],
       [
         "cannot be started",
         Object.assign(new Error("spawn EACCES"), { code: "EACCES" }),
+        /EACCES/,
       ],
     ])(
-      "falls back to summed VmRSS when the helper %s",
-      async (_description: string, error: Error) => {
+      "is incomplete, counting every process at its VmRSS, when the helper %s",
+      async (_description: string, error: Error, failure: RegExp) => {
         mockHelperPresent(true);
         mockHelper({ output: helperOutputFor(CUSTOMER_TREE), error });
 
-        await expect(
-          ProcessTreeMemory.measureProportionalBytes({
-            processes: residentProcesses(CUSTOMER_TREE),
-            identity,
-          }),
-        ).resolves.toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
+        const reading: ProportionalMemoryReading = await measure();
+
+        expect(reading.isComplete).toBe(false);
+        expect(reading.failure).toMatch(failure);
+        expect(reading.observedBytes).toBe(
+          sumOf(CUSTOMER_TREE, "residentBytes"),
+        );
+        expect(reading.residentFallbackCount).toBe(CUSTOMER_TREE.length);
       },
     );
 
-    test("falls back to summed VmRSS when starting the helper throws", async () => {
+    test("is incomplete when the helper reports success with nothing read", async () => {
+      /*
+       * Node can kill an already-exited helper when the event loop stalls
+       * past the timeout, and then report success with empty output.
+       */
+      mockHelperPresent(true);
+      mockHelper({ output: "" });
+
+      const reading: ProportionalMemoryReading = await measure();
+
+      expect(reading.isComplete).toBe(false);
+      expect(reading.failure).toContain("answered for fewer than the 12");
+    });
+
+    test("is incomplete when the helper answers for only some of the processes", async () => {
+      mockHelperPresent(true);
+      mockHelper({ output: helperOutputFor(CUSTOMER_TREE.slice(0, 5)) });
+
+      const reading: ProportionalMemoryReading = await measure();
+
+      expect(reading.isComplete).toBe(false);
+      // What was read is still used; the rest count at their VmRSS.
+      expect(reading.observedBytes).toBe(
+        sumOf(CUSTOMER_TREE.slice(0, 5), "proportionalBytes") +
+          sumOf(CUSTOMER_TREE.slice(5), "residentBytes"),
+      );
+    });
+
+    test("is incomplete when starting the helper throws", async () => {
       mockHelperPresent(true);
       getExecFileMock().mockImplementation(() => {
         throw new Error("spawn failed synchronously");
       });
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-        }),
-      ).resolves.toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
+      const reading: ProportionalMemoryReading = await measure();
+
+      expect(reading.isComplete).toBe(false);
+      expect(reading.observedBytes).toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
     });
 
-    test("falls back to summed VmRSS, without trying, when the image has no helper", async () => {
+    test("counts every process at its VmRSS, without trying, when the image has no helper", async () => {
+      // Nothing changes by trying again, so this reading is complete.
       mockHelperPresent(false);
       const calls: ExecFileCall[] = mockHelper({
         output: helperOutputFor(CUSTOMER_TREE),
       });
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-        }),
-      ).resolves.toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
+      const reading: ProportionalMemoryReading = await measure();
+
+      expect(reading).toEqual({
+        observedBytes: sumOf(CUSTOMER_TREE, "residentBytes"),
+        processCount: CUSTOMER_TREE.length,
+        residentFallbackCount: CUSTOMER_TREE.length,
+        isComplete: true,
+        failure: null,
+      });
       expect(calls).toHaveLength(0);
     });
 
-    test("falls back to summed VmRSS, without trying, for a tree larger than the helper accepts", async () => {
+    test("counts every process at its VmRSS, without trying, for a tree larger than the helper accepts", async () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({ output: "" });
-      const processes: ResidentProcessMemory[] = Array.from(
+      const pids: number[] = Array.from(
         { length: PROCESS_MEMORY_HELPER_MAX_PIDS + 1 },
         (_value: unknown, index: number) => {
-          return { pid: 100_000 + index, residentBytes: MEGABYTE };
+          return 100_000 + index;
         },
       );
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({ processes, identity }),
-      ).resolves.toBe((PROCESS_MEMORY_HELPER_MAX_PIDS + 1) * MEGABYTE);
+      const reading: ProportionalMemoryReading = await measure({
+        pids,
+        readResidentBytes: (): number => {
+          return MEGABYTE;
+        },
+      });
+
+      expect(reading.observedBytes).toBe(
+        (PROCESS_MEMORY_HELPER_MAX_PIDS + 1) * MEGABYTE,
+      );
+      expect(reading.isComplete).toBe(true);
       expect(calls).toHaveLength(0);
     });
 
-    test("does not start the helper once the measurement is abandoned", async () => {
+    test("does not start the helper once the reading is abandoned", async () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({
         output: helperOutputFor(CUSTOMER_TREE),
@@ -669,38 +881,45 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       const abandoned: AbortController = new AbortController();
       abandoned.abort();
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity,
-          signal: abandoned.signal,
-        }),
-      ).resolves.toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
+      const reading: ProportionalMemoryReading = await measure({
+        signal: abandoned.signal,
+      });
+
+      expect(reading.isComplete).toBe(false);
       expect(calls).toHaveLength(0);
     });
 
-    test("hands the helper the abort signal, so an abandoned measurement stops it", async () => {
+    test("hands the helper the abort signal and its timeout", async () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({ output: "" });
-      const measurement: AbortController = new AbortController();
+      const reading: AbortController = new AbortController();
 
-      await ProcessTreeMemory.measureProportionalBytes({
-        processes: residentProcesses(CUSTOMER_TREE),
-        identity,
-        signal: measurement.signal,
+      await measure({ signal: reading.signal, timeoutInMs: 1234 });
+
+      expect(calls[0]?.options.signal).toBe(reading.signal);
+      expect(calls[0]?.options.timeout).toBe(1234);
+    });
+
+    test("reports an abandoned reading as abandoned", async () => {
+      mockHelperPresent(true);
+      mockHelper({
+        output: "",
+        error: Object.assign(new Error("The operation was aborted"), {
+          name: "AbortError",
+          code: "ABORT_ERR",
+        }),
       });
 
-      expect(calls[0]?.options.signal).toBe(measurement.signal);
+      const reading: ProportionalMemoryReading = await measure();
+
+      expect(reading.isComplete).toBe(false);
+      expect(reading.failure).toBe("the reading was abandoned");
     });
 
     test("uses an explicitly given helper path", async () => {
       const calls: ExecFileCall[] = mockHelper({ output: "" });
 
-      await ProcessTreeMemory.measureProportionalBytes({
-        processes: residentProcesses(CUSTOMER_TREE),
-        identity,
-        helperPath: __filename,
-      });
+      await measure({ helperPath: __filename });
 
       expect(calls[0]?.file).toBe(__filename);
     });
@@ -709,9 +928,15 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       mockHelperPresent(true);
       const calls: ExecFileCall[] = mockHelper({ output: "" });
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({ processes: [], identity }),
-      ).resolves.toBe(0);
+      const reading: ProportionalMemoryReading = await measure({ pids: [] });
+
+      expect(reading).toEqual({
+        observedBytes: 0,
+        processCount: 0,
+        residentFallbackCount: 0,
+        isComplete: true,
+        failure: null,
+      });
       expect(calls).toHaveLength(0);
     });
   });
@@ -719,6 +944,7 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
   describe("measureProportionalBytes without a separate identity", () => {
     function mockSmapsRollups(
       contentsByPid: ReadonlyMap<number, string | Error>,
+      options: { readonly neverAnswer?: ReadonlySet<number> } = {},
     ): string[] {
       const readPaths: string[] = [];
       jest.spyOn(fs.promises, "readFile").mockImplementation((async (
@@ -729,9 +955,11 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         const match: RegExpMatchArray | null = pathText.match(
           /^\/proc\/(\d+)\/smaps_rollup$/,
         );
-        const contents: string | Error | undefined = match
-          ? contentsByPid.get(Number(match[1]))
-          : undefined;
+        const pid: number = match ? Number(match[1]) : NaN;
+        if (options.neverAnswer?.has(pid)) {
+          return new Promise<string>(() => {});
+        }
+        const contents: string | Error | undefined = contentsByPid.get(pid);
         if (contents === undefined) {
           throw Object.assign(new Error(`ENOENT: ${pathText}`), {
             code: "ENOENT",
@@ -745,61 +973,106 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
       return readPaths;
     }
 
-    test("reads every process's smaps_rollup itself and never starts the helper", async () => {
-      const calls: ExecFileCall[] = mockHelper({ output: "" });
-      const readPaths: string[] = mockSmapsRollups(
-        new Map<number, string>(
-          CUSTOMER_TREE.map((shape: ChromiumProcessShape) => {
-            return [
-              shape.pid,
-              smapsRollupFile({
-                rssKb: shape.residentBytes / KILOBYTE,
-                pssKb: shape.proportionalBytes / KILOBYTE,
-              }),
-            ];
-          }),
-        ),
-      );
-
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({
-          processes: residentProcesses(CUSTOMER_TREE),
-          identity: null,
+    function rollupsFor(
+      shapes: ReadonlyArray<ChromiumProcessShape>,
+    ): Map<number, string> {
+      return new Map<number, string>(
+        shapes.map((shape: ChromiumProcessShape) => {
+          return [
+            shape.pid,
+            smapsRollupFile({
+              rssKb: shape.residentBytes / KILOBYTE,
+              pssKb: shape.proportionalBytes / KILOBYTE,
+            }),
+          ];
         }),
-      ).resolves.toBe(sumOf(CUSTOMER_TREE, "proportionalBytes"));
+      );
+    }
+
+    test("reads every process's smaps_rollup itself, one at a time, and never starts the helper", async () => {
+      const calls: ExecFileCall[] = mockHelper({ output: "" });
+      let concurrentReads: number = 0;
+      let maximumConcurrentReads: number = 0;
+      const readPaths: string[] = [];
+      const rollups: Map<number, string> = rollupsFor(CUSTOMER_TREE);
+      jest.spyOn(fs.promises, "readFile").mockImplementation((async (
+        filePath: fs.PathLike,
+      ): Promise<string> => {
+        readPaths.push(String(filePath));
+        concurrentReads++;
+        maximumConcurrentReads = Math.max(
+          maximumConcurrentReads,
+          concurrentReads,
+        );
+        await new Promise<void>((resolve: () => void) => {
+          global.setImmediate(resolve);
+        });
+        concurrentReads--;
+        const pid: number = Number(String(filePath).split("/")[2]);
+        return rollups.get(pid) as string;
+      }) as unknown as typeof fs.promises.readFile);
+
+      const reading: ProportionalMemoryReading =
+        await ProcessTreeMemory.measureProportionalBytes({
+          pids: pidsOf(CUSTOMER_TREE),
+          identity: null,
+          readResidentBytes: residentReader(CUSTOMER_TREE),
+        });
+
+      expect(reading.observedBytes).toBe(
+        sumOf(CUSTOMER_TREE, "proportionalBytes"),
+      );
+      expect(reading.isComplete).toBe(true);
       expect(calls).toHaveLength(0);
-      expect(readPaths.sort()).toEqual(
-        CUSTOMER_TREE.map((shape: ChromiumProcessShape) => {
-          return `/proc/${shape.pid}/smaps_rollup`;
-        }).sort(),
+      // The probe's DNS lookups share the same four libuv threads.
+      expect(maximumConcurrentReads).toBe(1);
+      expect(readPaths).toEqual(
+        pidsOf(CUSTOMER_TREE).map((pid: number) => {
+          return `/proc/${pid}/smaps_rollup`;
+        }),
       );
     });
 
-    test("counts a process it may not read, or that exited, at its VmRSS", async () => {
+    test("counts a process it may not read at its current VmRSS, and one that exited at nothing", async () => {
       mockSmapsRollups(
         new Map<number, string | Error>([
           [1, smapsRollupFile({ rssKb: 100, pssKb: 40 })],
-          [
-            2,
-            Object.assign(new Error("EACCES"), {
-              code: "EACCES",
-            }),
-          ],
+          [2, Object.assign(new Error("EACCES"), { code: "EACCES" })],
           [3, "not a rollup\n"],
         ]),
       );
 
-      await expect(
-        ProcessTreeMemory.measureProportionalBytes({
-          processes: [
-            { pid: 1, residentBytes: 100 * KILOBYTE },
-            { pid: 2, residentBytes: 200 * KILOBYTE },
-            { pid: 3, residentBytes: 300 * KILOBYTE },
-            { pid: 4, residentBytes: 400 * KILOBYTE },
-          ],
+      const reading: ProportionalMemoryReading =
+        await ProcessTreeMemory.measureProportionalBytes({
+          pids: [1, 2, 3, 4],
           identity: null,
-        }),
-      ).resolves.toBe((40 + 200 + 300 + 400) * KILOBYTE);
+          readResidentBytes: (pid: number): number | null => {
+            // Process 4 has exited.
+            return pid === 4 ? null : pid * 100 * KILOBYTE;
+          },
+        });
+
+      expect(reading.observedBytes).toBe((40 + 200 + 300) * KILOBYTE);
+      expect(reading.residentFallbackCount).toBe(2);
+      expect(reading.isComplete).toBe(true);
+    });
+
+    test("is incomplete when the reads run out of time", async () => {
+      mockSmapsRollups(rollupsFor(CUSTOMER_TREE), {
+        neverAnswer: new Set<number>([50_005]),
+      });
+
+      const reading: ProportionalMemoryReading =
+        await ProcessTreeMemory.measureProportionalBytes({
+          pids: pidsOf(CUSTOMER_TREE),
+          identity: null,
+          timeoutInMs: 20,
+          readResidentBytes: residentReader(CUSTOMER_TREE),
+        });
+
+      expect(reading.isComplete).toBe(false);
+      expect(reading.failure).toContain("longer than 20 ms");
+      expect(reading.observedBytes).toBe(sumOf(CUSTOMER_TREE, "residentBytes"));
     });
   });
 
@@ -866,11 +1139,14 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         );
       expect(residentBytes).not.toBeNull();
 
-      const observedBytes: number =
+      const reading: ProportionalMemoryReading =
         await ProcessTreeMemory.measureProportionalBytes({
-          processes: [{ pid: process.pid, residentBytes }],
+          pids: [process.pid],
           identity: null,
         });
+      const observedBytes: number = reading.observedBytes;
+      expect(reading.isComplete).toBe(true);
+      expect(reading.residentFallbackCount).toBe(0);
 
       expect(observedBytes).toBeGreaterThan(0);
       // Allow for the heap growing between the two reads.

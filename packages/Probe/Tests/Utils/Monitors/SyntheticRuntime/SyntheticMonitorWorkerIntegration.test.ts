@@ -15,7 +15,7 @@ import {
   isSyntheticMonitorWorkerResult,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorkerTypes";
 import ProcessTreeMemory, {
-  ResidentProcessMemory,
+  ProportionalMemoryReading,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 
 jest.setTimeout(1_500_000);
@@ -30,6 +30,11 @@ const MEGABYTE: number = 1024 * 1024;
 const MAX_PROCESS_TREE_RSS_BYTES: number = 1536 * MEGABYTE;
 const MAX_DISK_BYTES: number = 64 * MEGABYTE;
 const OPFS_CHUNK_BYTES: number = 64 * MEGABYTE;
+
+interface ResidentProcessMemory {
+  readonly pid: number;
+  readonly residentBytes: number | null;
+}
 
 interface StorageContainmentCase {
   label: string;
@@ -675,12 +680,16 @@ describe("SyntheticMonitorWorker full process boundary", () => {
                 return total + (entry.residentBytes ?? 0);
               }, 0),
             );
+            const reading: ProportionalMemoryReading =
+              await ProcessTreeMemory.measureProportionalBytes({
+                pids: tree.map((entry: ResidentProcessMemory) => {
+                  return entry.pid;
+                }),
+                identity: null,
+              });
             peaks.proportionalBytes = Math.max(
               peaks.proportionalBytes,
-              await ProcessTreeMemory.measureProportionalBytes({
-                processes: tree,
-                identity: null,
-              }),
+              reading.observedBytes,
             );
           }
           await delay(100);
@@ -716,9 +725,11 @@ describe("SyntheticMonitorWorker full process boundary", () => {
             data: Parameters<
               typeof ProcessTreeMemory.measureProportionalBytes
             >[0],
-          ): Promise<number> => {
-            const reading: number = await measureProportionalBytes(data);
-            watchdogReadings.push(reading);
+          ): Promise<ProportionalMemoryReading> => {
+            const reading: ProportionalMemoryReading =
+              await measureProportionalBytes(data);
+            expect(reading.isComplete).toBe(true);
+            watchdogReadings.push(reading.observedBytes);
             return reading;
           },
         );

@@ -9,6 +9,7 @@ import os from "os";
 import path from "path";
 import ProcessTreeMemory, {
   PROCESS_MEMORY_HELPER_MAX_PIDS,
+  ProportionalMemoryReading,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 
 /*
@@ -28,6 +29,9 @@ import ProcessTreeMemory, {
  * directly. Run as any other user -- as CI does -- it measures the user's own
  * processes, and checks it cannot take on anyone else's identity.
  */
+
+// Compiling the helper and its fixtures takes a few seconds on a slow runner.
+jest.setTimeout(120_000);
 
 const HELPER_SOURCE_PATH: string = path.resolve(
   __dirname,
@@ -49,6 +53,48 @@ int main(void) {
   if (write(1, "ready\\n", 6) != 6) {
     return 1;
   }
+  pause();
+  return 0;
+}
+`;
+
+/*
+ * Four processes sharing one 32 MB mapping, every page touched by each. The
+ * kernel counts all 32 MB in each one's RSS and a quarter of it in each one's
+ * PSS, so a helper that read the RSS line -- or the anonymous or file part of
+ * PSS -- instead of PSS cannot pass for one that reads PSS.
+ */
+const SHARED_MAPPING_BYTES: number = 32 * 1024 * 1024;
+const SHARED_MAPPING_PROCESSES: number = 4;
+const SHARED_MAPPING_SOURCE: string = `
+#include <stdio.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#define SIZE ${SHARED_MAPPING_BYTES}UL
+
+int main(void) {
+  volatile unsigned char *region = mmap(NULL, SIZE, PROT_READ | PROT_WRITE,
+                                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  unsigned long sum = 0;
+  unsigned long offset;
+  int child;
+
+  if (region == MAP_FAILED) {
+    return 1;
+  }
+  memset((void *)region, 7, SIZE);
+  for (child = 1; child < ${SHARED_MAPPING_PROCESSES}; child++) {
+    if (fork() == 0) {
+      break;
+    }
+  }
+  for (offset = 0; offset < SIZE; offset += 4096) {
+    sum += region[offset];
+  }
+  printf("pid %d %lu\\n", getpid(), sum);
+  fflush(stdout);
   pause();
   return 0;
 }
@@ -139,6 +185,7 @@ describeWithTools(
     let workDirectory: string;
     let helperPath: string;
     let nonDumpablePath: string;
+    let sharedMappingPath: string;
     const startedProcesses: ChildProcess[] = [];
 
     // Root measures a sandbox identity; anyone else measures their own.
@@ -181,6 +228,8 @@ describeWithTools(
     ): Promise<number> {
       const started: ChildProcess = spawn(executable, args, {
         stdio: ["ignore", "pipe", "ignore"],
+        // Its own process group, so cleanup reaches any children it forks.
+        detached: true,
         ...(IS_ROOT ? { uid: identity.uid, gid: identity.gid } : {}),
       });
       startedProcesses.push(started);
@@ -262,6 +311,15 @@ describeWithTools(
       fs.writeFileSync(nonDumpableSourcePath, NON_DUMPABLE_SOURCE);
       nonDumpablePath = path.join(workDirectory, "non-dumpable");
       compile(nonDumpableSourcePath, nonDumpablePath);
+
+      const sharedMappingSourcePath: string = path.join(
+        workDirectory,
+        "shared-mapping.c",
+      );
+      fs.writeFileSync(sharedMappingSourcePath, SHARED_MAPPING_SOURCE);
+      sharedMappingPath = path.join(workDirectory, "shared-mapping");
+      compile(sharedMappingSourcePath, sharedMappingPath);
+      fs.chmodSync(sharedMappingPath, 0o755);
       // A sandbox uid runs it when root runs the test.
       fs.chmodSync(workDirectory, 0o755);
       fs.chmodSync(nonDumpablePath, 0o755);
@@ -269,7 +327,12 @@ describeWithTools(
 
     afterEach(() => {
       for (const started of startedProcesses.splice(0)) {
-        started.kill("SIGKILL");
+        try {
+          process.kill(-(started.pid as number), "SIGKILL");
+        } catch {
+          // Already gone.
+        }
+        started.stdout?.destroy();
       }
     });
 
@@ -393,7 +456,63 @@ describeWithTools(
       expect(result.stdout).toBe(`${pid} -\n`);
     });
 
-    test("hands ProcessTreeMemory what it reads, and a hidden process counts at its VmRSS", async () => {
+    test("reads PSS, not RSS or a part of PSS, from processes sharing memory", async () => {
+      const started: ChildProcess = spawn(sharedMappingPath, [], {
+        stdio: ["ignore", "pipe", "ignore"],
+        // Its own process group, so cleanup reaches any children it forks.
+        detached: true,
+        ...(IS_ROOT ? { uid: identity.uid, gid: identity.gid } : {}),
+      });
+      startedProcesses.push(started);
+      const pids: number[] = await new Promise<number[]>(
+        (
+          resolve: (pids: number[]) => void,
+          reject: (error: Error) => void,
+        ): void => {
+          let output: string = "";
+          started.once("error", reject);
+          started.stdout?.on("data", (chunk: Buffer) => {
+            output += chunk.toString("utf8");
+            const found: number[] = Array.from(
+              output.matchAll(/^pid (\d+) \d+$/gm),
+            ).map((match: RegExpMatchArray) => {
+              return Number(match[1]);
+            });
+            if (found.length === SHARED_MAPPING_PROCESSES) {
+              resolve(found);
+            }
+          });
+        },
+      );
+
+      const result: SpawnSyncReturns<string> = runHelper([
+        ...identityArguments(),
+        ...pids.map(String),
+      ]);
+      expect(result.status).toBe(0);
+
+      const shareKb: number =
+        SHARED_MAPPING_BYTES / KILOBYTE / SHARED_MAPPING_PROCESSES;
+      const lines: string[] = result.stdout.trimEnd().split("\n");
+      expect(lines).toHaveLength(SHARED_MAPPING_PROCESSES);
+      for (const [index, pid] of pids.entries()) {
+        const reportedKb: number = Number(
+          (lines[index] as string).split(" ")[1],
+        );
+        const residentBytes: number = ProcessTreeMemory.readResidentBytes(
+          pid,
+        ) as number;
+
+        // Its quarter of the mapping plus a few hundred kB of its own.
+        expect(reportedKb).toBeGreaterThanOrEqual(shareKb);
+        expect(reportedKb).toBeLessThan(shareKb + 4 * 1024);
+        // RSS counts the whole mapping.
+        expect(residentBytes).toBeGreaterThanOrEqual(SHARED_MAPPING_BYTES);
+        expect(reportedKb * KILOBYTE).toBeLessThan(residentBytes / 2);
+      }
+    });
+
+    test("hands ProcessTreeMemory what it reads, and a hidden process counts at its VmRSS as read now", async () => {
       const readablePid: number = await startUnderIdentity(
         SLEEP_PATH as string,
         ["60"],
@@ -403,14 +522,11 @@ describeWithTools(
         [],
         "ready",
       );
-      const hiddenResidentBytes: number = 777 * KILOBYTE;
+      const exitedPid: number = findUnusedPid();
 
-      const observedBytes: number =
+      const reading: ProportionalMemoryReading =
         await ProcessTreeMemory.measureProportionalBytes({
-          processes: [
-            { pid: readablePid, residentBytes: 999_999 * KILOBYTE },
-            { pid: hiddenPid, residentBytes: hiddenResidentBytes },
-          ],
+          pids: [readablePid, hiddenPid, exitedPid],
           identity,
           helperPath,
         });
@@ -420,12 +536,20 @@ describeWithTools(
         String(readablePid),
       ]).stdout;
       const readableKb: number = Number(helperOutput.trim().split(" ")[1]);
+      const hiddenResidentBytes: number = ProcessTreeMemory.readResidentBytes(
+        hiddenPid,
+      ) as number;
       expect(readableKb).toBeGreaterThan(0);
+      expect(hiddenResidentBytes).toBeGreaterThan(0);
+      expect(reading.isComplete).toBe(true);
+      expect(reading.processCount).toBe(3);
+      // The hidden process at its VmRSS; the exited one at nothing.
+      expect(reading.residentFallbackCount).toBe(1);
       expect(
-        Math.abs(observedBytes - (readableKb * KILOBYTE + hiddenResidentBytes)),
+        Math.abs(
+          reading.observedBytes - (readableKb * KILOBYTE + hiddenResidentBytes),
+        ),
       ).toBeLessThanOrEqual(1024 * KILOBYTE);
-      // Nowhere near the VmRSS it was given for the readable process.
-      expect(observedBytes).toBeLessThan(999_999 * KILOBYTE);
     });
 
     (IS_ROOT ? test : test.skip)(

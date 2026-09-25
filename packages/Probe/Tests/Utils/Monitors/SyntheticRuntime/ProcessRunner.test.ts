@@ -21,6 +21,7 @@ import SyntheticRuntimeFault, {
   SYNTHETIC_RUNTIME_FAULT_KIND,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticRuntimeFault";
 import { PROCESS_MEMORY_HELPER_PATH } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
+import logger from "Common/Server/Utils/Logger";
 
 jest.mock("child_process", () => {
   const actual: typeof import("child_process") =
@@ -378,6 +379,8 @@ interface FakeProc {
   readonly smapsRollupReads: string[];
   // Answer the helper later instead of at once; see answerPendingHelper.
   holdHelperAnswers: boolean;
+  // Errors the next helper calls fail with, one per call, before it answers again.
+  readonly helperFailures: Error[];
   answerPendingHelper: () => void;
   readonly killedSignals: Array<{ pid: number; signal: string }>;
   // The worker exits on its own, leaving its browser processes behind.
@@ -564,6 +567,7 @@ function installFakeProc(data: {
     helperCalls: [],
     smapsRollupReads: [],
     holdHelperAnswers: false,
+    helperFailures: [],
     answerPendingHelper: (): void => {
       throw new Error("No helper call is waiting for an answer.");
     },
@@ -619,14 +623,15 @@ function installFakeProc(data: {
           }),
         );
       });
+      const failure: Error | undefined = fakeProc.helperFailures.shift();
       if (fakeProc.holdHelperAnswers) {
         fakeProc.answerPendingHelper = (): void => {
-          answer(null);
+          answer(failure ?? null);
         };
         return;
       }
       global.setImmediate(() => {
-        answer(null);
+        answer(failure ?? null);
       });
     },
   );
@@ -3183,7 +3188,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
       expect(expectedKb).toBeGreaterThan(limitKb);
 
       await expect(startRun(runner)).rejects.toThrow(
-        `exceeded memory limit of ${limitKb * 1024} bytes (observed ${expectedKb * 1024} bytes)`,
+        `exceeded memory limit of ${limitKb * 1024} bytes (observed ${expectedKb * 1024} bytes, counting 5 of 12 processes at their resident size because their proportional size could not be read).`,
       );
       expect(fakeProc.helperCalls).toHaveLength(1);
     });
@@ -3193,9 +3198,9 @@ describe("SyntheticRuntime ProcessRunner", () => {
       const { fakeProc } = startWorker({ helperPresent: false });
       const runner: ProcessRunner = createRunner();
 
-      // Exactly the error the customer's monitors reported.
+      // The number the customer's monitors reported, now saying how it was read.
       await expect(startRun(runner)).rejects.toThrow(
-        `Synthetic worker process tree exceeded memory limit of 1610612736 bytes (observed 1612525568 bytes).`,
+        `Synthetic worker process tree exceeded memory limit of 1610612736 bytes (observed 1612525568 bytes, counting 12 of 12 processes at their resident size because their proportional size could not be read).`,
       );
       expect(fakeProc.helperCalls).toHaveLength(0);
       expect(fakeProc.smapsRollupReads).toHaveLength(0);
@@ -3254,7 +3259,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
       );
     });
 
-    test("measures again on every poll and stops the check once its PSS crosses the limit", async () => {
+    test("reads the tree again at once when it grows by more than it had to spare, and stops it past the limit", async () => {
       const timers: ManualTimerController = installManualTimers();
       runAsRootSupervisor();
       const { child, fakeProc } = startWorker();
@@ -3265,7 +3270,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
 
       const run: Promise<ProcessRunResult<TestResult>> = startRun(runner);
       const runExpectation: Promise<void> = expect(run).rejects.toThrow(
-        `exceeded memory limit of ${LIMIT_BYTES} bytes (observed 1649639424 bytes)`,
+        `exceeded memory limit of ${LIMIT_BYTES} bytes (observed 1700839424 bytes).`,
       );
 
       // The first poll finds the tree under the limit by PSS and schedules the next.
@@ -3273,12 +3278,16 @@ describe("SyntheticRuntime ProcessRunner", () => {
       expect(fakeProc.helperCalls).toHaveLength(1);
       expect(child.send).toHaveBeenCalledTimes(1);
 
-      // The page then grows a renderer past the limit.
+      /*
+       * The page then grows a renderer past the limit, well within the second
+       * the first reading is reused for, but by more VmRSS (808,832 kB) than
+       * the tree had to spare (770,048 kB).
+       */
       const renderer: FakeProcProcess = fakeProc.processes.get(
         WORKER_PID + 10_000 + 6,
       ) as FakeProcProcess;
-      renderer.residentKb = 1_150_000;
-      renderer.proportionalKb = 1_100_000;
+      renderer.residentKb = 1_200_000;
+      renderer.proportionalKb = 1_150_000;
       timers.fireByDelay(250);
 
       await runExpectation;
@@ -3337,7 +3346,154 @@ describe("SyntheticRuntime ProcessRunner", () => {
        */
       expect(sumKilobytes(tree, "residentKb") * 1024 < LIMIT_BYTES).toBe(true);
       await expect(startRun(runner)).rejects.toThrow(
-        `exceeded memory limit of ${LIMIT_BYTES} bytes (observed 1612525568 bytes)`,
+        `exceeded memory limit of ${LIMIT_BYTES} bytes (observed 1612525568 bytes, counting 12 of 12 processes`,
+      );
+    });
+
+    test("counts nothing for renderers that exit while the tree is being read", async () => {
+      /*
+       * A script that navigates across sites or closes pages retires
+       * renderers all the time. One read at its VmRSS in the snapshot but
+       * gone by the time its PSS is read holds nothing; counting it at its old
+       * VmRSS brought back the very over-count this reading exists to avoid.
+       */
+      runAsRootSupervisor();
+      const { child, fakeProc } = startWorker();
+      fakeProc.holdHelperAnswers = true;
+      const limitKb: number = 1_000_000;
+      const runner: ProcessRunner = createRunner({
+        maxProcessTreeRssBytes: limitKb * 1024,
+      });
+
+      const run: Promise<ProcessRunResult<TestResult>> = startRun(runner);
+      await waitFor(() => {
+        return (
+          child.send.mock.calls.length > 0 && fakeProc.helperCalls.length > 0
+        );
+      }, "the start envelope and the PSS reading");
+
+      // Three renderers exit after the snapshot and before the helper reads them.
+      const exited: FakeProcProcess[] = [6, 7, 8].map((offset: number) => {
+        return fakeProc.processes.get(
+          WORKER_PID + 10_000 + offset,
+        ) as FakeProcProcess;
+      });
+      for (const renderer of exited) {
+        fakeProc.processes.delete(renderer.pid);
+      }
+      // Counted at their snapshot VmRSS they would put the tree over.
+      expect(
+        802_816 -
+          sumKilobytes(exited, "proportionalKb") +
+          sumKilobytes(exited, "residentKb"),
+      ).toBeGreaterThan(limitKb);
+      fakeProc.answerPendingHelper();
+      await settleHelperAnswers();
+
+      emitSuccess(child, { value: "logged in" });
+      fakeProc.exitWorker();
+
+      await expect(run).resolves.toEqual(
+        expect.objectContaining({ result: { value: "logged in" } }),
+      );
+    });
+
+    test("reads again instead of stopping the check when a reading fails", async () => {
+      runAsRootSupervisor();
+      const warnSpy: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {});
+      const { child, fakeProc } = startWorker();
+      fakeProc.helperFailures.push(
+        Object.assign(new Error("timed out"), {
+          killed: true,
+          signal: "SIGKILL",
+        }),
+      );
+      const runner: ProcessRunner = createRunner({ rssPollIntervalInMs: 20 });
+
+      const run: Promise<ProcessRunResult<TestResult>> = startRun(runner);
+      await waitFor(() => {
+        return fakeProc.helperCalls.length >= 2;
+      }, "a second PSS reading");
+      await settleHelperAnswers();
+      emitSuccess(child, { value: "logged in" });
+      fakeProc.exitWorker();
+
+      await expect(run).resolves.toEqual(
+        expect.objectContaining({ result: { value: "logged in" } }),
+      );
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(String(warnSpy.mock.calls[0]?.[0])).toContain(
+        "did not finish within 5000 ms",
+      );
+    });
+
+    test("judges the tree by what could be read after two failed readings in a row", async () => {
+      runAsRootSupervisor();
+      const warnSpy: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {});
+      const { fakeProc } = startWorker();
+      for (let index: number = 0; index < 5; index++) {
+        fakeProc.helperFailures.push(
+          Object.assign(new Error("exit 3"), { code: 3 }),
+        );
+      }
+      const runner: ProcessRunner = createRunner({ rssPollIntervalInMs: 20 });
+
+      await expect(startRun(runner)).rejects.toThrow(
+        `Synthetic worker process tree exceeded memory limit of ${LIMIT_BYTES} bytes (observed 1612525568 bytes, counting 12 of 12 processes at their resident size because their proportional size could not be read).`,
+      );
+      expect(fakeProc.helperCalls).toHaveLength(2);
+      // Once a minute at most, however many readings fail.
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(String(warnSpy.mock.calls[0]?.[0])).toContain(
+        "exited with code 3",
+      );
+    });
+
+    test("reuses a reading for a second while the tree grows less than it had to spare", async () => {
+      const timers: ManualTimerController = installManualTimers();
+      let nowInMs: number = 1_000_000;
+      jest.spyOn(Date, "now").mockImplementation(() => {
+        return nowInMs;
+      });
+      runAsRootSupervisor();
+      const { child, fakeProc } = startWorker();
+      const runner: ProcessRunner = createRunner({
+        rssPollIntervalInMs: 250,
+        diskPollIntervalInMs: 500,
+      });
+
+      const run: Promise<ProcessRunResult<TestResult>> = startRun(runner);
+      await waitForActiveTimer(timers, 250);
+      expect(fakeProc.helperCalls).toHaveLength(1);
+
+      // Grown by 100,000 kB, less than the 770,048 kB it had to spare.
+      const renderer: FakeProcProcess = fakeProc.processes.get(
+        WORKER_PID + 10_000 + 6,
+      ) as FakeProcProcess;
+      renderer.residentKb = (renderer.residentKb as number) + 100_000;
+      renderer.proportionalKb = (renderer.proportionalKb as number) + 100_000;
+
+      nowInMs += 500;
+      timers.fireByDelay(250);
+      await waitForActiveTimer(timers, 250);
+      expect(fakeProc.helperCalls).toHaveLength(1);
+
+      // A second after the reading, it is read again.
+      nowInMs += 500;
+      timers.fireByDelay(250);
+      await waitFor(() => {
+        return fakeProc.helperCalls.length === 2;
+      }, "the second PSS reading");
+      await waitForActiveTimer(timers, 250);
+
+      emitSuccess(child, { value: "logged in" });
+      fakeProc.exitWorker();
+      await expect(run).resolves.toEqual(
+        expect.objectContaining({ result: { value: "logged in" } }),
       );
     });
   });
