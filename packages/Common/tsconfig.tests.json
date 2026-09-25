@@ -16,11 +16,13 @@
    * them up through its default include, and this project would otherwise
    * only see what the tests import.
    *
-   * Deliberately NOT named Tests/tsconfig.json. ESLint's typed linting
-   * (projectService in eslint.config.js) gives each file the nearest
-   * tsconfig.json; under that name every Common test would be linted inside
-   * this one program - every test plus the Common and App sources they
-   * import - and the lint job ran out of memory and was killed.
+   * Tests/tsconfig.json extends this file unchanged. Editors and ESLint's
+   * typed linting (projectService in eslint.config.js) give each file the
+   * nearest tsconfig.json that includes it, and without that file the nearest
+   * for a Common test was the repository-root tsconfig.json - no "include",
+   * so a program of the whole monorepo. Scripts/Lint/LintByProject.js lints
+   * this program in an ESLint process of its own; `eslint .` in one process,
+   * which also holds every other program, ran out of memory with it.
    */
   "extends": "./tsconfig.json",
   "compilerOptions": {

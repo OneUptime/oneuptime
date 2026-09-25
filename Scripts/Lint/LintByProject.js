@@ -5,13 +5,17 @@
 // of the nearest tsconfig.json that contains it -- walking up to an ancestor
 // tsconfig.json when the nearest one excludes it -- and typescript-eslint keeps
 // every program it has built until ESLint exits. A single `eslint .` therefore
-// ends up holding all of the repository's programs at once, among them the
+// ends up holding all of the repository's programs at once. Together they
+// outgrew the 16 GB GitHub runner, and the js-lint job was OOM-killed mid-run
+// ("Killed", then "The runner has received a shutdown signal", then "The
+// operation was canceled.").
+//
+// A file that no nearer tsconfig.json's program contains lands in the
 // repository-root tsconfig.json's, which has no "include" and so is the whole
-// monorepo: packages/Common/Tests and packages/CLI/Tests are excluded by their
-// package's tsconfig and fall through to it. Together they outgrew the 16 GB
-// GitHub runner, and the js-lint job was OOM-killed mid-run ("Killed", then
-// "The runner has received a shutdown signal", then "The operation was
-// canceled.").
+// monorepo. packages/Common/Tests and packages/CLI/Tests used to, excluded by
+// their package's tsconfig; each now has a Tests/tsconfig.json of its own.
+// --list-projects lists under "tsconfig.json" the files that may land there
+// (see projectOf).
 //
 // This script works out which project each lintable file lands in and runs
 // ESLint once per project, one after another, so each ESLint process builds
