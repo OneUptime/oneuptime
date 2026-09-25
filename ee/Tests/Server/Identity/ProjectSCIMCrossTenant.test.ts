@@ -151,6 +151,13 @@ interface FakeTeam {
 interface FakeWorld {
   users: Array<FakeUser>;
   memberships: Array<FakeMembership>;
+  /*
+   * Every row a TeamMemberService.deleteBy matched, in order. They are what
+   * the real service hands to onDeleteSuccess, whose leave cleanups (on-call
+   * and resource assignments, workspace links, notification settings) run for
+   * each deleted row's account.
+   */
+  deletedMemberships: Array<FakeMembership>;
   teams: Array<FakeTeam>;
   consents: Array<{ userId: string; projectId: string }>;
   userUpdates: Array<{ id: string; data: JSONObject }>;
@@ -159,6 +166,7 @@ interface FakeWorld {
 const world: FakeWorld = {
   users: [],
   memberships: [],
+  deletedMemberships: [],
   teams: [],
   consents: [],
   userUpdates: [],
@@ -371,6 +379,11 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
       deleteBy: async (args: {
         query: Record<string, unknown>;
       }): Promise<void> => {
+        world.deletedMemberships.push(
+          ...world.memberships.filter((item: FakeMembership) => {
+            return matchesQuery(item, args.query);
+          }),
+        );
         world.memberships = world.memberships.filter((item: FakeMembership) => {
           return !matchesQuery(item, args.query);
         });
@@ -539,15 +552,17 @@ function seedMembership(data: {
   projectId: string;
   teamId: string;
   accepted: boolean;
-}): void {
+}): string {
+  const id: string = idOf(ObjectID.generate());
   world.memberships.push({
-    id: idOf(ObjectID.generate()),
+    id,
     projectId: data.projectId,
     userId: data.userId,
     teamId: data.teamId,
     hasAcceptedInvitation: data.accepted,
     invitationEmailRequestedFor: undefined,
   });
+  return id;
 }
 
 function seedTeam(id: string, projectId: string, name: string): void {
@@ -581,6 +596,13 @@ function membershipIn(
 ): FakeMembership | undefined {
   return world.memberships.find((row: FakeMembership) => {
     return row.userId === userId && row.teamId === teamId;
+  });
+}
+
+// The rows of this account that a delete matched, so its leave cleanups ran.
+function deletedRowsOf(userId: string): Array<FakeMembership> {
+  return world.deletedMemberships.filter((row: FakeMembership) => {
+    return row.userId === userId;
   });
 }
 
@@ -624,6 +646,7 @@ let cast: Cast;
 function seedWorld(): void {
   world.users = [];
   world.memberships = [];
+  world.deletedMemberships = [];
   world.teams = [];
   world.consents = [];
   world.userUpdates = [];
@@ -1578,7 +1601,7 @@ describe("on the hosted service, an existing account is invited, not added", () 
       },
     ];
 
-    // The adds that delete the team's rows before re-adding its members.
+    // The adds that replace the team's members rather than add to them.
     const REPLACES_THE_TEAM: RegExp = /replace|PUT/;
 
     test.each(groupAdds)(
@@ -1624,10 +1647,10 @@ describe("on the hosted service, an existing account is invited, not added", () 
         return REPLACES_THE_TEAM.test(add.label);
       }),
     )(
-      "$label: a member whose only team is this one stays a member, though the replace deletes her row first",
+      "$label: a member whose only team is this one keeps her row, and stays a member",
       async ({ run }: { run: (userId: string) => Promise<HttpResult> }) => {
         const newcomer: string = seedUser({ email: "frank@acme.example" });
-        seedMembership({
+        const rowId: string = seedMembership({
           userId: newcomer,
           projectId: PROJECT_ID,
           teamId: GROUP_TEAM,
@@ -1638,8 +1661,10 @@ describe("on the hosted service, an existing account is invited, not added", () 
 
         expect(membershipsOf(newcomer)).toHaveLength(1);
         expect(membershipIn(newcomer, GROUP_TEAM)).toMatchObject({
+          id: rowId,
           hasAcceptedInvitation: true,
         });
+        expect(deletedRowsOf(newcomer)).toEqual([]);
         expect(invitationEmailsFor(newcomer)).toEqual([]);
       },
     );
@@ -1649,10 +1674,10 @@ describe("on the hosted service, an existing account is invited, not added", () 
         return REPLACES_THE_TEAM.test(add.label);
       }),
     )(
-      "$label: an invitee whose only row is this team's stays invited and is not mailed again",
+      "$label: an invitee whose only row is this team's keeps it, stays invited, and is not mailed again",
       async ({ run }: { run: (userId: string) => Promise<HttpResult> }) => {
         const invitee: string = seedUser({ email: "grace@example.com" });
-        seedMembership({
+        const rowId: string = seedMembership({
           userId: invitee,
           projectId: PROJECT_ID,
           teamId: GROUP_TEAM,
@@ -1662,15 +1687,17 @@ describe("on the hosted service, an existing account is invited, not added", () 
         await run(invitee);
 
         expect(membershipIn(invitee, GROUP_TEAM)).toMatchObject({
+          id: rowId,
           hasAcceptedInvitation: false,
         });
+        expect(deletedRowsOf(invitee)).toEqual([]);
         expect(invitationEmailsFor(invitee)).toEqual([]);
       },
     );
 
-    test("the member id may come back in upper case and still match its standing", async () => {
+    test("the member id may come back in upper case and still match its row", async () => {
       const newcomer: string = seedUser({ email: "heidi@acme.example" });
-      seedMembership({
+      const rowId: string = seedMembership({
         userId: newcomer,
         projectId: PROJECT_ID,
         teamId: GROUP_TEAM,
@@ -1683,8 +1710,10 @@ describe("on the hosted service, an existing account is invited, not added", () 
       });
 
       expect(membershipIn(newcomer, GROUP_TEAM)).toMatchObject({
+        id: rowId,
         hasAcceptedInvitation: true,
       });
+      expect(deletedRowsOf(newcomer)).toEqual([]);
     });
 
     test("an invitee added to a second group is not mailed a second time", async () => {
@@ -1769,20 +1798,351 @@ describe("on a self-hosted install, SCIM keeps adding existing accounts as membe
       hasAcceptedInvitation: true,
     });
   });
+});
 
-  test("a group replace skips the standing lookup it has no use for", async () => {
-    const standingsSpy: jest.SpiedFunction<
-      typeof ProjectSCIMAccountPolicy.getStandingsInProject
-    > = jest.spyOn(ProjectSCIMAccountPolicy, "getStandingsInProject");
+/*
+ * ---------------------------------------------------------------------------
+ * A GROUP REPLACE WRITES ONLY THE DIFFERENCE.
+ *
+ * A PUT of a group, or a PATCH "replace" of its members, used to delete every
+ * row of the team and re-add the list. Each deleted row runs
+ * TeamMemberService's leave cleanups, so a listed member whose only team in
+ * the project was this one lost their on-call assignments, incident roles and
+ * owner rows, workspace links and notification settings -- and Okta's group
+ * push sends a PUT with every membership change. A member the replace lists
+ * again must keep their row, and no delete may match it.
+ * ---------------------------------------------------------------------------
+ */
 
-    await send("PUT", scimPath(`Groups/${GROUP_TEAM}`), {
-      displayName: "Engineering",
-      members: [member(cast.stranger)],
+interface GroupReplace {
+  label: string;
+  run: (userIds: Array<string>) => Promise<HttpResult>;
+}
+
+function members(userIds: Array<string>): Array<JSONObject> {
+  return userIds.map((userId: string): JSONObject => {
+    return member(userId);
+  });
+}
+
+const groupReplaces: Array<GroupReplace> = [
+  {
+    label: "PUT /Groups",
+    run: (userIds: Array<string>): Promise<HttpResult> => {
+      return send("PUT", scimPath(`Groups/${GROUP_TEAM}`), {
+        displayName: "Engineering",
+        members: members(userIds),
+      });
+    },
+  },
+  {
+    label: "PATCH /Groups replace",
+    run: (userIds: Array<string>): Promise<HttpResult> => {
+      return send(
+        "PATCH",
+        scimPath(`Groups/${GROUP_TEAM}`),
+        patch({ op: "replace", path: "members", value: members(userIds) }),
+      );
+    },
+  },
+  {
+    label: "Bulk PUT /Groups",
+    run: (userIds: Array<string>): Promise<HttpResult> => {
+      return send("POST", scimPath("Bulk"), {
+        schemas: [BULK_SCHEMA],
+        Operations: [
+          {
+            method: "PUT",
+            path: `/Groups/${GROUP_TEAM}`,
+            data: { displayName: "Engineering", members: members(userIds) },
+          },
+        ],
+      });
+    },
+  },
+  {
+    label: "Bulk PATCH /Groups replace",
+    run: (userIds: Array<string>): Promise<HttpResult> => {
+      return send("POST", scimPath("Bulk"), {
+        schemas: [BULK_SCHEMA],
+        Operations: [
+          {
+            method: "PATCH",
+            path: `/Groups/${GROUP_TEAM}`,
+            data: {
+              Operations: [
+                { op: "replace", path: "members", value: members(userIds) },
+              ],
+            },
+          },
+        ],
+      });
+    },
+  },
+];
+
+// A Bulk request answers 200 whatever its operations did; each says for itself.
+function expectReplaceSucceeded(result: HttpResult): void {
+  expectSuccess(result);
+
+  for (const operation of (result.body["Operations"] as
+    | Array<JSONObject>
+    | undefined) || []) {
+    expect(operation["status"]).toBe("200");
+  }
+}
+
+function rowsIn(teamId: string): Array<FakeMembership> {
+  return world.memberships.filter((row: FakeMembership) => {
+    return row.teamId === teamId;
+  });
+}
+
+describe.each([
+  { hosting: "on the hosted service", billingEnabled: true },
+  { hosting: "on a self-hosted install", billingEnabled: false },
+])(
+  "$hosting, a group replace writes only the difference",
+  ({ billingEnabled }: { billingEnabled: boolean }) => {
+    // The team as the IdP last pushed it.
+    let keptMember: string;
+    let keptMemberRow: string;
+    let keptInvitee: string;
+    let keptInviteeRow: string;
+    let leaver: string;
+    let leaverRow: string;
+
+    beforeEach(() => {
+      setTestBillingEnabled(billingEnabled);
+
+      keptMember = seedUser({ email: "ivan@acme.example" });
+      keptMemberRow = seedMembership({
+        userId: keptMember,
+        projectId: PROJECT_ID,
+        teamId: GROUP_TEAM,
+        accepted: true,
+      });
+
+      keptInvitee = seedUser({ email: "judy@example.com" });
+      keptInviteeRow = seedMembership({
+        userId: keptInvitee,
+        projectId: PROJECT_ID,
+        teamId: GROUP_TEAM,
+        accepted: false,
+      });
+
+      leaver = seedUser({ email: "mallory@acme.example" });
+      leaverRow = seedMembership({
+        userId: leaver,
+        projectId: PROJECT_ID,
+        teamId: GROUP_TEAM,
+        accepted: true,
+      });
     });
 
-    expect(standingsSpy).not.toHaveBeenCalled();
-    standingsSpy.mockRestore();
+    test.each(groupReplaces)(
+      "$label: members listed again keep their rows, accepted or pending, and no delete matches them",
+      async ({ run }: GroupReplace) => {
+        expectReplaceSucceeded(await run([keptMember, keptInvitee]));
+
+        expect(membershipIn(keptMember, GROUP_TEAM)).toMatchObject({
+          id: keptMemberRow,
+          hasAcceptedInvitation: true,
+        });
+        expect(membershipIn(keptInvitee, GROUP_TEAM)).toMatchObject({
+          id: keptInviteeRow,
+          hasAcceptedInvitation: false,
+        });
+        expect(deletedRowsOf(keptMember)).toEqual([]);
+        expect(deletedRowsOf(keptInvitee)).toEqual([]);
+        expect(invitationEmailsFor(keptMember)).toEqual([]);
+        expect(invitationEmailsFor(keptInvitee)).toEqual([]);
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: only the row of a member the list leaves out is deleted",
+      async ({ run }: GroupReplace) => {
+        expectReplaceSucceeded(await run([keptMember, keptInvitee]));
+
+        expect(membershipIn(leaver, GROUP_TEAM)).toBeUndefined();
+        expect(
+          world.deletedMemberships.map((row: FakeMembership) => {
+            return row.id;
+          }),
+        ).toEqual([leaverRow]);
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: an account the team lacks is added through the account policy, and only that one",
+      async ({ run }: GroupReplace) => {
+        const addSpy: jest.SpiedFunction<
+          typeof ProjectSCIMAccountPolicy.addUserToTeam
+        > = jest.spyOn(ProjectSCIMAccountPolicy, "addUserToTeam");
+
+        try {
+          expectReplaceSucceeded(
+            await run([keptMember, keptInvitee, cast.stranger]),
+          );
+
+          expect(
+            addSpy.mock.calls.map(
+              (
+                call: Parameters<typeof ProjectSCIMAccountPolicy.addUserToTeam>,
+              ) => {
+                return idOf(call[0].userId);
+              },
+            ),
+          ).toEqual([cast.stranger]);
+        } finally {
+          addSpy.mockRestore();
+        }
+
+        // Invited on the hosted service, accepted on a self-hosted install.
+        expect(membershipIn(cast.stranger, GROUP_TEAM)).toMatchObject({
+          hasAcceptedInvitation: !billingEnabled,
+        });
+        expect(invitationEmailsFor(cast.stranger)).toEqual(
+          billingEnabled ? ["dave@example.com"] : [],
+        );
+        expect(
+          world.deletedMemberships.map((row: FakeMembership) => {
+            return row.id;
+          }),
+        ).toEqual([leaverRow]);
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: re-sending the team as it is deletes and creates nothing",
+      async ({ run }: GroupReplace) => {
+        const before: Array<FakeMembership> = snapshotMemberships();
+
+        expectReplaceSucceeded(await run([keptMember, keptInvitee, leaver]));
+
+        expect(world.memberships).toEqual(before);
+        expect(world.deletedMemberships).toEqual([]);
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: an id listed twice, in either case, is one kept member",
+      async ({ run }: GroupReplace) => {
+        expectReplaceSucceeded(
+          await run([keptMember, keptMember.toUpperCase(), keptInvitee]),
+        );
+
+        expect(rowsIn(GROUP_TEAM)).toHaveLength(2);
+        expect(membershipIn(keptMember, GROUP_TEAM)).toMatchObject({
+          id: keptMemberRow,
+        });
+        expect(deletedRowsOf(keptMember)).toEqual([]);
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: an empty list still removes every member",
+      async ({ run }: GroupReplace) => {
+        expectReplaceSucceeded(await run([]));
+
+        expect(rowsIn(GROUP_TEAM)).toEqual([]);
+        expect(
+          world.deletedMemberships
+            .map((row: FakeMembership) => {
+              return row.id;
+            })
+            .sort(),
+        ).toEqual([keptMemberRow, keptInviteeRow, leaverRow].sort());
+      },
+    );
+
+    test.each(groupReplaces)(
+      "$label: a kept member still leaves the Unassigned team, as a re-add used to take them out of it",
+      async ({ run }: GroupReplace) => {
+        const unassignedTeam: string = idOf(ObjectID.generate());
+        seedTeam(unassignedTeam, PROJECT_ID, "Unassigned");
+        const unassignedRow: string = seedMembership({
+          userId: keptMember,
+          projectId: PROJECT_ID,
+          teamId: unassignedTeam,
+          accepted: true,
+        });
+
+        expectReplaceSucceeded(await run([keptMember, keptInvitee]));
+
+        expect(membershipIn(keptMember, unassignedTeam)).toBeUndefined();
+        expect(membershipIn(keptMember, GROUP_TEAM)).toMatchObject({
+          id: keptMemberRow,
+        });
+        expect(
+          deletedRowsOf(keptMember).map((row: FakeMembership) => {
+            return row.id;
+          }),
+        ).toEqual([unassignedRow]);
+      },
+    );
+  },
+);
+
+test("a replace of the Unassigned team's own members keeps the rows it lists", async () => {
+  setTestBillingEnabled(true);
+
+  const unassignedTeam: string = idOf(ObjectID.generate());
+  seedTeam(unassignedTeam, PROJECT_ID, "Unassigned");
+  const rowId: string = seedMembership({
+    userId: cast.managedMember,
+    projectId: PROJECT_ID,
+    teamId: unassignedTeam,
+    accepted: true,
   });
+
+  expectReplaceSucceeded(
+    await send("PUT", scimPath(`Groups/${unassignedTeam}`), {
+      displayName: "Unassigned",
+      members: [member(cast.managedMember)],
+    }),
+  );
+
+  expect(membershipIn(cast.managedMember, unassignedTeam)).toMatchObject({
+    id: rowId,
+  });
+  expect(deletedRowsOf(cast.managedMember)).toEqual([]);
+});
+
+test("the group log says how many members a replace kept and removed", async () => {
+  setTestBillingEnabled(true);
+  const kept: string = seedUser({ email: "niaj@acme.example" });
+  seedMembership({
+    userId: kept,
+    projectId: PROJECT_ID,
+    teamId: GROUP_TEAM,
+    accepted: true,
+  });
+  const leaver: string = seedUser({ email: "olivia@acme.example" });
+  seedMembership({
+    userId: leaver,
+    projectId: PROJECT_ID,
+    teamId: GROUP_TEAM,
+    accepted: true,
+  });
+
+  await send("PUT", scimPath(`Groups/${GROUP_TEAM}`), {
+    displayName: "Engineering",
+    members: [member(kept), member(cast.stranger)],
+  });
+
+  expect(createProjectSCIMLog).toHaveBeenCalledWith(
+    expect.objectContaining({
+      operationType: "UpdateGroup",
+      groupInfo: expect.objectContaining({
+        membersKept: 1,
+        membersRemoved: 1,
+        membersAdded: 1,
+        membersInvited: 1,
+      }),
+    }),
+  );
 });
 
 /*
