@@ -28,6 +28,8 @@ const NANOS_PER_MICRO: bigint = BigInt(1_000);
 const NANOS_PER_MILLI: bigint = BigInt(1_000_000);
 const NANOS_PER_SECOND: bigint = BigInt(1_000_000_000);
 
+const DIGITS_ONLY: RegExp = /^\d+$/;
+
 /*
  * Earliest capture time accepted from a client. Nothing profiles the past
  * this far back; values below it are unit mix-ups (microseconds written
@@ -78,7 +80,7 @@ export function parsePyroscopeTimeParam(
   // Same separators attime.Parse strips before looking at the digits.
   const digits: string = String(raw).trim().replace(/[_, ]/g, "");
 
-  if (!/^\d+$/.test(digits)) {
+  if (!DIGITS_ONLY.test(digits)) {
     return null;
   }
 
@@ -119,7 +121,7 @@ export function toNonNegativeUnixNano(raw: unknown): bigint | null {
 
   if (typeof raw === "string") {
     const trimmed: string = raw.trim();
-    if (/^\d+$/.test(trimmed)) {
+    if (DIGITS_ONLY.test(trimmed)) {
       const value: bigint = BigInt(trimmed);
       return value > BigInt(0) ? value : null;
     }

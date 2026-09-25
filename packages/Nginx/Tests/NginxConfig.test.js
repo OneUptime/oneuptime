@@ -326,6 +326,57 @@ test("each high-volume ingest location logs through the operator switch", () => 
   }
 });
 
+// ---------------------------------------------------------------------------
+// Pyroscope ingest body size
+// ---------------------------------------------------------------------------
+
+/* "16M" -> bytes. nginx sizes are bytes, or k/K and m/M suffixed. */
+function parseNginxSize(size) {
+  const match = /^(\d+)([kKmM]?)$/.exec(size);
+  assert.ok(match, `unparseable nginx size ${size}`);
+  const multiplier = { "": 1, k: 1024, m: 1024 * 1024 }[match[2].toLowerCase()];
+  return Number(match[1]) * multiplier;
+}
+
+function clientMaxBodySizeOf(locationSpec) {
+  const location = getLocationBlocks(primaryServerBlock.body).find(
+    (candidate) => {
+      return candidate.spec === locationSpec;
+    },
+  );
+  assert.ok(location, `missing location ${locationSpec}`);
+
+  const directives = getDirectives(location.body, "client_max_body_size");
+  assert.equal(
+    directives.length,
+    1,
+    `${locationSpec} should set client_max_body_size exactly once`,
+  );
+
+  return parseNginxSize(
+    /^client_max_body_size (\S+);$/.exec(directives[0])[1],
+  );
+}
+
+test("/pyroscope accepts uncompressed .NET profile uploads", () => {
+  // pyroscope-dotnet never gzips; nginx's 1M default 413'd busy pods, and
+  // the SDK only logs that at Debug (GH#4037).
+  assert.ok(
+    clientMaxBodySizeOf("/pyroscope") >= 16 * 1024 * 1024,
+    "/pyroscope must allow at least 16M",
+  );
+});
+
+test("/pyroscope never allows more than the App will parse", () => {
+  // The App's multipart and body-parser caps are 50 MiB; anything nginx
+  // lets past that is buffered only to be refused.
+  assert.ok(clientMaxBodySizeOf("/pyroscope") <= 50 * 1024 * 1024);
+});
+
+test("raising /pyroscope left /telemetry at its documented 4M", () => {
+  assert.equal(clientMaxBodySizeOf("/telemetry"), 4 * 1024 * 1024);
+});
+
 test("ordinary locations are left on the inherited global access_log", () => {
   // The switch is scoped to ingest. If it leaks onto /api or /dashboard, an
   // operator turning ingest logging off would blind the whole ingress.
