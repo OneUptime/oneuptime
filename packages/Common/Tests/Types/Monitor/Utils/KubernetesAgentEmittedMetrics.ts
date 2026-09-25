@@ -125,6 +125,14 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "container.filesystem.capacity",
   "container.filesystem.usage",
   /*
+   * Off upstream; the chart always turns them on, with no flag, because
+   * k8s-high-cpu and the Kubernetes dashboard template read them. The
+   * chart's tests/kubeletstats-cpu-usage_test.yaml pins that on the
+   * rendered DaemonSet config.
+   */
+  "k8s.node.cpu.usage",
+  "k8s.pod.cpu.usage",
+  /*
    * Off upstream; the chart turns them on while
    * kubeletstats.utilizationMetrics.enabled, which values.yaml defaults to
    * true.

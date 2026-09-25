@@ -455,6 +455,13 @@ collectionInterval: 30s
 # OTel `kubeletstats` receiver. Both groups run inside the existing
 # DaemonSet collector — no new pods, no new scrapes — they just expand
 # what kubeletstats reports.
+#
+# Separately, and with no flag, the chart always enables node and pod CPU
+# usage in cores (`k8s.node.cpu.usage`, `k8s.pod.cpu.usage`), which
+# kubeletstats also leaves off by default. The "High Node CPU Utilization"
+# monitor divides `k8s.node.cpu.usage` by the node's allocatable CPU and
+# never fires without it, so switching these groups off never removes it.
+# To drop the series anyway, list them in `filters.metrics.exclude`.
 kubeletstats:
   # Saturation metrics — container & pod CPU/memory expressed as a
   # percentage of request and limit. Enables the "Container CPU vs
