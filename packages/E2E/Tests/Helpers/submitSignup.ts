@@ -51,10 +51,47 @@ const submitSignup: SubmitSignupFunction = async (data: {
 
   const signupResponse: Response = await signupResponsePromise;
 
-  expect(
-    signupResponse.ok(),
-    `Signup failed: ${signupResponse.status()} ${(await signupResponse.text()).slice(0, 300)}`,
-  ).toBe(true);
+  /*
+   * The response's body is read only while the page is known to hold it. A
+   * signup that signs the account in hands it to the Dashboard with a full
+   * page load at once, and the browser drops the body along with the
+   * document: reading it after that fails with "No resource with given
+   * identifier found", although the signup worked. A failed signup, and one
+   * held for email verification, stay on the page.
+   */
+  if (!signupResponse.ok()) {
+    throw new Error(
+      `Signup failed: ${signupResponse.status()} ${(await signupResponse.text()).slice(0, 300)}`,
+    );
+  }
+
+  /*
+   * Which of the two the server chose shows on the page: "check your email",
+   * or a navigation out of Accounts. The wait that loses goes on until the
+   * page closes; that rejection is expected and ignored.
+   */
+  const heldForVerification: Promise<boolean> = page
+    .getByTestId("verify-email-required")
+    .waitFor({ state: "visible" })
+    .then((): boolean => {
+      return true;
+    });
+  const signedIn: Promise<boolean> = page
+    .waitForURL(
+      (url: globalThis.URL): boolean => {
+        return !url.pathname.startsWith("/accounts/");
+      },
+      { waitUntil: "commit" },
+    )
+    .then((): boolean => {
+      return false;
+    });
+  heldForVerification.catch((): void => {});
+  signedIn.catch((): void => {});
+
+  if (!(await Promise.race([heldForVerification, signedIn]))) {
+    return;
+  }
 
   const body: Record<string, unknown> = ((await signupResponse.json()) ||
     {}) as Record<string, unknown>;
@@ -63,12 +100,10 @@ const submitSignup: SubmitSignupFunction = async (data: {
     unknown
   >;
 
-  if (miscData["emailVerificationRequired"] !== true) {
-    return;
-  }
-
-  // Held at "check your email", not signed in.
-  await expect(page.getByTestId("verify-email-required")).toBeVisible();
+  expect(
+    miscData["emailVerificationRequired"],
+    'The page is held at "check your email", so /identity/signup should have answered emailVerificationRequired.',
+  ).toBe(true);
 
   const token: unknown = miscData["emailVerificationToken"];
 
@@ -95,10 +130,12 @@ const submitSignup: SubmitSignupFunction = async (data: {
 
   const verifyResponse: Response = await verifyResponsePromise;
 
-  expect(
-    verifyResponse.ok(),
-    `Email verification failed: ${verifyResponse.status()} ${(await verifyResponse.text()).slice(0, 300)}`,
-  ).toBe(true);
+  // Read only on failure, for the same reason as the signup response above.
+  if (!verifyResponse.ok()) {
+    throw new Error(
+      `Email verification failed: ${verifyResponse.status()} ${(await verifyResponse.text()).slice(0, 300)}`,
+    );
+  }
 
   await page.goto(
     URL.fromString(BASE_URL.toString()).addRoute("/accounts/login").toString(),
