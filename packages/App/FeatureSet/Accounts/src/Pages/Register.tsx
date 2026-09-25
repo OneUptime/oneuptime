@@ -118,9 +118,17 @@ const RegisterPage: () => JSX.Element = () => {
     });
   }, []);
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts. Not on every render: a signup that signs the account
+   * in navigates to the Dashboard itself (LoginUtil.login), and a re-render
+   * after that would navigate again and abort the first.
+   */
+  React.useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
   type FetchResellerFunction = (resellerId: string) => Promise<void>;
 

@@ -86,9 +86,18 @@ const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts. Not on every render: a sign-in on this page stores
+   * the user and navigates to the Dashboard itself (LoginUtil.login), the
+   * form then re-renders the page as it stops loading, and a second
+   * navigation from here would abort the first.
+   */
+  React.useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
   const [passkeyStage, setPasskeyStage] = React.useState<PasskeyStage>("idle");
