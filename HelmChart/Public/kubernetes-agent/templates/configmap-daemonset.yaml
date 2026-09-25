@@ -54,8 +54,8 @@ data:
           # `*.cpu.utilization`, which is a cores gauge too despite its
           # name. That one is deprecated upstream in favour of these, and
           # later collectors turn these on and drop it. One series per
-          # node and one per pod. `container.cpu.usage` stays off; nothing
-          # reads it. tests/kubeletstats-cpu-usage_test.yaml pins this.
+          # node and one per pod; tests/kubeletstats-cpu-usage_test.yaml
+          # keeps both on. `container.cpu.usage` stays off; nothing reads it.
           k8s.node.cpu.usage:
             enabled: true
           k8s.pod.cpu.usage:

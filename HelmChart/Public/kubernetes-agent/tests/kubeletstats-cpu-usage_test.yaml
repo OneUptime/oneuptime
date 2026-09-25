@@ -18,8 +18,9 @@
 # The patterns read the rendered collector config with the ConfigMap's own
 # indent stripped: `kubeletstats:` at 2 spaces, its keys at 4, metric names at
 # 6, `enabled:` at 8. Each gap only consumes lines indented at least as deep as
-# the block it is searching, so it cannot run out of the kubeletstats receiver
-# (or out of its `metrics:` map) and match something that belongs elsewhere.
+# the block it is searching (or blank ones, in the duplicate-map guard), so it
+# cannot run out of the kubeletstats receiver (or out of its `metrics:` map)
+# and match something that belongs elsewhere.
 suite: node collector enables the CPU usage metrics OneUptime reads
 release:
   name: oneuptime-agent
@@ -38,10 +39,12 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
       # Still one `metrics:` map. Two under the same receiver is a
-      # duplicate mapping key, which the collector rejects at startup.
+      # duplicate mapping key, which the collector rejects at startup. These
+      # gaps also step over blank lines (a 2-space line still stops them),
+      # and the second key may be flow-style (`metrics: {}`).
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:    [^\\n]*\\n)*?    metrics:\\n"
+          pattern: "\\n  kubeletstats:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:[ \\n]"
 
   - it: keeps them on when the saturation metrics are switched off
     # utilizationMetrics used to gate the whole `metrics:` map. It governs
@@ -61,13 +64,17 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "_(limit|request)_utilization:"
 
-  - it: keeps them on with every optional node-collector receiver enabled
+  - it: keeps them on with every optional kubeletstats group and node receiver off
+    # The defaults turn most of these on, so only an all-off render shows
+    # that none of them gates the CPU usage metrics. volumeMetrics in
+    # particular is the documented off switch for PVC-heavy clusters.
     set:
       clusterName: prod-us
-      cadvisor.enabled: true
-      hostMetrics.enabled: true
-      kubeletstats.volumeMetrics.enabled: true
-      auditLogs.enabled: true
+      kubeletstats.utilizationMetrics.enabled: false
+      kubeletstats.volumeMetrics.enabled: false
+      cadvisor.enabled: false
+      hostMetrics.enabled: false
+      auditLogs.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
