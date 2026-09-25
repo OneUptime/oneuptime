@@ -82,7 +82,9 @@ describePostgres("signup cannot take over an existing user by id", () => {
 
   const createVictim: () => Promise<UserRow> = async (): Promise<UserRow> => {
     const victim: User = new User();
-    victim.email = new Email(`victim-${ObjectID.generate().toString()}@example.com`);
+    victim.email = new Email(
+      `victim-${ObjectID.generate().toString()}@example.com`,
+    );
     victim.name = new Name("Victim");
     victim.password = new HashedString("Victim-Password-1!");
     victim.isEmailVerified = true;
