@@ -5,7 +5,6 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
 import { createProjectSCIMLog } from "../Utils/SCIMLogger";
 import ProjectSCIMAccountPolicy, {
-  ProjectSCIMAccountStanding,
   ProjectSCIMEmailChangeRefusedException,
   ProjectSCIMTeamAddOutcome,
 } from "../Utils/ProjectSCIMAccountPolicy";
@@ -274,32 +273,49 @@ const removeUserFromUnassignedTeam: (
 };
 
 /*
- * Where each account a group replace lists stood in the project before the
- * replace deleted the team's rows. Only the hosted service needs it: it is the
- * only place an add can come back as an invitation.
+ * The same for several users at once. `exceptTeamId` is the team the users
+ * were just confirmed in: when that is the "Unassigned" team itself, their
+ * rows there are the ones to keep.
  */
-const getStandingsBeforeGroupReplace: (
-  projectId: ObjectID,
-  members: Array<SCIMMember>,
-) => Promise<Map<string, ProjectSCIMAccountStanding> | undefined> = async (
-  projectId: ObjectID,
-  members: Array<SCIMMember>,
-): Promise<Map<string, ProjectSCIMAccountStanding> | undefined> => {
-  if (!ProjectSCIMAccountPolicy.isHostedService()) {
-    return undefined;
+const removeUsersFromUnassignedTeam: (data: {
+  projectId: ObjectID;
+  userIds: Array<ObjectID>;
+  exceptTeamId: ObjectID;
+}) => Promise<void> = async (data: {
+  projectId: ObjectID;
+  userIds: Array<ObjectID>;
+  exceptTeamId: ObjectID;
+}): Promise<void> => {
+  if (data.userIds.length === 0) {
+    return;
   }
 
-  const userIds: Array<ObjectID> = members
-    .filter((member: SCIMMember) => {
-      return Boolean(member?.["value"]);
-    })
-    .map((member: SCIMMember) => {
-      return new ObjectID(member["value"] as string);
-    });
+  const unassignedTeam: Team | null = await TeamService.findOneBy({
+    query: {
+      projectId: data.projectId,
+      name: UNASSIGNED_TEAM_NAME,
+    },
+    select: { _id: true },
+    props: { isRoot: true },
+  });
 
-  return await ProjectSCIMAccountPolicy.getStandingsInProject({
-    projectId: projectId,
-    userIds: userIds,
+  if (
+    !unassignedTeam ||
+    unassignedTeam.id!.toString().toLowerCase() ===
+      data.exceptTeamId.toString().toLowerCase()
+  ) {
+    return;
+  }
+
+  await TeamMemberService.deleteBy({
+    query: {
+      projectId: data.projectId,
+      teamId: unassignedTeam.id!,
+      userId: QueryHelper.any(data.userIds),
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
   });
 };
 
@@ -312,7 +328,6 @@ const addGroupMembersToTeam: (data: {
   projectId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
-  standingsBeforeReplace?: Map<string, ProjectSCIMAccountStanding> | undefined;
 }) => Promise<{
   added: number;
   invited: number;
@@ -321,7 +336,6 @@ const addGroupMembersToTeam: (data: {
   projectId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
-  standingsBeforeReplace?: Map<string, ProjectSCIMAccountStanding> | undefined;
 }): Promise<{ added: number; invited: number; skipped: number }> => {
   const counts: { added: number; invited: number; skipped: number } = {
     added: 0,
@@ -345,9 +359,6 @@ const addGroupMembersToTeam: (data: {
         projectId: data.projectId,
         userId: userId,
         teamId: data.teamId,
-        standingBeforeReplace: data.standingsBeforeReplace?.get(
-          userId.toString().toLowerCase(),
-        ),
       });
 
     if (
@@ -369,6 +380,141 @@ const addGroupMembersToTeam: (data: {
   }
 
   return counts;
+};
+
+/*
+ * Makes the accounts a SCIM group replace (PUT, or PATCH "replace" on
+ * members) lists the team's members, by writing only the difference: the rows
+ * of accounts the list leaves out are deleted, and the accounts the team lacks
+ * are added through addGroupMembersToTeam. An account already in the team
+ * keeps its row, accepted or pending.
+ *
+ * Deleting every row and re-adding the list would put each kept account
+ * through TeamMemberService's leave cleanups whenever this is its only team in
+ * the project -- on-call assignments, incident roles and owner rows, workspace
+ * links and notification settings, all gone -- and IdPs such as Okta send a
+ * replace with every membership change.
+ */
+const replaceGroupMembersOfTeam: (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}) => Promise<{
+  added: number;
+  invited: number;
+  skipped: number;
+  kept: number;
+  removed: number;
+}> = async (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}): Promise<{
+  added: number;
+  invited: number;
+  skipped: number;
+  kept: number;
+  removed: number;
+}> => {
+  const currentMembers: Array<TeamMember> = await TeamMemberService.findBy({
+    query: {
+      projectId: data.projectId,
+      teamId: data.teamId,
+    },
+    select: {
+      _id: true,
+      userId: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  // Keyed by lower-cased user id: an IdP may echo an id back in a different case.
+  const currentUserIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const teamMember of currentMembers) {
+    if (teamMember.userId) {
+      currentUserIds.set(
+        teamMember.userId.toString().toLowerCase(),
+        teamMember.userId,
+      );
+    }
+  }
+
+  const listedUserIds: Set<string> = new Set<string>();
+  const keptUserIds: Array<ObjectID> = [];
+  const membersToAdd: Array<SCIMMember> = [];
+
+  for (const member of data.members) {
+    const memberValue: string | undefined = member?.["value"] as
+      | string
+      | undefined;
+
+    if (!memberValue) {
+      continue;
+    }
+
+    const key: string = new ObjectID(memberValue).toString().toLowerCase();
+
+    if (listedUserIds.has(key)) {
+      continue;
+    }
+
+    listedUserIds.add(key);
+
+    const currentUserId: ObjectID | undefined = currentUserIds.get(key);
+
+    if (currentUserId) {
+      keptUserIds.push(currentUserId);
+    } else {
+      membersToAdd.push(member);
+    }
+  }
+
+  const userIdsToRemove: Array<ObjectID> = [];
+
+  for (const [key, userId] of currentUserIds) {
+    if (!listedUserIds.has(key)) {
+      userIdsToRemove.push(userId);
+    }
+  }
+
+  if (userIdsToRemove.length > 0) {
+    await TeamMemberService.deleteBy({
+      query: {
+        projectId: data.projectId,
+        teamId: data.teamId,
+        userId: QueryHelper.any(userIdsToRemove),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  const counts: { added: number; invited: number; skipped: number } =
+    await addGroupMembersToTeam({
+      projectId: data.projectId,
+      teamId: data.teamId,
+      members: membersToAdd,
+    });
+
+  /*
+   * A kept account has a real group too, so it leaves the "Unassigned" team
+   * just as an added one does.
+   */
+  await removeUsersFromUnassignedTeam({
+    projectId: data.projectId,
+    userIds: keptUserIds,
+    exceptTeamId: data.teamId,
+  });
+
+  return {
+    ...counts,
+    kept: keptUserIds.length,
+    removed: userIdsToRemove.length,
+  };
 };
 
 // Helper function to format team as SCIM group
@@ -986,30 +1132,10 @@ router.post(
               const members: Array<SCIMMember> =
                 (data!["members"] as Array<SCIMMember>) || [];
 
-              const standingsBeforeReplace:
-                | Map<string, ProjectSCIMAccountStanding>
-                | undefined = await getStandingsBeforeGroupReplace(
-                projectId,
-                members,
-              );
-
-              // Remove all existing members
-              await TeamMemberService.deleteBy({
-                query: {
-                  projectId: projectId,
-                  teamId: team.id!,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                props: { isRoot: true },
-              });
-
-              // Add new members
-              await addGroupMembersToTeam({
+              await replaceGroupMembersOfTeam({
                 projectId: projectId,
                 teamId: team.id!,
                 members: members,
-                standingsBeforeReplace: standingsBeforeReplace,
               });
 
               // Fetch updated team
@@ -1081,33 +1207,13 @@ router.post(
 
                 if (patchPath === "members") {
                   if (op === "replace") {
-                    const membersToAdd: Array<SCIMMember> =
+                    const members: Array<SCIMMember> =
                       (value as SCIMMember[]) || [];
 
-                    const standingsBeforeReplace:
-                      | Map<string, ProjectSCIMAccountStanding>
-                      | undefined = await getStandingsBeforeGroupReplace(
-                      projectId,
-                      membersToAdd,
-                    );
-
-                    // Remove all existing members
-                    await TeamMemberService.deleteBy({
-                      query: {
-                        projectId: projectId,
-                        teamId: team.id!,
-                      },
-                      limit: LIMIT_MAX,
-                      skip: 0,
-                      props: { isRoot: true },
-                    });
-
-                    // Add new members
-                    await addGroupMembersToTeam({
+                    await replaceGroupMembersOfTeam({
                       projectId: projectId,
                       teamId: team.id!,
-                      members: membersToAdd,
-                      standingsBeforeReplace: standingsBeforeReplace,
+                      members: members,
                     });
                   } else if (op === "add") {
                     const membersToAdd: Array<SCIMMember> =
@@ -2865,35 +2971,22 @@ router.put(
         `Replacing all members with ${members.length} members from request`,
       );
 
-      const standingsBeforeReplace:
-        | Map<string, ProjectSCIMAccountStanding>
-        | undefined = await getStandingsBeforeGroupReplace(projectId, members);
-
-      // Remove all existing members
-      executionSteps.push("Removing all existing team members");
-      await TeamMemberService.deleteBy({
-        query: {
-          projectId: projectId,
-          teamId: team.id!,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
+      const counts: {
+        added: number;
+        invited: number;
+        skipped: number;
+        kept: number;
+        removed: number;
+      } = await replaceGroupMembersOfTeam({
+        projectId: projectId,
+        teamId: team.id!,
+        members: members,
       });
-
-      // Add new members
-      const counts: { added: number; invited: number; skipped: number } =
-        await addGroupMembersToTeam({
-          projectId: projectId,
-          teamId: team.id!,
-          members: members,
-          standingsBeforeReplace: standingsBeforeReplace,
-        });
       const membersAdded: number = counts.added + counts.invited;
       const membersInvited: number = counts.invited;
       const membersSkipped: number = counts.skipped;
       executionSteps.push(
-        `Members added: ${membersAdded} (${membersInvited} of them invited, pending acceptance), skipped: ${membersSkipped}`,
+        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${membersAdded} (${membersInvited} of them invited, pending acceptance), skipped: ${membersSkipped}`,
       );
 
       // Fetch updated team
@@ -2943,6 +3036,8 @@ router.put(
             membersAdded: membersAdded,
             membersInvited: membersInvited,
             membersSkipped: membersSkipped,
+            membersKept: counts.kept,
+            membersRemoved: counts.removed,
             totalMembers: finalMemberCount,
           },
         });
@@ -3160,6 +3255,7 @@ router.patch(
     let membersAdded: number = 0;
     let membersInvited: number = 0;
     let membersRemoved: number = 0;
+    let membersKept: number = 0;
     let membersReplaced: boolean = false;
     let nameUpdated: boolean = false;
 
@@ -3242,44 +3338,31 @@ router.patch(
               `SCIM Patch group - replacing all members`,
               getLogAttributesFromRequest(req as any),
             );
-            executionSteps.push(
-              "Replacing all members - removing existing members",
-            );
             membersReplaced = true;
 
             const members: Array<SCIMMember> = value || [];
-
-            const standingsBeforeReplace:
-              | Map<string, ProjectSCIMAccountStanding>
-              | undefined = await getStandingsBeforeGroupReplace(
-              projectId,
-              members,
-            );
-
-            // Remove all existing members
-            await TeamMemberService.deleteBy({
-              query: {
-                projectId: projectId,
-                teamId: team.id!,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              props: { isRoot: true },
-            });
-
-            // Add new members
             executionSteps.push(
-              `Adding ${members.length} new members after replace`,
+              `Replacing all members with ${members.length} members from request`,
             );
-            const counts: { added: number; invited: number; skipped: number } =
-              await addGroupMembersToTeam({
-                projectId: projectId,
-                teamId: team.id!,
-                members: members,
-                standingsBeforeReplace: standingsBeforeReplace,
-              });
+
+            const counts: {
+              added: number;
+              invited: number;
+              skipped: number;
+              kept: number;
+              removed: number;
+            } = await replaceGroupMembersOfTeam({
+              projectId: projectId,
+              teamId: team.id!,
+              members: members,
+            });
             membersAdded += counts.added + counts.invited;
             membersInvited += counts.invited;
+            membersRemoved += counts.removed;
+            membersKept += counts.kept;
+            executionSteps.push(
+              `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added + counts.invited} (${counts.invited} of them invited, pending acceptance)`,
+            );
           } else if (op === "add") {
             // Add members
             logger.debug(
@@ -3396,6 +3479,7 @@ router.patch(
             membersAdded: membersAdded,
             membersInvited: membersInvited,
             membersRemoved: membersRemoved,
+            membersKept: membersKept,
             membersReplaced: membersReplaced,
             totalMembers: finalMemberCount,
             operationsCount: operations.length,

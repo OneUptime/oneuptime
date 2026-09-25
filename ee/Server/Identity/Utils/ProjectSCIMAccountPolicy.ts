@@ -5,7 +5,6 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoConsentService";
 import UserService from "Common/Server/Services/UserService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 
@@ -122,71 +121,16 @@ export default class ProjectSCIMAccountPolicy {
   }
 
   /*
-   * Where each of these accounts stands in the project right now, keyed by
-   * lower-cased user id. A replace of a group's members deletes the team's rows before it
-   * re-adds them; this is taken first, so an account that had joined the
-   * project only through that team is not re-added as a stranger.
-   */
-  public static async getStandingsInProject(data: {
-    projectId: ObjectID;
-    userIds: Array<ObjectID>;
-  }): Promise<Map<string, ProjectSCIMAccountStanding>> {
-    const standings: Map<string, ProjectSCIMAccountStanding> = new Map<
-      string,
-      ProjectSCIMAccountStanding
-    >();
-
-    if (data.userIds.length === 0) {
-      return standings;
-    }
-
-    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
-      query: {
-        projectId: data.projectId,
-        userId: QueryHelper.any(data.userIds),
-      },
-      select: {
-        _id: true,
-        userId: true,
-        hasAcceptedInvitation: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // Lower-cased keys: an IdP may echo an id back in a different case.
-    for (const userId of data.userIds) {
-      const key: string = userId.toString().toLowerCase();
-
-      standings.set(
-        key,
-        this.getStandingFromMemberships(
-          memberships.filter((membership: TeamMember) => {
-            return membership.userId?.toString().toLowerCase() === key;
-          }),
-        ),
-      );
-    }
-
-    return standings;
-  }
-
-  /*
    * Adds an account to one of the project's teams: accepted when rule 1
    * above allows it, as a pending invitation when it does not.
    *
    * `userWasCreatedByScim` is for an account this very request created.
-   * `standingBeforeReplace` is for a group replace, from getStandingsInProject.
    */
   public static async addUserToTeam(data: {
     projectId: ObjectID;
     userId: ObjectID;
     teamId: ObjectID;
     userWasCreatedByScim?: boolean | undefined;
-    standingBeforeReplace?: ProjectSCIMAccountStanding | undefined;
   }): Promise<ProjectSCIMTeamAddOutcome> {
     const user: User | null = await UserService.findOneById({
       id: data.userId,
@@ -233,11 +177,10 @@ export default class ProjectSCIMAccountPolicy {
     }
 
     const standing: ProjectSCIMAccountStanding =
-      data.standingBeforeReplace ||
-      (await this.getStandingInProject({
+      await this.getStandingInProject({
         projectId: data.projectId,
         userId: data.userId,
-      }));
+      });
 
     if (standing === ProjectSCIMAccountStanding.Member) {
       return await this.createAcceptedMembership(teamMember);
