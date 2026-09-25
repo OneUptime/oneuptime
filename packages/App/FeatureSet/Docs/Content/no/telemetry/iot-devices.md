@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime krever JSON-koderen i stedet for standard Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,7 @@ service:
 
 - **`resource`** stempler hver post med flåteattributtene. Sett `iot.fleet.name` (og det matchende `service.name=iot/<fleet>`) per gateway slik at hver gateways enheter havner i riktig flåte.
 - Behold `device.id` (og eventuelt `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) på hvert datapunkt slik at OneUptime kan finne den individuelle enheten inne i flåten.
-- **`otlphttp`** sender til OneUptime over HTTPS med ingestion-token vedlagt. Merk at `encoding: json` og headeren `Content-Type: application/json` er påkrevd.
+- **`otlphttp`** sender til OneUptime over HTTPS med ingestion-token vedlagt. Både standard protobuf-koding og `encoding: json` aksepteres.
 
 ## Sende metrikker via MQTT
 
@@ -220,7 +217,7 @@ OneUptime gjenkjenner følgende `iot_*`-metrikknavn. Hvert datapunkt bør bære 
 
 1. Verifiser at `iot.fleet.name` er satt som et **ressurs**-attributt (ikke en datapunkt-etikett), og at `service.name` er `iot/<fleet>`.
 2. Bekreft at eksportør-endepunktet er `https://oneuptime.com/otlp` (eller din selvhostede `…/otlp`) og at `x-oneuptime-token`-headeren bærer en gyldig token.
-3. Hvis du bruker en collector, påse at `encoding: json` og `Content-Type: application/json` er satt på `otlphttp`-eksportøren.
+3. Hvis du bruker MQTT, bekreft at topicet følger `oneuptime/<fleet>/<device>/…` nøyaktig — det er flåtesegmentet i topicet som oppretter flåten.
 
 ### Enheter mangler fra oversikten
 
@@ -252,9 +249,7 @@ Eller, i en collector:
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 

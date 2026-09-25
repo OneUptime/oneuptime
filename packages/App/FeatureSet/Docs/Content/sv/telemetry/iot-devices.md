@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime kräver JSON-kodaren i stället för standardvärdet Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,7 @@ service:
 
 - **`resource`** stämplar varje post med flottattributen. Ange `iot.fleet.name` (och det matchande `service.name=iot/<fleet>`) per gateway så att varje gateways enheter hamnar i rätt flotta.
 - Behåll `device.id` (och eventuellt `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) på varje datapunkt så att OneUptime kan identifiera den enskilda enheten inom flottan.
-- **`otlphttp`** skickar till OneUptime över HTTPS med ingestion-token bifogad. Observera att `encoding: json` och headern `Content-Type: application/json` krävs.
+- **`otlphttp`** skickar till OneUptime över HTTPS med ingestion-token bifogad. Både standardkodningen protobuf och `encoding: json` accepteras.
 
 ## Metric Conventions
 
@@ -123,7 +120,6 @@ OneUptime känner igen följande `iot_*`-mätvärdesnamn. Varje datapunkt bör b
 
 1. Verifiera att `iot.fleet.name` är angivet som ett **resurs**attribut (inte en datapunktsetikett), och att `service.name` är `iot/<fleet>`.
 2. Bekräfta att exportörens slutpunkt är `https://oneuptime.com/otlp` (eller din självhostade `…/otlp`) och att headern `x-oneuptime-token` bär en giltig token.
-3. Om du använder en collector, säkerställ att `encoding: json` och `Content-Type: application/json` är inställda på `otlphttp`-exportören.
 
 ### Enheter saknas i inventariet
 
@@ -155,9 +151,7 @@ Eller, i en collector:
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 

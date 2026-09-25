@@ -143,13 +143,14 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
+    # 이 줄이 없으면 익스포터는 OneUptime이 받지 않는 /otlp/v1development/profiles 로 전송합니다
+    profiles_endpoint: "https://oneuptime.com/otlp/v1/profiles"
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_ONEUPTIME_SERVICE_TOKEN"
 
 service:
   pipelines:
+    # 컬렉터를 --feature-gates=service.profilesSupport 옵션으로 시작해야 합니다
     profiles:
       receivers: [otlp]
       exporters: [otlphttp]

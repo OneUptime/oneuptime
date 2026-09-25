@@ -734,14 +734,24 @@ describe("install.sh", () => {
 
 /*
  * troubleshoot.sh against a fake agent: `docker` answers from files the
- * test writes (the container's environment, its log) and records every
- * command line and what was piped to it.
+ * test writes (the container's environment, its log, and what curl prints
+ * for /otlp/v1/validate and /fluentd/v1/logs) and records every command
+ * line and what was piped to it. `validate` / `fluentd` are curl's whole
+ * output, body included, ending in the status the script's -w appends.
  */
-function troubleshootStubs(dir, { env, logs }) {
+function troubleshootStubs(dir, { env, logs, validate, fluentd }) {
   const bin = path.join(dir, "bin");
   fs.mkdirSync(bin, { recursive: true });
   fs.writeFileSync(path.join(dir, "container.env"), `${env.join("\n")}\n`);
   fs.writeFileSync(path.join(dir, "container.log"), `${logs.join("\n")}\n`);
+  fs.writeFileSync(
+    path.join(dir, "validate.out"),
+    validate === undefined ? "200" : validate,
+  );
+  fs.writeFileSync(
+    path.join(dir, "fluentd.out"),
+    fluentd === undefined ? "" : fluentd,
+  );
   writeExecutable(
     path.join(bin, "docker"),
     `#!/usr/bin/env bash
@@ -761,7 +771,8 @@ case "$1" in
     if [ -n "$stdin" ]; then printf '%s\\n' "$stdin" >> "$STUB_DIR/stdin.log"; fi
     case "$*" in
       *telnet://*) printf '* Connected to db (10.0.0.5) port 5432\\n' ;;
-      */otlp/v1/validate*) printf '200' ;;
+      */otlp/v1/validate*) cat "$STUB_DIR/validate.out" ;;
+      */fluentd/v1/logs*) cat "$STUB_DIR/fluentd.out" ;;
     esac
     exit 0 ;;
 esac
@@ -771,9 +782,9 @@ exit 0
   return bin;
 }
 
-function runTroubleshoot({ config, env, logs, envFile }) {
+function runTroubleshoot({ config, env, logs, envFile, validate, fluentd }) {
   const dir = scratch();
-  const bin = troubleshootStubs(dir, { env, logs });
+  const bin = troubleshootStubs(dir, { env, logs, validate, fluentd });
   const installDir = path.join(dir, "agent");
   fs.mkdirSync(installDir);
   fs.copyFileSync(
@@ -927,6 +938,146 @@ describe("troubleshoot.sh", () => {
     expect(run.stdin).toContain(
       'header = "x-oneuptime-token: tok\\"en\\\\with$pecial"',
     );
+  });
+
+  /*
+   * GH#3978: OTLP ingest answers a refused key with 401 (422 for a disabled
+   * or browser key), and the collector logs each refused batch as a
+   * permanent "Exporting failed". The script used to explain a refusal as a
+   * "silent 200" that leaves the collector log clean, and to pass a browser
+   * key that /otlp/v1/validate accepts but ingest refuses from a collector.
+   * The bodies below are what OTelIngest.ts's validate route sends, as
+   * Express serialises them.
+   */
+  describe("the ingestion-key check", () => {
+    const validateBody = (fields) => {
+      return JSON.stringify({ tokenProvided: true, ...fields });
+    };
+
+    test("a key /otlp/v1/validate rejects is reported as refused, not as a silent 200", () => {
+      const run = runTroubleshoot({
+        config: "postgresql",
+        env: POSTGRES_ENV,
+        logs: [],
+        validate: `${validateBody({
+          valid: false,
+          message: "This ingestion token is unknown or has been revoked.",
+        })}\n401`,
+      });
+
+      expect(run.output).toContain(
+        "REJECTED the ingestion key (/otlp/v1/validate → 401)",
+      );
+      expect(run.output).toContain(
+        "OneUptime refuses every export made with it (401/422)",
+      );
+      expect(run.output).not.toMatch(/silent/i);
+      expect(run.status).toBe(1);
+    });
+
+    test("a browser key validates but is reported as refused", () => {
+      const run = runTroubleshoot({
+        config: "postgresql",
+        env: POSTGRES_ENV,
+        logs: [],
+        validate: `${validateBody({
+          valid: true,
+          projectId: "6a1c0e0e0e0e0e0e0e0e0e0e",
+          keyType: "Browser",
+          isEnabled: true,
+          isExpired: false,
+          message:
+            "Ingestion token is valid, but it is a BROWSER ingestion key.",
+        })}\n200`,
+      });
+
+      expect(run.output).toContain("the ingestion key is a BROWSER key");
+      expect(run.output).toContain("Use a server ingestion key");
+      expect(run.output).not.toContain("ingestion key is VALID");
+      expect(run.status).toBe(1);
+    });
+
+    test("a server key that validates passes", () => {
+      const run = runTroubleshoot({
+        config: "postgresql",
+        env: POSTGRES_ENV,
+        logs: [],
+        validate: `${validateBody({
+          valid: true,
+          projectId: "6a1c0e0e0e0e0e0e0e0e0e0e",
+          keyType: "Server",
+          isEnabled: true,
+          isExpired: false,
+          message: "Ingestion token is valid.",
+        })}\n200`,
+      });
+
+      expect(run.output).toContain("ingestion key is VALID");
+      expect(run.output).not.toContain("BROWSER");
+      expect(run.status).toBe(0);
+    });
+
+    test.each(["400", "401", "422"])(
+      "without /otlp/v1/validate, a legacy check answered %s is a refusal",
+      (code) => {
+        const run = runTroubleshoot({
+          config: "postgresql",
+          env: POSTGRES_ENV,
+          logs: [],
+          validate: "Cannot GET /otlp/v1/validate\n404",
+          fluentd: code,
+        });
+
+        expect(run.output).toContain(
+          `OneUptime rejected the ingestion key (/fluentd/v1/logs → ${code})`,
+        );
+        expect(run.status).toBe(1);
+      },
+    );
+
+    test("without /otlp/v1/validate, a legacy check that gets through passes", () => {
+      const run = runTroubleshoot({
+        config: "postgresql",
+        env: POSTGRES_ENV,
+        logs: [],
+        validate: "Cannot GET /otlp/v1/validate\n404",
+        fluentd: "200",
+      });
+
+      expect(run.output).toContain(
+        "Reached OneUptime (legacy key check → 200)",
+      );
+      expect(run.status).toBe(0);
+    });
+
+    test("a refused export in the collector log is named as a possible key refusal", () => {
+      // The line otelcol-contrib 0.161.0 logs for a batch answered 401.
+      const exporterLine = `2026-09-25T14:09:09.648Z\terror\tinternal/queue_sender.go:62\tExporting failed. Dropping data.\t${JSON.stringify(
+        {
+          resource: { "service.name": "otelcol-contrib" },
+          "otelcol.component.id": "otlphttp",
+          "otelcol.component.kind": "exporter",
+          "otelcol.signal": "metrics",
+          error:
+            "not retryable error: Permanent error: rpc error: code = Unauthenticated desc = error exporting items, request to https://oneuptime.example.com/otlp/v1/metrics responded with HTTP Status Code 401",
+          dropped_items: 12,
+        },
+      ).replace(/":/g, '": ')}`;
+
+      const run = runTroubleshoot({
+        config: "postgresql",
+        env: POSTGRES_ENV,
+        logs: [exporterLine],
+      });
+
+      expect(run.output).toContain(
+        "The collector log shows exports to OneUptime failing.",
+      );
+      expect(run.output).toContain(
+        "HTTP Status Code 401 or 422 in that log line means OneUptime refused the ingestion key",
+      );
+      expect(run.status).toBe(1);
+    });
   });
 
   test("a fork's engine is checked against its family's config", () => {

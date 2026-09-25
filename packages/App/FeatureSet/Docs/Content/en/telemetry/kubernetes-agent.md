@@ -754,10 +754,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 A cluster's connected status is driven purely by telemetry arriving — if no data lands, the cluster is marked disconnected after ~15 minutes. So "disconnected" and "no metrics" almost always have the **same** cause: the agent's telemetry is not being accepted.
 
-The most common reason — especially after a reinstall — is a **wrong or revoked ingestion key**. This is easy to miss because the OTLP ingest endpoints deliberately return HTTP `200` even for a bad token (so a misconfigured collector can't retry-storm the server). The result: the collector reports success, its logs show no errors, and the data is silently dropped.
+The most common reason — especially after a reinstall — is a **wrong or revoked ingestion key**. OneUptime refuses such a key: the OTLP endpoints answer HTTP `401` for a missing, unknown or expired key and `422` for a disabled key or a browser key. Neither status is retried, so the collector drops each batch and logs one `Exporting failed. Dropping data.` error per batch. The pods stay Running and Ready, which makes that line easy to miss.
 
 1. Check that the agent pods are running: `kubectl get pods -n oneuptime-agent`
-2. Check the metrics-collector logs: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (no errors here does **not** mean data is landing — see above)
+2. Check the metrics-collector logs: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (an `Exporting failed` line reporting `HTTP Status Code 401` or `422` means the key was refused — see above)
 3. **Validate the ingestion key.** Ask OneUptime directly whether your token is accepted (`200` = valid, `401` = unknown/revoked):
 
    ```bash
@@ -784,7 +784,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
 
 ### No metrics appearing
 
-1. First rule out a rejected ingestion key — it's the most common cause and is invisible from the agent side. See [Agent shows "Disconnected"](#agent-shows-disconnected) above (or just run the diagnostic script).
+1. First rule out a rejected ingestion key — it's the most common cause and is easy to miss from the agent side. See [Agent shows "Disconnected"](#agent-shows-disconnected) above (or just run the diagnostic script).
 2. Check that the cluster identifier matches the value you passed as `clusterName`
 3. Verify the RBAC permissions: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Check the OTel collector logs for export errors

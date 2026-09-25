@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime 要求使用 JSON 编码器，而不是默认的 Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,7 @@ service:
 
 - **`resource`** 为每条记录打上机群属性。请为每个网关设置 `iot.fleet.name`（以及匹配的 `service.name=iot/<fleet>`），使每个网关的设备落入正确的机群。
 - 在每个数据点上保留 `device.id`（可选保留 `iot.device.kind` / `iot.device.type` / `iot.device.firmware`），以便 OneUptime 能在机群内解析出单台设备。
-- **`otlphttp`** 通过 HTTPS 携带采集令牌发送到 OneUptime。请注意 `encoding: json` 和 `Content-Type: application/json` 请求头是必需的。
+- **`otlphttp`** 通过 HTTPS 携带采集令牌发送到 OneUptime。默认的 protobuf 编码和 `encoding: json` 均可接受。
 
 ## 通过 MQTT 发送指标
 
@@ -220,7 +217,7 @@ OneUptime 识别以下 `iot_*` 指标名称。每个数据点都应带有 `devic
 
 1. 验证 `iot.fleet.name` 被设置为**资源**属性（而非数据点标签），且 `service.name` 为 `iot/<fleet>`。
 2. 确认导出器端点为 `https://oneuptime.com/otlp`（或你自托管的 `…/otlp`），且 `x-oneuptime-token` 请求头携带了有效令牌。
-3. 如果使用采集器，请确保在 `otlphttp` 导出器上设置了 `encoding: json` 和 `Content-Type: application/json`。
+3. 如果使用 MQTT，请确认主题严格遵循 `oneuptime/<fleet>/<device>/…` 格式——创建机群的正是主题中的机群段。
 
 ### 设备未出现在清单中
 
@@ -252,9 +249,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 

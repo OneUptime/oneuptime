@@ -686,10 +686,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 クラスターの接続ステータスは、純粋にテレメトリの到着によって決まります。データが届かない場合、約 15 分後にクラスターは切断済みとマークされます。したがって、"disconnected" と "no metrics" はほぼ常に **同じ** 原因です。つまり、エージェントのテレメトリが受け入れられていないのです。
 
-最も一般的な理由は — 特に再インストール後では — **誤ったまたは失効した取り込みキー** です。OTLP 取り込みエンドポイントは、不正なトークンに対しても意図的に HTTP `200` を返すため (誤設定されたコレクターがサーバーに対してリトライストームを起こせないように)、これは見落とされがちです。その結果、コレクターは成功を報告し、そのログにはエラーが表示されず、データは静かに破棄されます。
+最も一般的な理由は — 特に再インストール後では — **誤ったまたは失効した取り込みキー** です。OneUptime はそのようなキーを拒否します。OTLP 取り込みエンドポイントは、キーがない・不明・期限切れの場合は HTTP `401` を、無効化されたキーやブラウザーキーの場合は `422` を返します。どちらのステータスもリトライされないため、コレクターは各バッチを破棄し、バッチごとに `Exporting failed. Dropping data.` エラーを 1 行ログに出力します。Pod は Running かつ Ready のままなので、この行は見落とされがちです。
 
 1. エージェントの Pod が実行中であることを確認します: `kubectl get pods -n oneuptime-agent`
-2. メトリクスコレクターのログを確認します: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (ここにエラーがないことは、データが届いていることを **意味しません** — 上記を参照)
+2. メトリクスコレクターのログを確認します: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (`HTTP Status Code 401` または `422` を含む `Exporting failed` の行は、キーが拒否されたことを意味します — 上記を参照)
 3. **取り込みキーを検証します。** トークンが受け入れられるかどうかを OneUptime に直接問い合わせます (`200` = 有効、`401` = 不明/失効):
 
    ```bash
@@ -716,7 +716,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### メトリクスが表示されない
 
-1. まず取り込みキーの拒否を除外します — これは最も一般的な原因であり、エージェント側からは見えません。上記の [エージェントが "Disconnected" と表示される](#エージェントが-disconnected-と表示される) を参照してください (または単に診断スクリプトを実行してください)。
+1. まず取り込みキーの拒否を除外します — これは最も一般的な原因であり、エージェント側からは見落とされがちです。上記の [エージェントが "Disconnected" と表示される](#エージェントが-disconnected-と表示される) を参照してください (または単に診断スクリプトを実行してください)。
 2. クラスター識別子が `clusterName` として渡した値と一致することを確認します
 3. RBAC 権限を検証します: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel コレクターのログにエクスポートエラーがないか確認します

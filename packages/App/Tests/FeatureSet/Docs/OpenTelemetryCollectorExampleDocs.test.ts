@@ -44,6 +44,9 @@ import path from "path";
  * Prose is deliberately not asserted anywhere. The only English text read
  * outside the YAML is the environment-variable table and the shell example,
  * whose contents are identifiers and values, not sentences.
+ *
+ * The otlphttp examples on every other page, in every language, are held to
+ * the same no-JSON rule by OtlpIngestDocsClaims.test.ts.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
