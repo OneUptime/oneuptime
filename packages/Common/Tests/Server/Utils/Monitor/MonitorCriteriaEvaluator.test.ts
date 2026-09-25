@@ -1427,10 +1427,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
-    const replicaStep: MonitorStep = kubernetesStep(
-      "k8s-deployment-replica-mismatch",
-    );
-    const criteria: MonitorCriteriaInstance = recoveryCriteria(replicaStep);
+    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
+    const criteria: MonitorCriteriaInstance = recoveryCriteria(jobStep);
 
     // Fixture guard: the real recovery is a non-incident `= 0`.
     expect(criteria.data?.filters[0]!.filterType).toBe(FilterType.EqualTo);
@@ -1439,12 +1437,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     expect(criteria.data?.createAlerts).toBe(false);
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
-      monitorStep: replicaStep,
+      metricName: "k8s.job.failed_pods",
+      monitorStep: jobStep,
       criteriaInstance: criteria,
       affectedResources: [
-        { workloadType: "Deployment", workloadName: "web", metricValue: 0 },
-        { workloadType: "Deployment", workloadName: "api", metricValue: 0 },
+        { workloadType: "Job", workloadName: "web", metricValue: 0 },
+        { workloadType: "Job", workloadName: "api", metricValue: 0 },
       ],
     });
 
@@ -1454,32 +1452,27 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("a `> 0` criteria renders exactly as the hardcoded filter did, on the highest sample", async () => {
-    const replicaStep: MonitorStep = kubernetesStep(
-      "k8s-deployment-replica-mismatch",
-    );
+    const jobStep: MonitorStep = kubernetesStep("k8s-job-failures");
 
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
-      monitorStep: replicaStep,
-      criteriaInstance: firingCriteria(replicaStep),
+      metricName: "k8s.job.failed_pods",
+      monitorStep: jobStep,
+      criteriaInstance: firingCriteria(jobStep),
       affectedResources: [
         {
-          workloadType: "Deployment",
+          workloadType: "Job",
           workloadName: "web",
           metricValue: 3,
           lowestMetricValue: 0,
         },
-        { workloadType: "Deployment", workloadName: "api", metricValue: 5 },
-        { workloadType: "Deployment", workloadName: "ok", metricValue: 0 },
+        { workloadType: "Job", workloadName: "api", metricValue: 5 },
+        { workloadType: "Job", workloadName: "ok", metricValue: 0 },
       ],
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
     expect(context).toContain(
-      [
-        "1. **Deployment** `api` — **5**",
-        "2. **Deployment** `web` — **3**",
-      ].join("\n"),
+      ["1. **Job** `api` — **5**", "2. **Job** `web` — **3**"].join("\n"),
     );
     expect(context).not.toContain("`ok`");
 
@@ -1488,9 +1481,44 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     const webIndex: number = context!.indexOf("`web`");
     expect(apiIndex).toBeGreaterThan(-1);
     expect(webIndex).toBeGreaterThan(apiIndex);
-    expect(context).toContain(
-      "Deployment `api` has **5** unavailable replica(s).",
+    expect(context).toContain("Job `api` has **5** failed pod(s).");
+  });
+
+  /*
+   * REGRESSION: the breakdown is the RAW rows of the monitor's last query.
+   * k8s-deployment-replica-mismatch compares `desired - available`, so
+   * those rows are `k8s.deployment.available` — and ranking them against
+   * the criteria's "> 0" listed every HEALTHY deployment, with its
+   * available count, as having that many unavailable replicas.
+   */
+  test("a criteria on a formula names the formula and lists no raw operand values", async () => {
+    const replicaStep: MonitorStep = kubernetesStep(
+      "k8s-deployment-replica-mismatch",
     );
+
+    for (const criteria of [
+      firingCriteria(replicaStep),
+      recoveryCriteria(replicaStep),
+    ]) {
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.deployment.available",
+        monitorStep: replicaStep,
+        criteriaInstance: criteria,
+        affectedResources: [
+          { workloadType: "Deployment", workloadName: "web", metricValue: 3 },
+          { workloadType: "Deployment", workloadName: "api", metricValue: 5 },
+        ],
+      });
+
+      expect(context).toContain("**Kubernetes Cluster Details**");
+      expect(context).toContain(
+        "- Metric: Deployment Replica Shortfall (`desired_replicas - available_replicas`)",
+      );
+      expect(context).not.toContain("k8s.deployment.available");
+      expect(context).not.toContain("**Affected Resources**");
+      expect(context).not.toContain("**Root Cause Analysis**");
+      expect(context).not.toContain("`web`");
+    }
   });
 
   test("a `<` criteria keeps the breaching rows and sorts worst (lowest) first", async () => {
@@ -1773,7 +1801,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
 
     test("unavailable replicas stay a bare count", () => {
       const analysis: string | null = analyse({
-        metricName: "k8s.deployment.unavailable_replicas",
+        metricName: "kube_deployment_status_replicas_unavailable",
         topResource: {
           workloadType: "Deployment",
           workloadName: "web",
@@ -2009,7 +2037,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
 
   test("a workload-level series is titled by its workload type and does not repeat it", async () => {
     const context: string | null = await kubernetesContext({
-      metricName: "k8s.deployment.unavailable_replicas",
+      metricName: "k8s.statefulset.ready_pods",
       affectedResources: [
         {
           namespace: "payments",

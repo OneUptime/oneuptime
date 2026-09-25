@@ -289,6 +289,14 @@ export function buildKubernetesRatioMonitorConfig(args: {
    * the operand ALIASES, not the metric names.
    */
   formula?: string | undefined;
+  /*
+   * The formula result's display unit. Defaults to "%", which is right for
+   * every ratio. A `formula` that is not a percentage — the deployment
+   * replica shortfall is `desired - available`, a pod count — passes ""
+   * so the alert reads "2", not "2%". Display only: the unit converter
+   * rescales query results, never a formula's.
+   */
+  resultLegendUnit?: string | undefined;
 }): MonitorStepKubernetesMonitor {
   const aggregationType: MetricsAggregationType =
     args.aggregationType || MetricsAggregationType.Sum;
@@ -333,7 +341,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
             title: args.resultLegend,
             description: args.resultLegend,
             legend: args.resultLegend,
-            legendUnit: "%",
+            legendUnit: args.resultLegendUnit ?? "%",
           },
           metricFormulaData: {
             metricFormula:
@@ -700,41 +708,69 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
   id: "k8s-deployment-replica-mismatch",
   name: "Deployment Replica Mismatch",
   description:
-    "Alert when available replicas are less than desired replicas for a deployment.",
+    "Alert when a deployment has fewer available replicas than desired for fifteen minutes. Computed per deployment as k8s.deployment.desired - k8s.deployment.available, the two replica counts the agent's k8s_cluster receiver reports — it has no unavailable-replicas series.",
   category: "Workload",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
-    const metricAlias: string = "unavailable_replicas";
+    const metricAlias: string = "replica_shortfall";
 
     return buildKubernetesMonitorStep({
-      kubernetesMonitor: buildKubernetesMonitorConfig({
+      /*
+       * A formula, because there is nothing to read directly. The
+       * k8s_cluster receiver the agent chart runs (collector 0.96.0, no
+       * metric renaming anywhere in the chart) reports a Deployment as
+       * `k8s.deployment.desired` (spec.replicas) and
+       * `k8s.deployment.available` (status.availableReplicas) — there is no
+       * `k8s.deployment.unavailable_replicas`, which is what this template
+       * used to query, so it could never fire.
+       *
+       * `desired - available` is also the better signal than the status
+       * field's unavailableReplicas: that one counts surge pods, so a
+       * healthy rollout whose old pods are all still serving reads as
+       * "unavailable"; this reads 0 (or below — surge makes available
+       * exceed desired) until the deployment is actually short of capacity.
+       */
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
-        metricName: "k8s.deployment.unavailable_replicas",
-        metricAlias,
-        resourceScope: KubernetesResourceScope.Workload,
-        /*
-         * 15 minutes, not 5. With the sustained (AllValues) default, the
-         * window IS the "how long has this been stuck" knob: every
-         * per-minute bucket in it must report unavailable replicas. A
-         * normal rolling update makes unavailable_replicas non-zero for
-         * the duration of the rollout, and a ten-replica deployment with
-         * maxUnavailable 25% and real readiness probes routinely takes
-         * longer than five minutes — so a five-minute window still paged
-         * once per deploy for a condition that is the deploy working.
-         */
-        rollingTime: RollingTime.Past15Minutes,
-        aggregationType: MetricsAggregationType.Max,
+        numeratorMetricName: "k8s.deployment.desired",
+        denominatorMetricName: "k8s.deployment.available",
         /*
          * Per deployment: a stuck rollout is a property of one Deployment
          * object, and the incident copy already names the deployment. The
-         * k8s_cluster receiver stamps `k8s.deployment.name` on this metric
-         * (the worker reads `resource.k8s.deployment.name` back off these
-         * rows to build the affected-resource breakdown).
+         * k8s_cluster receiver stamps both keys on both metrics itself (not
+         * via best-effort enrichment), which is what the formula's
+         * fingerprint join needs.
          */
         groupByAttributeKeys: [
           "resource.k8s.namespace.name",
           "resource.k8s.deployment.name",
         ],
+        numeratorAlias: "desired_replicas",
+        denominatorAlias: "available_replicas",
+        resultAlias: metricAlias,
+        resultLegend: "Deployment Replica Shortfall",
+        formula: "desired_replicas - available_replicas",
+        // A pod count, not a percentage.
+        resultLegendUnit: "",
+        resourceScope: KubernetesResourceScope.Workload,
+        /*
+         * 15 minutes, not 5. With the sustained (AllValues) default, the
+         * window IS the "how long has this been stuck" knob: every
+         * per-minute bucket in it must report a shortfall. A rollout whose
+         * new pods are slow to pass readiness keeps available below desired
+         * for its duration, and a ten-replica deployment with
+         * maxUnavailable 25% and real readiness probes routinely takes
+         * longer than five minutes — so a five-minute window would page
+         * once per deploy for a condition that is the deploy working.
+         */
+        rollingTime: RollingTime.Past15Minutes,
+        /*
+         * ONE series per deployment on both sides, from the same
+         * k8s_cluster scrape, so Avg is the per-minute count whatever the
+         * scrape rate. Sum would multiply the shortfall by the number of
+         * scrapes in the minute.
+         */
+        aggregationType: MetricsAggregationType.Avg,
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -745,15 +781,19 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         filterType: FilterType.GreaterThan,
         value: 0,
         incidentTitle: `[K8s] Deployment Replica Mismatch - ${args.monitorName}`,
-        incidentDescription: `A Kubernetes deployment has unavailable replicas — the desired replica count does not match the available count. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. The affected namespace and deployment are named under "Affected resource" below, with the rollout-status command under "Start here".`,
-        criteriaName: "Replica Mismatch - Unavailable > 0 for 15 minutes",
+        incidentDescription: `A Kubernetes deployment has had fewer available replicas than it desires for fifteen minutes. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. The affected namespace and deployment are named under "Affected resource" below, with the rollout-status command under "Start here".`,
+        criteriaName: "Replica Mismatch - Desired > Available for 15 minutes",
         criteriaDescription:
-          "Triggers when a deployment reports unavailable replicas in every sample of a fifteen-minute window — long enough that a normal rolling update has completed and the rollout is genuinely stuck.",
+          "Triggers when a deployment's desired replica count exceeds its available replica count in every sample of a fifteen-minute window — long enough that a normal rolling update has completed and the rollout is genuinely stuck.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
-        filterType: FilterType.EqualTo,
+        /*
+         * `<= 0`, not `= 0`: a surge rollout makes available exceed
+         * desired, and a negative shortfall is healthy too.
+         */
+        filterType: FilterType.LessThanOrEqualTo,
         value: 0,
       }),
     });

@@ -71,6 +71,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Dictionary from "../../../Types/Dictionary";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import {
   CrossSignalQueryParams,
@@ -2164,6 +2165,39 @@ ${contextBlock}
     };
   }
 
+  /*
+   * The formula a Kubernetes monitor's criteria compares, or undefined when
+   * every metric filter compares a raw query. Aliases match
+   * case-insensitively, as MetricMonitorCriteria resolves them.
+   */
+  private static getComparedKubernetesFormula(input: {
+    monitorStep: MonitorStep;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): MetricFormulaConfigData | undefined {
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      input.monitorStep.data?.kubernetesMonitor?.metricViewConfig
+        ?.formulaConfigs || [];
+
+    const comparedAliases: Array<string> = (
+      input.criteriaInstance?.data?.filters || []
+    )
+      .filter((f: CriteriaFilter) => {
+        return f.checkOn === CheckOn.MetricValue;
+      })
+      .map((f: CriteriaFilter) => {
+        return (f.metricMonitorOptions?.metricAlias || "").toLowerCase();
+      })
+      .filter((alias: string) => {
+        return alias.length > 0;
+      });
+
+    return formulaConfigs.find((formula: MetricFormulaConfigData) => {
+      return comparedAliases.includes(
+        (formula.metricAliasData?.metricVariable || "").toLowerCase(),
+      );
+    });
+  }
+
   private static async buildKubernetesRootCauseContext(input: {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
@@ -2182,11 +2216,30 @@ ${contextBlock}
 
     const sections: Array<string> = [];
 
+    /*
+     * The worker builds `breakdown` from the RAW rows of the monitor's last
+     * query. When the criteria compares a formula, those rows are one
+     * operand, not the value that breached: for the replica-mismatch
+     * template's `desired - available` they are `k8s.deployment.available`,
+     * and ranking them against its "> 0" listed every healthy deployment,
+     * with its available count, as having that many unavailable replicas.
+     * So a formula monitor names the formula and lists nothing; a grouped
+     * one carries each series' identity on its own alert
+     * (SeriesContextEnricher).
+     */
+    const comparedFormula: MetricFormulaConfigData | undefined =
+      MonitorCriteriaEvaluator.getComparedKubernetesFormula({
+        monitorStep: input.monitorStep,
+        criteriaInstance: input.criteriaInstance,
+      });
+
     // Cluster context
     const clusterDetails: Array<string> = [];
     clusterDetails.push(`- Cluster: ${breakdown.clusterName}`);
     clusterDetails.push(
-      `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+      comparedFormula
+        ? `- Metric: ${comparedFormula.metricAliasData.title || comparedFormula.metricAliasData.metricVariable} (\`${comparedFormula.metricFormulaData.metricFormula}\`)`
+        : `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
     );
 
     if (breakdown.attributes["k8s.namespace.name"]) {
@@ -2198,6 +2251,10 @@ ${contextBlock}
     sections.push(
       `**Kubernetes Cluster Details**\n${clusterDetails.join("\n")}`,
     );
+
+    if (comparedFormula) {
+      return sections.join("\n");
+    }
 
     // Affected resources
     if (breakdown.affectedResources && breakdown.affectedResources.length > 0) {
@@ -3738,7 +3795,13 @@ ${contextBlock}
         `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
       );
     } else if (
-      metricName === "k8s.deployment.unavailable_replicas" ||
+      /*
+       * The k8s_cluster receiver has no unavailable-replicas series, and
+       * the replica-mismatch template is a formula, which never reaches
+       * this analysis. What still does is a custom monitor on an
+       * "unavailable" series such as kube-state-metrics'
+       * `kube_deployment_status_replicas_unavailable`.
+       */
       metricName.includes("unavailable")
     ) {
       lines.push(

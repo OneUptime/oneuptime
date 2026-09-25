@@ -1939,7 +1939,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 3,
       metricConfig: {
-        metricName: "k8s.deployment.available_replicas",
+        // The k8s_cluster receiver's name — there is no `_replicas` suffix.
+        metricName: "k8s.deployment.available",
         aggregationType: MetricsAggregationType.Min,
       },
     }),
