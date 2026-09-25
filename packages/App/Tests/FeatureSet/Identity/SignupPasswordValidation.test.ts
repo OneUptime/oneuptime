@@ -9,6 +9,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import User from "Common/Models/DatabaseModels/User";
 import UserSession from "Common/Models/DatabaseModels/UserSession";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
@@ -200,6 +201,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
 const mockRouter: MockIdentityRouter =
   Express.getRouter() as unknown as MockIdentityRouter;
 const VALID_PASSWORD: string = "violet river lantern";
+
+/*
+ * A brand-new account is signed in straight away only where there is no email
+ * verification to wait for (self-hosted, billing off). On the hosted service
+ * the signup ends at "check your email" with no session -- which is
+ * SignupEmailVerification.test.ts's subject; here it only has to be the right
+ * one for whichever deployment shape the suite is running as.
+ */
+const NEW_SIGNUP_SESSION_COUNT: number = IsBillingEnabled ? 0 : 1;
 const VALID_TOKEN: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 let savedUser: User;
 
@@ -368,7 +378,9 @@ describe("Identity /signup password validation", () => {
       expect(createdUser.password).toBeInstanceOf(HashedString);
       expect(createdUser.password!.toString()).toBe(password);
       expect(createdUser.password!.isValueHashed()).toBe(false);
-      expect(UserSessionService.createSession).toHaveBeenCalledTimes(1);
+      expect(UserSessionService.createSession).toHaveBeenCalledTimes(
+        NEW_SIGNUP_SESSION_COUNT,
+      );
       expect(Response.sendEntityResponse).toHaveBeenCalledTimes(1);
     },
   );
@@ -388,7 +400,9 @@ describe("Identity /signup password validation", () => {
     const createdUser: User = jest.mocked(UserService.createUserOnSignup).mock
       .calls[0]![0].user;
     expect(createdUser.password!.toString()).toBe(VALID_PASSWORD);
-    expect(UserSessionService.createSession).toHaveBeenCalledTimes(1);
+    expect(UserSessionService.createSession).toHaveBeenCalledTimes(
+      NEW_SIGNUP_SESSION_COUNT,
+    );
   });
 
   it("ignores a caller's pre-hashed flag and preserves the plaintext", async () => {

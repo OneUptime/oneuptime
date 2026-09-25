@@ -6,6 +6,7 @@ import {
   RouteHandler,
 } from "./IdentityRouterTestUtil";
 import Exception from "Common/Types/Exception/Exception";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -751,7 +752,13 @@ describe("Identity /signup - the paths that must not have changed", () => {
     expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
     expect(consumeRegistrationToken).not.toHaveBeenCalled();
     expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
-    expect(createSession).toHaveBeenCalledTimes(1);
+
+    /*
+     * Signed in at once only where no email verification is waiting: on the
+     * hosted service a new account gets its session after the welcome link is
+     * followed (SignupEmailVerification.test.ts), never from this request.
+     */
+    expect(createSession).toHaveBeenCalledTimes(IsBillingEnabled ? 0 : 1);
   });
 
   it("still sends the ordinary welcome-and-verify email to a brand-new person", async () => {
