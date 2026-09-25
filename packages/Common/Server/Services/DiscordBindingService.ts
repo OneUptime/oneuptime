@@ -16,6 +16,19 @@ import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuth
 import CommonAPI from "../API/CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
+/*
+ * Why a dedicated service (review ask, HOM-37): install/link/setParent/
+ * disconnect each transition BOTH binding rows (project auth token and user
+ * auth token) atomically, under one per-project advisory lock, with an
+ * OAuth-state fingerprint re-check inside the transaction. The generic
+ * WorkspaceProjectAuthTokenService/WorkspaceUserAuthTokenService manage one
+ * row each and have no cross-row lock or snapshot guard; growing those
+ * primitives there would leak Discord's concurrency contract into every
+ * other workspace type. resolveLinkedMember is the Discord-only reverse
+ * lookup the interaction handlers need. Delivery uses the deployment bot
+ * token, so a linked identity stores no reusable credential.
+ */
+
 export interface DiscordBindingSnapshot {
   fingerprint: string;
   workspaceProjectId?: string | undefined;
