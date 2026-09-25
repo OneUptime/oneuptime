@@ -102,9 +102,20 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  /*
+   * Re-matches the reminder rule for every open scheduled maintenance in the
+   * project and rewrites its nextReminderNotificationAt.
+   *
+   * `onlyWithoutNextReminder` narrows that to open scheduled maintenances
+   * with no reminder scheduled at all. It exists for backfills (see the
+   * ScheduleRemindersMissedByReminderRuleLookup data migration): an event
+   * that already has a timestamp is left alone, because re-scheduling it
+   * would push a reminder that is due, or overdue, one full interval later.
+   */
   @CaptureSpan()
   public async refreshSchedulesForOpenScheduledMaintenances(
     projectId: ObjectID,
+    options?: { onlyWithoutNextReminder?: boolean | undefined } | undefined,
   ): Promise<void> {
     try {
       const openStates: Array<ScheduledMaintenanceState> =
@@ -138,6 +149,9 @@ export class Service extends DatabaseService<Model> {
           query: {
             projectId: projectId,
             currentScheduledMaintenanceStateId: QueryHelper.any(openStateIds),
+            ...(options?.onlyWithoutNextReminder
+              ? { nextReminderNotificationAt: QueryHelper.isNull() }
+              : {}),
           },
           select: {
             _id: true,

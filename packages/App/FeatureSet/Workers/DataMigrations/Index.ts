@@ -115,6 +115,7 @@ import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecre
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
+import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -480,6 +481,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * unreadable values alone, naming them in a log instead.
    */
   new NormalizeMonitoringInterval(),
+  /*
+   * Issue #4030: from 13.0.3 every read of an incident, alert or scheduled
+   * maintenance reminder rule by isEnabled failed in Postgres, so subjects
+   * opened or re-evaluated since then were left with no
+   * nextReminderNotificationAt, and the reminder workers never pick up a
+   * NULL. For each project with an enabled rule, re-matches the rule for its
+   * open subjects that have NO timestamp, as a rule edit would. Subjects that
+   * already have one keep it (their overdue reminder goes out on the
+   * worker's next tick). Idempotent: a scheduled subject is no longer NULL.
+   */
+  new ScheduleRemindersMissedByReminderRuleLookup(),
 ];
 
 export default DataMigrations;

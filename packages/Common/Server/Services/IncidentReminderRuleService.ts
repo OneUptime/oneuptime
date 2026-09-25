@@ -101,9 +101,20 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  /*
+   * Re-matches the reminder rule for every open incident in the project and
+   * rewrites its nextReminderNotificationAt.
+   *
+   * `onlyWithoutNextReminder` narrows that to open incidents with no reminder
+   * scheduled at all. It exists for backfills (see the
+   * ScheduleRemindersMissedByReminderRuleLookup data migration): an incident
+   * that already has a timestamp is left alone, because re-scheduling it
+   * would push a reminder that is due, or overdue, one full interval later.
+   */
   @CaptureSpan()
   public async refreshSchedulesForOpenIncidents(
     projectId: ObjectID,
+    options?: { onlyWithoutNextReminder?: boolean | undefined } | undefined,
   ): Promise<void> {
     try {
       const unresolvedStates: Array<IncidentState> =
@@ -136,6 +147,9 @@ export class Service extends DatabaseService<Model> {
         query: {
           projectId: projectId,
           currentIncidentStateId: QueryHelper.any(unresolvedStateIds),
+          ...(options?.onlyWithoutNextReminder
+            ? { nextReminderNotificationAt: QueryHelper.isNull() }
+            : {}),
         },
         select: {
           _id: true,
