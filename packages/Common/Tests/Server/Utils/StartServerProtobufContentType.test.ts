@@ -39,7 +39,12 @@ describe("isProtobufContentType", () => {
     expect(isProtobufContentType(contentType)).toBe(false);
   });
 
-  test("the raw parser and the dispatch agree on the list", () => {
+  /*
+   * The raw parser and the dispatch both read this one list. Whether a real
+   * application/proto body arrives as a Buffer is asserted end to end in
+   * App's PyroscopeDotnetIngest test, through the actual parser chain.
+   */
+  test("lists exactly the protobuf media types, Connect's included", () => {
     expect(PROTOBUF_CONTENT_TYPES).toEqual([
       "application/x-protobuf",
       "application/protobuf",

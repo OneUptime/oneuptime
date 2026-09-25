@@ -528,7 +528,7 @@ export default class PyroscopeIngestService {
    * .NET SDK and pyroscope-rs send application/proto too and only look at
    * the status code. Other callers keep today's JSON response.
    */
-  private static sendPushSuccessResponse(
+  public static sendPushSuccessResponse(
     req: ExpressRequest,
     res: ExpressResponse,
   ): void {

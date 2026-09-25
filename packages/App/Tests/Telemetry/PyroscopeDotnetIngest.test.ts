@@ -77,6 +77,7 @@ import { expressErrorHandler } from "Common/Server/Utils/StartServer";
 import PyroscopeAPI from "../../FeatureSet/Telemetry/API/Pyroscope";
 import OtelProfilesIngestService from "../../FeatureSet/Telemetry/Services/OtelProfilesIngestService";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import ProfileService from "Common/Server/Services/ProfileService";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
@@ -89,6 +90,7 @@ import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -928,7 +930,7 @@ describe("pyroscope-dotnet 0.13: multipart /ingest with millisecond from/until",
  */
 
 describe("/ingest senders with other time units", () => {
-  test("seconds (pyroscope-java, pyroscope-nodejs) are unchanged", async () => {
+  test("seconds (pyroscope-java, older pyroscope-nodejs) are unchanged", async () => {
     await send(
       legacyIngestRequest({
         pprof: defaultDotnetCpuPprof(),
@@ -998,6 +1000,137 @@ describe("/ingest senders with other time units", () => {
     );
     expect(startMs).toBeGreaterThanOrEqual(before);
     expect(startMs).toBeLessThanOrEqual(Date.now());
+  });
+
+  test("folded text takes its window from from/until too", async () => {
+    // Folded text carries no capture time of its own.
+    const request: HttpRequestSpec = legacyIngestRequest({
+      pprof: Buffer.from("main;work;inner 12\nmain;idle 3\n"),
+      from: String(WINDOW_START_SECONDS),
+      until: String(WINDOW_START_SECONDS + 15),
+      authorization: `Bearer ${KEY}`,
+    });
+    request.urlPath += "&format=folded";
+
+    expect((await send(request)).status).toBe(200);
+
+    const profile: JSONObject = firstProfileOf(onlyJob());
+    expect(profile["startTimeUnixNano"]).toBe(WINDOW_START_NANO);
+    expect(profile["endTimeUnixNano"]).toBe(WINDOW_END_NANO);
+  });
+
+  test("unlabelled folded text (the pprof-parse fallback) keeps a millisecond window", async () => {
+    await send(
+      legacyIngestRequest({
+        pprof: Buffer.from("main;work 7\n"),
+        from: String(WINDOW_START_MS),
+        until: String(WINDOW_END_MS),
+        authorization: `Bearer ${KEY}`,
+      }),
+    );
+
+    const profile: JSONObject = firstProfileOf(onlyJob());
+    expect(profile["startTimeUnixNano"]).toBe(WINDOW_START_NANO);
+    expect(profile["endTimeUnixNano"]).toBe(WINDOW_END_NANO);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Raw-body /ingest: pyroscope-nodejs 0.6.2+ and pyroscope-rs 0.5
+ * ---------------------------------------------------------------------------
+ */
+
+function rawIngestRequest(data: {
+  body: Buffer;
+  contentType: string;
+  query: string;
+  headers?: Dictionary<string>;
+}): HttpRequestSpec {
+  return {
+    urlPath: `/pyroscope/ingest?${data.query}`,
+    headers: {
+      "Content-Type": data.contentType,
+      ...(data.headers || {}),
+    },
+    body: data.body,
+  };
+}
+
+describe("raw-body /ingest uploads", () => {
+  const NODE_QUERY: string = `name=node-app&from=${WINDOW_START_SECONDS}&until=${
+    WINDOW_START_SECONDS + 15
+  }&format=pprof`;
+
+  test("pyroscope-nodejs 0.6.2+: gzipped pprof as the raw application/octet-stream body", async () => {
+    const result: HttpResult = await send(
+      rawIngestRequest({
+        body: zlib.gzipSync(defaultDotnetCpuPprof() as unknown as Uint8Array),
+        contentType: "application/octet-stream",
+        query: NODE_QUERY,
+        headers: { Authorization: `Bearer ${KEY}` },
+      }),
+    );
+
+    // Before: 400 "No profile data found in request body."
+    expect(result.status).toBe(200);
+
+    const job: MockCapturedJob = onlyJob();
+    expect(serviceNameOf(resourceProfilesOf(job)[0] as JSONObject)).toBe(
+      "node-app",
+    );
+    expect(firstProfileOf(job)["startTimeUnixNano"]).toBe(WINDOW_START_NANO);
+    expect(firstProfileOf(job)["endTimeUnixNano"]).toBe(WINDOW_END_NANO);
+  });
+
+  test("a raw body with Content-Encoding: gzip still works (the global reader already consumed it)", async () => {
+    const result: HttpResult = await send(
+      rawIngestRequest({
+        body: zlib.gzipSync(defaultDotnetCpuPprof() as unknown as Uint8Array),
+        contentType: "application/octet-stream",
+        query: NODE_QUERY,
+        headers: {
+          Authorization: `Bearer ${KEY}`,
+          "Content-Encoding": "gzip",
+        },
+      }),
+    );
+
+    expect(result.status).toBe(200);
+    expect(firstProfileOf(onlyJob())["startTimeUnixNano"]).toBe(
+      WINDOW_START_NANO,
+    );
+  });
+
+  test("pyroscope-rs 0.5: folded text as a binary/octet-stream body", async () => {
+    const result: HttpResult = await send(
+      rawIngestRequest({
+        body: Buffer.from("main;work 12\n"),
+        contentType: "binary/octet-stream",
+        query: `name=${encodeURIComponent("ruby-app.cpu{env=prod}")}&from=${WINDOW_START_SECONDS}&until=${
+          WINDOW_START_SECONDS + 15
+        }&format=folded`,
+        headers: { Authorization: `Bearer ${KEY}` },
+      }),
+    );
+
+    expect(result.status).toBe(200);
+    expect(serviceNameOf(resourceProfilesOf(onlyJob())[0] as JSONObject)).toBe(
+      "ruby-app",
+    );
+  });
+
+  test("a raw body without a valid key is refused before it is read", async () => {
+    const result: HttpResult = await send(
+      rawIngestRequest({
+        body: zlib.gzipSync(defaultDotnetCpuPprof() as unknown as Uint8Array),
+        contentType: "application/octet-stream",
+        query: NODE_QUERY,
+      }),
+    );
+
+    expect(result.status).toBe(401);
+    expect(mockCapturedJobs).toHaveLength(0);
   });
 });
 
@@ -1096,6 +1229,111 @@ describe("push.v1 from pyroscope-dotnet 0.14+ (application/proto, uncompressed)"
 
     expect(result.status).toBe(200);
     expect(mockCapturedJobs).toHaveLength(1);
+  });
+
+  test("0.14.0 / 0.14.1 pprofs carry no time at all: stamped with push time, zero length", async () => {
+    // Their PprofBuilder::Build() never sets time_nanos or duration_nanos.
+    const before: number = Date.now();
+
+    await push(
+      encodePush([
+        {
+          labels: dotnetPushLabels("process_cpu"),
+          pprof: defaultDotnetCpuPprof(),
+        },
+      ]),
+      { "Content-Type": "application/proto", Authorization: `Bearer ${KEY}` },
+    );
+
+    const profile: JSONObject = firstProfileOf(onlyJob());
+    const startMs: number = Number(
+      BigInt(profile["startTimeUnixNano"] as string) / BigInt(1_000_000),
+    );
+    expect(startMs).toBeGreaterThanOrEqual(before);
+    expect(startMs).toBeLessThanOrEqual(Date.now());
+
+    // Never an end before the start, however the two clocks are read.
+    expect(profile["endTimeUnixNano"]).toBe(profile["startTimeUnixNano"]);
+    expectIntegerNanoStrings(onlyJob());
+  });
+
+  test("a pprof with a start but no duration (Go heap via Alloy) runs until it was pushed", async () => {
+    const before: number = Date.now();
+
+    await push(
+      encodePush([
+        {
+          labels: [
+            ["__name__", "memory"],
+            ["service_name", "go-app"],
+          ],
+          pprof: buildDotnetPprof({
+            sampleTypes: [
+              { name: "inuse_objects", unit: "count" },
+              { name: "inuse_space", unit: "bytes" },
+            ],
+            samples: [{ stack: REQUEST_STACK, values: [3, 4096] }],
+            timeNanos: 1_790_208_000_000_000_000,
+          }),
+        },
+      ]),
+      {
+        "Content-Type": "application/proto",
+        "Connect-Protocol-Version": "1",
+        "x-oneuptime-token": KEY,
+      },
+    );
+
+    const profile: JSONObject = firstProfileOf(onlyJob());
+    expect(profile["startTimeUnixNano"]).toBe(WINDOW_START_NANO);
+
+    const endMs: number = Number(
+      BigInt(profile["endTimeUnixNano"] as string) / BigInt(1_000_000),
+    );
+    expect(endMs).toBeGreaterThanOrEqual(before);
+    expect(endMs).toBeLessThanOrEqual(Date.now());
+  });
+});
+
+describe("push.v1 with telemetry ingestion switched off", () => {
+  beforeEach(() => {
+    jest.spyOn(TelemetryIngestionDisabled, "isDisabled").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    // Only this spy: the key-lookup and worker spies must survive.
+    jest.mocked(TelemetryIngestionDisabled.isDisabled).mockRestore();
+  });
+
+  test("a Connect client is still answered in the Connect shape, so it does not retry", async () => {
+    const result: HttpResult = await push(
+      encodePush([
+        { labels: dotnetPushLabels("process_cpu"), pprof: recentPprof() },
+      ]),
+      {
+        "Content-Type": "application/proto",
+        "Connect-Protocol-Version": "1",
+        "x-oneuptime-token": KEY,
+      },
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.contentType).toBe("application/proto");
+    expect(result.body.length).toBe(0);
+    expect(mockCapturedJobs).toHaveLength(0);
+  });
+
+  test("other callers keep the JSON success body", async () => {
+    const result: HttpResult = await push(
+      encodePush([
+        { labels: dotnetPushLabels("process_cpu"), pprof: recentPprof() },
+      ]),
+      { "Content-Type": "application/x-protobuf", "x-oneuptime-token": KEY },
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.contentType).toMatch(/^application\/json/);
+    expect(mockCapturedJobs).toHaveLength(0);
   });
 });
 
@@ -1291,6 +1529,11 @@ describe("push.v1 from other clients", () => {
       "myapp",
     ],
     [
+      "legacy __name__ with a type suffix and no labels",
+      [["__name__", "myapp.cpu"]],
+      "myapp",
+    ],
+    [
       "bare profile type and no service_name",
       [["__name__", "process_cpu"]],
       "unknown",
@@ -1416,7 +1659,11 @@ describe("the profiles worker never writes a timestamp the tables cannot store",
     expect(startMs).toBeGreaterThanOrEqual(before - 1000);
     expect(startMs).toBeLessThanOrEqual(Date.now());
 
-    // End and sample time fall back to the start, not to "now" again.
+    /*
+     * End and sample time are unusable too, so the whole profile collapses
+     * onto that instant. (That they fall back to the START rather than to
+     * "now" is pinned by the two tests below, where the start is valid.)
+     */
     expect(rows.profiles[0]!["endTimeUnixNano"]).toBe(
       rows.profiles[0]!["startTimeUnixNano"],
     );
@@ -1483,4 +1730,51 @@ describe("the profiles worker never writes a timestamp the tables cannot store",
 
     expect(rows.profiles[0]!["startTimeUnixNano"]).toBe("0");
   });
+
+  /*
+   * The ceiling is int64 nanoseconds (2262-04-11), what DateTime64(9) and
+   * the UInt64 columns hold - not the 1e21 at which Number switches to
+   * exponent notation. A value in between is an integer string ClickHouse
+   * still rejects at flush.
+   */
+  test("the last storable instant is kept", async () => {
+    const rows: WorkerRows = await runWorker(
+      job(
+        profileWith({
+          start: WINDOW_START_NANO,
+          end: "9223372036854774784",
+          sample: WINDOW_START_NANO,
+        }),
+      ),
+    );
+
+    /*
+     * The worker carries nanoseconds as Numbers, which print in their
+     * shortest round-trip form ("9223372036854775000") - the same double,
+     * still an integer string, still below int64 max.
+     */
+    const end: string = rows.profiles[0]!["endTimeUnixNano"] as string;
+    expect(end).toMatch(INTEGER_STRING);
+    expect(Number(end)).toBe(9_223_372_036_854_774_784);
+    expect(BigInt(end) <= BigInt("9223372036854775807")).toBe(true);
+    expect(rows.profiles[0]!["endTime"]).toMatch(/^2262-04-11 /);
+  });
+
+  test.each([["9223372036854775808"], ["20000000000000000000"]])(
+    "%s, past int64 nanoseconds, falls back to the start",
+    async (end: string) => {
+      const rows: WorkerRows = await runWorker(
+        job(
+          profileWith({
+            start: WINDOW_START_NANO,
+            end: end,
+            sample: WINDOW_START_NANO,
+          }),
+        ),
+      );
+
+      expect(rows.profiles[0]!["endTimeUnixNano"]).toBe(WINDOW_START_NANO);
+      expect(rows.profiles[0]!["durationNano"]).toBe("0");
+    },
+  );
 });

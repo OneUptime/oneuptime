@@ -5,6 +5,7 @@ import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngest
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
+  ExpressRaw,
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
@@ -41,6 +42,52 @@ const mapAuthorizationTokenMiddleware: RequestHandler = (
   next();
 };
 
+/*
+ * pyroscope-nodejs 0.6.2+ posts /ingest as the gzipped pprof itself, raw,
+ * as Content-Type application/octet-stream - no multipart, no
+ * Content-Encoding. No global parser reads that type, so the body reached
+ * the handler as {} and every upload was answered 400.
+ *
+ * Mounted AFTER the ingest-key check, so an unauthenticated caller cannot
+ * make the App buffer anything through it. A body the global gzip reader
+ * (Content-Encoding: gzip) has already consumed is left alone: the stream
+ * is gone, and reading it again would fail the request.
+ */
+const rawProfileBodyParser: RequestHandler = ExpressRaw({
+  type: ["application/octet-stream", "binary/octet-stream"],
+  limit: "50mb",
+}) as RequestHandler;
+
+const parseRawProfileBody: RequestHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  if (Buffer.isBuffer(req.body)) {
+    return next();
+  }
+
+  rawProfileBodyParser(req, res, next);
+};
+
+/*
+ * DISABLE_TELEMETRY_INGESTION answers every push with a success so clients
+ * stop sending. For a Connect client (Alloy) that success has to be in the
+ * Connect shape, or connect-go reads it as an error and retries each push
+ * ten times - exactly when an operator is trying to shed load.
+ */
+const pushIngestionDisabledMiddleware: RequestHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  if (TelemetryIngestionDisabled.isDisabled()) {
+    return PyroscopeIngestService.sendPushSuccessResponse(req, res);
+  }
+
+  next();
+};
+
 router.post(
   "/pyroscope/ingest",
   TelemetryIngestionDisabled.middleware,
@@ -48,6 +95,7 @@ router.post(
   mapAuthorizationTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
+  parseRawProfileBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -65,7 +113,7 @@ router.post(
  */
 router.post(
   "/pyroscope/push.v1.PusherService/Push",
-  TelemetryIngestionDisabled.middleware,
+  pushIngestionDisabledMiddleware,
   mapAuthorizationTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
