@@ -1,6 +1,7 @@
 import Route from "../../../Types/API/Route";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Navigation from "../../../UI/Utils/Navigation";
+import { NavigateFunction } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -348,5 +349,106 @@ describe("Navigation current route", () => {
     });
 
     expect(Navigation.getCurrentRoute().toString()).toBe("/from-the-router");
+  });
+});
+
+/*
+ * React Router matches paths case-insensitively (no route opts into
+ * caseSensitive), so `/dashboard/<id>/SSO` renders the SSO page. Page checks
+ * made through isOnThisPage / isStartWith (the dashboard hides its nav bar on
+ * the SSO page, create pages hide their side menu) must agree with the page
+ * the router rendered, or the SSO page shows up with the nav bar still on it.
+ * navigate() is the exception: its "already here" check stays exact, because
+ * parameter values that differ only by case are different pages, and
+ * dropping that navigation would strand the user.
+ */
+describe("Navigation page checks ignore case the way React Router does", () => {
+  const setPath: (pathname: string) => void = (pathname: string): void => {
+    Navigation.setLocation({
+      pathname: pathname,
+      search: "",
+      hash: "",
+      state: null,
+      key: "navigation-case",
+    });
+  };
+
+  afterEach(() => {
+    (Navigation as unknown as { location: unknown }).location = undefined;
+    (Navigation as unknown as { navigateHook: unknown }).navigateHook =
+      undefined;
+  });
+
+  test.each([
+    ["/dashboard/abc/SSO", "/dashboard/:projectId/sso"],
+    ["/dashboard/abc/Sso/", "/dashboard/:projectId/sso"],
+    ["/dashboard/abc/sso", "/dashboard/:projectId/SSO"],
+    [
+      "/Dashboard/abc/incidents/CREATE",
+      "/dashboard/:projectId/incidents/create",
+    ],
+  ])(
+    "isOnThisPage matches %s to %s",
+    (currentPath: string, routePath: string) => {
+      setPath(currentPath);
+
+      expect(Navigation.isOnThisPage(new Route(routePath))).toBe(true);
+    },
+  );
+
+  test.each([
+    ["/dashboard/abc/SSOX", "/dashboard/:projectId/sso"],
+    ["/dashboard/abc/SSO/extra", "/dashboard/:projectId/sso"],
+    ["/dashboard/abc/SSO", "/dashboard/:projectId/:id/sso"],
+  ])(
+    "isOnThisPage still tells %s apart from %s",
+    (currentPath: string, routePath: string) => {
+      setPath(currentPath);
+
+      expect(Navigation.isOnThisPage(new Route(routePath))).toBe(false);
+    },
+  );
+
+  test("a route that carries a query string still never matches the bare pathname", () => {
+    setPath("/dashboard/abc/network-sites/MAP");
+
+    expect(
+      Navigation.isOnThisPage(
+        new Route("/dashboard/abc/network-sites/map?site="),
+      ),
+    ).toBe(false);
+  });
+
+  test("isOnThisPage compares filled-in parameter values without case too", () => {
+    // Deliberate: the values checked this way are ids. See isSameSegment.
+    setPath("/dashboard/abc/containers/Web");
+
+    expect(
+      Navigation.isOnThisPage(new Route("/dashboard/abc/containers/web")),
+    ).toBe(true);
+  });
+
+  test("isStartWith ignores case", () => {
+    setPath("/dashboard/abc/Incidents/xyz");
+
+    expect(
+      Navigation.isStartWith(new Route("/dashboard/:projectId/incidents")),
+    ).toBe(true);
+    expect(
+      Navigation.isStartWith(new Route("/dashboard/:projectId/incidentsx")),
+    ).toBe(false);
+  });
+
+  test("navigate still treats a parameter value in another case as another page", () => {
+    const navigateHook: ReturnType<typeof jest.fn> = jest.fn();
+    Navigation.setNavigateHook(navigateHook as unknown as NavigateFunction);
+    setPath("/dashboard/abc/containers/Web");
+
+    Navigation.navigate(new Route("/dashboard/abc/containers/web"));
+    Navigation.navigate(new Route("/dashboard/abc/containers/Web"));
+
+    expect(navigateHook.mock.calls).toEqual([
+      ["/dashboard/abc/containers/web"],
+    ]);
   });
 });

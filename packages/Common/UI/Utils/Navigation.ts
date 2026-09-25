@@ -221,7 +221,9 @@ abstract class Navigation {
         continue;
       }
 
-      if (routeItems[start]?.toString() !== item.toString()) {
+      if (
+        !this.isSameSegment(routeItems[start], item, { caseSensitive: false })
+      ) {
         startsWith = false;
         break;
       }
@@ -233,47 +235,7 @@ abstract class Navigation {
 
   public static isOnThisPage(route: Route | URL): boolean {
     if (route instanceof Route) {
-      const current: Route = this.getCurrentRoute();
-
-      let isOnThisPage: boolean = true;
-
-      /*
-       * React Router resolves `/page` and `/page/` to the same route. Match
-       * that behavior here so side-menu selection and the compact mobile
-       * label do not disappear when a bookmarked URL carries a trailing
-       * slash. Keep `/` intact so the root route still has a segment.
-       */
-      const trimTrailingSlashes: (path: string) => string = (
-        path: string,
-      ): string => {
-        return path.length > 1 ? path.replace(/\/+$/, "") : path;
-      };
-      const routeItems: Array<string> = trimTrailingSlashes(
-        route.toString(),
-      ).split("/");
-      const currentPathItems: Array<string> = trimTrailingSlashes(
-        current.toString(),
-      ).split("/");
-      if (routeItems.length !== currentPathItems.length) {
-        return false;
-      }
-
-      let start: number = 0;
-      for (const item of currentPathItems) {
-        if (routeItems[start]?.startsWith(":") && item) {
-          start++;
-          continue;
-        }
-
-        if (routeItems[start]?.toString() !== item.toString()) {
-          isOnThisPage = false;
-          break;
-        }
-
-        start++;
-      }
-
-      return isOnThisPage;
+      return this.isCurrentRoute(route, { caseSensitive: false });
     }
 
     if (route instanceof URL) {
@@ -287,6 +249,81 @@ abstract class Navigation {
     }
 
     return false;
+  }
+
+  /*
+   * React Router matches paths case-insensitively (a <Route> is case
+   * sensitive only when it opts in, and none of ours do), so
+   * `/dashboard/<id>/SSO` renders the SSO page. Questions like "is the user
+   * on that page?" (hide the nav bar there, mark a side-menu entry active)
+   * must agree with the page the router rendered, so they compare segments
+   * the same way. Route validation only admits ASCII, so toLowerCase() is
+   * exact here.
+   *
+   * A Route whose parameters are already filled in carries no ":" segments,
+   * so its parameter values are compared without case too. The values
+   * checked this way today are ids, where case does not matter, but these
+   * checks cannot tell apart two resources whose names differ only by case.
+   * navigate() keeps the exact comparison for that reason.
+   */
+  private static isSameSegment(
+    routeSegment: string | undefined,
+    currentSegment: string,
+    options: { caseSensitive: boolean },
+  ): boolean {
+    if (routeSegment === undefined) {
+      return false;
+    }
+
+    if (options.caseSensitive) {
+      return routeSegment === currentSegment;
+    }
+
+    return routeSegment.toLowerCase() === currentSegment.toLowerCase();
+  }
+
+  private static isCurrentRoute(
+    route: Route,
+    options: { caseSensitive: boolean },
+  ): boolean {
+    const current: Route = this.getCurrentRoute();
+
+    /*
+     * React Router resolves `/page` and `/page/` to the same route. Match
+     * that behavior here so side-menu selection and the compact mobile
+     * label do not disappear when a bookmarked URL carries a trailing
+     * slash. Keep `/` intact so the root route still has a segment.
+     */
+    const trimTrailingSlashes: (path: string) => string = (
+      path: string,
+    ): string => {
+      return path.length > 1 ? path.replace(/\/+$/, "") : path;
+    };
+    const routeItems: Array<string> = trimTrailingSlashes(
+      route.toString(),
+    ).split("/");
+    const currentPathItems: Array<string> = trimTrailingSlashes(
+      current.toString(),
+    ).split("/");
+    if (routeItems.length !== currentPathItems.length) {
+      return false;
+    }
+
+    let start: number = 0;
+    for (const item of currentPathItems) {
+      if (routeItems[start]?.startsWith(":") && item) {
+        start++;
+        continue;
+      }
+
+      if (!this.isSameSegment(routeItems[start], item, options)) {
+        return false;
+      }
+
+      start++;
+    }
+
+    return true;
   }
 
   public static goBack(): void {
@@ -357,7 +394,17 @@ abstract class Navigation {
       return;
     }
 
-    if (this.navigateHook && to instanceof Route && !this.isOnThisPage(to)) {
+    /*
+     * Exact, unlike isOnThisPage: a target can differ from the current path
+     * only in the case of a parameter value (a container named "Web" vs
+     * "web"), which React Router passes through as-is, so it is a different
+     * page, and dropping that navigation would strand the user.
+     */
+    if (
+      this.navigateHook &&
+      to instanceof Route &&
+      !this.isCurrentRoute(to, { caseSensitive: true })
+    ) {
       this.navigateHook(finalUrl);
     }
 
