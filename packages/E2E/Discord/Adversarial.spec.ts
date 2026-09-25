@@ -146,13 +146,27 @@ function makeVectors(seed: number): Array<Vector> {
     });
   }
 
-  for (const type of [0, 2, 3, 4, 5, -1, 99999, "1", null, {}]) {
+  /*
+   * Type 3 (component/button) is a supported interaction since HOM-35: it is
+   * handled (200) because Discord retries non-2xx responses forever, which
+   * would replay a state transition on every retry. Every other unsupported
+   * type must still be a 400.
+   */
+  for (const type of [0, 2, 4, 5, -1, 99999, "1", null, {}]) {
     add({
       name: `unsupported-type-${JSON.stringify(type)}`,
       body: JSON.stringify({ type, application_id: identities.applicationId }),
       expected: [400],
     });
   }
+  add({
+    name: "unsupported-type-3",
+    body: JSON.stringify({
+      type: 3,
+      application_id: identities.applicationId,
+    }),
+    expected: [200],
+  });
   for (const app of [
     identities.otherGuildId,
     "",
@@ -331,8 +345,11 @@ test("seeded adversarial HTTP vectors preserve Discord authentication boundaries
           .toContain(result.status);
         if (vector.expected.length === 1 && vector.expected[0] === 200) {
           expect
-            .soft(responseBody, `${vector.name}: exact PONG`)
-            .toBe('{"type":1}');
+            .soft(
+              responseBody,
+              `${vector.name}: exact PONG or handled component ack`,
+            )
+            .toMatch(/^\{"type":(1|6)\}$/);
         }
       } catch (error) {
         result.transportError =
