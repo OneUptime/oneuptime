@@ -3,6 +3,7 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
@@ -12,7 +13,6 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import PayloadTooLargeException from "Common/Types/Exception/PayloadTooLargeException";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
-import OneUptimeDate from "Common/Types/Date";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
@@ -24,6 +24,12 @@ import {
   TRACE_ID_KEYS,
   findHexCorrelationValue,
 } from "../Utils/ProfileCorrelation";
+import {
+  getCurrentUnixNano,
+  parsePyroscopeTimeParam,
+  resolveProfileWindow,
+  ProfileWindow,
+} from "../Utils/PyroscopeTime";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 
 // Load pprof proto schema
@@ -43,12 +49,12 @@ const PushRequest: protobuf.Type = PushProto.lookupType("push.v1.PushRequest");
 /*
  * Decompressed-payload ceiling for ONE gzip member on this path.
  *
- * pprof is protobuf wrapped in gzip and a real profile is tens to a few
- * hundred KB; 32 MiB is orders of magnitude above anything a profiler
+ * A real profile is tens of KB to a few MB of pprof (most SDKs gzip it;
+ * pyroscope-dotnet does not); 32 MiB is well above anything a profiler
  * emits, so a legitimate client never approaches it. It exists because
- * `zlib.gunzip` with no ceiling turns the ~1 MiB nginx lets through into
- * however much the sender wants - a measured 1,029x on repeated bytes is
- * about a gigabyte of resident Buffer per request.
+ * `zlib.gunzip` with no ceiling turns the 16 MiB nginx lets through on
+ * /pyroscope into however much the sender wants - a measured 1,029x on
+ * repeated bytes is about a gigabyte of resident Buffer per MiB sent.
  */
 export const MAX_DECOMPRESSED_PROFILE_BYTES: number = 32 * 1024 * 1024;
 
@@ -168,6 +174,26 @@ const CORRELATION_LABEL_KEYS: Set<string> = new Set<string>([
   ...SPAN_ID_KEYS,
 ]);
 
+/*
+ * Profile-type suffixes of the legacy Pyroscope application name,
+ * "appName.profileType{label=value,...}".
+ */
+const LEGACY_PROFILE_TYPE_SUFFIXES: Array<string> = [
+  ".cpu",
+  ".wall",
+  ".alloc_objects",
+  ".alloc_space",
+  ".inuse_objects",
+  ".inuse_space",
+  ".goroutine",
+  ".mutex_count",
+  ".mutex_duration",
+  ".block_count",
+  ".block_duration",
+  ".contention",
+  ".itimer",
+];
+
 export default class PyroscopeIngestService {
   @CaptureSpan()
   public static async ingestPyroscopeProfile(
@@ -187,24 +213,21 @@ export default class PyroscopeIngestService {
         (req.query["name"] as string) || "unknown",
       );
       /*
-       * Pyroscope SDKs usually send unix seconds, but the param also
-       * accepts relative forms like "now-10s" that parseInt turns into
-       * NaN — which would poison every derived timestamp downstream.
-       * Treat anything non-numeric as "not provided" (0) and let the
-       * converter fall back to ingestion time.
+       * `from` / `until` arrive in seconds, milliseconds or nanoseconds
+       * depending on the SDK (see Utils/PyroscopeTime). Anything that is
+       * not a plain unix timestamp — relative forms like "now-10s"
+       * included — is "not provided", and the converter falls back to
+       * the pprof's own time or ingestion time.
        */
-      const parsedFrom: number = parseInt(
-        (req.query["from"] as string) || "0",
-        10,
+      const nowUnixNano: bigint = getCurrentUnixNano();
+      const fromUnixNano: bigint | null = parsePyroscopeTimeParam(
+        req.query["from"],
+        nowUnixNano,
       );
-      const fromSeconds: number = Number.isFinite(parsedFrom) ? parsedFrom : 0;
-      const parsedUntil: number = parseInt(
-        (req.query["until"] as string) || "0",
-        10,
+      const untilUnixNano: bigint | null = parsePyroscopeTimeParam(
+        req.query["until"],
+        nowUnixNano,
       );
-      const untilSeconds: number = Number.isFinite(parsedUntil)
-        ? parsedUntil
-        : 0;
       const format: string = ((req.query["format"] as string) || "")
         .toLowerCase()
         .trim();
@@ -251,8 +274,8 @@ export default class PyroscopeIngestService {
         otlpBody = this.convertFoldedToOTLP({
           stacks,
           appName,
-          fromSeconds,
-          untilSeconds,
+          fromUnixNano,
+          untilUnixNano,
         });
       } else {
         try {
@@ -261,8 +284,8 @@ export default class PyroscopeIngestService {
           otlpBody = this.convertPprofToOTLP({
             pprofData,
             appName,
-            fromSeconds,
-            untilSeconds,
+            fromUnixNano,
+            untilUnixNano,
           });
         } catch (parseError) {
           /*
@@ -282,8 +305,8 @@ export default class PyroscopeIngestService {
           otlpBody = this.convertFoldedToOTLP({
             stacks,
             appName,
-            fromSeconds,
-            untilSeconds,
+            fromUnixNano,
+            untilUnixNano,
           });
         }
       }
@@ -384,16 +407,7 @@ export default class PyroscopeIngestService {
       const allResourceProfiles: Array<JSONObject> = [];
 
       for (const s of series) {
-        // Extract service name from labels
-        const serviceNameLabel: PyroscopeLabelPair | undefined = s.labels.find(
-          (l: PyroscopeLabelPair) => {
-            return l.name === "__name__" || l.name === "service_name";
-          },
-        );
-        const rawName: string = serviceNameLabel
-          ? serviceNameLabel.value
-          : "unknown";
-        const appName: string = this.parseAppName(rawName);
+        const appName: string = this.resolvePushServiceName(s.labels || []);
 
         for (const sample of s.samples || []) {
           if (!sample.rawProfile || sample.rawProfile.length === 0) {
@@ -427,21 +441,17 @@ export default class PyroscopeIngestService {
           const pprofData: PprofProfileData =
             this.parsePprof(decompressedProfile);
 
-          // Use pprof timestamps; fall back to current time
-          const nowSeconds: number = Math.floor(Date.now() / 1000);
-          const fromSeconds: number = pprofData.timeNanos
-            ? Math.floor(Number(pprofData.timeNanos) / 1_000_000_000)
-            : nowSeconds;
-          const untilSeconds: number = pprofData.durationNanos
-            ? fromSeconds +
-              Math.floor(Number(pprofData.durationNanos) / 1_000_000_000)
-            : nowSeconds;
-
+          /*
+           * The push protocol carries no from/until: the window comes from
+           * the pprof itself. A pprof with a start but no duration is
+           * treated as running until it was pushed; one with neither is
+           * stamped with ingestion time.
+           */
           const otlpBody: JSONObject = this.convertPprofToOTLP({
             pprofData,
             appName,
-            fromSeconds,
-            untilSeconds,
+            fromUnixNano: null,
+            untilUnixNano: getCurrentUnixNano(),
           });
 
           const resourceProfiles: Array<JSONObject> = (
@@ -455,7 +465,7 @@ export default class PyroscopeIngestService {
 
       if (allResourceProfiles.length === 0) {
         // No valid profiles found — still respond OK
-        Response.sendEmptySuccessResponse(req, res);
+        this.sendPushSuccessResponse(req, res);
         return;
       }
 
@@ -472,7 +482,7 @@ export default class PyroscopeIngestService {
       }
 
       // Respond immediately and queue for async processing
-      Response.sendEmptySuccessResponse(req, res);
+      this.sendPushSuccessResponse(req, res);
 
       try {
         await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
@@ -502,6 +512,101 @@ export default class PyroscopeIngestService {
     return null;
   }
 
+  /*
+   * Answer a successful push in the shape the caller's protocol expects.
+   *
+   * Grafana Alloy's pyroscope.write is a Connect client (connect-go): it
+   * posts `application/proto` with a Connect-Protocol-Version header and,
+   * on a 200, insists the response uses the request's codec. A JSON `{}`
+   * fails that check with CodeInternal, which Alloy retries — up to ten
+   * times by default — so every accepted push would be ingested ten times
+   * over. An empty body labelled application/proto is a valid serialized
+   * push.v1.PushResponse (it has no fields).
+   *
+   * The Buffer matters: res.send of a string would append "; charset=utf-8"
+   * to the content type, which connect-go rejects just the same. The
+   * .NET SDK and pyroscope-rs send application/proto too and only look at
+   * the status code. Other callers keep today's JSON response.
+   */
+  private static sendPushSuccessResponse(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
+    if (!this.isConnectProtoRequest(req)) {
+      Response.sendEmptySuccessResponse(req, res);
+      return;
+    }
+
+    res.setHeader("Content-Type", "application/proto");
+    res.status(200).send(Buffer.alloc(0));
+  }
+
+  private static isConnectProtoRequest(req: ExpressRequest): boolean {
+    const headers: ExpressRequest["headers"] = req.headers || {};
+
+    if (headerValueToString(headers["connect-protocol-version"])) {
+      return true;
+    }
+
+    const contentType: string =
+      headerValueToString(headers["content-type"])?.toLowerCase() || "";
+
+    // "application/proto" exactly, optionally with parameters.
+    return contentType.split(";")[0]!.trim() === "application/proto";
+  }
+
+  /*
+   * The service a push series belongs to.
+   *
+   * In the push.v1 data model `__name__` is the PROFILE TYPE
+   * (process_cpu, wall, memory, ...) and `service_name` is the
+   * application. The .NET SDK lists `__name__` first and Alloy sorts its
+   * labels (so `__name__` sorts first there too); picking whichever of the
+   * two came first named every service after its profile type.
+   *
+   * `service_name` wins whenever it is set, verbatim — it is a name, not
+   * the legacy "app.cpu{k=v}" spelling, so it is not run through
+   * parseAppName. `__name__` is only read as an application name when it
+   * is in that legacy spelling; a bare profile-type name is not one.
+   */
+  private static resolvePushServiceName(
+    labels: Array<PyroscopeLabelPair>,
+  ): string {
+    for (const label of labels) {
+      if (label.name === "service_name") {
+        const serviceName: string = (label.value || "").trim();
+        if (serviceName) {
+          return serviceName;
+        }
+      }
+    }
+
+    for (const label of labels) {
+      if (label.name === "__name__" && this.isLegacyAppName(label.value)) {
+        const appName: string = this.parseAppName(label.value).trim();
+        if (appName) {
+          return appName;
+        }
+      }
+    }
+
+    return "unknown";
+  }
+
+  private static isLegacyAppName(name: string | undefined): boolean {
+    if (!name) {
+      return false;
+    }
+
+    if (name.includes("{")) {
+      return true;
+    }
+
+    return LEGACY_PROFILE_TYPE_SUFFIXES.some((suffix: string) => {
+      return name.endsWith(suffix);
+    });
+  }
+
   private static parseAppName(name: string): string {
     /*
      * Pyroscope name format: "appName.profileType{label1=value1,label2=value2}"
@@ -513,23 +618,7 @@ export default class PyroscopeIngestService {
     }
 
     // Remove profile type suffix (e.g., ".cpu", ".wall", ".alloc_objects")
-    const knownSuffixes: Array<string> = [
-      ".cpu",
-      ".wall",
-      ".alloc_objects",
-      ".alloc_space",
-      ".inuse_objects",
-      ".inuse_space",
-      ".goroutine",
-      ".mutex_count",
-      ".mutex_duration",
-      ".block_count",
-      ".block_duration",
-      ".contention",
-      ".itimer",
-    ];
-
-    for (const suffix of knownSuffixes) {
+    for (const suffix of LEGACY_PROFILE_TYPE_SUFFIXES) {
       if (name.endsWith(suffix)) {
         return name.substring(0, name.length - suffix.length);
       }
@@ -701,8 +790,8 @@ export default class PyroscopeIngestService {
   private static convertFoldedToOTLP(data: {
     stacks: Array<FoldedStack>;
     appName: string;
-    fromSeconds: number;
-    untilSeconds: number;
+    fromUnixNano: bigint | null;
+    untilUnixNano: bigint | null;
   }): JSONObject {
     const stringTable: Array<string> = [""];
     const stringIndexMap: Map<string, number> = new Map<string, number>([
@@ -779,17 +868,20 @@ export default class PyroscopeIngestService {
       sample: samples,
       location: locations,
       function: functions,
-      timeNanos: data.fromSeconds * 1_000_000_000,
-      durationNanos:
-        Math.max(0, data.untilSeconds - data.fromSeconds) * 1_000_000_000,
+      /*
+       * Folded text carries no capture time of its own; the window comes
+       * entirely from the query params, resolved by the converter.
+       */
+      timeNanos: 0,
+      durationNanos: 0,
       period: 0,
     };
 
     return this.convertPprofToOTLP({
       pprofData,
       appName: data.appName,
-      fromSeconds: data.fromSeconds,
-      untilSeconds: data.untilSeconds,
+      fromUnixNano: data.fromUnixNano,
+      untilUnixNano: data.untilUnixNano,
     });
   }
 
@@ -847,10 +939,10 @@ export default class PyroscopeIngestService {
   private static convertPprofToOTLP(data: {
     pprofData: PprofProfileData;
     appName: string;
-    fromSeconds: number;
-    untilSeconds: number;
+    fromUnixNano: bigint | null;
+    untilUnixNano: bigint | null;
   }): JSONObject {
-    const { pprofData, appName, fromSeconds, untilSeconds } = data;
+    const { pprofData, appName } = data;
 
     const stringTable: Array<string> = pprofData.stringTable || [];
 
@@ -918,21 +1010,20 @@ export default class PyroscopeIngestService {
      * sample at the 1970 epoch — outside any dashboard window and
      * instantly past retention — so fall back to ingestion time when
      * neither the pprof payload nor the query params carry one.
+     *
+     * BigInt all the way to the string: a Number would render anything at
+     * or above 1e21 as "1.7e+21", which ClickHouse rejects at async-insert
+     * flush without anyone being told (see Utils/PyroscopeTime).
      */
-    const nowNanos: number =
-      OneUptimeDate.getCurrentDate().getTime() * 1_000_000;
-    const startNanos: number = pprofData.timeNanos
-      ? Number(pprofData.timeNanos)
-      : fromSeconds > 0
-        ? fromSeconds * 1_000_000_000
-        : nowNanos;
-    const endNanos: number = pprofData.durationNanos
-      ? startNanos + Number(pprofData.durationNanos)
-      : untilSeconds > 0
-        ? untilSeconds * 1_000_000_000
-        : startNanos;
-    const startTimeNanos: string = startNanos.toString();
-    const endTimeNanos: string = endNanos.toString();
+    const window: ProfileWindow = resolveProfileWindow({
+      pprofTimeNanos: pprofData.timeNanos,
+      pprofDurationNanos: pprofData.durationNanos,
+      fromUnixNano: data.fromUnixNano ?? null,
+      untilUnixNano: data.untilUnixNano ?? null,
+      nowUnixNano: getCurrentUnixNano(),
+    });
+    const startTimeNanos: string = window.startUnixNano.toString();
+    const endTimeNanos: string = window.endUnixNano.toString();
 
     for (const sample of pprofData.sample || []) {
       // Convert location IDs to location indices

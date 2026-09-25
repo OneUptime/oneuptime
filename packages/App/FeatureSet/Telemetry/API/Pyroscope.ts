@@ -13,6 +13,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import PyroscopeIngestService from "../Services/PyroscopeIngestService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import { mapAuthorizationToIngestToken } from "../Utils/PyroscopeAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -27,22 +28,16 @@ const setProfilesProductType: RequestHandler = (
 };
 
 /*
- * Map Authorization: Bearer <token> to x-oneuptime-token header
- * Pyroscope SDKs use authToken which sends Authorization: Bearer
+ * Map the ingestion key a Pyroscope client sends in its Authorization
+ * header (Bearer, or Basic on newer SDKs) to x-oneuptime-token, where
+ * TelemetryIngest looks for it. See Utils/PyroscopeAuthorization.
  */
-const mapBearerTokenMiddleware: RequestHandler = (
+const mapAuthorizationTokenMiddleware: RequestHandler = (
   req: ExpressRequest,
   _res: ExpressResponse,
   next: NextFunction,
 ): void => {
-  if (!req.headers["x-oneuptime-token"]) {
-    const authHeader: string | undefined = req.headers[
-      "authorization"
-    ] as string;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      req.headers["x-oneuptime-token"] = authHeader.substring(7);
-    }
-  }
+  mapAuthorizationToIngestToken(req);
   next();
 };
 
@@ -50,7 +45,7 @@ router.post(
   "/pyroscope/ingest",
   TelemetryIngestionDisabled.middleware,
   MultipartFormDataMiddleware,
-  mapBearerTokenMiddleware,
+  mapAuthorizationTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
   async (
@@ -63,13 +58,15 @@ router.post(
 );
 
 /*
- * Grafana Alloy's pyroscope.write sends profiles via the Pyroscope push protocol
- * to /pyroscope/push.v1.PusherService/Push with a protobuf-encoded PushRequest
+ * The Pyroscope push protocol: a protobuf-encoded push.v1.PushRequest posted
+ * to /pyroscope/push.v1.PusherService/Push. Grafana Alloy's pyroscope.write,
+ * pyroscope-dotnet v0.14+ and pyroscope-rs based SDKs use it, most of them
+ * as Content-Type application/proto (see StartServer's protobuf parser).
  */
 router.post(
   "/pyroscope/push.v1.PusherService/Push",
   TelemetryIngestionDisabled.middleware,
-  mapBearerTokenMiddleware,
+  mapAuthorizationTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
   async (

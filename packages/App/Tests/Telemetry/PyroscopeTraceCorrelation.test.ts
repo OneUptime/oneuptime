@@ -96,8 +96,8 @@ function makePprofData(sampleLabelSets: Array<Dictionary<string>>): JSONObject {
 type ConvertPprofToOTLP = (data: {
   pprofData: JSONObject;
   appName: string;
-  fromSeconds: number;
-  untilSeconds: number;
+  fromUnixNano: bigint | null;
+  untilUnixNano: bigint | null;
 }) => JSONObject;
 
 /* Same private-static cast idiom as OtelIdDecoding.test.ts. */
@@ -116,8 +116,8 @@ function convert(sampleLabelSets: Array<Dictionary<string>>): {
   const body: JSONObject = convertPprofToOTLP({
     pprofData: makePprofData(sampleLabelSets),
     appName: "checkout-service",
-    fromSeconds: 0,
-    untilSeconds: 0,
+    fromUnixNano: null,
+    untilUnixNano: null,
   });
 
   const resourceProfiles: JSONArray = body["resourceProfiles"] as JSONArray;

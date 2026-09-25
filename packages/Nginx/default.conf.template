@@ -939,6 +939,16 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
 
         proxy_pass ${BACKEND_APP_TARGET};
+
+        # pyroscope-dotnet never compresses its uploads, and one upload holds
+        # every sample of a 15s window: at roughly 100 CPU samples per busy
+        # core per second and 100-250 bytes per sample, a pod keeping 4-8
+        # cores busy passes nginx's 1M default -- and gets a 413 the SDK only
+        # logs at Debug, so the window vanishes without a trace. 16M covers
+        # realistic pods with wall time enabled too, and stays well under the
+        # App's own 50 MiB multipart and body-parser caps, which are what
+        # bound this pre-auth body in memory.
+        client_max_body_size 16M;
     }
 
     location /source-maps {

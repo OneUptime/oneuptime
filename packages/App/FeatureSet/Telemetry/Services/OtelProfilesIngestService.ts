@@ -56,6 +56,13 @@ type ParsedUnixNano = {
 };
 
 /*
+ * The latest instant the profile tables can hold: int64 nanoseconds
+ * (2262-04-11T23:47:16Z), the ceiling of ClickHouse DateTime64(9). This is
+ * the largest double not above int64 max, so the comparison is exact.
+ */
+const MAX_STORABLE_UNIX_NANO: number = 9_223_372_036_854_774_784;
+
+/*
  * Schema-agnostic projection of one entry from
  * `ScopeProfiles.profiles[]`. v1development moved the per-profile string /
  * function / location / mapping / link / stack / attribute tables up to a
@@ -491,6 +498,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                       ? this.safeParseUnixNano(
                           frame.endTimeUnixNano,
                           "profile endTimeUnixNano",
+                          startTime,
                         )
                       : startTime;
 
@@ -712,6 +720,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         sampleTime = this.safeParseUnixNano(
                           timestamps[0] as string | number,
                           "sample timestampsUnixNano",
+                          startTime,
                         );
                       }
 
@@ -1544,9 +1553,16 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     return (toBig(start) + toBig(duration)).toString();
   }
 
+  /*
+   * `fallback` replaces a value that is unusable: unparseable, or outside
+   * what the profile tables can store. Without one, ingestion time is used.
+   * A profile's end falls back to its start and a sample's time to its
+   * profile's start, so one bad field cannot stretch a window to "now".
+   */
   private static safeParseUnixNano(
     value: string | number | undefined,
     context: string,
+    fallback?: ParsedUnixNano,
   ): ParsedUnixNano {
     let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
 
@@ -1565,10 +1581,32 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           }
           numericValue = value;
         }
+
+        /*
+         * The profile tables store this as DateTime64(9) plus a UInt64
+         * nanosecond column, so nothing before the epoch or past int64
+         * nanoseconds (2262-04-11) can be written. Such a value is a
+         * producer's unit mix-up, and letting it through is worse than
+         * useless: past the JS Date range OneUptimeDate.toString throws and
+         * the whole profile is dropped, and inside it the row is rejected
+         * by ClickHouse at async-insert flush, where nobody hears about it.
+         */
+        if (
+          !Number.isFinite(numericValue) ||
+          numericValue < 0 ||
+          numericValue > MAX_STORABLE_UNIX_NANO
+        ) {
+          throw new Error(`Timestamp out of storable range: ${value}`);
+        }
       } catch (error) {
         logger.warn(
-          `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
+          `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using ${fallback ? "fallback" : "current"} time`,
         );
+
+        if (fallback) {
+          return fallback;
+        }
+
         numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
       }
     }
