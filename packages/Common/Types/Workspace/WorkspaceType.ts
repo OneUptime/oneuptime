@@ -1,5 +1,6 @@
 enum WorkspaceType {
   Slack = "Slack",
+  Discord = "Discord",
   MicrosoftTeams = "MicrosoftTeams",
 }
 

@@ -173,13 +173,8 @@ export default class WorkspaceUtil {
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    const workspaceTypes: Array<WorkspaceType> = [];
-
-    for (const workspaceType in WorkspaceType) {
-      workspaceTypes.push(workspaceType as WorkspaceType);
-    }
-
-    return workspaceTypes;
+    // Enumerate only providers supported by getWorkspaceTypeUtil below.
+    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
   }
 
   @CaptureSpan()

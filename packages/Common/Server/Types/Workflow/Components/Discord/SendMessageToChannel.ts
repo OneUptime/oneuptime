@@ -13,7 +13,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import DiscordComponents from "../../../../../Types/Workflow/Components/Discord";
-import API from "../../../../../Utils/API";
+import DiscordWebhook from "../../../../Utils/Workspace/Discord/DiscordWebhook";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class SendMessageToChannel extends ComponentCode {
@@ -62,6 +62,12 @@ export default class SendMessageToChannel extends ComponentCode {
       throw options.onError(new BadDataException("Discord message not found"));
     }
 
+    if (!DiscordWebhook.isValidUrl(String(args["webhook-url"] || ""))) {
+      throw options.onError(
+        new BadDataException("Invalid Discord Webhook URL."),
+      );
+    }
+
     args["webhook-url"] = IncomingWebhookUtils.getPinnedWebhookUrl({
       args,
       options,
@@ -73,18 +79,9 @@ export default class SendMessageToChannel extends ComponentCode {
 
     try {
       // https://discord.com/developers/docs/resources/webhook#execute-webhook
-      apiResult = await API.post({
+      apiResult = await DiscordWebhook.send({
         url: args["webhook-url"] as URL,
-        data: {
-          content: args["text"] as string,
-        },
-        /*
-         * The host is pinned above; following a redirect would hand the
-         * destination back to whoever controls that host.
-         */
-        options: {
-          doNotFollowRedirects: true,
-        },
+        text: args["text"] as string,
       });
 
       if (apiResult instanceof HTTPErrorResponse) {
