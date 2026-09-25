@@ -159,6 +159,10 @@ import {
   DatabaseEngineMetricResult,
   toEngineMetricResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
+import {
+  getDatabaseAgentCollectedMetricsText,
+  getDatabaseAgentEngine,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import {
   DatabaseServerMetricDefinition,
@@ -632,6 +636,75 @@ describe("DatabaseEngineMetricsSection", () => {
         pointsAtGuide: text.includes("Documentation tab"),
       }).toEqual({ dbSystem, saysNoReceiver: false, pointsAtGuide: true });
     }
+  });
+
+  /*
+   * UI review: every engine's card said "Connections, throughput, cache hit
+   * ratio, locks and replication come from the … engine itself" — Memcached
+   * has no locks or replication. An engine the agent ships a config for now
+   * names what that config really collects, the list the Documentation tab
+   * opens with, as plain text (the card is not markdown).
+   */
+  test.each([
+    ["memcached", "Memcached", "memcached", "get hits and misses"],
+    ["opensearch", "OpenSearch", "elasticsearch", "cluster health"],
+    ["valkey", "Valkey", "redis", "keyspace hits and misses"],
+    ["mariadb", "MariaDB", "mysql", "the InnoDB buffer pool"],
+    ["postgresql", "PostgreSQL", "postgresql", "max_connections"],
+  ])(
+    "not connected, %s: names the metrics its agent config collects",
+    (
+      dbSystem: string,
+      engineLabel: string,
+      agentEngine: string,
+      named: string,
+    ) => {
+      const text: string = getEngineMetricsMissingDescription({
+        status: DatabaseEngineMetricsStatus.NotConnected,
+        engineLabel,
+        dbSystem,
+      });
+
+      expect(getDatabaseAgentEngine(dbSystem)).toBe(agentEngine);
+      expect(text).toContain(
+        `Engine metrics — ${getDatabaseAgentCollectedMetricsText(
+          getDatabaseAgentEngine(dbSystem)!,
+        )} — come from the ${engineLabel} engine itself, and no Database Agent or OpenTelemetry Collector has sent them for this database yet.`,
+      );
+      expect(text).toContain(named);
+      expect(text).not.toContain("`");
+      expect(text).not.toContain("DATABASE_QUERY_EVENTS");
+      expect(text).not.toContain("throughput, cache hit ratio, locks");
+    },
+  );
+
+  test("Memcached and Elasticsearch are never promised locks or replication", () => {
+    for (const dbSystem of ["memcached", "elasticsearch"]) {
+      const text: string = getEngineMetricsMissingDescription({
+        status: DatabaseEngineMetricsStatus.NotConnected,
+        engineLabel: "X",
+        dbSystem,
+      });
+      expect({
+        dbSystem,
+        locks: text.split(/\W+/).some((word: string): boolean => {
+          return word === "lock" || word === "locks";
+        }),
+        replication: text.includes("replication"),
+      }).toEqual({ dbSystem, locks: false, replication: false });
+    }
+  });
+
+  test("an engine the agent has no config for keeps the generic words", () => {
+    expect(
+      getEngineMetricsMissingDescription({
+        status: DatabaseEngineMetricsStatus.NotConnected,
+        engineLabel: "CouchDB",
+        dbSystem: "couchdb",
+      }),
+    ).toContain(
+      "Connections, throughput, cache hit ratio, locks and replication come from the CouchDB engine itself",
+    );
   });
 
   /*
@@ -1165,6 +1238,7 @@ describe("DatabaseMetricChartModal", () => {
     metricName: string;
     keys: Array<string>;
     unit?: string;
+    dbSystem?: string;
     initialTimeRange?: RangeStartAndEndDateTime;
     onClose?: () => void;
   }): void {
@@ -1174,7 +1248,7 @@ describe("DatabaseMetricChartModal", () => {
         unit={data.unit}
         keys={data.keys}
         projectId={PROJECT_ID}
-        dbSystem="postgresql"
+        dbSystem={data.dbSystem || "postgresql"}
         initialTimeRange={data.initialTimeRange}
         onClose={data.onClose || ((): void => {})}
       />,
@@ -1220,6 +1294,34 @@ describe("DatabaseMetricChartModal", () => {
      */
     expect(lastChart().yFormatter!(2.5)).toBe("2.5");
     expect(lastChart().title).toBe("postgresql.commits (per second)");
+  });
+
+  /*
+   * e2e: MariaDB 11.4's mysql.buffer_pool.limit is its page count (8112),
+   * sent under the receiver's unit "By" — the chart read it as "7.9 KiB".
+   */
+  test("MariaDB's buffer pool limit is charted as a page count, with a note saying why", async () => {
+    shapeRow({ metricPointType: "Sum", isMonotonic: false });
+    aggregateMock.mockResolvedValue({
+      data: [{ timestamp: at(0), value: 8112 }],
+    });
+
+    renderChart({
+      metricName: "mysql.buffer_pool.limit",
+      keys: [KEY],
+      unit: "By",
+      dbSystem: "mariadb",
+    });
+
+    await waitFor(() => {
+      expect(lastChart().loading).toBe(false);
+    });
+    expect(lastChart().series[0]!.data).toEqual([{ x: at(0), y: 8112 }]);
+    expect(lastChart().title).toBe("mysql.buffer_pool.limit (pages)");
+    expect(lastChart().yFormatter!(8112)).not.toMatch(/B\b/);
+    expect(screen.getByTestId("database-metric-chart-note")).toHaveTextContent(
+      "size in pages (Innodb_buffer_pool_pages_total), not in bytes",
+    );
   });
 
   test("a gauge offers the aggregations and refetches on a change", async () => {

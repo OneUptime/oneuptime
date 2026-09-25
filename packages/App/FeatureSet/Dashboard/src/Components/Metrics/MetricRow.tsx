@@ -33,6 +33,11 @@ export interface MetricRowProps {
   // One short line under the value saying what the number is.
   valueCaption?: string | undefined;
   /*
+   * The unit the value is in, when the host knows the metric's declared
+   * unit is wrong for its scope. Unset: the metric's own unit.
+   */
+  valueUnit?: string | undefined;
+  /*
    * Without a handler the row is a plain entry: no button, no "Explore"
    * affordance (a host that cannot drill down with its scope intact — see
    * MetricsViewer's disableMetricDrillDown).
@@ -76,7 +81,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         services: metric.services,
         serviceIds: props.serviceIds,
       });
-  const rawUnit: string = metric.unit || "";
+  const rawUnit: string = props.valueUnit || metric.unit || "";
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",
   };

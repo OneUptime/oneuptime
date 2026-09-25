@@ -223,8 +223,9 @@ export function buildDatabaseMetricMonitorViewData(data: {
 }
 
 /*
- * The query parameter carrying the new monitor's description. Monitor
- * Create otherwise words it "Created from the Metric Explorer view for …",
+ * The query parameter carrying the new monitor's description, which Monitor
+ * Create reads (MONITOR_DESCRIPTION_QUERY_PARAM in Pages/Monitor/Create.tsx).
+ * Without it the page words it "Created from the Metric Explorer view for …",
  * which is not where a database's monitor came from.
  */
 export const DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM: string =

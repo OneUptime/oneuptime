@@ -483,6 +483,13 @@ interface Props {
    * same kind of number. Unset: no caption, as before.
    */
   defaultRowValueCaption?: string | undefined;
+  /*
+   * The unit a row's value is in, for a host that knows a metric's declared
+   * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
+   * declared in bytes, as a page count). Undefined keeps the metric's own.
+   * Applies to every row, whoever computed its value.
+   */
+  getRowValueUnit?: ((metricName: string) => string | undefined) | undefined;
 }
 
 /*
@@ -1832,6 +1839,9 @@ const MetricsViewer: FunctionComponent<Props> = (
             sparklineLoading={sparklineLoading}
             lastValue={sparklineLastValue[name]}
             valueSuffix={rowValueLabels[name]?.suffix}
+            valueUnit={
+              props.getRowValueUnit ? props.getRowValueUnit(name) : undefined
+            }
             valueCaption={
               rowValueLabels[name]
                 ? rowValueLabels[name]!.caption

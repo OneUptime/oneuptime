@@ -9,6 +9,8 @@ import {
   getCompleteBucketSeries,
   getDatabaseConnectionSpanNameExclusions,
   getDatabaseMetricListCaption,
+  getDatabaseMetricRowUnit,
+  getDatabaseMetricUnitCorrection,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
   DATABASE_LIVENESS_DESCRIPTION,
@@ -49,6 +51,7 @@ import {
   isDatabaseWideTableViewport,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/useDatabaseWideTable";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ValueFormatter from "../../../Utils/ValueFormatter";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import { SpanKind } from "../../../Models/AnalyticsModels/Span";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
@@ -488,6 +491,62 @@ describe("the Metrics tab's list values", () => {
     expect(
       aggregateMock.mock.calls[0]![0].aggregateBy["groupByAttributeKeys"],
     ).toContain("resource.postgresql.database.name");
+  });
+
+  /*
+   * e2e: MariaDB 11.4 reports mysql.buffer_pool.limit as 8112 — its
+   * Innodb_buffer_pool_pages_total — under the receiver's unit "By", so the
+   * Metrics tab listed a 128 MiB pool as "7.9 KiB". The row keeps the
+   * list's own value (the average of its series) and reads it in pages.
+   */
+  test("MariaDB's mysql.buffer_pool.limit reads as the page count it is", async () => {
+    expect(getDatabaseMetricRowUnit("mariadb", "mysql.buffer_pool.limit")).toBe(
+      "{pages}",
+    );
+    expect(
+      getDatabaseMetricRowUnit("MariaDB", " mysql.buffer_pool.limit "),
+    ).toBe("{pages}");
+    // What the unit changes: 8112 pages, never kibibytes.
+    expect(ValueFormatter.formatValue(8112, "By")).toMatch(/KiB|KB/);
+    expect(
+      ValueFormatter.formatValue(
+        8112,
+        getDatabaseMetricRowUnit("mariadb", "mysql.buffer_pool.limit")!,
+      ),
+    ).not.toMatch(/B\b/);
+
+    // Not a catalog metric: the list keeps its own average for the row.
+    const values: Map<string, DatabaseMetricListValue> =
+      await fetchDatabaseMetricListValues({
+        projectId: PROJECT_ID,
+        // Any scoped key set.
+        keys: PG16_KEYS,
+        start: new Date("2026-09-25T00:12:00.000Z"),
+        end: new Date("2026-09-25T01:12:00.000Z"),
+        dbSystem: "mariadb",
+        metricNames: ["mysql.buffer_pool.limit"],
+      });
+    expect(values.size).toBe(0);
+    expect(aggregateMock).not.toHaveBeenCalled();
+  });
+
+  test("the buffer pool limit keeps its bytes on MySQL, and only that metric is relabelled on MariaDB", () => {
+    expect(
+      getDatabaseMetricUnitCorrection("mysql", "mysql.buffer_pool.limit"),
+    ).toBeNull();
+    expect(
+      getDatabaseMetricRowUnit("mysql", "mysql.buffer_pool.limit"),
+    ).toBeUndefined();
+    expect(
+      getDatabaseMetricUnitCorrection("mariadb", "mysql.buffer_pool.usage"),
+    ).toBeNull();
+    expect(
+      getDatabaseMetricUnitCorrection(null, "mysql.buffer_pool.limit"),
+    ).toBeNull();
+    // No curated tile reads it any more, so the catalog never charts it.
+    expect(
+      findDatabaseServerMetricByName("mariadb", "mysql.buffer_pool.limit"),
+    ).toBeNull();
   });
 
   test("a curated counter is a per-second rate, captioned so", () => {

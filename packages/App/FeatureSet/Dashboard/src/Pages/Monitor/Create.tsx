@@ -168,6 +168,36 @@ function getNearestRollingTimeForWindow(): RollingTime {
   return nearest.rollingTime;
 }
 
+/*
+ * The description a "create monitor" deep link may ask for (the Database
+ * metric chart sends "Created from database <name>."), used in place of the
+ * Metric Explorer wording. It is typed text from a URL, so it is trimmed and
+ * capped; the person can still edit it in the form.
+ */
+export const MONITOR_DESCRIPTION_QUERY_PARAM: string = "monitorDescription";
+export const MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH: number = 500;
+
+/**
+ * The pre-seeded description of a monitor created from a metric view: the
+ * link's requested description, trimmed and capped at
+ * MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH characters, or the Metric
+ * Explorer wording when the link asks for none.
+ */
+export function getMetricViewMonitorDescription(data: {
+  metricDisplayName: string;
+  requestedDescription: string | null | undefined;
+}): string {
+  const requested: string = Array.from((data.requestedDescription || "").trim())
+    .slice(0, MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH)
+    .join("")
+    .trim();
+
+  return (
+    requested ||
+    `Created from the Metric Explorer view for ${data.metricDisplayName}.`
+  );
+}
+
 function buildThresholdCriteriaInstance(input: {
   name: string;
   description: string;
@@ -319,7 +349,8 @@ const MonitorCreate: FunctionComponent<
   /*
    * "Create monitor from this view" deep link from the metric explorer:
    * pre-seed a Metric monitor from the shared serializer's
-   * metricQueries/metricFormulas params (plus the window → rolling time).
+   * metricQueries/metricFormulas params (plus the window → rolling time, and
+   * the description a link asks for — see getMetricViewMonitorDescription).
    * Any warning/critical thresholds on the queries become generated
    * warning/critical criteria; otherwise criteria stay at the form's
    * defaults. Template links take priority — they carry full steps.
@@ -467,7 +498,12 @@ const MonitorCreate: FunctionComponent<
 
     setInitialValues({
       name: `${metricDisplayName} Monitor`,
-      description: `Created from the Metric Explorer view for ${metricDisplayName}.`,
+      description: getMetricViewMonitorDescription({
+        metricDisplayName: metricDisplayName,
+        requestedDescription: Navigation.getQueryStringByName(
+          MONITOR_DESCRIPTION_QUERY_PARAM,
+        ),
+      }),
       monitorType: MonitorType.Metrics,
       monitorSteps: monitorSteps.toJSON(),
       monitoringInterval: "*/5 * * * *",

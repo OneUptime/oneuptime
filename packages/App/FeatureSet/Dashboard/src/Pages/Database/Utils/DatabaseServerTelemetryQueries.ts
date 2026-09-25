@@ -26,6 +26,7 @@ import {
   findDatabaseServerMetricByName,
   getDatabaseServerMetricGroupKeys,
 } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import { normalizeDatabaseSystem } from "Common/Types/DatabaseServer/DatabaseSystem";
 import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -1054,6 +1055,81 @@ export interface DatabaseMetricListValue {
   caption: string;
 }
 
+/*
+ * The unit an engine really reports a metric in, when it is not the one the
+ * receiver declares.
+ */
+export interface DatabaseMetricUnitCorrection {
+  // The unit the values are in (UCUM, as ValueFormatter reads it).
+  unit: string;
+  // The chart's note: what the values are, and why the unit differs.
+  note: string;
+}
+
+/*
+ * The mysql receiver reads `mysql.buffer_pool.limit` from
+ * information_schema.innodb_metrics' `buffer_pool_size` and declares it in
+ * bytes. MariaDB keeps the pool's PAGE count there: a 128 MiB MariaDB 11.4
+ * pool arrives as 8112 (its Innodb_buffer_pool_pages_total), which read
+ * "7.9 KiB". The curated tile and the alert template read
+ * `mysql.buffer_pool.pages` instead (DatabaseServerMetricCatalog); the
+ * Metrics tab still lists this metric, so on MariaDB its row
+ * (getDatabaseMetricRowUnit) and its chart (getDatabaseMetricChartSpec) read
+ * it as the count it is. MySQL reports bytes and is left alone.
+ */
+const DATABASE_METRIC_UNIT_CORRECTIONS: ReadonlyArray<{
+  system: string;
+  metricName: string;
+  correction: DatabaseMetricUnitCorrection;
+}> = [
+  {
+    system: "mariadb",
+    metricName: "mysql.buffer_pool.limit",
+    correction: {
+      unit: "{pages}",
+      note: "MariaDB reports mysql.buffer_pool.limit as the InnoDB buffer pool's size in pages (Innodb_buffer_pool_pages_total), not in bytes as the receiver declares. A page is innodb_page_size, 16 KiB by default.",
+    },
+  },
+];
+
+/**
+ * How the database's engine really reports a metric the receiver declares
+ * in another unit, or null when the metric's own unit holds.
+ */
+export function getDatabaseMetricUnitCorrection(
+  dbSystem: string | null | undefined,
+  metricName: string | null | undefined,
+): DatabaseMetricUnitCorrection | null {
+  const system: string | null = normalizeDatabaseSystem(dbSystem);
+  const name: string = (metricName || "").trim();
+  if (!system || !name) {
+    return null;
+  }
+  return (
+    DATABASE_METRIC_UNIT_CORRECTIONS.find(
+      (entry: {
+        system: string;
+        metricName: string;
+        correction: DatabaseMetricUnitCorrection;
+      }): boolean => {
+        return entry.system === system && entry.metricName === name;
+      },
+    )?.correction || null
+  );
+}
+
+/**
+ * The unit a Metrics tab row shows its value in, when the database's engine
+ * reports the metric in another one than it declares; undefined keeps the
+ * metric's own. For the metric list's getRowValueUnit.
+ */
+export function getDatabaseMetricRowUnit(
+  dbSystem: string | null | undefined,
+  metricName: string | null | undefined,
+): string | undefined {
+  return getDatabaseMetricUnitCorrection(dbSystem, metricName)?.unit;
+}
+
 /**
  * The caption under a catalog metric's list value: how its series combine,
  * and for an entry pinned to one breakdown value (`mysql.threads{kind=
@@ -1319,9 +1395,36 @@ export interface DatabaseMetricChartSpec {
  * histogram by percentile (P95 by default — its stored value is the sum of
  * its observations, not a latency), a cumulative monotonic counter as a
  * per-second rate, a delta counter by its Sum per bucket, and any other
- * metric averaged per bucket, like the metric explorer does.
+ * metric averaged per bucket, like the metric explorer does. A metric the
+ * engine reports in another unit than its receiver declares
+ * (getDatabaseMetricUnitCorrection) is read in that unit, and the note says
+ * why.
  */
 export function getDatabaseMetricChartSpec(
+  metricName: string,
+  dbSystem: string | null | undefined,
+  shape?: Partial<DatabaseMetricShape> | null | undefined,
+): DatabaseMetricChartSpec {
+  const spec: DatabaseMetricChartSpec = readDatabaseMetricChartSpec(
+    metricName,
+    dbSystem,
+    shape,
+  );
+  const correction: DatabaseMetricUnitCorrection | null = spec.definition
+    ? null
+    : getDatabaseMetricUnitCorrection(dbSystem, spec.metricName);
+  if (!correction) {
+    return spec;
+  }
+  return {
+    ...spec,
+    unit: correction.unit,
+    note: spec.note ? `${spec.note} ${correction.note}` : correction.note,
+  };
+}
+
+// getDatabaseMetricChartSpec in the unit the metric's shape says.
+function readDatabaseMetricChartSpec(
   metricName: string,
   dbSystem: string | null | undefined,
   shape?: Partial<DatabaseMetricShape> | null | undefined,

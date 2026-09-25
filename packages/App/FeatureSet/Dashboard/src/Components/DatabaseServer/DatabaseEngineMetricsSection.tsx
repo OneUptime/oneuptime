@@ -14,7 +14,11 @@ import {
   getDatabaseMetricAxisUnitLabel,
   getDatabaseUnitSingular,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
-import { getDatabaseAgentEngine } from "../../Pages/Database/Utils/DocumentationMarkdown";
+import { DatabaseAgentEngine } from "../../Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  getDatabaseAgentCollectedMetricsText,
+  getDatabaseAgentEngine,
+} from "../../Pages/Database/Utils/DocumentationMarkdown";
 import {
   DatabaseServerMetricDefinition,
   getDatabaseServerMetricId,
@@ -163,7 +167,23 @@ export interface EngineMetricsGuidance {
   linkLabel: string | null;
 }
 
-function whatEngineMetricsAre(engine: string): string {
+/*
+ * What the engine's own metrics are. For an engine the Database Agent ships
+ * a config for, the per-engine list its Documentation tab opens with:
+ * Memcached has no locks or replication, Elasticsearch no replication lag.
+ * Any other engine gets the generic words.
+ */
+function whatEngineMetricsAre(
+  engine: string,
+  dbSystem: string | null | undefined,
+): string {
+  const agentEngine: DatabaseAgentEngine | null =
+    getDatabaseAgentEngine(dbSystem);
+  if (agentEngine) {
+    return `Engine metrics — ${getDatabaseAgentCollectedMetricsText(
+      agentEngine,
+    )} — come from the ${engine} engine itself`;
+  }
   return `Connections, throughput, cache hit ratio, locks and replication come from the ${engine} engine itself`;
 }
 
@@ -204,12 +224,12 @@ export function getEngineMetricsGuidance(data: {
     case "receiver":
       if (getDatabaseAgentEngine(data.dbSystem)) {
         return {
-          description: `${whatEngineMetricsAre(engine)}, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`,
+          description: `${whatEngineMetricsAre(engine, data.dbSystem)}, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`,
           linkLabel: ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL,
         };
       }
       return {
-        description: `${whatEngineMetricsAre(engine)}, and no OpenTelemetry Collector has sent them for this database yet. The collector has a receiver for ${engine}: the Documentation tab has a ready-made collector config that sends its metrics here.`,
+        description: `${whatEngineMetricsAre(engine, data.dbSystem)}, and no OpenTelemetry Collector has sent them for this database yet. The collector has a receiver for ${engine}: the Documentation tab has a ready-made collector config that sends its metrics here.`,
         linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
       };
     case "prometheus":

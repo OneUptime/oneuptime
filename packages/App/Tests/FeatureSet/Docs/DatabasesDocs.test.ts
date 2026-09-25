@@ -38,8 +38,12 @@ import {
 } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { resolveDatabaseFromResourceAttributes } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
 import {
+  DATABASE_LIVENESS_DESCRIPTION,
+  DATABASE_SERVER_LIVE_WINDOW_MINUTES,
   DatabaseEngineMetricsStatus,
+  DatabaseLivenessStatus,
   getDatabaseEngineMetricsStatusLabel,
+  getDatabaseLivenessLabel,
 } from "../../../FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
@@ -1292,7 +1296,7 @@ describe("Databases docs", (): void => {
         `Every ${schedule} minutes OneUptime summarises the CLIENT spans your applications sent in the last ${windowMinutes} minutes`,
       );
       expect(markdown).toContain(
-        `fewer than 10 calls in the last ${windowMinutes} minutes`,
+        `fewer than 10 queries in the last ${windowMinutes} minutes`,
       );
       expect(markdown).not.toMatch(/10-minute window|in ten minutes/);
     });
@@ -1933,14 +1937,39 @@ describe("Databases docs", (): void => {
       const lifetimeMinutes: number =
         sourceNumber(DISCOVERY_JOB, "MIN_OBSERVED_LIFETIME_MS") / 60000;
 
-      expect(kubernetes).toContain(
-        `Running for about ${lifetimeMinutes} minutes`,
+      /*
+       * e2e: a pod in CrashLoopBackOff became a database and counted as a
+       * running instance. The lifetime gate now starts when the pod last
+       * turned Ready (the candidate-pod query reads the Ready condition),
+       * and an instance is a pod whose database container is running.
+       */
+      const job: string = fs.readFileSync(
+        path.join(REPO_ROOT, DISCOVERY_JOB),
+        "utf8",
       );
+
+      expect(kubernetes).toContain(
+        `A database appears once one of its pods has been Ready for about ${lifetimeMinutes} minutes`,
+      );
+      expect(kubernetes).toContain(
+        "A crash-looping pod turns Ready afresh on every restart, so it never becomes a database",
+      );
+      expect(job).toContain("rc.value ->> 'type' = 'Ready'");
+      expect(job).toContain("export function kubernetesMemberTiming(");
+      expect(kubernetes).toContain(
+        "**Instances** on its page counts the pods whose database container is running — not one waiting in `CrashLoopBackOff` or `ImagePullBackOff`, or one that has terminated",
+      );
+      expect(job).toContain("export function isRunningKubernetesMember(");
+      expect(kubernetes).not.toContain("counts the Running pods");
+      expect(markdown).not.toMatch(/been Running for about/);
+      expect(
+        section(markdown, "### A Kubernetes database was not detected"),
+      ).toContain(
+        `one of the database's pods must have been Ready for about ${lifetimeMinutes} minutes; a pod in \`CrashLoopBackOff\` turns Ready afresh on every restart`,
+      );
+
       expect(containers).toContain(
         `run for less than ${lifetimeMinutes} minutes never become databases`,
-      );
-      expect(kubernetes).toContain(
-        "**Instances** on its page counts the Running pods",
       );
       expect(kubernetes).toContain("a workload scaled to zero shows 0");
       expect(kubernetes).toContain(
@@ -1958,6 +1987,73 @@ describe("Databases docs", (): void => {
         "only positive evidence makes it anything else",
       );
       expect(kubernetes).toContain("`redis-server --sentinel`");
+    });
+
+    /*
+     * e2e (docker-spans): a container's 10-minute age was counted from its
+     * first sighting, and a duplicate host registration took a database
+     * over. The age now comes from `container.uptime`, and of two hosts with
+     * one name only the most recently seen is read.
+     */
+    it("states how Docker and Podman containers are aged, filtered and read", (): void => {
+      const markdown: string = readPage();
+      const containers: string = section(
+        markdown,
+        "### From Docker and Podman",
+      );
+      const job: string = fs.readFileSync(
+        path.join(REPO_ROOT, DISCOVERY_JOB),
+        "utf8",
+      );
+      const ingest: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Telemetry/Services/OtelMetricsIngestService.ts",
+        ),
+        "utf8",
+      );
+      const archiveDays: number = sourceNumber(
+        SERVICE,
+        "DEFAULT_AUTO_ARCHIVE_DAYS",
+      );
+
+      expect(containers).toContain(
+        "A container's age is its uptime, so one that has already run that long becomes a database on the first run after the agent is installed.",
+      );
+      expect(ingest).toContain('"container.uptime"');
+      for (const agent of ["DockerAgent", "PodmanAgent"]) {
+        const config: string = fs.readFileSync(
+          path.join(REPO_ROOT, "agents", agent, "otel-collector-config.yaml"),
+          "utf8",
+        );
+        const uptimeEnabled: RegExp =
+          /\n\s+container\.uptime:\s*\n\s+enabled:\s*true/;
+        expect({
+          agent,
+          uptime: uptimeEnabled.test(config),
+        }).toEqual({ agent, uptime: true });
+      }
+
+      expect(containers).toContain(
+        "A host registered twice under the same name is read once, through the registration seen most recently.",
+      );
+      expect(job).toContain("export function dedupeParentsByIdentifier(");
+
+      expect(containers).toContain("never by the command they run (see below)");
+      expect(containers).toContain(
+        "containers the kubelet runs on a Docker node (Kubernetes discovery finds those as pods)",
+      );
+      expect(
+        classifyContainer({
+          name: "k8s_postgres_postgres-0_data_1234_0",
+          imageName: "postgres:16",
+          labels: { "io.kubernetes.pod.name": "postgres-0" },
+        }),
+      ).toBeNull();
+
+      expect(containers).toContain(
+        `Left alone, it is [archived automatically](#lifecycle-archiving-and-retention) ${archiveDays} days after the container stops.`,
+      );
     });
 
     /*
@@ -2013,6 +2109,45 @@ describe("Databases docs", (): void => {
           argv: ["redis-server", "/etc/sentinel.conf", "--sentinel"],
           role: "companion",
         },
+        /*
+         * e2e: client runs behind a launcher were read as servers. The
+         * launchers the page names are looked through to their program.
+         */
+        {
+          named: "`env PGPASSWORD=… psql`",
+          argv: ["env", "PGPASSWORD=s3cret", "psql", "-h", "db"],
+          role: "client",
+        },
+        {
+          named: "`tini -- redis-cli`",
+          argv: ["tini", "--", "redis-cli", "monitor"],
+          role: "client",
+        },
+        {
+          named: "`nohup`",
+          argv: ["nohup", "psql", "-h", "db"],
+          role: "client",
+        },
+        {
+          named: "`setsid`",
+          argv: ["setsid", "sleep", "infinity"],
+          role: "keep-alive",
+        },
+        {
+          named: "`dumb-init`",
+          argv: ["dumb-init", "--", "redis-cli", "ping"],
+          role: "client",
+        },
+        {
+          named: "`docker-entrypoint.sh` are looked through",
+          argv: ["docker-entrypoint.sh", "sleep", "infinity"],
+          role: "keep-alive",
+        },
+        {
+          named: "`exec`, `env` and `nohup` inside a script",
+          argv: ["sh", "-c", "exec env PGPASSWORD=x nohup psql -h db"],
+          role: "client",
+        },
       ];
 
       const servers: Array<{ named: string; argv: Array<string> }> = [
@@ -2026,10 +2161,16 @@ describe("Databases docs", (): void => {
         },
         { named: "`sh /start.sh`", argv: ["sh", "/start.sh"] },
         {
-          named: "`tini`",
+          named: "`tini -- docker-entrypoint.sh postgres`",
           argv: ["tini", "--", "docker-entrypoint.sh", "postgres"],
         },
-        { named: "`gosu`", argv: ["gosu", "postgres", "postgres"] },
+        {
+          named: "`docker-entrypoint.sh -c max_connections=200`",
+          argv: ["docker-entrypoint.sh", "-c", "max_connections=200"],
+        },
+        // A wrapper with arguments of its own is not read past, whatever follows.
+        { named: "`gosu postgres …`", argv: ["gosu", "postgres", "psql"] },
+        { named: "`timeout 30 …`", argv: ["timeout", "30", "psql"] },
         {
           named: "a script too long to read",
           argv: ["sh", "-c", tooLongScript],
@@ -2051,6 +2192,12 @@ describe("Databases docs", (): void => {
           role: classifyContainerCommand({ command: example.argv }),
         }).toEqual({ named: example.named, onPage: true, role: "server" });
       }
+
+      expect(
+        section(readPage(), "### A Kubernetes database was not detected"),
+      ).toContain(
+        "a client or debug run of a database image (directly, through `sh -c`, or behind `env`, `nohup`, `tini`, `dumb-init` or `docker-entrypoint.sh`)",
+      );
 
       // Whatever the classifier only notes as unrecognised is never read.
       expect(
@@ -2700,12 +2847,47 @@ describe("Databases docs", (): void => {
       );
     });
 
-    it("says connection spans are not calls, naming spans the rule really drops", (): void => {
-      const traces: string = section(readPage(), "### From application traces");
+    it("says connection spans are not queries, naming spans the rule really drops", (): void => {
+      const markdown: string = readPage();
+      const traces: string = section(markdown, "### From application traces");
 
       expect(traces).toContain(
-        "Only queries are calls: a client library's connection-management spans",
+        "the endpoint received at least 10 queries in the 15-minute window a run looks at",
       );
+      expect(traces).toContain(
+        "A client library's connection-management spans (`pg.connect` and `pg-pool.connect` from node-postgres, `redis-connect`, `connect`, …) are not queries: they count neither here nor in a database's **Queries**",
+      );
+      // The threshold's other two mentions say the same.
+      const minCallsRow: string | undefined = section(
+        markdown,
+        "## Self-hosted tuning",
+      )
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| `DATABASE_SERVER_MIN_CALLS` |");
+        });
+      expect(minCallsRow).toContain(
+        "| Queries an endpoint needs within the 15-minute window",
+      );
+      expect(minCallsRow).toContain(
+        "(connection spans such as `pg.connect` do not count)",
+      );
+      expect(
+        section(markdown, "### A database my applications use was not created"),
+      ).toContain(
+        "fewer than 10 queries in the last 15 minutes (connection spans such as `pg.connect` and `pg-pool.connect` do not count)",
+      );
+      expect(markdown).not.toMatch(/\b10 calls\b|Calls an endpoint needs/);
+      // The discovery count leaves them out the way the page says.
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages/Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery.ts",
+          ),
+          "utf8",
+        ),
+      ).toMatch(/countIf\(\$\{databaseQuerySpanSql\(\)\}\) AS callCount/);
       // e2e: node-postgres sent pg-pool.connect and pg.connect around every query.
       for (const name of ["pg.connect", "pg-pool.connect", "redis-connect"]) {
         expect(traces).toContain(`\`${name}\``);
@@ -2777,6 +2959,141 @@ describe("Databases docs", (): void => {
       expect(section(readPage(), "### What Gets Collected")).toContain(
         "with the query text as their message",
       );
+    });
+
+    /*
+     * UI review: the Overview header's pill said "Connected" for databases
+     * whose engine metrics were not; it now reads Last seen, in words of its
+     * own. The page described only Last seen and the Engine metrics status.
+     */
+    it("describes the header's liveness pill by the labels and window the product uses", (): void => {
+      const lifecycle: string = section(
+        readPage(),
+        "## Lifecycle, archiving and retention",
+      );
+
+      for (const status of Object.values(DatabaseLivenessStatus)) {
+        const label: string = getDatabaseLivenessLabel(status);
+        expect({ label, described: lifecycle.includes(`_${label}_`) }).toEqual({
+          label,
+          described: true,
+        });
+      }
+      expect(lifecycle).toContain(
+        `saw the database in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} minutes`,
+      );
+      expect(lifecycle).toContain(
+        "It says nothing about engine metrics, which have a status of their own.",
+      );
+      // The pill's own hover text names the same sources and the same split.
+      expect(DATABASE_LIVENESS_DESCRIPTION).toContain(
+        `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} minutes`,
+      );
+      expect(DATABASE_LIVENESS_DESCRIPTION).toContain(
+        "the separate Engine metrics status",
+      );
+    });
+
+    /*
+     * The Metrics tab's rows: a catalog metric reads as its Overview tile,
+     * captioned; MariaDB's mysql.buffer_pool.limit (a page count declared in
+     * bytes, 8112 read "7.9 KiB") reads in pages.
+     */
+    it("says what a Metrics tab row's value is, and how MariaDB's buffer pool limit reads", (): void => {
+      const collected: string = section(readPage(), "### What Gets Collected");
+      const queries: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries.ts",
+        ),
+        "utf8",
+      );
+      const metricsTab: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Dashboard/src/Pages/Database/View/Metrics.tsx",
+        ),
+        "utf8",
+      );
+
+      expect(collected).toContain(
+        "a metric the Overview charts shows the Overview's value — its series combined the same way, a counter as a per-second rate — with a caption saying how (_total of series_, _per second, all series_); every other row shows the average of its series",
+      );
+      for (const caption of ["total of series", "per second, all series"]) {
+        expect({
+          caption,
+          inCode: queries.includes(`how = "${caption}"`),
+        }).toEqual({ caption, inCode: true });
+      }
+      expect(metricsTab).toContain(
+        'DATABASE_METRIC_LIST_DEFAULT_CAPTION: string = "average of series"',
+      );
+
+      expect(collected).toContain(
+        "MariaDB reports `mysql.buffer_pool.limit` as the buffer pool's page count rather than the bytes the receiver declares, so on a MariaDB database that row and its chart read in pages.",
+      );
+      expect(queries).toMatch(
+        /system: "mariadb",\s+metricName: "mysql\.buffer_pool\.limit",\s+correction: \{\s+unit: "\{pages\}",/,
+      );
+      expect(metricsTab).toContain("getRowValueUnit={getRowValueUnit}");
+      // No curated tile reads it: the Overview's "Buffer pool size" is in pages on both.
+      expect(
+        getDatabaseServerMetrics("mariadb").some(
+          (definition: DatabaseServerMetricDefinition): boolean => {
+            return definition.metricName === "mysql.buffer_pool.limit";
+          },
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * e2e: the Created feed item said "the first time telemetry for it
+     * arrived" for every source, and a person's alias add or remove never
+     * reached the Feed.
+     */
+    it("says what the Feed records about how a database was found and its aliases", (): void => {
+      const markdown: string = readPage();
+      const service: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Services/DatabaseServerService.ts",
+        ),
+        "utf8",
+      );
+      const endpointService: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Services/DatabaseServerEndpointService.ts",
+        ),
+        "utf8",
+      );
+
+      expect(section(markdown, "## How databases are detected")).toContain(
+        "the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it",
+      );
+      for (const origin of [
+        "on Kubernetes cluster ",
+        "`container ",
+        " host ",
+        "was created automatically: detected from application traces",
+        " calling ",
+        "the Database Agent",
+        "was created automatically: reported by ",
+      ]) {
+        expect({ origin, inCode: service.includes(origin) }).toEqual({
+          origin,
+          inCode: true,
+        });
+      }
+
+      expect(
+        section(markdown, "## Endpoints and the one-owner rule"),
+      ).toContain(
+        "Each alias added or removed this way goes on the database's **Feed**, naming the endpoint and who changed it; discovery's own endpoint changes do not.",
+      );
+      expect(endpointService).toContain("Added the endpoint");
+      expect(endpointService).toContain("Removed the endpoint");
+      expect(endpointService).toContain("userId: data.userId");
     });
   });
 

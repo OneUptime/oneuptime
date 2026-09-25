@@ -733,4 +733,42 @@ describe("the database Metrics tab's list values", () => {
     });
     expect(overrides.get("postgresql.commits")!.valueSuffix).toBe("/s");
   });
+
+  /*
+   * e2e: MariaDB reports mysql.buffer_pool.limit (declared in bytes) as its
+   * page count, and the row read "7.9 KiB" for 8112 pages.
+   */
+  test("on MariaDB the buffer pool limit's row reads in pages; elsewhere units stand", async () => {
+    const mariadb: DatabaseServer = databaseServer({});
+    mariadb.dbSystem = "mariadb";
+    getItemMock.mockResolvedValue(mariadb);
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:3306"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    const getRowValueUnit: (metricName: string) => string | undefined =
+      lastProps(metricsViewerMock)["getRowValueUnit"] as (
+        metricName: string,
+      ) => string | undefined;
+    expect(getRowValueUnit("mysql.buffer_pool.limit")).toBe("{pages}");
+    expect(getRowValueUnit("mysql.buffer_pool.usage")).toBeUndefined();
+    expect(getRowValueUnit("db.client.operation.duration")).toBeUndefined();
+  });
+
+  test("a MySQL database's buffer pool limit keeps its bytes", async () => {
+    const mysql: DatabaseServer = databaseServer({});
+    mysql.dbSystem = "mysql";
+    getItemMock.mockResolvedValue(mysql);
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:3306"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    const getRowValueUnit: (metricName: string) => string | undefined =
+      lastProps(metricsViewerMock)["getRowValueUnit"] as (
+        metricName: string,
+      ) => string | undefined;
+    expect(getRowValueUnit("mysql.buffer_pool.limit")).toBeUndefined();
+  });
 });

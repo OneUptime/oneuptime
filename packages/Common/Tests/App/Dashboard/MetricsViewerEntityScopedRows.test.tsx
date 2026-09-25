@@ -147,6 +147,7 @@ import Service from "../../../Models/DatabaseModels/Service";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ValueFormatter from "../../../Utils/ValueFormatter";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "21075038-d9f1-4d3a-b878-f64ae861f7be",
@@ -415,5 +416,80 @@ describe("row values a host supplies", () => {
     expect(screen.getByTestId("metric-row-value-caption")).toHaveTextContent(
       "per second, all series",
     );
+  });
+
+  /*
+   * e2e: MariaDB's mysql.buffer_pool.limit (8112, a page count) is declared
+   * in bytes, so its row read "7.9 KiB". The host's unit wins over the
+   * metric's own, for the value and the badge.
+   */
+  test("a host's unit replaces the metric's declared one", () => {
+    const limit: MetricType = metricType("mysql.buffer_pool.limit", []);
+    limit.unit = "By";
+
+    render(
+      <RealMetricRow
+        metric={limit}
+        lastValue={8112}
+        valueUnit="{pages}"
+        valueCaption="average of series"
+      />,
+    );
+    expect(screen.getByText("Pages")).toBeInTheDocument();
+    expect(screen.queryByText(/KiB|KB|Bytes/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(ValueFormatter.formatValue(8112, "{pages}")),
+    ).toBeInTheDocument();
+  });
+
+  test("the viewer asks the host for each row's unit, whoever computed its value", async () => {
+    const limit: MetricType = metricType("mysql.buffer_pool.limit", []);
+    limit.unit = "By";
+    metricTypeRows.push(limit);
+    const getRowValueUnit: (metricName: string) => string | undefined = (
+      metricName: string,
+    ): string | undefined => {
+      return metricName === "mysql.buffer_pool.limit" ? "{pages}" : undefined;
+    };
+
+    await renderViewer({
+      entityKeysFilter: PG16_KEYS,
+      getRowValueUnit: getRowValueUnit,
+      defaultRowValueCaption: "average of series",
+    });
+    const limitRow: Record<string, unknown> = lastRowFor(
+      "mysql.buffer_pool.limit",
+    );
+    expect(limitRow["valueUnit"]).toBe("{pages}");
+    // The list's own value, as for any row the host has no value for.
+    expect(limitRow["lastValue"]).toBe(4);
+    expect(limitRow["valueCaption"]).toBe("average of series");
+    expect(lastRowFor("postgresql.backends")["valueUnit"]).toBeUndefined();
+
+    // A user's own attribute filter sets the host's values aside, not its units.
+    cleanup();
+    rowProps.length = 0;
+    window.history.pushState(
+      {},
+      "",
+      `/metrics?filters=${encodeURIComponent(
+        JSON.stringify([["attributes.db.namespace", "orders"]]),
+      )}`,
+    );
+    await act(async () => {
+      render(
+        <MetricsViewer
+          entityKeysFilter={PG16_KEYS}
+          getRowValueUnit={getRowValueUnit}
+        />,
+      );
+    });
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    window.history.pushState({}, "", "/");
+    expect(lastRowFor("mysql.buffer_pool.limit")["valueUnit"]).toBe("{pages}");
   });
 });

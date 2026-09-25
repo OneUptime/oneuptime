@@ -137,6 +137,17 @@ export function getDatabaseAgentCollectedSummary(
     : COLLECTED_METRICS[engine];
 }
 
+/**
+ * The metrics half of getDatabaseAgentCollectedSummary as plain text (the
+ * markdown's backticks dropped), for copy that is not rendered as markdown:
+ * the Overview's "Engine metrics not connected" card.
+ */
+export function getDatabaseAgentCollectedMetricsText(
+  engine: DatabaseAgentEngine,
+): string {
+  return COLLECTED_METRICS[engine].replace(/`/g, "");
+}
+
 /** The picker label of an agent engine. */
 export function getDatabaseAgentEngineLabel(
   engine: DatabaseAgentEngine,

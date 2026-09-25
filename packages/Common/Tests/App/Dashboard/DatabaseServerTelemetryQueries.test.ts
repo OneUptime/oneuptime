@@ -1323,6 +1323,41 @@ describe("the Metrics tab's in-place metric chart", () => {
     ).toBe("rate");
   });
 
+  /*
+   * e2e: MariaDB 11.4 reports mysql.buffer_pool.limit as its page count
+   * (8112) under the receiver's unit "By", and the chart read it in bytes.
+   */
+  test("MariaDB's buffer pool limit is charted in pages, and the note says why", () => {
+    const shape: Partial<DatabaseMetricShape> = {
+      pointType: MetricPointType.Sum,
+      isMonotonic: false,
+      aggregationTemporality: AggregationTemporality.Cumulative,
+      unit: "By",
+    };
+    const mariadb: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+      "mysql.buffer_pool.limit",
+      "mariadb",
+      shape,
+    );
+
+    expect(mariadb.definition).toBeNull();
+    expect(mariadb.mode).toBe("aggregate");
+    expect(mariadb.defaultAggregation).toBe(AggregationType.Avg);
+    expect(mariadb.unit).toBe("{pages}");
+    expect(mariadb.note).toContain(
+      "MariaDB reports mysql.buffer_pool.limit as the InnoDB buffer pool's size in pages",
+    );
+
+    // MySQL reports bytes: the receiver's unit stands, with no note.
+    const mysql: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+      "mysql.buffer_pool.limit",
+      "mysql",
+      shape,
+    );
+    expect(mysql.unit).toBe("By");
+    expect(mysql.note).toBe("");
+  });
+
   test("a delta counter defaults to its Sum per interval", () => {
     const spec: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
       "requests",

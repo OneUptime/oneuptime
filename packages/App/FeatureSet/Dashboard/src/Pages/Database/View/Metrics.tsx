@@ -30,6 +30,7 @@ import {
   DatabaseMetricListValue,
   DatabaseTimePoint,
   fetchDatabaseMetricListValues,
+  getDatabaseMetricRowUnit,
   getDatabaseMetricsRangeFromSearch,
 } from "../Utils/DatabaseServerTelemetryQueries";
 
@@ -137,6 +138,19 @@ const DatabaseServerMetrics: FunctionComponent<
     [keys, projectId?.toString(), dbSystem],
   );
 
+  /*
+   * A row whose engine reports the metric in another unit than it declares
+   * (MariaDB's mysql.buffer_pool.limit is a page count) reads in that unit,
+   * whether its value is the catalog's or the list's own average.
+   */
+  const getRowValueUnit: (metricName: string) => string | undefined =
+    useCallback(
+      (metricName: string): string | undefined => {
+        return getDatabaseMetricRowUnit(dbSystem, metricName);
+      },
+      [dbSystem],
+    );
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -177,6 +191,7 @@ const DatabaseServerMetrics: FunctionComponent<
         entityKeyDisplays={entityKeyDisplays}
         fetchRowValueOverrides={fetchRowValueOverrides}
         defaultRowValueCaption={DATABASE_METRIC_LIST_DEFAULT_CAPTION}
+        getRowValueUnit={getRowValueUnit}
         onTimeRangeChange={(range: RangeStartAndEndDateTime): void => {
           setListRange(range);
         }}
