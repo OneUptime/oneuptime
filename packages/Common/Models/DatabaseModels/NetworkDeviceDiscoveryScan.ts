@@ -13,6 +13,10 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -71,6 +75,28 @@ export interface DiscoveredNetworkDevice {
    * it without NetbiosNameUtil.normalizeNetbiosName.
    */
   netbiosName?: string | undefined;
+  /*
+   * Why reverse DNS left this host without a name, when it did (OneUptime
+   * issue #3916) — no PTR record, a DNS server that timed out or failed, a
+   * lookup the pass never reached. Stamped by the probe only on hosts that
+   * ended the reverse-DNS pass with neither a sysName nor a dnsHostname, and
+   * absent everywhere else: on named hosts, on rows stored before this field
+   * existed, and on rows from an older probe.
+   *
+   * Stored verbatim like everything in this column, so read it only through
+   * readDiscoveredHostReverseDnsStatus — normalizeDiscoveredHosts does, and
+   * deletes anything that is not one of the codes.
+   */
+  dnsHostnameStatus?: DiscoveredHostReverseDnsStatus | undefined;
+  /*
+   * Why NetBIOS left this host without a name (issue #3916): no reply on UDP
+   * 137, a reply with no usable name, or a host the lookup never queried and
+   * why. Stamped only on scans that asked for NetBIOS names, and only on hosts
+   * the lookup was responsible for — those still unnamed after SNMP and
+   * reverse DNS — that it did not name. Read only through
+   * readDiscoveredHostNetbiosStatus, for the reason dnsHostnameStatus is.
+   */
+  netbiosNameStatus?: DiscoveredHostNetbiosStatus | undefined;
   isAlreadyRegistered?: boolean | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
