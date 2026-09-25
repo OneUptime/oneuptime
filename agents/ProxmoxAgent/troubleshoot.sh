@@ -5,23 +5,26 @@
 # Run this on the machine where the agent is installed (docker compose,
 # optionally wrapped by the systemd unit). It explains the #1 confusing
 # failure mode: the cluster shows "Disconnected" in OneUptime and no metrics
-# are ingested, yet the containers look healthy and the collector logs show
-# no errors.
+# are ingested, yet the containers look healthy.
 #
 # Why that happens: the agent ships telemetry to `<url>/otlp/v1/*` with the
 # ingestion key in the `x-oneuptime-token` header. If that key is missing,
-# malformed, or revoked, the OTLP endpoints *deliberately return HTTP 200 and
-# silently drop the data* (so a misconfigured collector can't retry-flood the
-# server). The collector therefore reports success, logs nothing, and the
-# cluster never flips to "connected" because connection status is driven
-# purely by telemetry actually arriving.
+# malformed, unknown or expired, the OTLP endpoints answer 401 (422 for a
+# disabled key or a browser key). Neither is retryable, so the collector drops
+# every batch and logs one "Exporting failed" line per batch, which is easy to
+# miss while the container keeps running, and the cluster never flips to
+# "connected" because connection status is driven purely by telemetry
+# actually arriving. (Servers older than mid-2026 answered 200 instead and
+# dropped the data without telling the collector at all.)
 #
 # How it gets a definitive answer: from inside the agent container's network
 # namespace it calls `GET <url>/otlp/v1/validate`, a validation endpoint that
-# returns a REAL status (200 valid / 401 invalid) instead of the silent 200.
-# On older servers that lack it, it falls back to `POST <url>/fluentd/v1/logs`,
-# which runs the SAME auth but is NOT an /otlp path — so a bad token returns
-# `400 Invalid service token` rather than the silent 200.
+# judges the key alone (200 valid / 401 unknown, disabled or expired) and
+# names its type, so a browser key, which validates but which ingest refuses
+# from a collector, is caught too. On older servers that lack it, it falls
+# back to `POST <url>/fluentd/v1/logs`, which runs the SAME auth but is NOT
+# an /otlp path, so even a server that old answers a bad token with
+# `400 Invalid service token` there (a current one answers 401/422).
 #
 # Usage:
 #   ./troubleshoot.sh [-d INSTALL_DIR] [--skip-egress] [--curl-image IMG] [--no-color]
@@ -52,7 +55,7 @@ while [ $# -gt 0 ]; do
     --curl-image)  CURL_IMAGE="${2:-}"; shift 2 ;;
     --no-color)    USE_COLOR=0; shift ;;
     -h|--help)
-      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,35p'
+      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,38p'
       exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -295,7 +298,7 @@ else
     fi
   else
     fail "Token is not a valid UUID: '${MASK}' (len=${#TRIMMED})"
-    add_finding "The ingestion key is not a UUID, so OneUptime can never resolve it (telemetry is silently dropped). Set a real Telemetry Ingestion Key."
+    add_finding "The ingestion key is not a UUID, so OneUptime can never resolve it (every export is refused with 401). Set a real Telemetry Ingestion Key."
   fi
 fi
 
@@ -313,13 +316,13 @@ if [ "$AGENT_RUNNING" = 1 ]; then
     FAILED=$(printf '%s\n' "$SELF" | awk '/^otelcol_exporter_send_failed_/{s+=$2} END{if(s=="")print "0"; else printf "%d", s}')
     info "Collector self-metrics: accepted=$ACCEPTED  sent=$SENT  send_failed=$FAILED"
     if [ "${FAILED:-0}" -gt 0 ] 2>/dev/null; then
-      fail "Collector reports send_failed > 0 → exports are erroring (network/URL/TLS)."
-      add_finding "Collector send_failed=$FAILED. The collector cannot deliver to OneUptime — investigate egress/DNS/TLS/firewall (next section)."
+      fail "Collector reports send_failed > 0 → exports are failing (a refused key, or network/URL/TLS)."
+      add_finding "Collector send_failed=$FAILED. The collector cannot deliver to OneUptime — the next section tells a refused ingestion key (401/422) apart from an egress/DNS/TLS/firewall problem."
     elif [ "${ACCEPTED:-0}" -eq 0 ] 2>/dev/null; then
       warn "No datapoints accepted yet — the scrape is failing (see Section 2) or the collector started <30s ago."
     elif [ "${SENT:-0}" -gt 0 ] 2>/dev/null; then
       pass "Bytes are leaving the collector and the server is returning 2xx."
-      detail "NOTE: a bad token ALSO returns 2xx (silent drop). The token probe below settles it."
+      detail "NOTE: servers older than mid-2026 answered 2xx even for a bad key. The token probe below settles it."
     fi
   else
     warn "Couldn't scrape collector self-metrics (:8888) — skipping (telemetry address may be customized)."
@@ -331,12 +334,17 @@ fi
 # ----------------------------------------------------------------------------
 section "6. Egress + DEFINITIVE token check"
 # ----------------------------------------------------------------------------
-# This is the part you can't see from the agent side. From the agent's own
-# network namespace we ask OneUptime's validation endpoint for a real verdict:
-#   GET /otlp/v1/validate  → 200 {valid:true} | 401 {valid:false}
+# A refused key shows up agent-side only as "Exporting failed" log lines. From
+# the agent's own network namespace we ask OneUptime's validation endpoint for
+# the verdict:
+#   GET /otlp/v1/validate  → 200 {valid:true, keyType} | 401 {valid:false}
+#   (a Browser key validates, but ingest refuses it from a collector with 422)
 # Older servers without that endpoint (404) fall back to:
-#   POST /otlp/v1/metrics → reachability only (returns 200 even on a bad token)
-#   POST /fluentd/v1/logs → bad token returns 400 "Invalid service token"
+#   POST /otlp/v1/metrics → 401/422 means the key is refused; any other answer
+#                           proves reachability only, because servers that
+#                           predate the endpoint answer 2xx whatever the key
+#   POST /fluentd/v1/logs → a bad token gets 400 "Invalid service token" from
+#                           a server that old (401/422 from a current one)
 TOKEN_VERDICT="UNKNOWN"   # UNKNOWN | VALID | INVALID | INCONCLUSIVE
 EGRESS="UNKNOWN"          # UNKNOWN | OK | FAIL | SKIPPED
 
@@ -361,23 +369,33 @@ egress_fail_finding() {
 }
 
 token_invalid_finding() {
-  add_finding "DEFINITIVE: the ingestion key is unknown/revoked server-side. On /otlp this is hidden behind a silent 200, which is why the agent looks healthy while nothing ingests. FIX: create or copy a live Telemetry Ingestion Key in OneUptime, update ONEUPTIME_TELEMETRY_INGESTION_KEY in $ENV_FILE, then: cd $DIR && docker compose up -d"
+  add_finding "DEFINITIVE: OneUptime does not accept this ingestion key (unknown, revoked, disabled, expired, or a browser key). Every export is refused (401/422) and dropped, and the collector only logs 'Exporting failed', which is why the agent looks healthy while nothing ingests. FIX: create or copy a live server Telemetry Ingestion Key in OneUptime, update ONEUPTIME_TELEMETRY_INGESTION_KEY in $ENV_FILE, then: cd $DIR && docker compose up -d"
 }
 
-# Fallback token oracle for servers without /otlp/v1/validate.
+# Fallback token oracle for servers without /otlp/v1/validate, which answer
+# a bad token here with 400 and one of the two bodies below. It also runs when
+# /otlp/v1/validate gave an unexpected status, and a current server refuses a
+# key with 401 or 422 and different wording, so those codes count as a refusal
+# rather than falling through to "accepted".
 fluentd_token_probe() {
   agent_netns_req POST "$BASE_URL/fluentd/v1/logs" "$TOKEN"
   case "$RESP_BODY" in
     *"Invalid service token"*)
       fail "OneUptime REJECTED this token: \"Invalid service token\" (HTTP $RESP_CODE)."
       TOKEN_VERDICT="INVALID"; token_invalid_finding ;;
-    *"Missing header"*)
+    *"Missing header"*|*"Missing ingestion token"*)
       fail "Server says the token header is missing (HTTP $RESP_CODE) — a proxy may be stripping it."
       TOKEN_VERDICT="INVALID"
       add_finding "The x-oneuptime-token header isn't arriving at OneUptime — check any egress proxy that might strip headers." ;;
     *)
-      if [ "$RESP_CODE" = "404" ]; then
+      if [ "$RESP_CODE" = "401" ] || [ "$RESP_CODE" = "422" ]; then
+        fail "OneUptime REFUSED this token (/fluentd/v1/logs → HTTP $RESP_CODE)."
+        TOKEN_VERDICT="INVALID"; token_invalid_finding
+      elif [ "$RESP_CODE" = "404" ]; then
         warn "/fluentd/v1/logs returned 404 — token check inconclusive."
+        TOKEN_VERDICT="INCONCLUSIVE"
+      elif is_conn_fail; then
+        warn "No HTTP answer from /fluentd/v1/logs (curl exit ${RESP_EXIT:-?}) — token check inconclusive."
         TOKEN_VERDICT="INCONCLUSIVE"
       else
         pass "Token ACCEPTED by OneUptime (auth passed; /fluentd returned HTTP $RESP_CODE)."
@@ -396,8 +414,15 @@ elif ! [[ "$TOKEN" =~ ^[A-Za-z0-9-]+$ ]]; then
 else
   agent_netns_req GET "$BASE_URL/otlp/v1/validate" "$TOKEN"
   if [ "$RESP_CODE" = "200" ]; then
-    pass "Reached OneUptime and the ingestion token is VALID (/otlp/v1/validate → 200)."
-    EGRESS="OK"; TOKEN_VERDICT="VALID"
+    EGRESS="OK"
+    case "$RESP_BODY" in
+      *'"keyType":"Browser"'*)
+        fail "Reached OneUptime, but the token is a BROWSER ingestion key: it validates, yet ingest refuses it from a collector (422)."
+        TOKEN_VERDICT="INVALID"; token_invalid_finding ;;
+      *)
+        pass "Reached OneUptime and the ingestion token is VALID (/otlp/v1/validate → 200)."
+        TOKEN_VERDICT="VALID" ;;
+    esac
   elif [ "$RESP_CODE" = "401" ] || [ "$RESP_CODE" = "403" ]; then
     fail "Reached OneUptime, but it REJECTED the token (/otlp/v1/validate → $RESP_CODE)."
     EGRESS="OK"; TOKEN_VERDICT="INVALID"; token_invalid_finding
@@ -406,6 +431,9 @@ else
     agent_netns_req POST "$BASE_URL/otlp/v1/metrics" "$TOKEN"
     if is_conn_fail; then
       egress_fail_finding "$BASE_URL/otlp/v1/metrics"
+    elif [ "$RESP_CODE" = "401" ] || [ "$RESP_CODE" = "422" ]; then
+      fail "Reached OneUptime, but /otlp/v1/metrics REFUSED the token (HTTP $RESP_CODE)."
+      EGRESS="OK"; TOKEN_VERDICT="INVALID"; token_invalid_finding
     else
       pass "Reachable: $BASE_URL/otlp/v1/metrics returned HTTP $RESP_CODE."; EGRESS="OK"
       fluentd_token_probe
@@ -429,7 +457,7 @@ if [ "$AGENT_RUNNING" = 1 ] || [ -n "$STATE" ]; then
     printf '%s\n' "$LOGERR" | while read -r l; do detail "$(printf '%s' "$l" | head -c 160)"; done
   else
     pass "No export errors in recent collector logs."
-    detail "(Expected when a token is silently dropped — absence of errors does NOT mean data is landing.)"
+    detail "(A refused ingestion key would show here as 'Exporting failed … HTTP Status Code 401/422'.)"
   fi
 fi
 
@@ -441,8 +469,8 @@ if [ "$AGENT_RUNNING" != 1 ]; then
   printf "Fix the container (see Section 1) — until it runs, nothing is scraped or shipped.\n"
 elif [ "$TOKEN_VERDICT" = "INVALID" ]; then
   printf "%s%sROOT CAUSE: the ingestion token is rejected by OneUptime.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-  printf "This is the classic trap: /otlp returns 200 and drops the data, so the agent\n"
-  printf "looks healthy while the cluster stays Disconnected with no metrics.\n"
+  printf "This is the classic trap: /otlp refuses every batch (401/422) and the collector\n"
+  printf "drops it, yet the agent looks healthy while the cluster stays Disconnected.\n"
 elif [ "$EGRESS" = "FAIL" ]; then
   printf "%s%sROOT CAUSE: the agent can't deliver telemetry to OneUptime (network/URL/TLS).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
 elif [ "$EXPORTER_OK" != 1 ]; then
@@ -453,7 +481,7 @@ elif [ "$CLUSTER_NAME_OK" != 1 ]; then
 elif [ "$TOKEN_HAS_WS" = 1 ]; then
   printf "%s%sROOT CAUSE: the ingestion key has stray whitespace.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
   printf "The collector sends the key with that whitespace, so OneUptime can't match it and\n"
-  printf "drops the data behind /otlp's silent 200. Fix %s and restart.\n" "$ENV_FILE"
+  printf "refuses every export. Fix %s and restart.\n" "$ENV_FILE"
 elif [ "$TOKEN_SHAPE_OK" != 1 ]; then
   printf "%s%sROOT CAUSE: the ingestion key is empty/malformed.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
 elif [ "$TOKEN_VERDICT" = "VALID" ]; then

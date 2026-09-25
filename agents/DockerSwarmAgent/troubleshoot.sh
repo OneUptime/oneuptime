@@ -5,18 +5,20 @@
 # Run this on the swarm MANAGER node where the agent is installed. It
 # explains the #1 confusing failure mode: the cluster shows "Disconnected"
 # in OneUptime and no telemetry is ingested, yet the containers look
-# healthy and the collector logs show no errors.
+# healthy.
 #
 # Why that happens: the agent ships telemetry to `<url>/otlp/v1/*` with the
 # ingestion key in the `x-oneuptime-service-token` header. If that key is
-# missing, malformed, or revoked, the OTLP endpoints *deliberately return
-# HTTP 200 and silently drop the data*. The collector reports success, logs
-# nothing, and the cluster never flips to "connected" because connection
-# status is driven purely by telemetry actually arriving.
+# missing, malformed, unknown or expired, the OTLP endpoints answer 401 (422
+# for a disabled key or a browser key). Neither is retryable, so the
+# collector drops every batch and logs one "Exporting failed" line per batch,
+# which is easy to miss, and the cluster never flips to "connected" because
+# connection status is driven purely by telemetry actually arriving.
 #
 # How it gets a definitive answer: from inside the agent container's network
-# namespace it calls `GET <url>/otlp/v1/validate`, which returns a REAL
-# status (200 valid / 401 invalid) instead of the silent 200.
+# namespace it calls `GET <url>/otlp/v1/validate`, which judges the key alone
+# (200 valid / 401 unknown, disabled or expired) and names its type, so a
+# browser key, which validates but which ingest refuses, is caught too.
 #
 # Usage:
 #   ./troubleshoot.sh [-d INSTALL_DIR] [--skip-egress] [--curl-image IMG] [--no-color]
@@ -43,7 +45,7 @@ while [ $# -gt 0 ]; do
     --curl-image)  CURL_IMAGE="${2:-}"; shift 2 ;;
     --no-color)    USE_COLOR=0; shift ;;
     -h|--help)
-      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,30p'
+      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,32p'
       exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -223,7 +225,7 @@ else
     fi
   else
     fail "Token is not a valid UUID: '${MASK}' (len=${#TRIMMED})"
-    add_finding "The ingestion key is not a UUID, so OneUptime can never resolve it (telemetry is silently dropped). Set a real Telemetry Ingestion Key."
+    add_finding "The ingestion key is not a UUID, so OneUptime can never resolve it (every export is refused with 401). Set a real Telemetry Ingestion Key."
   fi
 fi
 
@@ -239,11 +241,11 @@ if [ "$AGENT_RUNNING" = 1 ]; then
     FAILED=$(printf '%s\n' "$SELF" | awk '/^otelcol_exporter_send_failed_/{s+=$2} END{if(s=="")print "0"; else printf "%d", s}')
     info "Collector self-metrics: accepted=$ACCEPTED sent=$SENT send_failed=$FAILED"
     if [ "${FAILED:-0}" -gt 0 ] 2>/dev/null; then
-      fail "Collector reports send_failed > 0 → exports are erroring (network/URL/TLS)."
-      add_finding "Collector send_failed=$FAILED. The collector cannot deliver to OneUptime — investigate egress/DNS/TLS/firewall (next section)."
+      fail "Collector reports send_failed > 0 → exports are failing (a refused key, or network/URL/TLS)."
+      add_finding "Collector send_failed=$FAILED. The collector cannot deliver to OneUptime — the next section tells a refused ingestion key (401/422) apart from an egress/DNS/TLS/firewall problem."
     elif [ "${SENT:-0}" -gt 0 ] 2>/dev/null; then
       pass "Bytes are leaving the collector and the server is returning 2xx."
-      detail "NOTE: a bad token ALSO returns 2xx (silent drop). The token probe below settles it."
+      detail "NOTE: servers older than mid-2026 answered 2xx even for a bad key. The token probe below settles it."
     fi
   else
     warn "Couldn't scrape collector self-metrics (:8888) — skipping (telemetry address may be customized)."
@@ -261,7 +263,7 @@ BASE_URL=$(agent_env ONEUPTIME_URL)
 BASE_URL="${BASE_URL%/}"
 
 token_invalid_finding() {
-  add_finding "DEFINITIVE: the ingestion key is unknown/revoked server-side. On /otlp this is hidden behind a silent 200, which is why the agent looks healthy while nothing ingests. FIX: copy a live Telemetry Ingestion Key in OneUptime, update ONEUPTIME_SERVICE_TOKEN in $ENV_FILE, then: cd $DIR && docker compose up -d"
+  add_finding "DEFINITIVE: OneUptime does not accept this ingestion key (unknown, revoked, disabled, expired, or a browser key). Every export is refused (401/422) and dropped, and the collector only logs 'Exporting failed', which is why the agent looks healthy while nothing ingests. FIX: copy a live server Telemetry Ingestion Key in OneUptime, update ONEUPTIME_SERVICE_TOKEN in $ENV_FILE, then: cd $DIR && docker compose up -d"
 }
 
 if [ "$SKIP_EGRESS" = 1 ]; then
@@ -274,19 +276,33 @@ elif ! [[ "$TOKEN" =~ ^[A-Za-z0-9-]+$ ]]; then
 else
   agent_netns_req GET "$BASE_URL/otlp/v1/validate" "$TOKEN"
   if [ "$RESP_CODE" = "200" ]; then
-    pass "Reached OneUptime and the ingestion token is VALID (/otlp/v1/validate → 200)."
-    EGRESS="OK"; TOKEN_VERDICT="VALID"
+    EGRESS="OK"
+    # A Browser key validates, but ingest refuses it from a collector (422):
+    # it is accepted only from a browser, from one of its allowed origins.
+    case "$RESP_BODY" in
+      *'"keyType":"Browser"'*)
+        fail "Reached OneUptime, but the token is a BROWSER ingestion key: it validates, yet ingest refuses it from a collector (422)."
+        TOKEN_VERDICT="INVALID"; token_invalid_finding ;;
+      *)
+        pass "Reached OneUptime and the ingestion token is VALID (/otlp/v1/validate → 200)."
+        TOKEN_VERDICT="VALID" ;;
+    esac
   elif [ "$RESP_CODE" = "401" ] || [ "$RESP_CODE" = "403" ]; then
     fail "Reached OneUptime, but it REJECTED the token (/otlp/v1/validate → $RESP_CODE)."
     EGRESS="OK"; TOKEN_VERDICT="INVALID"; token_invalid_finding
   elif [ "$RESP_CODE" = "404" ]; then
-    info "Validation endpoint not on this server version (404) — confirming reachability only."
+    info "Validation endpoint not on this server version (404) — falling back to POST /otlp/v1/metrics."
     agent_netns_req POST "$BASE_URL/otlp/v1/metrics" "$TOKEN"
     if is_conn_fail; then
       fail "Cannot reach $BASE_URL/otlp/v1/metrics from the agent's network (curl exit ${RESP_EXIT:-?})."
       EGRESS="FAIL"
       add_finding "Egress to $BASE_URL failed from the collector container. Verify ONEUPTIME_URL and that this machine can reach it (DNS/TLS/firewall)."
+    elif [ "$RESP_CODE" = "401" ] || [ "$RESP_CODE" = "422" ]; then
+      fail "Reached OneUptime, but /otlp/v1/metrics REFUSED the token (HTTP $RESP_CODE)."
+      EGRESS="OK"; TOKEN_VERDICT="INVALID"; token_invalid_finding
     else
+      # Any other answer proves reachability only: servers that predate
+      # /otlp/v1/validate answer 2xx here whatever the key.
       pass "Reachable: $BASE_URL/otlp/v1/metrics returned HTTP $RESP_CODE (token check inconclusive on this server version)."
       EGRESS="OK"; TOKEN_VERDICT="INCONCLUSIVE"
     fi
@@ -311,7 +327,7 @@ if [ "$AGENT_RUNNING" = 1 ] || [ -n "$STATE" ]; then
     printf '%s\n' "$LOGERR" | while read -r l; do detail "$(printf '%s' "$l" | head -c 160)"; done
   else
     pass "No export errors in recent collector logs."
-    detail "(Expected when a token is silently dropped — absence of errors does NOT mean data is landing.)"
+    detail "(A refused ingestion key would show here as 'Exporting failed … HTTP Status Code 401/422'.)"
   fi
 fi
 
@@ -323,8 +339,8 @@ if [ "$AGENT_RUNNING" != 1 ]; then
   printf "Fix the container (see Section 1) — until it runs, nothing is shipped.\n"
 elif [ "$TOKEN_VERDICT" = "INVALID" ]; then
   printf "%s%sROOT CAUSE: the ingestion token is rejected by OneUptime.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-  printf "The classic trap: /otlp returns 200 and drops the data, so the agent looks\n"
-  printf "healthy while the cluster stays Disconnected with no telemetry.\n"
+  printf "The classic trap: /otlp refuses every batch (401/422) and the collector drops\n"
+  printf "it, yet the agent looks healthy while the cluster stays Disconnected.\n"
 elif [ "$EGRESS" = "FAIL" ]; then
   printf "%s%sROOT CAUSE: the agent can't deliver telemetry to OneUptime (network/URL/TLS).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
 elif [ "$CLUSTER_NAME_OK" != 1 ]; then

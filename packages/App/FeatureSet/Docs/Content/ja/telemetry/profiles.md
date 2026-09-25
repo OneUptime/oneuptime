@@ -143,13 +143,14 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
+    # この行がないと、エクスポーターは OneUptime が受け付けない /otlp/v1development/profiles に送信します
+    profiles_endpoint: "https://oneuptime.com/otlp/v1/profiles"
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_ONEUPTIME_SERVICE_TOKEN"
 
 service:
   pipelines:
+    # コレクターを --feature-gates=service.profilesSupport 付きで起動する必要があります
     profiles:
       receivers: [otlp]
       exporters: [otlphttp]

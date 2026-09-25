@@ -686,10 +686,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 En clusters forbundne status drives udelukkende af, at telemetri ankommer — hvis ingen data lander, markeres clusteren som disconnected efter ~15 minutter. Så "disconnected" og "ingen metrikker" har næsten altid den **samme** årsag: agentens telemetri bliver ikke accepteret.
 
-Den mest almindelige grund — især efter en geninstallation — er en **forkert eller tilbagekaldt ingestion-nøgle**. Dette er let at overse, fordi OTLP-ingest-endpoints med vilje returnerer HTTP `200`, selv for et dårligt token (så en fejlkonfigureret collector ikke kan retry-storme serveren). Resultatet: collectoren rapporterer succes, dens logs viser ingen fejl, og dataene droppes lydløst.
+Den mest almindelige grund — især efter en geninstallation — er en **forkert eller tilbagekaldt ingestion-nøgle**. OneUptime afviser en sådan nøgle: OTLP-ingest-endpoints svarer HTTP `401` for en manglende, ukendt eller udløbet nøgle og `422` for en deaktiveret nøgle eller en browsernøgle. Ingen af de to statusser forsøges igen, så collectoren smider hver batch væk og logger én `Exporting failed. Dropping data.`-fejl pr. batch. Poddene forbliver Running og Ready, så den linje er let at overse.
 
 1. Kontrollér, at agent-poddene kører: `kubectl get pods -n oneuptime-agent`
-2. Kontrollér metrics-collector-logsene: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (ingen fejl her betyder **ikke**, at data lander — se ovenfor)
+2. Kontrollér metrics-collector-logsene: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (en `Exporting failed`-linje med `HTTP Status Code 401` eller `422` betyder, at nøglen blev afvist — se ovenfor)
 3. **Validér ingestion-nøglen.** Spørg OneUptime direkte, om dit token accepteres (`200` = gyldigt, `401` = ukendt/tilbagekaldt):
 
    ```bash
@@ -716,7 +716,7 @@ Den mest almindelige grund — især efter en geninstallation — er en **forker
 
 ### Ingen metrikker vises
 
-1. Udeluk først en afvist ingestion-nøgle — det er den mest almindelige årsag og er usynlig fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller kør blot diagnosticeringsscriptet).
+1. Udeluk først en afvist ingestion-nøgle — det er den mest almindelige årsag og er let at overse fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller kør blot diagnosticeringsscriptet).
 2. Kontrollér, at cluster-identifikatoren matcher den værdi, du angav som `clusterName`
 3. Verificér RBAC-tilladelserne: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollér OTel-collector-logsene for eksportfejl

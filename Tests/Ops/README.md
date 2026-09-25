@@ -276,6 +276,25 @@ only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.
 
+### `AgentTroubleshootTokenCheck.test.js`
+
+Runs the ingestion-key check of the Ceph, Proxmox, VMware and Docker Swarm
+agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
+each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
+with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
+collector). The matrix pins the verdicts:
+
+- a browser key that `/otlp/v1/validate` accepts is still refused;
+- on a server without that route, `/otlp/v1/metrics` answering 401/422 is a
+  refused key, not "reachable";
+- the `/fluentd/v1/logs` fallback reads 401/422 and "Missing ingestion token"
+  as a refusal, still reads an old server's 400 "Invalid service token" as one,
+  and calls a probe with no HTTP answer inconclusive, never "Token ACCEPTED".
+
+The Docker Swarm check has no `/fluentd` fallback, so there an old server that
+does not refuse the key stays inconclusive.
+
 ### `ContainerAgentDockerApiVersion.test.js`
 
 The `docker_stats` receiver has to name the Docker Engine API version it speaks,

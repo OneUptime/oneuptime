@@ -8,6 +8,7 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKeyGuard, {
   TelemetryIngestionKeyRefusal,
+  TelemetryIngestionKeyRefusalReason,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
@@ -33,10 +34,104 @@ interface GrpcCall {
   metadata: grpc.Metadata;
 }
 
+/*
+ * What handleExport answers when it refuses a credential.
+ *
+ * GH#3978: a refusal used to be gRPC OK with the batch dropped, so an exporter
+ * holding a mistyped, disabled or wrong-type key logged nothing and the
+ * customer saw a healthy pipeline that never showed data. Every credential
+ * refusal is now a non-OK status carrying the sentence the HTTP ingest
+ * middleware (TelemetryIngest) sends for the same refusal, with the status
+ * mapped from its HTTP one, so a customer reads the same explanation whether
+ * the key is sent over OTLP/HTTP or OTLP/gRPC:
+ *
+ *   HTTP 401 (missing token, unknown token, expired key) -> UNAUTHENTICATED
+ *   HTTP 422 (disabled key, browser key on a surface it
+ *            may not use, which this port is)            -> PERMISSION_DENIED
+ *
+ * Both codes are non-retryable in the OTLP gRPC status mapping, so the
+ * exporter drops the batch and logs the status rather than retrying a
+ * credential that will never be accepted.
+ *
+ * Telling the reasons apart discloses nothing the HTTP endpoint does not
+ * already say about the same key, and on an unpaid project this port already
+ * set a live key apart from an unknown one through PaymentRequiredException's
+ * PERMISSION_DENIED (see handleExport).
+ */
+export interface GrpcCredentialRefusal {
+  code: grpc.status;
+
+  /*
+   * Sent to the caller as the status details. It names the problem, never
+   * the presented token, the key id, the project, the allowlist or the
+   * expiry timestamp.
+   */
+  message: string;
+}
+
+export type GrpcAuthenticationResult =
+  | { projectId: ObjectID }
+  | { refusal: GrpcCredentialRefusal };
+
+/*
+ * TelemetryIngest's missing-token and invalid-token sentences, word for word.
+ * It keeps them inline, so they are copied rather than imported;
+ * GrpcServerAuthStatusLive.test.ts runs the HTTP middleware beside this server
+ * and fails if the two drift apart. Like HTTP, they name only the primary
+ * header, although x-oneuptime-service-token and x-oneuptime-ingestion-key are
+ * accepted too.
+ */
+export const MISSING_INGESTION_TOKEN_MESSAGE: string =
+  "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.";
+
+export const INVALID_INGESTION_TOKEN_MESSAGE: string =
+  "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.";
+
+/*
+ * The status for each guard refusal, following the HTTP status TelemetryIngest
+ * sends for the same reason: 401 (NotAuthenticatedException) for an expired
+ * key, 422 (NotAuthorizedException) for a disabled key and for a browser key
+ * on a surface it may not use. gRPC's status definitions say PERMISSION_DENIED
+ * must not be used when the caller cannot be identified; in the 422 cases it
+ * has been: the key was recognised, it is just not allowed to write here.
+ *
+ * A total Record, so a reason added to the guard fails to compile here instead
+ * of reaching an exporter with no status chosen for it.
+ */
+const GRPC_STATUS_FOR_KEY_REFUSAL: Record<
+  TelemetryIngestionKeyRefusalReason,
+  grpc.status
+> = {
+  [TelemetryIngestionKeyRefusalReason.Disabled]: grpc.status.PERMISSION_DENIED,
+  [TelemetryIngestionKeyRefusalReason.Expired]: grpc.status.UNAUTHENTICATED,
+  [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
+    grpc.status.PERMISSION_DENIED,
+};
+
+type BuildServiceErrorFunction = (
+  code: grpc.status,
+  message: string,
+) => grpc.ServiceError;
+
+/*
+ * A ServiceError whose details are exactly `message` and whose trailing
+ * metadata is empty, so that sentence is the only thing the exporter is told.
+ */
+const buildServiceError: BuildServiceErrorFunction = (
+  code: grpc.status,
+  message: string,
+): grpc.ServiceError => {
+  return Object.assign(new Error(message), {
+    code: code,
+    details: message,
+    metadata: new grpc.Metadata(),
+  });
+};
+
 // Exported for tests.
-export async function authenticateRequest(
+export async function authenticateGrpcRequest(
   metadata: grpc.Metadata,
-): Promise<ObjectID | null> {
+): Promise<GrpcAuthenticationResult> {
   const tokenValues: grpc.MetadataValue[] = metadata.get("x-oneuptime-token");
 
   let oneuptimeToken: string | undefined = tokenValues[0]?.toString();
@@ -59,7 +154,12 @@ export async function authenticateRequest(
     logger.error("gRPC: Missing metadata: x-oneuptime-token", {
       service: "telemetry",
     });
-    return null;
+    return {
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: MISSING_INGESTION_TOKEN_MESSAGE,
+      },
+    };
   }
 
   /*
@@ -91,7 +191,12 @@ export async function authenticateRequest(
     logger.error("gRPC: Invalid service token.", {
       service: "telemetry",
     });
-    return null;
+    return {
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: INVALID_INGESTION_TOKEN_MESSAGE,
+      },
+    };
   }
 
   /*
@@ -124,10 +229,31 @@ export async function authenticateRequest(
         service: "telemetry",
       },
     );
-    return null;
+    return {
+      refusal: {
+        code: GRPC_STATUS_FOR_KEY_REFUSAL[refusal.reason],
+        message: refusal.message,
+      },
+    };
   }
 
-  return policy.projectId;
+  return { projectId: policy.projectId };
+}
+
+/*
+ * The yes/no view of authenticateGrpcRequest: the key's project, or null for
+ * every refusal. handleExport needs the refusal itself and does not call this;
+ * it stays for callers that only ask "which project, if any" (the gRPC auth
+ * tests among them).
+ */
+// Exported for tests.
+export async function authenticateRequest(
+  metadata: grpc.Metadata,
+): Promise<ObjectID | null> {
+  const authentication: GrpcAuthenticationResult =
+    await authenticateGrpcRequest(metadata);
+
+  return "projectId" in authentication ? authentication.projectId : null;
 }
 
 // Exported for tests.
@@ -185,13 +311,27 @@ export async function handleExport(
       return;
     }
 
-    const projectId: ObjectID | null = await authenticateRequest(call.metadata);
+    const authentication: GrpcAuthenticationResult =
+      await authenticateGrpcRequest(call.metadata);
 
-    if (!projectId) {
-      // Return success to avoid OTel SDK retries
-      callback(null, {});
+    if ("refusal" in authentication) {
+      /*
+       * Answered, not swallowed (GH#3978): HTTP's sentence for the same
+       * refusal under a non-retryable status - see GrpcCredentialRefusal.
+       * For a key that resolved, its id - which the caller is not told - is
+       * in the server log with the guard's reason code, from
+       * authenticateGrpcRequest.
+       */
+      callback(
+        buildServiceError(
+          authentication.refusal.code,
+          authentication.refusal.message,
+        ),
+      );
       return;
     }
+
+    const projectId: ObjectID = authentication.projectId;
 
     const body: Record<string, unknown> = call.request;
 
@@ -210,12 +350,12 @@ export async function handleExport(
      * TelemetryQueueService.addSessionReplayIngestJob.
      *
      * Scoped to the enqueue ALONE, deliberately. The terminal catch below
-     * also covers authenticateRequest, and mapping a Postgres or billing
+     * also covers authenticateGrpcRequest, and mapping a Postgres or billing
      * outage onto a retryable UNAVAILABLE would have every exporter retry an
      * already-degraded auth backend - uncached, because
      * getPolicyFromSecretKey caches the not-found and success paths but never
-     * a throw - on a port that carries no per-key rate limit
-     * (TelemetryIngestionKeyGuard: the limiter "means nothing off HTTP").
+     * a throw - on a port that carries no per-key rate limit (the limiter is
+     * HTTP-only; see TelemetryIngestionKeyGuard).
      */
     try {
       await queueFn(req);
@@ -233,19 +373,24 @@ export async function handleExport(
       logger.error(queueErr, { service: "telemetry" });
 
       // UNAVAILABLE is the retryable status in the OTLP gRPC status mapping.
-      const message: string = "Telemetry queue unavailable. Please retry.";
-      const error: grpc.ServiceError = Object.assign(new Error(message), {
-        code: grpc.status.UNAVAILABLE,
-        details: message,
-        metadata: new grpc.Metadata(),
-      });
-      callback(error);
+      callback(
+        buildServiceError(
+          grpc.status.UNAVAILABLE,
+          "Telemetry queue unavailable. Please retry.",
+        ),
+      );
       return;
     }
 
     callback(null, {});
   } catch (err) {
     if (err instanceof PaymentRequiredException) {
+      /*
+       * Billing admission, thrown by getPolicyFromSecretKey only for a key
+       * that resolved and is enabled and unexpired. PERMISSION_DENIED is
+       * non-retryable, so an unpaid project's exporter logs the reason once
+       * per batch instead of retrying it.
+       */
       callback({
         name: "PaymentRequiredException",
         message: err.message,

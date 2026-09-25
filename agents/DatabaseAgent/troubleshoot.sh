@@ -15,13 +15,15 @@
 #                     and the receiver errors in the collector log
 #                     (authentication, permissions, TLS).
 #   4. OneUptime      a definitive ingestion-key check. OneUptime's OTLP
-#                     endpoints deliberately answer a bad key with a silent
-#                     200 (so a misconfigured collector cannot retry-flood
-#                     the server), which means the collector log looks clean
-#                     while every datapoint is dropped. `GET <url>/otlp/v1/
-#                     validate` returns a real 200 (valid) / 401 (invalid);
-#                     older servers fall back to `POST <url>/fluentd/v1/logs`,
-#                     which runs the same auth but answers 400 on a bad key.
+#                     endpoints refuse a bad key with 401 (422 for a
+#                     disabled key or a browser key), and the collector
+#                     drops each refused batch with one "Exporting failed"
+#                     log line that is easy to miss. `GET <url>/otlp/v1/
+#                     validate` answers 200 (valid) / 401 (invalid) and
+#                     names a browser key, which validates but which ingest
+#                     refuses from a collector; older servers fall back to
+#                     `POST <url>/fluentd/v1/logs`, which runs the same auth
+#                     (400 on a bad key there, 401/422 on a current server).
 #
 # Usage:
 #   ./troubleshoot.sh [-d INSTALL_DIR] [--curl-image IMG] [--no-color]
@@ -51,7 +53,7 @@ while [ $# -gt 0 ]; do
     --curl-image)  CURL_IMAGE="${2:-}"; shift 2 ;;
     --no-color)    USE_COLOR=0; shift ;;
     -h|--help)
-      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,37p'
+      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,39p'
       exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -489,7 +491,7 @@ if [ -n "$AGENT_CONTAINER" ]; then
   fi
   if printf '%s' "$ALL_LOGS" | grep '"otelcol.component.kind": "exporter"' | grep -q "Exporting failed"; then
     fail "The collector log shows exports to OneUptime failing."
-    add_finding "The collector cannot deliver to ONEUPTIME_URL ($(agent_env ONEUPTIME_URL)). Check the URL, outbound HTTPS from this machine and, for a self-hosted server, its certificate. The ingestion check below narrows it down."
+    add_finding "The collector cannot deliver to ONEUPTIME_URL ($(agent_env ONEUPTIME_URL)). HTTP Status Code 401 or 422 in that log line means OneUptime refused the ingestion key; otherwise check the URL, outbound HTTPS from this machine and, for a self-hosted server, its certificate. The ingestion check below narrows it down."
   fi
   if printf '%s' "$ALL_LOGS" | grep -q "Everything is ready"; then
     pass "The collector started its pipelines"
@@ -504,18 +506,32 @@ if [ -z "$BASE_URL" ] || [ -z "$TOKEN" ]; then
   fail "ONEUPTIME_URL or ONEUPTIME_TELEMETRY_INGESTION_KEY is empty."
   add_finding "Set both in $ENV_FILE (Project Settings → Telemetry & APM → Ingestion Keys)."
 else
-  OUT=$(token_header_config "$TOKEN" | agent_netns_curl --config - -sS -m 15 -o /dev/null -w '%{http_code}' "$BASE_URL/otlp/v1/validate")
+  # The body is kept (it ends with the status curl appends) because a 200
+  # names the key's type, and a Browser key validates while ingest refuses
+  # it from a collector with 422: it is accepted only from a browser, from
+  # one of its allowed origins.
+  OUT=$(token_header_config "$TOKEN" | agent_netns_curl --config - -sS -m 15 -w '\n%{http_code}' "$BASE_URL/otlp/v1/validate")
   CODE=$(printf '%s' "$OUT" | tail -c 3)
   case "$CODE" in
-    200) pass "Reached OneUptime and the ingestion key is VALID (/otlp/v1/validate → 200)." ;;
+    200)
+      case "$OUT" in
+        *'"keyType":"Browser"'*)
+          fail "Reached OneUptime, but the ingestion key is a BROWSER key: it validates, yet ingest refuses it from a collector (422)."
+          add_finding "Use a server ingestion key: create one under Project Settings → Telemetry & APM → Ingestion Keys and set ONEUPTIME_TELEMETRY_INGESTION_KEY in $ENV_FILE."
+          ;;
+        *) pass "Reached OneUptime and the ingestion key is VALID (/otlp/v1/validate → 200)." ;;
+      esac
+      ;;
     401|403)
       fail "Reached OneUptime, but it REJECTED the ingestion key (/otlp/v1/validate → $CODE)."
-      add_finding "The ingestion key is wrong or revoked. OneUptime answers OTLP with a silent 200 on a bad key, so the collector log looks clean. Create a key under Project Settings → Telemetry & APM → Ingestion Keys."
+      add_finding "The ingestion key is unknown, revoked, disabled or expired. OneUptime refuses every export made with it (401/422), which the collector logs only as 'Exporting failed'. Create a key under Project Settings → Telemetry & APM → Ingestion Keys."
       ;;
     404)
       OUT=$(token_header_config "$TOKEN" | agent_netns_curl --config - -sS -m 15 -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" --data '{}' "$BASE_URL/fluentd/v1/logs")
       CODE=$(printf '%s' "$OUT" | tail -c 3)
-      if [ "$CODE" = "400" ] || [ "$CODE" = "401" ]; then
+      # 400 is how a server without /otlp/v1/validate refused a bad key;
+      # 401 / 422 are how a current one refuses it.
+      if [ "$CODE" = "400" ] || [ "$CODE" = "401" ] || [ "$CODE" = "422" ]; then
         fail "OneUptime rejected the ingestion key (/fluentd/v1/logs → $CODE)."
         add_finding "The ingestion key is wrong or revoked."
       else

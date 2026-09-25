@@ -624,7 +624,7 @@ See the [Install the Kubernetes Agent](https://oneuptime.com/docs/monitor/kubern
 
 ### The cluster shows "Disconnected" and/or no data appears — run the diagnostic script
 
-This is usually one problem, not two: telemetry isn't being accepted, so the cluster never connects and nothing ingests. The most common cause — especially after a reinstall — is a **wrong or revoked ingestion key**, which is hard to spot because the OTLP endpoints answer `200` even for a bad token (to avoid making a misconfigured collector retry-storm the server). The collector therefore logs no errors while every byte is dropped.
+This is usually one problem, not two: telemetry isn't being accepted, so the cluster never connects and nothing ingests. The most common cause — especially after a reinstall — is a **wrong or revoked ingestion key**. The OTLP endpoints refuse it with `401` (`422` for a disabled key or a browser key), and since neither is retried the collector drops every batch, logging one `Exporting failed. Dropping data.` error per batch. The pods stay Running and Ready, so that line is easy to miss.
 
 The bundled script checks pod health, decodes/validates the key, tests cluster egress, and asks OneUptime whether the token is actually accepted — then prints a single root-cause verdict:
 

@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime erfordert den JSON-Encoder anstelle des standardmäßigen Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,7 @@ service:
 
 - **`resource`** versieht jeden Datensatz mit den Flottenattributen. Setzen Sie `iot.fleet.name` (und das passende `service.name=iot/<fleet>`) pro Gateway, damit die Geräte jedes Gateways in der richtigen Flotte landen.
 - Behalten Sie `device.id` (und optional `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) an jedem Datenpunkt bei, damit OneUptime das einzelne Gerät innerhalb der Flotte auflösen kann.
-- **`otlphttp`** sendet über HTTPS an OneUptime mit angehängtem Erfassungstoken. Beachten Sie, dass `encoding: json` und der Header `Content-Type: application/json` erforderlich sind.
+- **`otlphttp`** sendet über HTTPS an OneUptime mit angehängtem Erfassungstoken. Sowohl die standardmäßige Protobuf-Kodierung als auch `encoding: json` werden akzeptiert.
 
 ## Metriken über MQTT senden
 
@@ -220,7 +217,7 @@ OneUptime erkennt die folgenden `iot_*`-Metriknamen. Jeder Datenpunkt sollte das
 
 1. Stellen Sie sicher, dass `iot.fleet.name` als **Ressourcen**attribut gesetzt ist (nicht als Datenpunkt-Label) und dass `service.name` `iot/<fleet>` lautet.
 2. Bestätigen Sie, dass der Exporter-Endpunkt `https://oneuptime.com/otlp` (oder Ihr selbst gehostetes `…/otlp`) ist und der Header `x-oneuptime-token` ein gültiges Token trägt.
-3. Wenn Sie einen Collector verwenden, stellen Sie sicher, dass `encoding: json` und `Content-Type: application/json` am `otlphttp`-Exporter gesetzt sind.
+3. Wenn Sie MQTT verwenden, prüfen Sie, dass das Topic exakt `oneuptime/<fleet>/<device>/…` folgt — das Flottensegment des Topics ist es, das die Flotte anlegt.
 
 ### Geräte fehlen im Inventar
 
@@ -252,9 +249,7 @@ Oder, in einem Collector:
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 

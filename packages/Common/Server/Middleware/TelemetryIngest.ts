@@ -313,6 +313,11 @@ export default class TelemetryIngest {
          * error in their own logs instead of retry-storming. A silent
          * 200 here would make the client believe the data landed and
          * leave the user staring at empty dashboards with no clue why.
+         *
+         * The gRPC OTLP server sends this sentence and the invalid-token
+         * one below word for word (GrpcServer keeps copies, and
+         * GrpcServerAuthStatusLive.test.ts fails if they drift), so
+         * reword them together.
          */
         return Response.sendErrorResponse(
           req,
@@ -365,10 +370,11 @@ export default class TelemetryIngest {
        * turning a leaked key off is the one action guaranteed to stop it
        * regardless of which surface it is hitting or what its allowlist says.
        *
-       * 403 rather than 401: the credential was recognised, it is simply not
-       * permitted to write. That distinction is what lets a customer tell
-       * "I pasted the wrong key" apart from "someone switched my key off",
-       * which are very different Tuesday afternoons.
+       * 422 (NotAuthorizedException) rather than 401: the credential was
+       * recognised, it is simply not permitted to write. That distinction is
+       * what lets a customer tell "I pasted the wrong key" apart from
+       * "someone switched my key off", which are very different Tuesday
+       * afternoons. Like 401, 422 is non-retryable under the OTLP spec.
        */
       if (policy.isEnabled === false) {
         return Response.sendErrorResponse(
@@ -381,10 +387,11 @@ export default class TelemetryIngest {
       }
 
       /*
-       * Expiry. 401 here rather than 403 for the same reason as the branches
-       * above: OTLP treats 401 as non-retryable, so a collector holding an
-       * expired key logs the failure once instead of retry-storming an
-       * endpoint that will never accept it again.
+       * Expiry. 401, like the missing- and invalid-token branches above,
+       * rather than the kill switch's 422: an expired key no longer
+       * authenticates anyone. OTLP treats 401 as non-retryable, so a
+       * collector holding an expired key logs the failure instead of
+       * retry-storming an endpoint that will never accept it again.
        *
        * The exact expiry timestamp is deliberately kept out of the response.
        * The caller has failed to authenticate; the key's configuration is

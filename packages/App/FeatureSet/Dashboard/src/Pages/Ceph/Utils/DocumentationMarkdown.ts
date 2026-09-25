@@ -228,7 +228,7 @@ The agent can tail \`/var/log/ceph/ceph.log\` and ship it to OneUptime, which po
 
 ### Run the Diagnostic Script First
 
-\`troubleshoot.sh\` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent \`200\` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks \`GET /otlp/v1/validate\` for a real 200/401 verdict):
+\`troubleshoot.sh\` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints refuse a bad ingestion key with \`401\` or \`422\`, which the collector logs as a single \`Exporting failed\` line per batch that is easy to miss; the script asks \`GET /otlp/v1/validate\` for a direct 200/401 verdict):
 
 \`\`\`bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh

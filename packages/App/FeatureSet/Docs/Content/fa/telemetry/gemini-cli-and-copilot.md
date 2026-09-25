@@ -95,9 +95,7 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_INGESTION_TOKEN"
 
 service:
