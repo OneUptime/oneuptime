@@ -1311,12 +1311,13 @@ describe("Platform raw scan: the catalog unit wins over the scan's declared unit
 
     const text: string = context || "";
 
-    expect(text).toContain(
-      [
-        "1. **Node** `node-b` — **1.4 cores**",
-        "2. **Node** `node-a` — **0.6 cores**",
-      ].join("\n"),
-    );
+    /*
+     * Only node-b is past the "> 1" threshold; node-a, at 0.6 cores, is
+     * a healthy node and is not listed under the alert.
+     */
+    expect(text).toContain("**Affected Resources** (1 total)");
+    expect(text).toContain("1. **Node** `node-b` — **1.4 cores**");
+    expect(text).not.toContain("node-a");
     expect(text).toContain(
       `- Metric: ${kubernetesName(metricName)} (\`${metricName}\`)`,
     );

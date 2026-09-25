@@ -159,6 +159,13 @@ interface AffectedResourceBreachPredicate {
   pickEnd?:
     | ((ends: { highest: number; lowest: number }) => "highest" | "lowest")
     | undefined;
+  /*
+   * What a raw-scan list falls back to when no single row satisfies
+   * `matches` — a criteria that compared an AGGREGATE across resources (a
+   * Sum of in-flight requests over three API servers) can breach while no
+   * one resource crosses the threshold on its own.
+   */
+  fallbackMatches?: ((value: number) => boolean) | undefined;
 }
 
 /*
@@ -2623,6 +2630,7 @@ ${contextBlock}
     withContext: (series: I, context: I) => I;
     seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
     targetAlias?: string | undefined;
+    namesObject: (identity: I) => boolean;
   }): Array<PlatformAffectedRow<I>> {
     const targetAlias: string = (input.targetAlias || "").toLowerCase();
 
@@ -2696,10 +2704,11 @@ ${contextBlock}
           worstIsLowest: input.worstIsLowest,
         });
 
-        const seriesLabels: JSONObject | undefined =
-          MonitorCriteriaEvaluator.isEmptyIdentity(identity)
-            ? MonitorCriteriaEvaluator.getNonEmptyLabels(match.labels)
-            : undefined;
+        const seriesLabels: JSONObject | undefined = !input.namesObject(
+          identity,
+        )
+          ? MonitorCriteriaEvaluator.getNonEmptyLabels(match.labels)
+          : undefined;
 
         return {
           identity: identity,
@@ -2776,6 +2785,50 @@ ${contextBlock}
       });
     };
 
+    const collect: (
+      matches: (value: number) => boolean,
+    ) => Array<PlatformAffectedRow<R>> = (
+      matches: (value: number) => boolean,
+    ): Array<PlatformAffectedRow<R>> => {
+      return MonitorCriteriaEvaluator.collectScanRows<R>({
+        platform: input.platform,
+        breakdown: input.breakdown,
+        breach: input.breach,
+        matches: matches,
+        toComparisonUnit: toComparisonUnit,
+      });
+    };
+
+    let rows: Array<PlatformAffectedRow<R>> = collect(input.breach.matches);
+
+    if (rows.length === 0 && input.breach.fallbackMatches) {
+      rows = collect(input.breach.fallbackMatches);
+    }
+
+    return MonitorCriteriaEvaluator.sortAffectedRows({
+      rows: rows,
+      worstIsLowest: input.breach.worstIsLowest,
+    });
+  }
+
+  /*
+   * One pass of buildScanAffectedRows: the resources `matches` accepts,
+   * each judged in the comparison unit and shown in its own.
+   */
+  private static collectScanRows<
+    R extends { metricValue: number; lowestMetricValue?: number | undefined },
+  >(input: {
+    platform: PlatformName;
+    breakdown: {
+      metricName: string;
+      metricUnit?: string | undefined;
+      affectedResources: Array<R>;
+    };
+    breach: AffectedResourceBreachPredicate;
+    matches: (value: number) => boolean;
+    toComparisonUnit: (value: number) => number;
+  }): Array<PlatformAffectedRow<R>> {
+    const toComparisonUnit: (value: number) => number = input.toComparisonUnit;
     const rows: Array<PlatformAffectedRow<R>> = [];
 
     for (const resource of input.breakdown.affectedResources) {
@@ -2797,7 +2850,7 @@ ${contextBlock}
 
       const value: number = end === "lowest" ? lowest : highest;
 
-      if (!input.breach.matches(toComparisonUnit(value))) {
+      if (!input.matches(toComparisonUnit(value))) {
         continue;
       }
 
@@ -2813,10 +2866,7 @@ ${contextBlock}
       });
     }
 
-    return MonitorCriteriaEvaluator.sortAffectedRows({
-      rows: rows,
-      worstIsLowest: input.breach.worstIsLowest,
-    });
+    return rows;
   }
 
   /*
@@ -2864,17 +2914,6 @@ ${contextBlock}
     return row.valueNote
       ? `**${row.formattedValue}** (${row.valueNote})`
       : `**${row.formattedValue}**`;
-  }
-
-  /*
-   * True when a platform identity names nothing at all.
-   */
-  private static isEmptyIdentity<I>(identity: I): boolean {
-    return Object.values(identity as unknown as JSONObject).every(
-      (value: unknown) => {
-        return value === undefined || value === null || value === "";
-      },
-    );
   }
 
   private static getNonEmptyLabels(
@@ -3041,6 +3080,12 @@ ${contextBlock}
     breach: AffectedResourceBreachPredicate;
     toIdentity: (attributes: JSONObject) => I;
     withContext: (series: I, context: I) => I;
+    /*
+     * Whether an identity names a specific object the platform's list can
+     * title a row with. A series whose labels name none — grouped by a PVC
+     * name, or only by a kind (`pve.type`) — is titled by its labels.
+     */
+    namesObject: (identity: I) => boolean;
     metricResponse: MetricMonitorResponse;
     monitorStep: MonitorStep;
     target: CriteriaMetricTarget | null;
@@ -3055,6 +3100,7 @@ ${contextBlock}
         worstIsLowest: input.breach.worstIsLowest,
         toIdentity: input.toIdentity,
         withContext: input.withContext,
+        namesObject: input.namesObject,
         targetAlias: input.target?.alias,
         seriesContextAttributes: (fingerprint: string): Array<JSONObject> => {
           return MonitorCriteriaEvaluator.getSeriesQueryRowAttributes({
@@ -3268,6 +3314,15 @@ ${contextBlock}
       >({
         platform: "kubernetes",
         perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: KubernetesResourceIdentity): boolean => {
+          return Boolean(
+            identity.containerName ||
+              identity.podName ||
+              identity.workloadName ||
+              identity.nodeName ||
+              identity.namespace,
+          );
+        },
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
         target: target,
@@ -3784,6 +3839,11 @@ ${contextBlock}
       >({
         platform: "proxmox",
         perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: ProxmoxResourceIdentity): boolean => {
+          return Boolean(
+            identity.resourceId || identity.resourceName || identity.nodeName,
+          );
+        },
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
         target: target,
@@ -4102,6 +4162,11 @@ ${contextBlock}
       >({
         platform: "vmware",
         perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: VMwareResourceIdentity): boolean => {
+          return Boolean(
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(identity),
+          );
+        },
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
         target: target,
@@ -4330,6 +4395,11 @@ ${contextBlock}
       >({
         platform: "dockerSwarm",
         perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: DockerSwarmResourceIdentity): boolean => {
+          return Boolean(
+            identity.containerName || identity.serviceName || identity.nodeName,
+          );
+        },
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
         target: target,
@@ -4533,11 +4603,47 @@ ${contextBlock}
       };
     }
 
-    if (!firesWhenMetricFalls) {
+    /*
+     * A criteria that fires when the metric RISES lists the rows past its
+     * threshold. The blanket `> 0` listed every resource with any value at
+     * all — the healthy nodes at 50% under a "> 90%" alert. When no single
+     * row is past it (the criteria compared a sum or an average across
+     * resources) the list still falls back to the non-zero rows.
+     */
+    const firesWhenMetricRises: boolean =
+      metricFilters.length > 0 &&
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          return (
+            f.filter.filterType === FilterType.GreaterThan ||
+            f.filter.filterType === FilterType.GreaterThanOrEqualTo
+          );
+        },
+      );
+
+    const isNonZero: (value: number) => boolean = (value: number): boolean => {
+      return value > 0;
+    };
+
+    if (firesWhenMetricRises && !firesWhenMetricFalls) {
       return {
         matches: (value: number): boolean => {
-          return value > 0;
+          return metricFilters.some(
+            (f: { filter: CriteriaFilter; threshold: number }) => {
+              return f.filter.filterType === FilterType.GreaterThan
+                ? value > f.threshold
+                : value >= f.threshold;
+            },
+          );
         },
+        worstIsLowest: false,
+        fallbackMatches: isNonZero,
+      };
+    }
+
+    if (!firesWhenMetricFalls) {
+      return {
+        matches: isNonZero,
         worstIsLowest: false,
       };
     }
@@ -4720,6 +4826,14 @@ ${contextBlock}
       >({
         platform: "ceph",
         perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: CephResourceIdentity): boolean => {
+          return Boolean(
+            identity.daemon ||
+              identity.poolId ||
+              identity.poolName ||
+              identity.hostname,
+          );
+        },
         metricResponse: metricResponse,
         monitorStep: input.monitorStep,
         target: target,
