@@ -426,6 +426,13 @@ export default class PublicDashboardRateLimit {
     resourceKey: string;
     clientIp: string;
     bucket: PublicDashboardRateLimitBucket;
+    // Other API surfaces reuse the counter without sharing dashboard budgets.
+    counterConfig?: {
+      keyPrefix: string;
+      windowSeconds: number;
+      perResourceLimit: number;
+      perIpLimit: number;
+    };
   }): Promise<PublicDashboardRateLimitDecision> {
     const client: ClientType | null = Redis.getClient();
 
@@ -433,9 +440,19 @@ export default class PublicDashboardRateLimit {
       return { outcome: PublicDashboardRateLimitOutcome.CounterUnavailable };
     }
 
-    const config: BucketConfig = PublicDashboardRateLimit.getBucketConfig(
+    const defaults: BucketConfig = PublicDashboardRateLimit.getBucketConfig(
       data.bucket,
     );
+    const config: BucketConfig = data.counterConfig
+      ? {
+          ...defaults,
+          ...data.counterConfig,
+          surface: {
+            ...defaults.surface,
+            keyPrefix: data.counterConfig.keyPrefix,
+          },
+        }
+      : defaults;
 
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);

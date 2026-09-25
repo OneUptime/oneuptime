@@ -15,6 +15,8 @@ import Permission from "../../../Types/Permission";
  * admin-consent callback.
  */
 export enum WorkspaceOAuthFlow {
+  DiscordInstall = "DiscordInstall",
+  DiscordUserSignIn = "DiscordUserSignIn",
   SlackInstall = "SlackInstall",
   SlackUserSignIn = "SlackUserSignIn",
   MicrosoftTeamsUserSignIn = "MicrosoftTeamsUserSignIn",
@@ -27,6 +29,8 @@ export interface WorkspaceOAuthStateRecord {
   flow: WorkspaceOAuthFlow;
   projectId: ObjectID;
   userId: ObjectID;
+  workspaceProjectId?: string | undefined;
+  bindingSnapshot?: string | undefined;
   // Microsoft Entra tenant the flow is pinned to, when it is pinned to one.
   tenantId?: string | undefined;
   // OpenID Connect nonce the ID token returned by this flow must carry.
@@ -101,6 +105,8 @@ export default class WorkspaceOAuthState {
     flow: WorkspaceOAuthFlow;
     projectId: ObjectID;
     userId: ObjectID;
+    workspaceProjectId?: string | undefined;
+    bindingSnapshot?: string | undefined;
     tenantId?: string | undefined;
     includeOidcNonce?: boolean | undefined;
   }): Promise<CreatedWorkspaceOAuthState> {
@@ -144,6 +150,13 @@ export default class WorkspaceOAuthState {
         Date.now() + WorkspaceOAuthState.EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
     };
+
+    if (data.workspaceProjectId) {
+      record["workspaceProjectId"] = data.workspaceProjectId;
+    }
+    if (data.bindingSnapshot) {
+      record["bindingSnapshot"] = data.bindingSnapshot;
+    }
 
     if (data.tenantId) {
       record["tenantId"] = data.tenantId;
@@ -251,6 +264,10 @@ export default class WorkspaceOAuthState {
       flow,
       projectId: new ObjectID(projectId),
       userId: new ObjectID(userId),
+      workspaceProjectId:
+        (record["workspaceProjectId"] as string | undefined) || undefined,
+      bindingSnapshot:
+        (record["bindingSnapshot"] as string | undefined) || undefined,
       tenantId: (record["tenantId"] as string | undefined) || undefined,
       oidcNonce: (record["oidcNonce"] as string | undefined) || undefined,
     };

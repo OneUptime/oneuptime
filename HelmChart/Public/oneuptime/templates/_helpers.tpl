@@ -422,6 +422,46 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   value: {{ $.Values.slackApp.signingSecret | quote }}
   {{- end }}
 
+- name: DISCORD_APP_CLIENT_ID
+  {{- if $.Values.discordApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.discordApp.existingSecret.name | quote }}
+      key: {{ $.Values.discordApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.discordApp.clientId | quote }}
+  {{- end }}
+
+- name: DISCORD_APP_CLIENT_SECRET
+  {{- if $.Values.discordApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.discordApp.existingSecret.name | quote }}
+      key: {{ $.Values.discordApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.discordApp.clientSecret | quote }}
+  {{- end }}
+
+- name: DISCORD_BOT_TOKEN
+  {{- if $.Values.discordApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.discordApp.existingSecret.name | quote }}
+      key: {{ $.Values.discordApp.existingSecret.botTokenKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.discordApp.botToken | quote }}
+  {{- end }}
+
+- name: DISCORD_APP_PUBLIC_KEY
+  {{- if $.Values.discordApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.discordApp.existingSecret.name | quote }}
+      key: {{ $.Values.discordApp.existingSecret.publicKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.discordApp.publicKey | quote }}
+  {{- end }}
+
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   {{- if $.Values.microsoftTeamsApp.existingSecret }}
   valueFrom:

@@ -2346,6 +2346,19 @@ slackApp:
   #   clientSecretKey: clientSecret
   #   signingSecretKey: signingSecret
 
+discordApp:
+  clientId: ""
+  clientSecret: ""
+  botToken: ""
+  publicKey: ""
+  # Prefer an existing Secret for deployment credentials. All fields are server-only.
+  # existingSecret:
+  #   name: "discord-app"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+  #   botTokenKey: botToken
+  #   publicKeyKey: publicKey
+
 microsoftTeamsApp:
   clientId:
   clientSecret:

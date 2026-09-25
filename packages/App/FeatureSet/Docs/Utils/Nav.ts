@@ -911,6 +911,10 @@ DocsNav.push({
   title: "Self Hosted",
   links: [
     {
+      title: "Discord Integration",
+      url: "/docs/self-hosted/discord-integration",
+    },
+    {
       title: "Slack Integration",
       url: "/docs/self-hosted/slack-integration",
     },

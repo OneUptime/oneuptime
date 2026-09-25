@@ -1,0 +1,15 @@
+{
+  "applicationId": "100000000000000001",
+  "botId": "100000000000000002",
+  "userId": "100000000000000003",
+  "guildId": "100000000000000004",
+  "channelId": "100000000000000005",
+  "otherGuildId": "100000000000000006",
+  "foreignChannelId": "100000000000000007",
+  "voiceChannelId": "100000000000000008",
+  "threadChannelId": "100000000000000009",
+  "deniedChannelId": "100000000000000010",
+  "botRoleId": "100000000000000011",
+  "guildName": "Discord E2E guild",
+  "username": "discord-e2e-user"
+}

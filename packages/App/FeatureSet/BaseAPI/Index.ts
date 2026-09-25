@@ -1500,6 +1500,7 @@ import ScheduledMaintenanceFeedService, {
 } from "Common/Server/Services/ScheduledMaintenanceFeedService";
 
 import SlackAPI from "Common/Server/API/SlackAPI";
+import DiscordAPI from "Common/Server/API/DiscordAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
 
@@ -5098,6 +5099,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       new OpenSourceDeploymentAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new DiscordAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),
