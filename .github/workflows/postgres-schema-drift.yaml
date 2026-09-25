@@ -140,6 +140,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UserProjectSsoConsentPostgres.test.ts --forceExit
 
+      # Clones the migrated User table into an isolated schema: a signup that
+      # names an existing user's id must be refused and leave that row as it
+      # was, because TypeORM's save() would otherwise UPDATE it in place.
+      - name: Test signup cannot overwrite an existing user on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SIGNUP_ID_TESTS: "true"
+          SIGNUP_ID_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SIGNUP_ID_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SIGNUP_ID_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserSignupIdTakeoverPostgres.test.ts --forceExit
+
       # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
       # rule tables (with their junctions, the trigger that encodes a
       # criteria-backed rule's enabled state, and the tables the reminder
