@@ -543,9 +543,14 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
     );
   }
 
+  // Every regex metacharacter, backslash included, taken literally.
+  function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   function metricSwitchPattern(metricName: string, enabled: boolean): RegExp {
     return new RegExp(
-      `\\n\\s+${metricName.replace(/\./g, "\\.")}:\\s*\\n\\s+enabled:\\s*${
+      `\\n\\s+${escapeRegExp(metricName)}:\\s*\\n\\s+enabled:\\s*${
         enabled ? "true" : "false"
       }`,
     );
