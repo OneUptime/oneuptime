@@ -1199,7 +1199,7 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
 
       expect(router).toMatch(
         new RegExp(
-          `router\\.post\\(\\s*"${PROFILES_ROUTE.replace(/\//g, "\\/")}"`,
+          `router\\.post\\(\\s*"${PROFILES_ROUTE.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}"`,
         ),
       );
 

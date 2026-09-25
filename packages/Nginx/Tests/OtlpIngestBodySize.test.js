@@ -1572,6 +1572,23 @@ function withoutBodyLimitIn(rendered, { location: locationHeader, server }) {
  * StatusPageCerts/$ssl_server_name.crt): the worker reads that one, not the
  * master, and in the docker run workers are not root.
  */
+/*
+ * Every certificate makeTlsCertificate has issued. TLS clients below trust
+ * exactly these (as `ca`) rather than turning verification off, so a
+ * handshake also proves nginx presented the certificate for the SNI name.
+ */
+const issuedCertificatePaths = new Set();
+
+function trustedTestCertificates() {
+  return [...issuedCertificatePaths]
+    .filter((certificatePath) => {
+      return fs.existsSync(certificatePath);
+    })
+    .map((certificatePath) => {
+      return fs.readFileSync(certificatePath);
+    });
+}
+
 function makeTlsCertificate(
   directory,
   { host = INGRESS_HOST, basename = "ingress", readableByWorkers = false } = {},
@@ -1590,6 +1607,9 @@ function makeTlsCertificate(
       "-nodes",
       "-subj",
       `/CN=${host}`,
+      // Node verifies the name against the SAN; the CN alone is not enough.
+      "-addext",
+      `subjectAltName=DNS:${host}`,
       "-keyout",
       keyPath,
       "-out",
@@ -1601,6 +1621,7 @@ function makeTlsCertificate(
   );
 
   assert.equal(result.status, 0, result.stderr);
+  issuedCertificatePaths.add(certificatePath);
 
   if (readableByWorkers) {
     fs.chmodSync(certificatePath, 0o644);
@@ -1872,7 +1893,7 @@ function postHttp1({
       ? https.request({
           ...options,
           servername: hostName(host),
-          rejectUnauthorized: false,
+          ca: trustedTestCertificates(),
         })
       : http.request(options);
     let answered = false;
@@ -1941,7 +1962,7 @@ function postHttp2({
     const session = http2.connect(
       origin,
       origin.startsWith("https:")
-        ? { servername: INGRESS_HOST, rejectUnauthorized: false }
+        ? { servername: INGRESS_HOST, ca: trustedTestCertificates() }
         : {},
     );
 
