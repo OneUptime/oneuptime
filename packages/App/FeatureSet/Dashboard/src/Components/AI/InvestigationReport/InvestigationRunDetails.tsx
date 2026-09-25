@@ -399,7 +399,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     // "Evidence checked" and "Activity" do not share one row on a phone.
     evidence: (
       <span>
-        Evidence<span className="hidden sm:inline"> checked</span>
+        Evidence<span className="max-sm:hidden sm:inline"> checked</span>
       </span>
     ),
     activity: <span>Activity</span>,
@@ -486,7 +486,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     >
       <div className="relative flex items-center gap-2.5 px-4 py-3.5 transition-colors hover:bg-gray-50 sm:px-5">
         {/* Hidden on phones, where the usage line needs the width more. */}
-        <span className="hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 sm:flex">
+        <span className="max-sm:hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 sm:flex">
           <Icon icon={IconProp.DocumentMagnifyingGlass} className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">

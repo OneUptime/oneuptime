@@ -215,7 +215,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <div className="flex min-w-0 flex-1 items-start gap-4">
             <div
-              className={`hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${status.containerClassName}`}
+              className={`max-sm:hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${status.containerClassName}`}
               data-testid="exception-summary-status-icon"
             >
               <Icon

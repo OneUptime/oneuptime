@@ -149,7 +149,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             <span className="font-medium text-gray-500">Shift + Enter</span> for
             a new line
           </span>
-          <span className="hidden flex-shrink-0 sm:inline">
+          <span className="max-sm:hidden flex-shrink-0 sm:inline">
             Every answer cites its queries
           </span>
         </div>

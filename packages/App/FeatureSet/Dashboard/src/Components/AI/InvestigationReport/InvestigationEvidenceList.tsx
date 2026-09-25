@@ -581,7 +581,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   >
                     {item.citationId}
                   </span>
-                  <span className="hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
+                  <span className="max-sm:hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
                     <Icon icon={icon} className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">

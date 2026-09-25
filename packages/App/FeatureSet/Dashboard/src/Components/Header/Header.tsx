@@ -907,8 +907,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
              * exist to advertise a keyboard chord, and none of the three is
              * worth the width on a phone. They are grouped rather than moved so
              * the desktop rail keeps the order it has always had.
+             *
+             * `max-lg:hidden`, not `hidden`: a foreign `.hidden` rule (browser
+             * extension, user stylesheet) would otherwise take them off every
+             * screen, desktop included — see Common's NavBar desktop view.
              */}
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="max-lg:hidden items-center gap-2 lg:flex">
               {BILLING_ENABLED &&
               props.selectedProject?.id &&
               props.selectedProject.paymentProviderPlanId &&
@@ -933,7 +937,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <div className="hidden items-center lg:flex">
+            <div className="max-lg:hidden items-center lg:flex">
               <Help />
             </div>
             <UserProfile

@@ -69,7 +69,7 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             {/* Column widths must stay in step with ColumnConditionRow's grid. */}
-            <div className="hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] sm:gap-2">
+            <div className="max-sm:hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] sm:gap-2">
               <span>Column</span>
               <span>Comparison</span>
               <span>Value</span>

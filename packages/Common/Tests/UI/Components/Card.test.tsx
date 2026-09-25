@@ -9,6 +9,15 @@ import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 import { describe, expect, jest } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  WIDE_DESKTOP_WIDTH_IN_PX,
+  describeVisibility,
+  isVisibleAtWidth,
+  resolveDisplay,
+} from "../../ResponsiveVisibility";
 
 describe("Card", () => {
   const props: ComponentProps = {
@@ -164,12 +173,18 @@ describe("Card header layout", () => {
     /*
      * Captured from Card before headerLayout existed. Every card in the app
      * that does not opt in must keep rendering exactly this.
+     *
+     * One token has moved on purpose since: the description was `hidden
+     * md:block` and is now `max-md:hidden md:block`. The two paint the same
+     * at every width, but only the second survives a foreign
+     * `.hidden { display: none !important }` rule, which took the old
+     * description off desktops as well (see "Card description" below).
      */
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="flex-1 min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed">Desc</p></div><div class="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center"><div class="mb-2 md:mb-0 md:mr-3"><span>right</span></div><div class="flex flex-wrap items-center gap-1.5"><div class="flex items-center"><a href="/docs">Docs</a></div></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="flex-1 min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center"><div class="mb-2 md:mb-0 md:mr-3"><span>right</span></div><div class="flex flex-wrap items-center gap-1.5"><div class="flex items-center"><a href="/docs">Docs</a></div></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     const GOLDEN_WITHOUT_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="w-full"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed">Desc</p></div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="w-full"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div></div></div></div>';
 
     test.each([
       ["left out", undefined],
@@ -416,5 +431,81 @@ describe("Card header layout", () => {
 
       expect(screen.getByText("body").parentElement).toHaveClass("mt-0");
     });
+  });
+});
+
+/*
+ * The description is a phone-width casualty on purpose: it is secondary copy,
+ * and a phone header has no room for it. What it must never be is a desktop
+ * casualty. It used to carry the bare `hidden` class and lean on `md:block`
+ * to come back, and a page carrying a foreign `.hidden { display: none
+ * !important }` rule (Bootstrap 3, HTML5 Boilerplate, a browser extension)
+ * beats `md:block` at every width — so every card in the product lost its
+ * description, on the widest screen as well as the narrowest.
+ */
+describe("Card description", () => {
+  const OLD_DESCRIPTION_CLASS_NAME: string =
+    "mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed";
+
+  test.each([
+    ["default", "default"],
+    ["stacked", "stacked"],
+  ] as Array<[string, "default" | "stacked"]>)(
+    "the %s layout holds it back on a phone and shows it from md up",
+    (_label: string, headerLayout: "default" | "stacked") => {
+      render(
+        <Card title="Title" description="Desc" headerLayout={headerLayout} />,
+      );
+
+      const description: HTMLElement = screen.getByTestId("card-description");
+
+      expect(isVisibleAtWidth(description, PHONE_WIDTH_IN_PX)).toBe(false);
+
+      for (const width of [
+        TABLET_WIDTH_IN_PX,
+        LAPTOP_WIDTH_IN_PX,
+        WIDE_DESKTOP_WIDTH_IN_PX,
+      ]) {
+        expect(describeVisibility(description, width)).toBe(
+          `visible at ${width}px`,
+        );
+      }
+    },
+  );
+
+  test("a foreign .hidden rule cannot take it off a tablet or a desktop", () => {
+    render(<Card title="Title" description="Desc" />);
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+
+    expect(description).not.toHaveClass("hidden");
+
+    for (const width of [
+      TABLET_WIDTH_IN_PX,
+      LAPTOP_WIDTH_IN_PX,
+      WIDE_DESKTOP_WIDTH_IN_PX,
+    ]) {
+      expect(
+        describeVisibility(description, width, { withForeignHiddenRule: true }),
+      ).toBe(`visible at ${width}px with a foreign .hidden rule on the page`);
+    }
+
+    /*
+     * The control: the class string the description shipped with before
+     * paints at these widths on a clean page, and on the customer's page it
+     * is gone at every one of them.
+     */
+    for (const width of [
+      TABLET_WIDTH_IN_PX,
+      LAPTOP_WIDTH_IN_PX,
+      WIDE_DESKTOP_WIDTH_IN_PX,
+    ]) {
+      expect(resolveDisplay(OLD_DESCRIPTION_CLASS_NAME, width)).toBe("block");
+      expect(
+        resolveDisplay(OLD_DESCRIPTION_CLASS_NAME, width, {
+          withForeignHiddenRule: true,
+        }),
+      ).toBe("hidden");
+    }
   });
 });

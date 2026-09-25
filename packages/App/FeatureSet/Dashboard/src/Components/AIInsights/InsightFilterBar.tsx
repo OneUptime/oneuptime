@@ -88,7 +88,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div className="hidden h-6 w-px flex-shrink-0 bg-gray-200 sm:block" />
+      <div className="max-sm:hidden h-6 w-px flex-shrink-0 bg-gray-200 sm:block" />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative">

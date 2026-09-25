@@ -13,8 +13,12 @@ import {
   LAPTOP_WIDTH_IN_PX,
   PHONE_WIDTH_IN_PX,
   TABLET_WIDTH_IN_PX,
+  TAILWIND_BREAKPOINTS_IN_PX,
+  VisibilityOptions,
+  WIDE_DESKTOP_WIDTH_IN_PX,
   describeVisibility,
   isVisibleAtWidth,
+  restorePreFixMarkup,
 } from "../../ResponsiveVisibility";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 
@@ -231,26 +235,32 @@ const getButton: GetButtonFunction = (name: RegExp): HTMLElement => {
   return screen.getByRole("button", { name });
 };
 
+type ResetHeaderStateFunction = () => void;
+
+const resetHeaderState: ResetHeaderStateFunction = (): void => {
+  cleanup();
+  // The theme is applied to <html> and outlives a render.
+  document.documentElement.className = "";
+  window.localStorage.clear();
+  isMasterAdminMock.mockReturnValue(false);
+  countMock.mockImplementation(async (args: any) => {
+    const modelName: string = args?.modelType?.name || "";
+
+    if (modelName === "Incident") {
+      return INCIDENT_COUNT;
+    }
+
+    if (modelName === "Alert") {
+      return ALERT_COUNT;
+    }
+
+    return 0;
+  });
+};
+
 describe("dashboard header on small screens", () => {
   beforeEach(() => {
-    cleanup();
-    // The theme is applied to <html> and outlives a render.
-    document.documentElement.className = "";
-    window.localStorage.clear();
-    isMasterAdminMock.mockReturnValue(false);
-    countMock.mockImplementation(async (args: any) => {
-      const modelName: string = args?.modelType?.name || "";
-
-      if (modelName === "Incident") {
-        return INCIDENT_COUNT;
-      }
-
-      if (modelName === "Alert") {
-        return ALERT_COUNT;
-      }
-
-      return 0;
-    });
+    resetHeaderState();
   });
 
   test("the profile button is on screen at every width, phone included", async () => {
@@ -400,5 +410,155 @@ describe("dashboard header on small screens", () => {
     // 5:1 wordmark: h-8 is 160px, nearly half the width of a phone header.
     expect(logo.className).toContain("h-6");
     expect(logo.className).toContain("sm:h-8");
+  });
+});
+
+/*
+ * The same header on a desktop whose browser carries a foreign
+ * `.hidden { display: none !important }` — Bootstrap 3 and HTML5 Boilerplate
+ * ship exactly that rule, and extensions and user stylesheets inject it.
+ *
+ * Search, Ask AI and help were wrapped in `hidden lg:flex`. The foreign rule
+ * matches the bare class and outranks `lg:flex`, so on that customer's 1917px
+ * screen the rail lost all three: the width that is meant to show everything
+ * showed the least. `max-lg:hidden lg:flex` paints identically on a clean page
+ * and never carries the class the rule targets, which is what these pin.
+ */
+const WITH_FOREIGN_HIDDEN_RULE: VisibilityOptions = {
+  withForeignHiddenRule: true,
+};
+
+// Where the wide-screen entries are meant to appear.
+const LG_WIDTH_IN_PX: number = TAILWIND_BREAKPOINTS_IN_PX["lg"]!;
+
+const WIDE_SCREEN_WIDTHS_IN_PX: Array<number> = [
+  LG_WIDTH_IN_PX,
+  LAPTOP_WIDTH_IN_PX,
+  WIDE_DESKTOP_WIDTH_IN_PX,
+];
+
+const NARROW_SCREEN_WIDTHS_IN_PX: Array<number> = [
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  LG_WIDTH_IN_PX - 1,
+];
+
+const WIDE_SCREEN_ONLY_ENTRIES: Array<RegExp> = [/Search/, /Ask AI/, /^Help$/];
+
+const ALWAYS_ON_SCREEN_ENTRIES: Array<RegExp> = [
+  /View notifications/,
+  /User Profile/,
+];
+
+describe("dashboard header with a foreign .hidden rule on the page", () => {
+  beforeEach(() => {
+    resetHeaderState();
+  });
+
+  test("search, Ask AI and help are on screen from lg up: 1024, 1280 and 1917", async () => {
+    await renderHeader();
+
+    for (const name of WIDE_SCREEN_ONLY_ENTRIES) {
+      const button: HTMLElement = getButton(name);
+
+      for (const width of WIDE_SCREEN_WIDTHS_IN_PX) {
+        expect(
+          describeVisibility(button, width, WITH_FOREIGN_HIDDEN_RULE),
+        ).toBe(`visible at ${width}px with a foreign .hidden rule on the page`);
+      }
+    }
+  });
+
+  test("they still stay behind below lg, so the fix did not just unhide them", async () => {
+    await renderHeader();
+
+    for (const name of WIDE_SCREEN_ONLY_ENTRIES) {
+      const button: HTMLElement = getButton(name);
+
+      for (const width of NARROW_SCREEN_WIDTHS_IN_PX) {
+        expect(isVisibleAtWidth(button, width, WITH_FOREIGN_HIDDEN_RULE)).toBe(
+          false,
+        );
+        // And on a clean page: the rule must not be what hides them here.
+        expect(isVisibleAtWidth(button, width)).toBe(false);
+      }
+    }
+  });
+
+  test("the bell and the profile button are on screen at every width, rule or no rule", async () => {
+    await renderHeader();
+
+    for (const name of ALWAYS_ON_SCREEN_ENTRIES) {
+      const button: HTMLElement = getButton(name);
+
+      for (const width of [
+        ...NARROW_SCREEN_WIDTHS_IN_PX,
+        ...WIDE_SCREEN_WIDTHS_IN_PX,
+      ]) {
+        expect(
+          describeVisibility(button, width, WITH_FOREIGN_HIDDEN_RULE),
+        ).toBe(`visible at ${width}px with a foreign .hidden rule on the page`);
+      }
+    }
+  });
+
+  test("the customer's screen: at 1917px with the rule, the whole rail is there", async () => {
+    await renderHeader();
+
+    const entries: Array<RegExp> = [
+      ...WIDE_SCREEN_ONLY_ENTRIES,
+      ...ALWAYS_ON_SCREEN_ENTRIES,
+    ];
+
+    // One line per entry, so a failure names the entry and what hid it.
+    expect(
+      entries.map((name: RegExp): string => {
+        return `${name.source}: ${describeVisibility(
+          getButton(name),
+          WIDE_DESKTOP_WIDTH_IN_PX,
+          WITH_FOREIGN_HIDDEN_RULE,
+        )}`;
+      }),
+    ).toEqual(
+      entries.map((name: RegExp): string => {
+        return `${name.source}: visible at 1917px with a foreign .hidden rule on the page`;
+      }),
+    );
+  });
+
+  test("control: with the pre-fix `hidden lg:flex` put back, the same check fails at 1917px", async () => {
+    /*
+     * Proof that the tests above can fail. The rendered markup is rewritten to
+     * the class strings the header shipped before the fix, and the very same
+     * assertion now reports each wide-screen entry hidden by its old wrapper.
+     */
+    await renderHeader();
+
+    restorePreFixMarkup();
+
+    expect(
+      describeVisibility(
+        getButton(/Search/),
+        WIDE_DESKTOP_WIDTH_IN_PX,
+        WITH_FOREIGN_HIDDEN_RULE,
+      ),
+    ).toBe(
+      'hidden at 1917px with a foreign .hidden rule on the page by <div class="hidden items-center gap-2 lg:flex">',
+    );
+
+    expect(
+      describeVisibility(
+        getButton(/^Help$/),
+        WIDE_DESKTOP_WIDTH_IN_PX,
+        WITH_FOREIGN_HIDDEN_RULE,
+      ),
+    ).toBe(
+      'hidden at 1917px with a foreign .hidden rule on the page by <div class="hidden items-center lg:flex">',
+    );
+
+    // On a clean page the old markup was fine, which is why nobody saw it.
+    expect(
+      isVisibleAtWidth(getButton(/Search/), WIDE_DESKTOP_WIDTH_IN_PX),
+    ).toBe(true);
   });
 });

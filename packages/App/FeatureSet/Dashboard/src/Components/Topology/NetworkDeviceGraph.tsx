@@ -1822,7 +1822,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
 
       {/*
        * A real legend, not prose in the card description — Card renders
-       * its description `hidden md:block`, so on a phone the only key to
+       * its description `max-md:hidden md:block`, so on a phone the only key to
        * reading the graph did not exist at all.
        */}
       <ul

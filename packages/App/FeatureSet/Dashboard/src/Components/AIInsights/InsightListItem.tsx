@@ -227,10 +227,10 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
          * its own unit for assistive technology, which the narrow layout gets
          * from the meta line above.
          */}
-        <div className="hidden w-32 flex-shrink-0 xl:block">
+        <div className="max-xl:hidden w-32 flex-shrink-0 xl:block">
           {getStatusElement(insight.status)}
         </div>
-        <div className="hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
+        <div className="max-xl:hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
           {occurrenceCount > 0 ? (
             <React.Fragment>
               {occurrenceCount}
@@ -244,7 +244,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <div
-          className="hidden w-36 flex-shrink-0 truncate text-right text-xs text-gray-500 xl:block"
+          className="max-xl:hidden w-36 flex-shrink-0 truncate text-right text-xs text-gray-500 xl:block"
           title={lastSeenTitle}
         >
           <span className="sr-only">Last seen </span>
@@ -252,7 +252,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         </div>
         {/* Fades out under the investigate affordance that replaces it. */}
         <span
-          className={`hidden flex-shrink-0 text-gray-300 transition group-hover:text-indigo-500 xl:block ${
+          className={`max-xl:hidden flex-shrink-0 text-gray-300 transition group-hover:text-indigo-500 xl:block ${
             investigationLink
               ? "group-hover:opacity-0 group-focus-within:opacity-0"
               : ""
@@ -273,7 +273,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         <Link
           to={investigationLink.route}
           title={investigationTitle}
-          className="pointer-events-none absolute right-2.5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 opacity-0 transition-opacity hover:text-indigo-600 focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group-hover:pointer-events-auto group-hover:opacity-100 xl:flex"
+          className="pointer-events-none absolute right-2.5 top-1/2 z-10 max-xl:hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 opacity-0 transition-opacity hover:text-indigo-600 focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group-hover:pointer-events-auto group-hover:opacity-100 xl:flex"
         >
           <Icon icon={investigationLink.icon} className="h-5 w-5" />
         </Link>

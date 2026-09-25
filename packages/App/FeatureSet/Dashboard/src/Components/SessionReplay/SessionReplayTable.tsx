@@ -1012,7 +1012,7 @@ function getSessionReplayCells(
               data-testid="session-row-start"
             >
               {OneUptimeDate.fromNow(startedAt as Date)}
-              <span className="hidden text-gray-400 2xl:inline">
+              <span className="max-2xl:hidden text-gray-400 2xl:inline">
                 {" "}
                 · {absoluteStart}
               </span>

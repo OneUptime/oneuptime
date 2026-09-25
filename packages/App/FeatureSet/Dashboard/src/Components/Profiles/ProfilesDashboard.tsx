@@ -1341,7 +1341,7 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                    */}
                   <span
                     className={`flex-shrink-0 text-[10px] text-gray-400 ${
-                      isHighlighted ? "" : "hidden group-hover:inline"
+                      isHighlighted ? "" : "inline group-[:not(:hover)]:hidden"
                     }`}
                   >
                     {isHighlighted

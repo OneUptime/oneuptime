@@ -663,7 +663,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       <div className="flex">
         <div
           style={{ flex: "0 1 auto" }}
-          className="mr-10 hidden lg:block"
+          className="mr-10 max-lg:hidden lg:block"
           data-testid="workflow-wizard-steps"
         >
           <Steps<JSONObject>

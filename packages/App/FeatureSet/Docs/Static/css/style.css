@@ -4812,3 +4812,41 @@ html.dark .docs-btn--primary {
     break-inside: avoid;
   }
 }
+
+/*
+ * Desktop-only markup in the Docs views is written `max-lg:hidden lg:block`,
+ * not `hidden lg:block`: a browser extension or user stylesheet declaring
+ * `.hidden { display: none !important }` (Bootstrap 3, HTML5 Boilerplate)
+ * would otherwise take the sidebar and search off every screen. These mirror
+ * Tailwind's max-width hides so the first paint, before the Play CDN has
+ * generated them, still hides that markup on small screens.
+ */
+@media not all and (min-width: 1536px) {
+  .max-2xl\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 1280px) {
+  .max-xl\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 1024px) {
+  .max-lg\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 768px) {
+  .max-md\:hidden {
+    display: none;
+  }
+}
+
+@media not all and (min-width: 640px) {
+  .max-sm\:hidden {
+    display: none;
+  }
+}

@@ -351,7 +351,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
-                      <p className="mt-1 text-xs text-gray-500 hidden md:block">
+                      <p className="mt-1 text-xs text-gray-500 max-md:hidden md:block">
                         {chart.description}
                       </p>
                     )}
@@ -413,7 +413,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {chart.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-0.5 w-full truncate text-xs text-gray-500 hidden md:block"
+                    className="mt-0.5 w-full truncate text-xs text-gray-500 max-md:hidden md:block"
                     title={chart.description}
                   >
                     {chart.description}

@@ -385,7 +385,7 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
       </div>
 
       {/* Wide viewports: the matrix itself. */}
-      <div className="hidden overflow-x-auto md:block">
+      <div className="max-md:hidden overflow-x-auto md:block">
         <table
           aria-label={`${section.title} coverage`}
           className="min-w-full border-separate border-spacing-0"

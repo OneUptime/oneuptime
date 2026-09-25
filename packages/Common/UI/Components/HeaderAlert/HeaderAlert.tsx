@@ -88,7 +88,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
             </span>
             {props.suffix && (
               <span
-                className={`${textColor} text-sm font-medium opacity-80 hidden md:block`}
+                className={`${textColor} text-sm font-medium opacity-80 max-md:hidden md:block`}
               >
                 {props.suffix}
               </span>

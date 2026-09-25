@@ -25,18 +25,18 @@
 
    <%# The palette trigger. Wide pill on desktop, icon-only where space is tight. -%>
    <button type="button" data-search-open
-      class="hidden h-9 min-w-0 max-w-sm flex-1 items-center gap-2 rounded-lg border border-line bg-surface pl-2.5 pr-2 text-sm text-ink-faint transition-colors hover:border-ink-faint/60 hover:text-ink-subtle md:flex">
+      class="max-md:hidden h-9 min-w-0 max-w-sm flex-1 items-center gap-2 rounded-lg border border-line bg-surface pl-2.5 pr-2 text-sm text-ink-faint transition-colors hover:border-ink-faint/60 hover:text-ink-subtle md:flex">
       <svg class="h-4 w-4 shrink-0 stroke-current" viewBox="0 0 20 20" fill="none" aria-hidden="true">
          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M12.01 12a4.25 4.25 0 1 0-6.02-6 4.25 4.25 0 0 0 6.02 6Zm0 0 3.24 3.25"></path>
       </svg>
       <span class="truncate"><%= t('ui.searchPlaceholder') %></span>
       <kbd
-         class="ml-auto hidden shrink-0 rounded border border-line bg-surface-soft px-1.5 py-0.5 font-sans text-[0.6875rem] font-medium text-ink-faint lg:block"><%= t('ui.searchShortcut') %></kbd>
+         class="ml-auto max-lg:hidden shrink-0 rounded border border-line bg-surface-soft px-1.5 py-0.5 font-sans text-[0.6875rem] font-medium text-ink-faint lg:block"><%= t('ui.searchShortcut') %></kbd>
    </button>
 
    <div class="ml-auto flex items-center gap-1.5 sm:gap-3">
-      <nav class="hidden xl:block" aria-label="<%= t('ui.siteLinksAria') %>">
+      <nav class="max-xl:hidden xl:block" aria-label="<%= t('ui.siteLinksAria') %>">
          <ul role="list" class="flex items-center gap-5">
             <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" href="/"><%= t('ui.home') %></a></li>
             <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" target="_blank" rel="noreferrer"
@@ -57,7 +57,7 @@
       </button>
 
       <% if (typeof supportedLanguages !== 'undefined' && supportedLanguages && supportedLanguages.length > 1) { %>
-      <div class="hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink-subtle transition-colors hover:border-ink-faint/60 lg:flex">
+      <div class="max-lg:hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink-subtle transition-colors hover:border-ink-faint/60 lg:flex">
          <svg class="h-4 w-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
@@ -76,14 +76,14 @@
 
       <%- include('theme-toggle') -%>
 
-      <a class="hidden rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-strong sm:inline-flex"
+      <a class="max-sm:hidden rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-strong sm:inline-flex"
          href="/dashboard"><%= t('ui.signIn') %></a>
    </div>
 </header>
 
 <%# --------------------------------------------------------- desktop rail -%>
 <div
-   class="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-line bg-surface-raised lg:flex no-print">
+   class="fixed inset-y-0 left-0 z-40 max-lg:hidden w-72 flex-col border-r border-line bg-surface-raised lg:flex no-print">
    <div class="flex h-14 shrink-0 items-center gap-2.5 border-b border-line px-6">
       <a class="flex items-center text-ink" aria-label="<%= t('ui.homeAria') %>" href="/">
          <%- include('logo', { logoClass: 'h-6 w-auto' }) -%>

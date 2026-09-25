@@ -37,7 +37,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
           {props.leftFooterElement}
         </div>
       ) : (
-        <div className="hidden sm:block" />
+        <div className="max-sm:hidden sm:block" />
       )}
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         {props.onClose ? (
