@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
+import UserResponse from "../Utils/UserResponse";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -382,14 +383,20 @@ router.post(
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return Response.sendEntityResponse(req, res, user, User, {
-        miscData: {
-          accessToken: loginResult.accessToken,
-          refreshToken: loginResult.sessionMetadata.refreshToken,
-          refreshTokenExpiresAt:
-            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+      return Response.sendEntityResponse(
+        req,
+        res,
+        UserResponse.toResponseUser(user),
+        User,
+        {
+          miscData: {
+            accessToken: loginResult.accessToken,
+            refreshToken: loginResult.sessionMetadata.refreshToken,
+            refreshTokenExpiresAt:
+              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+          },
         },
-      });
+      );
     } catch (err) {
       return next(err);
     }
@@ -444,14 +451,20 @@ router.post(
           user.email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
-      return Response.sendEntityResponse(req, res, user, User, {
-        miscData: {
-          accessToken: loginResult.accessToken,
-          refreshToken: loginResult.sessionMetadata.refreshToken,
-          refreshTokenExpiresAt:
-            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+      return Response.sendEntityResponse(
+        req,
+        res,
+        UserResponse.toResponseUser(user),
+        User,
+        {
+          miscData: {
+            accessToken: loginResult.accessToken,
+            refreshToken: loginResult.sessionMetadata.refreshToken,
+            refreshTokenExpiresAt:
+              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+          },
         },
-      });
+      );
     } catch (err) {
       return next(err);
     }
@@ -863,7 +876,17 @@ router.post(
           });
         }
 
-        return Response.sendEntityResponse(req, res, savedUser, User);
+        /*
+         * Never `savedUser` itself. On a fresh account it is the very model
+         * `create` hashed the password into and minted the salt onto, and it
+         * carries every other column the request body set. See UserResponse.
+         */
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(savedUser),
+          User,
+        );
       }
 
       return Response.sendErrorResponse(
@@ -1940,22 +1963,25 @@ const login: LoginFunction = async (options: {
             await getOrCreatePendingTotpEnrolment(alreadySavedUser.id!);
 
           // See the note on the successful-login response below.
-          delete (alreadySavedUser as any).password;
-          delete (alreadySavedUser as any).passwordSalt;
-
-          return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-            miscData: {
-              twoFactorEnrolmentRequired: true,
-              twoFactorAuthId: pendingEnrolment.id!.toString(),
-              /*
-               * The URL, never `twoFactorSecret`. They encode the same bytes,
-               * but the URL is what a QR code has to contain, and selecting
-               * the raw column would put a bare secret in a page's network tab
-               * for no additional capability.
-               */
-              twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+          return Response.sendEntityResponse(
+            req,
+            res,
+            UserResponse.toResponseUser(alreadySavedUser),
+            User,
+            {
+              miscData: {
+                twoFactorEnrolmentRequired: true,
+                twoFactorAuthId: pendingEnrolment.id!.toString(),
+                /*
+                 * The URL, never `twoFactorSecret`. They encode the same bytes,
+                 * but the URL is what a QR code has to contain, and selecting
+                 * the raw column would put a bare secret in a page's network tab
+                 * for no additional capability.
+                 */
+                twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+              },
             },
-          });
+          );
         }
 
         /*
@@ -1994,29 +2020,38 @@ const login: LoginFunction = async (options: {
         }
 
         // See the note on the successful-login response below.
-        delete (alreadySavedUser as any).password;
-        delete (alreadySavedUser as any).passwordSalt;
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(alreadySavedUser),
+          User,
+          {
+            miscData: {
+              totpAuthList: UserTotpAuth.toJSONArray(
+                totpAuthList,
+                UserTotpAuth,
+              ),
+              webAuthnList: UserWebAuthn.toJSONArray(
+                webAuthnList,
+                UserWebAuthn,
+              ),
 
-        return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-          miscData: {
-            totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
-            webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
-
-            /*
-             * OMITTED, not zeroed, when the count could not be read. Zero is a
-             * claim -- the sign-in page now says "you have no backup codes,
-             * ask an administrator to reset two factor auth" on the strength
-             * of it -- and that claim is false for a user who has ten codes in
-             * their hand and is hitting a database that briefly cannot count
-             * them. Sending nothing means "unknown", which the page renders as
-             * the code form: a user with codes can still use them, and a user
-             * without gets the same refusal they would have got anyway.
-             */
-            ...(backupCodeCount === null
-              ? {}
-              : { backupCodeCount: backupCodeCount }),
+              /*
+               * OMITTED, not zeroed, when the count could not be read. Zero is a
+               * claim -- the sign-in page now says "you have no backup codes,
+               * ask an administrator to reset two factor auth" on the strength
+               * of it -- and that claim is false for a user who has ten codes in
+               * their hand and is hitting a database that briefly cannot count
+               * them. Sending nothing means "unknown", which the page renders as
+               * the code form: a user with codes can still use them, and a user
+               * without gets the same refusal they would have got anyway.
+               */
+              ...(backupCodeCount === null
+                ? {}
+                : { backupCodeCount: backupCodeCount }),
+            },
           },
-        });
+        );
       }
 
       if (isSecondStep) {
@@ -2421,41 +2456,45 @@ const login: LoginFunction = async (options: {
          * sendEntityResponse serializes whatever is set on the model, with no
          * regard for read permissions, so the credential columns selected for
          * verification would otherwise be echoed back in the login response.
+         * UserResponse copies out only the columns the sign-in pages read.
          */
-        delete (alreadySavedUser as any).password;
-        delete (alreadySavedUser as any).passwordSalt;
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(alreadySavedUser),
+          User,
+          {
+            miscData: {
+              accessToken: loginResult.accessToken,
+              refreshToken: loginResult.sessionMetadata.refreshToken,
+              refreshTokenExpiresAt:
+                loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
 
-        return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-          miscData: {
-            accessToken: loginResult.accessToken,
-            refreshToken: loginResult.sessionMetadata.refreshToken,
-            refreshTokenExpiresAt:
-              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+              /*
+               * Present only on a login that just enrolled a first factor and
+               * minted a set behind it. Hyphenated for the page to render as-is,
+               * exactly as the regenerate route does; the verify route
+               * normalizes whatever the user types back.
+               */
+              ...(enrolmentBackupCodes.length > 0
+                ? {
+                    backupCodes: enrolmentBackupCodes.map((code: string) => {
+                      return TwoFactorBackupCode.formatForDisplay(code);
+                    }),
+                  }
+                : {}),
 
-            /*
-             * Present only on a login that just enrolled a first factor and
-             * minted a set behind it. Hyphenated for the page to render as-is,
-             * exactly as the regenerate route does; the verify route
-             * normalizes whatever the user types back.
-             */
-            ...(enrolmentBackupCodes.length > 0
-              ? {
-                  backupCodes: enrolmentBackupCodes.map((code: string) => {
-                    return TwoFactorBackupCode.formatForDisplay(code);
-                  }),
-                }
-              : {}),
-
-            /*
-             * Sent only when it is true, and only by the enrolment path, so
-             * that the sign-in page does not offer to generate a set for
-             * somebody who is already holding one. See the note at the mint.
-             */
-            ...(enrolmentAccountAlreadyHadCodes
-              ? { hasBackupCodes: true }
-              : {}),
+              /*
+               * Sent only when it is true, and only by the enrolment path, so
+               * that the sign-in page does not offer to generate a set for
+               * somebody who is already holding one. See the note at the mint.
+               */
+              ...(enrolmentAccountAlreadyHadCodes
+                ? { hasBackupCodes: true }
+                : {}),
+            },
           },
-        });
+        );
       }
     }
     return Response.sendErrorResponse(
