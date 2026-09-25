@@ -620,8 +620,31 @@ export const expressErrorHandler: (
 
     res.send({ error: exception.message || "Server Error" });
   } else {
-    res.status(500);
-    res.send({ error: "Server Error" });
+    /*
+     * Plain Error: body-parser failures land here. express.json() rejects a
+     * malformed body with a SyntaxError that carries status=400 and
+     * type="entity.parse.failed" (per the body-parser docs, "the error's
+     * status is 400; treat this as a client error"), and the payload-size
+     * limit carries status=413. Ignoring err.status turned every one of
+     * those client errors into a 500 — which adversarial suites correctly
+     * read as "no deliberate boundary". Honor the convention Express
+     * middleware uses (err.status, then err.statusCode) before falling back
+     * to 500.
+     */
+    const errStatus: unknown = (err as { status?: unknown }).status;
+    const errStatusCode: unknown = (err as { statusCode?: unknown }).statusCode;
+    const clientStatus: number | undefined = [errStatus, errStatusCode].find(
+      (candidate: unknown): candidate is number =>
+        typeof candidate === "number" && StatusCode.isValidStatusCode(candidate),
+    );
+
+    if (clientStatus !== undefined) {
+      res.status(clientStatus);
+      res.send({ error: err.message || "Server Error" });
+    } else {
+      res.status(500);
+      res.send({ error: "Server Error" });
+    }
   }
 };
 
