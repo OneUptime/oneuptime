@@ -586,7 +586,6 @@ router.post(
           requestBody: req.body,
           steps: executionSteps,
         });
-        res.status(400);
         return Response.sendJsonObjectResponse(
           req,
           res,
@@ -595,6 +594,7 @@ router.post(
             validation.error!,
             SCIMErrorType.InvalidValue,
           ),
+          { statusCode: new StatusCode(400) },
         );
       }
       executionSteps.push("Bulk request validation passed");
@@ -2700,6 +2700,9 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
 
+      // RFC 7644: 201 for a new group, 200 when an existing team is reused.
+      const httpStatusCode: number = createdNewTeam ? 201 : 200;
+
       // Log the operation
       void createProjectSCIMLog({
         projectId: projectId,
@@ -2708,7 +2711,7 @@ router.post(
         status: SCIMLogStatus.Success,
         httpMethod: "POST",
         requestPath: req.path,
-        httpStatusCode: createdNewTeam ? 201 : 200,
+        httpStatusCode: httpStatusCode,
         affectedGroupName: displayName,
         requestBody: scimGroup,
         responseBody: groupResponse,
@@ -2724,13 +2727,9 @@ router.post(
         },
       });
 
-      if (createdNewTeam) {
-        res.status(201);
-      } else {
-        res.status(200);
-      }
-
-      return Response.sendJsonObjectResponse(req, res, groupResponse);
+      return Response.sendJsonObjectResponse(req, res, groupResponse, {
+        statusCode: new StatusCode(httpStatusCode),
+      });
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -3111,10 +3110,9 @@ router.delete(
         },
       });
 
-      res.status(204);
-      return Response.sendJsonObjectResponse(req, res, {
-        message: "Group deleted",
-      });
+      // RFC 7644 section 3.6: a successful DELETE is 204 No Content, no body.
+      res.status(204).send();
+      return;
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -3690,8 +3688,9 @@ router.post(
         },
       });
 
-      res.status(201);
-      return Response.sendJsonObjectResponse(req, res, createdUser);
+      return Response.sendJsonObjectResponse(req, res, createdUser, {
+        statusCode: new StatusCode(201),
+      });
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
 
@@ -3834,10 +3833,9 @@ router.delete(
         },
       });
 
-      res.status(204);
-      return Response.sendJsonObjectResponse(req, res, {
-        message: "User deprovisioned",
-      });
+      // RFC 7644 section 3.6: a successful DELETE is 204 No Content, no body.
+      res.status(204).send();
+      return;
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
