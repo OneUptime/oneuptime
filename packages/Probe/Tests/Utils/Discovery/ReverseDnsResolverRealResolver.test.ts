@@ -707,3 +707,107 @@ function readHostsFile(): HostsFileContents {
 
   return contents;
 }
+
+/*
+ * A DEAD first nameserver behind a working second one, on a sweep big enough
+ * to trip the breaker (#3916). Every first-try lookup gives the dead server
+ * its whole two seconds and never reaches the second, so the first sixty-four
+ * all fail — which is exactly what the breaker reads as "this probe has no
+ * DNS". Without the breaker rescue the other hosts were skipped and all
+ * seventy were listed by address, on a host where any resolver that moves on
+ * to the second server names every one.
+ */
+describe("the real resolver: a dead primary nameserver on a seventy-host sweep", () => {
+  let deadPrimary: FakeDnsServer;
+  let workingSecondary: FakeDnsServer;
+  let rescued: ReverseDnsResolution;
+  let firstTryOnly: ReverseDnsResolution;
+  let rescuedDurationInMs: number = 0;
+
+  const SWEEP: Array<string> = Array.from(
+    { length: 70 },
+    (_unused: unknown, index: number): string => {
+      return `10.16.44.${index + 1}`;
+    },
+  );
+
+  beforeAll(async () => {
+    deadPrimary = await startFakeDnsServer((): FakeDnsReply => {
+      return dropReply();
+    });
+    workingSecondary = await startFakeDnsServer(secondaryResponder);
+
+    const servers: Array<string> = [
+      deadPrimary.address,
+      workingSecondary.address,
+    ];
+    const factory: ReverseDnsResolverFactory = loopbackResolverFactory(servers);
+    const startedAt: number = Date.now();
+
+    /*
+     * The same sweep twice, side by side: once as the probe now runs it, and
+     * once with the first-try lookup alone — the probe as it was — so the
+     * test shows the difference rather than asserting it from memory.
+     */
+    [rescued, firstTryOnly] = await Promise.all([
+      loopbackReverseDnsResolver(servers)
+        .resolveHostnames(SWEEP)
+        .then((result: ReverseDnsResolution): ReverseDnsResolution => {
+          rescuedDurationInMs = Date.now() - startedAt;
+          return result;
+        }),
+      new ReverseDnsResolver({
+        lookup: buildDefaultLookup(DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS, factory),
+      }).resolveHostnames(SWEEP),
+    ]);
+  }, 30000);
+
+  afterAll(async () => {
+    await deadPrimary?.close();
+    await workingSecondary?.close();
+  });
+
+  it("names all seventy hosts from the secondary", () => {
+    for (const ipAddress of SWEEP) {
+      expect(rescued.hostnameByIpAddress.get(ipAddress)).toBe(
+        `secondary-${ipAddress.split(".").pop()}.wbhq.example`,
+      );
+    }
+
+    expect(rescued.statusByIpAddress?.size).toBe(0);
+    expect(rescued.failedAddressCount).toBe(0);
+    expect(rescued.isReverseDnsAvailable).toBe(true);
+    expect(rescued.notLookedUpCount).toBe(0);
+  });
+
+  itWithoutRotation(
+    "while the first-try lookup alone names none of them and calls DNS unusable",
+    () => {
+      /*
+       * The probe as it was: sixty-four timeouts, the breaker, and six hosts
+       * never asked. Needs a resolver that asks the dead server first, which
+       * `options rotate` does not guarantee.
+       */
+      expect(firstTryOnly.hostnameByIpAddress.size).toBe(0);
+      expect(firstTryOnly.isReverseDnsAvailable).toBe(false);
+      expect(firstTryOnly.notLookedUpCount).toBe(6);
+    },
+  );
+
+  it("pays for the dead server about once, not once per host", () => {
+    /*
+     * Two first-try waves (two seconds each), one thorough attempt that
+     * waits out the dead server before the secondary answers, and then —
+     * because the retry lookup now asks first the server that answered with
+     * a name — everything else at loopback speed. Asking the dead server
+     * first for each of the remaining addresses would cost at least one more
+     * retry timeout per wave.
+     */
+    expect(rescuedDurationInMs).toBeLessThan(
+      2 * DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS +
+        DEFAULT_REVERSE_DNS_RETRY_TIMEOUT_IN_MS +
+        REVERSE_DNS_RETRY_RACE_SLACK_IN_MS +
+        3000,
+    );
+  });
+});

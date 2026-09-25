@@ -950,3 +950,310 @@ describe("the retry's budget, as shipped", () => {
     expect(second.calls).toHaveLength(0);
   });
 });
+
+/*
+ * The retry lookup remembers, for the rest of its pass, the nameserver that
+ * last answered with a PTR NAME, and asks it first (#3916). Without that, a
+ * probe host whose first nameserver is simply down charges every address the
+ * full retry timeout on it before the working secondary is asked — and a
+ * sweep behind it spends its whole naming budget waiting.
+ */
+describe("buildDefaultRetryLookup — asking first the server that answers with names", () => {
+  const PRIMARY: string = "10.0.0.2";
+  const SECONDARY: string = "10.0.0.3";
+  const TERTIARY: string = "10.0.0.4";
+
+  type ServerOutcome = (ipAddress: string) => Promise<Array<string>>;
+
+  /*
+   * Each server scripted per address: what a resolver PINNED to that server
+   * answers for the address it was asked about. The hosts file, reached
+   * through reverse(), answers from `hostsFile`.
+   */
+  function scriptedServers(data: {
+    outcomes: Record<string, ServerOutcome>;
+    configured: Array<string>;
+    hostsFile?: Record<string, Array<string>> | undefined;
+  }): FakeResolverFactory {
+    return fakeResolverFactory({
+      servers: data.configured,
+      resolvePtr: (
+        hostname: string,
+        resolver: FakeReverseDnsResolver,
+      ): Promise<Array<string>> => {
+        const pinned: string = resolver.servers.join(",");
+        const outcome: ServerOutcome | undefined = data.outcomes[pinned];
+        const ipAddress: string = hostname
+          .replace(".in-addr.arpa", "")
+          .split(".")
+          .reverse()
+          .join(".");
+
+        return outcome
+          ? outcome(ipAddress)
+          : Promise.reject(new Error(`unpinned query to ${pinned}`));
+      },
+      reverse: (ipAddress: string): Promise<Array<string>> => {
+        const names: Array<string> | undefined = data.hostsFile?.[ipAddress];
+
+        return names
+          ? Promise.resolve(names)
+          : Promise.reject(fakeDnsError("ENOTFOUND", "getHostByAddr"));
+      },
+    });
+  }
+
+  // The servers each lookup pinned, in the order it pinned them.
+  function pinnedSince(
+    factory: FakeResolverFactory,
+    fromIndex: number,
+  ): Array<string> {
+    return factory.created
+      .slice(fromIndex)
+      .filter((resolver: FakeReverseDnsResolver): boolean => {
+        return resolver.calls.some((call: FakeResolverCall): boolean => {
+          return call.method === "setServers";
+        });
+      })
+      .map((resolver: FakeReverseDnsResolver): string => {
+        return resolver.servers.join(",");
+      });
+  }
+
+  function timingOut(): Promise<Array<string>> {
+    return Promise.reject(fakeDnsError("ETIMEOUT", "queryPtr ETIMEOUT"));
+  }
+
+  function naming(ipAddress: string): Promise<Array<string>> {
+    return Promise.resolve([`host-${ipAddress}.wbhq.example`]);
+  }
+
+  it("asks the secondary FIRST once it has answered with a name, skipping a dead primary", async () => {
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: { [PRIMARY]: timingOut, [SECONDARY]: naming },
+      configured: [PRIMARY, SECONDARY],
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await expect(retry("10.16.42.51")).resolves.toEqual([
+      "host-10.16.42.51.wbhq.example",
+    ]);
+    expect(pinnedSince(factory, 0)).toEqual([PRIMARY, SECONDARY]);
+
+    const before: number = factory.created.length;
+
+    await expect(retry("10.16.42.53")).resolves.toEqual([
+      "host-10.16.42.53.wbhq.example",
+    ]);
+    // The dead primary is not asked at all this time.
+    expect(pinnedSince(factory, before)).toEqual([SECONDARY]);
+  });
+
+  it("still falls back to the other servers, primary first, when the preferred one fails", async () => {
+    const secondaryAnswers: { isUp: boolean } = { isUp: true };
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: {
+        [PRIMARY]: timingOut,
+        [SECONDARY]: (ipAddress: string): Promise<Array<string>> => {
+          return secondaryAnswers.isUp
+            ? naming(ipAddress)
+            : Promise.reject(fakeDnsError("ESERVFAIL"));
+        },
+        [TERTIARY]: naming,
+      },
+      configured: [PRIMARY, SECONDARY, TERTIARY],
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await retry("10.16.42.51");
+
+    secondaryAnswers.isUp = false;
+    const before: number = factory.created.length;
+
+    await expect(retry("10.16.42.53")).resolves.toEqual([
+      "host-10.16.42.53.wbhq.example",
+    ]);
+    expect(pinnedSince(factory, before)).toEqual([
+      SECONDARY,
+      PRIMARY,
+      TERTIARY,
+    ]);
+  });
+
+  it("moves its preference to whichever server answered with a name last", async () => {
+    const primaryAnswers: { isUp: boolean } = { isUp: false };
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: {
+        [PRIMARY]: (ipAddress: string): Promise<Array<string>> => {
+          return primaryAnswers.isUp ? naming(ipAddress) : timingOut();
+        },
+        [SECONDARY]: (ipAddress: string): Promise<Array<string>> => {
+          return primaryAnswers.isUp
+            ? Promise.reject(fakeDnsError("ESERVFAIL"))
+            : naming(ipAddress);
+        },
+      },
+      configured: [PRIMARY, SECONDARY],
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await retry("10.16.42.51"); // Primary down: the secondary names it.
+
+    primaryAnswers.isUp = true;
+    await retry("10.16.42.52"); // Secondary SERVFAILs: the primary names it.
+
+    const before: number = factory.created.length;
+
+    await retry("10.16.42.53");
+    expect(pinnedSince(factory, before)).toEqual([PRIMARY]);
+  });
+
+  it("does NOT prefer a server that only said 'no record'", async () => {
+    /*
+     * A public resolver listed after the internal one answers NXDOMAIN for
+     * every private address. Letting that earn the preference would make
+     * the rest of the sweep ask the one server guaranteed to have no names.
+     */
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: {
+        [PRIMARY]: timingOut,
+        [SECONDARY]: (): Promise<Array<string>> => {
+          return Promise.reject(fakeDnsError("ENOTFOUND"));
+        },
+      },
+      configured: [PRIMARY, SECONDARY],
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await expect(retry("10.16.42.51")).rejects.toMatchObject({
+      code: "ENOTFOUND",
+    });
+
+    const before: number = factory.created.length;
+
+    await expect(retry("10.16.42.53")).rejects.toMatchObject({
+      code: "ENOTFOUND",
+    });
+    expect(pinnedSince(factory, before)).toEqual([PRIMARY, SECONDARY]);
+  });
+
+  it("does NOT prefer a server whose 'name' came from the probe's hosts file", async () => {
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: {
+        [PRIMARY]: timingOut,
+        [SECONDARY]: (): Promise<Array<string>> => {
+          return Promise.reject(fakeDnsError("ENOTFOUND"));
+        },
+      },
+      configured: [PRIMARY, SECONDARY],
+      hostsFile: { "10.16.42.51": ["from-etc-hosts"] },
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await expect(retry("10.16.42.51")).resolves.toEqual(["from-etc-hosts"]);
+
+    const before: number = factory.created.length;
+
+    await retry("10.16.42.53").catch((): void => {});
+    expect(pinnedSince(factory, before)).toEqual([PRIMARY, SECONDARY]);
+  });
+
+  it("still reports the PRIMARY's error when every server fails, even with the secondary asked first", async () => {
+    const secondaryAnswers: { isUp: boolean } = { isUp: true };
+    const primaryError: Error = fakeDnsError("ETIMEOUT", "from the primary");
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: {
+        [PRIMARY]: (): Promise<Array<string>> => {
+          return Promise.reject(primaryError);
+        },
+        [SECONDARY]: (ipAddress: string): Promise<Array<string>> => {
+          return secondaryAnswers.isUp
+            ? naming(ipAddress)
+            : Promise.reject(fakeDnsError("ESERVFAIL", "from the second"));
+        },
+      },
+      configured: [PRIMARY, SECONDARY],
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await retry("10.16.42.51");
+    secondaryAnswers.isUp = false;
+
+    const before: number = factory.created.length;
+    const rejection: unknown = await retry("10.16.42.53").catch(
+      (caught: unknown): unknown => {
+        return caught;
+      },
+    );
+
+    expect(pinnedSince(factory, before)).toEqual([SECONDARY, PRIMARY]);
+    expect(rejection).toBe(primaryError);
+  });
+
+  it("keeps each lookup function's preference to itself, so a new pass starts in configured order", async () => {
+    const factory: FakeResolverFactory = scriptedServers({
+      outcomes: { [PRIMARY]: timingOut, [SECONDARY]: naming },
+      configured: [PRIMARY, SECONDARY],
+    });
+
+    await buildDefaultRetryLookup(4000, factory.create)("10.16.42.51");
+
+    const before: number = factory.created.length;
+
+    await buildDefaultRetryLookup(4000, factory.create)("10.16.42.53");
+    expect(pinnedSince(factory, before)).toEqual([PRIMARY, SECONDARY]);
+  });
+
+  it("ignores a preferred server that is no longer configured", async () => {
+    const configuration: { servers: Array<string> } = {
+      servers: [PRIMARY, SECONDARY],
+    };
+    const factory: FakeResolverFactory = fakeResolverFactory({
+      getServers: (resolver: FakeReverseDnsResolver): Array<string> => {
+        return resolver.calls.some((call: FakeResolverCall): boolean => {
+          return call.method === "setServers";
+        })
+          ? [...resolver.servers]
+          : [...configuration.servers];
+      },
+      resolvePtr: (
+        _hostname: string,
+        resolver: FakeReverseDnsResolver,
+      ): Promise<Array<string>> => {
+        return resolver.servers.join(",") === PRIMARY
+          ? timingOut()
+          : Promise.resolve(["named.wbhq.example"]);
+      },
+    });
+    const retry: ReverseDnsLookupFunction = buildDefaultRetryLookup(
+      4000,
+      factory.create,
+    );
+
+    await retry("10.16.42.51"); // Prefers the secondary from here on.
+
+    configuration.servers = [PRIMARY, TERTIARY];
+    const before: number = factory.created.length;
+
+    await retry("10.16.42.53");
+    expect(pinnedSince(factory, before)).toEqual([PRIMARY, TERTIARY]);
+  });
+});
