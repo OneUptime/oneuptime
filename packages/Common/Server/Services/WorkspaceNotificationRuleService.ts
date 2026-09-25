@@ -1235,6 +1235,44 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
+    // Discord rides the same pipeline but addresses the project's bound
+    // incident channel instead of notification-rule channels (see
+    // getDiscordIncidentChannelPayload). Appended blocks (rich incident
+    // cards with Acknowledge/Resolve buttons) take precedence when present.
+    {
+      const discordEntry: MessageBlocksByWorkspaceType | undefined =
+        messageBlocksByWorkspaceTypes.find(
+          (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+            return (
+              messageBlocksByWorkspaceType.workspaceType ===
+              WorkspaceType.Discord
+            );
+          },
+        );
+      const slackEntry: MessageBlocksByWorkspaceType | undefined =
+        messageBlocksByWorkspaceTypes.find(
+          (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+            return (
+              messageBlocksByWorkspaceType.workspaceType === WorkspaceType.Slack
+            );
+          },
+        );
+      const discordBlocks: Array<WorkspaceMessageBlock> | undefined =
+        discordEntry?.messageBlocks?.length
+          ? discordEntry.messageBlocks
+          : slackEntry?.messageBlocks;
+      if (discordBlocks) {
+        const discordPayload: WorkspaceMessagePayload | null =
+          await this.getDiscordIncidentChannelPayload({
+            projectId: data.projectId,
+            messageBlocks: discordBlocks,
+          });
+        if (discordPayload) {
+          workspaceNotificationPaylaods.push(discordPayload);
+        }
+      }
+    }
+
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
       const existingChannels: Array<WorkspaceChannel> =
         await this.getExistingChannelNamesBasedOnEventType({
@@ -1545,6 +1583,42 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
     return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+  }
+
+  /*
+   * Discord is registered as a workspace provider (Workspace.ts) but is not
+   * yet a notification-rule target: its incident delivery is bound to the
+   * project's configured incident channel (WorkspaceProjectAuthToken
+   * miscData.incidentChannelId) rather than per-rule channels. Widen this
+   * list only when Discord grows rule-based routing (HOM-36 parity).
+   */
+  public async getDiscordIncidentChannelPayload(data: {
+    projectId: ObjectID;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<WorkspaceMessagePayload | null> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Discord,
+      });
+    const misc: MiscData | undefined = projectAuth?.miscData;
+    const channelId: unknown = misc?.["incidentChannelId"];
+    if (
+      !projectAuth?.authToken ||
+      typeof channelId !== "string" ||
+      channelId.length === 0
+    ) {
+      // No Discord connection or no incident channel chosen: most projects
+      // are not Discord-bound, so this is not an error.
+      return null;
+    }
+    return {
+      _type: "WorkspaceMessagePayload",
+      workspaceType: WorkspaceType.Discord,
+      messageBlocks: data.messageBlocks,
+      channelNames: [],
+      channelIds: [channelId],
+    };
   }
 
   public getBotUserIdFromprojectAuthToken(data: {

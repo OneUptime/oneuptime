@@ -3,6 +3,7 @@ import { EntityManager, IsNull } from "typeorm";
 import DatabaseService from "./DatabaseService";
 import ProjectToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import UserTokenService from "./WorkspaceUserAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -299,6 +300,51 @@ class Service extends DatabaseService<ProjectToken> {
         );
       },
     );
+  }
+
+  /*
+   * Maps a Discord guild + user to the OneUptime project member who linked
+   * that Discord account. Used by interaction handlers that must execute a
+   * project action on behalf of a Discord user: only verified links count,
+   * and the project binding must still be live.
+   */
+  public async resolveLinkedMember(data: {
+    guildId: string;
+    discordUserId: string;
+  }): Promise<{ projectId: ObjectID; userId: ObjectID } | null> {
+    const project: ProjectToken | null = await this.findOneBy({
+      query: {
+        workspaceType: WorkspaceType.Discord,
+        workspaceProjectId: data.guildId,
+      },
+      select: {
+        projectId: true,
+        miscData: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (!project || project.deletedAt || !project.projectId) {
+      return null;
+    }
+    const user: UserToken | null = await UserTokenService.findOneBy({
+      query: {
+        projectId: project.projectId,
+        workspaceType: WorkspaceType.Discord,
+        workspaceUserId: data.discordUserId,
+      },
+      select: {
+        userId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (!user || user.deletedAt || !user.userId) {
+      return null;
+    }
+    return { projectId: project.projectId, userId: user.userId };
   }
 
   /*

@@ -5,6 +5,7 @@ import WorkspaceBase, {
 } from "./WorkspaceBase";
 import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
+import DiscordWorkspace from "./Discord/Discord";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceMessagePayload, {
@@ -174,7 +175,11 @@ export default class WorkspaceUtil {
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
     // Enumerate only providers supported by getWorkspaceTypeUtil below.
-    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Discord,
+    ];
   }
 
   @CaptureSpan()
@@ -187,6 +192,10 @@ export default class WorkspaceUtil {
 
     if (workspaceType === WorkspaceType.MicrosoftTeams) {
       return MicrosoftTeamsUtil;
+    }
+
+    if (workspaceType === WorkspaceType.Discord) {
+      return DiscordWorkspace;
     }
 
     throw new BadDataException(
