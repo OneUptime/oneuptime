@@ -7,6 +7,7 @@ import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../Helpers/selectProjectPlan";
+import submitSignup from "../Helpers/submitSignup";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
@@ -36,8 +37,10 @@ test.describe.skip("Project Creation", () => {
       }
     }
 
+    const email: string = Faker.generateEmail().toString();
+
     await page.getByTestId("email").click();
-    await page.getByTestId("email").fill(Faker.generateEmail().toString());
+    await page.getByTestId("email").fill(email);
     await page.getByTestId("email").press("Tab");
     await page.getByTestId("name").fill("E2E Test User");
     await page.getByTestId("name").press("Tab");
@@ -52,7 +55,7 @@ test.describe.skip("Project Creation", () => {
     await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
     await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
-    await page.getByTestId("Sign Up").click();
+    await submitSignup({ page, email, password: E2E_SIGNUP_PASSWORD });
 
     await page.waitForURL(
       URL.fromString(BASE_URL.toString())

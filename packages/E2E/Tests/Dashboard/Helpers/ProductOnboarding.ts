@@ -14,6 +14,7 @@ import {
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../../Helpers/selectProjectPlan";
+import submitSignup from "../../Helpers/submitSignup";
 import { addTestPaymentMethod } from "./Billing";
 
 const projectDashboardUrlRegex: RegExp =
@@ -120,7 +121,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
     await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
-    await page.getByTestId("Sign Up").click();
+    await submitSignup({ page, email, password: E2E_SIGNUP_PASSWORD });
 
     const welcomeUrl: string = URL.fromString(BASE_URL.toString())
       .addRoute("/dashboard/welcome")

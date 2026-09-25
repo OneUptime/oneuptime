@@ -1,5 +1,6 @@
-import { APIResponse, Page, Response, expect } from "@playwright/test";
+import { APIResponse, Page, expect } from "@playwright/test";
 import { E2E_SIGNUP_PASSWORD } from "../Config";
+import submitSignup from "../Tests/Helpers/submitSignup";
 
 export type JSONish = Record<string, any>;
 
@@ -132,24 +133,18 @@ export const registerAndCreateProject: (data: {
   projectNamePrefix: string;
 }): Promise<string> => {
   const unique: string = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const email: string = `label-transfer-${unique}@example.com`;
   await data.page.goto(buildUrl("/accounts/register"));
-  await data.page
-    .getByTestId("email")
-    .fill(`label-transfer-${unique}@example.com`);
+  await data.page.getByTestId("email").fill(email);
   await data.page.getByTestId("name").fill("Label Transfer Test");
   await data.page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
   await data.page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
-  const signUpResponse: Promise<Response> = data.page.waitForResponse(
-    (response: Response): boolean => {
-      return (
-        response.url().endsWith("/identity/signup") &&
-        response.request().method() === "POST"
-      );
-    },
-  );
-  await data.page.getByTestId("Sign Up").click();
-  const registered: Response = await signUpResponse;
-  expect(registered.ok(), `Signup failed: ${registered.status()}`).toBe(true);
+  // Checks the response, and follows the welcome link on a hosted stack.
+  await submitSignup({
+    page: data.page,
+    email,
+    password: E2E_SIGNUP_PASSWORD,
+  });
   await expect(data.page).toHaveURL(/\/dashboard\/welcome/, {
     timeout: 120000,
   });

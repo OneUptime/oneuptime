@@ -112,7 +112,13 @@
     "loginLink": "Logga in.",
     "notifySelfHosted": "Meddela mig om säkerhetsuppdateringar och nya versioner",
     "checkEmailTitle": "Kontrollera din e-post",
-    "checkEmailMessage": "Om den här e-postadressen har ett konto som väntar på att konfigureras har vi skickat en länk för att slutföra registreringen. Glöm inte att kontrollera skräpposten."
+    "checkEmailMessage": "Om den här e-postadressen har ett konto som väntar på att konfigureras har vi skickat en länk för att slutföra registreringen. Glöm inte att kontrollera skräpposten.",
+    "verifyEmailTitle": "Verifiera din e-postadress för att slutföra registreringen",
+    "verifyEmailSentTo": "Vi har skickat en verifieringslänk till {{email}}.",
+    "verifyEmailSent": "Vi har skickat en verifieringslänk till dig.",
+    "verifyEmailInstructions": "Öppna länken i e-postmeddelandet för att aktivera ditt konto och logga sedan in.",
+    "verifyEmailResendHint": "Hittar du det inte? Kontrollera skräppostmappen. Länken upphör att gälla efter 24 timmar, och när du loggar in med din e-postadress och ditt lösenord skickar vi en ny.",
+    "verifyEmailLoginLink": "Gå till inloggning"
   },
   "forgotPassword": {
     "title": "Glömt lösenord",
@@ -152,7 +158,8 @@
     "successDescription": "Tack för att du verifierade din e-post. Du kan nu logga in på OneUptime.",
     "errorTitle": "Förlåt, något gick fel!",
     "returnToSignIn": "Tillbaka till inloggning?",
-    "loginLink": "Logga in."
+    "loginLink": "Logga in.",
+    "continueToSignIn": "Fortsätt till inloggning"
   },
   "errors": {
     "forbidden": {

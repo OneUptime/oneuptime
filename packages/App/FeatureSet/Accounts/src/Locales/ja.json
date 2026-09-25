@@ -112,7 +112,13 @@
     "loginLink": "ログイン。",
     "notifySelfHosted": "セキュリティパッチと新リリースについて通知する",
     "checkEmailTitle": "メールをご確認ください",
-    "checkEmailMessage": "このメールアドレスに設定待ちのアカウントがある場合、登録を完了するためのリンクを送信しました。迷惑メールフォルダーもご確認ください。"
+    "checkEmailMessage": "このメールアドレスに設定待ちのアカウントがある場合、登録を完了するためのリンクを送信しました。迷惑メールフォルダーもご確認ください。",
+    "verifyEmailTitle": "登録を完了するにはメールアドレスを確認してください",
+    "verifyEmailSentTo": "{{email}} に確認用リンクを送信しました。",
+    "verifyEmailSent": "確認用リンクを送信しました。",
+    "verifyEmailInstructions": "メールに記載されたリンクを開いてアカウントを有効化してから、サインインしてください。",
+    "verifyEmailResendHint": "見つからない場合は迷惑メールフォルダを確認してください。リンクの有効期限は24時間です。メールアドレスとパスワードでサインインすると、新しいリンクが送信されます。",
+    "verifyEmailLoginLink": "サインインへ進む"
   },
   "forgotPassword": {
     "title": "パスワードをお忘れの場合",
@@ -152,7 +158,8 @@
     "successDescription": "メールを確認していただきありがとうございます。OneUptimeにログインできるようになりました。",
     "errorTitle": "申し訳ございませんが、エラーが発生しました！",
     "returnToSignIn": "サインインに戻りますか？",
-    "loginLink": "ログイン。"
+    "loginLink": "ログイン。",
+    "continueToSignIn": "サインインに進む"
   },
   "errors": {
     "forbidden": {

@@ -112,7 +112,13 @@
     "loginLink": "Entrar.",
     "notifySelfHosted": "Notifique-me sobre patches de segurança e novas versões",
     "checkEmailTitle": "Verifique seu e-mail",
-    "checkEmailMessage": "Se este endereço de e-mail tiver uma conta aguardando configuração, enviamos um link para concluir o registro. Não se esqueça de verificar a pasta de spam."
+    "checkEmailMessage": "Se este endereço de e-mail tiver uma conta aguardando configuração, enviamos um link para concluir o registro. Não se esqueça de verificar a pasta de spam.",
+    "verifyEmailTitle": "Verifique seu e-mail para concluir o cadastro",
+    "verifyEmailSentTo": "Enviamos um link de verificação para {{email}}.",
+    "verifyEmailSent": "Enviamos um link de verificação para você.",
+    "verifyEmailInstructions": "Abra o link desse e-mail para ativar sua conta e, em seguida, faça login.",
+    "verifyEmailResendHint": "Não encontrou? Verifique sua pasta de spam. O link expira em 24 horas, e ao fazer login com seu e-mail e senha enviaremos um novo.",
+    "verifyEmailLoginLink": "Ir para o login"
   },
   "forgotPassword": {
     "title": "Esqueceu a senha",
@@ -152,7 +158,8 @@
     "successDescription": "Obrigado por verificar seu e-mail. Agora você pode fazer login no OneUptime.",
     "errorTitle": "Desculpe, algo deu errado!",
     "returnToSignIn": "Voltar para o login?",
-    "loginLink": "Entrar."
+    "loginLink": "Entrar.",
+    "continueToSignIn": "Continuar para o login"
   },
   "errors": {
     "forbidden": {

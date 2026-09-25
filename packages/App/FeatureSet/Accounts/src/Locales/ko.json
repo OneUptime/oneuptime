@@ -112,7 +112,13 @@
     "loginLink": "로그인.",
     "notifySelfHosted": "보안 패치 및 새 릴리스에 대한 알림 받기",
     "checkEmailTitle": "이메일을 확인하세요",
-    "checkEmailMessage": "이 이메일 주소로 설정 대기 중인 계정이 있는 경우 등록을 완료할 수 있는 링크를 보냈습니다. 스팸 폴더도 확인하는 것을 잊지 마세요."
+    "checkEmailMessage": "이 이메일 주소로 설정 대기 중인 계정이 있는 경우 등록을 완료할 수 있는 링크를 보냈습니다. 스팸 폴더도 확인하는 것을 잊지 마세요.",
+    "verifyEmailTitle": "가입을 완료하려면 이메일을 인증하세요",
+    "verifyEmailSentTo": "{{email}}(으)로 인증 링크를 보냈습니다.",
+    "verifyEmailSent": "인증 링크를 보냈습니다.",
+    "verifyEmailInstructions": "이메일에 있는 링크를 열어 계정을 활성화한 다음 로그인하세요.",
+    "verifyEmailResendHint": "메일을 찾을 수 없나요? 스팸 폴더를 확인하세요. 링크는 24시간 후에 만료되며, 이메일과 비밀번호로 로그인하면 새 링크를 보내 드립니다.",
+    "verifyEmailLoginLink": "로그인으로 이동"
   },
   "forgotPassword": {
     "title": "비밀번호 잊음",
@@ -152,7 +158,8 @@
     "successDescription": "이메일을 확인해 주셔서 감사합니다. 이제 OneUptime에 로그인할 수 있습니다.",
     "errorTitle": "죄송합니다. 문제가 발생했습니다!",
     "returnToSignIn": "로그인으로 돌아가시겠습니까?",
-    "loginLink": "로그인."
+    "loginLink": "로그인.",
+    "continueToSignIn": "로그인으로 계속"
   },
   "errors": {
     "forbidden": {

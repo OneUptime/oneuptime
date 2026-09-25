@@ -7,6 +7,7 @@ import {
 import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import submitSignup from "../Helpers/submitSignup";
 
 test.describe("Account Registration", () => {
   test("should register a new account", async ({ page }: { page: Page }) => {
@@ -55,8 +56,10 @@ test.describe("Account Registration", () => {
       }
     }
 
+    const email: string = Faker.generateEmail().toString();
+
     await page.getByTestId("email").click();
-    await page.getByTestId("email").fill(Faker.generateEmail().toString());
+    await page.getByTestId("email").fill(email);
     await page.getByTestId("email").press("Tab");
     await page.getByTestId("name").fill("sample");
     await page.getByTestId("name").press("Tab");
@@ -71,7 +74,12 @@ test.describe("Account Registration", () => {
     await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
     await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
-    await page.getByTestId("Sign Up").click();
+
+    /*
+     * On the hosted stack this also proves the gate: the new account is held
+     * at "check your email" until the welcome link is followed.
+     */
+    await submitSignup({ page, email, password: E2E_SIGNUP_PASSWORD });
 
     // wait for navigation with base url
     await page.waitForURL(
