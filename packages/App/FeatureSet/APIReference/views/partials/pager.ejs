@@ -17,7 +17,7 @@
       <span class="truncate text-sm font-semibold text-ink transition-colors group-hover:text-accent"><%= pager.previous.name %></span>
    </a>
    <% } else { %>
-   <span class="hidden sm:block"></span>
+   <span class="max-sm:hidden sm:block"></span>
    <% } %>
    <% if (pager.next) { %>
    <a href="/reference/<%= lang %>/<%= pager.next.slug %>"

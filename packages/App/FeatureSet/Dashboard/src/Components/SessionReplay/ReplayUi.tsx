@@ -273,7 +273,7 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
         {translatedLabel && (
           <span
             className={
-              isCollapsibleAction ? "sr-only sm:not-sr-only" : undefined
+              isCollapsibleAction ? "max-sm:sr-only sm:not-sr-only" : undefined
             }
           >
             {translatedLabel}
