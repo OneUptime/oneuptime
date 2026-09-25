@@ -142,7 +142,21 @@ Ja, SCIM und SSO sind unabhängige Funktionen. Sie können SCIM für die Benutze
 
 ### Wie gehe ich mit Benutzern um, die bereits in OneUptime existieren?
 
-Wenn SCIM versucht, einen Benutzer zu erstellen, der bereits existiert (Abgleich per E-Mail), fügt OneUptime diesen einfach zu den konfigurierten Standard-Teams hinzu, anstatt einen doppelten Benutzer zu erstellen.
+Wenn SCIM versucht, einen Benutzer zu erstellen, der bereits existiert (Abgleich per E-Mail), erstellt OneUptime keinen doppelten Benutzer. Was danach passiert, hängt davon ab, wo OneUptime läuft:
+
+- **Selbst gehostet**: Der vorhandene Benutzer wird sofort den konfigurierten Standard-Teams hinzugefügt (bzw. mit Push-Gruppen dem Team der Gruppe).
+- **OneUptime Cloud**: Ein OneUptime-Konto gehört der Person, nicht einem bestimmten Projekt. Deshalb kann SCIM niemanden eigenmächtig zum Mitglied Ihres Projekts machen. Der vorhandene Benutzer wird stattdessen zu den Teams **eingeladen** und erhält die übliche Einladungs-E-Mail. Er tritt bei, sobald er die Einladungen unter **Projekteinladungen** in OneUptime annimmt oder das Single Sign-On (SSO) Ihres Projekts über die E-Mail bestätigt, die OneUptime bei seiner ersten SSO-Anmeldung sendet. Bis dahin wird er als ausstehend geführt. Dasselbe gilt, wenn eine Gruppe einen vorhandenen Benutzer hinzufügt, der noch kein Mitglied Ihres Projekts ist.
+
+Benutzer, die SCIM selbst erstellt, Benutzer, die Ihrem Projekt bereits beigetreten sind, und Benutzer, die das SSO Ihres Projekts bestätigt haben, werden in beiden Fällen sofort hinzugefügt.
+
+### Kann SCIM die E-Mail-Adresse oder den Namen eines Benutzers ändern?
+
+Mit der E-Mail-Adresse eines OneUptime-Kontos meldet sich die Person bei jedem Projekt an, dem sie angehört, und an diese Adresse gehen ihre Links zum Zurücksetzen des Passworts. Daher gilt:
+
+- **OneUptime Cloud**: SCIM ändert niemals eine E-Mail-Adresse. Eine Anfrage, die eine ändern würde, wird mit einem SCIM-Fehler `400` vom Typ `mutability` abgelehnt, und nichts aus dieser Anfrage wird übernommen; Ihr Identity Provider zeigt den Grund an. Bitten Sie den Benutzer, seine Adresse selbst in seinem OneUptime-Profil zu ändern. Eine Anfrage, die die Adresse wiederholt, die das Konto bereits hat, ist keine Änderung und ist erfolgreich.
+- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, keinem anderen Projekt angehört und kein OneUptime-Administrator ist. Jede andere Änderung wird auf dieselbe Weise abgelehnt.
+
+Für Namen gilt in beiden Fällen dieselbe Regel: SCIM aktualisiert den Namen nur bei einem Benutzer, der diesem Projekt beigetreten ist, keinem anderen Projekt angehört und kein OneUptime-Administrator ist. Bei allen anderen bleibt der Name unverändert, und der Rest der Anfrage ist trotzdem erfolgreich.
 
 ### Was ist der Unterschied zwischen Standard-Teams und Push-Gruppen?
 
