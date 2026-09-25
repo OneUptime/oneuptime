@@ -25,6 +25,50 @@ type SubmitSignupFunction = (data: {
   password: string;
 }) => Promise<void>;
 
+/*
+ * How long a signup that worked may take to show which way it went, on the
+ * page or by leaving it.
+ */
+const SIGNUP_OUTCOME_TIMEOUT_IN_MS: number = 60_000;
+
+/*
+ * The start of a failed response's body, for the error. Reading it can still
+ * fail: the UI's API client answers a 401, 403 or 405 with a full page load
+ * of its own, which takes the body with it.
+ */
+const readBody: (response: Response) => Promise<string> = async (
+  response: Response,
+): Promise<string> => {
+  try {
+    return (await response.text()).slice(0, 300);
+  } catch (error: unknown) {
+    return `(body unavailable: ${String((error as Error)?.message).split("\n")[0]})`;
+  }
+};
+
+/*
+ * The value of whichever promise fulfils first, or null once both have
+ * rejected (Promise.any, which this project's es2017 lib does not declare).
+ */
+const firstFulfilled: <T>(
+  promises: ReadonlyArray<Promise<T>>,
+) => Promise<T | null> = <T>(
+  promises: ReadonlyArray<Promise<T>>,
+): Promise<T | null> => {
+  return new Promise<T | null>((resolve: (value: T | null) => void): void => {
+    let rejectedCount: number = 0;
+    const onRejected: () => void = (): void => {
+      rejectedCount++;
+      if (rejectedCount === promises.length) {
+        resolve(null);
+      }
+    };
+    for (const promise of promises) {
+      promise.then(resolve, onRejected);
+    }
+  });
+};
+
 const isPostTo: (response: Response, path: string) => boolean = (
   response: Response,
   path: string,
@@ -61,18 +105,18 @@ const submitSignup: SubmitSignupFunction = async (data: {
    */
   if (!signupResponse.ok()) {
     throw new Error(
-      `Signup failed: ${signupResponse.status()} ${(await signupResponse.text()).slice(0, 300)}`,
+      `Signup failed: ${signupResponse.status()} ${await readBody(signupResponse)}`,
     );
   }
 
   /*
    * Which of the two the server chose shows on the page: "check your email",
-   * or a navigation out of Accounts. The wait that loses goes on until the
-   * page closes; that rejection is expected and ignored.
+   * or a navigation out of Accounts. Both waits are bounded, so the one that
+   * loses stops polling instead of running for as long as the page lives.
    */
   const heldForVerification: Promise<boolean> = page
     .getByTestId("verify-email-required")
-    .waitFor({ state: "visible" })
+    .waitFor({ state: "visible", timeout: SIGNUP_OUTCOME_TIMEOUT_IN_MS })
     .then((): boolean => {
       return true;
     });
@@ -81,15 +125,24 @@ const submitSignup: SubmitSignupFunction = async (data: {
       (url: globalThis.URL): boolean => {
         return !url.pathname.startsWith("/accounts/");
       },
-      { waitUntil: "commit" },
+      { waitUntil: "commit", timeout: SIGNUP_OUTCOME_TIMEOUT_IN_MS },
     )
     .then((): boolean => {
       return false;
     });
-  heldForVerification.catch((): void => {});
-  signedIn.catch((): void => {});
 
-  if (!(await Promise.race([heldForVerification, signedIn]))) {
+  const isHeldForVerification: boolean | null = await firstFulfilled([
+    heldForVerification,
+    signedIn,
+  ]);
+
+  if (isHeldForVerification === null) {
+    throw new Error(
+      `Signup answered ${signupResponse.status()}, but within ${SIGNUP_OUTCOME_TIMEOUT_IN_MS / 1000} s the page neither showed "check your email" (data-testid="verify-email-required") nor left Accounts. It is at ${page.url()}.`,
+    );
+  }
+
+  if (!isHeldForVerification) {
     return;
   }
 
@@ -133,7 +186,7 @@ const submitSignup: SubmitSignupFunction = async (data: {
   // Read only on failure, for the same reason as the signup response above.
   if (!verifyResponse.ok()) {
     throw new Error(
-      `Email verification failed: ${verifyResponse.status()} ${(await verifyResponse.text()).slice(0, 300)}`,
+      `Email verification failed: ${verifyResponse.status()} ${await readBody(verifyResponse)}`,
     );
   }
 
