@@ -1,5 +1,9 @@
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import ValueFormatter from "../../../Utils/ValueFormatter";
+import {
+  VMwareMetricDefinition,
+  getAllVMwareMetrics,
+} from "../../../Types/Monitor/VMwareMetricCatalog";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -113,6 +117,255 @@ describe("MetricValueFormatter", () => {
         "-1.5 sec",
       );
     });
+  });
+
+  /*
+   * The vcenter receiver reports memory in OTel's binary byte units
+   * ("MiBy", "KiBy"). MetricUnitUtil had no family for them, so they fell
+   * through to the no-ladder branch: a host with 1 TiB of memory in use
+   * reached the inbox as "1048576 MiB". They now go through the same
+   * decimal ladder as every other byte value, via their size in bytes.
+   */
+  describe("format — binary (IEC) byte units", () => {
+    test("scale through the bytes ladder", () => {
+      expect(MetricValueFormatter.format({ value: 2048, unit: "MiBy" })).toBe(
+        "2.15 GB",
+      );
+      expect(
+        MetricValueFormatter.format({ value: 1048576, unit: "MiBy" }),
+      ).toBe("1.1 TB");
+      expect(MetricValueFormatter.format({ value: 1024, unit: "KiBy" })).toBe(
+        "1.05 MB",
+      );
+      expect(MetricValueFormatter.format({ value: 1, unit: "KiBy" })).toBe(
+        "1.02 KB",
+      );
+      expect(MetricValueFormatter.format({ value: 3, unit: "GiBy" })).toBe(
+        "3.22 GB",
+      );
+      expect(MetricValueFormatter.format({ value: 1.5, unit: "TiBy" })).toBe(
+        "1.65 TB",
+      );
+      expect(MetricValueFormatter.format({ value: 2, unit: "PiBy" })).toBe(
+        "2.25 PB",
+      );
+    });
+
+    test("read exactly as the same number of bytes would", () => {
+      const cases: Array<[number, string, number]> = [
+        [2048, "MiBy", 1024 ** 2],
+        [123456789, "MiBy", 1024 ** 2],
+        [700, "KiBy", 1024],
+        [0.5, "GiBy", 1024 ** 3],
+        [3, "TiBy", 1024 ** 4],
+      ];
+
+      for (const [value, unit, bytesPerUnit] of cases) {
+        expect(MetricValueFormatter.format({ value: value, unit: unit })).toBe(
+          MetricValueFormatter.format({
+            value: value * bytesPerUnit,
+            unit: "By",
+          }),
+        );
+      }
+    });
+
+    test("accept the short and spelled-out IEC names too", () => {
+      expect(MetricValueFormatter.format({ value: 2048, unit: "MiB" })).toBe(
+        "2.15 GB",
+      );
+      expect(
+        MetricValueFormatter.format({ value: 2048, unit: "mebibytes" }),
+      ).toBe("2.15 GB");
+      expect(MetricValueFormatter.format({ value: 2048, unit: "miby" })).toBe(
+        "2.15 GB",
+      );
+    });
+
+    test("keep the sign, and read zero in bytes like any other byte unit", () => {
+      expect(MetricValueFormatter.format({ value: -2048, unit: "MiBy" })).toBe(
+        "-2.15 GB",
+      );
+      expect(MetricValueFormatter.format({ value: 0, unit: "MiBy" })).toBe(
+        "0 B",
+      );
+      // The decimal prefixes have always done the same.
+      expect(MetricValueFormatter.format({ value: 0, unit: "GB" })).toBe("0 B");
+    });
+
+    test("scale as the numerator of a rate", () => {
+      expect(MetricValueFormatter.format({ value: 2500, unit: "KiBy/s" })).toBe(
+        "2.56 MB/s",
+      );
+      expect(MetricValueFormatter.format({ value: 100, unit: "MiBy/s" })).toBe(
+        "105 MB/s",
+      );
+    });
+
+    test("are displayable and spelled out by name", () => {
+      expect(MetricValueFormatter.hasDisplayableUnit("MiBy")).toBe(true);
+      expect(MetricValueFormatter.hasDisplayableUnit("KiBy")).toBe(true);
+      expect(MetricValueFormatter.getReadableUnit("MiBy")).toBe("Mebibytes");
+      expect(MetricValueFormatter.getReadableUnit("KiBy")).toBe("Kibibytes");
+    });
+  });
+
+  /*
+   * vcenter declares its disk and network throughput as "{KiBy/s}" —
+   * UCUM annotation braces around a unit that is perfectly real. The
+   * annotation rule hid it, so about 2.56 GB/s of disk traffic reached the
+   * inbox as the bare "2500000". Braces are now unwrapped when, and only
+   * when, what they hold is a unit the formatter can scale.
+   */
+  describe("format — braced units that hold a real unit", () => {
+    test("a braced byte rate is unwrapped and scaled", () => {
+      expect(
+        MetricValueFormatter.format({ value: 2500000, unit: "{KiBy/s}" }),
+      ).toBe("2.56 GB/s");
+      expect(
+        MetricValueFormatter.format({ value: 1500000, unit: "{By/s}" }),
+      ).toBe("1.5 MB/s");
+      expect(
+        MetricValueFormatter.format({ value: 512, unit: "{KiBy/s}" }),
+      ).toBe("524 KB/s");
+    });
+
+    test("renders exactly as the unbraced unit does", () => {
+      for (const [value, unit] of [
+        [2500000, "KiBy/s"],
+        [1500000, "By/s"],
+        [2048, "MiBy"],
+        [1500, "ms"],
+      ] as Array<[number, string]>) {
+        expect(
+          MetricValueFormatter.format({ value: value, unit: `{${unit}}` }),
+        ).toBe(MetricValueFormatter.format({ value: value, unit: unit }));
+      }
+    });
+
+    test("tolerates whitespace inside and around the braces", () => {
+      expect(
+        MetricValueFormatter.format({ value: 2500000, unit: " { KiBy/s } " }),
+      ).toBe("2.56 GB/s");
+    });
+
+    test("a braced COUNT is still hidden, rate or not", () => {
+      for (const unit of [
+        "{errors/s}",
+        "{packets/s}",
+        "{operations/s}",
+        "{congestions/s}",
+        "{restarts}",
+        "{cpu}",
+        "{shares}",
+        "{count}",
+        "{1}",
+        "{%}",
+        "{}",
+      ]) {
+        expect(MetricValueFormatter.format({ value: 1500, unit: unit })).toBe(
+          "1500",
+        );
+        expect(MetricValueFormatter.hasDisplayableUnit(unit)).toBe(false);
+        expect(MetricValueFormatter.getReadableUnit(unit)).toBeNull();
+      }
+    });
+
+    test("hasDisplayableUnit and getReadableUnit agree with format", () => {
+      expect(MetricValueFormatter.hasDisplayableUnit("{KiBy/s}")).toBe(true);
+      expect(MetricValueFormatter.hasDisplayableUnit("{By/s}")).toBe(true);
+      expect(MetricValueFormatter.getReadableUnit("{KiBy/s}")).toBe(
+        "Kibibytes per Second",
+      );
+      expect(MetricValueFormatter.getReadableUnit("{By/s}")).toBe(
+        "Bytes per Second",
+      );
+    });
+  });
+
+  /*
+   * The binary byte units joined the SAME MetricUnitUtil family as the
+   * decimal ones. Nothing about a decimal byte value may have moved.
+   */
+  describe("format — decimal bytes are unchanged", () => {
+    test("every decimal byte spelling still renders what the dashboard does", () => {
+      for (const [value, unit] of [
+        [0, "B"],
+        [999, "By"],
+        [1000, "bytes"],
+        [257760964608, "By"],
+        [1073741824, "bytes"],
+        [1500000, "By/s"],
+      ] as Array<[number, string]>) {
+        expect(MetricValueFormatter.format({ value: value, unit: unit })).toBe(
+          ValueFormatter.formatValue(value, unit),
+        );
+      }
+    });
+
+    test("decimal prefixes still convert by powers of 1000", () => {
+      expect(MetricValueFormatter.format({ value: 2048, unit: "MB" })).toBe(
+        "2.05 GB",
+      );
+      expect(MetricValueFormatter.format({ value: 1500, unit: "KB" })).toBe(
+        "1.5 MB",
+      );
+      expect(MetricValueFormatter.format({ value: 257.76, unit: "GB" })).toBe(
+        "258 GB",
+      );
+    });
+  });
+
+  /*
+   * Every VMware memory and throughput metric is declared in a binary unit
+   * or a braced byte rate. Enumerated, so a catalog entry added later in
+   * either shape is covered without anyone remembering to add it here.
+   */
+  describe("format — every VMware byte metric reads as a size", () => {
+    const binaryByteUnit: RegExp = /^[KMGTP]iBy$/;
+    const bracedByteRate: RegExp = /^\{[KMGTP]?i?By\/s\}$/;
+    const bareNumber: RegExp = /^-?\d+(\.\d+)?$/;
+    const scaledSize: RegExp = /^\d+(\.\d+)? (B|KB|MB|GB|TB|PB)(\/s)?$/;
+
+    const byteMetrics: Array<VMwareMetricDefinition> =
+      getAllVMwareMetrics().filter((m: VMwareMetricDefinition) => {
+        return (
+          binaryByteUnit.test(m.unit || "") || bracedByteRate.test(m.unit || "")
+        );
+      });
+
+    test("the catalog still has metrics in both shapes (guards the guard)", () => {
+      expect(
+        byteMetrics.some((m: VMwareMetricDefinition) => {
+          return binaryByteUnit.test(m.unit || "");
+        }),
+      ).toBe(true);
+      expect(
+        byteMetrics.some((m: VMwareMetricDefinition) => {
+          return bracedByteRate.test(m.unit || "");
+        }),
+      ).toBe(true);
+    });
+
+    test.each(
+      byteMetrics.map((m: VMwareMetricDefinition) => {
+        return [m.metricName, m.unit as string];
+      }),
+    )(
+      "%s (%s) never renders as bare digits",
+      (metricName: string, unit: string) => {
+        const formatted: string = MetricValueFormatter.format({
+          value: 123456789,
+          unit: unit,
+          metricName: metricName,
+        });
+
+        expect(formatted).not.toMatch(bareNumber);
+        expect(formatted).toMatch(scaledSize);
+        // A rate stays a rate; a size stays a size.
+        expect(formatted.endsWith("/s")).toBe(unit.endsWith("/s}"));
+      },
+    );
   });
 
   describe("format — percent and fraction metrics", () => {
@@ -258,8 +511,12 @@ describe("MetricValueFormatter", () => {
       expect(MetricValueFormatter.format({ value: 1500, unit: "kbit" })).toBe(
         "1500 kbit",
       );
-      expect(MetricValueFormatter.format({ value: 1024, unit: "KiBy" })).toBe(
-        "1024 KiB",
+      /*
+       * "KiBy" used to be the example here ("1024 KiB"). It has a ladder
+       * now — see "format — binary (IEC) byte units" below.
+       */
+      expect(MetricValueFormatter.format({ value: 2400, unit: "MHz" })).toBe(
+        "2400 MHz",
       );
       expect(MetricValueFormatter.format({ value: 4200, unit: "ops" })).toBe(
         "4200 ops",

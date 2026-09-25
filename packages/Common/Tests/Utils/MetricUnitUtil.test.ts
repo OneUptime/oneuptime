@@ -288,8 +288,11 @@ describe("MetricUnitUtil", () => {
       expect(MetricUnitUtil.getFamilyBaseUnit("   ")).toBeNull();
       expect(MetricUnitUtil.getFamilyBaseUnit("cores")).toBeNull();
       expect(MetricUnitUtil.getFamilyBaseUnit("widgets")).toBeNull();
-      // Binary prefixes are deliberately not in any family here.
-      expect(MetricUnitUtil.getFamilyBaseUnit("KiBy")).toBeNull();
+      /*
+       * A braced annotation is not a unit, even when the text inside it
+       * is one — MetricValueFormatter unwraps "{KiBy/s}" itself.
+       */
+      expect(MetricUnitUtil.getFamilyBaseUnit("{KiBy}")).toBeNull();
     });
 
     /*
@@ -313,6 +316,228 @@ describe("MetricUnitUtil", () => {
           metricUnit: MetricUnitUtil.getFamilyBaseUnit("hours") as string,
         }),
       ).toBe(129600);
+    });
+  });
+
+  /*
+   * Binary (IEC) byte units — powers of 1024. The vcenter receiver reports
+   * memory in "MiBy" and "KiBy", and before these were family members a
+   * "MiBy" sample could not be converted at all: a 2 GB threshold on a
+   * MiBy metric was compared as "2 MiB", and the notification formatter
+   * printed "1048576 MiB" because the unit had no base to scale from.
+   */
+  describe("binary (IEC) byte units", () => {
+    const binaryUnits: Array<{ spellings: Array<string>; bytes: number }> = [
+      {
+        spellings: ["KiBy", "KiB", "kib", "kiby", "kibibyte", "kibibytes"],
+        bytes: 1024,
+      },
+      {
+        spellings: ["MiBy", "MiB", "mib", "miby", "mebibyte", "mebibytes"],
+        bytes: 1024 ** 2,
+      },
+      {
+        spellings: ["GiBy", "GiB", "gib", "giby", "gibibyte", "gibibytes"],
+        bytes: 1024 ** 3,
+      },
+      {
+        spellings: ["TiBy", "TiB", "tib", "tiby", "tebibyte", "tebibytes"],
+        bytes: 1024 ** 4,
+      },
+      {
+        spellings: ["PiBy", "PiB", "pib", "piby", "pebibyte", "pebibytes"],
+        bytes: 1024 ** 5,
+      },
+    ];
+
+    test("every spelling belongs to the byte family", () => {
+      for (const { spellings } of binaryUnits) {
+        for (const unit of spellings) {
+          expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("B");
+        }
+      }
+    });
+
+    test("every spelling converts to its power of 1024 in bytes", () => {
+      for (const { spellings, bytes } of binaryUnits) {
+        for (const unit of spellings) {
+          expect(
+            MetricUnitUtil.convertToMetricUnit({
+              value: 1,
+              fromUnit: unit,
+              metricUnit: "By",
+            }),
+          ).toBe(bytes);
+        }
+      }
+    });
+
+    test("is case- and whitespace-insensitive", () => {
+      expect(MetricUnitUtil.getFamilyBaseUnit("  MIBY  ")).toBe("B");
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 3,
+          fromUnit: "GIB",
+          metricUnit: " bytes ",
+        }),
+      ).toBe(3 * 1024 ** 3);
+    });
+
+    test("a MiBy value converts into a GB threshold (was returned unchanged)", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 2048,
+          fromUnit: "MiBy",
+          metricUnit: "GB",
+        }),
+      ).toBe(2.147483648);
+    });
+
+    test("a GB threshold converts into a MiBy metric's unit", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 2,
+          fromUnit: "GB",
+          metricUnit: "MiBy",
+        }),
+      ).toBe(1907.3486328125);
+    });
+
+    test("converts between binary units by powers of 1024", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 1,
+          fromUnit: "GiBy",
+          metricUnit: "MiBy",
+        }),
+      ).toBe(1024);
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 1048576,
+          fromUnit: "KiBy",
+          metricUnit: "GiBy",
+        }),
+      ).toBe(1);
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 1,
+          fromUnit: "PiB",
+          metricUnit: "TiB",
+        }),
+      ).toBe(1024);
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 1048576,
+          fromUnit: "bytes",
+          metricUnit: "KiBy",
+        }),
+      ).toBe(1024);
+    });
+
+    test("the UCUM and short spellings of one unit are the same unit", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 512,
+          fromUnit: "MiB",
+          metricUnit: "MiBy",
+        }),
+      ).toBe(512);
+    });
+
+    test("still refuses to convert across families", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 100,
+          fromUnit: "MiBy",
+          metricUnit: "sec",
+        }),
+      ).toBe(100);
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 100,
+          fromUnit: "KiBy",
+          metricUnit: "kbit",
+        }),
+      ).toBe(100);
+    });
+
+    /*
+     * The binary units are CONVERSION-ONLY. The threshold and legend unit
+     * pickers (CriteriaFilter, MetricAlias) are built from
+     * getCompatibleUnits / getCanonicalUnitValue / hasCompatibleUnitFamily,
+     * and every bytes dropdown would otherwise grow five near-duplicates
+     * of the six decimal units. So the picker contract is exactly what it
+     * was before the binary units existed.
+     */
+    describe("never reach the unit pickers", () => {
+      test("no bytes dropdown offers a binary unit", () => {
+        for (const unit of ["B", "By", "bytes", "KB", "MB", "GB", "TB"]) {
+          expect(
+            MetricUnitUtil.getCompatibleUnits(unit).map(
+              (o: { value: string; label: string }) => {
+                return o.value;
+              },
+            ),
+          ).toEqual(["B", "KB", "MB", "GB", "TB", "PB"]);
+        }
+      });
+
+      test("a binary native unit still gets its raw spelling as the only option", () => {
+        for (const { spellings } of binaryUnits) {
+          for (const unit of spellings) {
+            expect(MetricUnitUtil.getCompatibleUnits(unit)).toEqual([
+              { value: unit, label: unit },
+            ]);
+            expect(MetricUnitUtil.getCanonicalUnitValue(unit)).toBe(unit);
+            expect(MetricUnitUtil.hasCompatibleUnitFamily(unit)).toBe(false);
+          }
+        }
+      });
+    });
+  });
+
+  /*
+   * The binary units were added to the SAME family as B / KB / MB. Every
+   * decimal answer below is pinned so that addition can never shift one.
+   */
+  describe("decimal bytes are unchanged by the binary units", () => {
+    test("each decimal spelling still converts by powers of 1000", () => {
+      const cases: Array<[string, number]> = [
+        ["B", 1],
+        ["b", 1],
+        ["By", 1],
+        ["byte", 1],
+        ["bytes", 1],
+        ["KB", 1e3],
+        ["kby", 1e3],
+        ["kilobytes", 1e3],
+        ["MB", 1e6],
+        ["mby", 1e6],
+        ["GB", 1e9],
+        ["gby", 1e9],
+        ["TB", 1e12],
+        ["PB", 1e15],
+      ];
+
+      for (const [unit, bytes] of cases) {
+        expect(
+          MetricUnitUtil.convertToMetricUnit({
+            value: 1,
+            fromUnit: unit,
+            metricUnit: "B",
+          }),
+        ).toBe(bytes);
+        expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("B");
+      }
+    });
+
+    test("each decimal spelling still canonicalizes to its decimal unit", () => {
+      expect(MetricUnitUtil.getCanonicalUnitValue("By")).toBe("B");
+      expect(MetricUnitUtil.getCanonicalUnitValue("bytes")).toBe("B");
+      expect(MetricUnitUtil.getCanonicalUnitValue("kby")).toBe("KB");
+      expect(MetricUnitUtil.getCanonicalUnitValue("GB")).toBe("GB");
+      expect(MetricUnitUtil.hasCompatibleUnitFamily("By")).toBe(true);
+      expect(MetricUnitUtil.hasCompatibleUnitFamily("KB")).toBe(true);
     });
   });
 
