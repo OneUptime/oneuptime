@@ -12,6 +12,7 @@ import {
   getDefaultDatabasePort,
   getMoreSpecificDatabaseSystem,
   isAutoCreatableDatabaseSystem,
+  isCompatibilityVersionAttribute,
   isKnownDatabaseSystem,
   isSameDatabaseFamily,
   normalizeDatabaseSystem,
@@ -473,6 +474,42 @@ describe("DATABASE_SYSTEMS registry integrity", () => {
         }).toEqual({ system: descriptor.system, fork: true });
         expect(descriptor.versionPattern.global).toBe(false);
         expect(descriptor.versionPattern.sticky).toBe(false);
+      }
+    }
+  });
+
+  /*
+   * A major version names a fork only when its family never released it:
+   * MySQL's releases stop at 9.x, so only MariaDB — 10.x, 11.x, 12.x — may
+   * claim the majors from 10 on, and only one fork of a family may claim
+   * them.
+   */
+  test("a versionMajorFrom is only on a fork, above every release of its family", () => {
+    const claimedFamilies: Array<string> = [];
+    for (const descriptor of DATABASE_SYSTEMS) {
+      if (descriptor.versionMajorFrom === undefined) {
+        continue;
+      }
+      expect({
+        system: descriptor.system,
+        fork: isForkOf(descriptor),
+      }).toEqual({ system: descriptor.system, fork: true });
+      expect(Number.isInteger(descriptor.versionMajorFrom)).toBe(true);
+      expect(descriptor.versionMajorFrom).toBeGreaterThanOrEqual(10);
+      claimedFamilies.push(descriptor.family!);
+    }
+    expect(claimedFamilies).toEqual(["mysql"]);
+    expect(getDatabaseSystemDescriptor("mariadb")?.versionMajorFrom).toBe(10);
+  });
+
+  test("a compatibility version attribute is only on a fork, and is its receiver's version attribute", () => {
+    for (const descriptor of DATABASE_SYSTEMS) {
+      for (const key of descriptor.compatibilityVersionAttributes || []) {
+        expect({
+          system: descriptor.system,
+          fork: isForkOf(descriptor),
+        }).toEqual({ system: descriptor.system, fork: true });
+        expect(key).toBe(`${descriptor.receiverTypes[0]}.version`);
       }
     }
   });
@@ -1010,6 +1047,46 @@ describe("refineDatabaseSystemFromVersion", () => {
     },
   );
 
+  /*
+   * Regression (e2e, collector-contrib 0.161.0): an agent installed with
+   * DATABASE_SYSTEM=mysql against MariaDB 11.4 — whose SELECT VERSION() is
+   * "11.4.13-MariaDB-ubu2404" — reported db.system.version "11.4.13", the
+   * bare number the mysql receiver keeps, and the database stayed "MySQL"
+   * for good. MySQL has never released a 10.x or 11.x, so the major alone
+   * names MariaDB.
+   */
+  test.each([
+    ["mysql", "11.4.13", "mariadb"],
+    ["mysql", "10.11.7", "mariadb"],
+    ["mysql", "10.5.9", "mariadb"],
+    ["mysql", "12.0.2", "mariadb"],
+    ["mysql", " 11.8.2 ", "mariadb"],
+    ["percona", "11.4.13", "mariadb"],
+    // MySQL's own releases, 5.x to the 9.x innovation line, stay MySQL.
+    ["mysql", "8.4.11", "mysql"],
+    ["mysql", "9.4.0", "mysql"],
+    ["mysql", "5.7.44-log", "mysql"],
+    ["mysql", "8.0.mysql_aurora.3.05.2", "mysql"],
+    // A MariaDB older than 10 whose suffix was stripped cannot be told apart.
+    ["mysql", "5.5.68", "mysql"],
+    // A fork's name beats the major: TiDB answers with MySQL's version.
+    ["mysql", "8.0.11-TiDB-v7.5.1", "tidb"],
+    // Only the mysql family has such a fork; other families keep theirs.
+    ["postgresql", "16.2", "postgresql"],
+    ["redis", "11.0.0", "redis"],
+    ["mongodb", "10.0.1", "mongodb"],
+    // A fork already names itself.
+    ["tidb", "11.4.13", "tidb"],
+    // Not a version's leading number: a date, a word.
+    ["mysql", "20240101", "mysql"],
+    ["mysql", "latest", "mysql"],
+  ])(
+    "the bare version: %s reporting %s is %s",
+    (system: string, version: string, expected: string) => {
+      expect(refineDatabaseSystemFromVersion(system, version)).toBe(expected);
+    },
+  );
+
   test("no version, or a non-string one, keeps the engine; no engine is null", () => {
     expect(refineDatabaseSystemFromVersion("mysql", null)).toBe("mysql");
     expect(refineDatabaseSystemFromVersion("mysql", "")).toBe("mysql");
@@ -1020,6 +1097,13 @@ describe("refineDatabaseSystemFromVersion", () => {
     expect(refineDatabaseSystemFromVersion("AcmeDB", "1.0-MariaDB")).toBe(
       "acmedb",
     );
+  });
+
+  test("reads the major of a pathological version string in linear time", () => {
+    const hostile: string = " ".repeat(100_000) + "x";
+    const started: number = performance.now();
+    expect(refineDatabaseSystemFromVersion("mysql", hostile)).toBe("mysql");
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   test("only reads the head of a pathological version string", () => {
@@ -1396,4 +1480,35 @@ describe("trimTrailingCharacter", () => {
     ).toBeNull();
     expect(performance.now() - started).toBeLessThan(1000);
   });
+});
+
+/*
+ * Regression (e2e): Valkey 8.1.10 showed "Version 7.2.4". Its INFO keeps
+ * redis_version at 7.2.4 — the Redis release it forked from — next to
+ * valkey_version:8.1.10, and the redis receiver reports only the former, as
+ * redis.version.
+ */
+describe("isCompatibilityVersionAttribute", () => {
+  test.each([
+    ["valkey", "redis.version", true],
+    ["valkey", "resource.redis.version", true],
+    ["Valkey", " redis.version ", true],
+    ["dragonfly", "redis.version", true],
+    ["dragonflydb", "redis.version", true],
+    // Redis's is its own; so is KeyDB's (redis_version:6.3.4 is KeyDB 6.3.4).
+    ["redis", "redis.version", false],
+    ["keydb", "redis.version", false],
+    // Another attribute, or an engine that declares none.
+    ["valkey", "db.system.version", false],
+    ["mariadb", "db.system.version", false],
+    ["opensearch", "elasticsearch.node.version", false],
+    ["acmedb", "redis.version", false],
+    ["", "redis.version", false],
+    [null, "redis.version", false],
+  ])(
+    "%s + %s is a compatibility version: %s",
+    (system: string | null, key: string, expected: boolean) => {
+      expect(isCompatibilityVersionAttribute(system, key)).toBe(expected);
+    },
+  );
 });

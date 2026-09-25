@@ -119,9 +119,14 @@ import {
  * A receiver's metadata says what it CAN emit, not what a given setup
  * returns, so a metric is only used here once it has been seen arriving from
  * the Database Agent's own config on its default setup (collector-contrib
- * 0.161.0), or its receiver's source shows when it is recorded. Five
+ * 0.161.0), or its receiver's source shows when it is recorded. Six
  * engines differ from their metadata:
  *
+ *   - MariaDB: the `mysql` receiver fills mysql.buffer_pool.limit ("the
+ *     configured size of the InnoDB buffer pool", in bytes) from
+ *     information_schema.INNODB_METRICS, where MariaDB 11.4 holds the pool's
+ *     PAGE count — 8112 for a 134217728-byte pool. No template divides by
+ *     it; the dirty-page template reads page counts instead.
  *   - PostgreSQL: the receiver's `postgresqlreceiver.preciselagmetrics`
  *     feature gate is beta — on by default — and under it the replication
  *     time lag is recorded as postgresql.wal.delay INSTEAD of
@@ -307,20 +312,25 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
     unit: "1",
     enabledByDefault: true,
   },
+  /*
+   * Page counts, not the byte metrics mysql.buffer_pool.usage / .limit:
+   * MariaDB reports mysql.buffer_pool.limit as a page count (see the module
+   * header), while these two mean the same on MySQL and MariaDB.
+   */
   {
     engine: "mysql",
     receiver: "mysql",
-    metricName: "mysql.buffer_pool.usage",
+    metricName: "mysql.buffer_pool.data_pages",
     kind: "gauge",
-    unit: "By",
+    unit: "1",
     enabledByDefault: true,
   },
   {
     engine: "mysql",
     receiver: "mysql",
-    metricName: "mysql.buffer_pool.limit",
+    metricName: "mysql.buffer_pool.pages",
     kind: "gauge",
-    unit: "By",
+    unit: "1",
     enabledByDefault: true,
   },
   {
@@ -1294,24 +1304,32 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
         "More queries are executing at once than the server can run in parallel, so every one of them slows down. Check for a lock wait chain (SHOW ENGINE INNODB STATUS) and for a query that stopped using its index.",
     },
   }),
+  /*
+   * Pages over pages, both from the same SHOW GLOBAL STATUS read. Not
+   * mysql.buffer_pool.usage (bytes) over mysql.buffer_pool.limit: MariaDB
+   * reports limit as a page count, so on MariaDB that ratio read 199,750%
+   * for a pool 12% dirty and never cleared.
+   */
   buildPercentOfLimitTemplate({
     id: "database-mysql-buffer-pool-dirty",
     name: "InnoDB Dirty Pages High",
     description:
-      "Alert when dirty pages stay at 75% of the InnoDB buffer pool — page flushing is not keeping up with writes, and a checkpoint stall is next. (A FULL buffer pool is normal; a DIRTY one is not.)",
+      "Alert when dirty pages stay at 75% of the InnoDB buffer pool's pages — page flushing is not keeping up with writes, and a checkpoint stall is next. (A FULL buffer pool is normal; a DIRTY one is not.) Reads page counts, which MySQL and MariaDB report alike.",
     category: "Performance",
     severity: "Warning",
     engine: MYSQL,
     numerator: {
       alias: "mysql_buffer_pool_dirty",
-      metricName: "mysql.buffer_pool.usage",
+      metricName: "mysql.buffer_pool.data_pages",
       aggregationType: MetricsAggregationType.Sum,
       attributes: { status: "dirty" },
     },
     denominator: {
       alias: "mysql_buffer_pool_size",
-      metricName: "mysql.buffer_pool.limit",
+      metricName: "mysql.buffer_pool.pages",
       aggregationType: MetricsAggregationType.Sum,
+      // The metric also carries kind data, free and misc: parts of total.
+      attributes: { kind: "total" },
     },
     resultAlias: "mysql_buffer_pool_dirty_percent",
     thresholdPercent: 75,

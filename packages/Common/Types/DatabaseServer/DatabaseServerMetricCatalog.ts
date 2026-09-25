@@ -115,6 +115,9 @@ const POSTGRESQL_DATABASE_KEYS: ReadonlyArray<string> = [
   "resource.postgresql.database.name",
 ];
 
+// elasticsearchreceiver's per-node resource attribute, as ingest stores it.
+const ELASTICSEARCH_NODE_KEY: string = "resource.elasticsearch.node.name";
+
 export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefinition> =
   [
     // PostgreSQL — postgresqlreceiver (all default-on).
@@ -244,14 +247,22 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       seriesKeys: ["status"],
       seriesCombine: "sum",
     },
+    /*
+     * In pages, not mysql.buffer_pool.limit: MariaDB reports that "bytes"
+     * metric as its page count (a MariaDB 11.4 pool of 134217728 bytes
+     * arrives as 8112, its Innodb_buffer_pool_pages_total), so it read
+     * 7.9 KiB there. The page counts mean the same on both engines.
+     */
     {
       system: "mysql",
-      metricName: "mysql.buffer_pool.limit",
+      metricName: "mysql.buffer_pool.pages",
       title: "Buffer pool size",
-      description: "The configured InnoDB buffer pool size.",
-      unit: "bytes",
+      description:
+        "The InnoDB buffer pool's size in pages (Innodb_buffer_pool_pages_total); a page is innodb_page_size, 16 KiB by default.",
+      unit: "pages",
       aggregation: AggregationType.Max,
       kind: "gauge",
+      attributes: { kind: "total" },
       seriesCombine: "max",
     },
     {
@@ -663,15 +674,198 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       kind: "counter",
       seriesCombine: "sum",
     },
+
+    /*
+     * Elasticsearch / OpenSearch — elasticsearchreceiver. Cluster-level
+     * metrics arrive once per scrape; node-level ones once per node, told
+     * apart by the `elasticsearch.node.name` resource attribute. The node
+     * JVM's `jvm.*` metrics ride in the same batches under their own
+     * prefix.
+     */
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.cluster.health",
+      title: "Cluster green",
+      description:
+        "Share of the interval the cluster health was green. Below 100% it went yellow (replica shards unassigned) or red (primary shards unassigned, some data unavailable).",
+      unit: "fraction",
+      // A 0/1 series per status: its average is the share of scrapes.
+      aggregation: AggregationType.Avg,
+      kind: "gauge",
+      attributes: { status: "green" },
+      seriesCombine: "min",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.cluster.nodes",
+      title: "Nodes",
+      description:
+        "Nodes in the cluster; the lowest count in each interval, so a node that dropped out shows.",
+      unit: "nodes",
+      aggregation: AggregationType.Min,
+      kind: "gauge",
+      seriesCombine: "min",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.cluster.shards",
+      title: "Unassigned shards",
+      description:
+        "Shards no node holds: replicas make the cluster yellow, primaries red.",
+      unit: "shards",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      attributes: { state: "unassigned" },
+      seriesCombine: "max",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.cluster.pending_tasks",
+      title: "Pending tasks",
+      description:
+        "Cluster-level changes (mappings, shard allocation) waiting for the master node.",
+      unit: "tasks",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesCombine: "max",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "jvm.memory.heap.utilization",
+      title: "JVM heap used",
+      description: `Share of the JVM heap in use on the fullest node.${AGENT_ENABLED_NOTE}`,
+      unit: "fraction",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesKeys: [ELASTICSEARCH_NODE_KEY],
+      seriesCombine: "max",
+      enabledByDefault: false,
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.node.fs.disk.available",
+      title: "Disk available",
+      description: "Disk space left for data on the node with the least of it.",
+      unit: "bytes",
+      aggregation: AggregationType.Min,
+      kind: "gauge",
+      seriesKeys: [ELASTICSEARCH_NODE_KEY],
+      seriesCombine: "min",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.node.operations.completed",
+      title: "Searches",
+      description:
+        "Search query phases completed per second — one per shard a search reads — every node added up.",
+      unit: "queries",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      attributes: { operation: "query" },
+      seriesCombine: "sum",
+    },
+    {
+      system: "elasticsearch",
+      metricName: "elasticsearch.node.operations.completed",
+      title: "Indexing",
+      description:
+        "Documents written per second — each shard copy counts, replicas included — every node added up.",
+      unit: "documents",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      attributes: { operation: "index" },
+      seriesCombine: "sum",
+    },
+
+    // Memcached — memcachedreceiver (all default-on).
+    {
+      system: "memcached",
+      metricName: "memcached.connections.current",
+      title: "Connections",
+      description: "Client connections currently open.",
+      unit: "connections",
+      aggregation: AggregationType.Avg,
+      kind: "gauge",
+      seriesCombine: "sum",
+    },
+    {
+      system: "memcached",
+      metricName: "memcached.bytes",
+      title: "Memory used",
+      description: "Bytes the server uses to store items.",
+      unit: "bytes",
+      aggregation: AggregationType.Avg,
+      kind: "gauge",
+      seriesCombine: "sum",
+    },
+    {
+      system: "memcached",
+      metricName: "memcached.current_items",
+      title: "Items",
+      description: "Items currently stored in the cache.",
+      unit: "items",
+      aggregation: AggregationType.Avg,
+      kind: "gauge",
+      seriesCombine: "sum",
+    },
+    /*
+     * Hits and misses rather than memcached.operation_hit_ratio: that is a
+     * ratio since the server started, and reads 0% on a cache nobody has
+     * read from yet.
+     */
+    {
+      system: "memcached",
+      metricName: "memcached.operations",
+      title: "Get hits",
+      description: "Reads that found their key, per second.",
+      unit: "hits",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      attributes: { operation: "get", type: "hit" },
+      seriesCombine: "sum",
+    },
+    {
+      system: "memcached",
+      metricName: "memcached.operations",
+      title: "Get misses",
+      description: "Reads that did not find their key, per second.",
+      unit: "misses",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      attributes: { operation: "get", type: "miss" },
+      seriesCombine: "sum",
+    },
+    {
+      system: "memcached",
+      metricName: "memcached.commands",
+      title: "Commands",
+      description:
+        "Commands (get, set, touch, flush) per second, every kind added up.",
+      unit: "commands",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      seriesCombine: "sum",
+    },
+    {
+      system: "memcached",
+      metricName: "memcached.evictions",
+      title: "Evictions",
+      description:
+        "Items evicted to make room for new ones, per second: the cache is too small for what it holds.",
+      unit: "evictions",
+      aggregation: AggregationType.Max,
+      kind: "counter",
+      seriesCombine: "sum",
+    },
   ];
 
 /**
  * The curated metrics for an engine, in display order. Aliases are accepted
  * ("postgres" → PostgreSQL's), and a fork its family's receiver monitors
- * gets its family's set (Valkey → Redis's, MariaDB → MySQL's: that
- * receiver's metric names are what arrive). Empty for an engine without a
- * curated set — the Overview then shows its "engine metrics not connected"
- * state.
+ * gets its family's set (Valkey → Redis's, MariaDB → MySQL's, OpenSearch →
+ * Elasticsearch's: that receiver's metric names are what arrive). Empty for
+ * an engine without a curated set — the Overview then shows its "engine
+ * metrics not connected" state.
  */
 export function getDatabaseServerMetrics(
   system: string | null | undefined,

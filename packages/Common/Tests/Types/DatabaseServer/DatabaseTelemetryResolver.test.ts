@@ -1045,6 +1045,110 @@ describe("resolveDatabaseFromResourceAttributes — descriptive fields", () => {
         })?.system,
       ).toBe("");
     });
+
+    /*
+     * Regression (e2e): the Database Agent installed with
+     * DATABASE_SYSTEM=mysql against MariaDB 11.4.13. This is its batch's
+     * resource exactly as ClickHouse stored it: the receiver reports the
+     * bare "11.4.13" (SELECT VERSION() says "11.4.13-MariaDB-ubu2404"), so
+     * the database read "MySQL mariamysql…" for good.
+     */
+    const MARIADB_AGENT_LABELLED_MYSQL: Record<string, unknown> = {
+      "mysql.instance.endpoint": "e2e-receivers-mariadb:3306",
+      "service.instance.id": "74f6b653-070b-549a-9e22-6a56a802a4ab",
+      "db.system.version": "11.4.13",
+      "db.system.name": "mysql",
+      "server.address": "mariamysql.rcv-e2e.example.net",
+      "server.port": "3306",
+      "oneuptime.database.agent": "true",
+      "oneuptime.agent.version": "0.161.0",
+    };
+
+    test("a MySQL-labelled agent against MariaDB reports MariaDB: MySQL has no 11.x", () => {
+      expect(
+        fromResource(
+          MARIADB_AGENT_LABELLED_MYSQL,
+          getDatabaseReceiverSystemHint([`${CONTRIB}mysqlreceiver`]),
+        ),
+      ).toMatchObject({
+        system: "mariadb",
+        displayName: "MariaDB mariamysql.rcv-e2e.example.net:3306",
+        version: "11.4.13",
+        endpoint: { host: "mariamysql.rcv-e2e.example.net", port: 3306 },
+        allowCreate: true,
+      });
+    });
+
+    test("the same agent against MySQL 8.4 stays MySQL", () => {
+      expect(
+        fromResource(
+          {
+            ...MARIADB_AGENT_LABELLED_MYSQL,
+            "mysql.instance.endpoint": "e2e-receivers-mysql:3306",
+            "db.system.version": "8.4.11",
+            "server.address": "mysql84.rcv-e2e.example.net",
+          },
+          "mysql",
+        ),
+      ).toMatchObject({ system: "mysql", version: "8.4.11" });
+    });
+  });
+
+  /*
+   * Regression (e2e): Valkey 8.1.10 was stored as version 7.2.4. The redis
+   * receiver fills redis.version from INFO's redis_version, which Valkey
+   * keeps at 7.2.4 for compatibility (valkey_version:8.1.10 is its own).
+   * This is the agent's batch resource exactly as ClickHouse stored it.
+   */
+  describe("a version that is the family's, not the engine's own", () => {
+    const VALKEY_AGENT_BATCH: Record<string, unknown> = {
+      "redis.version": "7.2.4",
+      "server.address": "valkey8.rcv-e2e.example.net",
+      "server.port": "6379",
+      "db.system.name": "valkey",
+      "oneuptime.database.agent": "true",
+      "oneuptime.agent.version": "0.161.0",
+    };
+
+    test("Valkey's redis.version is never its version", () => {
+      expect(
+        fromResource(
+          VALKEY_AGENT_BATCH,
+          getDatabaseReceiverSystemHint([`${CONTRIB}redisreceiver`]),
+        ),
+      ).toMatchObject({
+        system: "valkey",
+        version: null,
+        displayName: "Valkey valkey8.rcv-e2e.example.net:6379",
+        allowCreate: true,
+      });
+    });
+
+    test("nor on a batch linked by id, or stored with the resource. prefix", () => {
+      expect(
+        fromResource({
+          "resource.redis.version": "7.2.4",
+          "resource.db.system.name": "valkey",
+          "resource.oneuptime.database.server.id": LINKED_ID,
+        }),
+      ).toMatchObject({ system: "valkey", version: null });
+    });
+
+    test("a version Valkey does report as its own is kept", () => {
+      expect(
+        fromResource({ ...VALKEY_AGENT_BATCH, "db.system.version": "8.1.10" })
+          ?.version,
+      ).toBe("8.1.10");
+    });
+
+    test("Redis and KeyDB keep redis.version: it is their own release", () => {
+      for (const system of ["redis", "keydb"]) {
+        expect(
+          fromResource({ ...VALKEY_AGENT_BATCH, "db.system.name": system })
+            ?.version,
+        ).toBe("7.2.4");
+      }
+    });
   });
 
   test("the display name uses the endpoint, without the cluster qualifier", () => {

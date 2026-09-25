@@ -17,6 +17,7 @@ import {
 import {
   getMoreSpecificDatabaseSystem,
   isAutoCreatableDatabaseSystem,
+  isCompatibilityVersionAttribute,
   isKnownDatabaseSystem,
   normalizeDatabaseSystem,
   refineDatabaseSystemFromVersion,
@@ -152,6 +153,23 @@ function readFirstAttribute(
     }
   }
   return null;
+}
+
+/*
+ * The engine's own version: the first version attribute present, skipping
+ * one the engine fills with its family's compatibility version instead
+ * (Valkey's `redis.version`, frozen at 7.2.4) — no version beats a wrong one.
+ */
+function readDatabaseVersion(
+  attributes: Record<string, unknown>,
+  system: string,
+): string | null {
+  return readFirstAttribute(
+    attributes,
+    DATABASE_VERSION_ATTRIBUTES.filter((key: string): boolean => {
+      return !isCompatibilityVersionAttribute(system, key);
+    }),
+  );
 }
 
 /**
@@ -353,9 +371,16 @@ export function isStableCollectorEndpoint(input: {
  *   `db.system` older receivers such as saphana still write); else an
  *   explicit stamp (that engine plus `server.address` or the linked id);
  *   else nothing — an application resource is never a database. Finally a
- *   version string the server reports about itself refines a family engine
- *   to the fork it names ("mysql" + "10.11.7-MariaDB" → "mariadb"); it never
- *   changes one fork into another or moves an engine to another family.
+ *   version the server reports about itself refines a family engine to the
+ *   fork it names ("mysql" + "10.11.7-MariaDB" → "mariadb") or the fork
+ *   whose releases alone reach its major version ("mysql" + "11.4.13" →
+ *   "mariadb": MySQL has no 10.x or 11.x); it never changes one fork into
+ *   another or moves an engine to another family.
+ * - `version`: the first of `db.system.version`, `redis.version`,
+ *   `oracle.db.version`, `elasticsearch.node.version`, `mongodb.version`,
+ *   except one the engine fills with its family's version rather than its
+ *   own (Valkey's `redis.version` is always 7.2.4) — null then, so a
+ *   version another source found is kept rather than overwritten.
  * - `endpoint` (purpose "collector"): the first of `server.address`
  *   (+ `server.port`), `service.instance.id` (UUID-shaped values ignored;
  *   `host:port/service` read as host:port), `mysql.instance.endpoint`,
@@ -490,23 +515,27 @@ export function resolveDatabaseFromResourceAttributes(input: {
     return null;
   }
 
-  const version: string | null = readFirstAttribute(
+  const reportedVersion: string | null = readDatabaseVersion(
     attributes,
-    DATABASE_VERSION_ATTRIBUTES,
+    system,
   );
 
   /*
-   * The server's own version string can name the fork a family receiver
-   * cannot tell apart (the mysql receiver reports "mysql" for MariaDB and
-   * TiDB alike). Only ever more specific: a fork already named is kept.
+   * The server's own version can name the fork a family receiver cannot
+   * tell apart (the mysql receiver reports "mysql" for MariaDB and TiDB
+   * alike, and only the bare "11.4.13" as MariaDB's version). Only ever
+   * more specific: a fork already named is kept.
    */
-  if (system && version) {
+  if (system && reportedVersion) {
     system =
       getMoreSpecificDatabaseSystem(
         system,
-        refineDatabaseSystemFromVersion(system, version),
+        refineDatabaseSystemFromVersion(system, reportedVersion),
       ) || system;
   }
+
+  // Read again for the engine the batch turned out to be.
+  const version: string | null = readDatabaseVersion(attributes, system);
 
   const endpointIsStable: boolean = endpoint
     ? isStableCollectorEndpoint({ rawHost, endpoint, attributes })

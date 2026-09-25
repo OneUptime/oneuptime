@@ -1535,6 +1535,194 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
       ).toEqual({ breached: false, healthy: true });
     });
 
+    /*
+     * Regression (e2e, collector-contrib 0.161.0): offered to MariaDB 11.4,
+     * the template opened an alert reading "232167.26% (dirty 37666816 /
+     * size 16224)" for a pool 18% dirty, and it never cleared: the mysql
+     * receiver reports MariaDB's mysql.buffer_pool.limit as the pool's PAGE
+     * count (8112), not its 134217728 bytes. One scrape of each server,
+     * every buffer-pool metric exactly as ClickHouse stored it.
+     */
+    const MARIADB_11_4_SCRAPE: Array<Omit<ReceiverRow, "minute">> = [
+      { metricName: "mysql.buffer_pool.limit", attributes: {}, value: 8112 },
+      {
+        metricName: "mysql.buffer_pool.usage",
+        attributes: { status: "dirty" },
+        value: 16203776,
+      },
+      {
+        metricName: "mysql.buffer_pool.usage",
+        attributes: { status: "clean" },
+        value: 4653056,
+      },
+      {
+        metricName: "mysql.buffer_pool.data_pages",
+        attributes: { status: "dirty" },
+        value: 989,
+      },
+      {
+        metricName: "mysql.buffer_pool.data_pages",
+        attributes: { status: "clean" },
+        value: 284,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "total" },
+        value: 8112,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "data" },
+        value: 1273,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "free" },
+        value: 6839,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "misc" },
+        value: 0,
+      },
+    ];
+
+    const MYSQL_8_4_SCRAPE: Array<Omit<ReceiverRow, "minute">> = [
+      {
+        metricName: "mysql.buffer_pool.limit",
+        attributes: {},
+        value: 134217728,
+      },
+      {
+        metricName: "mysql.buffer_pool.usage",
+        attributes: { status: "dirty" },
+        value: 0,
+      },
+      {
+        metricName: "mysql.buffer_pool.usage",
+        attributes: { status: "clean" },
+        value: 19431424,
+      },
+      {
+        metricName: "mysql.buffer_pool.data_pages",
+        attributes: { status: "dirty" },
+        value: 0,
+      },
+      {
+        metricName: "mysql.buffer_pool.data_pages",
+        attributes: { status: "clean" },
+        value: 1186,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "total" },
+        value: 8192,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "data" },
+        value: 1186,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "free" },
+        value: 7006,
+      },
+      {
+        metricName: "mysql.buffer_pool.pages",
+        attributes: { kind: "misc" },
+        value: 0,
+      },
+    ];
+
+    // The same scrape with `dirtyPages` of the pool's pages dirty.
+    function withDirtyPages(
+      scrape: Array<Omit<ReceiverRow, "minute">>,
+      dirtyPages: number,
+    ): Array<Omit<ReceiverRow, "minute">> {
+      return scrape.map(
+        (row: Omit<ReceiverRow, "minute">): Omit<ReceiverRow, "minute"> => {
+          if (
+            row.metricName === "mysql.buffer_pool.data_pages" &&
+            row.attributes["status"] === "dirty"
+          ) {
+            return { ...row, value: dirtyPages };
+          }
+          if (
+            row.metricName === "mysql.buffer_pool.usage" &&
+            row.attributes["status"] === "dirty"
+          ) {
+            return { ...row, value: dirtyPages * 16384 };
+          }
+          return row;
+        },
+      );
+    }
+
+    test("MariaDB 12% dirty is healthy, though its buffer_pool.limit is a page count", async () => {
+      expect(
+        await evaluateRows(
+          "database-mysql-buffer-pool-dirty",
+          everyMinute(MARIADB_11_4_SCRAPE),
+        ),
+      ).toEqual({ breached: false, healthy: true });
+    });
+
+    test("MariaDB 80% dirty fires", async () => {
+      expect(
+        await evaluateRows(
+          "database-mysql-buffer-pool-dirty",
+          everyMinute(withDirtyPages(MARIADB_11_4_SCRAPE, 6500)),
+        ),
+      ).toEqual({ breached: true, healthy: false });
+    });
+
+    test("MySQL 8.4, clean, is healthy; 80% dirty fires", async () => {
+      expect(
+        await evaluateRows(
+          "database-mysql-buffer-pool-dirty",
+          everyMinute(MYSQL_8_4_SCRAPE),
+        ),
+      ).toEqual({ breached: false, healthy: true });
+      expect(
+        await evaluateRows(
+          "database-mysql-buffer-pool-dirty",
+          everyMinute(withDirtyPages(MYSQL_8_4_SCRAPE, 6554)),
+        ),
+      ).toEqual({ breached: true, healthy: false });
+    });
+
+    test("reads dirty data pages over the pool's TOTAL pages, never the byte metrics", () => {
+      const template: DatabaseAlertTemplate = getTemplate(
+        "database-mysql-buffer-pool-dirty",
+      );
+      expect(template.metricNames).toEqual([
+        "mysql.buffer_pool.data_pages",
+        "mysql.buffer_pool.pages",
+      ]);
+      expect(
+        getViewConfig(template.getMonitorStep(buildArgs())).queryConfigs.map(
+          (queryConfig: MetricQueryConfigData) => {
+            const attributes: Record<string, unknown> = {
+              ...(queryConfig.metricQueryData.filterData.attributes as Record<
+                string,
+                unknown
+              >),
+            };
+            delete attributes[DATABASE_SERVER_ID_SCOPE_ATTRIBUTE];
+            return [
+              queryConfig.metricQueryData.filterData.metricName,
+              attributes,
+            ];
+          },
+        ),
+      ).toEqual([
+        ["mysql.buffer_pool.data_pages", { status: "dirty" }],
+        // Unpinned, total + data + free + misc would halve the ratio.
+        ["mysql.buffer_pool.pages", { kind: "total" }],
+      ]);
+    });
+
     test("filters the thread kind it thresholds", () => {
       const running: MonitorStep = getTemplate(
         "database-mysql-threads-running-high",
@@ -1989,6 +2177,13 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
  * v0.161.0 source. A template reading any of these watches nothing.
  */
 describe("DatabaseAlertTemplates — signals that can never fire are not offered", () => {
+  test("no template reads mysql.buffer_pool.limit, a page count on MariaDB", () => {
+    expect(getDatabaseAlertMetric("mysql.buffer_pool.limit")).toBeUndefined();
+    for (const template of ALL_TEMPLATES) {
+      expect(template.metricNames).not.toContain("mysql.buffer_pool.limit");
+    }
+  });
+
   test("no template reads mongodb.health, which can only ever read 1", () => {
     /*
      * The receiver records mongodb.health from serverStatus's `ok` — only

@@ -43,6 +43,8 @@ const CURATED_SYSTEMS: Array<string> = [
   "mongodb",
   "microsoft.sql_server",
   "oracle.db",
+  "elasticsearch",
+  "memcached",
 ];
 
 /*
@@ -78,6 +80,10 @@ const KNOWN_CUMULATIVE_COUNTERS: Array<string> = [
   "sqlserver.batch.sql_compilation.rate",
   "sqlserver.lock.wait.rate",
   "sqlserver.deadlock.rate",
+  "elasticsearch.node.operations.completed",
+  "memcached.operations",
+  "memcached.commands",
+  "memcached.evictions",
 ];
 
 /*
@@ -95,6 +101,17 @@ const KNOWN_GAUGES: Array<string> = [
   "oracledb.sessions.usage",
   "oracledb.sga.usage",
   "oracledb.tablespace.utilization",
+  // Non-monotonic sums: a level, however the receiver types it.
+  "mysql.buffer_pool.pages",
+  "elasticsearch.cluster.health",
+  "elasticsearch.cluster.nodes",
+  "elasticsearch.cluster.shards",
+  "elasticsearch.cluster.pending_tasks",
+  "elasticsearch.node.fs.disk.available",
+  "jvm.memory.heap.utilization",
+  "memcached.connections.current",
+  "memcached.bytes",
+  "memcached.current_items",
 ];
 
 /*
@@ -175,6 +192,82 @@ const RECEIVER_DATAPOINT_ATTRIBUTES: Record<string, Array<string>> = {
   "oracledb.db.time": ["oracledb.session.type"],
   "oracledb.sga.usage": ["oracledb.sga.component.name"],
   "oracledb.tablespace.utilization": ["tablespace_name", "oracle.db.pdb"],
+  "mysql.buffer_pool.pages": ["kind"],
+  "elasticsearch.cluster.health": ["status"],
+  "elasticsearch.cluster.shards": ["state"],
+  "elasticsearch.node.operations.completed": ["operation"],
+  // Recorded once per node: the node is a resource attribute.
+  "elasticsearch.node.fs.disk.available": ["resource.elasticsearch.node.name"],
+  "jvm.memory.heap.utilization": ["resource.elasticsearch.node.name"],
+  "memcached.commands": ["command"],
+  "memcached.operations": ["type", "operation"],
+};
+
+/*
+ * Every metric the e2e run's Database Agents (collector-contrib 0.161.0)
+ * delivered for these engines, read back from ClickHouse: Elasticsearch
+ * 8.15.3, OpenSearch 2.17.1 (the same receiver) and Memcached 1.6. A
+ * curated tile for anything else would stay empty.
+ */
+const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
+  elasticsearch: [
+    "elasticsearch.breaker.memory.estimated",
+    "elasticsearch.breaker.memory.limit",
+    "elasticsearch.breaker.tripped",
+    "elasticsearch.cluster.data_nodes",
+    "elasticsearch.cluster.health",
+    "elasticsearch.cluster.in_flight_fetch",
+    "elasticsearch.cluster.nodes",
+    "elasticsearch.cluster.pending_tasks",
+    "elasticsearch.cluster.shards",
+    "elasticsearch.cluster.state_queue",
+    "elasticsearch.index.documents",
+    "elasticsearch.index.operations.completed",
+    "elasticsearch.node.cache.evictions",
+    "elasticsearch.node.documents",
+    "elasticsearch.node.fs.disk.available",
+    "elasticsearch.node.fs.disk.total",
+    "elasticsearch.node.http.connections",
+    "elasticsearch.node.operations.completed",
+    "elasticsearch.node.operations.current",
+    "elasticsearch.node.thread_pool.tasks.finished",
+    "elasticsearch.node.thread_pool.tasks.queued",
+    "elasticsearch.os.cpu.usage",
+    "elasticsearch.process.cpu.usage",
+    "jvm.memory.heap.max",
+    "jvm.memory.heap.used",
+    "jvm.memory.heap.utilization",
+  ],
+  opensearch: [
+    "elasticsearch.breaker.tripped",
+    "elasticsearch.cluster.data_nodes",
+    "elasticsearch.cluster.health",
+    "elasticsearch.cluster.nodes",
+    "elasticsearch.cluster.pending_tasks",
+    "elasticsearch.cluster.shards",
+    "elasticsearch.index.documents",
+    "elasticsearch.node.documents",
+    "elasticsearch.node.fs.disk.available",
+    "elasticsearch.node.operations.completed",
+    "elasticsearch.node.operations.current",
+    "elasticsearch.node.thread_pool.tasks.finished",
+    "jvm.memory.heap.max",
+    "jvm.memory.heap.used",
+    "jvm.memory.heap.utilization",
+  ],
+  memcached: [
+    "memcached.bytes",
+    "memcached.commands",
+    "memcached.connections.current",
+    "memcached.connections.total",
+    "memcached.cpu.usage",
+    "memcached.current_items",
+    "memcached.evictions",
+    "memcached.network",
+    "memcached.operation_hit_ratio",
+    "memcached.operations",
+    "memcached.threads",
+  ],
 };
 
 function metricByName(name: string): DatabaseServerMetricDefinition {
@@ -203,7 +296,7 @@ describe("DATABASE_SERVER_METRICS", () => {
     expect(count).toBeLessThanOrEqual(8);
   });
 
-  test("only the six curated engines have entries", () => {
+  test("only the curated engines have entries", () => {
     const systems: Set<string> = new Set<string>(
       DATABASE_SERVER_METRICS.map(
         (metric: DatabaseServerMetricDefinition): string => {
@@ -253,6 +346,16 @@ describe("DATABASE_SERVER_METRICS", () => {
       const descriptor: DatabaseSystemDescriptor | null =
         getDatabaseSystemDescriptor(metric.system);
       expect(descriptor).not.toBeNull();
+      /*
+       * The Elasticsearch receiver also emits the node JVM's `jvm.*`
+       * metrics in the same batch — the one sanctioned exception.
+       */
+      if (
+        metric.system === "elasticsearch" &&
+        metric.metricName.startsWith("jvm.")
+      ) {
+        continue;
+      }
       expect(
         descriptor!.receiverMetricPrefixes.some((prefix: string): boolean => {
           return metric.metricName.startsWith(prefix);
@@ -387,6 +490,7 @@ describe("DATABASE_SERVER_METRICS", () => {
         })
         .sort(),
     ).toEqual([
+      "jvm.memory.heap.utilization",
       "oracledb.db.time",
       "oracledb.sga.usage",
       "oracledb.tablespace.utilization",
@@ -605,7 +709,7 @@ describe("how each metric's series combine", () => {
     for (const name of [
       "postgresql.connection.max",
       "postgresql.database.count",
-      "mysql.buffer_pool.limit",
+      "mysql.buffer_pool.pages",
     ]) {
       expect(metricByName(name).seriesCombine).toBe("max");
     }
@@ -645,6 +749,195 @@ describe("how each metric's series combine", () => {
   });
 });
 
+/*
+ * Regression (e2e, collector-contrib 0.161.0): MariaDB 11.4's Overview read
+ * "Buffer pool size 7.9 KiB". The mysql receiver fills
+ * mysql.buffer_pool.limit ("bytes") from information_schema.INNODB_METRICS,
+ * which on MariaDB holds the pool's page count: these are one scrape of
+ * each server as ClickHouse stored it (@@innodb_buffer_pool_size is
+ * 134217728 on both).
+ */
+describe("the InnoDB buffer pool on MySQL and MariaDB alike", () => {
+  const MARIADB_11_4: Record<string, number> = {
+    "mysql.buffer_pool.limit": 8112,
+    "mysql.buffer_pool.pages{kind=total}": 8112,
+    "mysql.buffer_pool.pages{kind=data}": 1273,
+    "mysql.buffer_pool.pages{kind=free}": 6839,
+    "mysql.buffer_pool.pages{kind=misc}": 0,
+  };
+  const MYSQL_8_4: Record<string, number> = {
+    "mysql.buffer_pool.limit": 134217728,
+    "mysql.buffer_pool.pages{kind=total}": 8192,
+    "mysql.buffer_pool.pages{kind=data}": 1186,
+    "mysql.buffer_pool.pages{kind=free}": 7006,
+    "mysql.buffer_pool.pages{kind=misc}": 0,
+  };
+
+  test("no tile reads mysql.buffer_pool.limit, whose unit differs by engine", () => {
+    for (const system of ["mysql", "mariadb"]) {
+      expect(
+        getDatabaseServerMetrics(system).filter(
+          (metric: DatabaseServerMetricDefinition): boolean => {
+            return metric.metricName === "mysql.buffer_pool.limit";
+          },
+        ),
+      ).toEqual([]);
+    }
+    // The fixture holds the trap: the same setting, 16384x apart.
+    expect(
+      MYSQL_8_4["mysql.buffer_pool.limit"]! /
+        MARIADB_11_4["mysql.buffer_pool.limit"]!,
+    ).toBeGreaterThan(16000);
+  });
+
+  test("the size tile reads the total page count, the same measure on both", () => {
+    const size: DatabaseServerMetricDefinition = getDatabaseServerMetrics(
+      "mariadb",
+    ).find((metric: DatabaseServerMetricDefinition): boolean => {
+      return metric.title === "Buffer pool size";
+    })!;
+    expect(getDatabaseServerMetricId(size)).toBe(
+      "mysql.buffer_pool.pages{kind=total}",
+    );
+    expect(size.unit).toBe("pages");
+    expect(size.kind).toBe("gauge");
+    // Pinned: kind total is the sum of the other kinds, never added to them.
+    for (const scrape of [MARIADB_11_4, MYSQL_8_4]) {
+      const size16k: number = scrape[getDatabaseServerMetricId(size)]! * 16384;
+      expect(size16k).toBeGreaterThan(128 * 1024 * 1024 * 0.95);
+      expect(size16k).toBeLessThanOrEqual(128 * 1024 * 1024);
+      expect(
+        scrape["mysql.buffer_pool.pages{kind=data}"]! +
+          scrape["mysql.buffer_pool.pages{kind=free}"]! +
+          scrape["mysql.buffer_pool.pages{kind=misc}"]!,
+      ).toBe(scrape["mysql.buffer_pool.pages{kind=total}"]);
+    }
+  });
+
+  test("buffer pool usage stays in bytes: MariaDB reports those as bytes", () => {
+    const usage: DatabaseServerMetricDefinition = metricByName(
+      "mysql.buffer_pool.usage",
+    );
+    expect(usage.unit).toBe("bytes");
+    // MariaDB 11.4, same scrape: 16203776 dirty bytes = 989 dirty pages.
+    expect(16203776 / 16384).toBe(989);
+  });
+});
+
+/*
+ * Regression (e2e): Elasticsearch, OpenSearch and Memcached databases were
+ * connected, 69 to 76 metrics arriving every 30 s, and their Overview said
+ * there was no curated overview for the engine.
+ */
+describe("Elasticsearch, OpenSearch and Memcached have a curated overview", () => {
+  test.each([
+    ["elasticsearch", "elasticsearch"],
+    ["opensearch", "opensearch"],
+    ["memcached", "memcached"],
+  ])(
+    "every %s tile reads a metric the agent delivered",
+    (system: string, arrivedFrom: string) => {
+      const metrics: Array<DatabaseServerMetricDefinition> =
+        getDatabaseServerMetrics(system);
+      expect(metrics.length).toBeGreaterThanOrEqual(5);
+      for (const metric of metrics) {
+        expect({
+          system,
+          metric: metric.metricName,
+          arrived: SEEN_ARRIVING_FROM_AGENT[arrivedFrom]!.includes(
+            metric.metricName,
+          ),
+        }).toEqual({ system, metric: metric.metricName, arrived: true });
+      }
+    },
+  );
+
+  test("OpenSearch gets Elasticsearch's set: the same receiver reads both", () => {
+    expect(getDatabaseServerMetrics("opensearch")).toEqual(
+      getDatabaseServerMetrics("elasticsearch"),
+    );
+  });
+
+  test("Elasticsearch's tiles, in display order", () => {
+    expect(
+      getDatabaseServerMetrics("elasticsearch").map(
+        (metric: DatabaseServerMetricDefinition): [string, string] => {
+          return [getDatabaseServerMetricId(metric), metric.kind];
+        },
+      ),
+    ).toEqual([
+      ["elasticsearch.cluster.health{status=green}", "gauge"],
+      ["elasticsearch.cluster.nodes", "gauge"],
+      ["elasticsearch.cluster.shards{state=unassigned}", "gauge"],
+      ["elasticsearch.cluster.pending_tasks", "gauge"],
+      ["jvm.memory.heap.utilization", "gauge"],
+      ["elasticsearch.node.fs.disk.available", "gauge"],
+      ["elasticsearch.node.operations.completed{operation=query}", "counter"],
+      ["elasticsearch.node.operations.completed{operation=index}", "counter"],
+    ]);
+  });
+
+  test("cluster health is the share of the interval spent green", () => {
+    /*
+     * The receiver records one 0/1 series per status (green 1, yellow 0,
+     * red 0 on a green cluster): the green series' average is the share,
+     * and the worst reporter decides.
+     */
+    const health: DatabaseServerMetricDefinition = metricByName(
+      "elasticsearch.cluster.health",
+    );
+    expect(health.attributes).toEqual({ status: "green" });
+    expect(health.aggregation).toBe(AggregationType.Avg);
+    expect(health.unit).toBe("fraction");
+    expect(health.seriesCombine).toBe("min");
+  });
+
+  test("node-level tiles keep the node closest to trouble", () => {
+    const heap: DatabaseServerMetricDefinition = metricByName(
+      "jvm.memory.heap.utilization",
+    );
+    // A 0..1 share (unit "1"), per node; the fullest one is shown.
+    expect(heap.unit).toBe("fraction");
+    expect(heap.seriesCombine).toBe("max");
+    expect(heap.seriesKeys).toEqual(["resource.elasticsearch.node.name"]);
+    expect(heap.enabledByDefault).toBe(false);
+
+    const disk: DatabaseServerMetricDefinition = metricByName(
+      "elasticsearch.node.fs.disk.available",
+    );
+    expect(disk.unit).toBe("bytes");
+    expect(disk.aggregation).toBe(AggregationType.Min);
+    expect(disk.seriesCombine).toBe("min");
+    expect(disk.seriesKeys).toEqual(["resource.elasticsearch.node.name"]);
+  });
+
+  test("Memcached's tiles, in display order", () => {
+    expect(
+      getDatabaseServerMetrics("memcached").map(
+        (metric: DatabaseServerMetricDefinition): [string, string] => {
+          return [getDatabaseServerMetricId(metric), metric.kind];
+        },
+      ),
+    ).toEqual([
+      ["memcached.connections.current", "gauge"],
+      ["memcached.bytes", "gauge"],
+      ["memcached.current_items", "gauge"],
+      ["memcached.operations{operation=get,type=hit}", "counter"],
+      ["memcached.operations{operation=get,type=miss}", "counter"],
+      ["memcached.commands", "counter"],
+      ["memcached.evictions", "counter"],
+    ]);
+  });
+
+  test("Memcached's hit ratio is not a tile: it reads 0% on an idle cache", () => {
+    /*
+     * Measured: a Memcached 1.6 nobody had read from reported
+     * memcached.operation_hit_ratio{operation=get} = 0 on all 239 scrapes.
+     */
+    expect(entriesNamed("memcached.operation_hit_ratio")).toEqual([]);
+  });
+});
+
 describe("getDatabaseServerMetrics", () => {
   test("aliases resolve to the engine's list", () => {
     expect(getDatabaseServerMetrics("postgres")).toEqual(
@@ -677,6 +970,7 @@ describe("getDatabaseServerMetrics", () => {
 
   test("engines without a curated set, and junk, give []", () => {
     expect(getDatabaseServerMetrics("cockroachdb")).toEqual([]);
+    expect(getDatabaseServerMetrics("couchdb")).toEqual([]);
     expect(getDatabaseServerMetrics("tidb")).toEqual([]);
     expect(getDatabaseServerMetrics("")).toEqual([]);
     expect(getDatabaseServerMetrics(null)).toEqual([]);

@@ -126,6 +126,25 @@ export interface DatabaseSystemDescriptor {
    * refineDatabaseSystemFromVersion).
    */
   versionPattern?: RegExp | undefined;
+  /*
+   * The lowest MAJOR version that names this engine on its own, because its
+   * family's releases never reached it: MySQL's stop at 9.x, while MariaDB
+   * numbers its releases 10.x, 11.x and 12.x. It matters because the
+   * collector's `mysql` receiver reports only the leading number
+   * ("11.4.13", never "11.4.13-MariaDB-ubu2404") in `db.system.version`,
+   * which versionPattern cannot read. Only on forks, and checked after every
+   * fork's versionPattern (see refineDatabaseSystemFromVersion).
+   */
+  versionMajorFrom?: number | undefined;
+  /*
+   * Resource attributes a receiver fills, for this engine, with the version
+   * of the engine it stays compatible with rather than its own — never read
+   * as this engine's version. Valkey answers INFO's `redis_version` with
+   * 7.2.4, the Redis release it forked from, whatever its own version
+   * (`valkey_version`) is, and the `redis` receiver reports that field as
+   * `redis.version`.
+   */
+  compatibilityVersionAttributes?: ReadonlyArray<string> | undefined;
   deployment: DatabaseDeployment;
   engineMetrics: DatabaseEngineMetricsSource;
 }
@@ -225,6 +244,7 @@ export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
     hasCollectorReceiver: true,
     family: "mysql",
     versionPattern: /mariadb/i,
+    versionMajorFrom: 10,
     deployment: "server",
     engineMetrics: RECEIVER,
   },
@@ -970,6 +990,8 @@ export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
     kubernetesChartNames: ["valkey", "valkey-cluster"],
     hasCollectorReceiver: true,
     family: "redis",
+    // INFO: redis_version:7.2.4 next to valkey_version:8.1.10.
+    compatibilityVersionAttributes: ["redis.version"],
     deployment: "server",
     engineMetrics: RECEIVER,
   },
@@ -998,6 +1020,11 @@ export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
     kubernetesChartNames: ["dragonfly"],
     hasCollectorReceiver: true,
     family: "redis",
+    /*
+     * INFO's redis_version is the Redis API level Dragonfly emulates; its
+     * own release is dragonfly_version (df-v1.x).
+     */
+    compatibilityVersionAttributes: ["redis.version"],
     deployment: "server",
     engineMetrics: RECEIVER,
   },
@@ -1879,14 +1906,26 @@ export function getMoreSpecificDatabaseSystem(
   return currentSystem;
 }
 
+// The leading number of a version string: "11.4.13" → 11. At most four digits.
+const VERSION_MAJOR_PATTERN: RegExp = /^\s*v?(\d{1,4})(?!\d)/i;
+
+function readVersionMajor(version: string): number | null {
+  const match: RegExpExecArray | null = VERSION_MAJOR_PATTERN.exec(version);
+  return match ? Number(match[1]) : null;
+}
+
 /**
  * The engine a server's own version string names, given the engine the
  * data reports: "mysql" + "10.11.7-MariaDB-1:10.11.7+maria~ubu2204" →
- * "mariadb", "mysql" + "8.0.11-TiDB-v7.5.1" → "tidb". A version that names
- * no fork of the engine's family (or no version at all) keeps the engine,
- * normalized. Null only for an empty engine. (The collector's mysql
- * receiver reports a bare "11.4.2"; it names MariaDB in its own
- * `db.system.name` resource attribute instead, when that is enabled.)
+ * "mariadb", "mysql" + "8.0.11-TiDB-v7.5.1" → "tidb". A fork's name in the
+ * string wins (versionPattern); otherwise a major version the family never
+ * released names the fork that did (versionMajorFrom): "mysql" + "11.4.13"
+ * → "mariadb", since MySQL has no 10.x or 11.x — which is how a collector's
+ * `mysql` receiver pointed at MariaDB is told apart, as it reports only
+ * that bare number. A version that names no fork of the engine's family
+ * (or no version at all) keeps the engine, normalized; so does a MariaDB
+ * older than 10 whose version has lost its "-MariaDB" suffix ("5.5.68").
+ * Null only for an empty engine.
  */
 export function refineDatabaseSystemFromVersion(
   system: unknown,
@@ -1916,7 +1955,45 @@ export function refineDatabaseSystemFromVersion(
       return candidate.system;
     }
   }
+
+  const major: number | null = readVersionMajor(sample);
+  if (major !== null) {
+    for (const candidate of DATABASE_SYSTEMS) {
+      if (
+        candidate.family === family &&
+        typeof candidate.versionMajorFrom === "number" &&
+        major >= candidate.versionMajorFrom
+      ) {
+        return candidate.system;
+      }
+    }
+  }
+
   return normalized;
+}
+
+/**
+ * Whether a resource attribute holding a version is NOT this engine's own
+ * version but the one of the engine it stays compatible with (see
+ * DatabaseSystemDescriptor.compatibilityVersionAttributes): true for
+ * `redis.version` on Valkey, whose INFO keeps `redis_version` at 7.2.4.
+ * Aliases accepted; `attributeKey` is the flat resource key, with or
+ * without the stored `resource.` prefix.
+ */
+export function isCompatibilityVersionAttribute(
+  system: unknown,
+  attributeKey: string,
+): boolean {
+  const descriptor: DatabaseSystemDescriptor | null =
+    getDatabaseSystemDescriptor(system);
+  if (!descriptor || !descriptor.compatibilityVersionAttributes) {
+    return false;
+  }
+  const key: string =
+    typeof attributeKey === "string"
+      ? attributeKey.trim().replace(/^resource\./, "")
+      : "";
+  return descriptor.compatibilityVersionAttributes.includes(key);
 }
 
 /**
