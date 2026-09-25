@@ -650,10 +650,16 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         observedBytes: sumOf(CUSTOMER_TREE, "proportionalBytes"),
         processCount: CUSTOMER_TREE.length,
         residentFallbackCount: 0,
+        proportionalBytesByPid: expect.any(Map),
         isComplete: true,
         failure: null,
       });
       expect(reading.observedBytes).toBeLessThan(DEFAULT_LIMIT_BYTES);
+      expect([...reading.proportionalBytesByPid.entries()]).toEqual(
+        CUSTOMER_TREE.map((shape: ChromiumProcessShape) => {
+          return [shape.pid, shape.proportionalBytes];
+        }),
+      );
       expect(calls).toHaveLength(1);
       expect(calls[0]?.file).toBe(PROCESS_MEMORY_HELPER_PATH);
       expect(calls[0]?.args).toEqual([
@@ -843,6 +849,7 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         observedBytes: sumOf(CUSTOMER_TREE, "residentBytes"),
         processCount: CUSTOMER_TREE.length,
         residentFallbackCount: CUSTOMER_TREE.length,
+        proportionalBytesByPid: expect.any(Map),
         isComplete: true,
         failure: null,
       });
@@ -934,6 +941,7 @@ describe("SyntheticRuntime ProcessTreeMemory", () => {
         observedBytes: 0,
         processCount: 0,
         residentFallbackCount: 0,
+        proportionalBytesByPid: expect.any(Map),
         isComplete: true,
         failure: null,
       });

@@ -55,12 +55,25 @@ const DEFAULT_RSS_POLL_INTERVAL_IN_MS: number = 250;
  */
 const PROPORTIONAL_READING_REUSE_IN_MS: number = 1000;
 /*
- * How many readings in a row may fail -- time out, or come back short --
+ * How long readings may keep failing -- timing out, or coming back short --
  * before the tree is judged by what could be read, counting every process
- * whose PSS is missing at its VmRSS. A busy probe can make one reading slow;
- * a tree cannot hold off its own measurement for longer than this.
+ * whose PSS is missing at its VmRSS. A starved probe can make a reading or
+ * two slow; a tree cannot hold off its own measurement for longer than this.
+ * A failed reading is retried after a pause, not on the next poll, so the
+ * retry does not land in the same stall.
  */
-const MAX_CONSECUTIVE_INCOMPLETE_READINGS: number = 2;
+const INCOMPLETE_READINGS_GRACE_IN_MS: number = 10 * 1000;
+/*
+ * A reading asks about the processes in the tree when it starts, and the
+ * tree can change before it is done. Processes that appeared meanwhile are
+ * read in a further round, up to this many rounds in all. A tree still
+ * changing after the last one is changing faster than it can be read, and the
+ * reading is incomplete: read again after a pause, and judged -- with the
+ * processes it could not read at their VmRSS -- only once that has gone on
+ * for INCOMPLETE_READINGS_GRACE_IN_MS.
+ */
+const MAX_PROPORTIONAL_READING_ROUNDS: number = 3;
+const INCOMPLETE_READING_RETRY_DELAY_IN_MS: number = 1000;
 const INCOMPLETE_READING_WARNING_INTERVAL_IN_MS: number = 60 * 1000;
 const DEFAULT_MAX_DISK_BYTES: number = 256 * 1024 * 1024;
 const DEFAULT_MAX_DISK_ENTRIES: number = 10_000;
@@ -110,6 +123,15 @@ interface MemoryLimitObservation {
   // Set when the tree was read by PSS.
   readonly processCount?: number | undefined;
   readonly residentFallbackCount?: number | undefined;
+}
+
+interface ProcessTreeReading {
+  // The tree as it was when the reading finished.
+  readonly snapshot: ProcessTreeSnapshot;
+  readonly observedBytes: number;
+  readonly residentFallbackCount: number;
+  readonly isComplete: boolean;
+  readonly failure: string | null;
 }
 
 interface ProcessTreeSnapshot {
@@ -1781,10 +1803,15 @@ export default class ProcessRunner {
       readonly observedRssBytes: number;
       readonly readAtInMs: number;
     } | null = null;
-    let consecutiveIncompleteReadings: number = 0;
+    let firstIncompleteReadingAtInMs: number | null = null;
 
-    const scheduleNextPoll: () => void = (): void => {
-      pollHandle = global.setTimeout(poll, this.rssPollIntervalInMs);
+    const scheduleNextPoll: (delayInMs?: number) => void = (
+      delayInMs?: number,
+    ): void => {
+      pollHandle = global.setTimeout(
+        poll,
+        Math.max(delayInMs ?? 0, this.rssPollIntervalInMs),
+      );
       pollHandle.unref?.();
     };
 
@@ -1795,43 +1822,47 @@ export default class ProcessRunner {
       data.onLimitExceeded(observation);
     };
 
-    const onReading: (
-      reading: ProportionalMemoryReading,
-      observedRssBytes: number,
-    ) => void = (
-      reading: ProportionalMemoryReading,
-      observedRssBytes: number,
+    const onReading: (reading: ProcessTreeReading) => void = (
+      reading: ProcessTreeReading,
     ): void => {
       if (!reading.isComplete) {
-        consecutiveIncompleteReadings++;
-        this.warnAboutIncompleteReading(reading);
+        const nowInMs: number = Date.now();
+        firstIncompleteReadingAtInMs ??= nowInMs;
+        this.warnAboutIncompleteReading(reading.failure);
 
         if (
-          consecutiveIncompleteReadings < MAX_CONSECUTIVE_INCOMPLETE_READINGS
+          nowInMs - firstIncompleteReadingAtInMs <
+          INCOMPLETE_READINGS_GRACE_IN_MS
         ) {
-          scheduleNextPoll();
+          scheduleNextPoll(INCOMPLETE_READING_RETRY_DELAY_IN_MS);
           return;
         }
       } else {
-        consecutiveIncompleteReadings = 0;
+        firstIncompleteReadingAtInMs = null;
       }
 
       if (reading.observedBytes > this.maxProcessTreeRssBytes) {
         reportLimitExceeded({
           observedBytes: reading.observedBytes,
-          processCount: reading.processCount,
+          processCount: reading.snapshot.records.size,
           residentFallbackCount: reading.residentFallbackCount,
         });
         return;
       }
 
-      if (reading.isComplete) {
-        lastReading = {
-          observedBytes: reading.observedBytes,
-          observedRssBytes,
-          readAtInMs: Date.now(),
-        };
-      }
+      /*
+       * Reused only when every process was read by PSS: one counted at its
+       * VmRSS may be a process that has since been replaced.
+       */
+      lastReading =
+        reading.isComplete && reading.residentFallbackCount === 0
+          ? {
+              observedBytes: reading.observedBytes,
+              observedRssBytes:
+                this.sumProcessTreeRssBytes(reading.snapshot) ?? 0,
+              readAtInMs: Date.now(),
+            }
+          : null;
       scheduleNextPoll();
     };
 
@@ -1893,16 +1924,18 @@ export default class ProcessRunner {
       const measurement: AbortController = new AbortController();
       proportionalMeasurement = measurement;
 
-      void ProcessTreeMemory.measureProportionalBytes({
-        pids: [...snapshot.records.keys()],
+      void this.readProcessTreeProportionally({
+        firstSnapshot: snapshot,
+        rootPid: data.rootPid,
+        trackedTree: data.trackedTree,
         identity: data.identity,
         signal: measurement.signal,
-      }).then((reading: ProportionalMemoryReading): void => {
+      }).then((reading: ProcessTreeReading): void => {
         if (isStopped || proportionalMeasurement !== measurement) {
           return;
         }
         proportionalMeasurement = null;
-        onReading(reading, observedRssBytes);
+        onReading(reading);
       });
     };
 
@@ -1919,6 +1952,99 @@ export default class ProcessRunner {
       }
       proportionalMeasurement?.abort();
       proportionalMeasurement = null;
+    };
+  }
+
+  /*
+   * Reads the tree by PSS as it is when the reading finishes, not as it was
+   * when it began: a process that exited meanwhile holds nothing and counts
+   * at nothing, and one that started meanwhile is read in a further round.
+   * Otherwise a tree could hide memory in processes that live shorter than a
+   * reading takes. Never rejects.
+   */
+  private async readProcessTreeProportionally(data: {
+    readonly firstSnapshot: ProcessTreeSnapshot;
+    readonly rootPid: number;
+    readonly trackedTree: TrackedProcessTree;
+    readonly identity: ProcessMemoryIdentity | null;
+    readonly signal: AbortSignal;
+  }): Promise<ProcessTreeReading> {
+    const proportionalBytesByPid: Map<number, number> = new Map<
+      number,
+      number
+    >();
+    const askedPids: Set<number> = new Set<number>();
+    let snapshot: ProcessTreeSnapshot = data.firstSnapshot;
+    let failure: string | null = null;
+
+    for (
+      let round: number = 0;
+      round < MAX_PROPORTIONAL_READING_ROUNDS;
+      round++
+    ) {
+      const pids: number[] = [...snapshot.records.keys()].filter(
+        (pid: number): boolean => {
+          return !askedPids.has(pid);
+        },
+      );
+      if (pids.length === 0) {
+        break;
+      }
+      for (const pid of pids) {
+        askedPids.add(pid);
+      }
+
+      const reading: ProportionalMemoryReading =
+        await ProcessTreeMemory.measureProportionalBytes({
+          pids,
+          identity: data.identity,
+          signal: data.signal,
+        });
+      for (const [pid, proportionalBytes] of reading.proportionalBytesByPid) {
+        proportionalBytesByPid.set(pid, proportionalBytes);
+      }
+
+      if (!reading.isComplete || data.signal.aborted) {
+        failure = reading.failure ?? "the reading was abandoned";
+        break;
+      }
+
+      try {
+        snapshot = this.getProcessTreeMemorySnapshot(
+          data.rootPid,
+          data.trackedTree,
+        );
+      } catch {
+        // Judged as the tree was at the last snapshot.
+        break;
+      }
+    }
+
+    const records: Map<number, ProcessRecord> = snapshot.records;
+    const unreadPidCount: number = [...records.keys()].filter(
+      (pid: number): boolean => {
+        return !askedPids.has(pid);
+      },
+    ).length;
+    if (failure === null && unreadPidCount > 0) {
+      failure = `the process tree changed faster than it could be read: ${unreadPidCount} processes appeared after ${MAX_PROPORTIONAL_READING_ROUNDS} rounds`;
+    }
+
+    const sum: { observedBytes: number; residentFallbackCount: number } =
+      ProcessTreeMemory.sumProportionalBytes({
+        pids: [...records.keys()],
+        proportionalBytesByPid,
+        readResidentBytes: (pid: number): number | null => {
+          return records.get(pid)?.rssBytes ?? null;
+        },
+      });
+
+    return {
+      snapshot,
+      observedBytes: sum.observedBytes,
+      residentFallbackCount: sum.residentFallbackCount,
+      isComplete: failure === null,
+      failure,
     };
   }
 
@@ -1941,7 +2067,7 @@ export default class ProcessRunner {
    * Once a minute at most: on a busy probe every check over the limit by
    * VmRSS can fail a reading, and each failure is retried anyway.
    */
-  private warnAboutIncompleteReading(reading: ProportionalMemoryReading): void {
+  private warnAboutIncompleteReading(failure: string | null): void {
     const nowInMs: number = Date.now();
     if (
       this.lastIncompleteReadingWarningAtInMs !== null &&
@@ -1953,7 +2079,7 @@ export default class ProcessRunner {
     this.lastIncompleteReadingWarningAtInMs = nowInMs;
 
     logger.warn(
-      `Synthetic worker memory could not be read by proportional set size: ${reading.failure}. The reading is retried; after ${MAX_CONSECUTIVE_INCOMPLETE_READINGS} such failures in a row a check is judged with every process whose proportional size is missing counted at its resident size.`,
+      `Synthetic worker memory could not be read by proportional set size: ${failure}. The reading is retried; a check whose readings keep failing for ${INCOMPLETE_READINGS_GRACE_IN_MS / 1000} seconds is judged with every process whose proportional size is missing counted at its resident size.`,
     );
   }
 

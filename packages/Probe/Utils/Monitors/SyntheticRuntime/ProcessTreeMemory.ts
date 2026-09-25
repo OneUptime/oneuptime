@@ -74,6 +74,8 @@ export interface ProportionalMemoryReading {
    */
   readonly observedBytes: number;
   readonly processCount: number;
+  // The PSS of each process that could be read, keyed by pid.
+  readonly proportionalBytesByPid: ReadonlyMap<number, number>;
   // Processes counted at their VmRSS because their PSS could not be read.
   readonly residentFallbackCount: number;
   /*
@@ -326,6 +328,7 @@ export default class ProcessTreeMemory {
     return {
       observedBytes: sum.observedBytes,
       processCount: pids.length,
+      proportionalBytesByPid: read.proportionalBytesByPid,
       residentFallbackCount: sum.residentFallbackCount,
       isComplete: read.failure === null,
       failure: read.failure,
