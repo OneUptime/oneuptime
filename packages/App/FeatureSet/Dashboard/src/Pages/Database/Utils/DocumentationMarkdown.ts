@@ -99,6 +99,44 @@ const DEFAULT_SYSTEM_FOR_ENGINE: Record<DatabaseAgentEngine, string> = {
   memcached: "memcached",
 };
 
+/*
+ * What each config's receiver reports, as the guide's first sentence says
+ * it — the metrics the e2e run saw arriving from each receiver (collector
+ * 0.161.0), plus the ones the config switches on. Per engine, because they
+ * differ: Memcached, for one, has no locks and no replication.
+ */
+const COLLECTED_METRICS: Record<DatabaseAgentEngine, string> = {
+  postgresql:
+    "connections against `max_connections`, commits and rollbacks, cache hit ratio, row throughput, locks and deadlocks, temporary files, database, table and index sizes, checkpoints and the background writer, vacuums and replication lag",
+  mysql:
+    "threads and connections, connection errors, queries and slow queries, commands, the InnoDB buffer pool, row and table locks, row operations and handlers, temporary tables and sorts, and replica lag",
+  redis:
+    "connected and blocked clients, commands per second and their latency, keyspace hits and misses, memory against `maxmemory`, evicted and expired keys, and replication",
+  mongodb:
+    "connections, operations and their latency, active reads and writes, cache operations, memory, data, storage and index sizes, cursors, sessions and page faults",
+  sqlserver:
+    "user connections, batch requests and compilations, buffer cache hit ratio, page life expectancy, lock waits, deadlocks and blocked processes, pending memory grants, CPU, database I/O and latency, and availability-group replica lag",
+  oracledb:
+    "sessions, executions, commits and rollbacks, parses, logical and physical reads, CPU and DB time, PGA and SGA memory and tablespace usage",
+  elasticsearch:
+    "cluster health, nodes, shards and pending tasks, documents, indexing and search operations, thread pools, caches, disk, and JVM heap and garbage collection",
+  memcached:
+    "connections, commands, get hits and misses (the cache hit ratio), evictions, items, memory used, network traffic, threads and CPU",
+};
+
+/**
+ * What the agent collects for an engine, in words: its receiver's metrics,
+ * and the optional query events where its config ships them (the configs
+ * that switch the receiver's `db.server.top_query` event on).
+ */
+export function getDatabaseAgentCollectedSummary(
+  engine: DatabaseAgentEngine,
+): string {
+  return DATABASE_AGENT_CONFIGS[engine].includes("db.server.top_query:")
+    ? `${COLLECTED_METRICS[engine]}, plus optional query samples and top queries (\`DATABASE_QUERY_EVENTS\`)`
+    : COLLECTED_METRICS[engine];
+}
+
 /** The picker label of an agent engine. */
 export function getDatabaseAgentEngineLabel(
   engine: DatabaseAgentEngine,
@@ -823,7 +861,7 @@ Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stam
       : "";
 
   return `
-The OneUptime Database Agent collects ${engineLabel} engine metrics — connections, throughput, cache hit ratio, locks, replication, memory — with a stock OpenTelemetry Collector container (\`${DATABASE_AGENT_COLLECTOR_IMAGE}\`) running the collector's native \`${receiverName}\` receiver (\`configs/${data.engine}.yaml\`). Nothing is installed on the database server. **One agent monitors one database server**; run a second copy in a second directory for a second server.
+The OneUptime Database Agent collects ${engineLabel} engine metrics — ${getDatabaseAgentCollectedSummary(data.engine)} — with a stock OpenTelemetry Collector container (\`${DATABASE_AGENT_COLLECTOR_IMAGE}\`) running the collector's native \`${receiverName}\` receiver (\`configs/${data.engine}.yaml\`). Nothing is installed on the database server. **One agent monitors one database server**; run a second copy in a second directory for a second server.
 ${thisDatabase}
 ## Prerequisites
 

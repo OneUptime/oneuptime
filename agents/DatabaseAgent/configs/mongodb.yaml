@@ -163,6 +163,18 @@ processors:
     log_statements:
       - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
       - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  # Query samples and top queries arrive with an EMPTY body: the receiver
+  # puts the query in the db.query.text attribute, so OneUptime's Logs tab
+  # would show "{}" as their message. This copies the query text into the
+  # body (the attribute stays, for filters and Logs monitors), and gives a
+  # record without query text its event name (db.server.query_sample,
+  # db.server.top_query). A record that already has a body — a line from
+  # the optional filelog receiver — is left alone.
+  transform/query_event_body:
+    error_mode: ignore
+    log_statements:
+      - set(log.body, log.attributes["db.query.text"]) where (log.body == nil or log.body == "") and log.attributes["db.query.text"] != nil and log.attributes["db.query.text"] != ""
+      - set(log.body, log.event_name) where (log.body == nil or log.body == "") and log.event_name != ""
   batch:
     timeout: 10s
     send_batch_size: 1024
@@ -192,5 +204,5 @@ service:
     # filelog to the receivers when you enable it above.
     logs:
       receivers: [mongodb]
-      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      processors: [memory_limiter, resource, transform/optional_identity, transform/query_event_body, batch]
       exporters: [otlphttp]

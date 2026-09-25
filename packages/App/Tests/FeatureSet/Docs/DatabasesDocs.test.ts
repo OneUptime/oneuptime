@@ -15,7 +15,9 @@ import {
   DatabaseServerMetricDefinition,
   getDatabaseServerMetrics,
 } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import { isDatabaseConnectionSpanName } from "Common/Types/DatabaseServer/DatabaseConnectionSpan";
 import {
+  buildDatabaseServerDisplayName,
   canonicalizeDatabaseEndpoint,
   DatabaseEndpoint,
   formatDatabaseEndpoint,
@@ -1062,14 +1064,29 @@ describe("Databases docs", (): void => {
 
     expect(example).not.toBeNull();
 
+    /*
+     * e2e (collector 0.161.0): against MariaDB 11.4, whose VERSION() is
+     * '11.4.13-MariaDB-ubu2404', the mysql receiver's db.system.version was
+     * '11.4.13'. The page quotes that pair, and the bare number still names
+     * MariaDB — by its major version, which MySQL never reached.
+     */
     const receiverVersion: RegExpMatchArray | null = ruleOne.match(
-      /the `mysql` receiver reports only the leading number there \(`([^`]+)`\)/,
+      /The `mysql` receiver reports only the number there \(`([^`]+)`, never `([^`]+)`\)/,
     );
 
     expect(receiverVersion).not.toBeNull();
+    expect(receiverVersion![1]).toBe("11.4.13");
     expect(
       refineDatabaseSystemFromVersion("mysql", receiverVersion![1] as string),
-    ).toBe("mysql");
+    ).toBe("mariadb");
+    expect(
+      refineDatabaseSystemFromVersion("mysql", receiverVersion![2] as string),
+    ).toBe("mariadb");
+    // What it reported for MySQL 8.4 in the same run stays MySQL.
+    expect(refineDatabaseSystemFromVersion("mysql", "8.4.11")).toBe("mysql");
+    // "not a MariaDB 5.5": its bare number is a MySQL one.
+    expect(ruleOne).toContain("but not a MariaDB 5.5");
+    expect(refineDatabaseSystemFromVersion("mysql", "5.5.68")).toBe("mysql");
 
     const [, version, forkName] = example as RegExpMatchArray;
 
@@ -1474,14 +1491,37 @@ describe("Databases docs", (): void => {
         "## Using your own OpenTelemetry Collector",
       );
 
+      const engine: string = section(
+        markdown,
+        "### Which engine a database shows",
+      );
+      const grants: string = section(markdown, "#### MySQL / MariaDB");
+
       expect(markdown).not.toContain("10.11.7-MariaDB");
       expect(ownCollector).toContain("`resource_attributes.db.system.name`");
-      // What the receiver reports as the version names no fork …
-      expect(refineDatabaseSystemFromVersion("mysql", "11.4.2")).toBe("mysql");
-      // … while a raw VERSION() string, as a span may carry it, does.
+      /*
+       * Regression (e2e, collector 0.161.0): the page promised a "-MariaDB"
+       * version string the receiver never sends. A MySQL-labelled agent
+       * against MariaDB 11.4 reported the bare '11.4.13' and stayed MySQL.
+       * The bare number now names MariaDB by its major version …
+       */
+      expect(engine).toContain(
+        "`mysql` with `11.4.13`, the bare number the `mysql` receiver reports for MariaDB 11.4, is MariaDB",
+      );
+      expect(refineDatabaseSystemFromVersion("mysql", "11.4.13")).toBe(
+        "mariadb",
+      );
+      // … a raw VERSION() string, as a span may carry it, still does …
       expect(
         refineDatabaseSystemFromVersion("mysql", "10.11.7-MariaDB-1:10.11.7"),
       ).toBe("mariadb");
+      // … and DATABASE_SYSTEM=mariadb stays the reliable way.
+      expect(grants).toContain(
+        "Set `DATABASE_SYSTEM=mariadb` for a MariaDB server",
+      );
+      expect(grants).toContain("That is the reliable way.");
+      expect(grants).toContain("but a MariaDB 5.5 stays MySQL");
+      expect(refineDatabaseSystemFromVersion("mysql", "5.5.68")).toBe("mysql");
       // The receiver's db.system.name value is an engine OneUptime knows.
       expect(normalizeDatabaseSystem("mariadb")).toBe("mariadb");
     });
@@ -2369,6 +2409,374 @@ describe("Databases docs", (): void => {
           "utf8",
         ),
       ).toContain("Open database");
+    });
+  });
+
+  /*
+   * What the end-to-end run against real databases, a kind cluster, the
+   * Docker agent and the pinned collector (0.161.0) found the page getting
+   * wrong. Each claim is checked against the code that decides it, fed the
+   * run's own data.
+   */
+  describe("what the end-to-end run found", (): void => {
+    it("says the PostgreSQL, SQL Server and Memcached receivers report no version", (): void => {
+      const collected: string = section(readPage(), "### What Gets Collected");
+
+      expect(collected).toContain(
+        "The PostgreSQL, SQL Server and Memcached receivers report none, so under the agent alone those databases show no version",
+      );
+
+      // The resource of the e2e pg16 agent's batches, as ClickHouse stored it.
+      const postgres: ReturnType<typeof resolveDatabaseFromResourceAttributes> =
+        resolveDatabaseFromResourceAttributes({
+          attributes: {
+            "service.instance.id": "e2e-receivers-postgres:5432",
+            "server.address": "pg16.rcv-e2e.example.net",
+            "server.port": 5432,
+            "db.system.name": "postgresql",
+            "oneuptime.database.agent": "true",
+            "oneuptime.agent.version": "0.161.0",
+          },
+        });
+
+      expect(postgres?.system).toBe("postgresql");
+      expect(postgres?.version).toBeNull();
+
+      // MySQL 8.4 in the same run: the receiver's db.system.version.
+      expect(
+        resolveDatabaseFromResourceAttributes({
+          attributes: {
+            "server.address": "mysql84.rcv-e2e.example.net",
+            "server.port": 3306,
+            "db.system.name": "mysql",
+            "db.system.version": "8.4.11",
+            "mysql.instance.endpoint": "e2e-receivers-mysql:3306",
+          },
+        })?.version,
+      ).toBe("8.4.11");
+    });
+
+    /*
+     * e2e: agents that stopped read Disconnected after 12m52s and 14m56s of
+     * real silence, not the 15 minutes the page promised: the threshold
+     * counted from collectorLastSeenAt, which the ingest maintenance fence
+     * lets move only every ~5 minutes. The sweep now allows for that lag,
+     * so 15 minutes is a floor — and the page says how late it can be.
+     */
+    it("says Disconnected comes at least 15 minutes after the last data, and at most how late", (): void => {
+      const markdown: string = readPage();
+      const lifecycle: string = section(
+        markdown,
+        "## Lifecycle, archiving and retention",
+      );
+      const read: (relative: string) => string = (relative: string): string => {
+        return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
+      };
+      const SERVICE: string =
+        "packages/Common/Server/Services/DatabaseServerService.ts";
+      const staleMinutes: number = Number(
+        (
+          read(SERVICE).match(
+            /const DEFAULT_COLLECTOR_STALE_MINUTES: number = (\d+);/,
+          ) as RegExpMatchArray
+        )[1],
+      );
+
+      const lagMinutes: number = Number(
+        (
+          read(SERVICE).match(
+            /const COLLECTOR_HEARTBEAT_LAG_MINUTES: number = (\d+);/,
+          ) as RegExpMatchArray
+        )[1],
+      );
+      const ingest: string = read(
+        "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
+      );
+
+      expect(staleMinutes).toBe(15);
+      // The sweep runs every 5 minutes …
+      expect(
+        read(
+          "packages/App/FeatureSet/Workers/Jobs/DatabaseServer/CleanupStaleResources.ts",
+        ),
+      ).toContain("schedule: EVERY_FIVE_MINUTE");
+      // … against collectorLastSeenAt, pushed back by the heartbeat's lag …
+      expect(read(SERVICE)).toContain(
+        'AND ("collectorLastSeenAt" IS NULL OR "collectorLastSeenAt" < $1)',
+      );
+      expect(read(SERVICE)).toMatch(
+        /this\.getCollectorStaleThresholdMinutes\(\) \+\s+COLLECTOR_HEARTBEAT_LAG_MINUTES/,
+      );
+      // … which covers the fence (5 minutes, +25% jitter) and its 30 s memo.
+      expect(ingest).toMatch(
+        /MAINTENANCE_FENCE_TTL_SECONDS: number = 5 \* 60;/,
+      );
+      expect(ingest).toMatch(
+        /MAINTENANCE_FENCE_NEGATIVE_MEMO_TTL_SECONDS: number = 30;/,
+      );
+      expect(lagMinutes * 60).toBeGreaterThanOrEqual(5 * 60 * 1.25 + 30);
+
+      expect(lifecycle).toContain(
+        `The ${staleMinutes} minutes are a floor: OneUptime records a collector's heartbeat only every 5 minutes or so while data flows, so it waits ${lagMinutes} minutes on top of them, counted from the last recorded heartbeat, and it checks every 5 minutes`,
+      );
+      expect(lifecycle).toContain(
+        `between ${staleMinutes} and about ${staleMinutes + lagMinutes + 5} minutes after its last data point`,
+      );
+      expect(section(markdown, "## Self-hosted tuning")).toContain(
+        `at least this long after the last data, and up to about ${lagMinutes + 5} minutes more`,
+      );
+    });
+
+    it("says Valkey's redis_version is not its own, and the product ignores it", (): void => {
+      const grants: string = section(
+        readPage(),
+        "#### Redis / Valkey / KeyDB / Dragonfly",
+      );
+
+      expect(grants).toContain(
+        "which Valkey keeps at `7.2.4` (the Redis release it forked from)",
+      );
+
+      // e2e: valkey/valkey:8 answers INFO with redis_version:7.2.4 next to valkey_version:8.1.10.
+      const valkey: ReturnType<typeof resolveDatabaseFromResourceAttributes> =
+        resolveDatabaseFromResourceAttributes({
+          attributes: {
+            "server.address": "valkey8.rcv-e2e.example.net",
+            "server.port": 6379,
+            "db.system.name": "valkey",
+            "redis.version": "7.2.4",
+          },
+        });
+
+      expect(valkey?.system).toBe("valkey");
+      expect(valkey?.version).toBeNull();
+    });
+
+    it("names Kubernetes databases by namespace and workload, as discovery does", (): void => {
+      const endpoints: string = section(
+        readPage(),
+        "## Endpoints and the one-owner rule",
+      );
+
+      expect(endpoints).toContain(
+        "`<namespace>/<workload>` in Kubernetes (`PostgreSQL data/postgres`)",
+      );
+      // The e2e StatefulSet data/postgres.
+      expect(
+        buildDatabaseServerDisplayName({
+          system: "postgresql",
+          namespace: "data",
+          workloadName: "postgres",
+        }),
+      ).toBe("PostgreSQL data/postgres");
+      expect(
+        buildDatabaseServerDisplayName({
+          system: "postgresql",
+          endpoint: { host: "db.example.com", port: 5432 },
+        }),
+      ).toBe("PostgreSQL db.example.com:5432");
+    });
+
+    it("tells a Docker-detected database to take the agent from its Documentation tab", (): void => {
+      const markdown: string = readPage();
+      const containers: string = section(
+        markdown,
+        "### From Docker and Podman",
+      );
+
+      expect(containers).toContain(
+        "install the [Database Agent](#the-database-agent) from the database's own **Documentation** tab: its install command and `.env` carry `DATABASE_SERVER_ID`, prefilled",
+      );
+      expect(section(markdown, "### Two databases for one server")).toContain(
+        "a database detected from its Docker or Podman containers",
+      );
+      // The guide a row's Documentation tab renders does prefill the id.
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown.ts",
+          ),
+          "utf8",
+        ),
+      ).toContain("DATABASE_SERVER_ID=${shellWord(identity.databaseId)}");
+    });
+
+    /*
+     * e2e: no Docker container row ever had labels, so Compose replicas,
+     * Testcontainers and one-offs all became databases; and client / debug
+     * containers of database images (`sleep infinity`, a psql loop) did too,
+     * as Docker discovery never sees a command line.
+     */
+    it("says what Docker and Podman discovery needs from the agent, and what it cannot tell apart", (): void => {
+      const containers: string = section(
+        readPage(),
+        "### From Docker and Podman",
+      );
+
+      expect(containers).toContain(
+        "once its `otel-collector-config.yaml` copies them (`container_labels_to_metric_labels`). An older Docker or Podman agent does not: update it",
+      );
+      for (const agent of ["DockerAgent", "PodmanAgent"]) {
+        const config: string = fs.readFileSync(
+          path.join(REPO_ROOT, "agents", agent, "otel-collector-config.yaml"),
+          "utf8",
+        );
+
+        // The labels the page's grouping and exclusions rest on are sent …
+        expect({
+          agent,
+          labels: config.includes("container_labels_to_metric_labels:"),
+        }).toEqual({ agent, labels: true });
+        for (const label of [
+          "com.docker.compose.project",
+          "com.docker.compose.service",
+          "com.docker.compose.oneoff",
+          "org.testcontainers",
+        ]) {
+          expect({
+            agent,
+            label,
+            sent: config.includes(`${label}: ${label}`),
+          }).toEqual({ agent, label, sent: true });
+        }
+        // … and the command line is not, which is the limitation the page states.
+        expect(config).not.toMatch(
+          /\n\s+container\.command_line:\s*\n\s+enabled:\s*true/,
+        );
+      }
+
+      expect(containers).toContain(
+        "a long-running client or debug container of a database image (`sleep infinity`, a `psql` or `redis-cli` loop) becomes a database once it has run for 10 minutes",
+      );
+      // e2e-docker-spans-pg-sleep: postgres:16 running `sleep infinity`.
+      expect(
+        classifyContainer({
+          name: "e2e-docker-spans-pg-sleep",
+          imageName: "postgres:16",
+          labels: {},
+        })?.system,
+      ).toBe("postgresql");
+      // e2e-docker-spans-tc-pg: a Testcontainers run, once its labels arrive.
+      expect(
+        classifyContainer({
+          name: "e2e-docker-spans-tc-pg",
+          imageName: "postgres:16",
+          labels: {
+            "org.testcontainers": "true",
+            "org.testcontainers.sessionId": "3f1c",
+          },
+        }),
+      ).toBeNull();
+    });
+
+    it("creates a cluster-local Service name with its cluster in a project that has one", (): void => {
+      const markdown: string = readPage();
+      const service: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Services/DatabaseServerService.ts",
+        ),
+        "utf8",
+      );
+
+      // The server refuses the unqualified Service name there (e2e: HTTP 400) …
+      expect(service).toContain(
+        "private async refuseUnqualifiedKubernetesServiceName(",
+      );
+      expect(service).toContain(
+        "as an endpoint on the database's Endpoints tab once it is created.",
+      );
+      // … so both places that say "create it by hand" say how.
+      expect(
+        section(markdown, "### From the Database Agent or your own collector"),
+      ).toContain(
+        "create the database as `postgres.prod.svc.cluster.local:5432@my-cluster`, then add the unqualified `postgres.prod.svc.cluster.local:5432`",
+      );
+      expect(
+        section(markdown, "### The agent runs but no database appears"),
+      ).toContain(
+        "create a cluster-local Service name with its cluster (`postgres.prod.svc.cluster.local:5432@my-cluster`) — the unqualified name is refused there",
+      );
+    });
+
+    it("says connection spans are not calls, naming spans the rule really drops", (): void => {
+      const traces: string = section(readPage(), "### From application traces");
+
+      expect(traces).toContain(
+        "Only queries are calls: a client library's connection-management spans",
+      );
+      // e2e: node-postgres sent pg-pool.connect and pg.connect around every query.
+      for (const name of ["pg.connect", "pg-pool.connect", "redis-connect"]) {
+        expect(traces).toContain(`\`${name}\``);
+        expect(isDatabaseConnectionSpanName(name)).toBe(true);
+      }
+      expect(isDatabaseConnectionSpanName("pg.query:SELECT")).toBe(false);
+    });
+
+    it("promises a curated Overview for every engine the agent monitors", (): void => {
+      const collected: string = section(readPage(), "### What Gets Collected");
+
+      expect(collected).toContain(
+        "charts a curated set for every engine in this table",
+      );
+      for (const system of Object.values(CONFIG_SYSTEM)) {
+        expect({
+          system,
+          tiles: getDatabaseServerMetrics(system).length > 0,
+        }).toEqual({ system, tiles: true });
+      }
+      for (const fork of ["mariadb", "valkey", "opensearch"]) {
+        expect({
+          fork,
+          tiles: getDatabaseServerMetrics(fork).length > 0,
+        }).toEqual({ fork, tiles: true });
+      }
+    });
+
+    it("gives own collectors the query-event body transform the agent configs run", (): void => {
+      const ownCollector: string = section(
+        readPage(),
+        "## Using your own OpenTelemetry Collector",
+      );
+      const block: string | undefined = ownCollector
+        .split("```yaml\n")
+        .slice(1)
+        .map((part: string): string => {
+          return part.substring(0, part.indexOf("```"));
+        })
+        .find((part: string): boolean => {
+          return part.includes("transform/query_event_body:");
+        });
+
+      expect(block).toBeDefined();
+
+      const statements: (text: string) => Array<string> = (
+        text: string,
+      ): Array<string> => {
+        return Array.from(text.matchAll(/^\s+- (set\(log\.body, .+)$/gm)).map(
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        );
+      };
+
+      expect(statements(block as string)).toHaveLength(2);
+      for (const engine of [
+        "postgresql",
+        "mysql",
+        "mongodb",
+        "sqlserver",
+        "oracledb",
+      ]) {
+        expect({ engine, statements: statements(readConfig(engine)) }).toEqual({
+          engine,
+          statements: statements(block as string),
+        });
+      }
+      expect(section(readPage(), "### What Gets Collected")).toContain(
+        "with the query text as their message",
+      );
     });
   });
 

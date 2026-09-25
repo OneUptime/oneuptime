@@ -1,6 +1,6 @@
 # OneUptime Database Agent
 
-Collect engine metrics — connections, throughput, cache hit ratio, locks, replication lag, memory — from PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, MongoDB, Elasticsearch, OpenSearch and Memcached with OneUptime, using a pre-configured OpenTelemetry Collector.
+Collect engine metrics — connections, throughput, cache hit ratio, locks, replication lag, memory, as far as each engine reports them — from PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, MongoDB, Elasticsearch, OpenSearch and Memcached with OneUptime, using a pre-configured OpenTelemetry Collector.
 
 The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container running the collector's native receiver for your engine, with a config that stamps every batch with the database's identity and ships it to OneUptime over OTLP. No exporter sidecar and nothing installed on the database server.
 
@@ -25,7 +25,9 @@ The full guide — how databases are detected without any agent, what each sourc
 | `troubleshoot.sh` | Checks the whole chain and names the most likely problem |
 | `systemd/oneuptime-database-agent.service` | Optional systemd unit |
 
-A fork or drop-in runs its family's config and reports its own name: `DATABASE_SYSTEM=mariadb` downloads `configs/mysql.yaml` and the database shows as MariaDB.
+A fork or drop-in runs its family's config and reports its own name: `DATABASE_SYSTEM=mariadb` downloads `configs/mysql.yaml` and the database shows as MariaDB. Name the fork that way: the receivers cannot tell it apart themselves. OneUptime recognises a `mysql` agent pointed at MariaDB 10 or later by its version number (MySQL has no 10.x or 11.x), but not a MariaDB 5.5, and a Valkey or Dragonfly server reports only the Redis version it is compatible with (`redis_version`, 7.2.4 on Valkey), which OneUptime does not show as its version.
+
+To add engine metrics to a database OneUptime already shows — one detected in Kubernetes, Docker or Podman, or created by hand — install the agent from that database's **Documentation** tab, which prefills `DATABASE_SERVER_ID`. Without it the agent is matched by its `DATABASE_SERVER_ADDRESS` alone: a database detected from Docker or Podman containers has no endpoint that address could match, so a DNS name registers a second database, and a private IP or a cluster-local name joins only a database that already has it as an endpoint.
 
 ## Prerequisites
 
@@ -196,7 +198,8 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 - Runs the engine's receiver against `DATABASE_ENDPOINT` and enables the useful metrics that are off upstream (for example `postgresql.blks_hit` / `postgresql.blks_read` for the cache hit ratio, `postgresql.wal.delay` for replication time lag, `mysql.query.count`, `sqlserver.deadlock.rate`, `oracledb.tablespace.utilization`, `redis.maxmemory`, `mongodb.uptime`, `jvm.memory.heap.utilization`). Each config lists further optional metrics in a comment.
 - Stamps `db.system.name` (from `DATABASE_SYSTEM`), `server.address`, `server.port`, `oneuptime.database.agent` and `oneuptime.agent.version`, plus `oneuptime.database.server.id` when `DATABASE_SERVER_ID` is set. `service.name` is deleted so the data can never register a phantom Service, and `k8s.cluster.name` is never stamped — OneUptime would read it as the Kubernetes agent's heartbeat. The SQL Server and Oracle configs switch off their receivers' `host.name`, which would name the database machine as a Host.
 - Has **no** `resourcedetection` processor on purpose: its `system` detector adds the agent machine's `host.name` / `os.type`, which would make that machine look like the thing being monitored instead of the database.
-- Ships query samples and top queries as logs when `DATABASE_QUERY_EVENTS=true`, and (PostgreSQL, MySQL, Redis, MongoDB) has a commented `filelog` receiver for the engine's own log file (mount its directory at `/var/log/database` in `docker-compose.yml`).
+- Ships query samples and top queries as logs when `DATABASE_QUERY_EVENTS=true`. The receivers send them with an empty body and the query in `db.query.text`, so the `transform/query_event_body` processor copies the query text into the body — it is the message the Logs tab shows — and keeps the attribute; an event without query text gets its event name (`db.server.query_sample`, `db.server.top_query`), and a record that already has a body keeps it.
+- The PostgreSQL, MySQL, Redis and MongoDB configs have a commented `filelog` receiver for the engine's own log file (mount its directory at `/var/log/database` in `docker-compose.yml`).
 
 ## Alert on the database
 

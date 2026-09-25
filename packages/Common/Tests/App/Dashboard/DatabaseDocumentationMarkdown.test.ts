@@ -654,6 +654,123 @@ describe("the product-level guide", () => {
   });
 });
 
+describe("what the guide says the agent collects", () => {
+  /*
+   * The guide's first sentence. It used to read "connections, throughput,
+   * cache hit ratio, locks, replication, memory" for every engine.
+   */
+  function collectedSentence(engine: DatabaseAgentEngine): string {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: engine,
+    });
+    const sentence: string | undefined = markdown
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("The OneUptime Database Agent collects");
+      });
+    expect(sentence).toBeDefined();
+    return sentence!;
+  }
+
+  /*
+   * Every metric the memcached receiver sent in the e2e run (collector
+   * 0.161.0, memcached:1.6): nothing about locks or replication.
+   */
+  const MEMCACHED_METRICS_SEEN: Array<string> = [
+    "memcached.operation_hit_ratio",
+    "memcached.commands",
+    "memcached.bytes",
+    "memcached.cpu.usage",
+    "memcached.connections.total",
+    "memcached.current_items",
+    "memcached.connections.current",
+    "memcached.evictions",
+    "memcached.operations",
+    "memcached.network",
+    "memcached.threads",
+  ];
+
+  test("Memcached's promises only what its receiver reports: no locks, no replication", () => {
+    const sentence: string = collectedSentence("memcached");
+
+    expect(sentence).not.toMatch(/\blocks?\b/i);
+    expect(sentence).not.toMatch(/replica/i);
+    expect(sentence).not.toMatch(/throughput/i);
+
+    // Each thing it names is one of the metrics that arrived.
+    const backedBy: Array<[RegExp, string]> = [
+      [/\bconnections\b/, "memcached.connections.current"],
+      [/\bcommands\b/, "memcached.commands"],
+      [/\bhits and misses\b/, "memcached.operations"],
+      [/\bevictions\b/, "memcached.evictions"],
+      [/\bitems\b/, "memcached.current_items"],
+      [/\bmemory\b/, "memcached.bytes"],
+      [/\bnetwork\b/, "memcached.network"],
+      [/\bthreads\b/, "memcached.threads"],
+      [/\bCPU\b/, "memcached.cpu.usage"],
+    ];
+    for (const [phrase, metric] of backedBy) {
+      expect({ phrase: phrase.source, said: phrase.test(sentence) }).toEqual({
+        phrase: phrase.source,
+        said: true,
+      });
+      expect(MEMCACHED_METRICS_SEEN).toContain(metric);
+    }
+    for (const metric of MEMCACHED_METRICS_SEEN) {
+      expect(metric).not.toMatch(/lock|repl/);
+    }
+  });
+
+  test.each([
+    ["postgresql", "`max_connections`"],
+    ["mysql", "InnoDB buffer pool"],
+    ["redis", "keyspace hits and misses"],
+    ["mongodb", "cursors"],
+    ["sqlserver", "page life expectancy"],
+    ["oracledb", "tablespace usage"],
+    ["elasticsearch", "cluster health"],
+    ["memcached", "evictions"],
+  ] as Array<[DatabaseAgentEngine, string]>)(
+    "%s's names that engine's own metrics",
+    (engine: DatabaseAgentEngine, signature: string) => {
+      expect(collectedSentence(engine)).toContain(signature);
+    },
+  );
+
+  test("no two engines share one generic list", () => {
+    // The list between "engine metrics — " and " — with a stock …".
+    const lists: Array<string> = DATABASE_AGENT_ENGINES.map(
+      (engine: DatabaseAgentEngine): string => {
+        const list: string | undefined =
+          collectedSentence(engine).split(" — ")[1];
+        expect(list).toBeTruthy();
+        return list!;
+      },
+    );
+
+    expect(new Set<string>(lists).size).toBe(DATABASE_AGENT_ENGINES.length);
+  });
+
+  test("offers query samples and top queries only where the receiver ships them", () => {
+    const withEvents: Array<DatabaseAgentEngine> =
+      DATABASE_AGENT_ENGINES.filter((engine: DatabaseAgentEngine): boolean => {
+        return DATABASE_AGENT_CONFIGS[engine].includes("db.server.top_query:");
+      });
+
+    expect([...withEvents].sort()).toEqual(
+      ["mongodb", "mysql", "oracledb", "postgresql", "sqlserver"].sort(),
+    );
+    for (const engine of DATABASE_AGENT_ENGINES) {
+      expect({
+        engine,
+        offered: collectedSentence(engine).includes("query samples"),
+      }).toEqual({ engine, offered: withEvents.includes(engine) });
+    }
+  });
+});
+
 describe("the monitoring-user grants match the agent's README", () => {
   const README_BLOCKS: Array<string> = codeBlocks(readAgentFile("README.md"))
     .filter((block: { language: string; body: string }): boolean => {

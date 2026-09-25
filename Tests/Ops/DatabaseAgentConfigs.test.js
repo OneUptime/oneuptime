@@ -60,6 +60,16 @@ const OPTIONAL_ID_STATEMENTS = [
   'set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")',
   'delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""',
 ];
+/*
+ * Query events get a message: the query text, else the event's name — and
+ * only when the record has no body of its own. DatabaseAgentQueryEventBody
+ * Runtime.test.js runs these statements in the real collector.
+ */
+const QUERY_EVENT_BODY_PROCESSOR = "transform/query_event_body";
+const QUERY_EVENT_BODY_STATEMENTS = [
+  'set(log.body, log.attributes["db.query.text"]) where (log.body == nil or log.body == "") and log.attributes["db.query.text"] != nil and log.attributes["db.query.text"] != ""',
+  'set(log.body, log.event_name) where (log.body == nil or log.body == "") and log.event_name != ""',
+];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -230,14 +240,51 @@ describe.each(ENGINES)("the %s config", (engine) => {
     )) {
       expect({ name, processors: pipeline.processors }).toEqual({
         name,
-        processors: [
-          "memory_limiter",
-          "resource",
-          "transform/optional_identity",
-          "batch",
-        ],
+        processors:
+          name === "logs"
+            ? [
+                "memory_limiter",
+                "resource",
+                "transform/optional_identity",
+                QUERY_EVENT_BODY_PROCESSOR,
+                "batch",
+              ]
+            : [
+                "memory_limiter",
+                "resource",
+                "transform/optional_identity",
+                "batch",
+              ],
       });
     }
+  });
+
+  /*
+   * The receivers emit query samples and top queries with an EMPTY body and
+   * the query in db.query.text, so the Logs tab showed "{}" as the message
+   * of every one (e2e: 202,246 postgresql and 42,320 mysql rows with body
+   * '{}', db.query.text e.g. 'SELECT ? AS ok' and 'SHOW GLOBAL STATUS').
+   * The logs pipeline copies the query into the body; a record that
+   * already has one — a filelog line — keeps it.
+   */
+  test("gives query events their query text as the message, in the logs pipeline only", () => {
+    const parsed = config(engine);
+    const transform = parsed.processors[QUERY_EVENT_BODY_PROCESSOR];
+
+    if (ENGINES_WITH_QUERY_EVENTS.includes(engine)) {
+      expect(transform).toEqual({
+        error_mode: "ignore",
+        log_statements: QUERY_EVENT_BODY_STATEMENTS,
+      });
+      expect(parsed.service.pipelines.logs.processors).toContain(
+        QUERY_EVENT_BODY_PROCESSOR,
+      );
+    } else {
+      expect(transform).toBeUndefined();
+    }
+    expect(parsed.service.pipelines.metrics.processors).not.toContain(
+      QUERY_EVENT_BODY_PROCESSOR,
+    );
   });
 
   test("exports to OneUptime's OTLP endpoint with the ingestion key, and nowhere else", () => {

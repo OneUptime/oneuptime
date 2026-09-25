@@ -241,9 +241,14 @@ config:
   `DATABASE_SERVER_ID` is blank, on metrics and logs, and never by the
   resource processor (which refuses an empty value);
 - no `resourcedetection` processor, one receiver instance per pipeline, the
-  processor order `memory_limiter → resource → transform → batch`, and a
+  processor order `memory_limiter → resource → transform → batch` (the `logs`
+  pipeline adds `transform/query_event_body` before `batch`), and a
   single `otlphttp` exporter to `${env:ONEUPTIME_URL}/otlp` with the
   ingestion-key header;
+- where the receiver emits query samples and top queries (PostgreSQL, MySQL,
+  MongoDB, SQL Server, Oracle), `transform/query_event_body` copies
+  `db.query.text` into the empty log body — otherwise the Logs tab shows `{}`
+  as every event's message — and leaves a body that is already there alone;
 - TLS flags and event toggles stay unquoted (booleans), query events exist only
   where the receiver has them, and Redis / MongoDB turn on the receiver's own
   `server.address` / `server.port`;
@@ -352,6 +357,20 @@ daemon, and any case the daemon cannot demonstrate (for example `1.25` on a
 daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
+
+### `DatabaseAgentQueryEventBodyRuntime.test.js`
+
+The runtime counterpart of the query-event check above. It runs each query-event
+config's `logs` pipeline processors, as shipped, in the pinned collector image,
+feeds them the records the receivers really produced (an empty body, the query
+in `db.query.text`, the event's name) through an OTLP JSON file, and reads back
+what the pipeline exports: the query text as the body with the attribute kept,
+the event name for an event without query text, and a filelog line untouched.
+Off by default, like the suite above:
+
+```bash
+RUN_CONTAINER_AGENT_RUNTIME_TESTS=1 npm test
+```
 
 ### `EnterpriseEditionBuild.test.js`
 
