@@ -465,11 +465,13 @@ export default class DiscordAPI {
 
   /*
    * Component interactions carry a custom_id of the form
-   * incident:<action>:<incidentId>, signed by Discord and scoped to the guild
+   * <SlackActionType>:<incidentId>, signed by Discord and scoped to the guild
    * that owns the project binding. The clicker must be a project member with a
    * verified Discord link before any state transition runs. Responses are
-   * always 200 (Discord retries non-2xx); refusals ride back as the
-   * interaction callback body so the user sees them in the channel.
+   * always 200: on the Interactions endpoint Discord does not retry a non-2xx
+   * or slow response (the user just sees "This interaction failed"), so
+   * refusals ride back as the interaction callback body where the user sees
+   * them in the channel.
    */
   private static async handleComponentInteraction(
     res: ExpressResponse,
