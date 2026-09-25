@@ -59,8 +59,9 @@ import {
  * rows existing: every findMatchingRule() of every reminder rule kind failed,
  * whether or not a project had rules, and reminders were never scheduled.
  *
- * None of this needs a database to observe, so this file runs in every Common
- * CI shard. It checks three layers:
+ * None of this needs a database to observe, so this file runs in the regular
+ * Common test workflow (.github/workflows/test.common.yaml), with no migrated
+ * Postgres. It checks three layers:
  *
  *  1. The fragment the Raw renders for each alias shape TypeORM produces.
  *  2. The SQL real TypeORM generates for the three rule models, on every query

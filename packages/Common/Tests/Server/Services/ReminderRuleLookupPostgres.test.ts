@@ -11,16 +11,20 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import ScheduledMaintenanceReminderRuleService from "../../../Server/Services/ScheduledMaintenanceReminderRuleService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import Query from "../../../Server/Types/Database/Query";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Select from "../../../Server/Types/Database/Select";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import RuleCriteria, {
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
+import UserType from "../../../Types/UserType";
 import { DataSource, Logger } from "typeorm";
 
 /*
@@ -54,7 +58,10 @@ import { DataSource, Logger } from "typeorm";
  * migrated definitions. The clones carry no foreign keys, so seeded rows only
  * need their NOT NULL columns. The DataSource's search path is that schema,
  * then public; no row is ever written outside the schema, and the schema is
- * dropped afterwards.
+ * dropped afterwards. A signed-in project owner's read (projectOwnerProps)
+ * needs no further clone: on the rule tables, which have no access-control,
+ * owner or label-block relation, the permission layer only adds the tenant
+ * scope and reads no table itself.
  *
  * The production services run against the clones. Only true side effects are
  * stubbed: workflow triggers (an HTTP call to the workflow service) and
@@ -100,6 +107,15 @@ type ReminderRule =
 
 type SqlRow = Record<string, unknown>;
 
+/*
+ * The options of the three rule services' refreshSchedulesForOpen*, which
+ * take the same shape. Typed from one of them, so a change to that signature
+ * fails the type-check here rather than passing silently.
+ */
+type RefreshOpenSubjectsOptions = Parameters<
+  typeof IncidentReminderRuleService.refreshSchedulesForOpenIncidents
+>[1];
+
 // The side-effect hooks every DatabaseService has, whatever its model.
 type SideEffectHooks = Pick<
   DatabaseService<ReminderRule>,
@@ -119,14 +135,37 @@ interface ReadRule {
   isEnabled: boolean | null | undefined;
 }
 
-// The DatabaseService paths that take an isEnabled filter, on one rule table.
+// A rule as the backfill's paged read returns it.
+interface PagedRule {
+  id: string;
+  projectId: string;
+}
+
+/*
+ * The DatabaseService paths that take an isEnabled filter, on one rule table.
+ * Reads run as root unless given the props of a signed-in caller.
+ */
 interface RuleOperations {
   findByEnabled(
     projectId: ObjectID,
     isEnabled: boolean,
+    props?: DatabaseCommonInteractionProps,
   ): Promise<Array<ReadRule>>;
-  countByEnabled(projectId: ObjectID, isEnabled: boolean): Promise<number>;
+  countByEnabled(
+    projectId: ObjectID,
+    isEnabled: boolean,
+    props?: DatabaseCommonInteractionProps,
+  ): Promise<number>;
   findEnabledById(id: ObjectID): Promise<boolean | null | undefined>;
+  /*
+   * One `_id`-ordered page of the enabled rules of every project, after
+   * `cursor`: the read the ScheduleRemindersMissedByReminderRuleLookup data
+   * migration (App) pages with.
+   */
+  findEnabledPageAfter(
+    cursor: ObjectID | null,
+    limit: number,
+  ): Promise<Array<PagedRule>>;
   updateByEnabled(data: {
     projectId: ObjectID;
     isEnabled: boolean;
@@ -181,6 +220,11 @@ interface ReminderKind {
     subjectId: ObjectID;
     projectId: ObjectID;
   }): Promise<void>;
+  // The rule service's re-evaluation of every open subject of a project.
+  refreshOpenSubjects(data: {
+    projectId: ObjectID;
+    options?: RefreshOpenSubjectsOptions;
+  }): Promise<void>;
 }
 
 /*
@@ -229,13 +273,14 @@ function ruleOperations<TRule extends ReminderRule>(
     findByEnabled: async (
       projectId: ObjectID,
       isEnabled: boolean,
+      props: DatabaseCommonInteractionProps = { isRoot: true },
     ): Promise<Array<ReadRule>> => {
       const rules: Array<TRule> = await service.findBy({
         query: enabledQuery(projectId, isEnabled),
         select: { _id: true, isEnabled: true } as Select<TRule>,
         limit: 100,
         skip: 0,
-        props: { isRoot: true },
+        props: props,
       });
 
       return rules
@@ -250,11 +295,12 @@ function ruleOperations<TRule extends ReminderRule>(
     countByEnabled: async (
       projectId: ObjectID,
       isEnabled: boolean,
+      props: DatabaseCommonInteractionProps = { isRoot: true },
     ): Promise<number> => {
       return (
         await service.countBy({
           query: enabledQuery(projectId, isEnabled),
-          props: { isRoot: true },
+          props: props,
         })
       ).toNumber();
     },
@@ -269,6 +315,30 @@ function ruleOperations<TRule extends ReminderRule>(
       });
 
       return rule?.isEnabled;
+    },
+
+    findEnabledPageAfter: async (
+      cursor: ObjectID | null,
+      limit: number,
+    ): Promise<Array<PagedRule>> => {
+      const rules: Array<TRule> = await service.findBy({
+        query: {
+          isEnabled: true,
+          ...(cursor ? { _id: QueryHelper.greaterThan(cursor) } : {}),
+        } as Query<TRule>,
+        select: { _id: true, projectId: true } as Select<TRule>,
+        sort: { _id: SortOrder.Ascending },
+        skip: 0,
+        limit: limit,
+        props: { isRoot: true },
+      });
+
+      return rules.map((rule: TRule): PagedRule => {
+        return {
+          id: rule.id!.toString(),
+          projectId: rule.projectId!.toString(),
+        };
+      });
     },
 
     updateByEnabled: async (data: {
@@ -438,6 +508,15 @@ const KINDS: Array<ReminderKind> = [
         projectId: data.projectId,
       });
     },
+    refreshOpenSubjects: (data: {
+      projectId: ObjectID;
+      options?: RefreshOpenSubjectsOptions;
+    }): Promise<void> => {
+      return IncidentReminderRuleService.refreshSchedulesForOpenIncidents(
+        data.projectId,
+        data.options,
+      );
+    },
   },
   {
     name: "Alert",
@@ -504,6 +583,15 @@ const KINDS: Array<ReminderKind> = [
         alertId: data.subjectId,
         projectId: data.projectId,
       });
+    },
+    refreshOpenSubjects: (data: {
+      projectId: ObjectID;
+      options?: RefreshOpenSubjectsOptions;
+    }): Promise<void> => {
+      return AlertReminderRuleService.refreshSchedulesForOpenAlerts(
+        data.projectId,
+        data.options,
+      );
     },
   },
   {
@@ -573,6 +661,15 @@ const KINDS: Array<ReminderKind> = [
         projectId: data.projectId,
       });
     },
+    refreshOpenSubjects: (data: {
+      projectId: ObjectID;
+      options?: RefreshOpenSubjectsOptions;
+    }): Promise<void> => {
+      return ScheduledMaintenanceReminderRuleService.refreshSchedulesForOpenScheduledMaintenances(
+        data.projectId,
+        data.options,
+      );
+    },
   },
 ];
 
@@ -583,6 +680,8 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
+  // A signed-in user who owns the test project; see projectOwnerProps.
+  const ownerUserId: ObjectID = ObjectID.generate();
 
   const failedQueries: FailedQueryRecorder = new FailedQueryRecorder();
   let database: DataSource;
@@ -915,7 +1014,9 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
       enableReminders?: boolean;
       resolved?: boolean;
       nextReminderNotificationAt?: Date | null;
+      // Scheduled maintenance only; give both to keep the window valid.
       startsAt?: Date;
+      endsAt?: Date;
     } = {},
   ): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
@@ -935,6 +1036,10 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
 
     if (options.startsAt) {
       row["startsAt"] = options.startsAt;
+    }
+
+    if (options.endsAt) {
+      row["endsAt"] = options.endsAt;
     }
 
     await insert(kind.subjectTable, row);
@@ -962,6 +1067,28 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
     return rows[0]!.nextReminderNotificationAt;
   }
 
+  // A subject row as a refresh leaves it.
+  interface StoredSubject {
+    nextReminderNotificationAt: Date | null;
+    /*
+     * TypeORM bumps the version column in every UPDATE it issues, so a row
+     * still at the seeded version 1 was never written.
+     */
+    version: number;
+  }
+
+  async function storedSubject(
+    kind: ReminderKind,
+    subjectId: ObjectID,
+  ): Promise<StoredSubject> {
+    const rows: Array<StoredSubject> = await database.query(
+      `SELECT "nextReminderNotificationAt", "version" FROM "${schema}"."${kind.subjectTable}" WHERE "_id" = $1`,
+      [subjectId.toString()],
+    );
+    expect(rows).toHaveLength(1);
+    return rows[0]!;
+  }
+
   /*
    * Runs the refresh and returns the window its "now" fell into, so the
    * scheduled time is checked without depending on the clock.
@@ -977,6 +1104,59 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
     });
     const finishedAt: number = Date.now();
     return { startedAt, finishedAt };
+  }
+
+  // As refresh, for the rule service's refresh of every open subject.
+  async function refreshOpenSubjects(
+    kind: ReminderKind,
+    options?: RefreshOpenSubjectsOptions,
+  ): Promise<{ startedAt: number; finishedAt: number }> {
+    const startedAt: number = Date.now();
+    await kind.refreshOpenSubjects({
+      projectId: projectId,
+      options: options,
+    });
+    const finishedAt: number = Date.now();
+    return { startedAt, finishedAt };
+  }
+
+  /*
+   * The props a signed-in owner of the test project brings to a dashboard or
+   * API read, the global permissions being those AccessTokenService grants
+   * every user: with the project as the tenant, or without one, when the
+   * permission layer scopes the query to each project the user belongs to.
+   */
+  function projectOwnerProps(
+    withTenantId: boolean,
+  ): DatabaseCommonInteractionProps {
+    return {
+      userId: ownerUserId,
+      userType: UserType.User,
+      ...(withTenantId ? { tenantId: projectId } : {}),
+      userGlobalAccessPermission: {
+        _type: "UserGlobalAccessPermission",
+        projectIds: [projectId],
+        globalPermissions: [
+          Permission.Public,
+          Permission.User,
+          Permission.CurrentUser,
+        ],
+      },
+      userTenantAccessPermission: {
+        [projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: projectId,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.ProjectOwner,
+              labelIds: [],
+              isBlockPermission: false,
+            },
+          ],
+        },
+      },
+    };
   }
 
   function expectScheduledIn(
@@ -1342,6 +1522,89 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
         expect(await kind.rules.countByEnabled(otherProjectId, true)).toBe(1);
       });
 
+      /*
+       * The list path of the dashboard and the API: a signed-in user's read
+       * goes through the permission layer, which scopes the rewritten filter
+       * to the tenant and serializes the query before TypeORM renders it.
+       * Without a tenant id the scoped query becomes one where-clause per
+       * project the user belongs to, which TypeORM ORs together.
+       */
+      test.each([
+        ["scoped to the project as the tenant", true],
+        ["with no tenant, scoped to each project the user belongs to", false],
+      ] as Array<[string, boolean]>)(
+        "a project owner's findBy and countBy, %s, return exactly the logically enabled or disabled rules",
+        async (_label: string, withTenantId: boolean) => {
+          const rules: SeededRuleSet = await seedEveryEncoding(kind);
+          const props: DatabaseCommonInteractionProps =
+            projectOwnerProps(withTenantId);
+
+          expect(
+            await kind.rules.findByEnabled(projectId, true, props),
+          ).toEqual(
+            ids([rules.legacyEnabled, rules.criteriaEnabled]).map(
+              (id: string): ReadRule => {
+                return { id: id, isEnabled: true };
+              },
+            ),
+          );
+          expect(await kind.rules.countByEnabled(projectId, true, props)).toBe(
+            2,
+          );
+
+          expect(
+            await kind.rules.findByEnabled(projectId, false, props),
+          ).toEqual(
+            ids([
+              rules.legacyDisabled,
+              rules.legacyNull,
+              rules.criteriaDisabled,
+            ]).map((id: string): ReadRule => {
+              return {
+                id: id,
+                // A legacy NULL is stored and read back as NULL.
+                isEnabled: id === rules.legacyNull.toString() ? null : false,
+              };
+            }),
+          );
+          expect(await kind.rules.countByEnabled(projectId, false, props)).toBe(
+            3,
+          );
+        },
+      );
+
+      /*
+       * The backfill pages every project's enabled rules with the rewritten
+       * filter next to a `_id > cursor` Raw of its own. Pages of two over
+       * the three enabled rules: a full page, then a short one.
+       */
+      test("a cursor-paged findBy of every project's enabled rules returns each once, in _id order", async () => {
+        const rules: SeededRuleSet = await seedEveryEncoding(kind);
+        const projectOf: Record<string, string> = {
+          [rules.legacyEnabled.toString()]: projectId.toString(),
+          [rules.criteriaEnabled.toString()]: projectId.toString(),
+          [rules.otherProjectEnabled.toString()]: otherProjectId.toString(),
+        };
+        const expected: Array<PagedRule> = ids([
+          rules.legacyEnabled,
+          rules.criteriaEnabled,
+          rules.otherProjectEnabled,
+        ]).map((id: string): PagedRule => {
+          return { id: id, projectId: projectOf[id]! };
+        });
+
+        const firstPage: Array<PagedRule> =
+          await kind.rules.findEnabledPageAfter(null, 2);
+        expect(firstPage).toEqual(expected.slice(0, 2));
+
+        const secondPage: Array<PagedRule> =
+          await kind.rules.findEnabledPageAfter(
+            new ObjectID(firstPage[1]!.id),
+            2,
+          );
+        expect(secondPage).toEqual(expected.slice(2));
+      });
+
       test("updateBy changes exactly the rules the filter selects, in their own encoding", async () => {
         const rules: SeededRuleSet = await seedEveryEncoding(kind);
         const before: Record<string, StoredRule> = await storedRules(kind);
@@ -1585,6 +1848,126 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
       });
     });
 
+    /*
+     * The rule service's refresh of every open subject of a project: the
+     * path rule edits take, and, with onlyWithoutNextReminder, the backfill
+     * of the reminders #4030 left unscheduled (the
+     * ScheduleRemindersMissedByReminderRuleLookup data migration). The
+     * backfill adds a NULL filter to the open-subject query, and must leave
+     * a subject that already has a timestamp alone: re-scheduling it would
+     * push its overdue reminder one full interval later.
+     */
+    describe("refreshing every open subject of the project", () => {
+      interface OpenSubjects {
+        unscheduled: ObjectID;
+        pastDue: ObjectID;
+        pastDueAt: Date;
+        resolved: ObjectID;
+        remindersOff: ObjectID;
+      }
+
+      async function seedOpenSubjects(): Promise<OpenSubjects> {
+        await seedRule(kind, {
+          name: "disabled, shorter interval",
+          order: 1,
+          isEnabled: false,
+          reminderIntervalInMinutes: 5,
+        });
+        await seedRule(kind, {
+          name: "matching, criteria-backed",
+          order: 2,
+          criteria: criteria(true),
+          reminderIntervalInMinutes: 30,
+        });
+
+        const pastDueAt: Date = new Date(Date.now() - 5 * MINUTE_IN_MS);
+
+        return {
+          unscheduled: await seedSubject(kind),
+          pastDue: await seedSubject(kind, {
+            nextReminderNotificationAt: pastDueAt,
+          }),
+          pastDueAt: pastDueAt,
+          resolved: await seedSubject(kind, { resolved: true }),
+          remindersOff: await seedSubject(kind, { enableReminders: false }),
+        };
+      }
+
+      test("with onlyWithoutNextReminder, schedules the open subjects that have no reminder and never writes one that has", async () => {
+        const subjects: OpenSubjects = await seedOpenSubjects();
+
+        const window: { startedAt: number; finishedAt: number } =
+          await refreshOpenSubjects(kind, { onlyWithoutNextReminder: true });
+
+        expectScheduledIn(
+          await nextReminderAt(kind, subjects.unscheduled),
+          window,
+          30,
+        );
+        expect(await storedSubject(kind, subjects.pastDue)).toEqual({
+          nextReminderNotificationAt: subjects.pastDueAt,
+          version: 1,
+        });
+        expect(await storedSubject(kind, subjects.resolved)).toEqual({
+          nextReminderNotificationAt: null,
+          version: 1,
+        });
+        expect(await nextReminderAt(kind, subjects.remindersOff)).toBeNull();
+      });
+
+      test("with onlyWithoutNextReminder, a second run leaves the reminders the first one scheduled alone", async () => {
+        const subjects: OpenSubjects = await seedOpenSubjects();
+
+        await refreshOpenSubjects(kind, { onlyWithoutNextReminder: true });
+        const scheduled: StoredSubject = await storedSubject(
+          kind,
+          subjects.unscheduled,
+        );
+        expect(scheduled.nextReminderNotificationAt).toBeInstanceOf(Date);
+
+        await refreshOpenSubjects(kind, { onlyWithoutNextReminder: true });
+
+        expect(await storedSubject(kind, subjects.unscheduled)).toEqual(
+          scheduled,
+        );
+        expect(await storedSubject(kind, subjects.pastDue)).toEqual({
+          nextReminderNotificationAt: subjects.pastDueAt,
+          version: 1,
+        });
+        expect(await nextReminderAt(kind, subjects.resolved)).toBeNull();
+        expect(await nextReminderAt(kind, subjects.remindersOff)).toBeNull();
+      });
+
+      test.each([
+        ["no options", undefined],
+        ["onlyWithoutNextReminder false", { onlyWithoutNextReminder: false }],
+      ] as Array<[string, RefreshOpenSubjectsOptions]>)(
+        "with %s, re-schedules every open subject, one already scheduled included",
+        async (_label: string, options: RefreshOpenSubjectsOptions) => {
+          const subjects: OpenSubjects = await seedOpenSubjects();
+
+          const window: { startedAt: number; finishedAt: number } =
+            await refreshOpenSubjects(kind, options);
+
+          expectScheduledIn(
+            await nextReminderAt(kind, subjects.unscheduled),
+            window,
+            30,
+          );
+          expectScheduledIn(
+            await nextReminderAt(kind, subjects.pastDue),
+            window,
+            30,
+          );
+          expect(await storedSubject(kind, subjects.resolved)).toEqual({
+            nextReminderNotificationAt: null,
+            version: 1,
+          });
+          expect(await nextReminderAt(kind, subjects.remindersOff)).toBeNull();
+        },
+      );
+    });
+
     describe("editing rules through the service re-evaluates open subjects", () => {
       /*
        * The path a user takes: the dashboard saves the rule, and the create
@@ -1691,6 +2074,7 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
       const startsAt: Date = new Date(Date.now() + 120 * MINUTE_IN_MS);
       const subjectId: ObjectID = await seedSubject(kind, {
         startsAt: startsAt,
+        endsAt: new Date(startsAt.getTime() + 60 * MINUTE_IN_MS),
       });
 
       const ruleId: ObjectID = await seedRule(kind, {
