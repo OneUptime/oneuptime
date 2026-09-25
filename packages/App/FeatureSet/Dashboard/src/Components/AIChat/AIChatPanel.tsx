@@ -275,7 +275,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                   <KeyboardShortcut
                     keys={[KeyboardKey.Mod, "I"]}
                     size={KeyboardShortcutSize.ExtraSmall}
-                    className="hidden sm:inline-flex"
+                    className="max-sm:hidden sm:inline-flex"
                   />
                 )}
               </div>

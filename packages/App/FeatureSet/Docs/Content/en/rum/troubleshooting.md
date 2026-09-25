@@ -36,7 +36,7 @@ connect-src 'self' https://oneuptime.com;
 
 **`404`.** The URL is wrong. It is `/otlp/v1/traces` — the full path, including the signal. A common mistake is setting the *base* endpoint (`https://oneuptime.com/otlp`) on an exporter that expects the full signal URL, or setting the full URL on one that appends the signal itself and produces `/otlp/v1/traces/v1/traces`.
 
-**`413`.** The batch exceeded the reverse proxy's request-body limit — 1 MB by default in front of `/otlp`. Lower `maxExportBatchSize` on the `BatchSpanProcessor` so each export is smaller:
+**`413`.** The batch exceeded a reverse proxy's request-body limit. OneUptime's own ingress accepts up to 4 MB on `/otlp`, but a proxy you run in front of OneUptime can be stricter — ingress-nginx, for example, defaults `proxy-body-size` to 1 MB — so if you have one, raise its limit for `/otlp` as well. Either way, lowering `maxExportBatchSize` on the `BatchSpanProcessor` makes each export smaller:
 
 ```ts
 new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });

@@ -679,10 +679,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 叢集的連線狀態完全由是否有遙測資料抵達來決定——如果沒有任何資料抵達，該叢集會在約 15 分鐘後被標記為 disconnected。因此 "disconnected" 與 "no metrics" 幾乎總是出於**相同的**原因：agent 的遙測資料沒有被接受。
 
-最常見的原因——尤其是在重新安裝之後——是**錯誤或已撤銷的 ingestion key**。這很容易被忽略，因為 OTLP 接收端點即使對於錯誤的 token 也會刻意回傳 HTTP `200`（如此一來，設定錯誤的 collector 才不會用重試風暴轟炸伺服器）。結果就是：collector 回報成功、它的日誌顯示沒有錯誤，而資料卻被默默丟棄。
+最常見的原因——尤其是在重新安裝之後——是**錯誤或已撤銷的 ingestion key**。OneUptime 會拒絕這樣的 key：對於缺少、未知或已過期的 key，OTLP 接收端點回傳 HTTP `401`；對於已停用的 key 或瀏覽器 key，回傳 `422`。這兩種狀態都不會重試，因此 collector 會丟棄每個批次，並為每個批次記錄一行 `Exporting failed. Dropping data.` 錯誤。Pod 仍維持 Running 與 Ready，所以這行日誌很容易被忽略。
 
 1. 檢查 agent 的 Pod 是否正在執行：`kubectl get pods -n oneuptime-agent`
-2. 檢查 metrics-collector 日誌：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`（此處沒有錯誤**並不**代表資料有抵達——見上文）
+2. 檢查 metrics-collector 日誌：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`（出現帶有 `HTTP Status Code 401` 或 `422` 的 `Exporting failed` 行，表示 key 遭到拒絕——見上文）
 3. **驗證 ingestion key。** 直接向 OneUptime 詢問您的 token 是否被接受（`200` = 有效，`401` = 未知/已撤銷）：
 
    ```bash
@@ -709,7 +709,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 沒有指標出現
 
-1. 首先排除被拒絕的 ingestion key——這是最常見的原因，而且從 agent 端看不出來。請見上文的 [Agent 顯示 "Disconnected"](#agent-顯示-disconnected)（或直接執行診斷指令碼）。
+1. 首先排除被拒絕的 ingestion key——這是最常見的原因，而且從 agent 端很容易被忽略。請見上文的 [Agent 顯示 "Disconnected"](#agent-顯示-disconnected)（或直接執行診斷指令碼）。
 2. 檢查叢集識別碼是否與您以 `clusterName` 傳入的值相符
 3. 驗證 RBAC 權限：`kubectl get clusterrolebinding | grep kubernetes-agent`
 4. 檢查 OTel collector 日誌是否有匯出錯誤

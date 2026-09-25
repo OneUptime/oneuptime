@@ -109,13 +109,14 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
+    # इस पंक्ति के बिना exporter /otlp/v1development/profiles पर भेजता है, जिसे OneUptime स्वीकार नहीं करता
+    profiles_endpoint: "https://oneuptime.com/otlp/v1/profiles"
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_ONEUPTIME_SERVICE_TOKEN"
 
 service:
   pipelines:
+    # इसके लिए collector को --feature-gates=service.profilesSupport के साथ शुरू करना ज़रूरी है
     profiles:
       receivers: [otlp]
       exporters: [otlphttp]

@@ -516,7 +516,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 <KeyboardShortcut
                   keys={[KeyboardKey.Mod, "K"]}
                   size={KeyboardShortcutSize.Small}
-                  className="hidden sm:inline-flex"
+                  className="max-sm:hidden sm:inline-flex"
                 />
               ) : null}
             </div>
@@ -661,7 +661,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 {props.keyboardHint && (
                   <div
                     aria-label={tx(props.keyboardHint)}
-                    className="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex"
+                    className="max-md:hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex"
                   >
                     <KeyboardShortcut
                       keys={[KeyboardKey.ArrowUp, KeyboardKey.ArrowDown]}

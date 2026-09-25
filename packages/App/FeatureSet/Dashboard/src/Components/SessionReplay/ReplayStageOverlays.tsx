@@ -888,7 +888,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         {viewportLabel && (
           <span
             data-testid="replay-viewport-chip"
-            className="ml-1 hidden shrink-0 items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-500 ring-1 ring-inset ring-gray-200 sm:inline-flex"
+            className="ml-1 max-sm:hidden shrink-0 items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-500 ring-1 ring-inset ring-gray-200 sm:inline-flex"
             title="Recorded viewport and the scale it is drawn at"
           >
             {viewportLabel}

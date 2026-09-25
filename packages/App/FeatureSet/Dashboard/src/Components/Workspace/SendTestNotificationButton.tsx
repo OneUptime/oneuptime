@@ -154,7 +154,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
              * alone carries the result there so the control stays narrow;
              * the word stays available to screen readers.
              */}
-            <span className="sr-only sm:not-sr-only">Sent</span>
+            <span className="max-sm:sr-only sm:not-sr-only">Sent</span>
           </span>
         )}
 
@@ -169,7 +169,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
               size={SizeProp.Regular}
               className="h-4 w-4"
             />
-            <span className="sr-only sm:not-sr-only">Failed</span>
+            <span className="max-sm:sr-only sm:not-sr-only">Failed</span>
           </span>
         )}
       </span>

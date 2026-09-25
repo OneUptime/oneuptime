@@ -64,7 +64,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * This deliberately does not use Common's <Header>. That component wraps its
+   * This deliberately does not use Common's <Header>. That component used to wrap its
    * rightComponents in "hidden lg:flex", which hid this header's links — and
    * the mobile menu button meant to replace them — on every viewport under
    * 1024px. The status page header is a logo and a row of links; a plain flex
@@ -92,7 +92,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
       {hasLinks && (
         <div className="relative flex min-h-[3rem] items-center">
           {/* Desktop: every link inline. */}
-          <div className="hidden md:flex md:items-center md:gap-5">
+          <div className="max-md:hidden md:flex md:items-center md:gap-5">
             {props.links.map((link: Link, i: number) => {
               return (
                 <UILink

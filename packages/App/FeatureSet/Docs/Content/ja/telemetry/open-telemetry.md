@@ -78,10 +78,7 @@ exporters:
   # HTTP経由でエクスポート
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # デフォルトのProto(buf)の代わりにJSONエンコーダーを使用する必要があります
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "ONEUPTIME_TOKEN" # OneUptimeトークン
 
 service:

@@ -7,7 +7,7 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
-import {
+import OtelPayloadDecoder, {
   OtelPayloadEncoding,
   OtelPayloadFormat,
 } from "../../Utils/OtelPayloadDecoder";
@@ -162,8 +162,8 @@ export interface TelemetryIngestJobData {
    * TelemetryBodyStore before the job is enqueued. The worker
    * fetches the raw buffer via TelemetryBodyStore.readBody (and
    * deletes it via deleteBody only after the job succeeds) and
-   * decodes (gunzip + protobuf or JSON) per `bodyFormat` /
-   * `bodyEncoding`. Every OTel-type job carries
+   * decodes (gzip / deflate / zstd inflate + protobuf or JSON) per
+   * `bodyFormat` / `bodyEncoding`. Every OTel-type job carries
    * `bodyKey` + `bodyFormat` + `productType` — raw HTTP bodies are
    * stored as-is, while producers that hand us an already-parsed
    * object (gRPC, Pyroscope conversion) are serialized to JSON
@@ -496,9 +496,32 @@ export default class TelemetryQueueService {
         const buffer: Buffer = Buffer.isBuffer(req.body)
           ? (req.body as Buffer)
           : Buffer.from(req.body as Uint8Array);
-        const contentEncoding: string | undefined = headerValueToString(
-          req.headers["content-encoding"],
-        );
+        /*
+         * Every coding in the header is read, not just the first array
+         * element - "gzip, zstd" must not pass as gzip.
+         */
+        const bodyEncoding: OtelPayloadEncoding | null =
+          OtelPayloadDecoder.encodingFromContentEncoding(
+            req.headers["content-encoding"],
+          );
+
+        /*
+         * Backstop for OtelRequestMiddleware.parseBody, which answers 415
+         * for these on every OTLP/HTTP route before the handler runs, so a
+         * throw here means a new raw-body OTel producer skipped that check
+         * (the ingest handlers turn it into a 503, so it fails loudly).
+         * Refuse before storing anything: the worker cannot decode the
+         * body, and falling back to "none" is the silent drop GH#3978 was.
+         * Syslog / Fluent / security-event jobs never decode a stored body
+         * (their worker cases read `requestBody`), so they keep being
+         * accepted as before.
+         */
+        if (bodyEncoding === null && isOtelType) {
+          throw new Error(
+            `TelemetryQueueService: refusing ${type} body with unsupported Content-Encoding; OTLP/HTTP admission must answer 415 for it`,
+          );
+        }
+
         const contentType: string | undefined = headerValueToString(
           req.headers["content-type"],
         );
@@ -524,9 +547,7 @@ export default class TelemetryQueueService {
         jobData.bodyFormat = isProtobuf
           ? OtelPayloadFormat.Protobuf
           : OtelPayloadFormat.Json;
-        jobData.bodyEncoding = contentEncoding?.includes("gzip")
-          ? "gzip"
-          : "none";
+        jobData.bodyEncoding = bodyEncoding ?? "none";
         jobData.productType =
           req.productType ?? PRODUCT_TYPE_BY_TELEMETRY_TYPE[type];
       } else if (isOtelType) {

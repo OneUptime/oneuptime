@@ -78,10 +78,7 @@ exporters:
   # Экспорт через HTTP
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # Требует использования JSON-кодировщика вместо Proto(buf) по умолчанию
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "ONEUPTIME_TOKEN" # Ваш токен OneUptime
 
 service:

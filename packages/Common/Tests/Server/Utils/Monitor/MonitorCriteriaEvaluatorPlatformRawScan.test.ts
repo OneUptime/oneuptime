@@ -1990,8 +1990,8 @@ describe("Kubernetes details: the namespace the query was scoped to", () => {
         metricViewConfig: {
           queryConfigs: [
             queryConfig({
-              alias: "unavailable",
-              metricName: "k8s.deployment.unavailable_replicas",
+              alias: "failed",
+              metricName: "k8s.job.failed_pods",
             }),
           ],
           formulaConfigs: [],
@@ -2001,13 +2001,13 @@ describe("Kubernetes details: the namespace the query was scoped to", () => {
       response: metricResponse({
         kubernetesResourceBreakdowns: [
           kubernetesScan({
-            alias: "unavailable",
-            metricName: "k8s.deployment.unavailable_replicas",
+            alias: "failed",
+            metricName: "k8s.job.failed_pods",
             attributes: input.attributes,
             resources: [
               {
-                workloadType: "Deployment",
-                workloadName: "checkout",
+                workloadType: "Job",
+                workloadName: "nightly-report",
                 namespace: "payments",
                 metricValue: 2,
                 lowestMetricValue: 1,
@@ -2017,7 +2017,7 @@ describe("Kubernetes details: the namespace the query was scoped to", () => {
         ],
       }),
       criteria: criteriaOn({
-        alias: "unavailable",
+        alias: "failed",
         filterType: FilterType.GreaterThan,
         value: 0,
       }),
@@ -2035,7 +2035,7 @@ describe("Kubernetes details: the namespace the query was scoped to", () => {
     expect(context).toContain(
       [
         `- Cluster: ${CLUSTER}`,
-        `- Metric: ${kubernetesName("k8s.deployment.unavailable_replicas")} (\`k8s.deployment.unavailable_replicas\`)`,
+        `- Metric: ${kubernetesName("k8s.job.failed_pods")} (\`k8s.job.failed_pods\`)`,
         "- Namespace: payments",
       ].join("\n"),
     );

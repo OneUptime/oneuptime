@@ -23,7 +23,7 @@
           </svg>
         </button>
       </div>
-      <nav class="hidden space-x-10 md:flex">
+      <nav class="max-md:hidden space-x-10 md:flex">
         <div class="relative">
           <!-- Opens the searchable products modal (command-palette style). -->
           <button onclick="openProductModal()" type="button"
@@ -474,7 +474,7 @@
           </div>
         </div>
       </nav>
-      <div class="hidden items-center justify-end md:flex md:flex-1 lg:w-0">
+      <div class="max-md:hidden items-center justify-end md:flex md:flex-1 lg:w-0">
         <a href="/accounts" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign
           in</a>
         <a href="/accounts/register"
@@ -853,7 +853,7 @@
             <div class="min-w-0">
               <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500">Products</p>
               <h2 class="mt-1 text-lg font-semibold text-gray-900">Explore the OneUptime platform</h2>
-              <p class="mt-0.5 hidden text-sm text-gray-500 sm:block">One platform for monitoring, observability &amp; incident response.</p>
+              <p class="mt-0.5 max-sm:hidden text-sm text-gray-500 sm:block">One platform for monitoring, observability &amp; incident response.</p>
             </div>
             <button type="button" onclick="closeProductModal()" aria-label="Close"
               class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white hover:text-gray-600 hover:shadow-sm">
@@ -879,7 +879,7 @@
               </svg>
             </button>
             <kbd id="product-modal-kbd"
-              class="hidden flex-shrink-0 items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">⌘K</kbd>
+              class="max-sm:hidden flex-shrink-0 items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">⌘K</kbd>
           </div>
         </div>
 
@@ -1234,7 +1234,7 @@
               <p class="truncate text-xs text-gray-500">Self-host or use our cloud</p>
             </div>
           </a>
-          <div class="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex">
+          <div class="max-md:hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex">
             <span class="flex items-center gap-1">
               <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↑</kbd>
               <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↓</kbd>

@@ -169,8 +169,9 @@ overrides and also picks up this chart's defaults for everything else.
 {{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
-ingestion key — which is silently dropped, so the collector logs look clean),
-run the diagnostic script for a one-shot root-cause verdict:
+ingestion key: OneUptime refuses it with 401/422, and the collector only logs
+"Exporting failed. Dropping data.", which is easy to miss), run the diagnostic
+script for a one-shot root-cause verdict:
   curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):

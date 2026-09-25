@@ -72,6 +72,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Dictionary from "../../../Types/Dictionary";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import {
   CrossSignalQueryParams,
@@ -129,7 +130,6 @@ import PlatformResourceIdentity, {
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
-import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 
@@ -5074,7 +5074,14 @@ ${contextBlock}
         `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
       );
     } else if (
-      metricName === "k8s.deployment.unavailable_replicas" ||
+      /*
+       * The k8s_cluster receiver has no unavailable-replicas series. The
+       * replica-mismatch template is a formula (`desired - available`),
+       * analysed as its first operand, k8s.deployment.desired, so it lands
+       * in the generic branch below, which names the formula. What still
+       * reaches this one is a custom monitor on an "unavailable" series
+       * such as kube-state-metrics' `kube_deployment_status_replicas_unavailable`.
+       */
       metricName.includes("unavailable")
     ) {
       lines.push(

@@ -12,8 +12,17 @@ import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngest
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestionKeyRateLimiter from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import logger from "Common/Server/Utils/Logger";
-import { authenticateRequest } from "../../FeatureSet/Telemetry/GrpcServer";
+import {
+  GrpcAuthenticationResult,
+  INVALID_INGESTION_TOKEN_MESSAGE,
+  authenticateGrpcRequest,
+  authenticateRequest,
+} from "../../FeatureSet/Telemetry/GrpcServer";
 import { startMqttServer } from "../../FeatureSet/Telemetry/MqttServer";
 
 // Billing admission is exercised independently by TelemetryPayAsYouGoBilling.
@@ -50,32 +59,36 @@ jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
  *      for why a browser key arriving on either port has no honest
  *      explanation.
  *
- *   3. THE REFUSAL IS DEBUGGABLE BUT NOT LEAKY. Neither transport can carry a
- *      reason back to the caller (gRPC answers success so the OTel SDK does
- *      not retry; MQTT 3.1.1's CONNACK has no reason field), so the log line
- *      is the ONLY place the "why" exists. It must name the ingestion key id —
- *      that is what an operator searches the dashboard with — and the refusal
- *      reason, and it must never name the presented credential. On MQTT the
- *      password IS the ingestion key, so a token in a log line is a live
- *      secret sitting in whatever third-party sink the logs ship to.
+ *   3. THE REFUSAL IS DEBUGGABLE BUT NOT LEAKY. gRPC tells the caller the
+ *      problem — handleExport answers UNAUTHENTICATED or PERMISSION_DENIED
+ *      with the guard's sentence, the one the HTTP middleware sends (GH#3978)
+ *      — but never which key it was. MQTT cannot tell the caller anything: a
+ *      3.1.1 CONNACK has no reason field. So on both transports the log line
+ *      is the only place the ingestion key id — what an operator searches the
+ *      dashboard with — appears next to the refusal reason, and it must never
+ *      name the presented credential. On MQTT the password IS the ingestion
+ *      key, so a token in a log line is a live secret sitting in whatever
+ *      third-party sink the logs ship to.
  *
- *   4. THE TRANSPORT'S OWN REFUSAL MECHANICS ARE UNCHANGED. gRPC returns null
- *      from authenticateRequest — byte-identical to the unknown-token path —
- *      so handleExport's existing "reply success, enqueue nothing" behaviour
- *      applies with no new branch. MQTT answers done(err, false) with
- *      returnCode 4 (bad username or password) and leaves the client
- *      unauthenticated and its clientId un-namespaced.
+ *   4. EACH TRANSPORT REFUSES THROUGH ITS OWN MECHANICS. On gRPC,
+ *      authenticateGrpcRequest returns a refusal carrying the guard's
+ *      sentence, which handleExport sends as the status and enqueues nothing
+ *      (GrpcServerAuthStatusLive.test.ts pins what reaches the wire); the
+ *      authenticateRequest wrapper most of this suite calls reports every
+ *      refusal as null, exactly as it reports an unknown token. MQTT answers
+ *      done(err, false) with returnCode 4 (bad username or password) and
+ *      leaves the client unauthenticated and its clientId un-namespaced.
  *
  * WHAT THE SIBLING SUITES ALREADY COVER (deliberately not repeated here):
  *   - GrpcServerAuth.test.ts: which resolver method the gRPC path calls and
  *     that it never issues its own findOneBy; the three metadata header
- *     fallbacks and their precedence; the missing-token short circuit; and
- *     buildTelemetryRequest's header whitelisting.
+ *     fallbacks and their precedence; the missing-token short circuit;
+ *     authenticateGrpcRequest's status and sentence for every refusal reason;
+ *     and buildTelemetryRequest's header whitelisting.
  *   - GrpcServerAuthCache.test.ts: that the REAL service's TTL cache collapses
  *     repeated authentications for one token down to a single findOneBy, and
  *     that negative results are cached too.
- * Neither of them exercises the guard at all, and neither covers MQTT, which
- * until now had no auth test of any kind.
+ * Neither of them covers MQTT, which until now had no auth test of any kind.
  */
 
 /*
@@ -590,22 +603,27 @@ describe("gRPC OTLP ingest — telemetry ingestion key refusals", () => {
     expect(transcript).not.toContain("shop.example.com");
   });
 
-  test("every refusal returns exactly null — the same value an unknown token returns — so handleExport needs no new branch", async () => {
+  test("every refusal reaches handleExport as a refusal carrying the guard's sentence, and the yes/no wrapper as null", async () => {
     /*
-     * authenticateRequest's contract with its only caller is "an ObjectID or
-     * null". handleExport answers the RPC with success and enqueues nothing on
-     * null (deliberately, so the OTel SDK does not retry a request that will
-     * never succeed). Any refusal that returned something else — an exception,
-     * undefined, a projectId with a flag — would change that caller's
-     * behaviour, so pin that all four rejection paths are indistinguishable.
+     * handleExport acts on authenticateGrpcRequest, so a refusal must come
+     * back from it AS a refusal — not a projectId with a flag, not a throw
+     * (which the terminal catch would answer with OK) — carrying the
+     * guard's own sentence, so the RPC is answered with it (GH#3978). The
+     * authenticateRequest wrapper keeps its "an ObjectID or null" contract
+     * and must report every refusal exactly as it reports an unknown token.
      */
-    const unknownTokenResult: ObjectID | null =
-      await (async (): Promise<ObjectID | null> => {
-        getPolicyResolverMock().mockResolvedValue(null);
-        return authenticateRequest(
-          makeMetadata(ObjectID.generate().toString()),
-        );
-      })();
+    getPolicyResolverMock().mockResolvedValue(null);
+    const unknownToken: string = ObjectID.generate().toString();
+    const unknownTokenResult: GrpcAuthenticationResult =
+      await authenticateGrpcRequest(makeMetadata(unknownToken));
+
+    expect(unknownTokenResult).toEqual({
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: INVALID_INGESTION_TOKEN_MESSAGE,
+      },
+    });
+    expect(await authenticateRequest(makeMetadata(unknownToken))).toBeNull();
 
     const refusedPolicies: Array<TelemetryIngestionKeyPolicy> = [
       buildLegacyServerKeyPolicy({ isEnabled: false }),
@@ -618,17 +636,30 @@ describe("gRPC OTLP ingest — telemetry ingestion key refusals", () => {
       }),
     ];
 
-    expect(unknownTokenResult).toBeNull();
-
     for (const policy of refusedPolicies) {
       getPolicyResolverMock().mockResolvedValue(policy);
+      const token: string = ObjectID.generate().toString();
 
-      const result: ObjectID | null = await authenticateRequest(
-        makeMetadata(ObjectID.generate().toString()),
+      const guardRefusal: TelemetryIngestionKeyRefusal | null =
+        TelemetryIngestionKeyGuard.getRefusal({
+          policy: policy,
+          surface: TelemetryIngestSurface.Grpc,
+        });
+      expect(guardRefusal).not.toBeNull();
+
+      const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+        makeMetadata(token),
       );
 
-      expect(result).toBe(unknownTokenResult);
-      expect(result).toBeNull();
+      expect("projectId" in result).toBe(false);
+      expect(result).toEqual({
+        refusal: {
+          code: expect.any(Number),
+          message: guardRefusal!.message,
+        },
+      });
+
+      expect(await authenticateRequest(makeMetadata(token))).toBeNull();
     }
   });
 });
@@ -677,7 +708,9 @@ describe("MQTT CONNECT — telemetry ingestion key refusals", () => {
     /*
      * On MQTT the password IS the ingestion key, so a token echoed into a log
      * line is a live project credential in whatever sink the logs ship to —
-     * including the CONNACK error message, which is handed back over the wire.
+     * including the error handed back to aedes, whose message the broker's
+     * clientError handler logs (the 3.1.1 CONNACK itself carries only the
+     * return code).
      */
     expect(getLogTranscript()).not.toContain(sentinelToken);
     expect(outcome.error!.message).not.toContain(sentinelToken);

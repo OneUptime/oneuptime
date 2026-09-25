@@ -124,7 +124,7 @@ const SELECT_COLUMN_CLASS_NAME: string = "flex w-7 flex-shrink-0 items-center";
  * the monitor's name and the rows are already in the order it describes.
  */
 const POSITION_COLUMN_CLASS_NAME: string =
-  "hidden w-6 flex-shrink-0 text-right text-xs tabular-nums sm:block";
+  "max-sm:hidden w-6 flex-shrink-0 text-right text-xs tabular-nums sm:block";
 const MONITOR_COLUMN_CLASS_NAME: string = "min-w-0 flex-[2_1_0%]";
 /*
  * Its own line on a phone, indented to sit under the monitor it renames rather
@@ -512,7 +512,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
     return (
       <div
         className={`${
-          props.isSelectable ? "flex" : "hidden sm:flex"
+          props.isSelectable ? "flex" : "max-sm:hidden sm:flex"
         } items-center gap-x-3 rounded-t-xl border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:flex`}
         data-testid="status-page-resource-list-header"
       >
@@ -540,7 +540,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         )}
 
         <span
-          className={`${GRIP_COLUMN_CLASS_NAME} hidden sm:block`}
+          className={`${GRIP_COLUMN_CLASS_NAME} max-sm:hidden sm:block`}
           aria-hidden="true"
         />
         <span
@@ -551,19 +551,19 @@ const ResourceList: FunctionComponent<ComponentProps> = (
           #
         </span>
         <span
-          className={`${MONITOR_COLUMN_CLASS_NAME} hidden sm:block`}
+          className={`${MONITOR_COLUMN_CLASS_NAME} max-sm:hidden sm:block`}
           aria-hidden="true"
         >
           Monitor
         </span>
         <span
-          className={`${PUBLISHED_NAME_COLUMN_CLASS_NAME} hidden sm:block`}
+          className={`${PUBLISHED_NAME_COLUMN_CLASS_NAME} max-sm:hidden sm:block`}
           aria-hidden="true"
         >
           Shown on the status page as
         </span>
         <span
-          className={`${ACTIONS_COLUMN_CLASS_NAME} hidden sm:flex`}
+          className={`${ACTIONS_COLUMN_CLASS_NAME} max-sm:hidden sm:flex`}
           aria-hidden="true"
         />
       </div>

@@ -743,9 +743,9 @@
                     <div class="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
                         <% if(blogPost.contributors && blogPost.contributors.length > 0){ %>
                         <%- include('./Partials/ContributorByline', { contributors: blogPost.contributors, date: null, avatarSize: 'h-8 w-8', maxAvatars: 5, textClass: 'text-gray-700' }) -%>
-                        <span class="hidden sm:inline select-none">•</span>
+                        <span class="max-sm:hidden sm:inline select-none">•</span>
                         <span><%- blogPost.formattedPostDate -%></span>
-                        <span class="hidden sm:inline select-none">•</span>
+                        <span class="max-sm:hidden sm:inline select-none">•</span>
                         <% } %>
                         <span id="reading-time" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -763,7 +763,7 @@
                 <div class="mx-auto max-w-4xl px-6 lg:px-8">
                     <div class="relative" id="content-wrapper">
                         <!-- Floating TOC -->
-                        <div class="floating-toc hidden xl:block" id="floating-toc">
+                        <div class="floating-toc max-xl:hidden xl:block" id="floating-toc">
                             <div class="floating-toc-inner">
                                 <h2 class="text-xs font-semibold tracking-wider text-blue-600 uppercase mb-3 flex items-center gap-2">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
@@ -776,7 +776,7 @@
                         <!-- Main content -->
                         <article>
                             <div class="relative">
-                                <div class="floating-share hidden xl:flex" aria-label="Share this article">
+                                <div class="floating-share max-xl:hidden xl:flex" aria-label="Share this article">
                                     <a title="Share on X" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=<%- encodeURIComponent(blogPost.title) -%>&url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3h3.77l-8.26 9.45L23 21h-6.17l-4.8-6.01L6.4 21H2.62l8.63-9.87L1 3h6.32l4.33 5.41L17.53 3Zm-1.33 15.62h2.09L7.94 4.29H5.71l10.49 14.33Z"/></svg>
                                     </a>

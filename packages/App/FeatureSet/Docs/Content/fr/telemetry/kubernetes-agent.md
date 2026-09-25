@@ -687,10 +687,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 L'état de connexion d'un cluster est déterminé uniquement par l'arrivée de la télémétrie — si aucune donnée n'arrive, le cluster est marqué comme déconnecté après environ 15 minutes. Ainsi, « disconnected » et « no metrics » ont presque toujours la **même** cause : la télémétrie de l'agent n'est pas acceptée.
 
-La raison la plus courante — en particulier après une réinstallation — est une **clé d'ingestion incorrecte ou révoquée**. Cela passe facilement inaperçu, car les points de terminaison d'ingestion OTLP renvoient délibérément un HTTP `200` même pour un jeton incorrect (afin qu'un collecteur mal configuré ne puisse pas saturer le serveur de nouvelles tentatives). Résultat : le collecteur signale un succès, ses journaux ne montrent aucune erreur, et les données sont silencieusement abandonnées.
+La raison la plus courante — en particulier après une réinstallation — est une **clé d'ingestion incorrecte ou révoquée**. OneUptime refuse une telle clé : les points de terminaison d'ingestion OTLP répondent HTTP `401` pour une clé absente, inconnue ou expirée, et `422` pour une clé désactivée ou une clé navigateur. Aucun de ces deux statuts n'est retenté : le collecteur abandonne chaque lot et journalise pour chacun une erreur `Exporting failed. Dropping data.` Les pods restent Running et Ready, si bien que cette ligne passe facilement inaperçue.
 
 1. Vérifiez que les pods de l'agent sont en cours d'exécution : `kubectl get pods -n oneuptime-agent`
-2. Vérifiez les journaux du metrics-collector : `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (l'absence d'erreurs ici ne signifie **pas** que les données arrivent — voir ci-dessus)
+2. Vérifiez les journaux du metrics-collector : `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (une ligne `Exporting failed` indiquant `HTTP Status Code 401` ou `422` signifie que la clé a été refusée — voir ci-dessus)
 3. **Validez la clé d'ingestion.** Demandez directement à OneUptime si votre jeton est accepté (`200` = valide, `401` = inconnu/révoqué) :
 
    ```bash
@@ -717,7 +717,7 @@ La raison la plus courante — en particulier après une réinstallation — est
 
 ### Aucune métrique n'apparaît
 
-1. Excluez d'abord une clé d'ingestion rejetée — c'est la cause la plus courante et elle est invisible du côté de l'agent. Consultez [L'agent affiche « Disconnected »](#lagent-affiche-disconnected) ci-dessus (ou exécutez simplement le script de diagnostic).
+1. Excluez d'abord une clé d'ingestion rejetée — c'est la cause la plus courante et elle passe facilement inaperçue du côté de l'agent. Consultez [L'agent affiche « Disconnected »](#lagent-affiche-disconnected) ci-dessus (ou exécutez simplement le script de diagnostic).
 2. Vérifiez que l'identifiant du cluster correspond à la valeur que vous avez transmise comme `clusterName`
 3. Vérifiez les autorisations RBAC : `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Vérifiez les journaux du collecteur OTel pour repérer des erreurs d'export

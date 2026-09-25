@@ -578,7 +578,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         </a>
 
         {/* ReplayToolbarDivider draws no responsive rule of its own. */}
-        <span className="hidden sm:inline-flex">
+        <span className="max-sm:hidden sm:inline-flex">
           <ReplayToolbarDivider />
         </span>
 
@@ -706,13 +706,13 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                     {index > 0 && (
                       <span
                         aria-hidden="true"
-                        className="hidden text-gray-300 md:inline"
+                        className="max-md:hidden text-gray-300 md:inline"
                       >
                         ·
                       </span>
                     )}
                     <span
-                      className="hidden max-w-full truncate md:inline"
+                      className="max-md:hidden max-w-full truncate md:inline"
                       title={`${fact.label}: ${fact.value}`}
                       data-testid="replay-header-fact"
                     >

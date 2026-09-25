@@ -1483,7 +1483,7 @@ const useResourceOwners: <TResource extends BaseModel>(
         </span>
         <span
           aria-hidden="true"
-          className="hidden h-5 w-px bg-gray-200 sm:inline-block"
+          className="max-sm:hidden h-5 w-px bg-gray-200 sm:inline-block"
         />
 
         {showOwnerFacet && (

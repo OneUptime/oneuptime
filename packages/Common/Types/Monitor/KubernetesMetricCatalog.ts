@@ -111,17 +111,6 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "cores",
   },
   {
-    id: "node-cpu-usage",
-    friendlyName: "Node CPU In Use",
-    description:
-      "CPU cores in use by the node, from kubeletstats' k8s.node.cpu.usage - the current name for the same cores value older receiver versions emit as k8s.node.cpu.utilization. 1.4 means 1.4 cores, not 1.4%. For a percentage, divide by Node Allocatable CPU (k8s.node.allocatable_cpu), which is how the High Node CPU Utilization template computes it.",
-    metricName: "k8s.node.cpu.usage",
-    category: "Node",
-    defaultAggregation: MetricsAggregationType.Avg,
-    defaultResourceScope: KubernetesResourceScope.Node,
-    unit: "cores",
-  },
-  {
     id: "node-allocatable-cpu",
     friendlyName: "Node Allocatable CPU",
     description:
@@ -248,12 +237,22 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "count",
   },
 
-  // Workload Metrics
+  /*
+   * Workload Metrics
+   *
+   * These are the k8s_cluster receiver's names, which the agent chart
+   * forwards unrenamed: `k8s.deployment.available` / `.desired`, not the
+   * `*_replicas` spelling the Deployment status fields use. The receiver
+   * has no "unavailable" series at all — a replica shortfall is
+   * `desired - available` (see the k8s-deployment-replica-mismatch
+   * template).
+   */
   {
     id: "deployment-available-replicas",
     friendlyName: "Deployment Available Replicas",
-    description: "Number of available replicas in a deployment",
-    metricName: "k8s.deployment.available_replicas",
+    description:
+      "Number of pods targeted by the deployment that have been ready for at least minReadySeconds",
+    metricName: "k8s.deployment.available",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
@@ -262,18 +261,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "deployment-desired-replicas",
     friendlyName: "Deployment Desired Replicas",
-    description: "Number of desired replicas in a deployment",
-    metricName: "k8s.deployment.desired_replicas",
-    category: "Workload",
-    defaultAggregation: MetricsAggregationType.Max,
-    defaultResourceScope: KubernetesResourceScope.Workload,
-    unit: "count",
-  },
-  {
-    id: "deployment-unavailable-replicas",
-    friendlyName: "Deployment Unavailable Replicas",
-    description: "Number of unavailable replicas in a deployment",
-    metricName: "k8s.deployment.unavailable_replicas",
+    description: "Number of desired replicas (spec.replicas) in a deployment",
+    metricName: "k8s.deployment.desired",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
@@ -303,8 +292,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "statefulset-ready-replicas",
     friendlyName: "StatefulSet Ready Replicas",
-    description: "Number of ready replicas in a StatefulSet",
-    metricName: "k8s.statefulset.ready_replicas",
+    description: "Number of pods created by a StatefulSet that are Ready",
+    metricName: "k8s.statefulset.ready_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,

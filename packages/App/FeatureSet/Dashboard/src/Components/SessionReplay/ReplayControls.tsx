@@ -519,7 +519,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
        * already on separate lines, where a dangling rule at the end of
        * the first line means nothing - so it is hidden there.
        */}
-      <span className="hidden md:inline-flex">
+      <span className="max-md:hidden md:inline-flex">
         <ReplayToolbarDivider />
       </span>
 

@@ -504,8 +504,10 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
          * likely to want to act on. Its count is the thing given up for it, and
          * the pane beside it is already showing that number.
          */
-        className={`absolute inset-y-0 right-0 items-center gap-0.5 rounded-r-md pl-4 pr-1 group-hover/nav-row:flex group-focus-within/nav-row:flex ${
-          isSelected ? "flex bg-indigo-50" : "hidden bg-gray-100"
+        className={`absolute inset-y-0 right-0 items-center gap-0.5 rounded-r-md pl-4 pr-1 flex ${
+          isSelected
+            ? "bg-indigo-50"
+            : "bg-gray-100 group-[:not(:hover):not(:focus-within)]/nav-row:hidden"
         }`}
         data-testid="status-page-resource-navigator-actions"
       >

@@ -252,7 +252,7 @@ const StartAndEndDate: DateFilterFunction = (
                   );
                 }}
                 title="3 hours"
-                className="hidden md:block"
+                className="max-md:hidden md:block"
               />
             )}
 
@@ -314,7 +314,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="2 weeks"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -335,7 +335,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="3 weeks"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -356,7 +356,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="1 month"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
 
             <Button
@@ -377,7 +377,7 @@ const StartAndEndDate: DateFilterFunction = (
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
               }}
               title="3 months"
-              className="hidden md:block"
+              className="max-md:hidden md:block"
             />
           </div>
         )}

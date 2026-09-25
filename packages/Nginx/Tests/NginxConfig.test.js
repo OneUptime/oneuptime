@@ -31,7 +31,8 @@ const nginxConf = readNginxConf();
 const serverBlocks = getServerBlocks(template);
 
 // The third server block is the primary ingress ("localhost ingress $HOST");
-// the first two are the status-page servers on port 7849.
+// the first two are the status-page servers, the default servers of the
+// plaintext port 7849 and the TLS port 7850.
 const primaryServerBlock = serverBlocks.find((block) => {
   return /server_name\s+localhost\s+ingress/.test(block.body);
 });
@@ -326,6 +327,32 @@ test("each high-volume ingest location logs through the operator switch", () => 
   }
 });
 
+test("the status-page servers' OTLP locations log through the same operator switch", () => {
+  // They exist so OTLP under a Host the primary does not name takes the same
+  // batch (GH#3978); an operator who turns ingest logging off must not still
+  // get a line per batch from them.
+  const statusPageServers = serverBlocks.filter((block) => {
+    return block !== primaryServerBlock;
+  });
+
+  assert.equal(statusPageServers.length, 2);
+
+  for (const serverBlock of statusPageServers) {
+    for (const ingestPath of ["/otlp", "/telemetry"]) {
+      const locations = getLocationBlocks(serverBlock.body).filter(
+        (candidate) => {
+          return candidate.spec === ingestPath;
+        },
+      );
+
+      assert.equal(locations.length, 1, `one ${ingestPath} per server block`);
+      assert.deepEqual(getDirectives(locations[0].body, "access_log"), [
+        "access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;",
+      ]);
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Pyroscope ingest body size
 // ---------------------------------------------------------------------------
@@ -353,9 +380,7 @@ function clientMaxBodySizeOf(locationSpec) {
     `${locationSpec} should set client_max_body_size exactly once`,
   );
 
-  return parseNginxSize(
-    /^client_max_body_size (\S+);$/.exec(directives[0])[1],
-  );
+  return parseNginxSize(/^client_max_body_size (\S+);$/.exec(directives[0])[1]);
 }
 
 test("/pyroscope accepts uncompressed .NET profile uploads", () => {
@@ -375,6 +400,18 @@ test("/pyroscope never allows more than the App will parse", () => {
 
 test("raising /pyroscope left /telemetry at its documented 4M", () => {
   assert.equal(clientMaxBodySizeOf("/telemetry"), 4 * 1024 * 1024);
+});
+
+test("OTLP ingest takes the same batch on /otlp, /telemetry and gRPC", () => {
+  // /otlp was left on nginx's 1M default while /telemetry (the same OTLP
+  // router) allowed 4M, so a collector pointed at /otlp got bare 413s
+  // (GH#3978).
+  const telemetry = clientMaxBodySizeOf("/telemetry");
+  assert.equal(clientMaxBodySizeOf("/otlp"), telemetry);
+  assert.equal(
+    clientMaxBodySizeOf("~ /opentelemetry.proto.collector*"),
+    telemetry,
+  );
 });
 
 test("ordinary locations are left on the inherited global access_log", () => {

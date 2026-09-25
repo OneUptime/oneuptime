@@ -11,6 +11,11 @@ import {
 import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import {
+  AGENT_COLLECTOR_IMAGE_TAG,
+  AGENT_EMITTED_METRIC_NAMES,
+  readAgentChartValues,
+} from "./Utils/KubernetesAgentEmittedMetrics";
 import { describe, expect, test } from "@jest/globals";
 
 describe("KubernetesMetricCatalog", () => {
@@ -487,10 +492,9 @@ describe("KubernetesMetricCatalog", () => {
       );
     });
 
-    test("allocatable CPU and node CPU in use read in cores", () => {
+    test("allocatable CPU reads in cores", () => {
       expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe("31.85 cores");
       expect(formatFor("k8s.node.allocatable_cpu", 4)).toBe("4 cores");
-      expect(formatFor("k8s.node.cpu.usage", 1.4)).toBe("1.4 cores");
     });
 
     test("the pod limit utilizations read as a percentage of the limit", () => {
@@ -505,6 +509,70 @@ describe("KubernetesMetricCatalog", () => {
       expect(formatFor("etcd_server_has_leader", 1)).toBe("1");
       expect(formatFor("apiserver_current_inflight_requests", 212)).toBe("212");
       expect(formatFor("scheduler_pending_pods", 3)).toBe("3");
+    });
+  });
+
+  /*
+   * BUG: the Workload entries were named for the Deployment/StatefulSet
+   * STATUS fields — `k8s.deployment.available_replicas`,
+   * `.desired_replicas`, `.unavailable_replicas`,
+   * `k8s.statefulset.ready_replicas` — but the agent's k8s_cluster receiver
+   * emits `k8s.deployment.available`, `k8s.deployment.desired` and
+   * `k8s.statefulset.ready_pods`, and no "unavailable" series at all. The
+   * chart renames nothing, so every one of those entries charted and
+   * alerted on a metric that never arrives: an empty chart, and a monitor
+   * that is never Met, with no error anywhere.
+   */
+  describe("every entry names a metric the shipped agent emits", () => {
+    test("the agent chart still pins the collector these names were read from", () => {
+      /*
+       * AGENT_EMITTED_METRIC_NAMES is the receivers' metadata.yaml at this
+       * collector version. Bumping the image fails here until that list is
+       * re-read — receivers rename metrics between versions.
+       */
+      const values: Record<string, any> = readAgentChartValues();
+
+      expect(values["image"]["repository"]).toBe(
+        "otel/opentelemetry-collector-contrib",
+      );
+      expect(String(values["image"]["tag"])).toBe(AGENT_COLLECTOR_IMAGE_TAG);
+      // The kubeletstats *_utilization names in the list assume this default.
+      expect(values["kubeletstats"]["utilizationMetrics"]["enabled"]).toBe(
+        true,
+      );
+    });
+
+    test.each(
+      allMetrics.map((m: KubernetesMetricDefinition) => {
+        return [m.id, m.metricName];
+      }),
+    )("%s queries %s, which the agent emits", (_id: string, name: string) => {
+      expect(AGENT_EMITTED_METRIC_NAMES.has(name)).toBe(true);
+    });
+
+    test("deployment replica entries use the receiver's names", () => {
+      expect(getKubernetesMetricById("deployment-available-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.deployment.available" }),
+      );
+      expect(getKubernetesMetricById("deployment-desired-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.deployment.desired" }),
+      );
+    });
+
+    test("the StatefulSet ready entry uses the receiver's name", () => {
+      expect(getKubernetesMetricById("statefulset-ready-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.statefulset.ready_pods" }),
+      );
+    });
+
+    test("no entry offers an unavailable-replicas series the receiver does not have", () => {
+      expect(
+        getKubernetesMetricById("deployment-unavailable-replicas"),
+      ).toBeUndefined();
+
+      for (const metric of allMetrics) {
+        expect(metric.metricName).not.toMatch(/unavailable/);
+      }
     });
   });
 });

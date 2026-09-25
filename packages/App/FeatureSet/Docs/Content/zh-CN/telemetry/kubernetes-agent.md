@@ -679,10 +679,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 集群的连接状态完全由到达的遥测数据驱动——如果没有数据到达，集群会在约 15 分钟后被标记为断开连接。因此 "disconnected" 和 "no metrics" 几乎总是出于**相同**的原因：代理的遥测数据未被接受。
 
-最常见的原因——尤其是在重新安装之后——是**错误或已吊销的摄取密钥**。这很容易被忽略，因为 OTLP 摄取端点即使对于错误的令牌也会刻意返回 HTTP `200`（这样一个配置错误的采集器就不会对服务器发起重试风暴）。结果是：采集器报告成功，其日志中没有错误，而数据被悄悄丢弃。
+最常见的原因——尤其是在重新安装之后——是**错误或已吊销的摄取密钥**。OneUptime 会拒绝这样的密钥：对于缺失、未知或已过期的密钥，OTLP 摄取端点返回 HTTP `401`；对于已禁用的密钥或浏览器密钥，返回 `422`。这两种状态都不会重试，因此采集器会丢弃每个批次，并为每个批次记录一条 `Exporting failed. Dropping data.` 错误。Pod 仍保持 Running 和 Ready，所以这行日志很容易被忽略。
 
 1. 检查代理 Pod 是否正在运行：`kubectl get pods -n oneuptime-agent`
-2. 检查 metrics-collector 日志：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`（这里没有错误并**不**意味着数据正在到达——见上文）
+2. 检查 metrics-collector 日志：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`（出现带有 `HTTP Status Code 401` 或 `422` 的 `Exporting failed` 行，说明密钥被拒绝——见上文）
 3. **验证摄取密钥。** 直接询问 OneUptime 你的令牌是否被接受（`200` = 有效，`401` = 未知/已吊销）：
 
    ```bash
@@ -709,7 +709,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 没有指标出现
 
-1. 首先排除被拒绝的摄取密钥——这是最常见的原因，并且从代理一侧是不可见的。参见上文的 [代理显示 "Disconnected"](#代理显示-disconnected)（或直接运行诊断脚本）。
+1. 首先排除被拒绝的摄取密钥——这是最常见的原因，并且从代理一侧很容易被忽略。参见上文的 [代理显示 "Disconnected"](#代理显示-disconnected)（或直接运行诊断脚本）。
 2. 检查集群标识符是否与你作为 `clusterName` 传递的值匹配
 3. 验证 RBAC 权限：`kubectl get clusterrolebinding | grep kubernetes-agent`
 4. 检查 OTel 采集器日志中的导出错误

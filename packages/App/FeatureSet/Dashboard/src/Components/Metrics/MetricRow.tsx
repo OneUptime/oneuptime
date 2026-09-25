@@ -179,7 +179,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         {isInteractive && (
           <span
             aria-hidden="true"
-            className="hidden items-center gap-0.5 text-xs font-medium text-gray-400 opacity-0 transition-opacity group-hover:text-indigo-600 group-hover:opacity-100 group-focus-visible:opacity-100 sm:flex"
+            className="max-sm:hidden items-center gap-0.5 text-xs font-medium text-gray-400 opacity-0 transition-opacity group-hover:text-indigo-600 group-hover:opacity-100 group-focus-visible:opacity-100 sm:flex"
           >
             Explore
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />

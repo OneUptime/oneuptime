@@ -40,7 +40,7 @@
 
         <div class="relative z-0 mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-10">
             <!-- Desktop sidebar -->
-            <div class="docs-layout-sidebar hidden lg:relative lg:block lg:flex-none">
+            <div class="docs-layout-sidebar max-lg:hidden lg:relative lg:block lg:flex-none">
                 <div class="docs-sidebar-tint absolute inset-y-0 right-0 w-[50vw]" aria-hidden="true"></div>
                 <div id="docs-sidebar-scroll" class="docs-scroll sticky top-14 -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-6">
                     <%- include('./Partials/Nav.ejs', { nav: nav, category: null, link: null, t: t, lang: lang, navIdPrefix: 'sidebar' }) %>

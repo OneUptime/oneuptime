@@ -673,7 +673,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               {formSteps && currentFormStepId && (
                 <div
                   style={{ flex: "0 1 auto" }}
-                  className="mr-10 hidden lg:block"
+                  className="mr-10 max-lg:hidden lg:block"
                 >
                   {/* Form Steps */}
 

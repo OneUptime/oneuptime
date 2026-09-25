@@ -96,7 +96,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
 
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 md:p-5">
           <div className="flex items-start gap-4">
-            <div className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
+            <div className="max-sm:hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
               <Icon icon={IconProp.Archive} size={SizeProp.Regular} />
             </div>
             <div className="min-w-0 flex-1">

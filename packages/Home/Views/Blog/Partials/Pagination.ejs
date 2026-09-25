@@ -7,7 +7,7 @@
         <span class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed">Previous</span>
       <% } %>
     </div>
-    <div class="hidden md:flex items-center gap-1">
+    <div class="max-md:hidden md:flex items-center gap-1">
       <% const windowSize = 5; let start = Math.max(1, page - Math.floor(windowSize/2)); let end = Math.min(totalPages, start + windowSize -1); if(end-start+1 < windowSize){ start = Math.max(1, end-windowSize+1);} %>
       <% if(start > 1){ %>
         <a href="<%- basePath %>?page=1&pageSize=<%- pageSize %>" class="px-3 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50">1</a>
