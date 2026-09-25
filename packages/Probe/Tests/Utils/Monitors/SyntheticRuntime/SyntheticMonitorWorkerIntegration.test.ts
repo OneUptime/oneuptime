@@ -15,6 +15,7 @@ import {
   isSyntheticMonitorWorkerResult,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorkerTypes";
 import ProcessTreeMemory, {
+  ProcessMemoryIdentity,
   ProportionalMemoryReading,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 
@@ -23,13 +24,20 @@ jest.setTimeout(1_500_000);
 const MEGABYTE: number = 1024 * 1024;
 /*
  * The production default. The watchdog holds a check to it by proportional
- * set size (see ProcessTreeMemory), which an idle Chromium check keeps at a
- * few hundred MB across its ~10 processes, while a tenant filling
- * memory-backed storage crosses it after roughly twenty 64 MB chunks.
+ * set size (see ProcessTreeMemory), which an idle Chromium check keeps at
+ * about half a GB across its ~10 processes.
  */
 const MAX_PROCESS_TREE_RSS_BYTES: number = 1536 * MEGABYTE;
 const MAX_DISK_BYTES: number = 64 * MEGABYTE;
 const OPFS_CHUNK_BYTES: number = 64 * MEGABYTE;
+/*
+ * How far above an idle Chromium check the storage test sets its memory
+ * limit: four chunks. An idle check's PSS varies by a few tens of MB from run
+ * to run, and a tenant holding its 64 MB chunk crosses the limit within four
+ * chunks of storage -- less than Chromium lets one origin store even on a
+ * 4 GB host.
+ */
+const STORAGE_LIMIT_HEADROOM_BYTES: number = 4 * OPFS_CHUNK_BYTES;
 
 interface ResidentProcessMemory {
   readonly pid: number;
@@ -42,7 +50,8 @@ interface StorageContainmentCase {
   executablePath: string;
   boundary: string;
   chunkCount: number;
-  expectedFailure: string;
+  // The watchdog that must stop the writes.
+  stoppedBy: "memory" | "disk";
 }
 
 describe("SyntheticMonitorWorker full process boundary", () => {
@@ -410,11 +419,21 @@ describe("SyntheticMonitorWorker full process boundary", () => {
    * directory's disk limit.
    *
    * Both limits are armed for both engines, so the watchdog that fires is the
-   * evidence of where the storage went. Chromium writes 2 GB -- more than its
-   * whole memory limit before the browser itself is counted -- past a 64 MB disk
-   * limit that stays quiet: the bytes are resident in the worker's process
-   * tree, not files in the run directory. Each attack holds its storage for a
-   * while after writing and then returns, so an unenforced limit fails the
+   * evidence of where the storage went. Chromium writes up to 2 GB past a
+   * 64 MB disk limit that stays quiet: the bytes are resident in the worker's
+   * process tree, not files in the run directory.
+   *
+   * How much of it Chromium keeps depends on the machine. An ephemeral
+   * context's storage quota is a share of the host's RAM -- about 1 GB for
+   * one origin on a 16 GB CI runner -- so writes past it fail with a
+   * QuotaExceededError, and on such a host a check holding all it may store
+   * sits barely over the 1.5 GiB production limit, if at all. The test
+   * therefore measures what an idle Chromium check holds, the way the
+   * watchdog will measure the attacks, and holds Chromium to four chunks
+   * above that.
+   *
+   * Each attack holds whatever it managed to store for a while -- also after
+   * a QuotaExceededError -- and then returns, so an unenforced limit fails the
    * test within seconds instead of hanging it, and a working watchdog never
    * races the script's return.
    */
@@ -425,7 +444,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       executablePath: chromium.executablePath(),
       boundary: "process-tree memory limit",
       chunkCount: 32,
-      expectedFailure: `Synthetic worker process tree exceeded memory limit of ${MAX_PROCESS_TREE_RSS_BYTES} bytes`,
+      stoppedBy: "memory",
     },
     {
       label: "Firefox",
@@ -433,7 +452,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       executablePath: firefox.executablePath(),
       boundary: "run directory disk limit",
       chunkCount: 2,
-      expectedFailure: `Synthetic worker run directory exceeded disk limit of ${MAX_DISK_BYTES} bytes`,
+      stoppedBy: "disk",
     },
   ])(
     "$label holds tenant OPFS writes to the $boundary and recovers cleanly",
@@ -441,27 +460,59 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       browserType,
       executablePath,
       chunkCount,
-      expectedFailure,
+      stoppedBy,
     }: StorageContainmentCase) => {
-      const runDirectories: string[] = [];
-      const mkdtempSpy: jest.SpyInstance = jest.spyOn(fs.promises, "mkdtemp");
-      const rmSpy: jest.SpyInstance = jest.spyOn(fs.promises, "rm");
-      const runner: ProcessRunner = createWorkerRunner({
-        maxProcessTreeRssBytes: MAX_PROCESS_TREE_RSS_BYTES,
-        rssPollIntervalInMs: 100,
-        maxDiskBytes: MAX_DISK_BYTES,
-        diskPollIntervalInMs: 50,
-      });
       const baseConfig: SyntheticMonitorWorkerConfig = createWorkerConfig({
         browserType,
         executablePath,
         code: "return { data: true };",
         timeoutInMs: 120_000,
       });
-      const writtenBytes: number = chunkCount * OPFS_CHUNK_BYTES;
+      const healthyCode: string = `
+        await page.goto(${JSON.stringify(targetUrl)});
+        const pageOpfsAvailable = await page.evaluate(() =>
+          typeof navigator.storage?.getDirectory === "function"
+        );
+        return { data: {
+          browserType,
+          ambientOpfsAvailable:
+            typeof navigator.storage?.getDirectory === "function",
+          pageOpfsAvailable,
+        } };
+      `;
+
+      let maxProcessTreeRssBytes: number = MAX_PROCESS_TREE_RSS_BYTES;
+      if (stoppedBy === "memory") {
+        const idleBytes: number = await measureCheckPeakBytes(
+          createWorkerRunner({ maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE }),
+          { ...baseConfig, code: healthyCode, timeoutInMs: 60_000 },
+        );
+        expect(idleBytes).toBeGreaterThan(0);
+        maxProcessTreeRssBytes = idleBytes + STORAGE_LIMIT_HEADROOM_BYTES;
+      }
+      const expectedFailure: string =
+        stoppedBy === "memory"
+          ? `Synthetic worker process tree exceeded memory limit of ${maxProcessTreeRssBytes} bytes`
+          : `Synthetic worker run directory exceeded disk limit of ${MAX_DISK_BYTES} bytes`;
+
+      const runDirectories: string[] = [];
+      const mkdtempSpy: jest.SpyInstance = jest.spyOn(fs.promises, "mkdtemp");
+      const rmSpy: jest.SpyInstance = jest.spyOn(fs.promises, "rm");
+      const runner: ProcessRunner = createWorkerRunner({
+        maxProcessTreeRssBytes,
+        rssPollIntervalInMs: 100,
+        maxDiskBytes: MAX_DISK_BYTES,
+        diskPollIntervalInMs: 50,
+      });
+      /*
+       * `written` counts the chunks stored and `stoppedBy` is the storage
+       * error that ended the writes early, if any.
+       */
       const holdThenReturn: string = `
         await new Promise((resolve) => setTimeout(resolve, 30000));
-        return { data: "wrote ${writtenBytes} bytes of OPFS within the limits" };
+        return { data: "wrote " + written * ${OPFS_CHUNK_BYTES} +
+          " of ${chunkCount * OPFS_CHUNK_BYTES} bytes of OPFS within the limits" +
+          (stoppedBy ? ", then: " + stoppedBy : "") };
       `;
 
       const attacks: Array<{ label: string; code: string }> = [
@@ -470,15 +521,22 @@ describe("SyntheticMonitorWorker full process boundary", () => {
           code: `
             const root = await navigator.storage.getDirectory();
             const chunk = new Uint8Array(${OPFS_CHUNK_BYTES}).fill(0x5a);
-            for (let index = 0; index < ${chunkCount}; index++) {
-              const file = await root.getFileHandle(
-                "quota-fill-" + index + ".bin",
-                { create: true }
-              );
-              const access = await file.createSyncAccessHandle();
-              access.write(chunk, { at: 0 });
-              access.flush();
-              access.close();
+            let written = 0;
+            let stoppedBy = null;
+            try {
+              for (let index = 0; index < ${chunkCount}; index++) {
+                const file = await root.getFileHandle(
+                  "quota-fill-" + index + ".bin",
+                  { create: true }
+                );
+                const access = await file.createSyncAccessHandle();
+                access.write(chunk, { at: 0 });
+                access.flush();
+                access.close();
+                written++;
+              }
+            } catch (error) {
+              stoppedBy = String(error);
             }
             ${holdThenReturn}
           `,
@@ -487,18 +545,25 @@ describe("SyntheticMonitorWorker full process boundary", () => {
           label: "page.evaluate OPFS",
           code: `
             await page.goto(${JSON.stringify(targetUrl)});
-            await page.evaluate(async () => {
+            const { written, stoppedBy } = await page.evaluate(async () => {
               const root = await navigator.storage.getDirectory();
               const chunk = new Uint8Array(${OPFS_CHUNK_BYTES}).fill(0x5a);
-              for (let index = 0; index < ${chunkCount}; index++) {
-                const file = await root.getFileHandle(
-                  "quota-fill-" + index + ".bin",
-                  { create: true }
-                );
-                const writable = await file.createWritable();
-                await writable.write(chunk);
-                await writable.close();
+              let written = 0;
+              try {
+                for (let index = 0; index < ${chunkCount}; index++) {
+                  const file = await root.getFileHandle(
+                    "quota-fill-" + index + ".bin",
+                    { create: true }
+                  );
+                  const writable = await file.createWritable();
+                  await writable.write(chunk);
+                  await writable.close();
+                  written++;
+                }
+              } catch (error) {
+                return { written, stoppedBy: String(error) };
               }
+              return { written, stoppedBy: null };
             });
             ${holdThenReturn}
           `,
@@ -538,18 +603,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
         >({
           payload: {
             ...baseConfig,
-            code: `
-            await page.goto(${JSON.stringify(targetUrl)});
-            const pageOpfsAvailable = await page.evaluate(() =>
-              typeof navigator.storage?.getDirectory === "function"
-            );
-            return { data: {
-              browserType,
-              ambientOpfsAvailable:
-                typeof navigator.storage?.getDirectory === "function",
-              pageOpfsAvailable,
-            } };
-          `,
+            code: healthyCode,
             timeoutInMs: 60_000,
           },
           timeoutInMs: 300_000,
@@ -717,7 +771,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       expect(fittingLimitBytes).toBeLessThan(peaks.residentBytes);
       const measureProportionalBytes: typeof ProcessTreeMemory.measureProportionalBytes =
         ProcessTreeMemory.measureProportionalBytes.bind(ProcessTreeMemory);
-      const watchdogReadings: number[] = [];
+      const watchdogReadings: ProportionalMemoryReading[] = [];
       jest
         .spyOn(ProcessTreeMemory, "measureProportionalBytes")
         .mockImplementation(
@@ -728,8 +782,17 @@ describe("SyntheticMonitorWorker full process boundary", () => {
           ): Promise<ProportionalMemoryReading> => {
             const reading: ProportionalMemoryReading =
               await measureProportionalBytes(data);
-            expect(reading.isComplete).toBe(true);
-            watchdogReadings.push(reading.observedBytes);
+            /*
+             * The watchdog is stopped as soon as the check returns, and a
+             * reading still in flight then is abandoned -- incomplete, with
+             * every process at its VmRSS -- and discarded: the check is never
+             * judged by it. Asserted on after the run rather than here, where
+             * a failed expectation would reject the watchdog's reading
+             * instead of failing the test.
+             */
+            if (!data.signal?.aborted) {
+              watchdogReadings.push(reading);
+            }
             return reading;
           },
         );
@@ -744,9 +807,22 @@ describe("SyntheticMonitorWorker full process boundary", () => {
         expect.objectContaining({ data: "checked" }),
       );
       expect(watchdogReadings.length).toBeGreaterThan(0);
-      expect(Math.max(...watchdogReadings)).toBeLessThanOrEqual(
-        fittingLimitBytes,
-      );
+      expect(
+        watchdogReadings
+          .filter((reading: ProportionalMemoryReading) => {
+            return !reading.isComplete;
+          })
+          .map((reading: ProportionalMemoryReading) => {
+            return reading.failure;
+          }),
+      ).toEqual([]);
+      expect(
+        Math.max(
+          ...watchdogReadings.map((reading: ProportionalMemoryReading) => {
+            return reading.observedBytes;
+          }),
+        ),
+      ).toBeLessThanOrEqual(fittingLimitBytes);
 
       // 3. A limit below what the check holds still stops it.
       const tightLimitBytes: number = Math.floor(peaks.proportionalBytes * 0.6);
@@ -814,6 +890,83 @@ function readWorkerProcessTree(): ResidentProcessMemory[] {
     pending.push(...childrenOf(pid));
   }
   return tree;
+}
+
+/*
+ * The most memory a check's process tree holds while it runs, sampled every
+ * 100 ms and measured the way the watchdog measures it: by ProcessTreeMemory,
+ * with the identity the check runs under. Run as the test's own user, that
+ * is each process's PSS. Run as root, the runner gives the check a sandbox
+ * uid, and its PSS is read through the probe image's helper -- or, where
+ * there is none, every process counts at its VmRSS, as the watchdog then
+ * counts it too.
+ */
+async function measureCheckPeakBytes(
+  runner: ProcessRunner,
+  config: SyntheticMonitorWorkerConfig,
+): Promise<number> {
+  let peakBytes: number = 0;
+  let sampling: boolean = true;
+  const sampler: Promise<void> = (async (): Promise<void> => {
+    while (sampling) {
+      const tree: ResidentProcessMemory[] = readWorkerProcessTree();
+      if (tree.length > 0) {
+        const reading: ProportionalMemoryReading =
+          await ProcessTreeMemory.measureProportionalBytes({
+            pids: tree.map((entry: ResidentProcessMemory) => {
+              return entry.pid;
+            }),
+            identity: readSandboxIdentity(
+              (tree[0] as ResidentProcessMemory).pid,
+            ),
+          });
+        // An incomplete reading counts every process at its VmRSS.
+        if (reading.isComplete) {
+          peakBytes = Math.max(peakBytes, reading.observedBytes);
+        }
+      }
+      await delay(100);
+    }
+  })();
+  const result: ProcessRunResult<SyntheticMonitorWorkerResult> = await runner
+    .run<SyntheticMonitorWorkerConfig, SyntheticMonitorWorkerResult>({
+      payload: config,
+      timeoutInMs: 300_000,
+      validateResult: isSyntheticMonitorWorkerResult,
+    })
+    .finally(() => {
+      sampling = false;
+    });
+  await sampler;
+
+  expect(result.result.scriptError).toBeUndefined();
+  return peakBytes;
+}
+
+/*
+ * The uid and gid a worker runs under, when the runner gave it its own; null
+ * when it runs as this process's user.
+ */
+function readSandboxIdentity(workerPid: number): ProcessMemoryIdentity | null {
+  let status: string;
+  try {
+    status = fs.readFileSync(`/proc/${workerPid}/status`, "utf8");
+  } catch {
+    // Exited while being read.
+    return null;
+  }
+
+  const uid: number = Number(status.match(/^Uid:\s+(\d+)/m)?.[1]);
+  const gid: number = Number(status.match(/^Gid:\s+(\d+)/m)?.[1]);
+  if (
+    !Number.isInteger(uid) ||
+    !Number.isInteger(gid) ||
+    typeof process.getuid !== "function" ||
+    uid === process.getuid()
+  ) {
+    return null;
+  }
+  return { uid, gid };
 }
 
 function createWorkerRunner(
