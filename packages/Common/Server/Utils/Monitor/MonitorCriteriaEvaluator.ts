@@ -132,7 +132,6 @@ import PlatformResourceIdentity, {
   ProxmoxResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
-import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 
@@ -4660,7 +4659,9 @@ ${contextBlock}
         .map((f: CriteriaFilter) => {
           return {
             filter: f,
-            threshold: CompareCriteria.convertToNumber(f.value) as number,
+            threshold: CompareCriteria.convertMetricThresholdToNumber(
+              f.value,
+            ) as number,
           };
         })
         .filter((f: { filter: CriteriaFilter; threshold: number | null }) => {
