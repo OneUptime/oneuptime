@@ -15,6 +15,7 @@ import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Select from "../../../Server/Types/Database/Select";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
@@ -225,6 +226,14 @@ interface ReminderKind {
     projectId: ObjectID;
     options?: RefreshOpenSubjectsOptions;
   }): Promise<void>;
+  /*
+   * Replaces the subject service's refreshReminderSchedule with
+   * `onRefresh`, for a test about which subjects the rule service hands to
+   * it rather than what it writes. The caller restores the returned spy.
+   */
+  stubRefreshReminderSchedule(onRefresh: (subjectId: string) => void): {
+    mockRestore(): void;
+  };
 }
 
 /*
@@ -517,6 +526,16 @@ const KINDS: Array<ReminderKind> = [
         data.options,
       );
     },
+    stubRefreshReminderSchedule: (
+      onRefresh: (subjectId: string) => void,
+    ): { mockRestore(): void } => {
+      return jest
+        .spyOn(IncidentService, "refreshReminderSchedule")
+        .mockImplementation((data: { incidentId: ObjectID }): Promise<void> => {
+          onRefresh(data.incidentId.toString());
+          return Promise.resolve();
+        });
+    },
   },
   {
     name: "Alert",
@@ -592,6 +611,16 @@ const KINDS: Array<ReminderKind> = [
         data.projectId,
         data.options,
       );
+    },
+    stubRefreshReminderSchedule: (
+      onRefresh: (subjectId: string) => void,
+    ): { mockRestore(): void } => {
+      return jest
+        .spyOn(AlertService, "refreshReminderSchedule")
+        .mockImplementation((data: { alertId: ObjectID }): Promise<void> => {
+          onRefresh(data.alertId.toString());
+          return Promise.resolve();
+        });
     },
   },
   {
@@ -669,6 +698,18 @@ const KINDS: Array<ReminderKind> = [
         data.projectId,
         data.options,
       );
+    },
+    stubRefreshReminderSchedule: (
+      onRefresh: (subjectId: string) => void,
+    ): { mockRestore(): void } => {
+      return jest
+        .spyOn(ScheduledMaintenanceService, "refreshReminderSchedule")
+        .mockImplementation(
+          (data: { scheduledMaintenanceId: ObjectID }): Promise<void> => {
+            onRefresh(data.scheduledMaintenanceId.toString());
+            return Promise.resolve();
+          },
+        );
     },
   },
 ];
@@ -1052,6 +1093,46 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
     }
 
     return id;
+  }
+
+  /*
+   * `count` open subjects of the test project with no reminder, in one
+   * statement, as seedSubject would write each; returns their ids. For
+   * seeding more subjects than one read returns.
+   */
+  async function seedOpenSubjectsWithoutReminder(
+    kind: ReminderKind,
+    count: number,
+  ): Promise<Array<string>> {
+    const rows: Array<SqlRow> = Array.from({ length: count }, (): SqlRow => {
+      return {
+        ...kind.subjectRow({
+          id: ObjectID.generate(),
+          projectId: projectId,
+          stateId: openStateIds[kind.name]!,
+          severityId: ObjectID.generate(),
+        }),
+        enableReminders: true,
+        nextReminderNotificationAt: null,
+      };
+    });
+
+    const columns: string = Object.keys(rows[0]!)
+      .map((column: string): string => {
+        return `"${column}"`;
+      })
+      .join(", ");
+
+    await database.query(
+      `INSERT INTO "${schema}"."${kind.subjectTable}" (${columns})
+       SELECT ${columns}
+         FROM json_populate_recordset(NULL::"${schema}"."${kind.subjectTable}", $1)`,
+      [JSON.stringify(rows)],
+    );
+
+    return rows.map((row: SqlRow): string => {
+      return row["_id"] as string;
+    });
   }
 
   async function nextReminderAt(
@@ -1966,6 +2047,69 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
           expect(await nextReminderAt(kind, subjects.remindersOff)).toBeNull();
         },
       );
+
+      /*
+       * More open subjects without a reminder than one read returns, so the
+       * backfill's second read runs on Postgres with the `_id > cursor`
+       * filter beside the project, state and NULL filters, sorted by `_id`.
+       * Every read is real; only the per-subject refresh is stubbed (what it
+       * writes is covered above), which keeps LIMIT_MAX subjects cheap.
+       * Without the option the same subjects get one read of LIMIT_MAX, as
+       * the rule hooks have always read them.
+       */
+      test("with onlyWithoutNextReminder, pages through more than LIMIT_MAX open subjects without a reminder, handing each to the refresh once; without it, reads LIMIT_MAX once", async () => {
+        const unscheduled: Array<string> =
+          await seedOpenSubjectsWithoutReminder(kind, LIMIT_MAX + 3);
+
+        const scheduled: ObjectID = await seedSubject(kind, {
+          nextReminderNotificationAt: new Date(Date.now() + MINUTE_IN_MS),
+        });
+        const resolved: ObjectID = await seedSubject(kind, { resolved: true });
+        const otherProjectSubject: ObjectID = ObjectID.generate();
+        await insert(kind.subjectTable, {
+          ...kind.subjectRow({
+            id: otherProjectSubject,
+            projectId: otherProjectId,
+            stateId: openStateIds[kind.name]!,
+            severityId: ObjectID.generate(),
+          }),
+          enableReminders: true,
+          nextReminderNotificationAt: null,
+        });
+
+        const refreshed: Array<string> = [];
+        const stub: { mockRestore(): void } = kind.stubRefreshReminderSchedule(
+          (subjectId: string): void => {
+            refreshed.push(subjectId);
+          },
+        );
+
+        try {
+          await refreshOpenSubjects(kind, { onlyWithoutNextReminder: true });
+
+          expect([...refreshed].sort()).toEqual([...unscheduled].sort());
+
+          refreshed.length = 0;
+          await refreshOpenSubjects(kind);
+
+          const openInProject: Set<string> = new Set<string>([
+            ...unscheduled,
+            scheduled.toString(),
+          ]);
+
+          expect(refreshed).toHaveLength(LIMIT_MAX);
+          expect(new Set<string>(refreshed).size).toBe(LIMIT_MAX);
+          expect(
+            refreshed.filter((subjectId: string): boolean => {
+              return !openInProject.has(subjectId);
+            }),
+          ).toEqual([]);
+          expect(refreshed).not.toContain(resolved.toString());
+          expect(refreshed).not.toContain(otherProjectSubject.toString());
+        } finally {
+          stub.mockRestore();
+        }
+      });
     });
 
     describe("editing rules through the service re-evaluates open subjects", () => {

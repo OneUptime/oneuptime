@@ -515,7 +515,11 @@ describe("ScheduleRemindersMissedByReminderRuleLookup", () => {
       expect(refreshedProjectIds(kind)).toEqual([projectId.toString()]);
     });
 
-    test("carries on to the other projects when one project's refresh throws", async () => {
+    /*
+     * The real refresh logs and swallows its own failures, so nothing is
+     * expected to escape it. This pins the backstop for whatever does.
+     */
+    test("logs a throw that escapes one project's refresh, with the project, and carries on to the others", async () => {
       const failing: ObjectID = ObjectID.generate();
       const healthy: Array<ObjectID> = [
         ObjectID.generate(),
@@ -545,10 +549,6 @@ describe("ScheduleRemindersMissedByReminderRuleLookup", () => {
       expect(String(failureLog![0])).toContain("refresh exploded");
       expect(failureLog![1]).toEqual({ projectId: failing.toString() });
       expect(mockedLogger.error).toHaveBeenCalledTimes(1);
-
-      expect(mockedLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining(`(1 failed)`),
-      );
     });
 
     test("still refreshes the projects read before a later page failed", async () => {
@@ -630,7 +630,12 @@ describe("ScheduleRemindersMissedByReminderRuleLookup", () => {
       },
     );
 
-    test("logs one summary per kind, with the number of projects walked", async () => {
+    /*
+     * No failure count: the refresh logs its own failures and never lets
+     * one escape, so a count kept here would always read zero and tell an
+     * operator that nothing failed when it cannot know.
+     */
+    test("logs one summary per kind, with the number of projects walked and no failure count", async () => {
       serveRules(
         INCIDENT,
         makeRules(INCIDENT, [ObjectID.generate(), ObjectID.generate()]),
@@ -650,6 +655,14 @@ describe("ScheduleRemindersMissedByReminderRuleLookup", () => {
       expect(summaries[2]).toContain(
         "open scheduled maintenance reminders of 0 project(s)",
       );
+
+      for (const summary of summaries) {
+        expect(summary).not.toMatch(/\d+ failed/);
+        expect(summary).toContain(
+          "Failures are not counted here: the refresh logs each",
+        );
+        expect(summary).toContain("with the projectId");
+      }
     });
   });
 

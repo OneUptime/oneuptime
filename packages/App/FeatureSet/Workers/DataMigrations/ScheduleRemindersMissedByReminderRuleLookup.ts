@@ -12,7 +12,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
- * The one column this pass reads from a reminder rule. All three rule models
+ * The two columns this pass reads from a reminder rule: its id, the cursor
+ * the rule pages are walked by, and its project. All three rule models
  * satisfy it as they are.
  */
 interface ReminderRuleProjectRow {
@@ -40,8 +41,8 @@ interface ReminderRuleKind {
  * criteria-backed isEnabled filter left the table alias unquoted). That read
  * is findMatchingRule, so refreshReminderSchedule threw before writing
  * nextReminderNotificationAt, and every caller (creating the subject, changing
- * its labels, severity or enableReminders, creating or editing a rule) only
- * logged the error. Subjects opened or re-evaluated in that window were left
+ * the fields that pick its rule, creating or editing a rule) only logged the
+ * error. Subjects opened or re-evaluated in that window were left
  * with nextReminderNotificationAt = NULL.
  *
  * The fix alone does not reach them. The reminder workers
@@ -63,6 +64,10 @@ interface ReminderRuleKind {
  * threw, so it left the timestamp in place and retried every minute, and
  * once the fix ships it sends that overdue reminder on its next tick.
  * Re-scheduling it here would push that reminder one full interval later.
+ * With that option the refresh reads every such subject of the project, in
+ * `_id`-cursored pages of LIMIT_MAX, so a project with more of them than one
+ * read returns (a noisy alert project, where the subjects no rule matches
+ * stay NULL) is covered in full.
  *
  * A subject whose NULL was correct (no rule matches it, reminders are off on
  * it, or its rule stops on acknowledgement and it was acknowledged) is
@@ -76,10 +81,26 @@ interface ReminderRuleKind {
  * longer NULL, so the other pass leaves it alone, and two passes that
  * schedule the same subject write the same rule's interval from now.
  *
- * Best effort: a project that fails is logged with its id and the rest carry
- * on, and a kind whose rules cannot be read is logged and the other kinds
- * still run. None of that halts the migrations queued behind this one. The
- * next edit of a rule in a missed project runs the same refresh.
+ * Best effort: a subject or project the refresh cannot refresh is logged by
+ * the refresh itself, with the projectId, and the rest carry on; a kind whose
+ * rules cannot be read is logged and the other kinds still run. None of that
+ * halts the migrations queued behind this one.
+ *
+ * Not covered: subjects opened by pre-fix pods while the rollout is still in
+ * progress, once this pass has walked their project. The runner records this
+ * migration as executed once migrate() resolves and never runs it again
+ * (Workers/Utils/DataMigration.ts), but the pods still on the old code keep
+ * failing the rule lookup, and so keep leaving NULLs, until the rollout
+ * replaces them. With the Helm default
+ * (migrate.hook: false) the migrate Job runs while the pods roll, and with
+ * migrate.hook: true it runs pre-upgrade, before any pod is replaced, so
+ * either way pre-fix pods can outlive the backfill; the same holds for a
+ * subject whose rule-picking fields a pre-fix pod changed in that window. To reach them, re-save any reminder rule of that kind in the
+ * project: its hooks run the same refresh for the project's open subjects
+ * (without the NULL narrowing, so it also re-schedules the ones that already
+ * have a timestamp, and in one read of at most LIMIT_MAX). Editing a
+ * subject's labels or enableReminders (or its severity, for incidents and
+ * alerts) re-evaluates that subject alone.
  */
 export default class ScheduleRemindersMissedByReminderRuleLookup extends DataMigrationBase {
   public constructor() {
@@ -98,18 +119,18 @@ export default class ScheduleRemindersMissedByReminderRuleLookup extends DataMig
     const projectIds: Array<ObjectID> =
       await this.findProjectIdsWithEnabledRules(kind);
 
-    let failedProjectCount: number = 0;
-
     for (const projectId of projectIds) {
       /*
-       * The refresh already logs and swallows its own failures, per subject
-       * and per project. This catch is for whatever escapes it, so that one
-       * project can never cost the others their reminders.
+       * Not expected to catch anything: the refresh logs and swallows its
+       * own failures, each subject it could not refresh and each project it
+       * could not read, with the projectId. That is also why the summary
+       * below counts no failures: it would always say none. This is a
+       * backstop, so that a throw escaping the refresh can never cost the
+       * remaining projects their reminders.
        */
       try {
         await kind.scheduleOpenSubjectsWithoutReminder(projectId);
       } catch (err) {
-        failedProjectCount++;
         logger.error(
           `ScheduleRemindersMissedByReminderRuleLookup: failed to schedule missed ${kind.label} reminders for project ${projectId.toString()}: ${err}`,
           { projectId: projectId.toString() } as LogAttributes,
@@ -118,7 +139,7 @@ export default class ScheduleRemindersMissedByReminderRuleLookup extends DataMig
     }
 
     logger.info(
-      `ScheduleRemindersMissedByReminderRuleLookup: re-evaluated the unscheduled open ${kind.label} reminders of ${projectIds.length} project(s) with an enabled ${kind.label} reminder rule (${failedProjectCount} failed).`,
+      `ScheduleRemindersMissedByReminderRuleLookup: re-evaluated the unscheduled open ${kind.label} reminders of ${projectIds.length} project(s) with an enabled ${kind.label} reminder rule. Failures are not counted here: the refresh logs each ${kind.label} and each project it could not refresh, with the projectId.`,
     );
   }
 
