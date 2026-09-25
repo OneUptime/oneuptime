@@ -407,9 +407,66 @@ export const SERVER_COMMANDS: Array<ContainerCommandCase> = [
     command: ["timeout", "30", "psql", "-h", "db"],
     role: "server",
   },
+  // Launchers are looked through to the program they start.
   {
-    name: "env running a client (unreadable)",
-    command: ["env", "PGPASSWORD=x", "psql"],
+    name: "env with a setting, then the server",
+    command: ["env", "PGDATA=/data/pg", "postgres"],
+    role: "server",
+  },
+  {
+    name: "tini -g -- the server",
+    command: ["/sbin/tini", "-g", "--", "redis-server", "/conf/redis.conf"],
+    role: "server",
+  },
+  {
+    name: "docker-entrypoint.sh with server flags (the entrypoint prepends the server)",
+    command: ["docker-entrypoint.sh", "-c", "max_connections=150"],
+    role: "server",
+  },
+  {
+    name: "docker-entrypoint.sh with a redis config file (the entrypoint prepends the server)",
+    command: ["docker-entrypoint.sh", "/usr/local/etc/redis/redis.conf"],
+    role: "server",
+  },
+  {
+    name: "tini -- docker-entrypoint.sh with server flags",
+    command: ["tini", "--", "docker-entrypoint.sh", "--appendonly", "yes"],
+    role: "server",
+  },
+  {
+    name: "env with a flag that takes a value (unreadable)",
+    command: ["env", "-u", "HOME", "psql", "-h", "db"],
+    role: "server",
+  },
+  {
+    name: "a launcher with nothing to launch (unreadable)",
+    command: ["env"],
+    role: "server",
+  },
+  {
+    name: "launchers deeper than are read (unreadable)",
+    command: [
+      "env",
+      "A=1",
+      "B=2",
+      "C=3",
+      "D=4",
+      "E=5",
+      "F=6",
+      "G=7",
+      "H=8",
+      "psql",
+    ],
+    role: "server",
+  },
+  {
+    name: "a server started through env inside a script",
+    command: ["sh", "-c", "env PGDATA=/data/pg postgres"],
+    role: "server",
+  },
+  {
+    name: "a server started with nohup in the background, then wait",
+    command: ["sh", "-c", "nohup mongod --bind_ip_all & wait"],
     role: "server",
   },
   {
@@ -461,6 +518,22 @@ export const COMPANION_COMMANDS: Array<ContainerCommandCase> = [
   {
     name: "sh -c exec redis-sentinel",
     command: ["sh", "-c", "exec redis-sentinel /etc/redis/sentinel.conf"],
+    role: "companion",
+  },
+  {
+    name: "tini -- redis-sentinel",
+    command: ["tini", "--", "redis-sentinel", "/conf/sentinel.conf"],
+    role: "companion",
+  },
+  {
+    name: "tini -- redis-server --sentinel",
+    command: [
+      "tini",
+      "--",
+      "redis-server",
+      "/conf/sentinel.conf",
+      "--sentinel",
+    ],
     role: "companion",
   },
 ];
@@ -587,6 +660,90 @@ export const CLIENT_COMMANDS: Array<ContainerCommandCase> = [
     args: ["set -x\nredis-cli -h cache-redis-master -p 6379 ping"],
     role: "client",
   },
+  // The kind cluster's end-to-end run: both were discovered as PostgreSQL.
+  {
+    name: "e2e pg-client-envprefix: a password assignment before psql, no port",
+    command: [
+      "sh",
+      "-c",
+      "PGPASSWORD=e2e-pg-pass psql -h postgres -U postgres -c 'select pg_sleep(100000)'",
+    ],
+    role: "client",
+  },
+  {
+    name: "e2e pg-client-loop: a while-true psql loop",
+    command: [
+      "sh",
+      "-c",
+      "while true; do psql -h postgres -U postgres -c 'select 1' >/dev/null 2>&1; sleep 15; done",
+    ],
+    role: "client",
+  },
+  {
+    name: "env with a password assignment, then psql",
+    command: ["env", "PGPASSWORD=x", "psql"],
+    role: "client",
+  },
+  {
+    name: "env -i with settings, then psql by its path",
+    command: [
+      "/usr/bin/env",
+      "-i",
+      "PGHOST=db",
+      "/usr/bin/psql",
+      "-c",
+      "select 1",
+    ],
+    role: "client",
+  },
+  {
+    name: "nohup psql",
+    command: ["nohup", "psql", "-h", "db", "-c", "select pg_sleep(3600)"],
+    role: "client",
+  },
+  {
+    name: "tini -- psql",
+    command: ["tini", "--", "psql", "-h", "db"],
+    role: "client",
+  },
+  {
+    name: "dumb-init -- redis-cli monitor",
+    command: [
+      "/usr/bin/dumb-init",
+      "--",
+      "redis-cli",
+      "-h",
+      "cache",
+      "monitor",
+    ],
+    role: "client",
+  },
+  {
+    name: "tini -- a psql loop through sh -c",
+    command: [
+      "tini",
+      "--",
+      "sh",
+      "-c",
+      "while true; do psql -h db -c 'select 1'; sleep 5; done",
+    ],
+    role: "client",
+  },
+  {
+    name: "docker-entrypoint.sh psql",
+    command: ["docker-entrypoint.sh", "psql", "-h", "db"],
+    role: "client",
+  },
+  {
+    name: "exec env PGPASSWORD=… psql inside a script",
+    command: ["sh", "-c", "exec env PGPASSWORD=$PW psql -h db -f /x.sql"],
+    role: "client",
+  },
+  {
+    name: "set -e, then nohup psql",
+    command: ["bash", "-c", "set -e; nohup psql -h db -c 'select 1'"],
+    role: "client",
+  },
 ];
 
 export const KEEP_ALIVE_COMMANDS: Array<ContainerCommandCase> = [
@@ -634,6 +791,21 @@ export const KEEP_ALIVE_COMMANDS: Array<ContainerCommandCase> = [
   {
     name: "echo, then sleep",
     command: ["sh", "-c", "echo 'debug pod'; sleep infinity"],
+    role: "keep-alive",
+  },
+  {
+    name: "docker-entrypoint.sh sleep infinity",
+    command: ["docker-entrypoint.sh", "sleep", "infinity"],
+    role: "keep-alive",
+  },
+  {
+    name: "tini -- sleep infinity",
+    command: ["tini", "--", "sleep", "infinity"],
+    role: "keep-alive",
+  },
+  {
+    name: "env sleep",
+    command: ["env", "sleep", "3600"],
     role: "keep-alive",
   },
 ];

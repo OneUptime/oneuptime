@@ -111,6 +111,21 @@ describePostgres("the container command projection on Postgres", () => {
       ["sh", "-c", "\u{1F600}".repeat(16384)],
       ["sh", "-c", `psql ${"\u{1F600}".repeat(16379)}`],
       ["sh", "-c", `psql ${"\u{1F600}".repeat(16380)}`],
+      // Launchers: gaps, blanks, junk and the depth limit around them.
+      ["env", null, "psql"],
+      ["env", "", "psql"],
+      ["env", "   ", "psql"],
+      ["tini", "--"],
+      ["tini", "--", null],
+      ["docker-entrypoint.sh"],
+      ["docker-entrypoint.sh", "A=1", "psql"],
+      ["/usr/local/bin/DOCKER-ENTRYPOINT.SH", "sleep", "1"],
+      ["  env", "X=1", "\tpsql"],
+      ["env", ...Array(7).fill("X=1"), "psql"],
+      ["env", ...Array(8).fill("X=1"), "psql"],
+      ["nohup", "env", "tini", "--", "dumb-init", "sh", "-c", "psql"],
+      ["-c", "env", "psql"],
+      ["X=1", "psql"],
     ]) {
       expect(await project(argv)).toEqual(reduceContainerCommand(argv));
     }
@@ -124,6 +139,10 @@ describePostgres("the container command projection on Postgres", () => {
       ["sh", "-c", `redis-server --requirepass ${secret}`],
       ["sh", "-c", `cat > /etc/secret <<EOF\n${secret}\nEOF\nexec postgres`],
       ["bash", "-o", secret, "-c", "exec postgres"],
+      ["env", `PGPASSWORD=${secret}`, "psql"],
+      ["env", `PGPASSWORD=${secret}`],
+      ["tini", "--", "sh", "-c", `PGPASSWORD=${secret} psql -h db`],
+      ["docker-entrypoint.sh", `--requirepass=${secret}`],
     ]) {
       expect(JSON.stringify(await project(argv))).not.toContain("hunter2");
     }

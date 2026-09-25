@@ -171,17 +171,28 @@ import {
   MAX_PARENTS_PER_PLATFORM,
   MEMBER_FRESHNESS_WINDOW_MS,
   MIN_OBSERVED_LIFETIME_MS,
+  KubernetesPodRow,
   PARENT_PAGE_SIZE,
   RUN_BUDGET_MS,
+  STALE_HOST_INVENTORY_MS,
+  dedupeParentsByIdentifier,
   groupContainerDatabases,
   hasProvenLifetime,
   isFreshMember,
+  isRunningKubernetesMember,
+  kubernetesMemberTiming,
   newestSeenAt,
   observedLifetimeMs,
   orderParentsForRun,
   parentRotationKey,
   toKubernetesPodLike,
 } from "../../../../FeatureSet/Workers/Jobs/DatabaseServer/DiscoverContainerDatabases";
+import {
+  CAPTURED_CONTAINERS,
+  CAPTURE_OBSERVED_AT,
+  CapturedContainer,
+  capturedStartedAt,
+} from "../../../Fixtures/DockerStatsCapture";
 
 const JOB_NAME: string = "DatabaseServer:DiscoverContainerDatabases";
 
@@ -327,12 +338,19 @@ function host(data: {
   id: string;
   projectId?: string;
   hostIdentifier?: string | undefined;
-}): { _id: string; projectId: ObjectID; hostIdentifier: string | undefined } {
+  lastSeenAt?: Date | undefined;
+}): {
+  _id: string;
+  projectId: ObjectID;
+  hostIdentifier: string | undefined;
+  lastSeenAt: Date | undefined;
+} {
   return {
     _id: data.id,
     projectId: new ObjectID(data.projectId || PROJECT_A),
     hostIdentifier:
       "hostIdentifier" in data ? data.hostIdentifier : "docker-host-1",
+    lastSeenAt: data.lastSeenAt,
   };
 }
 
@@ -350,6 +368,8 @@ interface PodRow {
   createdAt: Date;
   // No KubernetesContainer rows are derived from the spec.
   noContainerRows?: boolean | undefined;
+  // The pod's status as the inventory stores it (conditions, containerStatuses).
+  status?: unknown;
 }
 
 function pod(data: {
@@ -365,6 +385,7 @@ function pod(data: {
   resourceCreationTimestamp?: Date | null;
   createdAt?: Date;
   noContainerRows?: boolean;
+  status?: unknown;
 }): PodRow {
   return {
     clusterId: data.clusterId ?? CLUSTER_A,
@@ -394,6 +415,7 @@ function pod(data: {
         : data.resourceCreationTimestamp,
     createdAt: data.createdAt ?? LONG_AGO,
     noContainerRows: data.noContainerRows,
+    status: data.status,
   };
 }
 
@@ -524,13 +546,21 @@ function allContainerRows(): Array<ContainerFixture> {
  * What CANDIDATE_PODS_SQL's projection returns for a stored spec. The
  * command reduction is reduceContainerCommand, the JavaScript twin of the
  * containerCommandProjectionSql fragment the query embeds (held to Postgres
- * by Common's DatabaseContainerCommandPostgres test).
+ * by Common's DatabaseContainerCommandPostgres test); `ready` / `state` come
+ * from the container's containerStatuses entry (by name), null without one.
  */
-function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
+function projectLikeSql(
+  spec: unknown,
+  status?: unknown,
+): Array<Record<string, unknown>> {
   const containers: unknown = isRecord(spec) ? spec["containers"] : undefined;
   if (!Array.isArray(containers)) {
     return [];
   }
+  const statuses: Array<Record<string, unknown>> =
+    isRecord(status) && Array.isArray(status["containerStatuses"])
+      ? status["containerStatuses"].filter(isRecord)
+      : [];
   return containers
     .filter(isRecord)
     .map((entry: Record<string, unknown>): Record<string, unknown> => {
@@ -538,6 +568,10 @@ function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
         ...(Array.isArray(entry["command"]) ? entry["command"] : []),
         ...(Array.isArray(entry["args"]) ? entry["args"] : []),
       ];
+      const containerStatus: Record<string, unknown> | undefined =
+        statuses.find((candidate: Record<string, unknown>): boolean => {
+          return candidate["name"] === entry["name"];
+        });
       return {
         name: entry["name"] ?? null,
         image: entry["image"] ?? null,
@@ -549,8 +583,30 @@ function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
               })
           : [],
         command: reduceContainerCommand(argv),
+        ready: containerStatus?.["ready"] ?? null,
+        state: containerStatus?.["state"] ?? null,
       };
     });
+}
+
+// The pod's Ready condition as CANDIDATE_PODS_SQL projects it, or null.
+function readyConditionLikeSql(
+  status: unknown,
+): Record<string, unknown> | null {
+  const conditions: unknown = isRecord(status)
+    ? status["conditions"]
+    : undefined;
+  const ready: Record<string, unknown> | undefined = Array.isArray(conditions)
+    ? conditions.filter(isRecord).find((condition: Record<string, unknown>) => {
+        return condition["type"] === "Ready";
+      })
+    : undefined;
+  return ready
+    ? {
+        status: ready["status"] ?? null,
+        lastTransitionTime: ready["lastTransitionTime"] ?? null,
+      }
+    : null;
 }
 
 function podsOf(clusterId: string): Array<PodRow> {
@@ -643,7 +699,8 @@ async function rawQuery(
           lastSeenAt: row.lastSeenAt,
           resourceCreationTimestamp: row.resourceCreationTimestamp,
           createdAt: row.createdAt,
-          containers: projectLikeSql(row.spec),
+          containers: projectLikeSql(row.spec, row.status),
+          readyCondition: readyConditionLikeSql(row.status),
         };
       });
   }
@@ -913,6 +970,8 @@ function allLoggedText(): string {
 beforeEach(() => {
   jest.restoreAllMocks();
   jest.resetAllMocks();
+  // The wall clock the job judges a host's inventory against: the fixtures' NOW.
+  jest.spyOn(Date, "now").mockReturnValue(NOW);
   arrange({});
 });
 
@@ -1055,6 +1114,7 @@ describe("which parents are scanned", () => {
       _id: true,
       projectId: true,
       clusterIdentifier: true,
+      lastSeenAt: true,
     });
     expect(clusterArgs.sort).toEqual({ _id: "ASC" });
     expect(clusterArgs.skip).toBe(0);
@@ -1068,6 +1128,7 @@ describe("which parents are scanned", () => {
         _id: true,
         projectId: true,
         hostIdentifier: true,
+        lastSeenAt: true,
       });
       expect(args.sort).toEqual({ _id: "ASC" });
       expect(args.limit).toBe(PARENT_PAGE_SIZE);
@@ -1341,6 +1402,87 @@ describe("rotation: no parent is ever starved", () => {
   });
 });
 
+describe("dedupeParentsByIdentifier", () => {
+  function parent(data: {
+    id: string;
+    identifier: string;
+    lastSeenAt?: number | null;
+    platform?: "kubernetes" | "docker" | "podman";
+    projectId?: string;
+  }): DiscoveryParent {
+    return {
+      platform: data.platform ?? "docker",
+      id: data.id,
+      projectId: data.projectId ?? PROJECT_A,
+      identifier: data.identifier,
+      lastSeenAt: data.lastSeenAt,
+    };
+  }
+
+  test("keeps the most recently seen parent of an identifier (case-insensitive), in the original order", () => {
+    const ghost: DiscoveryParent = parent({
+      id: "a",
+      identifier: "e2e-docker-host",
+      lastSeenAt: NOW - 13 * MINUTE,
+    });
+    const live: DiscoveryParent = parent({
+      id: "b",
+      identifier: " E2E-Docker-Host ",
+      lastSeenAt: NOW,
+    });
+    const other: DiscoveryParent = parent({ id: "c", identifier: "other" });
+
+    expect(dedupeParentsByIdentifier([ghost, other, live])).toEqual({
+      kept: [other, live],
+      skipped: [ghost],
+    });
+  });
+
+  test("different platforms or projects never collide; ties and unknown times resolve stably", () => {
+    const docker: DiscoveryParent = parent({ id: "a", identifier: "h" });
+    const podman: DiscoveryParent = parent({
+      id: "b",
+      identifier: "h",
+      platform: "podman",
+    });
+    const otherProject: DiscoveryParent = parent({
+      id: "c",
+      identifier: "h",
+      projectId: PROJECT_B,
+    });
+    expect(
+      dedupeParentsByIdentifier([docker, podman, otherProject]).kept,
+    ).toEqual([docker, podman, otherProject]);
+
+    const tieLater: DiscoveryParent = parent({
+      id: "z",
+      identifier: "h",
+      lastSeenAt: NOW,
+    });
+    const tieEarlier: DiscoveryParent = parent({
+      id: "y",
+      identifier: "h",
+      lastSeenAt: NOW,
+    });
+    expect(dedupeParentsByIdentifier([tieLater, tieEarlier]).kept).toEqual([
+      tieEarlier,
+    ]);
+
+    const unknown: DiscoveryParent = parent({
+      id: "a",
+      identifier: "h",
+      lastSeenAt: null,
+    });
+    const known: DiscoveryParent = parent({
+      id: "b",
+      identifier: "h",
+      lastSeenAt: NOW - 60 * MINUTE,
+    });
+    expect(dedupeParentsByIdentifier([unknown, known]).kept).toEqual([known]);
+    expect(dedupeParentsByIdentifier([]).kept).toEqual([]);
+  });
+});
+
 describe("orderParentsForRun", () => {
   const parents: Array<DiscoveryParent> = [
     { platform: "docker", id: "b", projectId: "p", identifier: "h" },
@@ -1452,7 +1594,20 @@ describe("Kubernetes: which rows are read, and how", () => {
   });
 
   test("the pod query projects the spec in Postgres: env and the argument list never leave it", () => {
-    expect(CANDIDATE_PODS_SQL).not.toMatch(/\benv\b/);
+    // `env` appears only as a launcher NAME the reduction compares words to.
+    expect(CANDIDATE_PODS_SQL).not.toMatch(/->>?\s*'env'/);
+    expect(CANDIDATE_PODS_SQL).not.toMatch(/"env"/);
+    // status is only ever read through what tells a serving member apart.
+    expect(CANDIDATE_PODS_SQL).not.toMatch(/r\."status"\s+AS/);
+    expect(CANDIDATE_PODS_SQL.match(/r\."status" -> '[A-Za-z]+'/g)).toEqual([
+      `r."status" -> 'containerStatuses'`,
+      `r."status" -> 'containerStatuses'`,
+      `r."status" -> 'conditions'`,
+      `r."status" -> 'conditions'`,
+    ]);
+    expect(CANDIDATE_PODS_SQL).toContain(`'ready', cs.value -> 'ready'`);
+    expect(CANDIDATE_PODS_SQL).toContain(`'state', cs.value -> 'state'`);
+    expect(CANDIDATE_PODS_SQL).not.toMatch(/'reason'|'message'/);
     // spec is only ever read through its containers, never selected whole.
     expect(CANDIDATE_PODS_SQL.match(/"spec"/g)).toHaveLength(2);
     expect(CANDIDATE_PODS_SQL).toContain(`r."spec" -> 'containers'`);
@@ -2121,6 +2276,95 @@ describe("Kubernetes: what is upserted", () => {
     expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
   });
 
+  test("regression (e2e kind cluster): client Deployments of a database image — through sh -c, env or an init shim — are not databases", async () => {
+    function clientDeployment(
+      name: string,
+      hash: string,
+      command: Array<string>,
+    ): PodRow {
+      return pod({
+        name: `${name}-${hash}-x1y2z`,
+        namespaceKey: "data",
+        labels: { app: name, "pod-template-hash": hash },
+        owner: { kind: "ReplicaSet", name: `${name}-${hash}` },
+        containers: [
+          {
+            name: "client",
+            image: "postgres:16",
+            command: command,
+            env: [{ name: "PGPASSWORD", value: SECRET }],
+          },
+        ],
+      });
+    }
+
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        // The two Deployments the verification saw become PostgreSQL databases.
+        clientDeployment("pg-client-envprefix", "776d5659bf", [
+          "sh",
+          "-c",
+          "PGPASSWORD=e2e-pg-pass psql -h postgres -U postgres -c 'select pg_sleep(100000)'",
+        ]),
+        clientDeployment("pg-client-loop", "58fdcb4994", [
+          "sh",
+          "-c",
+          "while true; do psql -h postgres -U postgres -c 'select 1' >/dev/null 2>&1; sleep 15; done",
+        ]),
+        // The same clients behind the launchers images and charts use.
+        clientDeployment("pg-client-env", "6b7c8d9e0f", [
+          "env",
+          `PGPASSWORD=${SECRET}`,
+          "psql",
+          "-h",
+          "postgres",
+        ]),
+        clientDeployment("pg-client-tini", "1a2b3c4d5e", [
+          "/sbin/tini",
+          "--",
+          "sh",
+          "-c",
+          "exec env PGPASSWORD=$PW psql -h postgres -f /x.sql",
+        ]),
+        clientDeployment("pg-debug-entrypoint", "5e4d3c2b1a", [
+          "docker-entrypoint.sh",
+          "sleep",
+          "infinity",
+        ]),
+      ],
+    });
+
+    await runTick();
+
+    expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
+  });
+
+  test("a server behind the same launchers is still a database", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        pod({
+          name: "orders-db-0",
+          owner: { kind: "StatefulSet", name: "orders-db" },
+          containers: [
+            {
+              name: "postgres",
+              image: "postgres:16",
+              ports: [{ containerPort: 5432 }],
+              command: ["/sbin/tini", "--", "docker-entrypoint.sh"],
+              args: ["-c", "max_connections=200"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    await runTick();
+
+    expect(upsertFor(ORDERS_IDENTITY).instanceCount).toBe(1);
+  });
+
   test("regression: servers started through shells and scripts are discovered through the projection", async () => {
     arrange({
       clusters: [cluster({ id: CLUSTER_A })],
@@ -2508,6 +2752,377 @@ describe("Kubernetes: members, running instances and creation", () => {
     await runTick();
 
     expect(created()).toEqual([]);
+  });
+});
+
+/*
+ * The kind cluster of the end-to-end run: KubernetesResource rows exactly
+ * as the kubernetes-agent stored them (status included). pg-crashloop is
+ * postgres:16 without POSTGRES_PASSWORD, in CrashLoopBackOff for two hours
+ * — and still phase "Running", which is all the job used to read.
+ */
+const CRASHLOOP_POD_CREATED: Date = new Date("2026-09-24T22:48:31Z");
+const E2E_LAST_SEEN: Date = new Date("2026-09-25T00:47:49.639Z");
+const CRASHLOOP_IDENTITY: string =
+  "postgresql|kubernetes:prod-eu/data/deployment/pg-crashloop";
+
+const CRASHLOOP_STATUS: Record<string, unknown> = {
+  phase: "Running",
+  podIP: "10.244.0.33",
+  hostIP: "172.19.0.2",
+  qosClass: "BestEffort",
+  conditions: [
+    {
+      type: "PodReadyToStartContainers",
+      reason: "",
+      status: "True",
+      message: "",
+      lastTransitionTime: "2026-09-24T22:48:32Z",
+    },
+    {
+      type: "Initialized",
+      reason: "",
+      status: "True",
+      message: "",
+      lastTransitionTime: "2026-09-24T22:48:31Z",
+    },
+    {
+      type: "Ready",
+      reason: "ContainersNotReady",
+      status: "False",
+      message: "containers with unready status: [postgres]",
+      lastTransitionTime: "2026-09-24T22:59:39Z",
+    },
+    {
+      type: "ContainersReady",
+      reason: "ContainersNotReady",
+      status: "False",
+      message: "containers with unready status: [postgres]",
+      lastTransitionTime: "2026-09-24T22:59:39Z",
+    },
+    {
+      type: "PodScheduled",
+      reason: "",
+      status: "True",
+      message: "",
+      lastTransitionTime: "2026-09-24T22:48:31Z",
+    },
+  ],
+  containerStatuses: [
+    {
+      name: "postgres",
+      image: "docker.io/library/postgres:16",
+      ready: false,
+      state: "waiting",
+      reason: "CrashLoopBackOff",
+      restartCount: 28,
+    },
+  ],
+  initContainerStatuses: [],
+};
+
+function crashLoopPod(status: unknown): PodRow {
+  return pod({
+    name: "pg-crashloop-76b6ccc669-zz4gz",
+    namespaceKey: "data",
+    labels: { app: "pg-crashloop", "pod-template-hash": "76b6ccc669" },
+    owner: { kind: "ReplicaSet", name: "pg-crashloop-76b6ccc669" },
+    containers: [
+      {
+        name: "postgres",
+        image: "postgres:16",
+        ports: [{ containerPort: 5432 }],
+      },
+    ],
+    resourceCreationTimestamp: CRASHLOOP_POD_CREATED,
+    createdAt: new Date("2026-09-24T22:52:46.624Z"),
+    lastSeenAt: E2E_LAST_SEEN,
+    status: status,
+  });
+}
+
+// The crash-looping pod caught in the second it is up between two crashes.
+function betweenCrashesStatus(readySince: string): Record<string, unknown> {
+  return {
+    ...CRASHLOOP_STATUS,
+    conditions: [
+      {
+        type: "Ready",
+        reason: "",
+        status: "True",
+        message: "",
+        lastTransitionTime: readySince,
+      },
+    ],
+    containerStatuses: [
+      {
+        name: "postgres",
+        image: "docker.io/library/postgres:16",
+        ready: true,
+        state: "running",
+        reason: "",
+        restartCount: 28,
+      },
+    ],
+  };
+}
+
+describe("Kubernetes: a crash-looping pod is not a running database", () => {
+  test("regression (e2e pg-crashloop): CrashLoopBackOff for two hours is 0 instances and never creates a database", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [crashLoopPod(CRASHLOOP_STATUS)],
+    });
+
+    await runTick();
+
+    const args: UpsertArgs = upsertFor(CRASHLOOP_IDENTITY);
+    expect(args.instanceCount).toBe(0);
+    expect(created()).toEqual([]);
+    expect(world.rows.size).toBe(0);
+  });
+
+  test("regression: an existing row of a crash-looping workload shows 0 instances, not 1", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [crashLoopPod(CRASHLOOP_STATUS)],
+      rows: existing({
+        workloadIdentifier: CRASHLOOP_IDENTITY,
+        kubernetesClusterId: CLUSTER_A,
+        instanceCount: 1,
+      }),
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(0);
+    expect(world.rows.get(CRASHLOOP_IDENTITY)!.instanceCount).toBe(0);
+  });
+
+  test("caught between two crashes it is an instance, but Ready for a minute proves no lifetime", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [crashLoopPod(betweenCrashesStatus("2026-09-25T00:46:50Z"))],
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(1);
+    expect(created()).toEqual([]);
+  });
+
+  test("a pod Ready for longer than MIN_OBSERVED_LIFETIME_MS is created (e2e postgres-0's own status)", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [crashLoopPod(betweenCrashesStatus("2026-09-24T22:07:45Z"))],
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(1);
+    expect(created()).toEqual([CRASHLOOP_IDENTITY]);
+  });
+
+  test("a sidecar holding the pod unready does not hide a database container that is itself ready", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        crashLoopPod({
+          ...CRASHLOOP_STATUS,
+          conditions: [
+            {
+              type: "Ready",
+              status: "False",
+              lastTransitionTime: "2026-09-25T00:40:00Z",
+            },
+          ],
+          containerStatuses: [
+            { name: "postgres", ready: true, state: "running" },
+            { name: "log-shipper", ready: false, state: "waiting" },
+          ],
+        }),
+      ],
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(1);
+    expect(created()).toEqual([CRASHLOOP_IDENTITY]);
+  });
+
+  test("a database container running but failing its readiness probe is an instance that proves nothing yet", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        crashLoopPod({
+          ...CRASHLOOP_STATUS,
+          containerStatuses: [
+            { name: "postgres", ready: false, state: "running" },
+          ],
+        }),
+      ],
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(1);
+    expect(created()).toEqual([]);
+  });
+
+  test("an ImagePullBackOff or terminated database container is not an instance", async () => {
+    for (const containerStatus of [
+      { name: "postgres", ready: false, state: "waiting" },
+      { name: "postgres", ready: false, state: "terminated" },
+    ]) {
+      jest.clearAllMocks();
+      arrange({
+        clusters: [cluster({ id: CLUSTER_A })],
+        pods: [
+          crashLoopPod({
+            ...CRASHLOOP_STATUS,
+            containerStatuses: [containerStatus],
+          }),
+        ],
+        rows: existing({
+          workloadIdentifier: CRASHLOOP_IDENTITY,
+          kubernetesClusterId: CLUSTER_A,
+        }),
+      });
+
+      await runTick();
+
+      expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(0);
+    }
+  });
+
+  test("an agent that reports no status keeps the phase-and-creation rules", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [crashLoopPod(undefined)],
+    });
+
+    await runTick();
+
+    expect(upsertFor(CRASHLOOP_IDENTITY).instanceCount).toBe(1);
+    expect(created()).toEqual([CRASHLOOP_IDENTITY]);
+  });
+});
+
+describe("isRunningKubernetesMember / kubernetesMemberTiming", () => {
+  function row(data: {
+    phase?: string;
+    ready?: unknown;
+    state?: unknown;
+    readyCondition?: unknown;
+  }): KubernetesPodRow {
+    return {
+      name: "db-0",
+      phase: data.phase ?? "Running",
+      lastSeenAt: at(0),
+      resourceCreationTimestamp: at(-60 * MINUTE),
+      createdAt: at(-30 * MINUTE),
+      containers: [
+        {
+          name: "db",
+          image: "postgres:16",
+          ready: data.ready,
+          state: data.state,
+        },
+      ],
+      readyCondition: data.readyCondition,
+    };
+  }
+
+  test("the database container's state decides; without one, the phase does", () => {
+    expect(isRunningKubernetesMember(row({ state: "running" }), "db")).toBe(
+      true,
+    );
+    expect(isRunningKubernetesMember(row({ state: "Running" }), "db")).toBe(
+      true,
+    );
+    expect(isRunningKubernetesMember(row({ state: "waiting" }), "db")).toBe(
+      false,
+    );
+    expect(isRunningKubernetesMember(row({ state: "terminated" }), "db")).toBe(
+      false,
+    );
+    expect(
+      isRunningKubernetesMember(row({ state: "Unknown", ready: false }), "db"),
+    ).toBe(false);
+    expect(
+      isRunningKubernetesMember(row({ state: "Unknown", ready: true }), "db"),
+    ).toBe(true);
+    // No status for that container (or no container name): the phase alone.
+    expect(isRunningKubernetesMember(row({}), "db")).toBe(true);
+    expect(isRunningKubernetesMember(row({ state: "waiting" }), "other")).toBe(
+      true,
+    );
+    expect(isRunningKubernetesMember(row({ state: "waiting" }), "")).toBe(true);
+    expect(
+      isRunningKubernetesMember(
+        row({ phase: "Pending", state: "running" }),
+        "db",
+      ),
+    ).toBe(false);
+  });
+
+  test("the lifetime runs from the Ready transition, never from before the pod existed", () => {
+    expect(
+      kubernetesMemberTiming(
+        row({
+          readyCondition: {
+            status: "True",
+            lastTransitionTime: at(-5 * MINUTE).toISOString(),
+          },
+        }),
+        "db",
+      ).resourceCreationTimestamp,
+    ).toEqual(at(-5 * MINUTE));
+    // A transition older than the pod (clock skew) is capped at its creation.
+    expect(
+      kubernetesMemberTiming(
+        row({
+          readyCondition: {
+            status: "True",
+            lastTransitionTime: at(-120 * MINUTE).toISOString(),
+          },
+        }),
+        "db",
+      ).resourceCreationTimestamp,
+    ).toEqual(at(-60 * MINUTE));
+    // Ready without a readable transition: the pod's creation.
+    expect(
+      kubernetesMemberTiming(row({ readyCondition: { status: "True" } }), "db")
+        .resourceCreationTimestamp,
+    ).toEqual(at(-60 * MINUTE));
+    // Not Ready: nothing proven unless the database container itself serves.
+    expect(
+      hasProvenLifetime(
+        kubernetesMemberTiming(
+          row({
+            readyCondition: { status: "False" },
+            ready: false,
+            state: "running",
+          }),
+          "db",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      kubernetesMemberTiming(
+        row({
+          readyCondition: { status: "False" },
+          ready: true,
+          state: "running",
+        }),
+        "db",
+      ).resourceCreationTimestamp,
+    ).toEqual(at(-60 * MINUTE));
+    // No Ready condition at all (an older agent): creation, as before.
+    expect(
+      kubernetesMemberTiming(row({}), "db").resourceCreationTimestamp,
+    ).toEqual(at(-60 * MINUTE));
+    expect(kubernetesMemberTiming(row({}), "db").createdAt).toBeNull();
   });
 });
 
@@ -3317,6 +3932,187 @@ describe("Docker and Podman", () => {
     await runTick();
 
     expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
+  });
+
+  test("regression (e2e): the real docker_stats capture, as the metrics ingest stores it, groups the Compose replicas and drops the Testcontainers and one-off runs", async () => {
+    // What the metrics snapshot writes for each captured container (see OtelMetricsIngestContainerSnapshot).
+    const rows: Array<ContainerRowLike> = CAPTURED_CONTAINERS.map(
+      (captured: CapturedContainer): ContainerRowLike => {
+        const labels: Record<string, string> = {};
+        for (const [key, value] of captured.labels) {
+          labels[key] = value;
+        }
+        return container({
+          name: captured.name,
+          containerId: captured.id,
+          imageName: captured.image,
+          labels: captured.labels.length > 0 ? labels : null,
+          lastSeenAt: CAPTURE_OBSERVED_AT,
+          resourceCreationTimestamp: capturedStartedAt(captured),
+          // A freshly installed agent: every row was first inventoried just now.
+          createdAt: CAPTURE_OBSERVED_AT,
+        });
+      },
+    );
+    (Date.now as unknown as Mock).mockReturnValue(
+      CAPTURE_OBSERVED_AT.getTime() + 30 * 1000,
+    );
+    arrange({
+      dockerHosts: [
+        host({ id: DOCKER_HOST, hostIdentifier: "e2e-docker-host" }),
+      ],
+      dockerContainers: { [DOCKER_HOST]: rows },
+    });
+
+    await runTick();
+
+    const byName: Map<string, CapturedContainer> = new Map<
+      string,
+      CapturedContainer
+    >(
+      CAPTURED_CONTAINERS.map(
+        (captured: CapturedContainer): [string, CapturedContainer] => {
+          return [captured.name, captured];
+        },
+      ),
+    );
+    const compose: UpsertArgs = upsertFor(
+      "postgresql|docker:e2e-docker-host/e2e-docker-spans-compose-postgres",
+    );
+    expect(compose.instanceCount).toBe(2);
+    expect([...compose.memberKeysSeenNow].sort()).toEqual(
+      [
+        keyForContainer(
+          PROJECT_A,
+          byName.get("e2e-docker-spans-compose-postgres-1")!.id,
+        ),
+        keyForContainer(
+          PROJECT_A,
+          byName.get("e2e-docker-spans-compose-postgres-2")!.id,
+        ),
+      ].sort(),
+    );
+    expect(compose.displayName).toBe(
+      "PostgreSQL e2e-docker-spans-compose-postgres",
+    );
+    expect(
+      upsertFor("postgresql|docker:e2e-docker-host/e2e-docker-spans-pg-2"),
+    ).toBeDefined();
+    // Nothing for tc-pg or compose-oneoff; both were created at once (up 1 h 43 min).
+    expect(created().sort()).toEqual([
+      "postgresql|docker:e2e-docker-host/e2e-docker-spans-compose-postgres",
+      "postgresql|docker:e2e-docker-host/e2e-docker-spans-pg-2",
+    ]);
+  });
+
+  test("regression (e2e): a duplicate registration of the host never takes a database over", async () => {
+    const GHOST_HOST: string = "66666666-6666-4666-8666-666666666666";
+    const LIVE_HOST: string = "77777777-7777-4777-8777-777777777777";
+    const IDENTITY: string =
+      "postgresql|docker:e2e-docker-host/e2e-docker-spans-compose-postgres-2";
+    arrange({
+      dockerHosts: [
+        // Both created within 3 ms by the agent's first two batches.
+        host({
+          id: GHOST_HOST,
+          hostIdentifier: "e2e-docker-host",
+          lastSeenAt: at(-13 * MINUTE),
+        }),
+        host({
+          id: LIVE_HOST,
+          hostIdentifier: "E2E-Docker-Host",
+          lastSeenAt: at(0),
+        }),
+      ],
+      dockerContainers: {
+        // The ghost's whole inventory: one row from the very first batch.
+        [GHOST_HOST]: [
+          container({
+            name: "e2e-docker-spans-compose-postgres-2",
+            containerId: FULL_ID_2,
+            lastSeenAt: at(-13 * MINUTE - 30 * 1000),
+          }),
+        ],
+        [LIVE_HOST]: [
+          container({
+            name: "e2e-docker-spans-compose-postgres-2",
+            containerId: FULL_ID_2,
+          }),
+        ],
+      },
+      rows: existing({
+        workloadIdentifier: IDENTITY,
+        dockerHostId: LIVE_HOST,
+      }),
+    });
+
+    await runTick();
+
+    expect(
+      findByArgs(dockerResourceService.findBy).map(
+        (args: FindByArgs): string => {
+          return String(args.query["dockerHostId"]);
+        },
+      ),
+    ).toEqual([LIVE_HOST]);
+    expect(upserts()).toHaveLength(1);
+    expect(upsertFor(IDENTITY).dockerHostId?.toString()).toBe(LIVE_HOST);
+    expect(world.rows.get(IDENTITY)!.dockerHostId).toBe(LIVE_HOST);
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(`Docker host ${GHOST_HOST}`),
+    );
+  });
+
+  test("regression (e2e): a host whose inventory stopped refreshing counts none of its old rows as running", async () => {
+    const IDENTITY: string =
+      "postgresql|docker:docker-host-1/e2e-docker-spans-compose-postgres-2";
+    arrange({
+      dockerHosts: [host({ id: DOCKER_HOST })],
+      dockerContainers: {
+        [DOCKER_HOST]: [
+          container({
+            name: "e2e-docker-spans-compose-postgres-2",
+            containerId: FULL_ID_2,
+            lastSeenAt: at(-(STALE_HOST_INVENTORY_MS + MINUTE)),
+          }),
+        ],
+      },
+      rows: existing({
+        workloadIdentifier: IDENTITY,
+        dockerHostId: DOCKER_HOST,
+        instanceCount: 1,
+      }),
+    });
+
+    await runTick();
+
+    // Neither refreshed nor zeroed: the rows prove nothing about now.
+    expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
+    expect(
+      databaseService.updateColumnsByIdWithoutHooks,
+    ).not.toHaveBeenCalled();
+    expect(world.rows.get(IDENTITY)!.instanceCount).toBe(1);
+  });
+
+  test("a host whose newest row is inside STALE_HOST_INVENTORY_MS is discovered as usual", async () => {
+    arrange({
+      dockerHosts: [host({ id: DOCKER_HOST })],
+      dockerContainers: {
+        [DOCKER_HOST]: [
+          container({
+            name: "pg",
+            containerId: FULL_ID_1,
+            lastSeenAt: at(-(STALE_HOST_INVENTORY_MS - MINUTE)),
+          }),
+        ],
+      },
+    });
+
+    await runTick();
+
+    expect(upsertFor("postgresql|docker:docker-host-1/pg").instanceCount).toBe(
+      1,
+    );
   });
 
   test("regression: a removed `docker run --rm postgres psql` container is not a member while its row lingers", async () => {

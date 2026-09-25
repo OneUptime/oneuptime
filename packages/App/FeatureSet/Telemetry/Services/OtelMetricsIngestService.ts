@@ -64,6 +64,7 @@ import DockerResourceService, {
 import PodmanResourceService, {
   ParsedPodmanContainer,
 } from "Common/Server/Services/PodmanResourceService";
+import { CONTAINER_CLASSIFIER_LABEL_KEYS } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
 import DockerSwarmResourceService, {
   DockerSwarmResourceLatestMetric,
 } from "Common/Server/Services/DockerSwarmResourceService";
@@ -191,11 +192,15 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
  * Docker snapshot metrics — emitted by the docker_stats receiver
  * with container.id / container.name / container.image.name as
  * resource attributes. Container row inventory is upserted from
- * these in the same pass as the ClickHouse insert.
+ * these in the same pass as the ClickHouse insert. container.uptime
+ * dates the container's current run (its row's resourceCreationTimestamp),
+ * and the Compose / Swarm / Testcontainers labels the agent copies onto
+ * every metric become the row's labels (CONTAINER_CLASSIFIER_LABEL_KEYS).
  */
 const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.cpu.utilization",
   "container.memory.usage.total",
+  "container.uptime",
 ]);
 
 /*
@@ -203,11 +208,13 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
  * against the Podman socket (Podman exposes a Docker-compatible API)
  * with container.id / container.name / container.image.name as
  * resource attributes. Container row inventory is upserted from
- * these in the same pass as the ClickHouse insert.
+ * these in the same pass as the ClickHouse insert — uptime and labels
+ * exactly as for Docker.
  */
 const PODMAN_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.cpu.utilization",
   "container.memory.usage.total",
+  "container.uptime",
 ]);
 
 /*
@@ -351,6 +358,10 @@ interface DockerContainerMetricBufferEntry {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+  // CONTAINER_CLASSIFIER_LABEL_KEYS found on the metrics; null when none.
+  labels: JSONObject | null;
+  // Metric time − container.uptime, from the newest uptime point.
+  startedAt: Date | null;
 }
 
 interface DockerSwarmTaskMetricBufferEntry {
@@ -368,6 +379,10 @@ interface PodmanContainerMetricBufferEntry {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+  // CONTAINER_CLASSIFIER_LABEL_KEYS found on the metrics; null when none.
+  labels: JSONObject | null;
+  // Metric time − container.uptime, from the newest uptime point.
+  startedAt: Date | null;
 }
 
 /*
@@ -2722,7 +2737,62 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         : null,
       memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
       observedAt: ts.date,
+      labels: this.readContainerSnapshotLabels(attrs),
+      startedAt: this.containerStartedAtFromUptime({
+        metricName: data.metricName,
+        metricUnit: data.metricUnit,
+        value: rawValue,
+        observedAt: ts.date,
+      }),
     });
+  }
+
+  /*
+   * The container labels the Docker / Podman agents copy onto every
+   * docker_stats metric as resource attributes (container_labels_to_
+   * metric_labels) — only CONTAINER_CLASSIFIER_LABEL_KEYS, so no other
+   * resource attribute is ever mistaken for a label. Null when none.
+   */
+  private static readContainerSnapshotLabels(
+    attrs: Dictionary<AttributeType | Array<AttributeType>>,
+  ): JSONObject | null {
+    let labels: JSONObject | null = null;
+    for (const key of CONTAINER_CLASSIFIER_LABEL_KEYS) {
+      const value: string = this.readSnapshotAttr(attrs, `resource.${key}`);
+      if (value) {
+        labels = labels || {};
+        labels[key] = value;
+      }
+    }
+    return labels;
+  }
+
+  /*
+   * When the container's current run started, from a container.uptime
+   * point (seconds since start, as docker_stats reports it) and the
+   * point's own time; null for any other metric or an unusable value.
+   */
+  private static containerStartedAtFromUptime(data: {
+    metricName: string;
+    metricUnit: string | undefined;
+    value: number;
+    observedAt: Date;
+  }): Date | null {
+    if (data.metricName !== "container.uptime") {
+      return null;
+    }
+    const unit: string = (data.metricUnit || "s").trim();
+    const scaleMs: number = unit === "ms" ? 1 : unit === "min" ? 60000 : 1000;
+    const uptimeMs: number = data.value * scaleMs;
+    const observedMs: number = data.observedAt.getTime();
+    if (
+      !Number.isFinite(uptimeMs) ||
+      uptimeMs < 0 ||
+      !Number.isFinite(observedMs)
+    ) {
+      return null;
+    }
+    return new Date(Math.round(observedMs - uptimeMs));
   }
 
   private static foldDockerContainerSnapshot(data: {
@@ -2734,6 +2804,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     cpuPercent: number | null;
     memoryBytes: number | null;
     observedAt: Date;
+    labels: JSONObject | null;
+    startedAt: Date | null;
   }): void {
     let perHost: Map<string, DockerContainerMetricBufferEntry> | undefined =
       data.buffer.get(data.hostIdStr);
@@ -2752,6 +2824,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
         observedAt: data.observedAt,
+        labels: data.labels ? { ...data.labels } : null,
+        startedAt: data.startedAt,
       });
       return;
     }
@@ -2760,6 +2834,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    // Uptime points of one batch: the newest start wins (a restart mid-batch).
+    if (
+      data.startedAt &&
+      (!existing.startedAt || data.startedAt > existing.startedAt)
+    ) {
+      existing.startedAt = data.startedAt;
+    }
+    if (data.labels) {
+      existing.labels = { ...(existing.labels || {}), ...data.labels };
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -2799,6 +2883,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cpuPercent: e.cpuPercent,
             memoryBytes: e.memoryBytes,
             observedAt: e.observedAt,
+            labels: e.labels,
+            startedAt: e.startedAt,
           });
         }
         await DockerResourceService.bulkUpsertContainers({
@@ -2875,6 +2961,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         : null,
       memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
       observedAt: ts.date,
+      labels: this.readContainerSnapshotLabels(attrs),
+      startedAt: this.containerStartedAtFromUptime({
+        metricName: data.metricName,
+        metricUnit: data.metricUnit,
+        value: rawValue,
+        observedAt: ts.date,
+      }),
     });
   }
 
@@ -2887,6 +2980,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     cpuPercent: number | null;
     memoryBytes: number | null;
     observedAt: Date;
+    labels: JSONObject | null;
+    startedAt: Date | null;
   }): void {
     let perHost: Map<string, PodmanContainerMetricBufferEntry> | undefined =
       data.buffer.get(data.hostIdStr);
@@ -2905,6 +3000,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
         observedAt: data.observedAt,
+        labels: data.labels ? { ...data.labels } : null,
+        startedAt: data.startedAt,
       });
       return;
     }
@@ -2913,6 +3010,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    // Uptime points of one batch: the newest start wins (a restart mid-batch).
+    if (
+      data.startedAt &&
+      (!existing.startedAt || data.startedAt > existing.startedAt)
+    ) {
+      existing.startedAt = data.startedAt;
+    }
+    if (data.labels) {
+      existing.labels = { ...(existing.labels || {}), ...data.labels };
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -2952,6 +3059,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cpuPercent: e.cpuPercent,
             memoryBytes: e.memoryBytes,
             observedAt: e.observedAt,
+            labels: e.labels,
+            startedAt: e.startedAt,
           });
         }
         await PodmanResourceService.bulkUpsertContainers({

@@ -89,15 +89,23 @@ import {
  *   - Inventory rows outlive what they describe by up to 15 minutes
  *     (the stale-resource crons delete them), so a member counts only
  *     when its row was refreshed with the rest of its parent's
- *     inventory (MEMBER_FRESHNESS_WINDOW_MS of the newest row).
+ *     inventory (MEMBER_FRESHNESS_WINDOW_MS of the newest row). A
+ *     Docker / Podman host whose newest container row is older than
+ *     STALE_HOST_INVENTORY_MS (its agent stopped reporting) is left
+ *     alone for the run, and of several connected parents with one
+ *     identifier (a registration race) only the most recently seen is
+ *     visited, so a stale twin never rewrites a database's parent.
  *   - A row is CREATED only for a workload with a running member that
- *     has lived MIN_OBSERVED_LIFETIME_MS: a CI container, a
+ *     has lived MIN_OBSERVED_LIFETIME_MS — a pod READY that long (a
+ *     crash-looping pod turns Ready afresh on every restart), a
+ *     container running that long: a CI container, a
  *     `docker run --rm postgres psql` session or a pod that crashed
  *     after a minute never becomes a permanent database. Existing rows
  *     refresh from the first sighting.
- *   - instanceCount counts running members; a workload of a parent
- *     scanned in full that has no member left (scaled to zero, all
- *     containers stopped) has its instanceCount set to 0.
+ *   - instanceCount counts running members — a pod whose database
+ *     container is running, not waiting in CrashLoopBackOff; a workload
+ *     of a parent scanned in full that has no member left (scaled to
+ *     zero, all containers stopped) has its instanceCount set to 0.
  *
  * Fleet-wide shape: every connected cluster and host (all projects) is
  * listed in a stable order and visited round-robin from a cursor kept
@@ -115,8 +123,9 @@ import {
  *
  * Pod specs in the inventory keep direct env values verbatim,
  * passwords included. The spec never leaves Postgres: the pod query
- * projects each container to its name, image, declared ports and the
- * leading word of its command line.
+ * projects each container to its name, image, declared ports, its command
+ * line reduced to the program (past `env` / `tini` launchers) and the
+ * known command names a shell script runs, and its ready / state status.
  * ------------------------------------------------------------------
  */
 
@@ -173,6 +182,15 @@ export const MAX_DATABASES_PER_PARENT: number = 200;
  */
 export const MEMBER_FRESHNESS_WINDOW_MS: number = 4 * 60 * 1000;
 /*
+ * A Docker / Podman host whose newest running-container row is older than
+ * this (its agent reports every 30 s) has stopped reporting: its
+ * inventory proves nothing about now, so the run leaves its databases
+ * alone rather than refreshing them from rows the stale-resource cron is
+ * about to delete. Well inside the 15 minutes after which the host is
+ * marked disconnected (and skipped anyway).
+ */
+export const STALE_HOST_INVENTORY_MS: number = 10 * 60 * 1000;
+/*
  * A workload gets a NEW row only once a running member has lived this long
  * (its creation — or, without one, its first inventory sighting — to its
  * latest sighting).
@@ -208,6 +226,8 @@ export interface DiscoveryParent {
   projectId: string;
   // clusterIdentifier / hostIdentifier.
   identifier: string;
+  // The cluster's / host's own lastSeenAt, in epoch ms; null when unknown.
+  lastSeenAt?: number | null | undefined;
 }
 
 interface DiscoveryStats {
@@ -233,7 +253,10 @@ export interface KubernetesPodRow extends MemberTiming {
   phase?: string | null | undefined;
   labels?: unknown;
   ownerReferences?: unknown;
+  // Each also carries its containerStatuses entry's `ready` and `state`.
   containers?: unknown;
+  // The pod's Ready condition: { status, lastTransitionTime }, or null.
+  readyCondition?: unknown;
 }
 
 export interface ContainerRowLike extends MemberTiming {
@@ -367,6 +390,118 @@ function isRunningPhase(phase: unknown): boolean {
   return value === "" || value === "running";
 }
 
+interface ContainerRunState {
+  // containerStatuses[].ready; null when not reported.
+  ready: boolean | null;
+  // containerStatuses[].state, lowercase ("running", "waiting", …); "" when not reported.
+  state: string;
+}
+
+/*
+ * The status the candidate-pod query projected for one of a pod's
+ * containers, or null when there is none to read (no name, no status yet,
+ * an agent that does not report container statuses).
+ */
+function containerRunState(
+  row: KubernetesPodRow,
+  containerName: string,
+): ContainerRunState | null {
+  if (!containerName || !Array.isArray(row?.containers)) {
+    return null;
+  }
+  for (const container of row.containers) {
+    if (!isObject(container) || container["name"] !== containerName) {
+      continue;
+    }
+    const ready: unknown = container["ready"];
+    const state: string = readText(container["state"]).toLowerCase();
+    if (typeof ready !== "boolean" && !state) {
+      return null;
+    }
+    return { ready: typeof ready === "boolean" ? ready : null, state: state };
+  }
+  return null;
+}
+
+/**
+ * True when a candidate pod is a running instance of its database: its
+ * phase serves AND its database container runs. Kubernetes keeps a
+ * crash-looping pod in phase Running, so the container's own state decides:
+ * "running" counts, "waiting" (CrashLoopBackOff, ImagePullBackOff) and
+ * "terminated" do not, and an unreported state counts unless the container
+ * says it is not ready. Without a status for that container (none reported
+ * yet, an older agent) the phase alone decides, as it always did.
+ */
+export function isRunningKubernetesMember(
+  row: KubernetesPodRow,
+  databaseContainerName: string,
+): boolean {
+  if (!isRunningPhase(row?.phase)) {
+    return false;
+  }
+  const status: ContainerRunState | null = containerRunState(
+    row,
+    databaseContainerName,
+  );
+  if (!status) {
+    return true;
+  }
+  if (status.state === "running") {
+    return true;
+  }
+  if (status.state === "waiting" || status.state === "terminated") {
+    return false;
+  }
+  return status.ready !== false;
+}
+
+/**
+ * A candidate pod's timing for hasProvenLifetime, measured from when it
+ * last became Ready rather than from its creation: a crash-looping pod
+ * turns Ready afresh on every restart, so it never proves
+ * MIN_OBSERVED_LIFETIME_MS however old the pod is. A pod whose Ready
+ * condition is not True proves nothing — unless its database container
+ * itself is running and ready (a sidecar holds the pod back), which is
+ * measured from the pod's creation. A pod with no Ready condition reported
+ * (an older agent) is measured from its creation, as it always was.
+ */
+export function kubernetesMemberTiming(
+  row: KubernetesPodRow,
+  databaseContainerName: string,
+): MemberTiming {
+  const created: number | null =
+    toTime(row?.resourceCreationTimestamp) ?? toTime(row?.createdAt);
+  const condition: unknown = row?.readyCondition;
+  const conditionStatus: string = isObject(condition)
+    ? readText(condition["status"]).toLowerCase()
+    : "";
+
+  let startedAt: number | null = created;
+
+  if (conditionStatus === "true") {
+    const readySince: number | null = isObject(condition)
+      ? toTime(condition["lastTransitionTime"])
+      : null;
+    if (readySince !== null) {
+      startedAt = created === null ? readySince : Math.max(created, readySince);
+    }
+  } else if (conditionStatus) {
+    const status: ContainerRunState | null = containerRunState(
+      row,
+      databaseContainerName,
+    );
+    const databaseContainerServes: boolean =
+      status !== null && status.ready === true && status.state === "running";
+    startedAt = databaseContainerServes ? created : null;
+  }
+
+  return {
+    lastSeenAt: row?.lastSeenAt,
+    resourceCreationTimestamp: startedAt === null ? null : new Date(startedAt),
+    createdAt: null,
+  };
+}
+
 // ---- parents: listing, rotation, lock ----------------------------------------
 
 export function parentRotationKey(parent: DiscoveryParent): string {
@@ -415,6 +550,66 @@ export function orderParentsForRun(
   return [...sorted.slice(start), ...sorted.slice(0, start)];
 }
 
+function parentIdentityKey(parent: DiscoveryParent): string {
+  return `${parent.platform}\u0000${parent.projectId}\u0000${parent.identifier.trim().toLowerCase()}`;
+}
+
+/**
+ * One parent per platform, project and identifier. Databases are keyed by
+ * the identifier (the host / cluster NAME), so two connected parents that
+ * share one — a Docker or Podman host registered twice by racing agent
+ * batches — would each rewrite the same databases with their own id and
+ * their own (possibly long stale) inventory. The most recently seen one
+ * is kept (ties: the smaller id); the others are returned as `skipped`.
+ * Order is otherwise preserved.
+ */
+export function dedupeParentsByIdentifier(parents: Array<DiscoveryParent>): {
+  kept: Array<DiscoveryParent>;
+  skipped: Array<DiscoveryParent>;
+} {
+  const list: Array<DiscoveryParent> = Array.isArray(parents) ? parents : [];
+  const best: Map<string, DiscoveryParent> = new Map<string, DiscoveryParent>();
+
+  const seenAt: (parent: DiscoveryParent) => number = (
+    parent: DiscoveryParent,
+  ): number => {
+    return typeof parent.lastSeenAt === "number" &&
+      Number.isFinite(parent.lastSeenAt)
+      ? parent.lastSeenAt
+      : Number.NEGATIVE_INFINITY;
+  };
+
+  for (const parent of list) {
+    if (!parent || !parent.id) {
+      continue;
+    }
+    const key: string = parentIdentityKey(parent);
+    const current: DiscoveryParent | undefined = best.get(key);
+    if (
+      !current ||
+      seenAt(parent) > seenAt(current) ||
+      (seenAt(parent) === seenAt(current) &&
+        compareStrings(parent.id, current.id) < 0)
+    ) {
+      best.set(key, parent);
+    }
+  }
+
+  const kept: Array<DiscoveryParent> = [];
+  const skipped: Array<DiscoveryParent> = [];
+  for (const parent of list) {
+    if (!parent || !parent.id) {
+      continue;
+    }
+    if (best.get(parentIdentityKey(parent)) === parent) {
+      kept.push(parent);
+    } else {
+      skipped.push(parent);
+    }
+  }
+  return { kept, skipped };
+}
+
 function platformName(platform: DiscoveryPlatform): string {
   if (platform === "kubernetes") {
     return "Kubernetes";
@@ -450,6 +645,7 @@ async function findConnectedParentPage(
           _id: true,
           projectId: true,
           clusterIdentifier: true,
+          lastSeenAt: true,
         },
         sort: {
           _id: SortOrder.Ascending,
@@ -467,6 +663,7 @@ async function findConnectedParentPage(
         id: cluster._id?.toString() || "",
         projectId: cluster.projectId?.toString() || "",
         identifier: readText(cluster.clusterIdentifier),
+        lastSeenAt: toTime(cluster.lastSeenAt),
       };
     });
   }
@@ -474,10 +671,16 @@ async function findConnectedParentPage(
   const query: { otelCollectorStatus: string } = {
     otelCollectorStatus: "connected",
   };
-  const select: { _id: true; projectId: true; hostIdentifier: true } = {
+  const select: {
+    _id: true;
+    projectId: true;
+    hostIdentifier: true;
+    lastSeenAt: true;
+  } = {
     _id: true,
     projectId: true,
     hostIdentifier: true,
+    lastSeenAt: true,
   };
 
   const hosts: Array<DockerHost | PodmanHost> =
@@ -505,6 +708,7 @@ async function findConnectedParentPage(
       id: host._id?.toString() || "",
       projectId: host.projectId?.toString() || "",
       identifier: readText(host.hostIdentifier),
+      lastSeenAt: toTime(host.lastSeenAt),
     };
   });
 }
@@ -814,7 +1018,10 @@ WHERE r."projectId" = $1
  * word and, for a shell, its flags and the command names each of its
  * arguments would run — every name not on CONTAINER_COMMAND_KNOWN_WORDS
  * replaced by "?". env, argument values, script text and the rest of the
- * spec never leave the database.
+ * spec never leave the database. From the pod's status, only what tells a
+ * serving member from a crash-looping one: each container's `ready` and
+ * `state` (running / waiting / terminated) and the pod's Ready condition
+ * (status and lastTransitionTime) — no reason or message text.
  *
  * Ordered by a per-run salted hash of the namespace, so a cluster over the
  * cap has a different set of namespaces left out each run, never the same
@@ -850,7 +1057,9 @@ SELECT
         'command', ${containerCommandProjectionSql({
           argv: "v.argv",
           knownWords: "$8::text[]",
-        })}
+        })},
+        'ready', cs.value -> 'ready',
+        'state', cs.value -> 'state'
       )
       ORDER BY c.ordinality
     )
@@ -865,8 +1074,31 @@ SELECT
         || (CASE WHEN jsonb_typeof(c.value -> 'args') = 'array'
           THEN c.value -> 'args' ELSE '[]'::jsonb END) AS argv
     ) AS v
+    LEFT JOIN LATERAL (
+      SELECT s.value
+      FROM jsonb_array_elements(
+        CASE WHEN jsonb_typeof(r."status" -> 'containerStatuses') = 'array'
+          THEN r."status" -> 'containerStatuses' ELSE '[]'::jsonb END
+      ) AS s(value)
+      WHERE jsonb_typeof(s.value) = 'object'
+        AND s.value ->> 'name' = c.value ->> 'name'
+      LIMIT 1
+    ) AS cs ON true
     WHERE jsonb_typeof(c.value) = 'object'
-  ), '[]'::jsonb) AS "containers"
+  ), '[]'::jsonb) AS "containers",
+  (
+    SELECT jsonb_build_object(
+      'status', rc.value -> 'status',
+      'lastTransitionTime', rc.value -> 'lastTransitionTime'
+    )
+    FROM jsonb_array_elements(
+      CASE WHEN jsonb_typeof(r."status" -> 'conditions') = 'array'
+        THEN r."status" -> 'conditions' ELSE '[]'::jsonb END
+    ) AS rc(value)
+    WHERE jsonb_typeof(rc.value) = 'object'
+      AND rc.value ->> 'type' = 'Ready'
+    LIMIT 1
+  ) AS "readyCondition"
 FROM "KubernetesResource" r
 WHERE r."projectId" = $1
   AND r."kubernetesClusterId" = $2
@@ -1351,6 +1583,8 @@ async function discoverKubernetesCluster(data: {
 
   const candidates: Array<KubernetesDatabaseCandidate> = [];
   const poolers: Array<KubernetesPoolerService> = [];
+  // Pod (namespace + name) → the container the classifier took for the database.
+  const databaseContainerByPod: Map<string, string> = new Map<string, string>();
 
   for (const pod of pods) {
     const namespace: string = readText(pod.namespaceKey);
@@ -1370,6 +1604,10 @@ async function discoverKubernetesCluster(data: {
     );
     if (candidate) {
       candidates.push(candidate);
+      databaseContainerByPod.set(
+        podKey(candidate.namespace, candidate.podName),
+        candidate.containerName,
+      );
       continue;
     }
 
@@ -1420,9 +1658,18 @@ async function discoverKubernetesCluster(data: {
         .filter((member: KubernetesPodRow | undefined): boolean => {
           return Boolean(member);
         }) as Array<KubernetesPodRow>;
+      const databaseContainerOf: (member: KubernetesPodRow) => string = (
+        member: KubernetesPodRow,
+      ): string => {
+        return (
+          databaseContainerByPod.get(
+            podKey(group.namespace, readText(member.name)),
+          ) || ""
+        );
+      };
       const running: Array<KubernetesPodRow> = members.filter(
         (member: KubernetesPodRow): boolean => {
-          return isRunningPhase(member.phase);
+          return isRunningKubernetesMember(member, databaseContainerOf(member));
         },
       );
 
@@ -1477,7 +1724,11 @@ async function discoverKubernetesCluster(data: {
           workloadKind: group.workloadKind,
           workloadName: group.workloadName,
         },
-        mayCreate: running.some(hasProvenLifetime),
+        mayCreate: running.some((member: KubernetesPodRow): boolean => {
+          return hasProvenLifetime(
+            kubernetesMemberTiming(member, databaseContainerOf(member)),
+          );
+        }),
         budget: data.budget,
         stats: data.stats,
       });
@@ -1761,6 +2012,20 @@ async function discoverContainerHost(data: {
     return;
   }
 
+  /*
+   * Nor does an inventory the host stopped refreshing: judged against now,
+   * not against its own newest row, so a host whose agent went away (or a
+   * duplicate registration holding one old row) never counts yesterday's
+   * containers as running instances.
+   */
+  const newest: number | null = newestSeenAt(loaded.rows);
+  if (newest !== null && Date.now() - newest > STALE_HOST_INVENTORY_MS) {
+    logger.debug(
+      `${JOB_NAME}: ${hostLabel} has not refreshed its container inventory for ${Math.round((Date.now() - newest) / 60000)} min; its databases are left as they are this run`,
+    );
+    return;
+  }
+
   const identifierOf: (group: ContainerDatabaseGroup) => string = (
     group: ContainerDatabaseGroup,
   ): string => {
@@ -1856,15 +2121,30 @@ async function discoverDatabases(): Promise<void> {
   const clusterCountMemo: Map<string, boolean> = new Map<string, boolean>();
 
   // Each platform listed in its own try: a Kubernetes outage never stops Docker.
-  const parents: Array<DiscoveryParent> = [];
+  const listed: Array<DiscoveryParent> = [];
   for (const platform of PLATFORMS) {
     try {
-      parents.push(...(await listConnectedParents(platform)));
+      listed.push(...(await listConnectedParents(platform)));
     } catch (err) {
       logger.error(
         `${JOB_NAME}: listing connected ${parentKindLabel(platform)} failed: ${errorMessage(err)}`,
       );
     }
+  }
+
+  const deduped: {
+    kept: Array<DiscoveryParent>;
+    skipped: Array<DiscoveryParent>;
+  } = dedupeParentsByIdentifier(listed);
+  const parents: Array<DiscoveryParent> = deduped.kept;
+
+  if (deduped.skipped.length > 0) {
+    logger.warn(
+      `${JOB_NAME}: ${deduped.skipped.length} connected cluster(s) / host(s) share an identifier with a more recently seen one and were not discovered (a duplicate registration): ${deduped.skipped
+        .slice(0, 10)
+        .map(parentLabel)
+        .join(", ")}`,
+    );
   }
 
   if (parents.length === 0) {

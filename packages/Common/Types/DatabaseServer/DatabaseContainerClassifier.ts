@@ -1889,6 +1889,27 @@ export function attachPoolerServices(
 
 // ---- Docker / Podman containers -------------------------------------------
 
+/*
+ * Every container label classifyContainer reads: the Swarm / Compose
+ * service that groups replicas, and the marks of Testcontainers runs,
+ * `docker compose run` one-offs and kubelet-managed containers. The Docker
+ * and Podman agents copy exactly these onto their docker_stats metrics as
+ * resource attributes (`container_labels_to_metric_labels`, same names),
+ * and the metrics ingest stores them as the container row's labels — the
+ * one inventory path every agent version runs.
+ */
+export const CONTAINER_CLASSIFIER_LABEL_KEYS: ReadonlyArray<string> = [
+  "com.docker.compose.oneoff",
+  "com.docker.compose.project",
+  "com.docker.compose.service",
+  "com.docker.swarm.service.name",
+  "io.kubernetes.pod.name",
+  "io.podman.compose.project",
+  "io.podman.compose.service",
+  "org.testcontainers",
+  "org.testcontainers.sessionId",
+];
+
 // A Swarm task id: 25 lowercase alphanumerics (`stack_db.1.<task id>`).
 const SWARM_TASK_ID_REGEX: RegExp = /^[a-z0-9]{25}$/;
 const SWARM_SLOT_REGEX: RegExp = /^(?:\d+|[a-z0-9]{25})$/;

@@ -245,7 +245,8 @@ const CASES: Array<UpsertCase> = [
     service: DockerResourceService,
     model: new DockerResource(),
     boundedColumnCount: 5,
-    jsonPayloadColumnCount: 0,
+    // The Compose / Testcontainers labels the agent copies onto its metrics.
+    jsonPayloadColumnCount: 1,
     invoke: async (): Promise<void> => {
       await DockerResourceService.bulkUpsertContainers({
         projectId: PROJECT_ID,
@@ -259,6 +260,8 @@ const CASES: Array<UpsertCase> = [
             cpuPercent: 1,
             memoryBytes: 1024,
             observedAt: OBSERVED_AT,
+            labels: { "com.docker.compose.project": OVERSIZED },
+            startedAt: OBSERVED_AT,
           },
         ],
       });
@@ -294,7 +297,8 @@ const CASES: Array<UpsertCase> = [
     service: PodmanResourceService,
     model: new PodmanResource(),
     boundedColumnCount: 5,
-    jsonPayloadColumnCount: 0,
+    // The Compose / Testcontainers labels the agent copies onto its metrics.
+    jsonPayloadColumnCount: 1,
     invoke: async (): Promise<void> => {
       await PodmanResourceService.bulkUpsertContainers({
         projectId: PROJECT_ID,
@@ -308,6 +312,8 @@ const CASES: Array<UpsertCase> = [
             cpuPercent: 1,
             memoryBytes: 1024,
             observedAt: OBSERVED_AT,
+            labels: { "com.docker.compose.project": OVERSIZED },
+            startedAt: OBSERVED_AT,
           },
         ],
       });

@@ -17,16 +17,23 @@
  *     sleep 1; done`, `cp`) — so a script that starts anything else
  *     (`exec postgres`, a start script, `"$@"`, a nested shell) is a possible
  *     server however it begins.
- * Whatever cannot be read — a script FILE (`bash /start.sh`), a wrapper
- * (`tini --`, `gosu`), a heredoc, a script longer than
- * MAX_SCRIPT_CHARACTERS, a script the projection lost — is a possible
- * server: a false positive auto-archives later, a server that is
- * never discovered is never seen at all.
+ * A launcher that runs the rest of its arguments as the command — `env`
+ * (with its flags and `NAME=value` words), `nohup`, `setsid`, `tini [--]`,
+ * `dumb-init [--]`, or an official image's `docker-entrypoint.sh` followed by
+ * a program — is looked through to the program it starts, at most
+ * MAX_WRAPPER_WORDS words deep; inside a script, `exec`, `env` and `nohup`
+ * (and `NAME=value` prefixes) are looked through the same way.
+ * `docker-entrypoint.sh -c …` starts the image's server with those flags.
+ * Whatever cannot be read — a script FILE (`bash /start.sh`), a launcher
+ * whose program is not a plain word (`gosu user …`, `timeout 30 …`), a
+ * heredoc, a script longer than MAX_SCRIPT_CHARACTERS, a script the
+ * projection lost — is a possible server: a false positive auto-archives
+ * later, a server that is never discovered is never seen at all.
  *
  * The rules read a REDUCED command line, which Postgres computes before a
  * pod spec leaves the database (containerCommandProjectionSql) and
  * reduceContainerCommand, its JavaScript twin, computes from a full spec:
- * the program's first word; for a shell, each of its first
+ * the launchers dropped, then the program's first word; for a shell, each of its first
  * MAX_SHELL_ARGUMENTS arguments as either a flag or the set of command names
  * it would run — each one on CONTAINER_COMMAND_KNOWN_WORDS or replaced by
  * "?". Argument values, environment variables and every other word stay in
@@ -252,6 +259,32 @@ const SHELL_PROGRAMS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /*
+ * Launchers that run the rest of their arguments as the command, after
+ * their own flags (`env -i`, `tini -g --`, `dumb-init --single-child`) and,
+ * for `env`, `NAME=value` words. A flag that takes a separate value
+ * (`env -u NAME`, `tini -e 143`) leaves that value as the "program", which
+ * reads as a possible server — never as a client.
+ */
+const WRAPPER_PROGRAMS: ReadonlyArray<string> = [
+  "dumb-init",
+  "env",
+  "nohup",
+  "setsid",
+  "tini",
+  "tini-static",
+];
+
+/*
+ * An official image's entrypoint: it runs its first argument as the
+ * command, unless that argument is a flag — then it starts the image's own
+ * server with those flags (`docker-entrypoint.sh -c max_connections=200`).
+ */
+const ENTRYPOINT_PROGRAMS: ReadonlyArray<string> = ["docker-entrypoint.sh"];
+
+// Launcher words read before the program; a longer chain is unreadable.
+const MAX_WRAPPER_WORDS: number = 8;
+
+/*
  * The command names that may leave Postgres as themselves; any other
  * command name leaves it as UNKNOWN_WORD. None of them can start a server.
  */
@@ -295,6 +328,10 @@ const SHELL_PROGRAM_SOURCE: string = "(^|/)(sh|bash|ash|dash|zsh)$";
 const SHELL_OPTION_SOURCE: string =
   "^([-+][A-Za-z]{0,8}|--|--[A-Za-z][A-Za-z-]{0,23})$";
 
+// A launcher's flag (`-i`, `--`, `--single-child`) and an `env` NAME=value word.
+const FLAG_WORD_SOURCE: string = "^-";
+const ASSIGNMENT_WORD_SOURCE: string = "^[A-Za-z_][A-Za-z0-9_]*=";
+
 /*
  * A script is cleaned in this order, then its command names are read:
  * line continuations → a space; backslash escapes → "?"; comments (outside
@@ -312,13 +349,22 @@ const ASSIGNMENT_SOURCE: string = `(^|[${WS};&|()])[A-Za-z_][A-Za-z0-9_]*=[^${WS
 /*
  * A command name: the first word after the start, a newline or one of
  * `; & | ( )`, past any keyword that is followed by a command (`then`, `do`,
- * `!`, `exec` …).
+ * `!`, `exec` …) or launcher that runs one (`env`, `nohup`; `NAME=value`
+ * words are already gone).
  */
-const COMMAND_WORD_SOURCE: string = `(?:^|[;&|()\\n])[${WS}]*(?:(?:if|then|else|elif|do|while|until|exec|time|!|\\{)[${WS}]+)*([^${WS};&|()]+)`;
+const COMMAND_WORD_SOURCE: string = `(?:^|[;&|()\\n])[${WS}]*(?:(?:if|then|else|elif|do|while|until|exec|time|env|nohup|!|\\{)[${WS}]+)*([^${WS};&|()]+)`;
 
 const PROGRAM_REGEX: RegExp = new RegExp(PROGRAM_SOURCE);
 const SHELL_PROGRAM_REGEX: RegExp = new RegExp(SHELL_PROGRAM_SOURCE, "i");
 const SHELL_OPTION_REGEX: RegExp = new RegExp(SHELL_OPTION_SOURCE);
+const FLAG_WORD_REGEX: RegExp = new RegExp(FLAG_WORD_SOURCE);
+const ASSIGNMENT_WORD_REGEX: RegExp = new RegExp(ASSIGNMENT_WORD_SOURCE);
+const WRAPPER_PROGRAM_SET: ReadonlySet<string> = new Set<string>(
+  WRAPPER_PROGRAMS,
+);
+const ENTRYPOINT_PROGRAM_SET: ReadonlySet<string> = new Set<string>(
+  ENTRYPOINT_PROGRAMS,
+);
 const LINE_CONTINUATION_REGEX: RegExp = new RegExp(
   LINE_CONTINUATION_SOURCE,
   "g",
@@ -381,16 +427,90 @@ function reduceScript(script: string): string {
   return Array.from(names).sort().join("\n");
 }
 
+type LauncherWordKind =
+  | "wrapper"
+  | "entrypoint"
+  | "flag"
+  | "assignment"
+  | "other";
+
+// What one argv word is to the launcher walk (the Postgres twin's CASE, in order).
+function launcherWordKind(value: unknown): LauncherWordKind {
+  const text: string | null = toText(value);
+  if (text === null) {
+    return "other";
+  }
+  if (FLAG_WORD_REGEX.test(text)) {
+    return "flag";
+  }
+  if (ASSIGNMENT_WORD_REGEX.test(text)) {
+    return "assignment";
+  }
+  const program: RegExpExecArray | null = PROGRAM_REGEX.exec(text);
+  if (!program) {
+    return "other";
+  }
+  const name: string = baseName(program[1]!);
+  if (WRAPPER_PROGRAM_SET.has(name)) {
+    return "wrapper";
+  }
+  return ENTRYPOINT_PROGRAM_SET.has(name) ? "entrypoint" : "other";
+}
+
+/*
+ * `command ++ args` from the program a chain of launchers starts: the whole
+ * argv when it starts with no launcher; from the first word that is not a
+ * launcher, a launcher's flag or an `env` assignment; just the first
+ * launcher (a possible server) when that program is out of reach — more
+ * than MAX_WRAPPER_WORDS words deep, missing, or a flag handed to an
+ * image's entrypoint (which then starts the server with it).
+ */
+function unwrapLaunchers(argv: ReadonlyArray<unknown>): ReadonlyArray<unknown> {
+  let previous: LauncherWordKind | null = null;
+  const last: number = Math.min(argv.length - 1, MAX_WRAPPER_WORDS);
+
+  for (let index: number = 0; index <= last; index++) {
+    const kind: LauncherWordKind = launcherWordKind(argv[index]);
+    const skipped: boolean =
+      kind === "wrapper" ||
+      kind === "entrypoint" ||
+      ((kind === "flag" || kind === "assignment") &&
+        (previous === "wrapper" ||
+          previous === "flag" ||
+          previous === "assignment"));
+
+    if (!skipped) {
+      if (index === 0) {
+        return argv;
+      }
+      return kind === "flag" || kind === "assignment"
+        ? argv.slice(0, 1)
+        : argv.slice(index);
+    }
+    previous = kind;
+  }
+
+  return argv.slice(0, 1);
+}
+
 /**
  * The reduced command line containerCommandProjectionSql computes in
- * Postgres, from a full `command ++ args`: [] when there is no program;
- * `[program]` (plus "--sentinel" when present) for anything but a shell;
- * for a shell, `[program, …]` with each of its first MAX_SHELL_ARGUMENTS
- * arguments kept when it is a flag and reduced to the command names it runs
- * otherwise ("?" when longer than MAX_SCRIPT_CHARACTERS), and "?" appended
- * when there are more.
+ * Postgres, from a full `command ++ args`: launchers dropped (see
+ * unwrapLaunchers), then [] when there is no program; `[program]` (plus
+ * "--sentinel" when present) for anything but a shell; for a shell,
+ * `[program, …]` with each of its first MAX_SHELL_ARGUMENTS arguments kept
+ * when it is a flag and reduced to the command names it runs otherwise ("?"
+ * when longer than MAX_SCRIPT_CHARACTERS), and "?" appended when there are
+ * more.
  */
 export function reduceContainerCommand(
+  argv: ReadonlyArray<unknown>,
+): Array<string | null> {
+  return reduceProgramCommand(unwrapLaunchers(argv));
+}
+
+// reduceContainerCommand once the launchers are gone.
+function reduceProgramCommand(
   argv: ReadonlyArray<unknown>,
 ): Array<string | null> {
   const first: string | null = toText(argv[0]);
@@ -548,6 +668,10 @@ function sqlLiteral(value: string): string {
   return `$re$${value}$re$`;
 }
 
+function sqlTextArray(values: ReadonlyArray<string>): string {
+  return `ARRAY[${values.map(sqlLiteral).join(", ")}]::text[]`;
+}
+
 /**
  * The Postgres expression reduceContainerCommand is the twin of: a jsonb
  * array computed from `argv` (a SQL expression for the jsonb array
@@ -556,6 +680,64 @@ function sqlLiteral(value: string): string {
  * leave as themselves.
  */
 export function containerCommandProjectionSql(data: {
+  argv: string;
+  knownWords: string;
+}): string {
+  const argv: string = data.argv;
+  const launcherName: string = `lower(regexp_replace(substring(lw.word from ${sqlLiteral(PROGRAM_SOURCE)}), '^.*/', ''))`;
+
+  // unwrapLaunchers' twin: the argv from the program a chain of launchers starts.
+  return `(
+    SELECT ${programCommandProjectionSql({
+      argv: "lu.argv",
+      knownWords: data.knownWords,
+    })}
+    FROM (
+      SELECT CASE
+        WHEN lf.position = 1 THEN ${argv}
+        WHEN lf.position IS NULL OR lf.kind IN ('flag', 'assignment')
+          THEN jsonb_build_array(${argv} -> 0)
+        ELSE (
+          SELECT jsonb_agg(le.value ORDER BY le.position)
+          FROM jsonb_array_elements(${argv}) WITH ORDINALITY AS le(value, position)
+          WHERE le.position >= lf.position
+        )
+      END AS argv
+      FROM (SELECT 1) AS lone
+      LEFT JOIN LATERAL (
+        SELECT lk.position, lk.kind
+        FROM (
+          SELECT lc.position, lc.kind,
+            lag(lc.kind) OVER (ORDER BY lc.position) AS previous
+          FROM (
+            SELECT lw.position,
+              CASE
+                WHEN lw.word ~ ${sqlLiteral(FLAG_WORD_SOURCE)} THEN 'flag'
+                WHEN lw.word ~ ${sqlLiteral(ASSIGNMENT_WORD_SOURCE)} THEN 'assignment'
+                WHEN ${launcherName} = ANY(${sqlTextArray(WRAPPER_PROGRAMS)}) THEN 'wrapper'
+                WHEN ${launcherName} = ANY(${sqlTextArray(ENTRYPOINT_PROGRAMS)}) THEN 'entrypoint'
+                ELSE 'other'
+              END AS kind
+            FROM jsonb_array_elements_text(${argv}) WITH ORDINALITY AS lw(word, position)
+            WHERE lw.position <= ${MAX_WRAPPER_WORDS + 1}
+          ) AS lc
+        ) AS lk
+        WHERE NOT (
+          lk.kind IN ('wrapper', 'entrypoint')
+          OR (
+            lk.kind IN ('flag', 'assignment')
+            AND COALESCE(lk.previous IN ('wrapper', 'flag', 'assignment'), false)
+          )
+        )
+        ORDER BY lk.position
+        LIMIT 1
+      ) AS lf ON true
+    ) AS lu
+  )`;
+}
+
+// reduceProgramCommand's twin: `argv` has no launcher in front any more.
+function programCommandProjectionSql(data: {
   argv: string;
   knownWords: string;
 }): string {

@@ -241,6 +241,11 @@ describe("reduceContainerCommand — what may leave Postgres", () => {
       ["sh", "-c", `echo '${SECRET}'; "${SECRET}"`],
       ["bash", "-o", SECRET, "-c", "exec postgres"],
       ["sh", SECRET],
+      ["env", `PGPASSWORD=${SECRET}`, "psql"],
+      ["env", `PGPASSWORD=${SECRET}`],
+      ["tini", "--", "sh", "-c", `PGPASSWORD=${SECRET} psql -h db`],
+      ["docker-entrypoint.sh", `--requirepass=${SECRET}`],
+      ["sh", "-c", `exec env PGPASSWORD=${SECRET} psql -h db`],
     ]) {
       expect(JSON.stringify(reduceContainerCommand(argv))).not.toContain(
         "hunter2",
@@ -300,10 +305,13 @@ describe("containerCommandProjectionSql", () => {
       argv: "v.argv",
       knownWords: "$8::text[]",
     });
-    expect(sql).toContain("v.argv ->> 0");
+    expect(sql).toContain("v.argv -> 0");
     expect(sql).toContain("jsonb_array_elements_text(v.argv)");
+    expect(sql).toContain("jsonb_array_elements(v.argv)");
     expect(sql).toContain("= ANY($8::text[])");
-    expect(sql).not.toMatch(/\benv\b/);
+    // `env` is only ever a launcher NAME compared against a word, never a key read.
+    expect(sql).not.toMatch(/->>?\s*'env'/);
+    expect(sql).not.toMatch(/"env"/);
     expect(sql).not.toMatch(/"spec"/);
   });
 });

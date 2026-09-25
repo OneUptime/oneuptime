@@ -2392,7 +2392,11 @@ describe("classifyContainerCommand / isNonServerCommand", () => {
     [{ args: ["sleep", "infinity"] }, "keep-alive"],
     [{ command: ["SH", "-c", "  SLEEP  3600"] }, "keep-alive"],
     [{ command: ["sh", "-c", "exec"] }, "server"],
-    [{ command: ["tini", "--", "psql"] }, "server"],
+    // Launchers are looked through to the program they start.
+    [{ command: ["tini", "--", "psql"] }, "client"],
+    [{ command: ["env", "PGPASSWORD=x", "psql"] }, "client"],
+    [{ command: ["tini", "--", "docker-entrypoint.sh", "postgres"] }, "server"],
+    [{ command: ["timeout", "30", "psql"] }, "server"],
     [{ command: [null, "x"] }, "server"],
     [{ command: ["redis-sentinel", "/conf"] }, "companion"],
   ])(
@@ -2515,6 +2519,66 @@ describe("classifyKubernetesPod — client runs and one-off pods are not databas
         }),
       ),
     ).toBeNull();
+  });
+
+  test.each([
+    // The end-to-end kind cluster's pg-client-envprefix and pg-client-loop.
+    [
+      [
+        "sh",
+        "-c",
+        "PGPASSWORD=e2e-pg-pass psql -h postgres -U postgres -c 'select pg_sleep(100000)'",
+      ],
+    ],
+    [
+      [
+        "sh",
+        "-c",
+        "while true; do psql -h postgres -U postgres -c 'select 1' >/dev/null 2>&1; sleep 15; done",
+      ],
+    ],
+    // The same client behind the launchers images and charts use.
+    [["env", "PGPASSWORD=e2e-pg-pass", "psql", "-h", "postgres"]],
+    [["/usr/bin/env", "-i", "PGHOST=postgres", "psql", "-c", "select 1"]],
+    [["nohup", "psql", "-h", "postgres"]],
+    [["/sbin/tini", "--", "psql", "-h", "postgres"]],
+    [["dumb-init", "--", "sh", "-c", "exec env PGPASSWORD=x psql -h db"]],
+    [["docker-entrypoint.sh", "sleep", "infinity"]],
+  ])(
+    "regression: a client Deployment of a database image (%j) is not a database",
+    (command: Array<string>) => {
+      expect(
+        classifyKubernetesPod(
+          pod({
+            name: "pg-client-loop-58fdcb4994-4v59m",
+            namespace: "data",
+            labels: { app: "pg-client-loop", "pod-template-hash": "58fdcb4994" },
+            owner: { kind: "ReplicaSet", name: "pg-client-loop-58fdcb4994" },
+            containers: [{ name: "client", image: "postgres:16", command }],
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a server behind a launcher is still a server", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "orders-db-0",
+          owner: { kind: "StatefulSet", name: "orders-db" },
+          containers: [
+            {
+              name: "postgres",
+              image: "postgres:16",
+              ports: [port(5432)],
+              command: ["/sbin/tini", "--", "docker-entrypoint.sh"],
+              args: ["-c", "max_connections=200"],
+            },
+          ],
+        }),
+      )?.system,
+    ).toBe("postgresql");
   });
 
   test.each([
