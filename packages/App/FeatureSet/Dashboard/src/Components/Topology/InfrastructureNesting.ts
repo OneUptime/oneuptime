@@ -1,5 +1,11 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import {
+  CONTAINER_SPECIFICITY,
+  NESTABLE_CHILD_TYPES,
+  NESTING_RELATIONSHIP_PRIORITY,
+  compareCodePoints,
+} from "Common/Types/Topology/TopologyTypeRules";
 
 /*
  * Pure parent-selection for the Infrastructure topology's nested ("boxes in
@@ -23,66 +29,20 @@ import EntityType from "Common/Types/Telemetry/EntityType";
  *   Pass 1 left parentless, so structural nesting always wins.
  *
  * Determinism matters (the same graph must always lay out identically), so
- * every tie is broken by an explicit code-unit key comparison.
+ * every tie is broken by an explicit key comparison, in code-point order:
+ * the order the server's SQL ranks containers in (COLLATE "C"), so both pick
+ * the same container even for keys beyond U+FFFF.
  */
-
-/** Types that may nest inside a structural container (Pass 1 children). */
-export const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
-  EntityType.Container,
-  EntityType.Process,
-  EntityType.KubernetesPod,
-  EntityType.KubernetesNode,
-  EntityType.KubernetesNamespace,
-  EntityType.KubernetesDeployment,
-  EntityType.ProxmoxNode,
-  EntityType.ProxmoxGuest,
-  EntityType.VMwareCluster,
-  EntityType.VMwareHost,
-  EntityType.VMwareVirtualMachine,
-  EntityType.VMwareDatastore,
-  EntityType.DockerSwarmNode,
-  EntityType.DockerSwarmService,
-  EntityType.DockerSwarmTask,
-]);
 
 /*
- * Valid structural containers, higher = more specific. Doubles as the
- * allow-list of Pass-1 parent types: a candidate whose parent type is
- * absent here (e.g. a Service) is rejected before priority is compared.
+ * The ranking tables live in Common so the server's SQL (which picks each
+ * resource's container before the browser ever sees a relationship) and this
+ * function can never disagree about them.
  */
-export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
-  [EntityType.KubernetesCluster]: 0,
-  [EntityType.ProxmoxCluster]: 0,
-  /*
-   * vSphere nests vCenter ⊃ cluster ⊃ ESXi host ⊃ VM; datastores sit
-   * directly under the vCenter. The cluster is optional (standalone hosts
-   * hang straight off the vCenter), so the host is more specific than the
-   * cluster but both may parent directly to the vCenter.
-   */
-  [EntityType.VMwareVCenter]: 0,
-  [EntityType.VMwareCluster]: 1,
-  [EntityType.CephCluster]: 0,
-  [EntityType.DockerSwarmCluster]: 0,
-  [EntityType.Host]: 1,
-  [EntityType.KubernetesNamespace]: 1,
-  [EntityType.KubernetesNode]: 2,
-  [EntityType.KubernetesDeployment]: 2,
-  [EntityType.ProxmoxNode]: 2,
-  [EntityType.VMwareHost]: 2,
-  [EntityType.DockerSwarmNode]: 2,
-  [EntityType.KubernetesPod]: 3,
-  [EntityType.ProxmoxGuest]: 3,
-  [EntityType.VMwareVirtualMachine]: 3,
-  [EntityType.DockerSwarmTask]: 3,
-  [EntityType.Container]: 4,
-};
-
-export const NESTING_RELATIONSHIP_PRIORITY: Partial<
-  Record<EntityRelationshipType, number>
-> = {
-  [EntityRelationshipType.PartOf]: 3,
-  [EntityRelationshipType.RunsOn]: 2,
-  [EntityRelationshipType.MemberOf]: 1,
+export {
+  CONTAINER_SPECIFICITY,
+  NESTABLE_CHILD_TYPES,
+  NESTING_RELATIONSHIP_PRIORITY,
 };
 
 /*
@@ -187,7 +147,7 @@ export default function computeInfraParenting(
       (score[0] === current.score[0] && score[1] > current.score[1]) ||
       (score[0] === current.score[0] &&
         score[1] === current.score[1] &&
-        parentKey < current.edge.toEntityKey);
+        compareCodePoints(parentKey, current.edge.toEntityKey) < 0);
     if (better) {
       structuralCandidate.set(childKey, { edge, score });
     }
@@ -240,7 +200,7 @@ export default function computeInfraParenting(
     }
 
     const current: InfraEdgeInput | undefined = groupCandidate.get(childKey);
-    if (!current || serviceKey < current.fromEntityKey) {
+    if (!current || compareCodePoints(serviceKey, current.fromEntityKey) < 0) {
       groupCandidate.set(childKey, edge);
     }
   }

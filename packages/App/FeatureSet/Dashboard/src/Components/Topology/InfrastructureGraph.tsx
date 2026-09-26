@@ -28,6 +28,7 @@ import {
   InfrastructureNode,
   InfrastructureTopologyModel,
   describeInfrastructureNode,
+  isContainerNode,
   summarizeCounts,
 } from "./InfrastructureTopologyModel";
 import { formatLastSeen } from "./TopologyActivity";
@@ -41,7 +42,8 @@ import { HEALTH_COLORS, metaForEntityType } from "./TopologyMeta";
  * hundreds of boxes.
  *
  * Services sit in a column on the left with an arrow to every card they run
- * on, so the picture reads as "what runs where".
+ * on, so the picture reads as "what runs where". A collection (thousands of
+ * IoT devices, say) is always a single card with its count.
  */
 
 export const MAX_MAP_CARDS: number = 48;
@@ -129,9 +131,11 @@ export function cardForNode(
   const subtitle: string =
     node.kind === "group"
       ? `${typeMeta.label} replicas${location}`
-      : node.kind === "category"
-        ? "Category"
-        : `${typeMeta.label}${location}`;
+      : node.kind === "collection"
+        ? "Collection"
+        : node.kind === "category"
+          ? "Category"
+          : `${typeMeta.label}${location}`;
   return {
     kind: "infrastructure",
     title: node.name,
@@ -144,10 +148,11 @@ export function cardForNode(
     statusColor: node.isActive ? HEALTH_COLORS.healthy : HEALTH_COLORS.unknown,
     /*
      * One line says whether it is running and what it is made of; a machine
-     * says when it last reported instead.
+     * says when it last reported instead. A collection is one card however
+     * many items it holds, so its line carries the count.
      */
     statusLabel: `${node.isActive ? "Active" : "Inactive"} · ${
-      node.kind === "resource" && node.childIds.length === 0
+      node.kind === "resource" && !isContainerNode(node)
         ? `seen ${formatLastSeen(node.lastSeenAt || undefined, now)}`
         : node.kind === "resource"
           ? summarizeCounts(node.countsByType, 2)
@@ -155,7 +160,7 @@ export function cardForNode(
     }`,
     stats: [],
     footer,
-    stacked: node.kind === "group",
+    stacked: node.kind === "group" || node.kind === "collection",
     dimmed: !node.isActive,
   };
 }

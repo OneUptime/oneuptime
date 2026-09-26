@@ -37,6 +37,7 @@ const InventoryItemRelationships: FunctionComponent<
     <Fragment>
       <InventoryRelationships
         entityKey={item.entityKey}
+        entityType={item.entityType}
         fullMapRoute={buildInventoryTopologyRoute({
           entityKey: item.entityKey,
           entityType: item.entityType,

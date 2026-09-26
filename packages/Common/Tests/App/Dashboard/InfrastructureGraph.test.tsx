@@ -3,8 +3,6 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { Edge, Node } from "reactflow";
-import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
@@ -20,6 +18,10 @@ import {
   buildInfrastructureTopologyModel,
   collectMapCards,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureTopologyModel";
+import {
+  TopologyEntity,
+  TopologyRelationship,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 
 jest.mock("react-i18next", () => {
   return {
@@ -84,30 +86,27 @@ jest.mock("reactflow", () => {
 
 const NOW: Date = new Date("2026-09-07T10:00:00Z");
 
+/* The lean rows the Topology API sends. */
 function entity(
   key: string,
   type: EntityType,
   name: string = key,
   lastSeenAt: Date = NOW,
-): InventoryItem {
-  const item: InventoryItem = new InventoryItem();
-  item.entityKey = key;
-  item.displayName = name;
-  item.entityType = type;
-  item.lastSeenAt = lastSeenAt;
-  item.source = EntitySource.Discovered;
-  return item;
+): TopologyEntity {
+  return {
+    entityKey: key,
+    displayName: name,
+    entityType: type,
+    lastSeenAt,
+    source: EntitySource.Discovered,
+  };
 }
 function edge(
   from: string,
   to: string,
   type: EntityRelationshipType,
-): InventoryItemRelationship {
-  const item: InventoryItemRelationship = new InventoryItemRelationship();
-  item.fromEntityKey = from;
-  item.toEntityKey = to;
-  item.relationshipType = type;
-  return item;
+): TopologyRelationship {
+  return { fromEntityKey: from, toEntityKey: to, relationshipType: type };
 }
 
 function kubernetesModel(): InfrastructureTopologyModel {
@@ -208,7 +207,7 @@ describe("layoutInfrastructureMap", () => {
   });
 
   test("a huge scope is capped with an overflow card", () => {
-    const hosts: Array<InventoryItem> = Array.from(
+    const hosts: Array<TopologyEntity> = Array.from(
       { length: MAX_MAP_CARDS + 10 },
       (_value: unknown, index: number) => {
         return entity(`h${index}`, EntityType.Host, `server-${index}x`);
@@ -220,7 +219,7 @@ describe("layoutInfrastructureMap", () => {
     );
     const layout: InfrastructureMapLayout = layoutInfrastructureMap({
       model,
-      nodeIds: hosts.map((host: InventoryItem) => {
+      nodeIds: hosts.map((host: TopologyEntity) => {
         return host.entityKey!;
       }),
       now: NOW,
@@ -266,7 +265,7 @@ describe("layoutInfrastructureMap", () => {
   });
 
   test("a long column of running cards wraps instead of shrinking the map", () => {
-    const hosts: Array<InventoryItem> = Array.from(
+    const hosts: Array<TopologyEntity> = Array.from(
       { length: 12 },
       (_value: unknown, index: number) => {
         return entity(`h${index}`, EntityType.Host, `machine-${index}x`);
@@ -274,13 +273,13 @@ describe("layoutInfrastructureMap", () => {
     );
     const model: InfrastructureTopologyModel = buildInfrastructureTopologyModel(
       [entity("svc", EntityType.Service), ...hosts],
-      hosts.map((host: InventoryItem) => {
+      hosts.map((host: TopologyEntity) => {
         return edge("svc", host.entityKey!, EntityRelationshipType.HostedOn);
       }),
     );
     const layout: InfrastructureMapLayout = layoutInfrastructureMap({
       model,
-      nodeIds: hosts.map((host: InventoryItem) => {
+      nodeIds: hosts.map((host: TopologyEntity) => {
         return host.entityKey!;
       }),
       now: NOW,
@@ -348,9 +347,117 @@ describe("cardForNode", () => {
   });
 });
 
+/*
+ * A collection — a flat type with more items than the map ships, like
+ * thousands of IoT devices — is one card with its count, never a card per
+ * item, and opening it opens the collection.
+ */
+function collectionModel(): InfrastructureTopologyModel {
+  return buildInfrastructureTopologyModel(
+    [
+      entity("svc", EntityType.Service),
+      entity("switch", EntityType.NetworkDevice, "core-switch"),
+    ],
+    [edge("svc", "switch", EntityRelationshipType.RunsOn)],
+    {
+      rangeStart: new Date("2026-09-06T10:00:00Z"),
+      collections: [
+        {
+          entityType: EntityType.IoTDevice,
+          total: 5000,
+          active: 4200,
+          lastSeenAt: NOW,
+          activeLastSeenAt: NOW,
+        },
+      ],
+    },
+  );
+}
+
+describe("collections on the map", () => {
+  test("a collection is one stacked card that carries its count", () => {
+    const model: InfrastructureTopologyModel = collectionModel();
+    const card: ReturnType<typeof cardForNode> = cardForNode(
+      model,
+      model.nodes.get("collection:iot.device")!,
+      NOW,
+    );
+    expect(card.title).toBe("IoT Devices");
+    expect(card.subtitle).toBe("Collection");
+    expect(card.statusLabel).toBe("Active · 4,200 IoT devices");
+    expect(card.stacked).toBe(true);
+    expect(card.dimmed).toBe(false);
+    expect(card.footer).toBeUndefined();
+  });
+
+  test("the overview draws the collection as a single card beside the devices", () => {
+    const model: InfrastructureTopologyModel = collectionModel();
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: collectMapCards(model, null),
+      now: NOW,
+    });
+    expect(
+      layout.nodes.map((node: Node): string => {
+        return node.id;
+      }),
+    ).toEqual(["service:svc", "switch", "collection:iot.device"]);
+    expect(
+      layout.edges.map((item: Edge): string => {
+        return item.target;
+      }),
+    ).toEqual(["switch"]);
+  });
+
+  test("opening the card opens the collection", () => {
+    const model: InfrastructureTopologyModel = collectionModel();
+    const onOpenNode: MockFunction = getJestMockFunction();
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={collectMapCards(model, null)}
+        onOpenNode={onOpenNode}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByTestId("node-collection:iot.device")).toHaveTextContent(
+      "IoT Devices",
+    );
+    fireEvent.click(screen.getByTestId("node-collection:iot.device"));
+    expect(onOpenNode).toHaveBeenCalledWith("collection:iot.device");
+  });
+
+  test("a collection whose items all went quiet is dimmed", () => {
+    const model: InfrastructureTopologyModel = buildInfrastructureTopologyModel(
+      [],
+      [],
+      {
+        rangeStart: new Date("2026-09-06T10:00:00Z"),
+        includeInactive: true,
+        collections: [
+          {
+            entityType: EntityType.CloudResource,
+            total: 1500,
+            active: 0,
+            lastSeenAt: new Date("2026-08-10T10:00:00Z"),
+            activeLastSeenAt: null,
+          },
+        ],
+      },
+    );
+    const card: ReturnType<typeof cardForNode> = cardForNode(
+      model,
+      model.nodes.get("collection:cloud.resource")!,
+      NOW,
+    );
+    expect(card.dimmed).toBe(true);
+    expect(card.statusLabel).toBe("Inactive · 1,500 cloud resources");
+  });
+});
+
 describe("InfrastructureGraph", () => {
   test("opens cards, services and the overflow through their own callbacks", () => {
-    const hosts: Array<InventoryItem> = Array.from(
+    const hosts: Array<TopologyEntity> = Array.from(
       { length: MAX_MAP_CARDS + 1 },
       (_value: unknown, index: number) => {
         return entity(`h${index}`, EntityType.Host, `server-${index}x`);
@@ -366,7 +473,7 @@ describe("InfrastructureGraph", () => {
     render(
       <InfrastructureGraph
         model={model}
-        nodeIds={hosts.map((host: InventoryItem) => {
+        nodeIds={hosts.map((host: TopologyEntity) => {
           return host.entityKey!;
         })}
         onOpenNode={onOpenNode}

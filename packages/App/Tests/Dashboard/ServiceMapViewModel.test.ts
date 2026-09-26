@@ -4,11 +4,14 @@ import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryIte
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import { SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS } from "Common/Types/Topology/TopologyTypeRules";
 import { ServiceOperationalStatus } from "../../FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 import {
+  ServiceMapEdge,
   ServiceMapEntry,
   ServiceMapLayout,
   ServiceMapModel,
+  ServiceMapRunsOn,
   ServiceMapVisibility,
   buildServiceMapModel,
   detailLabelForEntity,
@@ -18,29 +21,40 @@ import {
   resolveServiceMapVisibility,
   summarizeRunsOn,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/ServiceMapViewModel";
+import {
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyRunsOnCount,
+  TopologyRunsOnCounts,
+} from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 
 /*
  * The Service Map view model decides what the map says about every node:
  * which nodes exist (services and what they call), how healthy each one is,
  * where it runs, and what survives a search or focus.
+ *
+ * It is fed the lean rows of the Topology API (TopologyEntity /
+ * TopologyRelationship) plus the server's per-type "runs on" counts; full
+ * inventory rows still satisfy the same shapes.
  */
 
 const NOW: Date = new Date("2026-09-07T10:00:00Z");
 const RANGE_START: Date = new Date("2026-09-06T10:00:00Z");
+const LONG_AGO: Date = new Date("2026-08-01T00:00:00Z");
 
 function entity(
   key: string,
-  type: EntityType,
-  overrides: Partial<InventoryItem> = {},
-): InventoryItem {
-  const item: InventoryItem = new InventoryItem();
-  item.entityKey = key;
-  item.displayName = key;
-  item.entityType = type;
-  item.source = EntitySource.Discovered;
-  item.lastSeenAt = NOW;
-  Object.assign(item, overrides);
-  return item;
+  type: EntityType | string,
+  overrides: Partial<TopologyEntity> = {},
+): TopologyEntity {
+  return {
+    entityKey: key,
+    displayName: key,
+    entityType: type,
+    source: EntitySource.Discovered,
+    lastSeenAt: NOW,
+    ...overrides,
+  };
 }
 
 function calls(
@@ -49,11 +63,12 @@ function calls(
   callCount?: number,
   errorCount?: number,
   avgDurationMs?: number,
-): InventoryItemRelationship {
-  const edge: InventoryItemRelationship = new InventoryItemRelationship();
-  edge.fromEntityKey = from;
-  edge.toEntityKey = to;
-  edge.relationshipType = EntityRelationshipType.DependsOn;
+): TopologyRelationship {
+  const edge: TopologyRelationship = {
+    fromEntityKey: from,
+    toEntityKey: to,
+    relationshipType: EntityRelationshipType.DependsOn,
+  };
   if (callCount !== undefined) {
     edge.callCount = callCount;
   }
@@ -70,15 +85,19 @@ function placed(
   from: string,
   to: string,
   type: EntityRelationshipType = EntityRelationshipType.RunsOn,
-): InventoryItemRelationship {
-  const edge: InventoryItemRelationship = new InventoryItemRelationship();
-  edge.fromEntityKey = from;
-  edge.toEntityKey = to;
-  edge.relationshipType = type;
-  return edge;
+): TopologyRelationship {
+  return { fromEntityKey: from, toEntityKey: to, relationshipType: type };
 }
 
-const ENTITIES: Array<InventoryItem> = [
+function runsOnCount(
+  entityType: string,
+  active: number,
+  total: number,
+): TopologyRunsOnCount {
+  return { entityType, active, total };
+}
+
+const ENTITIES: Array<TopologyEntity> = [
   entity("web", EntityType.Service, {
     descriptiveAttributes: { "telemetry.sdk.language": "webjs" },
   }),
@@ -94,12 +113,10 @@ const ENTITIES: Array<InventoryItem> = [
   }),
   entity("pod-1", EntityType.KubernetesPod),
   entity("pod-2", EntityType.KubernetesPod),
-  entity("old-host", EntityType.Host, {
-    lastSeenAt: new Date("2026-08-01T00:00:00Z"),
-  }),
+  entity("old-host", EntityType.Host, { lastSeenAt: LONG_AGO }),
 ];
 
-const RELATIONSHIPS: Array<InventoryItemRelationship> = [
+const RELATIONSHIPS: Array<TopologyRelationship> = [
   calls("web", "api", 1000, 5, 100),
   calls("api", "postgres", 3000, 0, 4),
   calls("api", "stripe", 100, 20, 300),
@@ -109,8 +126,8 @@ const RELATIONSHIPS: Array<InventoryItemRelationship> = [
 ];
 
 function model(
-  entities: Array<InventoryItem> = ENTITIES,
-  relationships: Array<InventoryItemRelationship> = RELATIONSHIPS,
+  entities: Array<TopologyEntity> = ENTITIES,
+  relationships: Array<TopologyRelationship> = RELATIONSHIPS,
   options: Parameters<typeof buildServiceMapModel>[2] = {
     rangeStart: RANGE_START,
   },
@@ -120,6 +137,12 @@ function model(
 
 function entry(result: ServiceMapModel, key: string): ServiceMapEntry {
   return result.entryByKey.get(key)!;
+}
+
+function edgeIds(result: ServiceMapModel): Array<string> {
+  return result.edges.map((edge: ServiceMapEdge): string => {
+    return edge.id;
+  });
 }
 
 describe("nodes", () => {
@@ -155,6 +178,46 @@ describe("nodes", () => {
     expect(entry(result, "stripe").detailLabel).toBe("HTTP");
     expect(entry(result, "worker").detailLabel).toBeNull();
     expect(entry(result, "postgres").typeLabel).toBe("Database");
+  });
+
+  test("an unnamed node gets a name that says what it is", () => {
+    const result: ServiceMapModel = model(
+      [
+        entity("svc", EntityType.Service, { displayName: undefined }),
+        entity("db", EntityType.Database, { displayName: undefined }),
+      ],
+      [calls("svc", "db", 1, 0, 1)],
+    );
+    expect(entry(result, "svc").label).toBe("Unnamed service");
+    expect(entry(result, "db").label).toBe("Unnamed dependency");
+  });
+
+  test("full inventory rows still build the same map", () => {
+    const toItem: (lean: TopologyEntity) => InventoryItem = (
+      lean: TopologyEntity,
+    ): InventoryItem => {
+      const item: InventoryItem = new InventoryItem();
+      Object.assign(item, lean);
+      return item;
+    };
+    const toRelationship: (
+      lean: TopologyRelationship,
+    ) => InventoryItemRelationship = (
+      lean: TopologyRelationship,
+    ): InventoryItemRelationship => {
+      const row: InventoryItemRelationship = new InventoryItemRelationship();
+      Object.assign(row, lean);
+      return row;
+    };
+    const full: ServiceMapModel = buildServiceMapModel(
+      ENTITIES.map(toItem),
+      RELATIONSHIPS.map(toRelationship),
+      { rangeStart: RANGE_START },
+    );
+    const lean: ServiceMapModel = model();
+    expect(edgeIds(full)).toEqual(edgeIds(lean));
+    expect(entry(full, "api").runsOn).toEqual(entry(lean, "api").runsOn);
+    expect(entry(full, "api").detailLabel).toBe("Node.js");
   });
 });
 
@@ -248,8 +311,8 @@ describe("traffic and status", () => {
 });
 
 describe("activity", () => {
-  const stale: InventoryItem = entity("legacy", EntityType.Service, {
-    lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+  const stale: TopologyEntity = entity("legacy", EntityType.Service, {
+    lastSeenAt: LONG_AGO,
   });
 
   test("services silent in the range are left out and counted", () => {
@@ -280,8 +343,276 @@ describe("activity", () => {
     expect(result.inactiveServiceCount).toBe(0);
   });
 
-  test("where a service runs lists only active infrastructure", () => {
-    expect(entry(model(), "api").runsOn.sort()).toEqual(["pod-1", "pod-2"]);
+  test("without a range start everything is active", () => {
+    const result: ServiceMapModel = model(
+      [...ENTITIES, stale],
+      RELATIONSHIPS,
+      {},
+    );
+    expect(result.entryByKey.has("legacy")).toBe(true);
+    expect(result.inactiveServiceCount).toBe(0);
+  });
+
+  test("manually registered and mirrored services are always active", () => {
+    const result: ServiceMapModel = model(
+      [
+        entity("manual", EntityType.Service, {
+          source: EntitySource.Manual,
+          lastSeenAt: LONG_AGO,
+        }),
+        entity("never-seen", EntityType.Service, { lastSeenAt: undefined }),
+      ],
+      [],
+    );
+    expect(result.entryByKey.has("manual")).toBe(true);
+    expect(result.entryByKey.has("never-seen")).toBe(true);
+    expect(result.inactiveServiceCount).toBe(0);
+  });
+
+  test("activity is judged exactly at the range start", () => {
+    const result: ServiceMapModel = model(
+      [
+        entity("on-the-edge", EntityType.Service, { lastSeenAt: RANGE_START }),
+        entity("just-before", EntityType.Service, {
+          lastSeenAt: new Date(RANGE_START.getTime() - 1),
+        }),
+      ],
+      [],
+    );
+    expect(result.entryByKey.has("on-the-edge")).toBe(true);
+    expect(result.entryByKey.has("just-before")).toBe(false);
+  });
+});
+
+describe("callers", () => {
+  test("only an active service is ever the caller of an edge", () => {
+    /*
+     * The Topology API only sends depends-on rows whose caller is a service,
+     * but the map must not rely on it: a database a service calls is on the
+     * map, yet its own depends-on rows are not calls between services.
+     */
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("api", "postgres", 10, 0, 1),
+      calls("postgres", "stripe", 10, 0, 1),
+    ]);
+    expect(edgeIds(result)).toEqual(["api->postgres"]);
+    expect(result.entryByKey.has("stripe")).toBe(false);
+    expect(entry(result, "postgres").dependencies).toBe(0);
+    expect(entry(result, "postgres").outbound.calls).toBe(0);
+    expect(result.relationships).toHaveLength(1);
+  });
+
+  test("a callee is no caller whatever order the rows arrive in", () => {
+    const forward: ServiceMapModel = model(ENTITIES, [
+      calls("api", "postgres", 10, 0, 1),
+      calls("postgres", "stripe", 10, 0, 1),
+    ]);
+    const backward: ServiceMapModel = model(ENTITIES, [
+      calls("postgres", "stripe", 10, 0, 1),
+      calls("api", "postgres", 10, 0, 1),
+    ]);
+    expect(edgeIds(forward)).toEqual(edgeIds(backward));
+    expect(Array.from(backward.entryByKey.keys()).sort()).toEqual(
+      Array.from(forward.entryByKey.keys()).sort(),
+    );
+  });
+
+  test("a non-service caller is ignored even when it is in the payload", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("pod-1", "postgres", 10, 0, 1),
+      calls("stripe", "api", 10, 0, 1),
+    ]);
+    expect(result.edges).toHaveLength(0);
+    expect(result.entryByKey.has("postgres")).toBe(false);
+    expect(entry(result, "api").callers).toBe(0);
+  });
+
+  test("a service can call another service, both ways", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("web", "api", 10, 0, 1),
+      calls("api", "web", 3, 0, 1),
+    ]);
+    expect(edgeIds(result)).toEqual(["web->api", "api->web"]);
+    expect(entry(result, "web").callers).toBe(1);
+    expect(entry(result, "api").callers).toBe(1);
+  });
+
+  test("a service that is only in the payload as a callee is never a caller", () => {
+    // An inactive service reached through an edge must stay off the map.
+    const result: ServiceMapModel = model(
+      [
+        ...ENTITIES,
+        entity("legacy", EntityType.Service, { lastSeenAt: LONG_AGO }),
+      ],
+      [calls("legacy", "postgres", 10, 0, 1), calls("api", "legacy", 1, 0, 1)],
+    );
+    expect(result.edges).toHaveLength(0);
+    expect(result.entryByKey.has("postgres")).toBe(false);
+  });
+});
+
+describe("runs on, counted by the server", () => {
+  const counts: TopologyRunsOnCounts = new Map<
+    string,
+    Array<TopologyRunsOnCount>
+  >([
+    [
+      "api",
+      [
+        runsOnCount(EntityType.Host, 3, 5),
+        runsOnCount(EntityType.KubernetesPod, 12, 40),
+        runsOnCount(EntityType.Container, 0, 7),
+      ],
+    ],
+    ["web", [runsOnCount(EntityType.Host, 1, 1)]],
+  ]);
+
+  test("uses only the services' active resources, most first", () => {
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      runsOnCounts: counts,
+    });
+    expect(entry(result, "api").runsOn).toEqual([
+      { entityType: EntityType.KubernetesPod, count: 12 },
+      { entityType: EntityType.Host, count: 3 },
+    ]);
+    expect(summarizeRunsOn(entry(result, "api").runsOn)).toBe(
+      "12 pods · 3 hosts",
+    );
+    expect(entry(result, "web").runsOn).toEqual([
+      { entityType: EntityType.Host, count: 1 },
+    ]);
+  });
+
+  test("with inactive resources shown, counts every resource", () => {
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      includeInactive: true,
+      runsOnCounts: counts,
+    });
+    expect(summarizeRunsOn(entry(result, "api").runsOn)).toBe(
+      "40 pods · 7 containers · 5 hosts",
+    );
+  });
+
+  test("without a range start, like the rest of the model, counts everything", () => {
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      runsOnCounts: counts,
+    });
+    expect(summarizeRunsOn(entry(result, "api").runsOn)).toBe(
+      "40 pods · 7 containers · 5 hosts",
+    );
+  });
+
+  test("ignores the relationships entirely once counts are given", () => {
+    // RELATIONSHIPS places api on pod-1 and pod-2; the counts say otherwise.
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      runsOnCounts: new Map<string, Array<TopologyRunsOnCount>>(),
+    });
+    expect(entry(result, "api").runsOn).toEqual([]);
+    expect(summarizeRunsOn(entry(result, "api").runsOn)).toBeNull();
+  });
+
+  test("a service with nothing active drops out of the summary", () => {
+    const result: ServiceMapModel = model(ENTITIES, [], {
+      rangeStart: RANGE_START,
+      runsOnCounts: new Map<string, Array<TopologyRunsOnCount>>([
+        ["worker", [runsOnCount(EntityType.KubernetesPod, 0, 9)]],
+      ]),
+    });
+    expect(entry(result, "worker").runsOn).toEqual([]);
+  });
+
+  test("never applies to dependencies or to services off the map", () => {
+    const result: ServiceMapModel = model(
+      [
+        ...ENTITIES,
+        entity("legacy", EntityType.Service, { lastSeenAt: LONG_AGO }),
+      ],
+      RELATIONSHIPS,
+      {
+        rangeStart: RANGE_START,
+        runsOnCounts: new Map<string, Array<TopologyRunsOnCount>>([
+          ["postgres", [runsOnCount(EntityType.Host, 1, 1)]],
+          ["legacy", [runsOnCount(EntityType.Host, 1, 1)]],
+        ]),
+      },
+    );
+    expect(entry(result, "postgres").runsOn).toEqual([]);
+    expect(result.entryByKey.has("legacy")).toBe(false);
+  });
+
+  test("equal counts read in type order, and repeated types add up", () => {
+    const result: ServiceMapModel = model(ENTITIES, [], {
+      rangeStart: RANGE_START,
+      runsOnCounts: new Map<string, Array<TopologyRunsOnCount>>([
+        [
+          "worker",
+          [
+            runsOnCount(EntityType.KubernetesPod, 2, 2),
+            runsOnCount(EntityType.Host, 2, 2),
+            runsOnCount(EntityType.KubernetesPod, 1, 1),
+          ],
+        ],
+      ]),
+    });
+    expect(entry(result, "worker").runsOn).toEqual([
+      { entityType: EntityType.KubernetesPod, count: 3 },
+      { entityType: EntityType.Host, count: 2 },
+    ]);
+  });
+});
+
+describe("runs on, counted from relationships", () => {
+  test("lists only active infrastructure, by type", () => {
+    expect(entry(model(), "api").runsOn).toEqual([
+      { entityType: EntityType.KubernetesPod, count: 2 },
+    ]);
+    expect(summarizeRunsOn(entry(model(), "api").runsOn)).toBe("2 pods");
+  });
+
+  test("shows inactive infrastructure too when asked", () => {
+    const result: ServiceMapModel = model(ENTITIES, RELATIONSHIPS, {
+      rangeStart: RANGE_START,
+      includeInactive: true,
+    });
+    expect(summarizeRunsOn(entry(result, "api").runsOn)).toBe(
+      "2 pods · 1 host",
+    );
+  });
+
+  test("counts a resource once, however many rows place the service on it", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      placed("api", "pod-1"),
+      placed("api", "pod-1"),
+      placed("api", "pod-1", EntityRelationshipType.HostedOn),
+    ]);
+    expect(entry(result, "api").runsOn).toEqual([
+      { entityType: EntityType.KubernetesPod, count: 1 },
+    ]);
+  });
+
+  test("ignores other relationship types, unknown targets and non-services", () => {
+    const result: ServiceMapModel = model(ENTITIES, [
+      calls("api", "postgres", 1, 0, 1),
+      placed("api", "pod-1", EntityRelationshipType.PartOf),
+      placed("api", "missing-pod"),
+      placed("postgres", "pod-2"),
+      placed("pod-1", "old-host"),
+    ]);
+    expect(entry(result, "api").runsOn).toEqual([]);
+    expect(entry(result, "postgres").runsOn).toEqual([]);
+  });
+
+  test("a target without a type still counts", () => {
+    const result: ServiceMapModel = model(
+      [...ENTITIES, entity("mystery", "")],
+      [placed("worker", "mystery")],
+    );
+    expect(entry(result, "worker").runsOn).toEqual([
+      { entityType: "unknown", count: 1 },
+    ]);
   });
 });
 
@@ -302,12 +633,38 @@ describe("edges", () => {
     expect(result.relationships).toHaveLength(1);
   });
 
+  test("the first row of a pair wins (the server sends the newest first)", () => {
+    const newest: TopologyRelationship = calls("web", "api", 10, 1, 5);
+    const result: ServiceMapModel = model(ENTITIES, [
+      newest,
+      calls("web", "api", 500, 0, 1),
+    ]);
+    expect(result.edges[0]!.relationship).toBe(newest);
+    expect(result.relationships).toEqual([newest]);
+    expect(entry(result, "api").inbound.calls).toBe(10);
+  });
+
   test("co-occurrence relationships are never drawn as calls", () => {
     expect(
       model().edges.every((edge: { to: string }) => {
         return !edge.to.startsWith("pod");
       }),
     ).toBe(true);
+  });
+
+  test("keep their order and carry metrics", () => {
+    const result: ServiceMapModel = model();
+    expect(edgeIds(result)).toEqual([
+      "web->api",
+      "api->postgres",
+      "api->stripe",
+    ]);
+    const stripe: ServiceMapEdge = result.edges[2]!;
+    expect(stripe.calls).toBe(100);
+    expect(stripe.errors).toBe(20);
+    expect(stripe.avgDurationMs).toBe(300);
+    expect(stripe.health).toBe("critical");
+    expect(result.edges[0]!.health).toBe("healthy");
   });
 });
 
@@ -421,16 +778,28 @@ describe("layoutServiceMap", () => {
 });
 
 describe("helpers", () => {
-  test("summarizeRunsOn counts placements by type, most first", () => {
-    const byKey: Map<string, InventoryItem> = new Map(
-      ENTITIES.map((item: InventoryItem): [string, InventoryItem] => {
-        return [item.entityKey!, item];
-      }),
-    );
-    expect(summarizeRunsOn(["pod-1", "pod-2", "old-host"], byKey)).toBe(
-      "2 pods · 1 host",
-    );
-    expect(summarizeRunsOn([], byKey)).toBeNull();
+  test("summarizeRunsOn lists counts by type, most first", () => {
+    expect(
+      summarizeRunsOn([
+        { entityType: EntityType.Host, count: 1 },
+        { entityType: EntityType.KubernetesPod, count: 2 },
+      ]),
+    ).toBe("2 pods · 1 host");
+    expect(summarizeRunsOn([])).toBeNull();
+  });
+
+  test("summarizeRunsOn skips empty counts and breaks ties by type", () => {
+    const runsOn: Array<ServiceMapRunsOn> = [
+      { entityType: EntityType.KubernetesPod, count: 3 },
+      { entityType: EntityType.Container, count: 0 },
+      { entityType: EntityType.Host, count: 3 },
+    ];
+    expect(summarizeRunsOn(runsOn)).toBe("3 hosts · 3 pods");
+    // The caller's array is left as it was.
+    expect(runsOn[0]!.entityType).toBe(EntityType.KubernetesPod);
+    expect(
+      summarizeRunsOn([{ entityType: EntityType.Host, count: 0 }]),
+    ).toBeNull();
   });
 
   test("nounForType pluralizes short nouns and falls back to type labels", () => {
@@ -454,5 +823,50 @@ describe("helpers", () => {
         }),
       ),
     ).toBe("couchbase");
+  });
+
+  test("detailLabelForEntity reads the shared keys in order, descriptive first", () => {
+    // The server ships exactly these keys; the reader must want no others.
+    expect(SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS).toEqual([
+      "telemetry.sdk.language",
+      "db.system.name",
+      "network.protocol.name",
+      "messaging.system",
+    ]);
+    expect(
+      detailLabelForEntity(
+        entity("x", EntityType.RemoteService, {
+          descriptiveAttributes: { "messaging.system": "kafka" },
+          identifyingAttributes: { "network.protocol.name": "grpc" },
+        }),
+      ),
+    ).toBe("gRPC");
+    expect(
+      detailLabelForEntity(
+        entity("x", EntityType.Database, {
+          descriptiveAttributes: { "db.system.name": "mysql" },
+          identifyingAttributes: { "db.system.name": "postgresql" },
+        }),
+      ),
+    ).toBe("MySQL");
+  });
+
+  test("detailLabelForEntity skips blank and non-string values", () => {
+    expect(
+      detailLabelForEntity(
+        entity("x", EntityType.Database, {
+          descriptiveAttributes: { "db.system.name": "   " },
+          identifyingAttributes: { "db.system.name": "redis" },
+        }),
+      ),
+    ).toBe("Redis");
+    expect(
+      detailLabelForEntity(
+        entity("x", EntityType.Service, {
+          descriptiveAttributes: { "telemetry.sdk.language": 42 },
+        }),
+      ),
+    ).toBeNull();
+    expect(detailLabelForEntity(entity("x", EntityType.Service))).toBeNull();
   });
 });

@@ -22,8 +22,6 @@ import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -43,6 +41,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { TopologyEntity, TopologyRelationship } from "./TopologyData";
 import {
   HEALTH_COLORS,
   SERVICE_MAP_TOLERATED_ERROR_RATE,
@@ -65,9 +64,9 @@ import {
  */
 
 export interface ComponentProps {
-  fromEntity: InventoryItem;
-  toEntity: InventoryItem;
-  relationship: InventoryItemRelationship;
+  fromEntity: TopologyEntity;
+  toEntity: TopologyEntity;
+  relationship: TopologyRelationship;
   timeRange: RangeStartAndEndDateTime;
   /** Seconds the latest-window metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
@@ -404,7 +403,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     ];
   };
 
-  const rel: InventoryItemRelationship = props.relationship;
+  const rel: TopologyRelationship = props.relationship;
   const hasLatestMetrics: boolean = Boolean(rel.callCount && rel.callCount > 0);
   const healthColor: string =
     HEALTH_COLORS[
