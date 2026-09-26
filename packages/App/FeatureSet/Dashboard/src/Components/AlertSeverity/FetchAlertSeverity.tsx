@@ -54,8 +54,14 @@ const FetchAlertSeverity: FunctionComponent<ComponentProps> = (
             },
           });
 
+        /*
+         * A missing or deleted severity does not come back as null: the API
+         * answers an empty object, which arrives as a model with no id.
+         */
         if (isCurrent) {
-          setAlertSeverity(fetchedAlertSeverity);
+          setAlertSeverity(
+            fetchedAlertSeverity?.id ? fetchedAlertSeverity : null,
+          );
         }
       } catch (err) {
         if (isCurrent) {

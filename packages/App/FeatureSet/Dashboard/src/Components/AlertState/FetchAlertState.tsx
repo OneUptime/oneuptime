@@ -52,8 +52,12 @@ const FetchAlertState: FunctionComponent<ComponentProps> = (
             },
           });
 
+        /*
+         * A missing or deleted state does not come back as null: the API
+         * answers an empty object, which arrives as a model with no id.
+         */
         if (isCurrent) {
-          setAlertState(fetchedAlertState);
+          setAlertState(fetchedAlertState?.id ? fetchedAlertState : null);
         }
       } catch (err) {
         if (isCurrent) {

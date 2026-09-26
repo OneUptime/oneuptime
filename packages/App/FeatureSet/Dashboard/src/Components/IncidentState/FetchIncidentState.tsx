@@ -54,8 +54,14 @@ const FetchIncidentState: FunctionComponent<ComponentProps> = (
             },
           });
 
+        /*
+         * A missing or deleted state does not come back as null: the API
+         * answers an empty object, which arrives as a model with no id.
+         */
         if (isCurrent) {
-          setIncidentState(fetchedIncidentState);
+          setIncidentState(
+            fetchedIncidentState?.id ? fetchedIncidentState : null,
+          );
         }
       } catch (err) {
         if (isCurrent) {
