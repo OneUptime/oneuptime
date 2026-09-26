@@ -952,7 +952,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    *
    * For non-percentile aggregations (Sum/Avg/Min/Max/Count) we delegate
    * to the base implementation. For percentile aggregations
-   * (P50/P90/P95/P99) we build a subquery that fans each metric row out
+   * (P50/P75/P90/P95/P99) we build a subquery that fans each metric row out
    * into one or more `(midpoint, weight)` samples — derived from
    * histogram buckets when present — and then runs
    * `quantileExactWeighted` over the fanned-out distribution. This means

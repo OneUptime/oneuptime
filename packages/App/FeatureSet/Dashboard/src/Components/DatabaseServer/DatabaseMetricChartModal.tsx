@@ -103,6 +103,7 @@ export const DATABASE_METRIC_AGGREGATION_LABELS: Partial<
   [AggregationType.Min]: "Min",
   [AggregationType.Sum]: "Sum",
   [AggregationType.P50]: "p50",
+  [AggregationType.P75]: "p75",
   [AggregationType.P90]: "p90",
   [AggregationType.P95]: "p95",
   [AggregationType.P99]: "p99",

@@ -646,6 +646,60 @@ describe("performance rows", () => {
     expect(signal.severity).toBe("info");
     expect(signal.title).not.toContain("0ms");
   });
+
+  /* Issue #3975: an INP per view, labelled with the route it measured. */
+  it("carries an INP's view and attribution into the detail, and the route into the subtitle", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "INP",
+        value: 480,
+        rating: "needs-improvement",
+        url: "https://shop.example.com/products",
+        navigationType: "soft",
+        interactionType: "keyboard",
+        interactionTarget: "input#search",
+        inputDelayMs: 12,
+        processingDurationMs: 400,
+        presentationDelayMs: 68,
+      }),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayPerformanceSignalDetail =
+      signal.detail as ReplayPerformanceSignalDetail;
+
+    expect(signal.title).toBe("INP 480ms needs improvement");
+    expect(signal.subtitle).toBe("/products");
+    expect(detail).toEqual(
+      expect.objectContaining({
+        navigationType: "soft",
+        interactionType: "keyboard",
+        interactionTarget: "input#search",
+        inputDelayMs: 12,
+        processingDurationMs: 400,
+        presentationDelayMs: 68,
+      }),
+    );
+  });
+
+  it("leaves the attribution empty for a recording that predates it", () => {
+    const detail: ReplayPerformanceSignalDetail = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "INP",
+        value: 320,
+        rating: "poor",
+      }),
+      { startTimeUnixMs: null },
+    ).detail as ReplayPerformanceSignalDetail;
+
+    expect(detail.navigationType).toBeNull();
+    expect(detail.interactionType).toBeNull();
+    expect(detail.interactionTarget).toBeNull();
+    expect(detail.inputDelayMs).toBeNull();
+    expect(detail.processingDurationMs).toBeNull();
+    expect(detail.presentationDelayMs).toBeNull();
+  });
 });
 
 describe("custom and marker rows", () => {

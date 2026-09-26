@@ -7,6 +7,8 @@ import {
   SessionReplayVisibilityState,
   SessionReplayWebVitalMetric,
   SessionReplayWebVitalRating,
+  SessionReplayInteractionType,
+  SessionReplayNavigationType,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 
 /*
@@ -133,6 +135,14 @@ export interface ReplayTimelineEvent {
   metric?: SessionReplayWebVitalMetric;
   value?: number;
   rating?: SessionReplayWebVitalRating;
+
+  /* performance (INP attribution, newer recorders only) */
+  navigationType?: SessionReplayNavigationType;
+  interactionType?: SessionReplayInteractionType;
+  interactionTarget?: string;
+  inputDelayMs?: number;
+  processingDurationMs?: number;
+  presentationDelayMs?: number;
 
   /* click */
   selector?: string;

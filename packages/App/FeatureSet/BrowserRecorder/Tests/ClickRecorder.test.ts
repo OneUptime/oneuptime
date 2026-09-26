@@ -308,6 +308,29 @@ describe("ClickRecorder", (): void => {
       expect(payload?.selector).toContain("medical");
     });
 
+    /*
+     * describeTarget is how the INP report names its slow interaction's
+     * element. It must honour blocking exactly as a click does, or a slow
+     * tap inside an excluded pane would ship that pane's structure.
+     */
+    it("describes another module's target under the same blocking rules", (): void => {
+      document.body.innerHTML =
+        "<section class='medical'><div class='dose'><button id='rx'>Refill</button></div></section><button class='pay'>Pay</button>";
+
+      const instance: ClickRecorder = makeRecorder(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        [],
+        [".medical"],
+      );
+
+      expect(
+        instance.describeTarget(document.getElementById("rx") as Element),
+      ).toBe("body > section.medical");
+      expect(
+        instance.describeTarget(document.querySelector(".pay") as Element),
+      ).toBe("body > button.pay");
+    });
+
     it("emits no label inside a region carrying rrweb's block class", (): void => {
       document.body.innerHTML =
         "<div class='oneuptime-block'><div><span id='chat'>Account 4417 for Alice</span></div></div>";

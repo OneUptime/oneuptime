@@ -731,6 +731,8 @@ Each budget is off at `0` (the default). Sessions captured this way appear with 
 
 Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own.
 
+INP is reported **per view**, not per page load. In a single-page app every route change (`pushState`, `replaceState`, back/forward, or a `#/` hash route) closes the current view and starts a new one, so a visit through five routes gets up to five INP rows, each labelled with its route. An interaction belongs to the view it started in: the click that navigated from `/products` to `/cart` counts towards `/products`, which is the page that was slow to respond. Each INP row also says what the slow interaction was — pointer or keyboard, the element (a structural selector such as `div#checkout > button.pay`, built like a click's and never containing text or attribute values), and how its time split into input delay, processing and presentation. A view is reported about a second after the user leaves it, or when the tab is hidden.
+
 ## Recording a specific user's next session
 
 When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: on the application's _Replay Policy_ page → **Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.

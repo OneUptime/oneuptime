@@ -2,12 +2,14 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   WebVitalDefinitions,
   WebVitalDefinition,
+  WebVitalRouteAttributeKeys,
 } from "Common/Types/Rum/WebVitals";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -239,6 +241,12 @@ export interface MetricScope {
   attributes?: Record<string, string> | undefined;
   primaryEntityId?: ObjectID | undefined;
   aggregationType: AggregationType;
+  /*
+   * Omitted: buckets sized to the window. Total: one value over the whole
+   * window - an exact mean of the range rather than a mean of per-interval
+   * means, and the only way to get a percentile of the range.
+   */
+  aggregationInterval?: AggregationInterval | undefined;
   start: Date;
   end: Date;
 }
@@ -279,6 +287,9 @@ export const fetchMetricSeries: (
       aggregateBy: {
         query: query,
         aggregationType: scope.aggregationType,
+        ...(scope.aggregationInterval
+          ? { aggregationInterval: scope.aggregationInterval }
+          : {}),
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp: scope.start,
@@ -304,6 +315,8 @@ export interface WebVital {
   unit: "ms" | "score";
   // Core Web Vitals thresholds (good < warn, poor >= danger).
   thresholds: { warn: number; danger: number };
+  // The metric name that reported, so a follow-up query can reuse it.
+  metricName: string | null;
 }
 
 /*
@@ -311,6 +324,14 @@ export interface WebVital {
  * metric convention, so we probe the common community / SDK metric names
  * for each vital and surface the first that reports data. Empty when the
  * browser SDK does not emit web vitals (the page renders a clear hint).
+ *
+ * Each value is the mean over the WHOLE range (one Total bucket), so a
+ * quiet interval no longer counts as much as a busy one. It stays a mean
+ * rather than Google's p75 on purpose: a histogram's percentile is read
+ * from its bucket midpoints, and the OpenTelemetry default buckets
+ * (0, 5, 10, 25 ...) put every CLS value in (0, 5] - a p75 of 2.5 for a
+ * page that barely moves. The mean comes from the histogram's exact sum
+ * and count, whatever its buckets.
  */
 export const fetchWebVitals: (data: {
   primaryEntityId: ObjectID;
@@ -325,18 +346,22 @@ export const fetchWebVitals: (data: {
     WebVitalDefinitions.map(
       async (def: WebVitalDefinition): Promise<WebVital> => {
         let value: number | null = null;
+        let metricName: string | null = null;
         for (const name of def.names) {
           // eslint-disable-next-line no-await-in-loop
           const series: Array<TimePoint> = await fetchMetricSeries({
             name: name,
             primaryEntityId: data.primaryEntityId,
             aggregationType: AggregationType.Avg,
+            aggregationInterval: AggregationInterval.Total,
             start: data.start,
             end: data.end,
           });
+          // One Total bucket; the mean only guards against a split answer.
           const mean: number | null = meanY(series);
           if (mean !== null) {
             value = mean;
+            metricName = name;
             break;
           }
         }
@@ -347,11 +372,143 @@ export const fetchWebVitals: (data: {
           value: value,
           unit: def.unit,
           thresholds: def.thresholds,
+          metricName: metricName,
         };
       },
     ),
   );
   return results;
+};
+
+export interface WebVitalRoute {
+  route: string;
+  value: number;
+}
+
+export interface WebVitalByRoute {
+  // The attribute the routes were read from; null when none had data.
+  routeAttribute: string | null;
+  // Slowest first.
+  routes: Array<WebVitalRoute>;
+  // Every route that reported in the range, when more were left out.
+  totalRoutes: number | null;
+  // The lookup failed (e.g. a 403): unknown, not "no routes".
+  failed: boolean;
+}
+
+export const WEB_VITAL_ROUTE_LIMIT: number = 10;
+
+/*
+ * One web vital's range mean per route, slowest first - the answer
+ * to "which page is slow" that a single app-wide number cannot give, and
+ * in a single-page app the only way to see INP per view at all. Reads the
+ * route from the first of WebVitalRouteAttributeKeys that reports; rows
+ * without the attribute (instrumentation that sends none) are not a route
+ * and are left out rather than shown as a blank one.
+ */
+export const fetchWebVitalByRoute: (data: {
+  primaryEntityId: ObjectID;
+  metricName: string;
+  start: Date;
+  end: Date;
+}) => Promise<WebVitalByRoute> = async (data: {
+  primaryEntityId: ObjectID;
+  metricName: string;
+  start: Date;
+  end: Date;
+}): Promise<WebVitalByRoute> => {
+  const empty: WebVitalByRoute = {
+    routeAttribute: null,
+    routes: [],
+    totalRoutes: null,
+    failed: false,
+  };
+
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId) {
+    return empty;
+  }
+
+  try {
+    for (const routeAttribute of WebVitalRouteAttributeKeys) {
+      // eslint-disable-next-line no-await-in-loop
+      const result: AggregatedResult =
+        await AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: {
+            query: {
+              projectId: projectId,
+              time: new InBetween<Date>(data.start, data.end),
+              name: data.metricName,
+              primaryEntityId: data.primaryEntityId,
+            },
+            // A mean, like the vitals card and for the same reason.
+            aggregationType: AggregationType.Avg,
+            aggregationInterval: AggregationInterval.Total,
+            aggregateColumnName: "value",
+            aggregationTimestampColumnName: "time",
+            startTimestamp: data.start,
+            endTimestamp: data.end,
+            groupByAttributeKeys: [routeAttribute],
+            /*
+             * One spare slot: the rows WITHOUT the attribute pool into one
+             * blank group, which may rank among the slowest.
+             */
+            topK: { count: WEB_VITAL_ROUTE_LIMIT + 1, rankBy: "max" },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: { time: SortOrder.Descending },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        });
+
+      const routes: Array<WebVitalRoute> = [];
+      let sawBlankRoute: boolean = false;
+
+      for (const row of (result.data || []) as Array<AggregatedModel>) {
+        const attributes: unknown = row["attributes"];
+        const route: unknown =
+          attributes && typeof attributes === "object"
+            ? (attributes as Record<string, unknown>)[routeAttribute]
+            : undefined;
+        const value: number = Number(row["value"]);
+
+        if (typeof route !== "string" || !route.trim()) {
+          sawBlankRoute = true;
+          continue;
+        }
+
+        if (Number.isFinite(value)) {
+          routes.push({ route: route, value: value });
+        }
+      }
+
+      if (routes.length === 0) {
+        continue;
+      }
+
+      routes.sort((a: WebVitalRoute, b: WebVitalRoute): number => {
+        return b.value - a.value;
+      });
+
+      const totalGroups: number | null =
+        typeof result.totalGroups === "number" ? result.totalGroups : null;
+
+      return {
+        routeAttribute: routeAttribute,
+        routes: routes.slice(0, WEB_VITAL_ROUTE_LIMIT),
+        totalRoutes:
+          totalGroups === null
+            ? null
+            : Math.max(routes.length, totalGroups - (sawBlankRoute ? 1 : 0)),
+        failed: false,
+      };
+    }
+
+    return empty;
+  } catch {
+    return { ...empty, failed: true };
+  }
 };
 
 /*

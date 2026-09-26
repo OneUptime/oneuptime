@@ -730,13 +730,15 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 311.4 KB raw / 94.2 KB gzip**, **loader.js 13.3 KB raw /
-4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (93 KB gzip
+Measured: **recorder.js 316.7 KB raw / 95.6 KB gzip**, **loader.js 13.3 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (95 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
-recorder budget went from 90 KB to 92 KB for offline mode, and to 93 KB on
+recorder budget went from 90 KB to 92 KB for offline mode, to 93 KB on
 2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
-94178 bytes gzip); `esbuild.config.js` carries each measurement and reason.
+94178 bytes gzip), and to 95 KB on 2026-09-26 for INP per single-page-app
+view (issue #3975: 94102 → 95550 bytes gzip); `esbuild.config.js` carries
+each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab

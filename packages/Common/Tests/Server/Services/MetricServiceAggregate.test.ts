@@ -203,6 +203,18 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).not.toContain("__attr_grp_0");
       expect(query).toContain("GROUP BY time");
     });
+
+    it("computes P75 - the Core Web Vitals level - over the histogram buckets", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationType: AggregationType.P75,
+          groupByAttributeKeys: ["app.route"],
+        }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.75)");
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+    });
   });
 
   /*

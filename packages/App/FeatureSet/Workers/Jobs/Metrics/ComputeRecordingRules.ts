@@ -315,6 +315,8 @@ function toAggregateSql(type: AggregationType): string {
      */
     case AggregationType.P50:
       return "quantile(0.5)(value)";
+    case AggregationType.P75:
+      return "quantile(0.75)(value)";
     case AggregationType.P90:
       return "quantile(0.9)(value)";
     case AggregationType.P95:

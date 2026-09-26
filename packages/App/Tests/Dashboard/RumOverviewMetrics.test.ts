@@ -748,6 +748,7 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
     for (const setter of [
       "setMetricsLoading(true)",
       "setWebVitalsLoading(true)",
+      "setInpByRouteLoading(true)",
       "setPageLoadsLoading(true)",
       "setSignalsLoading(true)",
       "setSessionReplayCount(null)",
@@ -794,10 +795,11 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
     });
 
     /*
-     * all spans (then/catch), web vitals (then/catch), page loads
-     * (then/catch), signals (then/catch), sessions (then/catch).
+     * all spans (then/catch), web vitals (then/catch), INP by route
+     * (then/catch, chained off web vitals), page loads (then/catch),
+     * signals (then/catch), sessions (then/catch).
      */
-    expect(stateWriters).toBe(10);
+    expect(stateWriters).toBe(12);
   });
 
   test("page loads are two requests for the documentLoad span, waited on together", () => {
@@ -833,7 +835,7 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
 describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
   const D: Record<RumMetric, string> = RUM_METRIC_DESCRIPTIONS;
 
-  test("covers every tile, every chart and the web-vitals card - fifteen texts", () => {
+  test("covers every tile, every chart, the web-vitals card and INP by route - sixteen texts", () => {
     expect(Object.keys(D).sort()).toEqual(
       [
         "pageLoads",
@@ -851,6 +853,7 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
         "exceptionsChart",
         "logsChart",
         "webVitals",
+        "inpByRoute",
       ].sort(),
     );
   });
@@ -922,8 +925,21 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     expect(D.webVitals).toMatch(/average over the selected range/);
     expect(D.webVitals).toMatch(/75th percentile/);
 
-    // fetchWebVitals really averages.
-    expect(TELEMETRY_METRICS).toContain("aggregationType: AggregationType.Avg");
+    /*
+     * fetchWebVitals really averages - over the whole range at once, not
+     * interval by interval.
+     */
+    expect(TELEMETRY_METRICS).toContain(
+      "aggregationType: AggregationType.Avg, aggregationInterval: AggregationInterval.Total,",
+    );
+  });
+
+  test("inpByRoute: says it is per route, averaged, and where the route comes from", () => {
+    expect(D.inpByRoute).toMatch(/for each route/);
+    expect(D.inpByRoute).toMatch(/averaged over the selected range/);
+    expect(D.inpByRoute).toMatch(/single-page app/);
+    expect(D.inpByRoute).toContain("app.route");
+    expect(D.inpByRoute).toContain("url.template");
   });
 
   test("errorRate: the colour limits it quotes are the tile's thresholds", () => {

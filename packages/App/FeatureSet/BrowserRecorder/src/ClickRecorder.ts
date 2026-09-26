@@ -494,6 +494,15 @@ export default class ClickRecorder {
   }
 
   /*
+   * The selector this module would send for a click on `target`, for
+   * other modules that name an element (the INP target). A target inside
+   * a blocked region is described as the blocked element itself.
+   */
+  public describeTarget(target: Element): string {
+    return ClickRecorder.buildSelector(this.findBlockedRoot(target) || target);
+  }
+
+  /*
    * tag#id.class.class > tag.class > ... up to three ancestors, stopping
    * early at an id (an id is already a stable handle). Only structural
    * tokens: no attribute values, ever.
