@@ -735,6 +735,16 @@ export default class Recorder {
       longTaskBudgetMs: this.extendedConfig.longTaskBudgetMs,
       slowRequestBudgetMs: this.extendedConfig.slowRequestBudgetMs,
       captureWebVitals: this.extendedConfig.captureWebVitals,
+      getCurrentUrl: (): string => {
+        return this.routeRecorder.getCurrentUrl();
+      },
+      /*
+       * Built exactly as a click's selector is, blocked regions included:
+       * the INP target must not describe what rrweb refuses to record.
+       */
+      describeTarget: (target: Element): string => {
+        return this.clickRecorder.describeTarget(target);
+      },
     });
 
     this.consoleRecorder = new ConsoleRecorder({
@@ -776,6 +786,8 @@ export default class Recorder {
          */
         this.chunker.addRoute(route.to);
         this.frustrationDetector.notifyActivity(atUnixMs);
+        /* A new view: INP is measured per route, not per document. */
+        this.performanceRecorder.noteRouteChange(route.from, route.to);
       },
       requestFullSnapshot: (): void => {
         this.takeFullSnapshot();
