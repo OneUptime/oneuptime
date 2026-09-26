@@ -29,14 +29,16 @@ import {
 import { pluralizeSiteType } from "./SiteMapViewModel";
 
 /*
- * The Network Map's search box.
+ * The search box of every drill-down over the site hierarchy: the Network
+ * Map, and the Device Topology explorer (issue #3981).
  *
  * It answers two different questions with one control, because they are the
  * same question asked from different distances:
  *
  *   "narrow what I am looking at" — handled by the PAGE, which applies the
- *     same text to the markers, the cards and the WAN links of the level in
- *     view. That is instant and local, so it happens on every keystroke.
+ *     same text to whatever it draws for the level in view (the map's
+ *     markers, cards and WAN links; the explorer's cards). That is instant
+ *     and local, so it happens on every keystroke.
  *
  *   "where is Unit 104822" — handled here, against /network-site/search,
  *     because the answer is somewhere the page is not: the map holds one
@@ -61,6 +63,10 @@ const INPUT_CLASS: string =
 
 const NO_STATUS_COLOR: string = "#9ca3af"; // gray-400
 
+const DEFAULT_TEST_ID: string = "network-map-search";
+const DEFAULT_PLACEHOLDER: string =
+  "Search sites by name — anywhere in your network";
+
 export interface ComponentProps {
   value: string;
   onChange: (value: string) => void;
@@ -78,6 +84,19 @@ export interface ComponentProps {
    * ("Regions", "Markets"). The box must not invent vocabulary either.
    */
   childTypeLabel: string;
+  /*
+   * The prefix of every test id the box renders, and of the listbox's DOM
+   * id. Defaults to the Network Map's, so each page that mounts the box
+   * keeps names of its own.
+   */
+  dataTestId?: string | undefined;
+  placeholder?: string | undefined;
+  /*
+   * Whether the box prints its own "Showing 3 of 40 at this level" line. A
+   * page that already prints that count beside the box turns it off rather
+   * than saying the same thing twice.
+   */
+  showLocalCount?: boolean | undefined;
 }
 
 const SiteSearchBox: FunctionComponent<ComponentProps> = (
@@ -98,6 +117,21 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
 
   const normalized: string = normalizeSiteSearchText(props.value);
   const canSearchRemotely: boolean = isRemoteSearchable(normalized);
+
+  const testId: string = props.dataTestId || DEFAULT_TEST_ID;
+  const placeholder: string = props.placeholder || DEFAULT_PLACEHOLDER;
+  const listboxId: string = `${testId}-listbox`;
+  const optionId: (result: SiteSearchResultView) => string = (
+    result: SiteSearchResultView,
+  ): string => {
+    return `${testId}-option-${result.id}`;
+  };
+
+  const containerRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  // Set by an arrow key, consumed by the effect that scrolls the row in.
+  const scrollToActive: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   /*
    * Cancel-stale: every request takes a sequence number and only the latest
@@ -152,6 +186,12 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
       if (isMounted.current && seq === requestSeq.current) {
         setIsSearching(false);
         setAnsweredText(searchText);
+        /*
+         * A highlight is a position in the list it was made in. Carried
+         * over to a fresh list, the same index names a different site, and
+         * Enter would then commit a row the reader never moved onto.
+         */
+        setActiveIndex(-1);
       }
     },
     [],
@@ -160,13 +200,16 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setActiveIndex(-1);
 
+    /*
+     * The text changed, so nothing already in flight answers it any more.
+     * Bumping here rather than when the debounced request fires is what
+     * stops the previous text's response from landing during the debounce
+     * and passing itself off as the answer to this one.
+     */
+    requestSeq.current++;
+
     if (!canSearchRemotely) {
-      /*
-       * Below the threshold there is nothing to show — and the sequence
-       * number is bumped so a request already in flight for a longer string
-       * cannot arrive and repopulate the list after it was cleared.
-       */
-      requestSeq.current++;
+      // Below the threshold there is nothing to show.
       setResults([]);
       setIsTruncated(false);
       setIsSearching(false);
@@ -201,11 +244,22 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     props.onSelectSite(result.id);
   };
 
-  const onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
-    event: React.KeyboardEvent<HTMLDivElement>,
+  /*
+   * Handed to the input itself, not the wrapper: keys pressed on the Clear
+   * button would otherwise bubble up here, reopen the panel while focus is
+   * somewhere its blur-to-close can never fire, and turn Enter on "Clear"
+   * into a drill.
+   */
+  const onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void = (
+    event: React.KeyboardEvent<HTMLInputElement>,
   ): void => {
     if (event.key === "Escape") {
+      /*
+       * Dropping the highlight with the panel is what keeps a later Enter
+       * from committing an entry that is no longer on screen.
+       */
       setIsFocused(false);
+      setActiveIndex(-1);
       return;
     }
     if (results.length === 0) {
@@ -214,6 +268,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setIsFocused(true);
+      scrollToActive.current = true;
       setActiveIndex((previous: number): number => {
         return previous + 1 >= results.length ? 0 : previous + 1;
       });
@@ -221,6 +276,8 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
+      setIsFocused(true);
+      scrollToActive.current = true;
       setActiveIndex((previous: number): number => {
         return previous <= 0 ? results.length - 1 : previous - 1;
       });
@@ -233,7 +290,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
        * never looked at, which is the worst outcome this control can have.
        */
       const active: SiteSearchResultView | undefined = results[activeIndex];
-      if (active) {
+      if (active && isFocused) {
         event.preventDefault();
         selectResult(active);
       }
@@ -241,20 +298,53 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   };
 
   const isNarrowed: boolean =
-    Boolean(normalized) && props.localMatchCount < props.localTotalCount;
+    props.showLocalCount !== false &&
+    Boolean(normalized) &&
+    props.localMatchCount < props.localTotalCount;
 
   const showResultsPanel: boolean = isFocused && canSearchRemotely;
   const hasAnsweredCurrentText: boolean = answeredText === normalized;
+  const activeResult: SiteSearchResultView | undefined = showResultsPanel
+    ? results[activeIndex]
+    : undefined;
+
+  /*
+   * The panel shows about five hits of up to fifty, and focus never leaves
+   * the input, so nothing scrolls a highlighted row into view on its own.
+   * Only a keyboard move scrolls: the mouse is already on the row it
+   * highlights, and scrolling under it would make the list jump.
+   */
+  useEffect(() => {
+    if (!scrollToActive.current || !activeResult) {
+      return;
+    }
+    scrollToActive.current = false;
+    const element: HTMLElement | null = document.getElementById(
+      optionId(activeResult),
+    );
+    if (element && typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeResult]);
 
   return (
-    <div className="relative w-full" onKeyDown={onKeyDown}>
+    <div className="relative w-full" ref={containerRef}>
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
           <Icon className="h-4 w-4 text-gray-400" icon={IconProp.Search} />
         </div>
         <Input
-          dataTestId="network-map-search"
-          placeholder="Search sites by name — anywhere in your network"
+          dataTestId={testId}
+          placeholder={placeholder}
+          ariaLabel={placeholder}
+          role="combobox"
+          ariaAutoComplete="list"
+          ariaHasPopup="listbox"
+          ariaExpanded={showResultsPanel}
+          ariaControls={showResultsPanel ? listboxId : undefined}
+          ariaActiveDescendant={
+            activeResult ? optionId(activeResult) : undefined
+          }
           value={props.value}
           className={INPUT_CLASS}
           outerDivClassName="relative w-full rounded-md shadow-sm"
@@ -269,7 +359,17 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
             setIsFocused(true);
             props.onChange(value);
           }}
+          onKeyDown={onKeyDown}
           onFocus={() => {
+            setIsFocused(true);
+          }}
+          /*
+           * Escape closes the panel but leaves focus in the box, and a click
+           * on a box that already has focus fires no focus event. Without
+           * this, clicking the box — the obvious way back to the results —
+           * would do nothing.
+           */
+          onClick={() => {
             setIsFocused(true);
           }}
           /*
@@ -284,11 +384,17 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
         {props.value ? (
           <button
             type="button"
-            data-testid="network-map-search-clear"
+            data-testid={`${testId}-clear`}
             aria-label="Clear search"
             className="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-indigo-600"
             onClick={() => {
               props.onChange("");
+              /*
+               * The button only exists while there is text, so clearing
+               * unmounts it under the keyboard focus it holds. Hand focus
+               * back to the box rather than dropping it on the page body.
+               */
+              containerRef.current?.querySelector("input")?.focus();
             }}
           >
             <Icon className="h-4 w-4" icon={IconProp.Close} />
@@ -313,7 +419,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
         {isNarrowed ? (
           <p
             className="mt-1 text-xs text-gray-500"
-            data-testid="network-map-search-local-count"
+            data-testid={`${testId}-local-count`}
           >
             {/*
              * pluralizeSiteType, not "+ s": the label is a per-project type
@@ -339,6 +445,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
          */
         <div
           className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          data-testid={`${testId}-results`}
           onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
             event.preventDefault();
           }}
@@ -348,13 +455,23 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           </p>
 
           {error ? (
-            <p className="px-3 py-2 text-xs text-red-600">{error}</p>
+            <p
+              className="px-3 py-2 text-xs text-red-600"
+              data-testid={`${testId}-error`}
+            >
+              {error}
+            </p>
           ) : (
             <></>
           )}
 
           {!error && isSearching && !hasAnsweredCurrentText ? (
-            <p className="px-3 py-2 text-xs text-gray-500">Searching…</p>
+            <p
+              className="px-3 py-2 text-xs text-gray-500"
+              data-testid={`${testId}-searching`}
+            >
+              Searching…
+            </p>
           ) : (
             <></>
           )}
@@ -362,7 +479,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           {!error && hasAnsweredCurrentText && results.length === 0 ? (
             <p
               className="px-3 py-2 text-xs text-gray-500"
-              data-testid="network-map-search-no-results"
+              data-testid={`${testId}-no-results`}
             >
               No sites match that name.
             </p>
@@ -370,17 +487,18 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <div role="listbox" aria-label="Site search results">
+          <div role="listbox" id={listboxId} aria-label="Site search results">
             {results.map(
               (result: SiteSearchResultView, index: number): ReactElement => {
                 const isActive: boolean = index === activeIndex;
                 return (
                   <div
                     key={result.id}
+                    id={optionId(result)}
                     role="option"
                     tabIndex={-1}
                     aria-selected={isActive}
-                    data-testid={`network-map-search-result-${result.id}`}
+                    data-testid={`${testId}-result-${result.id}`}
                     className={`cursor-pointer px-3 py-2 ${
                       isActive ? "bg-indigo-50" : "hover:bg-gray-50"
                     }`}
@@ -435,7 +553,10 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           </div>
 
           {isTruncated ? (
-            <p className="border-t border-gray-100 px-3 py-2 text-[11px] text-gray-500">
+            <p
+              className="border-t border-gray-100 px-3 py-2 text-[11px] text-gray-500"
+              data-testid={`${testId}-truncated`}
+            >
               More sites match than are shown — keep typing to narrow it down.
             </p>
           ) : (
