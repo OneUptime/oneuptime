@@ -256,7 +256,12 @@ export default function useTopologyData(
       }
 
       const generation: number = current.generation;
-      const fresh: boolean = freshTabsRef.current.delete(key);
+      /*
+       * A refresh stays fresh until it succeeds: if the fresh load fails
+       * (a busy server's 429, say), "Try again" must not be answered from
+       * the pre-refresh cache.
+       */
+      const fresh: boolean = freshTabsRef.current.has(key);
       attemptCounterRef.current += 1;
       const attempt: number = attemptCounterRef.current;
       attemptsRef.current[key] = attempt;
@@ -290,6 +295,9 @@ export default function useTopologyData(
             return;
           }
           controllersRef.current[key] = null;
+          if (fresh) {
+            freshTabsRef.current.delete(key);
+          }
           commit((previous: TopologyDataState): TopologyDataState => {
             return withTab(previous, key, {
               status: "ready",

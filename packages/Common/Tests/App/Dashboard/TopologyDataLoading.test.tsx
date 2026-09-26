@@ -903,7 +903,7 @@ describe("an explicit refresh bypasses the server's response cache", () => {
     expect(freshness(requests.slice(3))).toEqual(["cached", "cached"]);
   });
 
-  test("each tab is sent fresh once per refresh: a retry after it is an ordinary load", async () => {
+  test("a refresh stays fresh until it succeeds: 'Try again' after a failed refresh is fresh too", async () => {
     render(<Probe range={FIRST_RANGE} view="Service Map" />);
     await waitFor(() => {
       expect(text("sm-status")).toBe("ready");
@@ -922,7 +922,15 @@ describe("an explicit refresh bypasses the server's response cache", () => {
       expect(text("sm-status")).toBe("ready");
     });
     expect(text("generation")).toBe("2");
-    expect(freshness(requests)).toEqual(["cached", "fresh", "cached"]);
+    /* A cached answer here would silently undo the refresh the user asked for. */
+    expect(freshness(requests)).toEqual(["cached", "fresh", "fresh"]);
+
+    /* Once it succeeded, further loads in the generation are ordinary. */
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(requests).toHaveLength(4);
+    });
+    expect(freshness(requests)[3]).toBe("cached");
   });
 
   test("a second reload is fresh again, and a reload that supersedes a pending one aborts it", async () => {

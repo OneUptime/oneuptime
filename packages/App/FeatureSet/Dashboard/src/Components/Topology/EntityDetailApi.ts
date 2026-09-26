@@ -399,6 +399,17 @@ export function appendConnectionsPage(
     }
   }
   const total: number = Math.max(page.total, rows.length);
+  /*
+   * Offsets are re-ranked on every request, so a change under the user can
+   * hide a row. An insertion above the offset repeats a row we already show
+   * (repeatedRows); a deletion above it skips the row that moved into its
+   * place and leaves nothing repeated — only the section shrinking gives it
+   * away. A list that ends with a different number of rows than the server
+   * counts is stale either way.
+   */
+  const shrank: boolean = page.total < current.total;
+  const endedOffCount: boolean =
+    page.nextOffset === null && rows.length !== page.total;
   return {
     merged: {
       total: total,
@@ -407,8 +418,7 @@ export function appendConnectionsPage(
       nextOffset: page.nextOffset,
     },
     firstNewRowId: firstNewRowId,
-    listChanged:
-      repeatedRows > 0 || (page.nextOffset === null && rows.length < total),
+    listChanged: repeatedRows > 0 || shrank || endedOffCount,
   };
 }
 

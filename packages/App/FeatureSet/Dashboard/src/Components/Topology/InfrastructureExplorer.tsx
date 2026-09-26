@@ -1238,7 +1238,15 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     }
     const page: CollectionPage = state.page;
     const pageIndex: number = collectionCursors.length - 1;
-    const pageCount: number = Math.max(1, Math.ceil(page.total / PAGE_SIZE));
+    /*
+     * The page shown always counts: after items past the cursor went away the
+     * total can fall below this page, and "Page 3 of 2" reads as a bug.
+     */
+    const pageCount: number = Math.max(
+      1,
+      Math.ceil(page.total / PAGE_SIZE),
+      pageIndex + 1,
+    );
     const pager: ReactElement = renderPager({
       label: `${t("Page")} ${(pageIndex + 1).toLocaleString()} ${t("of")} ${pageCount.toLocaleString()} · ${page.total.toLocaleString()} ${noun(page.total)}`,
       canGoBack: pageIndex > 0,

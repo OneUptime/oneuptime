@@ -1228,7 +1228,9 @@ describe("map", () => {
  * A fake collection server: two IoT devices a page, keyset-paged by the
  * last key, with 4,200 active devices and 5,000 with inactive ones included.
  */
-function serveIotPages(options: { emptyAfter?: number } = {}): void {
+function serveIotPages(
+  options: { emptyAfter?: number; emptyTotal?: number } = {},
+): void {
   mockFetchCollectionPage.mockImplementation(
     (_rangeStart: unknown, request: unknown): Promise<CollectionPage> => {
       const pageRequest: CollectionPageRequest =
@@ -1239,7 +1241,9 @@ function serveIotPages(options: { emptyAfter?: number } = {}): void {
         : 1;
       if (options.emptyAfter !== undefined && start > options.emptyAfter) {
         // Everything past the cursor went away between the two requests.
-        return Promise.resolve(page([], total - 50, null));
+        return Promise.resolve(
+          page([], options.emptyTotal ?? total - 50, null),
+        );
       }
       return Promise.resolve(iotPage(start, start + 1, total));
     },
@@ -1345,6 +1349,20 @@ describe("collection paging", () => {
     await screen.findByTestId("infrastructure-collection-page-empty");
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+  });
+
+  test("an emptied page never claims to be past the last page", async () => {
+    // Pages 1 and 2 were read; then most of the fleet was pruned (60 left).
+    serveIotPages({ emptyAfter: 4, emptyTotal: 60 });
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByTestId("infrastructure-collection-page-empty");
+    expect(screen.getByText("Page 3 of 3 · 60 IoT devices")).toBeVisible();
+    expect(screen.queryByText(/Page 3 of 2/)).not.toBeInTheDocument();
   });
 
   test("an empty first page still reads as an empty collection", async () => {

@@ -807,6 +807,73 @@ describe("appendConnectionsPage", () => {
     ).toBe(false);
   });
 
+  /*
+   * A relationship deleted above the offset moves every later row up one
+   * rank: the row at the old offset is never returned and nothing repeats,
+   * and the stale row still on screen keeps the count looking complete.
+   */
+  test("a deletion above the offset is a changed list, though nothing repeats", () => {
+    // a..f shown a, b, c; then b is deleted, so ranks 4.. hold e, f.
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
+      "runsOn",
+      {
+        total: 6,
+        unknownTotal: 0,
+        rows: [decodedRow("a"), decodedRow("b"), decodedRow("c")],
+        nextOffset: 3,
+      },
+      {
+        total: 5,
+        unknownTotal: 0,
+        rows: [decodedRow("e"), decodedRow("f")],
+        nextOffset: null,
+      },
+    );
+
+    expect(
+      result.merged.rows.map((r: EntityConnection) => {
+        return r.otherKey;
+      }),
+    ).toEqual(["a", "b", "c", "e", "f"]);
+    expect(result.listChanged).toBe(true);
+  });
+
+  test("a last page that leaves more rows on screen than the server counts is a changed list", () => {
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
+      "runsOn",
+      {
+        total: 4,
+        unknownTotal: 0,
+        rows: [decodedRow("a"), decodedRow("b"), decodedRow("c")],
+        nextOffset: 3,
+      },
+      { total: 3, unknownTotal: 0, rows: [decodedRow("d")], nextOffset: null },
+    );
+
+    expect(result.merged.rows).toHaveLength(4);
+    expect(result.listChanged).toBe(true);
+  });
+
+  test("growth below the offset hides nothing and is not flagged", () => {
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
+      "runsOn",
+      {
+        total: 4,
+        unknownTotal: 0,
+        rows: [decodedRow("a"), decodedRow("b")],
+        nextOffset: 2,
+      },
+      {
+        total: 5,
+        unknownTotal: 0,
+        rows: [decodedRow("c"), decodedRow("d")],
+        nextOffset: 4,
+      },
+    );
+
+    expect(result.listChanged).toBe(false);
+  });
+
   test("one resource related in both directions is two rows", () => {
     expect(api.connectionId("related", decodedRow("a", "out"))).not.toBe(
       api.connectionId("related", decodedRow("a", "in")),
