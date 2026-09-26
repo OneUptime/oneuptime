@@ -989,6 +989,8 @@ describe("PerformanceRecorder", (): void => {
           value: 260,
           rating: "needs-improvement",
           occurredAtUnixMs: atOrigin(8000),
+          /* No route change: the view is the document load itself. */
+          navigationType: "hard",
         });
       });
 

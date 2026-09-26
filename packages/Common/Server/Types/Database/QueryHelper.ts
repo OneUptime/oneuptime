@@ -9,7 +9,10 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
-import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
+import buildJSONColumnQuery, {
+  JSONColumnQuery,
+  escapeLikePattern,
+} from "./JSONColumnQuery";
 
 export type { FindOperator };
 
@@ -225,6 +228,56 @@ export default class QueryHelper {
       },
       {
         [rid]: `%${name}%`,
+      },
+    );
+  }
+
+  /*
+   * Every word has to appear somewhere in the column, in any order.
+   *
+   * `search` is one substring, so "michigan 104822" misses a row called
+   * "Unit 104822 - Michigan Ave" even though both words are in it. Here each
+   * word gets its own ILIKE, AND-joined, which is how people recall a name
+   * they half remember.
+   *
+   * A word is matched literally: a `%` or `_` somebody typed is escaped
+   * rather than read as a wildcard.
+   *
+   * No words matches NOTHING. An AND over zero predicates is vacuously true,
+   * and "every row in the table" is never what an empty search box meant.
+   */
+  @CaptureSpan()
+  public static searchAllWords(words: Array<string>): FindWhereProperty<any> {
+    const rids: Array<string> = [];
+    const valuesObj: Dictionary<string> = {};
+
+    for (const word of words) {
+      const trimmed: string = (word || "").trim();
+      if (!trimmed) {
+        continue;
+      }
+      const rid: string = Text.generateRandomText(10);
+      rids.push(rid);
+      valuesObj[rid] = `%${escapeLikePattern(trimmed)}%`;
+    }
+
+    if (rids.length === 0) {
+      return Raw(() => {
+        return `TRUE = FALSE`; // this will always return false
+      }, {});
+    }
+
+    return Raw(
+      (alias: string) => {
+        const conditions: string = rids
+          .map((rid: string) => {
+            return `CAST(${alias} AS TEXT) ILIKE :${rid}`;
+          })
+          .join(" AND ");
+        return `(${conditions})`;
+      },
+      {
+        ...valuesObj,
       },
     );
   }

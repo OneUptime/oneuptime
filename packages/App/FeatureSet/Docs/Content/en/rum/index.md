@@ -43,7 +43,7 @@ Once a batch is classified as RUM, the application's identity is its **`service.
 
 **Overview** — page views, error rate and p95 duration over a selectable time range, with trend charts, plus tiles for client platforms and recorded sessions. The counts are derived from the spans your instrumentation emits, so what "page views" means is exactly what your instrumentation reports (document loads, route changes, interactions).
 
-**Core Web Vitals** — LCP, INP, CLS, FCP and TTFB with good / needs-improvement / poor ratings, when your SDK reports them as metrics. See [Core Web Vitals](/docs/rum/web-vitals) for the metric names OneUptime looks for.
+**Core Web Vitals** — LCP, INP, CLS, FCP and TTFB with good / needs-improvement / poor ratings, when your SDK reports them as metrics, and INP broken down by route — the view-by-view answer a single-page app needs. See [Core Web Vitals](/docs/rum/web-vitals) for the metric names OneUptime looks for and [Single-page apps](/docs/rum/web-vitals#single-page-apps) for measuring INP per route.
 
 **Logs, Traces and Metrics** — the full telemetry explorers, scoped to this application.
 

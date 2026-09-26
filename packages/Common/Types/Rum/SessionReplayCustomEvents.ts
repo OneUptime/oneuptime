@@ -215,15 +215,27 @@ export type SessionReplayWebVitalMetric =
 export type SessionReplayWebVitalRating = "good" | "needs-improvement" | "poor";
 
 /*
- * A web vital observed once per metric per page. Informational only:
- * vitals never trigger an upload, and CLS's value is unitless while the
- * others are milliseconds.
+ * How the view an INP describes began: the document load ("hard") or a
+ * single-page-app route change ("soft").
+ */
+export type SessionReplayNavigationType = "hard" | "soft";
+
+/* The input that produced an INP, as the browser classes it. */
+export type SessionReplayInteractionType = "pointer" | "keyboard";
+
+/*
+ * A web vital. LCP, FCP, CLS and TTFB are observed once per page load;
+ * INP once per VIEW (newer recorders), so a single-page app reports one
+ * INP for each route the user interacted on instead of one for the whole
+ * visit. Informational only: vitals never trigger an upload, and CLS's
+ * value is unitless while the others are milliseconds.
  */
 export interface SessionReplayWebVitalPayload {
   kind: "web-vital";
   metric: SessionReplayWebVitalMetric;
   value: number;
   rating: SessionReplayWebVitalRating;
+  /* INP: the scrubbed URL of the view the interaction happened on. */
   url?: string;
   /*
    * As on SessionReplayPerformanceBudgetPayload: when the measured entry
@@ -232,6 +244,20 @@ export interface SessionReplayWebVitalPayload {
    * after the moment the number describes. Optional for older recorders.
    */
   occurredAtUnixMs?: number;
+
+  /*
+   * INP attribution, all optional (older recorders and engines without
+   * the timing fields omit them). The three phases add up to roughly the
+   * value: waiting for the main thread, running the page's handlers, and
+   * rendering the next frame. The target is a structural selector built
+   * exactly as a click's is - never an attribute value or text.
+   */
+  navigationType?: SessionReplayNavigationType;
+  interactionType?: SessionReplayInteractionType;
+  interactionTarget?: string;
+  inputDelayMs?: number;
+  processingDurationMs?: number;
+  presentationDelayMs?: number;
 }
 
 export type SessionReplayPerformancePayload =

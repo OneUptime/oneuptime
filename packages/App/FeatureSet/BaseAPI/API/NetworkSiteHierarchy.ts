@@ -1610,11 +1610,18 @@ export default class NetworkSiteHierarchyAPI {
             } as unknown as JSONObject);
           }
 
+          /*
+           * Every word, anywhere in the name — the same rule the search box
+           * applies to the level in view, so the two halves of one box never
+           * disagree about whether "michigan 104822" matches something.
+           */
           const matchedSites: Array<NetworkSite> =
             await NetworkSiteService.findBy({
               query: {
                 projectId: projectId,
-                name: QueryHelper.search(searchText),
+                name: QueryHelper.searchAllWords(
+                  NetworkSiteHierarchyUtil.splitSearchWords(searchText),
+                ),
               },
               select: {
                 _id: true,

@@ -1742,6 +1742,18 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
    *   metrics and label them in cores ("2.3 cores"). The Kubernetes
    *   cluster overview page — which fetches `k8s.node.allocatable_cpu` —
    *   is where CPU is shown as a real "% of capacity".
+   *
+   * - "Cluster CPU (cores in use)" used to be a Value widget over
+   *   k8s.node.cpu.usage with `Sum` — the same trap as Pod Count. The
+   *   server sums every node's reading in each bucket and the Value widget
+   *   then sums the buckets, so a one-hour window of minute buckets and
+   *   30s kubelet scrapes read 540 for three nodes on 1.5 cores each,
+   *   instead of 4.5. A Value widget can't express "sum across nodes at one
+   *   instant", so the tile is now the busiest node's peak (`Max`), which
+   *   is honest at any window and complements the per-node average in
+   *   row 1. Cluster-wide CPU against capacity lives on the cluster
+   *   overview page. Dashboards already created from this template are
+   *   repaired by the RepairKubernetesDashboardClusterCpuTile migration.
    */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -1875,22 +1887,23 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
 
     /*
-     * Row 11-13: cluster CPU cores tile and the network throughput
-     * chart. This was a 0-100 CPU gauge, but the cores-valued
+     * Row 11-13: busiest-node CPU tile and the network throughput chart.
+     * This was a 0-100 CPU gauge, but the cores-valued
      * `k8s.node.cpu.utilization` pinned it to nonsense (e.g. 711%) and
      * the templated renderer can't divide by allocatable CPU to make a
-     * real percentage — so we show total cores in use instead. The old
-     * "Memory Utilization" gauge over raw bytes is gone — see
-     * top-of-function comment.
+     * real percentage. It then became a `Sum` of cores, which multiplied
+     * by the scrape count — see top-of-function comment. `Max` is the
+     * highest reading any single node reported in the window. The old
+     * "Memory Utilization" gauge over raw bytes is gone too.
      */
     createValueComponent({
-      title: "Cluster CPU (cores in use)",
+      title: "Busiest Node CPU (cores, peak)",
       top: 11,
       left: 0,
       width: 4,
       metricConfig: {
         metricName: "k8s.node.cpu.usage",
-        aggregationType: MetricsAggregationType.Sum,
+        aggregationType: MetricsAggregationType.Max,
       },
       trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),

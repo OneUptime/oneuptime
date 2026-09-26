@@ -156,11 +156,13 @@ describe("bundle hygiene", (): void => {
      * transport, cross-tab adoption, attribute masking, the public API and
      * click/custom/visibility events), 92 KB since offline mode, 93 KB
      * since automatic same-origin trace propagation (2026-09-24, issue
-     * #3979: 94178 gzip after, 92376 before the feature);
-     * esbuild.config.js carries the measurements and the itemised reasons.
-     * Asserted here as well as there on purpose - see the loader note below.
+     * #3979: 94178 gzip after, 92376 before the feature), 95 KB since INP
+     * per single-page-app view (2026-09-26, issue #3975: 95550 gzip after,
+     * 94102 before); esbuild.config.js carries the measurements and the
+     * itemised reasons. Asserted here as well as there on purpose - see
+     * the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(93 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(95 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*

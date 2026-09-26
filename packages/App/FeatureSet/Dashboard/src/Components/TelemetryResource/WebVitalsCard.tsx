@@ -11,7 +11,12 @@ export interface WebVitalsCardProps {
   description?: string | undefined;
 }
 
-const formatVital: (v: WebVital) => string = (v: WebVital): string => {
+/* The parts of a vital that decide how it is shown and rated. */
+export type RatedValue = Pick<WebVital, "value" | "unit" | "thresholds">;
+
+export const formatVital: (v: RatedValue) => string = (
+  v: RatedValue,
+): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
     return "—";
   }
@@ -21,9 +26,10 @@ const formatVital: (v: WebVital) => string = (v: WebVital): string => {
   return v.value.toFixed(3);
 };
 
-const ratingClasses: (v: WebVital) => { text: string; chip: string } = (
-  v: WebVital,
-): { text: string; chip: string } => {
+export const ratingClasses: (v: RatedValue) => {
+  text: string;
+  chip: string;
+} = (v: RatedValue): { text: string; chip: string } => {
   if (v.value === null || !Number.isFinite(v.value)) {
     return { text: "text-gray-400", chip: "bg-gray-100 text-gray-400" };
   }
@@ -57,7 +63,9 @@ export const describeWebVital: (v: WebVital) => string = (
     .join(" ");
 };
 
-const ratingLabel: (v: WebVital) => string = (v: WebVital): string => {
+export const ratingLabel: (v: RatedValue) => string = (
+  v: RatedValue,
+): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
     return "—";
   }

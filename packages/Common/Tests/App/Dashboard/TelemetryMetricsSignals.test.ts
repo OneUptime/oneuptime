@@ -72,6 +72,7 @@ import {
   fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   fetchSpanNameStats,
+  fetchWebVitalByRoute,
   fetchWebVitals,
   formatBytes as reexportedFormatBytes,
   formatCompact as reexportedFormatCompact,
@@ -84,7 +85,9 @@ import {
   spanNameStatsFromTableRows,
   summarizeLogAndExceptionBuckets,
   TimePoint,
+  WEB_VITAL_ROUTE_LIMIT,
   WebVital,
+  WebVitalByRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
 import {
   formatBytes,
@@ -98,11 +101,13 @@ import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import {
   WebVitalDefinition,
   WebVitalDefinitions,
+  WebVitalRouteAttributeKeys,
 } from "../../../Types/Rum/WebVitals";
 import { APP_API_URL } from "../../../UI/Config";
 
@@ -126,10 +131,13 @@ interface AggregateRequest {
   aggregateBy: {
     query: Record<string, unknown>;
     aggregationType: AggregationType;
+    aggregationInterval?: AggregationInterval;
     aggregateColumnName: string;
     aggregationTimestampColumnName: string;
     startTimestamp: Date;
     endTimestamp: Date;
+    groupByAttributeKeys?: Array<string>;
+    topK?: { count: number; rankBy: string };
   };
 }
 
@@ -1072,6 +1080,7 @@ describe("fetchWebVitals", () => {
         value: null,
         unit: d.unit,
         thresholds: d.thresholds,
+        metricName: null,
       });
       expect(v.description.length).toBeGreaterThan(20);
     });
@@ -1086,12 +1095,7 @@ describe("fetchWebVitals", () => {
       ];
 
       if (name === second) {
-        return {
-          data: [
-            { time: T0, value: 1000 },
-            { time: T1, value: 3000 },
-          ],
-        };
+        return { data: [{ time: T0, value: 2000 }] };
       }
 
       return { data: [] };
@@ -1107,8 +1111,9 @@ describe("fetchWebVitals", () => {
       return v.key === "lcp";
     })!;
 
-    // The average of the per-interval averages.
+    // The one whole-range mean, and the name it was found under.
     expect(lcp.value).toBe(2000);
+    expect(lcp.metricName).toBe(second);
     expect(lcp.description).toBe(LCP.description);
 
     const asked: Array<string> = metricNames();
@@ -1119,7 +1124,13 @@ describe("fetchWebVitals", () => {
     }
   });
 
-  test("averages, scoped to the entity and window", async () => {
+  /*
+   * A mean of the whole range at once - not a mean of per-interval means,
+   * which let a quiet interval count as much as a busy one. A mean rather
+   * than a p75 because a histogram's percentile comes from its buckets,
+   * and the OpenTelemetry defaults put every CLS value in (0, 5].
+   */
+  test("asks for one mean over the whole window, scoped to the entity", async () => {
     aggregateMock.mockResolvedValue({ data: [] });
 
     await fetchWebVitals({
@@ -1130,10 +1141,159 @@ describe("fetchWebVitals", () => {
 
     for (const r of aggregateRequests()) {
       expect(r.aggregateBy.aggregationType).toBe(AggregationType.Avg);
+      expect(r.aggregateBy.aggregationInterval).toBe(AggregationInterval.Total);
       expect(String(r.aggregateBy.query["primaryEntityId"])).toBe(ENTITY_ID);
       expect(r.aggregateBy.startTimestamp).toBe(START);
       expect(r.aggregateBy.endTimestamp).toBe(END);
     }
+  });
+});
+
+describe("fetchWebVitalByRoute", () => {
+  const INP_NAME: string = "web_vital.inp";
+
+  function ask(): Promise<WebVitalByRoute> {
+    return fetchWebVitalByRoute({
+      primaryEntityId: new ObjectID(ENTITY_ID),
+      metricName: INP_NAME,
+      start: START,
+      end: END,
+    });
+  }
+
+  function routeRow(
+    key: string,
+    route: string | undefined,
+    value: number,
+  ): Record<string, unknown> {
+    return {
+      time: T0,
+      value: value,
+      attributes: route === undefined ? {} : { [key]: route },
+    };
+  }
+
+  test("asks for the mean of this metric per route over the whole window, top routes only", async () => {
+    aggregateMock.mockResolvedValue({ data: [] });
+
+    await ask();
+
+    const [first] = aggregateRequests();
+
+    expect(first?.aggregateBy.query["name"]).toBe(INP_NAME);
+    expect(String(first?.aggregateBy.query["primaryEntityId"])).toBe(ENTITY_ID);
+    expect(String(first?.aggregateBy.query["projectId"])).toBe(PROJECT_ID);
+    expect(first?.aggregateBy.aggregationType).toBe(AggregationType.Avg);
+    expect(first?.aggregateBy.aggregationInterval).toBe(
+      AggregationInterval.Total,
+    );
+    expect(first?.aggregateBy.groupByAttributeKeys).toEqual(["app.route"]);
+    // One spare slot for the pooled rows that carry no route at all.
+    expect(first?.aggregateBy.topK).toEqual({
+      count: WEB_VITAL_ROUTE_LIMIT + 1,
+      rankBy: "max",
+    });
+  });
+
+  test("returns the routes slowest first, leaving out rows without a route", async () => {
+    aggregateMock.mockResolvedValue({
+      data: [
+        routeRow("app.route", "/cart", 240),
+        routeRow("app.route", undefined, 900),
+        routeRow("app.route", "  ", 800),
+        routeRow("app.route", "/products/:id", 620),
+      ],
+      totalGroups: 5,
+    });
+
+    const result: WebVitalByRoute = await ask();
+
+    expect(result).toEqual({
+      routeAttribute: "app.route",
+      routes: [
+        { route: "/products/:id", value: 620 },
+        { route: "/cart", value: 240 },
+      ],
+      // Five groups, one of them the blank no-route group.
+      totalRoutes: 4,
+      failed: false,
+    });
+  });
+
+  test("falls back to url.template, OpenTelemetry's name for the route", async () => {
+    aggregateMock.mockImplementation(async (...args: Array<unknown>) => {
+      const keys: Array<string> =
+        (args[0] as AggregateRequest).aggregateBy.groupByAttributeKeys || [];
+
+      if (keys[0] === "url.template") {
+        return { data: [routeRow("url.template", "/orders/{id}", 310)] };
+      }
+
+      return { data: [routeRow("app.route", undefined, 310)] };
+    });
+
+    const result: WebVitalByRoute = await ask();
+
+    expect(
+      aggregateRequests().map((r: AggregateRequest): unknown => {
+        return r.aggregateBy.groupByAttributeKeys;
+      }),
+    ).toEqual(
+      WebVitalRouteAttributeKeys.map((key: string): Array<string> => {
+        return [key];
+      }),
+    );
+    expect(result.routeAttribute).toBe("url.template");
+    expect(result.routes).toEqual([{ route: "/orders/{id}", value: 310 }]);
+    expect(result.totalRoutes).toBeNull();
+  });
+
+  test("keeps at most the route limit", async () => {
+    aggregateMock.mockResolvedValue({
+      data: Array.from(
+        { length: WEB_VITAL_ROUTE_LIMIT + 1 },
+        (_: unknown, i: number) => {
+          return routeRow("app.route", `/r${i}`, 100 + i);
+        },
+      ),
+    });
+
+    const result: WebVitalByRoute = await ask();
+
+    expect(result.routes).toHaveLength(WEB_VITAL_ROUTE_LIMIT);
+    expect(result.routes[0]?.value).toBe(100 + WEB_VITAL_ROUTE_LIMIT);
+  });
+
+  test("no route under any attribute is an empty answer, not a failure", async () => {
+    aggregateMock.mockResolvedValue({ data: [] });
+
+    expect(await ask()).toEqual({
+      routeAttribute: null,
+      routes: [],
+      totalRoutes: null,
+      failed: false,
+    });
+    expect(aggregateMock).toHaveBeenCalledTimes(
+      WebVitalRouteAttributeKeys.length,
+    );
+  });
+
+  test("a failed lookup is marked failed rather than read as no routes", async () => {
+    aggregateMock.mockRejectedValue(new Error("403"));
+
+    const result: WebVitalByRoute = await ask();
+
+    expect(result.failed).toBe(true);
+    expect(result.routes).toEqual([]);
+  });
+
+  test("no current project: returns empty without asking", async () => {
+    projectIdMock.mockReturnValue(null);
+
+    const result: WebVitalByRoute = await ask();
+
+    expect(result.failed).toBe(false);
+    expect(aggregateMock).not.toHaveBeenCalled();
   });
 });
 

@@ -673,7 +673,18 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       },
       aggregationType: {
         type: "string",
-        enum: ["Avg", "Min", "Max", "Sum", "Count", "P50", "P90", "P95", "P99"],
+        enum: [
+          "Avg",
+          "Min",
+          "Max",
+          "Sum",
+          "Count",
+          "P50",
+          "P75",
+          "P90",
+          "P95",
+          "P99",
+        ],
         description:
           "Metric aggregation (defaultAvg); counter sums are exported values, not derived rates.",
       },

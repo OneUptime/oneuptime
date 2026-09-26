@@ -1938,7 +1938,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * EXAMPLE:
      * SELECT sum(Metric.value) as avg_value, date_trunc('hour', toStartOfInterval(createdAt, INTERVAL 1 hour)) as createdAt
      *
-     * Percentile aggregations (P50/P90/P95/P99) compile to ClickHouse's
+     * Percentile aggregations (P50/P75/P90/P95/P99) compile to ClickHouse's
      * `quantile(level)(column)`. This is the right thing for scalar
      * columns (Span.duration, Metric.value when the metric is a Sum or
      * Gauge, etc.). MetricService overrides this method when it has

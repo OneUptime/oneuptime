@@ -30,6 +30,14 @@ export interface ComponentProps {
   ariaHasPopup?: "dialog" | "listbox" | "menu" | "grid" | "tree" | undefined;
   ariaExpanded?: boolean | undefined;
   ariaControls?: string | undefined;
+  /*
+   * A text box that drives a list of suggestions is a combobox; the option
+   * the arrow keys are on is named by ariaActiveDescendant, since focus
+   * itself never leaves the input.
+   */
+  role?: "combobox" | undefined;
+  ariaAutoComplete?: "list" | "both" | "inline" | "none" | undefined;
+  ariaActiveDescendant?: string | undefined;
   // For inputs with no visible label element to point ariaLabelledby at.
   ariaLabel?: string | undefined;
   /*
@@ -219,6 +227,9 @@ const Input: FunctionComponent<ComponentProps> = (
           aria-haspopup={props.ariaHasPopup}
           aria-expanded={props.ariaExpanded}
           aria-controls={props.ariaControls}
+          role={props.role}
+          aria-autocomplete={props.ariaAutoComplete}
+          aria-activedescendant={props.ariaActiveDescendant}
           aria-invalid={props.error || props.ariaInvalid ? "true" : undefined}
           aria-describedby={
             props.error ? "input-error-message" : props.ariaDescribedby

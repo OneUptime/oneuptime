@@ -792,6 +792,7 @@ const aggregatePerSeriesFromRawMetrics: (input: {
         aggregated = Math.min(...vs);
         break;
       case MetricsAggregationType.P50:
+      case MetricsAggregationType.P75:
       case MetricsAggregationType.P90:
       case MetricsAggregationType.P95:
       case MetricsAggregationType.P99: {
