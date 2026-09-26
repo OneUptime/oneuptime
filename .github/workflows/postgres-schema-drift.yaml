@@ -270,3 +270,21 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StatusPageSubscriberAudienceCountsPostgres.test.ts --forceExit
+
+      # Clones the migrated StatusPageSubscriber table into an isolated schema
+      # and runs the unsubscribe link's SQL against it: the migration's
+      # backfill gives every subscriber its own 64-hex unsubscribe token and
+      # keeps one already there, StatusPageSubscriberService.unsubscribe
+      # cancels a subscription exactly once even when confirmations race (so
+      # the team is told once) and never a deleted one, and a missing token
+      # is filled without overwriting another sender's.
+      - name: Test subscriber unsubscribe on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_UNSUBSCRIBE_TESTS: "true"
+          SUBSCRIBER_UNSUBSCRIBE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_UNSUBSCRIBE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_UNSUBSCRIBE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSubscriberUnsubscribePostgres.test.ts --forceExit

@@ -442,11 +442,8 @@ export class Service extends DatabaseService<Model> {
       } as LogAttributes,
     );
 
-    logger.debug("onBeforeCreate processed data:", {
-      projectId: data.data.projectId?.toString(),
-      statusPageId: data.data.statusPageId?.toString(),
-    } as LogAttributes);
-    logger.debug(data, {
+    // Not the data itself: it now carries the unsubscribe token.
+    logger.debug("onBeforeCreate processed data.", {
       projectId: data.data.projectId?.toString(),
       statusPageId: data.data.statusPageId?.toString(),
     } as LogAttributes);
@@ -929,12 +926,13 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    logger.debug("onCreateSuccess called with createdItem:", {
-      projectId: createdItem.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(createdItem, {
-      projectId: createdItem.projectId?.toString(),
-    } as LogAttributes);
+    // Not the item itself: it carries the unsubscribe token.
+    logger.debug(
+      `onCreateSuccess called with createdItem ${createdItem.id?.toString()}.`,
+      {
+        projectId: createdItem.projectId?.toString(),
+      } as LogAttributes,
+    );
 
     if (!createdItem.statusPageId) {
       logger.debug("Status Page ID is missing in createdItem.", {
@@ -963,9 +961,6 @@ export class Service extends DatabaseService<Model> {
       URL.fromString(statusPageURL),
       createdItem,
     ).toString();
-    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, {
-      projectId: createdItem.projectId?.toString(),
-    } as LogAttributes);
 
     if (
       createdItem.statusPageId &&
@@ -1326,9 +1321,6 @@ Stay informed about service availability! 🚀`;
         URL.fromString(statusPageURL),
         subscriber,
       ).toString();
-      logger.debug(`Unsubscribe URL: ${unsubscribeUrl}`, {
-        statusPageSubscriberId: data.subscriberId?.toString(),
-      } as LogAttributes);
 
       const customTemplate: StatusPageSubscriberNotificationTemplate | null =
         await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -1547,9 +1539,6 @@ Stay informed about service availability! 🚀`;
       URL.fromString(statusPageURL),
       subscriber,
     ).toString();
-    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, {
-      statusPageSubscriberId: data.subscriberId?.toString(),
-    } as LogAttributes);
 
     if (
       subscriber.statusPageId &&
