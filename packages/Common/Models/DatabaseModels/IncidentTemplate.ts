@@ -10,6 +10,7 @@ import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import Service from "./Service";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -899,6 +900,66 @@ export default class IncidentTemplate extends BaseModel {
     },
   })
   public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // on-call duty policies affected by this incident template.
+
+  /*
+   * The status pages an incident declared from this template is limited to
+   * (see Incident.statusPages). A 'Region East outage' template can carry the
+   * East site pages, so declaring from it scopes the incident in one step.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPage,
+    title: "Status Pages",
+    description:
+      "Limit incidents declared from this template to these status pages. Leave empty to reach every status page that lists the incident's monitors.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPage;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentTemplateStatusPage",
+    inverseJoinColumn: {
+      name: "statusPageId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public statusPages?: Array<StatusPage> = undefined;
 
   @ColumnAccessControl({
     create: [

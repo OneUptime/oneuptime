@@ -47,6 +47,13 @@ import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidato
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenotify";
+import IncidentScopeAddedPagesNotification, {
+  IncidentScopeAddedPagesNotificationAction,
+  StatusPageScopeChange,
+} from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPageService from "./StatusPageService";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -117,12 +124,23 @@ import IncidentAlertService, {
 } from "./IncidentAlertService";
 import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
 
+/*
+ * How an update changed an incident's status page scope, for its feed item.
+ * notificationQueued: the update also queued the 'created' notification for
+ * the added pages (IncidentScopeAddedPagesNotification).
+ */
+type StatusPageScopeCarryForward = StatusPageScopeChange & {
+  isScoped: boolean;
+  notificationQueued: boolean;
+};
+
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
   monitorsRemoved: Array<Monitor>;
   monitorsAdded: Array<Monitor>;
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
   newMonitorChangeStatusIdTo: ObjectID | undefined;
+  statusPageScopeChange?: StatusPageScopeCarryForward | undefined;
 }>;
 
 /*
@@ -584,6 +602,8 @@ export class Service extends DatabaseService<Model> {
 
     await this.queueCreatedNotificationOnPublishIfRequested(updateBy);
 
+    await this.applyStatusPageScopeToUpdate(updateBy, carryForward);
+
     /*
      * Re-apply mapped custom field values. Covers the Custom Fields modal
      * saving the whole bag back over a mapped value, and the incident's
@@ -695,6 +715,374 @@ export class Service extends DatabaseService<Model> {
       StatusPageSubscriberNotificationStatus.Pending;
     updateBy.data.subscriberNotificationStatusMessage =
       IncidentCreatedRenotify.queuedMessage;
+  }
+
+  /*
+   * The status pages a new incident is limited to (Incident.statusPages), and
+   * the two columns that follow from them.
+   *
+   * isScopedToStatusPages is derived from the list, whatever the caller sent
+   * for it: the column is computed, which exempts it from the column check on
+   * create, so a client value would otherwise be stored as is - and a scoped
+   * flag with no pages hides the incident from every status page.
+   *
+   * statusPagesNotifiedOnCreation is the created-notification job's record of
+   * the pages it told. A client must not be able to seed it and so keep pages
+   * from ever hearing about the incident; only root (internal) callers keep
+   * what they send.
+   */
+  private applyStatusPageScopeToCreate(createBy: CreateBy<Model>): void {
+    if (!createBy.props.isRoot) {
+      delete createBy.data.statusPagesNotifiedOnCreation;
+    }
+
+    const statusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      );
+
+    if (
+      createBy.data.statusPages !== undefined &&
+      createBy.data.statusPages !== null
+    ) {
+      createBy.data.statusPages = this.toStatusPageStubs(statusPageIds);
+    }
+
+    createBy.data.isScopedToStatusPages = statusPageIds.length > 0;
+  }
+
+  /*
+   * The status pages an incident is limited to, on update. Everything that
+   * follows from a write to Incident.statusPages happens here, in the
+   * caller's own update, so the list, the flag and a re-queued notification
+   * land together or not at all:
+   *
+   * - isScopedToStatusPages is derived from the list the update writes, and
+   *   a value the caller sent for it is dropped. Nothing else ever sets it,
+   *   and it is never recomputed when join rows disappear: deleting the only
+   *   page an incident is scoped to leaves it scoped to nothing, hidden from
+   *   every page, rather than widened to all of them;
+   * - a non-root caller's list is topped up with the pages the incident is
+   *   scoped to that the caller cannot read. Status pages are label-scoped,
+   *   so an editor may see only some of an incident's pages, and a list write
+   *   replaces the whole list (the dashboard sends back what the editor
+   *   sees). Without this, saving the incident would silently drop every page
+   *   the editor was not shown;
+   * - with IncidentScopeAddedPagesNotification requested, the 'created'
+   *   notification is queued again for the pages the update adds;
+   * - what was added and removed is carried forward for the feed item
+   *   onUpdateSuccess writes.
+   *
+   * The flag and the notification columns are computed, but their update
+   * access control lists every role that may edit statusPages, so a non-root
+   * edit passes the column check that runs after this hook.
+   */
+  private async applyStatusPageScopeToUpdate(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): Promise<void> {
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    delete data["isScopedToStatusPages"];
+
+    if (!updateBy.props.isRoot) {
+      delete data["statusPagesNotifiedOnCreation"];
+    }
+
+    if (data["statusPages"] === undefined) {
+      return;
+    }
+
+    /*
+     * Read as root: this only decides what joins the caller's update, and the
+     * update itself is still checked against the caller's permissions and
+     * tenant afterwards. The query already carries the caller's privacy
+     * filter.
+     */
+    const incidents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        statusPages: {
+          _id: true,
+        },
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const requestedStatusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        data["statusPages"],
+      );
+
+    const hiddenStatusPageIds: Array<string> = updateBy.props.isRoot
+      ? []
+      : await this.getScopedStatusPageIdsHiddenFromCaller({
+          incidents: incidents,
+          props: updateBy.props,
+        });
+
+    const statusPageIds: Array<string> = [
+      ...requestedStatusPageIds,
+      ...hiddenStatusPageIds.filter((id: string) => {
+        return !requestedStatusPageIds.includes(id);
+      }),
+    ];
+
+    data["statusPages"] = this.toStatusPageStubs(statusPageIds);
+    data["isScopedToStatusPages"] = statusPageIds.length > 0;
+
+    const actions: Dictionary<IncidentScopeAddedPagesNotificationAction> = {};
+
+    for (const incident of incidents) {
+      const incidentId: string = incident.id!.toString();
+
+      const change: StatusPageScopeChange =
+        IncidentScopeAddedPagesNotification.getScopeChange({
+          before: incident.statusPages,
+          after: statusPageIds,
+        });
+
+      carryForward[incidentId] = {
+        monitorsRemoved: [],
+        monitorsAdded: [],
+        oldChangeMonitorStatusIdTo: undefined,
+        newMonitorChangeStatusIdTo: undefined,
+        ...carryForward[incidentId],
+        statusPageScopeChange: {
+          ...change,
+          isScoped: statusPageIds.length > 0,
+          notificationQueued: false,
+        },
+      };
+
+      actions[incidentId] = IncidentScopeAddedPagesNotification.getAction({
+        addedStatusPageIds: change.addedStatusPageIds,
+        incident: {
+          subscriberNotificationStatusOnIncidentCreated:
+            incident.subscriberNotificationStatusOnIncidentCreated,
+          shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+            incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+          isVisibleOnStatusPage: this.getValueAfterUpdate(
+            updateBy.data.isVisibleOnStatusPage,
+            incident.isVisibleOnStatusPage,
+          ),
+          isPrivate: this.getValueAfterUpdate(
+            updateBy.data.isPrivate,
+            incident.isPrivate,
+          ),
+        },
+      });
+    }
+
+    this.queueCreatedNotificationForAddedStatusPagesIfRequested({
+      updateBy: updateBy,
+      actions: actions,
+      carryForward: carryForward,
+    });
+  }
+
+  /*
+   * Adding status pages to an incident's scope can tell them the incident was
+   * created: with IncidentScopeAddedPagesNotification requested, the 'created'
+   * notification goes back to Pending, and the job sends it to the pages it
+   * has no record of telling (Incident.statusPagesNotifiedOnCreation). See
+   * IncidentScopeAddedPagesNotification.getAction for when it applies.
+   *
+   * An update that sets the status itself - the API route of resetting it to
+   * Pending, the notify-on-create flag, or publishing a hidden incident - is
+   * left alone. An update that matches several incidents queues only when it
+   * may for every one of them, because the write applies the same data to
+   * all; one of them being sent right now refuses the whole update.
+   */
+  private queueCreatedNotificationForAddedStatusPagesIfRequested(data: {
+    updateBy: UpdateBy<Model>;
+    actions: Dictionary<IncidentScopeAddedPagesNotificationAction>;
+    carryForward: UpdateCarryForward;
+  }): void {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    if (
+      !IncidentScopeAddedPagesNotification.isRequested(updateBy.miscDataProps)
+    ) {
+      return;
+    }
+
+    if (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated !== undefined
+    ) {
+      return;
+    }
+
+    const actions: Array<IncidentScopeAddedPagesNotificationAction> =
+      Object.values(data.actions);
+
+    if (actions.includes(IncidentScopeAddedPagesNotificationAction.Reject)) {
+      throw new BadDataException(
+        IncidentScopeAddedPagesNotification.rejectedWhileSendingMessage,
+      );
+    }
+
+    if (!actions.includes(IncidentScopeAddedPagesNotificationAction.Queue)) {
+      return;
+    }
+
+    const everyIncidentMayQueue: boolean = actions.every(
+      (action: IncidentScopeAddedPagesNotificationAction): boolean => {
+        return (
+          action === IncidentScopeAddedPagesNotificationAction.Queue ||
+          action === IncidentScopeAddedPagesNotificationAction.AlreadyQueued
+        );
+      },
+    );
+
+    if (!everyIncidentMayQueue) {
+      logger.debug(
+        `Not queueing the incident created notification for added status pages: ${actions.length} incident(s) matched and not all of them gained status pages and may be announced.`,
+      );
+      return;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    updateBy.data.subscriberNotificationStatusMessage =
+      IncidentScopeAddedPagesNotification.queuedMessage;
+
+    for (const [incidentId, action] of Object.entries(data.actions)) {
+      const scopeChange: StatusPageScopeCarryForward | undefined =
+        data.carryForward[incidentId]?.statusPageScopeChange;
+
+      if (
+        scopeChange &&
+        action === IncidentScopeAddedPagesNotificationAction.Queue
+      ) {
+        scopeChange.notificationQueued = true;
+      }
+    }
+  }
+
+  /*
+   * The pages the matched incidents are scoped to that the caller cannot
+   * read, which a list write from them must keep (see
+   * applyStatusPageScopeToUpdate). A bulk update writes the same list onto
+   * every incident it matches, so it can only keep them when every matched
+   * incident holds the same hidden pages; otherwise it would scope some of
+   * them to pages they were never scoped to, and it is refused.
+   */
+  private async getScopedStatusPageIdsHiddenFromCaller(data: {
+    incidents: Array<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    const heldByIncident: Array<Array<string>> = data.incidents.map(
+      (incident: Model) => {
+        return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          incident.statusPages,
+        );
+      },
+    );
+
+    const heldIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        heldByIncident.flat(),
+      );
+
+    if (heldIds.length === 0) {
+      return [];
+    }
+
+    const readableIds: Array<string> =
+      await this.getStatusPageIdsReadableByCaller({
+        statusPageIds: heldIds,
+        props: data.props,
+      });
+
+    const hiddenByIncident: Array<Array<string>> = heldByIncident.map(
+      (held: Array<string>) => {
+        return held
+          .filter((id: string) => {
+            return !readableIds.includes(id);
+          })
+          .sort();
+      },
+    );
+
+    const hiddenIds: Array<string> = hiddenByIncident[0] || [];
+
+    const everyIncidentHidesTheSame: boolean = hiddenByIncident.every(
+      (hidden: Array<string>) => {
+        return hidden.join(",") === hiddenIds.join(",");
+      },
+    );
+
+    if (!everyIncidentHidesTheSame) {
+      throw new BadDataException(
+        "These incidents are limited to different status pages that you do not have access to, so their status pages cannot be changed together. Change them one at a time.",
+      );
+    }
+
+    return hiddenIds;
+  }
+
+  /*
+   * Which of these status pages the caller can read, through the status page
+   * permissions and labels they actually hold. A caller with no status page
+   * read access at all can read none of them.
+   */
+  private async getStatusPageIdsReadableByCaller(data: {
+    statusPageIds: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    try {
+      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+        query: {
+          _id: QueryHelper.any(data.statusPageIds),
+        },
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+
+      return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        statusPages,
+      );
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        return [];
+      }
+
+      throw err;
+    }
+  }
+
+  private toStatusPageStubs(statusPageIds: Array<string>): Array<StatusPage> {
+    return statusPageIds.map((statusPageId: string) => {
+      const statusPage: StatusPage = new StatusPage();
+      statusPage._id = statusPageId;
+      return statusPage;
+    });
+  }
+
+  // A column's value once an update is written: the update's, else the stored.
+  private getValueAfterUpdate<T>(
+    updatedValue: unknown,
+    storedValue: T | undefined,
+  ): T | undefined {
+    if (updatedValue !== undefined && updatedValue !== null) {
+      return updatedValue as T;
+    }
+
+    return storedValue;
   }
 
   /*
@@ -846,6 +1234,16 @@ export class Service extends DatabaseService<Model> {
         column: "onCallDutyPolicies",
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
+      },
+      /*
+       * The status pages the incident is limited to. Another project's page
+       * here would put that project's page name into this incident's feed and
+       * scope it to a page it can never show on.
+       */
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
@@ -1002,6 +1400,7 @@ export class Service extends DatabaseService<Model> {
             services: { _id: true },
             onCallDutyPolicies: { _id: true },
             labels: { _id: true },
+            statusPages: { _id: true },
           },
           props: {
             isRoot: true,
@@ -1153,8 +1552,20 @@ export class Service extends DatabaseService<Model> {
             createBy.data.labels = stubs;
           }
         }
+        // Applying a template that has status pages scopes the incident.
+        if (createBy.data.statusPages === undefined) {
+          const stubs: Array<StatusPage> | undefined = stubBy(
+            StatusPage,
+            incidentTemplate.statusPages,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.statusPages = stubs;
+          }
+        }
       }
     }
+
+    this.applyStatusPageScopeToCreate(createBy);
 
     // If no custom state is provided or found, fall back to default created state
     if (!initialIncidentStateId) {
@@ -1384,6 +1795,8 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           projectId: true,
         },
+        // The created feed item names the status pages a scoped incident is limited to.
+        isScopedToStatusPages: true,
       },
       props: {
         isRoot: true,
@@ -1976,6 +2389,43 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The status pages a scoped incident is limited to, as a Markdown list for
+   * its created feed item. Read on their own rather than in onCreateSuccess's
+   * select: a find that selects several many-to-many lists returns a row for
+   * every combination of them.
+   */
+  private async getScopedStatusPagesMarkdown(incident: Model): Promise<string> {
+    const incidentWithStatusPages: Model | null = await this.findOneById({
+      id: incident.id!,
+      select: {
+        statusPages: {
+          _id: true,
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const statusPages: Array<StatusPage> =
+      incidentWithStatusPages?.statusPages || [];
+
+    if (statusPages.length === 0) {
+      // Scoped to pages that have all been deleted since: hidden everywhere.
+      return `- None: the status pages it was limited to have been deleted, so it is not shown on any status page.\n`;
+    }
+
+    let markdown: string = "";
+
+    for (const statusPage of statusPages) {
+      markdown += `- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
+    }
+
+    return markdown;
+  }
+
   @CaptureSpan()
   private async createIncidentFeedAsync(incident: Model): Promise<void> {
     try {
@@ -2034,6 +2484,12 @@ ${incident.description || "No description provided."}
           feedInfoInMarkdown += `${sloLine}\n`;
         }
 
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (incident.isScopedToStatusPages) {
+        feedInfoInMarkdown += `📣 **Limited to Status Pages**:\n`;
+        feedInfoInMarkdown += await this.getScopedStatusPagesMarkdown(incident);
         feedInfoInMarkdown += `\n\n`;
       }
 
@@ -2977,14 +3433,8 @@ ${incidentSeverity.name}
           onUpdate.carryForward;
 
         if (carryForward) {
-          const incidentCarryForward:
-            | {
-                monitorsRemoved: Array<Monitor>;
-                monitorsAdded: Array<Monitor>;
-                oldChangeMonitorStatusIdTo: ObjectID | undefined;
-                newMonitorChangeStatusIdTo: ObjectID | undefined;
-              }
-            | undefined = carryForward[incidentId.toString()];
+          const incidentCarryForward: UpdateCarryForward[string] | undefined =
+            carryForward[incidentId.toString()];
 
           if (incidentCarryForward) {
             if (incidentCarryForward.monitorsRemoved.length > 0) {
@@ -3055,6 +3505,18 @@ ${incidentSeverity.name}
                 feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
+              shouldAddIncidentFeed = true;
+            }
+
+            const statusPageScopeMarkdown: string =
+              await this.getStatusPageScopeFeedMarkdown({
+                projectId: projectId,
+                incidentId: incidentId,
+                change: incidentCarryForward.statusPageScopeChange,
+              });
+
+            if (statusPageScopeMarkdown) {
+              feedInfoInMarkdown += statusPageScopeMarkdown;
               shouldAddIncidentFeed = true;
             }
 
@@ -3153,6 +3615,108 @@ ${incidentSeverity.name}
     }
 
     return onUpdate;
+  }
+
+  /*
+   * The part of an update's feed item that records a change of the status
+   * pages the incident is limited to: the pages added and removed, whether
+   * the incident is now limited at all, and whether the added pages will be
+   * sent the 'created' notification. Empty when the scope did not change.
+   *
+   * Page names are read as root, like the monitor names above. The pages were
+   * validated as this project's when they were written, and the read is
+   * filtered on the project anyway. Never throws: the update is already
+   * written, and a missing line in the feed must not turn it into an error.
+   */
+  private async getStatusPageScopeFeedMarkdown(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    change: StatusPageScopeCarryForward | undefined;
+  }): Promise<string> {
+    const change: StatusPageScopeCarryForward | undefined = data.change;
+
+    if (
+      !change ||
+      (change.addedStatusPageIds.length === 0 &&
+        change.removedStatusPageIds.length === 0)
+    ) {
+      return "";
+    }
+
+    try {
+      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+        query: {
+          _id: QueryHelper.any([
+            ...change.addedStatusPageIds,
+            ...change.removedStatusPageIds,
+          ]),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const statusPageLines: (ids: Array<string>) => Promise<string> = async (
+        ids: Array<string>,
+      ): Promise<string> => {
+        let lines: string = "";
+
+        for (const id of ids) {
+          const statusPage: StatusPage | undefined = statusPages.find(
+            (page: StatusPage) => {
+              return page.id?.toString().toLowerCase() === id;
+            },
+          );
+
+          if (!statusPage) {
+            // Deleted since: its name is gone with it.
+            lines += `- A deleted status page\n`;
+            continue;
+          }
+
+          lines += `- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`;
+        }
+
+        return lines;
+      };
+
+      let markdown: string = "";
+
+      if (change.addedStatusPageIds.length > 0) {
+        markdown += `\n\n**📣 Status Pages Added**:\n${await statusPageLines(change.addedStatusPageIds)}`;
+      }
+
+      if (change.removedStatusPageIds.length > 0) {
+        markdown += `\n\n**🔕 Status Pages Removed**:\n${await statusPageLines(change.removedStatusPageIds)}`;
+      }
+
+      markdown += change.isScoped
+        ? `\n\nThis incident is shown on, and notifies the subscribers of, only its selected status pages that list its monitors.\n`
+        : `\n\nThis incident is no longer limited to specific status pages: it is shown on every status page that lists its monitors, except pages that only show incidents limited to them.\n`;
+
+      if (change.notificationQueued) {
+        markdown += `\nSubscribers of the added status pages will be sent the notification that this incident was created.\n`;
+      }
+
+      return markdown;
+    } catch (err) {
+      logger.error(
+        `Failed to describe the status page scope change in the incident feed: ${err}`,
+        {
+          projectId: data.projectId?.toString(),
+          incidentId: data.incidentId?.toString(),
+        } as LogAttributes,
+      );
+
+      return "";
+    }
   }
 
   @CaptureSpan()

@@ -23,6 +23,7 @@ import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
 import ServiceLevelObjective from "./ServiceLevelObjective";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -2881,6 +2882,188 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public isVisibleOnStatusPage?: boolean = undefined;
+
+  /*
+   * The status pages this incident is limited to. An incident reaches a
+   * status page through its monitors: every page that lists one of them shows
+   * it and notifies its subscribers. So a monitor shared by ten site pages
+   * used to tell all ten sites about an outage that affects two. Picking
+   * pages here narrows that: a scoped incident shows on, and notifies, only
+   * the selected pages among those its monitors already reach (the two sets
+   * intersect - a scope never puts an incident on a page that does not list
+   * its monitors). Empty means unscoped: every page its monitors reach, as
+   * before. Status pages that only show scoped incidents
+   * (StatusPage.onlyShowScopedIncidents) never show an unscoped one.
+   *
+   * Shaped like ScheduledMaintenance.statusPages, with the access control of
+   * the monitors list above. Whether an incident is scoped is kept separately
+   * in isScopedToStatusPages, so the status page queries can filter on it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPage,
+    title: "Status Pages",
+    description:
+      "Limit this incident to these status pages. When set, the incident is shown on, and notifies the subscribers of, only these pages among the status pages that list its monitors. Leave empty to reach every status page that lists its monitors.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPage;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStatusPage",
+    inverseJoinColumn: {
+      name: "statusPageId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public statusPages?: Array<StatusPage> = undefined;
+
+  /*
+   * Whether this incident is limited to the status pages in statusPages. The
+   * status page queries split on it (unscoped incidents by monitor, scoped
+   * ones by monitor AND page), which keeps the scope in SQL rather than in a
+   * post-filter that a LIMIT could silently cut.
+   *
+   * IncidentService derives it from writes to statusPages and ignores any
+   * value a client sends. It is deliberately never recomputed when join rows
+   * disappear: deleting the only status page an incident is scoped to
+   * cascades its join row away, and the incident stays scoped - to nothing -
+   * so it is hidden everywhere rather than widened to every page its monitors
+   * reach.
+   *
+   * Computed, so a client cannot set it on create. Its update access control
+   * matches statusPages all the same: the service writes it into the caller's
+   * own update, and the column check that runs after the hook exempts computed
+   * columns only on create.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Scoped To Status Pages",
+    description:
+      "Whether this incident is limited to the status pages in Status Pages. Derived from Status Pages; any value sent for it is ignored.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isScopedToStatusPages?: boolean = undefined;
+
+  /*
+   * The ids of the status pages whose subscribers were sent this incident's
+   * 'created' notification. A status page added to the scope later can then
+   * be told exactly once, without telling the pages that already heard.
+   *
+   * The Incident:SendNotificationToSubscribers job writes it as root. It is
+   * computed and never taken from a client; its update access control matches
+   * subscriberNotificationStatusOnIncidentCreated so a service hook can clear
+   * it inside the caller's own update (a 'resend to all pages').
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.JSON,
+    title: "Status Pages Notified On Creation",
+    description:
+      "IDs of the status pages whose subscribers were sent the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public statusPagesNotifiedOnCreation?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [

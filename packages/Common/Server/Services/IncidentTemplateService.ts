@@ -10,6 +10,7 @@ import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
@@ -156,6 +157,11 @@ export class Service extends DatabaseService<Model> {
         column: "onCallDutyPolicies",
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
+      },
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];

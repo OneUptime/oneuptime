@@ -3037,6 +3037,61 @@ export default class StatusPage extends BaseModel {
   })
   public showIncidentsOnStatusPage?: boolean = undefined;
 
+  /*
+   * A page with this on shows, and notifies its subscribers of, only the
+   * incidents scoped to it (Incident.statusPages). Unscoped incidents never
+   * reach it. That matters for a monitor shared by many pages: incidents
+   * created from it by monitor criteria, Slack, Teams, the API or AI carry no
+   * scope, so without this switch they would reach every page within a minute.
+   * With it, none of these pages hears about such an incident until someone
+   * scopes it to them.
+   *
+   * Not plan-gated, unlike showIncidentsOnStatusPage: it only ever narrows
+   * what a page shows.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Only Show Incidents Scoped to This Page",
+    description:
+      "When on, this status page shows and notifies its subscribers about only the incidents limited to it. Incidents that are not limited to any status page never reach it.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: false,
+  })
+  public onlyShowScopedIncidents?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
