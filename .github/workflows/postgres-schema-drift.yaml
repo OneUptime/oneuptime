@@ -207,6 +207,11 @@ jobs:
       # schema, and scopes incidents through IncidentService as an incident
       # member. Deleting a status page must cascade its join rows and leave
       # the incident scoped - hidden, never widened to every page.
+      # Then runs IncidentStatusPageScope's queries on clones of the tables
+      # they join: a status page's display query keeps its monitors filter
+      # and adds the scope as a second join-table filter, the two halves
+      # merge and cut like one query, and the counts and the pages an
+      # incident reaches follow its stored scope.
       - name: Test incident status page scope on migrated Postgres
         working-directory: packages/Common
         env:
@@ -216,4 +221,5 @@ jobs:
           INCIDENT_STATUS_PAGE_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/IncidentStatusPageScopePostgres.test.ts --forceExit
+          Tests/Server/Services/IncidentStatusPageScopePostgres.test.ts
+          Tests/Server/Utils/StatusPage/IncidentStatusPageScopeQueriesPostgres.test.ts --forceExit

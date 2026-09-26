@@ -3,7 +3,7 @@ import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -12,12 +12,10 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import IncidentEpisodePublicNoteService from "Common/Server/Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
-import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisodeMemberService";
 import MailService from "Common/Server/Services/MailService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -25,7 +23,7 @@ import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscr
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -45,6 +43,12 @@ import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import IncidentStatusPageScope, {
+  ResolvedIncidentStatusPages,
+} from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
+import SubscriberNotificationDeliveryRecord, {
+  StatusPageDeliverySkipReason,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -207,34 +211,20 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       return;
     }
 
-    // Get monitors from member incidents
-    const episodeMembers: Array<IncidentEpisodeMember> =
-      await IncidentEpisodeMemberService.findBy({
-        query: {
-          incidentEpisodeId: episode.id!,
-        },
-        select: {
-          incident: {
-            monitors: {
-              _id: true,
-            },
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
+    /*
+     * The episode's incidents, with their monitors. The episode reaches the
+     * union of the status pages its incidents reach, each through its own
+     * status page scope.
+     */
+    const memberIncidents: Array<Incident> =
+      await IncidentStatusPageScope.getEpisodeMemberIncidents(episode.id!);
 
     // Collect all unique monitors from member incidents
     const monitorIds: Set<string> = new Set();
-    for (const member of episodeMembers) {
-      if (member.incident?.monitors) {
-        for (const monitor of member.incident.monitors) {
-          if (monitor._id) {
-            monitorIds.add(monitor._id.toString());
-          }
+    for (const memberIncident of memberIncidents) {
+      for (const monitor of memberIncident.monitors || []) {
+        if (monitor._id) {
+          monitorIds.add(monitor._id.toString());
         }
       }
     }
@@ -290,59 +280,35 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       return;
     }
 
-    // get status page resources from monitors.
-    const statusPageResources: Array<StatusPageResource> =
-      await StatusPageResourceService.findByMonitors({
-        monitorIds: Array.from(monitorIds).map((id: string) => {
-          return new ObjectID(id);
-        }),
-        select: {
-          _id: true,
-          displayName: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          statusPageGroup: {
-            name: true,
-          },
-        },
+    /*
+     * The status pages the episode's incidents reach - through their
+     * monitors, each narrowed to the pages it is limited to - in name order.
+     */
+    const resolvedStatusPages: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: memberIncidents,
       });
 
+    const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+      resolvedStatusPages.statusPageToResources;
+    const statusPages: Array<StatusPage> = resolvedStatusPages.statusPages;
+
     logger.debug(
-      `Found ${statusPageResources.length} status page resource(s) for episode ${episode.id}.`,
+      `Episode ${episode.id} reaches ${statusPages.length} status page(s) for public note notifications; ${resolvedStatusPages.excludedStatusPages.length} left out by its incidents' status page scope.`,
       {
         projectId: episode.projectId?.toString(),
         incidentEpisodeId: episode.id?.toString(),
       },
     );
 
-    const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+    const deliveryRecord: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({
+        dedupeEmailAndSms: resolvedStatusPages.isScoped,
+      });
 
-    for (const resource of statusPageResources) {
-      if (!resource.statusPageId) {
-        continue;
-      }
-
-      if (!statusPageToResources[resource.statusPageId?.toString()]) {
-        statusPageToResources[resource.statusPageId?.toString()] = [];
-      }
-
-      statusPageToResources[resource.statusPageId?.toString()]?.push(resource);
-    }
-
-    logger.debug(
-      `Episode ${episode.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`,
-      {
-        projectId: episode.projectId?.toString(),
-        incidentEpisodeId: episode.id?.toString(),
-      },
+    deliveryRecord.addExcludedStatusPages(
+      resolvedStatusPages.excludedStatusPages,
     );
-
-    const statusPages: Array<StatusPage> =
-      await StatusPageSubscriberService.getStatusPagesToSendNotification(
-        Object.keys(statusPageToResources).map((i: string) => {
-          return new ObjectID(i);
-        }),
-      );
 
     /*
      * Pre-compute markdown conversions for the note once per public note.
@@ -373,8 +339,14 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           projectId: episode.projectId?.toString(),
           incidentEpisodeId: episode.id?.toString(),
         });
+        deliveryRecord.skipStatusPage(
+          statuspage,
+          StatusPageDeliverySkipReason.HidesEpisodes,
+        );
         continue; // Do not send notification to subscribers if episodes are not visible on status page.
       }
+
+      deliveryRecord.startStatusPage(statuspage);
 
       const subscribers: Array<StatusPageSubscriber> =
         await StatusPageSubscriberService.getSubscribersByStatusPage(
@@ -561,7 +533,19 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           unsubscribeUrl: unsubscribeUrl,
         };
 
-        if (subscriber.subscriberPhone) {
+        /*
+         * An email address or phone number already sent this in this send,
+         * through an earlier page, is not sent it again (only when an
+         * incident of the episode is scoped; see
+         * SubscriberNotificationDeliveryRecord).
+         */
+        if (
+          subscriber.subscriberPhone &&
+          deliveryRecord.shouldSendSms({
+            statusPage: statuspage,
+            phone: subscriber.subscriberPhone,
+          })
+        ) {
           const phoneStr: string = subscriber.subscriberPhone.toString();
           const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
           logger.debug(
@@ -590,6 +574,11 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             to: subscriber.subscriberPhone,
           };
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.SMS,
+          });
+
           // send sms here.
           SmsService.sendSms(sms, {
             projectId: statuspage.projectId,
@@ -614,7 +603,13 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           });
         }
 
-        if (subscriber.subscriberEmail) {
+        if (
+          subscriber.subscriberEmail &&
+          deliveryRecord.shouldSendEmail({
+            statusPage: statuspage,
+            email: subscriber.subscriberEmail,
+          })
+        ) {
           // send email here.
           logger.debug(
             `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${episodePublicNote.id}.`,
@@ -637,6 +632,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + (episode.title || "");
+
+            deliveryRecord.recordQueued({
+              statusPage: statuspage,
+              method: StatusPageSubscriberNotificationMethod.Email,
+              subject: compiledSubject,
+            });
 
             MailService.sendMail(
               {
@@ -663,6 +664,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
               });
             });
           } else {
+            deliveryRecord.recordQueued({
+              statusPage: statuspage,
+              method: StatusPageSubscriberNotificationMethod.Email,
+              subject: copy.emailSubjectPrefix + episode.title,
+            });
+
             // Use default hard-coded template
             MailService.sendMail(
               {
@@ -753,6 +760,11 @@ ${episodePublicNote.note || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
           }
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.Slack,
+          });
+
           SlackUtil.sendMessageToChannelViaIncomingWebhook({
             url: subscriber.slackIncomingWebhookUrl,
             text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
@@ -805,6 +817,11 @@ ${episodePublicNote.note || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
           }
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+          });
+
           MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
             url: subscriber.microsoftTeamsIncomingWebhookUrl,
             text: markdownMessage,
@@ -825,6 +842,11 @@ ${episodePublicNote.note || ""}
         }
 
         if (subscriber.subscriberWebhook) {
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.Webhook,
+          });
+
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
             payload: {
@@ -853,6 +875,8 @@ ${episodePublicNote.note || ""}
       }
     }
 
+    const deliveryMarkdown: string = deliveryRecord.toMarkdown();
+
     if (notificationSentToAtLeastOneSubscriber) {
       logger.debug(
         `Notification sent to subscribers for public note added to episode: ${episode.id}`,
@@ -869,9 +893,15 @@ ${episodePublicNote.note || ""}
           IncidentEpisodeFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
-        moreInformationInMarkdown: `**Public Note:**
+        // The note, then each status page, its subject and what was queued.
+        moreInformationInMarkdown: [
+          `**Public Note:**
 
 ${episodePublicNote.note}`,
+          deliveryMarkdown,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
       });
 
       logger.debug("Episode Feed created", {
@@ -894,8 +924,12 @@ ${episodePublicNote.note}`,
           IncidentEpisodeFeedEventType.SubscriberNotificationSent,
         displayColor: Yellow500,
         feedInfoInMarkdown: `📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
-        moreInformationInMarkdown:
-          "Subscriber notifications were skipped because all associated status pages either hide episodes or had no matching subscribers.",
+        moreInformationInMarkdown: [
+          "Subscriber notifications were skipped because every associated status page either hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
+          deliveryMarkdown,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
       });
     }
 

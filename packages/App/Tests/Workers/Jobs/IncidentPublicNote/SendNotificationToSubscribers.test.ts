@@ -78,6 +78,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      // IncidentStatusPageScope reads each incident's status page scope.
+      findBy: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
     },
   };
@@ -215,6 +217,20 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import Dictionary from "Common/Types/Dictionary";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -278,6 +294,8 @@ const GROUPED_RESOURCES_TEXT: string =
 let createdNotes: Array<IncidentPublicNote> = [];
 let updatedNotes: Array<IncidentPublicNote> = [];
 let storedIncident: Incident | null = null;
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 function publicNote(overrides?: {
   id?: ObjectID;
@@ -352,6 +370,7 @@ function statusPage(overrides?: {
   page.isPublicStatusPage = true;
   page.showIncidentsOnStatusPage =
     overrides?.showIncidentsOnStatusPage !== false;
+  page.onlyShowScopedIncidents = false;
   if (overrides?.withCustomSmtpAndSms) {
     (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
     (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
@@ -670,6 +689,13 @@ beforeEach(() => {
   createdNotes = [];
   updatedNotes = [];
   storedIncident = incident();
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
 
   mock(IncidentPublicNoteService.findBy).mockImplementation(
     async (args: unknown): Promise<Array<IncidentPublicNote>> => {
@@ -1386,6 +1412,14 @@ describe("IncidentPublicNote custom templates, in each channel's format", () => 
           pageTitle: "Beta Status",
         }),
       ]);
+      // The incident's monitor is listed on both pages.
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+        resource(),
+        resource({
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          statusPageId: SECOND_STATUS_PAGE_ID,
+        }),
+      ] as never);
       mock(
         StatusPageSubscriberService.getSubscribersByStatusPage,
       ).mockResolvedValue([subscriber(), subscriber()] as never);
@@ -1863,6 +1897,180 @@ describe("IncidentPublicNote email subjects are sent as written", () => {
         `${row.prefix}Rollout of {{ .Values.image.tag }} stalled`,
       );
       expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+});
+
+/*
+ * An incident limited to some status pages (Incident.statusPages). Ten site
+ * pages all list the incident's monitor; the scope decides which of them hear
+ * about a public note, whether it was posted or updated.
+ */
+describe("IncidentPublicNote subscriber notifications, with a status page scope", () => {
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  const DEFAULT_SUBJECT_PREFIX: Record<string, string> = {
+    [CREATED_JOB]: "[Update Incident] ",
+    [UPDATED_JOB]: "[Incident Note Updated] ",
+  };
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([7, 3]) };
+  });
+
+  test.each(TRIGGERS)(
+    "$name: a monitor shared by ten pages, scoped to two, tells only those two",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+      expect(
+        mock(
+          StatusPageSubscriberService.getSubscribersByStatusPage,
+        ).mock.calls.map((call: Array<unknown>): number => {
+          return siteOf(call[0]);
+        }),
+      ).toEqual([3, 7]);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: an unscoped incident reaches none of ten pages that only show scoped incidents",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedScopes = {};
+      pages = allSites().map((site: number): StatusPage => {
+        return sitePage(site, { onlyShowScopedIncidents: true });
+      });
+
+      await runJob(trigger.job);
+
+      nothingSent();
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+        "**Not sent to 10 status pages that only show incidents limited to them:**",
+      );
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: someone on both selected pages gets one email and one SMS, but each page's webhook, Slack and Teams message",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+        return siteSubscriber({
+          site: site,
+          email: "shared@acme.com",
+          phone: "+15555550100",
+          webhook: "https://hooks.acme.com/status",
+          slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+          teams: "https://outlook.office.com/webhook/abc",
+        });
+      });
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+      expect(sentSms()).toHaveLength(1);
+      expect(
+        sentWebhooks().map((payload: JSONObject): number => {
+          return siteOf(payload["statusPageId"]);
+        }),
+      ).toEqual([3, 7]);
+      expect(sentSlack()).toHaveLength(2);
+      expect(sentTeams()).toHaveLength(2);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: an unscoped incident sends every subscription its email, as before",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedScopes = {};
+      subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+        return siteSubscriber({ site: site, email: "shared@acme.com" });
+      });
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: the feed item keeps the note, then lists each page, the subject used and what was queued",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      subscribers = [
+        siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+        siteSubscriber({ site: 7, index: 1, email: "b@acme.com" }),
+        siteSubscriber({
+          site: 7,
+          index: 2,
+          webhook: "https://hooks.acme.com/site7",
+        }),
+      ];
+
+      await runJob(trigger.job);
+
+      const subject: string =
+        `${DEFAULT_SUBJECT_PREFIX[trigger.job]}${INCIDENT_TITLE}`
+          .replace("[", "\\[")
+          .replace("]", "\\]");
+
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+        [
+          "**Public Note:**",
+          "",
+          NOTE,
+          "",
+          "**Status pages:**",
+          "",
+          `- **Site 03**: 1 email queued. Subject: "${subject}".`,
+          `- **Site 07**: 1 email, 1 webhook queued. Subject: "${subject}".`,
+          "",
+          "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+          "",
+          "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+        ].join("\n"),
+      );
     },
   );
 });

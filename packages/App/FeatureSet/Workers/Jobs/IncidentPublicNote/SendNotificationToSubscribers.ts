@@ -17,7 +17,6 @@ import MailService from "Common/Server/Services/MailService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -44,6 +43,12 @@ import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import IncidentStatusPageScope, {
+  ResolvedIncidentStatusPages,
+} from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
+import SubscriberNotificationDeliveryRecord, {
+  StatusPageDeliverySkipReason,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -263,58 +268,36 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       return;
     }
 
-    // get status page resources from monitors.
-
-    const statusPageResources: Array<StatusPageResource> =
-      await StatusPageResourceService.findByMonitors({
-        monitors: incident.monitors,
-        select: {
-          _id: true,
-          displayName: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          statusPageGroup: {
-            name: true,
-          },
-        },
+    /*
+     * The status pages this incident reaches - through its monitors, narrowed
+     * to the pages it is limited to, and without the pages that only show
+     * incidents limited to them when it is not - in name order.
+     */
+    const resolvedStatusPages: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incident],
       });
 
+    const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+      resolvedStatusPages.statusPageToResources;
+    const statusPages: Array<StatusPage> = resolvedStatusPages.statusPages;
+
     logger.debug(
-      `Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`,
+      `Incident ${incident.id} reaches ${statusPages.length} status page(s) for public note notifications; ${resolvedStatusPages.excludedStatusPages.length} left out by its status page scope.`,
       {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       },
     );
 
-    const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+    const deliveryRecord: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({
+        dedupeEmailAndSms: resolvedStatusPages.isScoped,
+      });
 
-    for (const resource of statusPageResources) {
-      if (!resource.statusPageId) {
-        continue;
-      }
-
-      if (!statusPageToResources[resource.statusPageId?.toString()]) {
-        statusPageToResources[resource.statusPageId?.toString()] = [];
-      }
-
-      statusPageToResources[resource.statusPageId?.toString()]?.push(resource);
-    }
-
-    logger.debug(
-      `Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`,
-      {
-        projectId: incident.projectId?.toString(),
-        incidentId: incident.id?.toString(),
-      },
+    deliveryRecord.addExcludedStatusPages(
+      resolvedStatusPages.excludedStatusPages,
     );
-
-    const statusPages: Array<StatusPage> =
-      await StatusPageSubscriberService.getStatusPagesToSendNotification(
-        Object.keys(statusPageToResources).map((i: string) => {
-          return new ObjectID(i);
-        }),
-      );
 
     /*
      * Pre-compute markdown conversions for the note once per public note.
@@ -358,8 +341,14 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             incidentId: incident.id?.toString(),
           },
         );
+        deliveryRecord.skipStatusPage(
+          statuspage,
+          StatusPageDeliverySkipReason.HidesIncidents,
+        );
         continue; // Do not send notification to subscribers if incidents are not visible on status page.
       }
+
+      deliveryRecord.startStatusPage(statuspage);
 
       const subscribers: Array<StatusPageSubscriber> =
         await StatusPageSubscriberService.getSubscribersByStatusPage(
@@ -540,7 +529,18 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           unsubscribeUrl: unsubscribeUrl,
         };
 
-        if (subscriber.subscriberPhone) {
+        /*
+         * An email address or phone number already sent this in this send,
+         * through an earlier page, is not sent it again (only for a scoped
+         * incident; see SubscriberNotificationDeliveryRecord).
+         */
+        if (
+          subscriber.subscriberPhone &&
+          deliveryRecord.shouldSendSms({
+            statusPage: statuspage,
+            phone: subscriber.subscriberPhone,
+          })
+        ) {
           const phoneStr: string = subscriber.subscriberPhone.toString();
           const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
           logger.debug(
@@ -569,6 +569,11 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             to: subscriber.subscriberPhone,
           };
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.SMS,
+          });
+
           // send sms here.
           SmsService.sendSms(sms, {
             projectId: statuspage.projectId,
@@ -594,7 +599,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           });
         }
 
-        if (subscriber.subscriberEmail) {
+        if (
+          subscriber.subscriberEmail &&
+          deliveryRecord.shouldSendEmail({
+            statusPage: statuspage,
+            email: subscriber.subscriberEmail,
+          })
+        ) {
           // send email here.
           logger.debug(
             `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${incidentPublicNote.id}.`,
@@ -617,6 +628,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + (incident.title || "");
+
+            deliveryRecord.recordQueued({
+              statusPage: statuspage,
+              method: StatusPageSubscriberNotificationMethod.Email,
+              subject: compiledSubject,
+            });
 
             MailService.sendMail(
               {
@@ -644,6 +661,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               });
             });
           } else {
+            deliveryRecord.recordQueued({
+              statusPage: statuspage,
+              method: StatusPageSubscriberNotificationMethod.Email,
+              subject: copy.emailSubjectPrefix + incident.title,
+            });
+
             // Use default hard-coded template
             MailService.sendMail(
               {
@@ -735,6 +758,11 @@ ${incidentPublicNote.note || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
           }
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.Slack,
+          });
+
           SlackUtil.sendMessageToChannelViaIncomingWebhook({
             url: subscriber.slackIncomingWebhookUrl,
             text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
@@ -787,6 +815,11 @@ ${incidentPublicNote.note || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
           }
 
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+          });
+
           MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
             url: subscriber.microsoftTeamsIncomingWebhookUrl,
             text: markdownMessage,
@@ -814,6 +847,11 @@ ${incidentPublicNote.note || ""}
               incidentId: incident.id?.toString(),
             },
           );
+
+          deliveryRecord.recordQueued({
+            statusPage: statuspage,
+            method: StatusPageSubscriberNotificationMethod.Webhook,
+          });
 
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
@@ -844,6 +882,8 @@ ${incidentPublicNote.note || ""}
       }
     }
 
+    const deliveryMarkdown: string = deliveryRecord.toMarkdown();
+
     if (notificationSentToAtLeastOneSubscriber) {
       logger.debug(
         `Notification sent to subscribers for public note added to incident: ${incident.id}`,
@@ -859,9 +899,15 @@ ${incidentPublicNote.note || ""}
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
-        moreInformationInMarkdown: `**Public Note:**
+        // The note, then each status page, its subject and what was queued.
+        moreInformationInMarkdown: [
+          `**Public Note:**
 
 ${incidentPublicNote.note}`,
+          deliveryMarkdown,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },
@@ -886,8 +932,12 @@ ${incidentPublicNote.note}`,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Yellow500,
         feedInfoInMarkdown: `📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
-        moreInformationInMarkdown:
-          "Subscriber notifications were skipped because all associated status pages either hide incidents or had no matching subscribers.",
+        moreInformationInMarkdown: [
+          "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
+          deliveryMarkdown,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
         workspaceNotification: {
           sendWorkspaceNotification: false,
         },

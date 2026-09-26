@@ -67,6 +67,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      // IncidentStatusPageScope reads each incident's status page scope.
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
     },
@@ -201,6 +203,21 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  siteOf,
+  sitePage,
+  sitePageId,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -254,6 +271,8 @@ const CUSTOM_TEAMS_BODY: string =
   "Teams {{incidentDescription}} ({{resourcesAffected}})";
 
 let pendingIncidents: Array<Incident> = [];
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 function incident(): Incident {
   const row: Incident = new Incident();
@@ -284,6 +303,7 @@ function statusPage(): StatusPage {
   page.pageTitle = "Acme Status";
   page.isPublicStatusPage = true;
   page.showIncidentsOnStatusPage = true;
+  page.onlyShowScopedIncidents = false;
   return page;
 }
 
@@ -458,6 +478,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   pendingIncidents = [incident()];
+  storedScopes = {};
 
   /*
    * The job first looks for pending incidents it should skip, then for the
@@ -472,6 +493,11 @@ beforeEach(() => {
         ? pendingIncidents
         : [];
     },
+  );
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
   );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
   mock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
@@ -781,10 +807,15 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
       });
   }
 
+  // The status each write set, leaving out the notified-pages record writes.
   function statusesWritten(incidentId: ObjectID): Array<unknown> {
-    return statusWritesFor(incidentId).map((data: JSONObject): unknown => {
-      return data["subscriberNotificationStatusOnIncidentCreated"];
-    });
+    return statusWritesFor(incidentId)
+      .filter((data: JSONObject): boolean => {
+        return "subscriberNotificationStatusOnIncidentCreated" in data;
+      })
+      .map((data: JSONObject): unknown => {
+        return data["subscriberNotificationStatusOnIncidentCreated"];
+      });
   }
 
   test("marks the 'created' notification Skipped with the reason, and never InProgress", async () => {
@@ -918,5 +949,390 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
       StatusPageSubscriberNotificationStatus.InProgress,
       StatusPageSubscriberNotificationStatus.Success,
     ]);
+  });
+});
+
+/*
+ * An incident limited to some status pages (Incident.statusPages). Ten site
+ * pages all list the incident's monitor; the scope decides which of them are
+ * told, and the incident's record of pages already told
+ * (statusPagesNotifiedOnCreation) keeps a page added later from telling the
+ * others again.
+ */
+describe("Incident:SendNotificationToSubscribers, with a status page scope", () => {
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function everySiteHasOneEmailSubscriber(): void {
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function sitesLookedUp(): Array<number> {
+    return mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return siteOf(call[0]);
+    });
+  }
+
+  function feedItems(): Array<JSONObject> {
+    return mock(IncidentFeedService.createIncidentFeedItem).mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      },
+    );
+  }
+
+  // Every record of notified pages the job wrote, in order.
+  function notifiedPageRecords(): Array<Array<number>> {
+    return mock(IncidentService.updateOneById)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      })
+      .filter((data: JSONObject): boolean => {
+        return "statusPagesNotifiedOnCreation" in data;
+      })
+      .map((data: JSONObject): Array<number> => {
+        return (data["statusPagesNotifiedOnCreation"] as Array<string>).map(
+          siteOf,
+        );
+      });
+  }
+
+  function finalWrite(): JSONObject {
+    const writes: Array<JSONObject> = mock(
+      IncidentService.updateOneById,
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return (call[0] as { data: JSONObject }).data;
+    });
+
+    return writes[writes.length - 1]!;
+  }
+
+  function scopedIncident(notifiedSites?: Array<number>): Incident {
+    const row: Incident = incident();
+
+    if (notifiedSites) {
+      row.statusPagesNotifiedOnCreation = notifiedSites.map(
+        (site: number): string => {
+          return sitePageId(site).toString();
+        },
+      );
+    }
+
+    return row;
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = [];
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("a monitor shared by ten pages, scoped to two, tells only those two", async () => {
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    // Only the scoped pages are even looked at, in name order.
+    expect(sitesLookedUp()).toEqual([3, 7]);
+  });
+
+  test("an unscoped incident reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
+    expect(sentWebhooks()).toHaveLength(0);
+    expect(sitesLookedUp()).toEqual([]);
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toContain(
+      "No notification sent to subscribers",
+    );
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:** Site 01, Site 02",
+    );
+
+    // Settled, with nothing recorded as told.
+    expect(finalWrite()["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Success,
+    );
+    expect(finalWrite()["statusPagesNotifiedOnCreation"]).toEqual([]);
+  });
+
+  test("an unscoped incident still tells pages that show every incident", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: site !== 5 });
+    });
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site5@acme.com"]);
+  });
+
+  test("someone on both selected pages gets one email and one SMS, but every webhook, Slack and Teams message", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "Regional.Manager@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["regional.manager@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+
+    // Per-page payloads are never merged.
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("the first page in name order is the one whose email a shared address gets", async () => {
+    // Site 07's row comes first; Site 03 still wins, by name.
+    subscribers = [7, 3].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: "shared@acme.com" });
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect((sentMail()[0]!["vars"] as JSONObject)["statusPageName"]).toBe(
+      "Site 03 Status",
+    );
+    expect(
+      (sentMail()[0]!["vars"] as JSONObject)["unsubscribeUrl"],
+    ).toBeDefined();
+  });
+
+  test("an unscoped incident sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+    expect(sentSms()).toHaveLength(2);
+  });
+
+  test("records each page as it is told, and settles with the full record", async () => {
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(notifiedPageRecords()).toEqual([[3], [3, 7], [3, 7]]);
+    expect(finalWrite()).toEqual(
+      expect.objectContaining({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+      }),
+    );
+    // The record is written as root, around the hooks, like every job write.
+    for (const call of mock(IncidentService.updateOneById).mock.calls) {
+      expect((call[0] as JSONObject)["props"]).toEqual({
+        isRoot: true,
+        ignoreHooks: true,
+      });
+    }
+  });
+
+  test("pages added to the scope later are told once, and the others are not told again", async () => {
+    everySiteHasOneEmailSubscriber();
+
+    // First send: scoped to Site 03 and Site 07.
+    pendingIncidents = [scopedIncident()];
+    await runJob();
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    const told: Array<number> = notifiedPageRecords().pop()!;
+    expect(told).toEqual([3, 7]);
+
+    // Site 09 is added and the notification queued again.
+    jest.clearAllMocks();
+    mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([3, 7, 9]) };
+    pendingIncidents = [scopedIncident(told)];
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site9@acme.com"]);
+    expect(notifiedPageRecords().pop()).toEqual([3, 7, 9]);
+
+    // Queued once more with nothing added: nobody is told again.
+    jest.clearAllMocks();
+    mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+    pendingIncidents = [scopedIncident([3, 7, 9])];
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 09**: not sent again, its subscribers were already sent this notification.",
+    );
+  });
+
+  test("a page removed from the scope stays recorded, so adding it back does not tell it twice", async () => {
+    everySiteHasOneEmailSubscriber();
+    // Site 05 was told, then removed; it is not in the scope now.
+    pendingIncidents = [scopedIncident([5])];
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(notifiedPageRecords().pop()).toEqual([5, 3, 7]);
+  });
+
+  test("a page that hides incidents is not recorded as told", async () => {
+    everySiteHasOneEmailSubscriber();
+    pages[6] = sitePage(7, { showIncidentsOnStatusPage: false });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com"]);
+    expect(notifiedPageRecords().pop()).toEqual([3]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 07**: not sent, this status page does not show incidents.",
+    );
+  });
+
+  test("a page whose send fails is not recorded, so a later send still reaches it", async () => {
+    everySiteHasOneEmailSubscriber();
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(async (statusPageId: unknown) => {
+      if (siteOf(statusPageId) === 3) {
+        throw new Error("database went away");
+      }
+
+      return subscribersByPageFake(() => {
+        return subscribers;
+      })(statusPageId);
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site7@acme.com"]);
+    expect(notifiedPageRecords().pop()).toEqual([7]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 03**: nothing queued. Sending to this status page failed part-way",
+    );
+  });
+
+  test("the feed item lists each page, the subject used and what was queued", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 3, index: 2, email: "b@acme.com" }),
+      siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
+      siteSubscriber({
+        site: 7,
+        index: 2,
+        email: "c@acme.com",
+        webhook: "https://hooks.acme.com/site7",
+      }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 2 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 07**: 1 email, 1 webhook queued. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
+  });
+
+  test("the feed item for an unscoped incident lists the pages without the dedupe note", async () => {
+    storedScopes = {};
+    pages = [sitePage(1), sitePage(2)];
+    subscribers = [
+      siteSubscriber({ site: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 2, email: "a@acme.com" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 01**: 1 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 02**: 1 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+      ].join("\n"),
+    );
+  });
+
+  test("an incident scoped to pages that were all deleted tells nobody", async () => {
+    storedScopes = {
+      [INCIDENT_ID.toString()]: {
+        isScopedToStatusPages: true,
+        statusPageIds: [],
+      },
+    };
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
+    expect(sitesLookedUp()).toEqual([]);
   });
 });

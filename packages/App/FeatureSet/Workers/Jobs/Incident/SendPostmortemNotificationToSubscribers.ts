@@ -5,7 +5,6 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import ObjectID from "Common/Types/ObjectID";
 import SMS from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -14,7 +13,6 @@ import MailService from "Common/Server/Services/MailService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -22,11 +20,9 @@ import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscr
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -37,11 +33,17 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import IncidentStatusPageScope, {
+  ResolvedIncidentStatusPages,
+} from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
+import SubscriberNotificationDeliveryRecord, {
+  StatusPageDeliverySkipReason,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 
 RunCron(
   "Incident:SendPostmortemNotificationToSubscribers",
@@ -215,82 +217,37 @@ RunCron(
           continue; // Do not send notification to subscribers if incident is not visible on status page.
         }
 
-        // get status page resources from monitors.
-
-        const statusPageResources: Array<StatusPageResource> =
-          await StatusPageResourceService.findAllBy({
-            query: {
-              monitorId: QueryHelper.any(
-                incident.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            skip: 0,
-            select: {
-              _id: true,
-              displayName: true,
-              statusPageId: true,
-              statusPageGroupId: true,
-              statusPageGroup: {
-                name: true,
-              },
-            },
+        /*
+         * The status pages this incident reaches - through its monitors and
+         * the monitor groups they are in, narrowed to the pages it is limited
+         * to, and without the pages that only show incidents limited to them
+         * when it is not - in name order. (This job used to look monitors up
+         * directly and so missed pages that list a monitor group.)
+         */
+        const resolvedStatusPages: ResolvedIncidentStatusPages =
+          await IncidentStatusPageScope.resolvePagesForIncidents({
+            incidents: [incident],
           });
 
+        const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+          resolvedStatusPages.statusPageToResources;
+        const statusPages: Array<StatusPage> = resolvedStatusPages.statusPages;
+
         logger.debug(
-          `Found ${statusPageResources.length} status page resources linked to incident ${incident.id}.`,
+          `Incident ${incident.id} reaches ${statusPages.length} status page(s) for postmortem notifications; ${resolvedStatusPages.excludedStatusPages.length} left out by its status page scope.`,
           {
             projectId: incident.projectId?.toString(),
             incidentId: incident.id?.toString(),
           },
         );
 
-        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+        const deliveryRecord: SubscriberNotificationDeliveryRecord =
+          new SubscriberNotificationDeliveryRecord({
+            dedupeEmailAndSms: resolvedStatusPages.isScoped,
+          });
 
-        for (const resource of statusPageResources) {
-          if (!resource.statusPageId) {
-            continue;
-          }
-
-          if (!statusPageToResources[resource.statusPageId?.toString()]) {
-            statusPageToResources[resource.statusPageId?.toString()] = [];
-          }
-
-          statusPageToResources[resource.statusPageId?.toString()]?.push(
-            resource,
-          );
-        }
-
-        logger.debug(
-          `Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for notifications.`,
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
-        );
-
-        const statusPages: Array<StatusPage> =
-          await StatusPageSubscriberService.getStatusPagesToSendNotification(
-            Object.keys(statusPageToResources).map((i: string) => {
-              return new ObjectID(i);
-            }),
-          );
-
-        logger.debug(
-          `Loaded ${statusPages.length} status page(s) for incident ${incident.id}.`,
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
+        deliveryRecord.addExcludedStatusPages(
+          resolvedStatusPages.excludedStatusPages,
         );
 
         /*
@@ -328,8 +285,14 @@ RunCron(
                   incidentId: incident.id?.toString(),
                 },
               );
+              deliveryRecord.skipStatusPage(
+                statuspage,
+                StatusPageDeliverySkipReason.HidesIncidents,
+              );
               continue; // Do not send notification to subscribers if incidents are not visible on status page.
             }
+
+            deliveryRecord.startStatusPage(statuspage);
 
             const subscribers: Array<StatusPageSubscriber> =
               await StatusPageSubscriberService.getSubscribersByStatusPage(
@@ -472,7 +435,19 @@ RunCron(
                   },
                 );
 
-                if (subscriber.subscriberEmail) {
+                /*
+                 * An email address or phone number already sent this in this
+                 * send, through an earlier page, is not sent it again (only
+                 * for a scoped incident; see
+                 * SubscriberNotificationDeliveryRecord).
+                 */
+                if (
+                  subscriber.subscriberEmail &&
+                  deliveryRecord.shouldSendEmail({
+                    statusPage: statuspage,
+                    email: subscriber.subscriberEmail,
+                  })
+                ) {
                   // send email here.
                   logger.debug(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
@@ -516,6 +491,12 @@ RunCron(
                         )
                       : "[Postmortem] " + incident.title || "";
 
+                    deliveryRecord.recordQueued({
+                      statusPage: statuspage,
+                      method: StatusPageSubscriberNotificationMethod.Email,
+                      subject: compiledSubject,
+                    });
+
                     MailService.sendMail(
                       {
                         toEmail: subscriber.subscriberEmail,
@@ -550,6 +531,12 @@ RunCron(
                       });
                     });
                   } else {
+                    deliveryRecord.recordQueued({
+                      statusPage: statuspage,
+                      method: StatusPageSubscriberNotificationMethod.Email,
+                      subject: "[Postmortem] " + incident.title || "",
+                    });
+
                     MailService.sendMail(
                       {
                         toEmail: subscriber.subscriberEmail,
@@ -609,7 +596,13 @@ RunCron(
                   );
                 }
 
-                if (subscriber.subscriberPhone) {
+                if (
+                  subscriber.subscriberPhone &&
+                  deliveryRecord.shouldSendSms({
+                    statusPage: statuspage,
+                    phone: subscriber.subscriberPhone,
+                  })
+                ) {
                   const phoneStr: string =
                     subscriber.subscriberPhone.toString();
                   const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
@@ -649,6 +642,11 @@ RunCron(
                     message: smsMessage,
                     to: subscriber.subscriberPhone,
                   };
+
+                  deliveryRecord.recordQueued({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.SMS,
+                  });
 
                   // send sms here.
                   SmsService.sendSms(sms, {
@@ -716,6 +714,11 @@ RunCron(
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                   }
 
+                  deliveryRecord.recordQueued({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Slack,
+                  });
+
                   // send Slack notification with markdown conversion
                   SlackUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.slackIncomingWebhookUrl,
@@ -775,6 +778,12 @@ RunCron(
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                   }
 
+                  deliveryRecord.recordQueued({
+                    statusPage: statuspage,
+                    method:
+                      StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                  });
+
                   // send Teams notification
                   MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
@@ -796,6 +805,11 @@ RunCron(
                 }
 
                 if (subscriber.subscriberWebhook) {
+                  deliveryRecord.recordQueued({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Webhook,
+                  });
+
                   StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                     webhookUrl: subscriber.subscriberWebhook,
                     payload: {
@@ -835,6 +849,10 @@ RunCron(
               projectId: incident.projectId?.toString(),
               incidentId: incident.id?.toString(),
             });
+            deliveryRecord.skipStatusPage(
+              statuspage,
+              StatusPageDeliverySkipReason.Failed,
+            );
           }
         }
 
@@ -843,13 +861,26 @@ RunCron(
           incidentId: incident.id?.toString(),
         });
 
+        const deliveryMarkdown: string = deliveryRecord.toMarkdown();
+        const queuedAny: boolean = deliveryRecord.hasQueuedAny();
+
+        /*
+         * Each status page, the subject its email went out with, and what was
+         * queued. When nothing was queued at all - every page hides
+         * incidents, is left out by the incident's status page scope, or has
+         * no matching subscriber - the item says so instead of claiming a
+         * send.
+         */
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incident.id!,
           projectId: incident.projectId!,
           incidentFeedEventType:
             IncidentFeedEventType.SubscriberNotificationSent,
-          displayColor: Blue500,
-          feedInfoInMarkdown: incidentFeedText,
+          displayColor: queuedAny ? Blue500 : Yellow500,
+          feedInfoInMarkdown: queuedAny
+            ? incidentFeedText
+            : `📧 **No postmortem notification sent to subscribers** for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+          moreInformationInMarkdown: deliveryMarkdown || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: false,
           },

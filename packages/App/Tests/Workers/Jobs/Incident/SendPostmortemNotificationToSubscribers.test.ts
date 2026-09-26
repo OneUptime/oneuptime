@@ -66,6 +66,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      // IncidentStatusPageScope reads each incident's status page scope.
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
     },
@@ -76,8 +78,16 @@ jest.mock("Common/Server/Services/IncidentFeedService", () => {
   return { __esModule: true, default: { createIncidentFeedItem: jest.fn() } };
 });
 
+/*
+ * The job reaches status pages through IncidentStatusPageScope, which reads
+ * resources with findByMonitors - the lookup that also follows monitor
+ * groups. findAllBy is kept only to prove the job no longer calls it.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { findByMonitors: jest.fn(), findAllBy: jest.fn() },
+  };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -200,6 +210,20 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import Dictionary from "Common/Types/Dictionary";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -253,6 +277,8 @@ const CUSTOM_TEAMS_BODY: string =
   "Teams {{postmortemNote}} ({{resourcesAffected}})";
 
 let pendingIncidents: Array<Incident> = [];
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 /*
  * The job skips an incident unless its postmortem is shown on the status
@@ -290,6 +316,7 @@ function statusPage(): StatusPage {
   page.pageTitle = "Acme Status";
   page.isPublicStatusPage = true;
   page.showIncidentsOnStatusPage = true;
+  page.onlyShowScopedIncidents = false;
   return page;
 }
 
@@ -464,6 +491,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   pendingIncidents = [incident()];
+  storedScopes = {};
 
   // Only the query for pending postmortem notifications returns rows.
   mock(IncidentService.findAllBy).mockImplementation(
@@ -476,6 +504,11 @@ beforeEach(() => {
         : [];
     },
   );
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
   mock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
     URL.fromString(DASHBOARD_URL) as never,
@@ -484,7 +517,7 @@ beforeEach(() => {
     undefined as never,
   );
 
-  mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
     resource(),
   ] as never);
 
@@ -588,7 +621,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers", () => {
 describe("Incident:SendPostmortemNotificationToSubscribers, with custom templates and grouped resources", () => {
   beforeEach(() => {
     useCustomTemplatesOnEveryChannel();
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
   });
@@ -669,7 +702,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers, with custom template
 
 describe("Incident:SendPostmortemNotificationToSubscribers default email, with grouped resources", () => {
   test("still gets HTML for the postmortem and the resource list", async () => {
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
 
@@ -755,5 +788,171 @@ describe("Incident:SendPostmortemNotificationToSubscribers email subjects are se
       "[Postmortem] Rollout of {{ .Values.image.tag }} stalled",
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+/*
+ * An incident limited to some status pages (Incident.statusPages). Ten site
+ * pages all list the incident's monitor; the scope decides which of them hear
+ * about the postmortem.
+ */
+describe("Incident:SendPostmortemNotificationToSubscribers, with a status page scope", () => {
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function feedItems(): Array<JSONObject> {
+    return mock(IncidentFeedService.createIncidentFeedItem).mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("reaches pages through the monitor lookup that follows monitor groups", async () => {
+    await runJob();
+
+    expect(StatusPageResourceService.findByMonitors).toHaveBeenCalledTimes(1);
+    expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("a page that lists the monitor only through a monitor group is told", async () => {
+    storedScopes = {};
+    pages = [sitePage(4)];
+    // findByMonitors returns the group's resource like any other.
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      siteResource(4),
+    ] as never);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site4@acme.com"]);
+  });
+
+  test("a monitor shared by ten pages, scoped to two, tells only those two", async () => {
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mock.calls.map((call: Array<unknown>): number => {
+        return siteOf(call[0]);
+      }),
+    ).toEqual([3, 7]);
+  });
+
+  test("an unscoped incident reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
+    expect(feedItems()).toHaveLength(1);
+    // Nothing went out, and the feed no longer claims it did.
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toContain(
+      "No postmortem notification sent to subscribers",
+    );
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:**",
+    );
+  });
+
+  test("someone on both selected pages gets one email and one SMS, but each page's webhook", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("an unscoped incident sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: "shared@acme.com" });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+  });
+
+  test("the feed item lists each page, the subject used and what was queued", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 2, email: "b@acme.com" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 1 email queued. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
+        `- **Site 07**: 1 email queued. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
   });
 });

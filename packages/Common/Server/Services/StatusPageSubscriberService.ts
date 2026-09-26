@@ -1410,6 +1410,13 @@ Stay informed about service availability! 🚀`;
          * every episode notification from being sent.
          */
         showEpisodesOnStatusPage: true,
+        /*
+         * IncidentStatusPageScope decides from this which incidents reach a
+         * page, and treats a page without it as showing only incidents
+         * limited to it - so leaving it out would silence every unscoped
+         * incident's notifications.
+         */
+        onlyShowScopedIncidents: true,
       },
     });
 

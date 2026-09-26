@@ -82,6 +82,11 @@ jest.mock("Common/Server/Services/IncidentEpisodeMemberService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+// IncidentStatusPageScope reads the member incidents' status page scope.
+jest.mock("Common/Server/Services/IncidentService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
 jest.mock("Common/Server/Services/IncidentEpisodeFeedService", () => {
   return {
     __esModule: true,
@@ -89,8 +94,16 @@ jest.mock("Common/Server/Services/IncidentEpisodeFeedService", () => {
   };
 });
 
+/*
+ * The job reaches status pages through IncidentStatusPageScope, which reads
+ * resources with findByMonitors - the lookup that also follows monitor
+ * groups. findAllBy is kept only to prove the job no longer calls it.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { findByMonitors: jest.fn(), findAllBy: jest.fn() },
+  };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -217,6 +230,21 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import IncidentService from "Common/Server/Services/IncidentService";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  sharedMonitor,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisode/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -279,6 +307,13 @@ const GROUPED_RESOURCES_TEXT: string =
 let pendingEpisodes: Array<IncidentEpisode> = [];
 let skipEpisodes: Array<IncidentEpisode> = [];
 let memberMonitors: Array<Monitor> = [];
+// The episode's one member incident, unless a test sets memberIncidents.
+const MEMBER_INCIDENT_ID: ObjectID = new ObjectID(
+  "12121212-1212-4121-8121-121212121212",
+);
+let memberIncidents: Array<Incident> | null = null;
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 function episode(overrides?: {
   isVisibleOnStatusPage?: boolean;
@@ -333,6 +368,7 @@ function statusPage(overrides?: {
     page.showEpisodesOnStatusPage =
       overrides?.showEpisodesOnStatusPage !== false;
   }
+  page.onlyShowScopedIncidents = false;
   if (overrides?.withLogo) {
     page.logoFileId = LOGO_FILE_ID;
   }
@@ -623,7 +659,7 @@ function useCustomTemplatesOnEveryChannel(
  * "Edge network" on the first and "DNS resolvers" on the second.
  */
 function resourcesOnBothPages(): void {
-  mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
     resource(),
     resource({
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -639,6 +675,14 @@ beforeEach(() => {
   pendingEpisodes = [episode()];
   skipEpisodes = [];
   memberMonitors = [monitor()];
+  memberIncidents = null;
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
 
   mock(IncidentEpisodeService.findAllBy).mockImplementation(
     async (args: unknown): Promise<Array<IncidentEpisode>> => {
@@ -658,9 +702,20 @@ beforeEach(() => {
     URL.fromString(DASHBOARD_URL) as never,
   );
   mock(IncidentEpisodeMemberService.findBy).mockImplementation(async () => {
+    if (memberIncidents) {
+      return memberIncidents.map((incident: Incident) => {
+        const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+        member.incidentId = incident.id!;
+        member.incident = incident;
+        return member;
+      });
+    }
+
     const incident: Incident = new Incident();
+    incident._id = MEMBER_INCIDENT_ID.toString();
     incident.monitors = memberMonitors;
     const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+    member.incidentId = MEMBER_INCIDENT_ID;
     member.incident = incident;
     return [member];
   });
@@ -668,7 +723,7 @@ beforeEach(() => {
     IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
   ).mockResolvedValue(undefined as never);
 
-  mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
     resource(),
   ] as never);
 
@@ -1649,7 +1704,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates with gr
       undefined,
       FORMAT_EMAIL_SUBJECT_TEMPLATE,
     );
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
   });
@@ -1762,7 +1817,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates with gr
 
 describe("IncidentEpisode:SendNotificationToSubscribers default email with grouped resources", () => {
   test("still gets HTML for the description and the resource list", async () => {
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
 
@@ -1853,5 +1908,224 @@ describe("IncidentEpisode:SendNotificationToSubscribers email subjects are sent 
       "[Incident] Rollout of {{ .Values.image.tag }} stalled",
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+/*
+ * An episode reaches the union of the status pages its incidents reach, each
+ * through its own status page scope (Incident.statusPages). Ten site pages
+ * all list the shared monitor the incidents are on.
+ */
+describe("IncidentEpisode:SendNotificationToSubscribers, with status page scope on its incidents", () => {
+  const INCIDENT_A: ObjectID = new ObjectID(
+    "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1",
+  );
+  const INCIDENT_B: ObjectID = new ObjectID(
+    "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
+  );
+
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function memberOnSharedMonitor(id: ObjectID): Incident {
+    const incident: Incident = new Incident();
+    incident._id = id.toString();
+    incident.monitors = [sharedMonitor()];
+    return incident;
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function sitesLookedUp(): Array<number> {
+    return mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return siteOf(call[0]);
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    memberIncidents = [memberOnSharedMonitor(INCIDENT_A)];
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("reaches pages through the monitor lookup that follows monitor groups", async () => {
+    await runJob();
+
+    expect(StatusPageResourceService.findByMonitors).toHaveBeenCalled();
+    expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("a page that lists the monitor only through a monitor group is told", async () => {
+    storedScopes = {};
+    pages = [sitePage(4)];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      siteResource(4),
+    ] as never);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site4@acme.com"]);
+  });
+
+  test("a shared monitor on ten pages, with its incident scoped to two, tells only those two", async () => {
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(sitesLookedUp()).toEqual([3, 7]);
+  });
+
+  test("reaches the union of its incidents' pages, each through its own scope", async () => {
+    // Sites 1-3 only show scoped incidents.
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: site <= 3 });
+    });
+    memberIncidents = [
+      memberOnSharedMonitor(INCIDENT_A),
+      memberOnSharedMonitor(INCIDENT_B),
+    ];
+    // A is scoped to Site 03 and Site 04; B is unscoped.
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([3, 4]) };
+
+    await runJob();
+
+    // B reaches 4-10 (not the scoped-only pages); A adds Site 03.
+    expect(sitesLookedUp()).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 2 status pages that only show incidents limited to them:** Site 01, Site 02.",
+    );
+  });
+
+  test("the scope of every member incident is read in one query", async () => {
+    memberIncidents = [
+      memberOnSharedMonitor(INCIDENT_A),
+      memberOnSharedMonitor(INCIDENT_B),
+    ];
+
+    await runJob();
+
+    expect(IncidentService.findBy).toHaveBeenCalledTimes(1);
+    const query: JSONObject = (
+      mock(IncidentService.findBy).mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+    expect(JSON.stringify(query["_id"])).toContain(INCIDENT_A.toString());
+    expect(JSON.stringify(query["_id"])).toContain(INCIDENT_B.toString());
+  });
+
+  test("an episode of unscoped incidents reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+
+    await runJob();
+
+    nothingSent();
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:**",
+    );
+  });
+
+  test("someone on two reached pages gets one email and one SMS, but each page's webhook, Slack and Teams message", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("an episode of unscoped incidents sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: "shared@acme.com" });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+  });
+
+  test("the feed item lists each page, the subject used and what was queued", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 2, phone: "+15555550100" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 1 email queued. Subject: "\\[Incident\\] ${EPISODE_TITLE}".`,
+        "- **Site 07**: 1 SMS queued. Not sent again to 1 email address already sent it through another status page.",
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
+  });
+
+  test("a page that hides episodes is listed as passed over", async () => {
+    pages[2] = sitePage(3, { showEpisodesOnStatusPage: false });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site7@acme.com"]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 03**: not sent, this status page does not show episodes.",
+    );
   });
 });
