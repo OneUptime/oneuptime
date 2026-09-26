@@ -634,8 +634,12 @@ export const expressErrorHandler: (
     const errStatus: unknown = (err as { status?: unknown }).status;
     const errStatusCode: unknown = (err as { statusCode?: unknown }).statusCode;
     const clientStatus: number | undefined = [errStatus, errStatusCode].find(
-      (candidate: unknown): candidate is number =>
-        typeof candidate === "number" && StatusCode.isValidStatusCode(candidate),
+      (candidate: unknown): candidate is number => {
+        return (
+          typeof candidate === "number" &&
+          StatusCode.isValidStatusCode(candidate)
+        );
+      },
     );
 
     if (clientStatus !== undefined) {

@@ -1,6 +1,7 @@
 import {
   Browser,
   Cookie,
+  PlaywrightTestArgs,
   TestInfo,
   APIResponse,
   BrowserContext,
@@ -160,10 +161,12 @@ async function refused(response: APIResponse): Promise<void> {
   const status: number = response.status();
   const location: string = response.headers()["location"] || "";
   expect(
-    // 405 is included deliberately: the platform signals "tenant does not
-    // exist / no membership" with TenantNotFoundException (ExceptionCode 405),
-    // an upstream convention, not a missing route. The method-not-allowed
-    // meaning never applies to these GET endpoints.
+    /*
+     * 405 is included deliberately: the platform signals "tenant does not
+     * exist / no membership" with TenantNotFoundException (ExceptionCode 405),
+     * an upstream convention, not a missing route. The method-not-allowed
+     * meaning never applies to these GET endpoints.
+     */
     [400, 401, 403, 405].includes(status) ||
       ([302, 303].includes(status) && new RegExp("[?&]error=").test(location)),
     "Refusal must be explicit; a missing endpoint is not a security pass",
@@ -205,7 +208,7 @@ test.beforeEach(async (): Promise<void> => {
 // Playwright requires destructured fixtures even when this hook uses only testInfo.
 test.afterEach(
   // eslint-disable-next-line no-empty-pattern
-  async ({}: Record<string, unknown>, testInfo: TestInfo): Promise<void> => {
+  async ({}: PlaywrightTestArgs, testInfo: TestInfo): Promise<void> => {
     if (!page || !projectId) {
       return;
     }
@@ -565,9 +568,11 @@ test("explicit credential column selection cannot disclose project or user secre
       const body: string = await response.text();
       assertNoSecrets(body);
       expect(
-        // 422 is the platform's select-permission refusal (SelectPermission:
-        // "You do not have permissions to select on - authToken"), so it is a
-        // deliberate ACL boundary for this probe, not a schema accident.
+        /*
+         * 422 is the platform's select-permission refusal (SelectPermission:
+         * "You do not have permissions to select on - authToken"), so it is a
+         * deliberate ACL boundary for this probe, not a schema accident.
+         */
         [200, 400, 401, 403, 422].includes(response.status()),
         "The protected-column request must reach a real model ACL",
       ).toBe(true);

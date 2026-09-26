@@ -1,4 +1,10 @@
-import { APIResponse, expect, test } from "@playwright/test";
+import {
+  APIResponse,
+  expect,
+  PlaywrightTestArgs,
+  test,
+  TestInfo,
+} from "@playwright/test";
 import { createHash, sign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import identities from "./Fixture/identities.json";
@@ -211,13 +217,11 @@ function makeVectors(seed: number): Array<Vector> {
   for (let index: number = 0; index < 6; index++) {
     // Valid syntax but never minted by the application.
     states.push(
-      Array.from(
-        { length: 43 },
-        (): string =>
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"[
-            next() % 64
-          ]!,
-      ).join(""),
+      Array.from({ length: 43 }, (): string => {
+        return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"[
+          next() % 64
+        ]!;
+      }).join(""),
     );
   }
   for (const callback of ["install", "user"] as const) {
@@ -275,7 +279,7 @@ async function providerState(): Promise<ProviderState> {
 
 test("seeded adversarial HTTP vectors preserve Discord authentication boundaries", async ({
   request,
-}, testInfo): Promise<void> => {
+}: PlaywrightTestArgs, testInfo: TestInfo): Promise<void> => {
   test.setTimeout(120000);
   const seed: number = Number(
     process.env["DISCORD_ADVERSARIAL_SEED"] || "0x44534344",
@@ -293,8 +297,10 @@ test("seeded adversarial HTTP vectors preserve Discord authentication boundaries
   const vectors: Array<Vector> = makeVectors(seed);
   expect(vectors.length).toBeLessThanOrEqual(200);
   const startedAt: number = Math.floor(Date.now() / 1000);
-  // A prior run's unhandled requests are not what this assertion catches:
-  // reset so the baseline is this run's, not leftover state.
+  /*
+   * A prior run's unhandled requests are not what this assertion catches:
+   * reset so the baseline is this run's, not leftover state.
+   */
   const before: ProviderState = await fixtureReset();
   expect(before.unhandled).toEqual([]);
   const observed: Array<ObservedVector> = [];

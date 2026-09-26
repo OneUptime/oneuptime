@@ -3,6 +3,7 @@ import {
   Browser,
   BrowserContext,
   Page,
+  PlaywrightTestArgs,
   TestInfo,
   expect,
   test,
@@ -124,7 +125,9 @@ async function install(): Promise<void> {
   };
   await page.goto(body.authorizationUrl);
   await expect
-    .poll(async (): Promise<number> => (await bindings(projectTokens)).length)
+    .poll(async (): Promise<number> => {
+      return (await bindings(projectTokens)).length;
+    })
     .toBe(1);
 }
 
@@ -138,7 +141,9 @@ async function linkUser(): Promise<void> {
   };
   await page.goto(body.authorizationUrl);
   await expect
-    .poll(async (): Promise<number> => (await bindings(userTokens)).length)
+    .poll(async (): Promise<number> => {
+      return (await bindings(userTokens)).length;
+    })
     .toBe(1);
 }
 
@@ -147,9 +152,7 @@ async function setIncidentChannel(channelId: string): Promise<void> {
     url("incident-channel"),
     { headers: headers(), data: { channelId } },
   );
-  expect(response.ok(), "Setting the incident channel must succeed").toBe(
-    true,
-  );
+  expect(response.ok(), "Setting the incident channel must succeed").toBe(true);
 }
 
 /*
@@ -310,10 +313,9 @@ async function createAlert(title: string): Promise<string> {
 
 async function postedToIncidentChannel(): Promise<Array<PostedMessage>> {
   const state: ProviderState = await fixture("state");
-  return state.postedMessages.filter(
-    (message: PostedMessage): boolean =>
-      message.channel_id === identities.channelId,
-  );
+  return state.postedMessages.filter((message: PostedMessage): boolean => {
+    return message.channel_id === identities.channelId;
+  });
 }
 
 test.beforeAll(async ({ browser }: { browser: Browser }): Promise<void> => {
@@ -340,7 +342,7 @@ test.beforeEach(async (): Promise<void> => {
 
 test.afterEach(
   // eslint-disable-next-line no-empty-pattern
-  async ({}: Record<string, unknown>, testInfo: TestInfo): Promise<void> => {
+  async ({}: PlaywrightTestArgs, testInfo: TestInfo): Promise<void> => {
     if (!page || !projectId) {
       return;
     }
@@ -377,40 +379,54 @@ test("one incident, one thread, one post", async (): Promise<void> => {
   await createDiscordRule("Incident");
   await fixture("reset", {});
   await createIncident("HOM-36 one thread one post");
-  // Wait for the lifecycle message with the title to land in a thread (not
-  // the parent channel). Polling the thread-creation count alone resolves
-  // before the message POST that follows it.
+  /*
+   * Wait for the lifecycle message with the title to land in a thread (not
+   * the parent channel). Polling the thread-creation count alone resolves
+   * before the message POST that follows it.
+   */
   await expect
     .poll(
-      async (): Promise<boolean> =>
-        (await fixture("state")).postedMessages.some(
-          (message: PostedMessage): boolean =>
-            message.channel_id !== identities.channelId &&
-            (message.content || "").includes("HOM-36 one thread one post"),
-        ),
+      async (): Promise<boolean> => {
+        return (await fixture("state")).postedMessages.some(
+          (message: PostedMessage): boolean => {
+            return (
+              message.channel_id !== identities.channelId &&
+              (message.content || "").includes("HOM-36 one thread one post")
+            );
+          },
+        );
+      },
       { timeout: 30_000 },
     )
     .toBe(true);
-  // Settle window: a double-post landing one async tick later must not slip
-  // past a snapshot taken at first arrival. The double-post is the bug this
-  // spec exists to catch.
+  /*
+   * Settle window: a double-post landing one async tick later must not slip
+   * past a snapshot taken at first arrival. The double-post is the bug this
+   * spec exists to catch.
+   */
   await page.waitForTimeout(10_000);
   const state: ProviderState = await fixture("state");
-  // The fixture records the raw pathname under DiscordClient.BASE_URL
-  // (https://discord.com/api/v10), so match on the suffix, like
-  // Installation.spec.ts does for /oauth2/token.
+  /*
+   * The fixture records the raw pathname under DiscordClient.BASE_URL
+   * (https://discord.com/api/v10), so match on the suffix, like
+   * Installation.spec.ts does for /oauth2/token.
+   */
   const threadPosts: number = state.events.filter(
-    (event: { method: string; path: string }): boolean =>
-      event.method === "POST" &&
-      event.path.endsWith(`/channels/${identities.channelId}/threads`),
+    (event: { method: string; path: string }): boolean => {
+      return (
+        event.method === "POST" &&
+        event.path.endsWith(`/channels/${identities.channelId}/threads`)
+      );
+    },
   ).length;
   expect(
     threadPosts,
     "Exactly one thread must be created under the incident parent",
   ).toBe(1);
   const withTitle: Array<PostedMessage> = state.postedMessages.filter(
-    (message: PostedMessage): boolean =>
-      (message.content || "").includes("HOM-36 one thread one post"),
+    (message: PostedMessage): boolean => {
+      return (message.content || "").includes("HOM-36 one thread one post");
+    },
   );
   expect(
     withTitle.length,
@@ -418,16 +434,19 @@ test("one incident, one thread, one post", async (): Promise<void> => {
   ).toBe(1);
   const threadId: string | undefined = withTitle[0]?.channel_id;
   expect(threadId, "The message must be in a thread").toBeTruthy();
-  // A thread also carries the owner feed line and the state-change line
-  // (Slack parity through sendWorkspaceMarkdownNotification), so the thread
-  // message count is not asserted. The double-post signature is the title
-  // card appearing in the parent channel.
+  /*
+   * A thread also carries the owner feed line and the state-change line
+   * (Slack parity through sendWorkspaceMarkdownNotification), so the thread
+   * message count is not asserted. The double-post signature is the title
+   * card appearing in the parent channel.
+   */
   expect(
-    state.postedMessages.filter(
-      (message: PostedMessage): boolean =>
+    state.postedMessages.filter((message: PostedMessage): boolean => {
+      return (
         message.channel_id === identities.channelId &&
-        (message.content || "").includes("HOM-36 one thread one post"),
-    ).length,
+        (message.content || "").includes("HOM-36 one thread one post")
+      );
+    }).length,
     "The title card must not also be posted to the parent channel",
   ).toBe(0);
 });

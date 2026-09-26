@@ -100,8 +100,8 @@ describe("Discord provider simulated lifecycle contract", () => {
     );
     expect(
       (DiscordClient.request as jest.Mock).mock.calls.some(
-        ([request]: Array<{ method: HTTPMethod }>) => {
-          return request.method === HTTPMethod.DELETE;
+        (call: Array<{ method: HTTPMethod }>) => {
+          return call[0]?.method === HTTPMethod.DELETE;
         },
       ),
     ).toBe(false);

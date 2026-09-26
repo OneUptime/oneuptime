@@ -3,6 +3,7 @@ import {
   Browser,
   BrowserContext,
   Page,
+  PlaywrightTestArgs,
   TestInfo,
   expect,
   test,
@@ -65,7 +66,6 @@ interface IncidentRow {
 let context: BrowserContext;
 let page: Page;
 let projectId: string;
-let userId: string;
 let incidentSeverityId: string | undefined;
 
 const headers: () => Record<string, string> = (): Record<string, string> => {
@@ -146,7 +146,9 @@ async function install(): Promise<Binding> {
   };
   await page.goto(body.authorizationUrl);
   await expect
-    .poll(async (): Promise<number> => (await bindings(projectTokens)).length)
+    .poll(async (): Promise<number> => {
+      return (await bindings(projectTokens)).length;
+    })
     .toBe(1);
   const row: Binding = (await bindings(projectTokens))[0]!;
   expect(row.workspaceProjectId).toBe(identities.guildId);
@@ -169,7 +171,9 @@ async function linkUser(): Promise<Binding> {
   };
   await page.goto(body.authorizationUrl);
   await expect
-    .poll(async (): Promise<number> => (await bindings(userTokens)).length)
+    .poll(async (): Promise<number> => {
+      return (await bindings(userTokens)).length;
+    })
     .toBe(1);
   const row: Binding = (await bindings(userTokens))[0]!;
   expect(row.workspaceUserId).toBe(identities.userId);
@@ -218,8 +222,10 @@ async function createIncident(title: string): Promise<IncidentRow> {
 async function currentIncidentState(
   incidentId: string,
 ): Promise<{ order?: number; name?: string; id?: string }> {
-  // /api/incident/{id}/get-item does not expand the currentIncidentState
-  // relation; read the scalar state id and resolve it through /api/incident-state.
+  /*
+   * /api/incident/{id}/get-item does not expand the currentIncidentState
+   * relation; read the scalar state id and resolve it through /api/incident-state.
+   */
   const row: unknown = await getItem({
     page,
     projectId,
@@ -244,11 +250,13 @@ async function currentIncidentState(
       name: true,
     },
   });
-  const state: { order?: number; name?: string } =
-    stateRow as { order?: number; name?: string };
+  const state: { order?: number; name?: string } = stateRow as {
+    order?: number;
+    name?: string;
+  };
   return {
-    order: state?.order,
-    name: state?.name,
+    ...(state.order === undefined ? {} : { order: state.order }),
+    ...(state.name === undefined ? {} : { name: state.name }),
     id: stateId,
   };
 }
@@ -309,7 +317,7 @@ test.beforeEach(async (): Promise<void> => {
 // Playwright requires destructured fixtures even when this hook uses only testInfo.
 test.afterEach(
   // eslint-disable-next-line no-empty-pattern
-  async ({}: Record<string, unknown>, testInfo: TestInfo): Promise<void> => {
+  async ({}: PlaywrightTestArgs, testInfo: TestInfo): Promise<void> => {
     if (!page || !projectId) {
       return;
     }
@@ -324,10 +332,12 @@ test.afterAll(async (): Promise<void> => {
   await context?.close();
 });
 
-// The old "bound project posts a lifecycle message to the incident channel"
-// spec is deleted: it asserted the channel-bound bypass HOM-36 removes.
-// NotificationRouting.spec.ts "one incident, one thread, one post" is its
-// replacement (rule-driven thread + exactly-once posting).
+/*
+ * The old "bound project posts a lifecycle message to the incident channel"
+ * spec is deleted: it asserted the channel-bound bypass HOM-36 removes.
+ * NotificationRouting.spec.ts "one incident, one thread, one post" is its
+ * replacement (rule-driven thread + exactly-once posting).
+ */
 
 test("component interaction acknowledges an incident and replies with the new state", async (): Promise<void> => {
   await install();
@@ -346,10 +356,9 @@ test("component interaction acknowledges an incident and replies with the new st
     "Component interactions must be handled, not 404",
   ).toBe(200);
   await expect
-    .poll(
-      async (): Promise<number | undefined> =>
-        (await currentIncidentState(incident._id)).order,
-    )
+    .poll(async (): Promise<number | undefined> => {
+      return (await currentIncidentState(incident._id)).order;
+    })
     .toBeGreaterThan(before.order || 0);
 });
 
@@ -366,10 +375,9 @@ test("component interaction resolves an incident", async (): Promise<void> => {
   );
   expect(response.status()).toBe(200);
   await expect
-    .poll(
-      async (): Promise<number | undefined> =>
-        (await currentIncidentState(incident._id)).order,
-    )
+    .poll(async (): Promise<number | undefined> => {
+      return (await currentIncidentState(incident._id)).order;
+    })
     .toBeGreaterThanOrEqual(3);
 });
 
@@ -385,10 +393,9 @@ test("resolved incidents cannot be regressed by an acknowledge button", async ()
     }),
   );
   await expect
-    .poll(
-      async (): Promise<number | undefined> =>
-        (await currentIncidentState(incident._id)).order,
-    )
+    .poll(async (): Promise<number | undefined> => {
+      return (await currentIncidentState(incident._id)).order;
+    })
     .toBeGreaterThanOrEqual(3);
   const before: { order?: number } = await currentIncidentState(incident._id);
   const response: APIResponse = await postInteraction(

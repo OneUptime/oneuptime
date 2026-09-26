@@ -120,7 +120,7 @@ test("simulated HTTP lifecycle creates, delivers and archives an explicit incide
         expect(archived).toBe(false);
         const message: JSONObject = {
           ...body,
-          id: String(444444444444444440n + BigInt(messages.length)),
+          id: String(BigInt("444444444444444440") + BigInt(messages.length)),
         };
         messages.push(message);
         return ok(message);

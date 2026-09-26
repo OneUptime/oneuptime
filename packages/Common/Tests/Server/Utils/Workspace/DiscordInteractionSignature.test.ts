@@ -1,8 +1,8 @@
-import { generateKeyPairSync, sign } from "crypto";
+import { generateKeyPairSync, KeyObject, sign } from "crypto";
 import DiscordInteractionSignature from "../../../../Server/Utils/Workspace/Discord/DiscordInteractionSignature";
 
 describe("Discord interaction signature verification", () => {
-  const keys: ReturnType<typeof generateKeyPairSync> =
+  const keys: { publicKey: KeyObject; privateKey: KeyObject } =
     generateKeyPairSync("ed25519");
   const publicKey: string = keys.publicKey
     .export({ format: "der", type: "spki" })
