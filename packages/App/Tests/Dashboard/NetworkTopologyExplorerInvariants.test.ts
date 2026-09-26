@@ -571,3 +571,237 @@ describe("the site card reports device health", () => {
     expect(CARD).toContain("ring-2 ring-indigo-400");
   });
 });
+
+/*
+ * Issue #3981 — the explorer's search box finds a site at ANY level of the
+ * hierarchy, not only on the level in view.
+ *
+ * These are the wiring facts a rendered test cannot see from the outside:
+ * which component is mounted, under which test-id prefix, and what the
+ * server matches the text against. Each one is a way the fix can be undone
+ * quietly — a box that goes back to a plain Input still filters the cards,
+ * so every local test keeps passing while the customer is back to opening
+ * every level above a unit to find it.
+ */
+describe("the explorer's search reaches every level of the hierarchy", () => {
+  const FEATURE_SET: string = path.join(__dirname, "..", "..", "FeatureSet");
+
+  function readFeatureCode(...relativeParts: Array<string>): string {
+    const raw: string = fs.readFileSync(
+      path.join(FEATURE_SET, ...relativeParts),
+      "utf8",
+    );
+    return squash(
+      raw.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/gm, " "),
+    );
+  }
+
+  /*
+   * Whitespace-free, for the expressions prettier is free to wrap either
+   * way ("searchAllWords(\n  x,\n)" and "searchAllWords(x)" are the same
+   * code).
+   */
+  function compact(text: string): string {
+    return text.replace(/\s+/g, "");
+  }
+
+  // The JSX element starting at `<Tag`, up to its self-closing `/>`.
+  function jsxElement(code: string, tag: string): string {
+    const start: number = code.indexOf(`<${tag}`);
+    if (start < 0) {
+      return "";
+    }
+    const end: number = code.indexOf("/>", start);
+    return code.slice(start, end < 0 ? undefined : end + 2);
+  }
+
+  const EXPLORER_SEARCH_BOX: string = jsxElement(
+    EXPLORER_CODE,
+    "SiteSearchBox",
+  );
+
+  /*
+   * The box itself. A plain Input can only narrow the level on screen —
+   * the dropdown of hierarchy-wide hits, and the drill it offers, only
+   * exist in SiteSearchBox.
+   */
+  test("the explorer mounts SiteSearchBox, not a plain Input", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash('import SiteSearchBox from "../NetworkSite/SiteSearchBox";'),
+    );
+    expect(EXPLORER_SEARCH_BOX).not.toBe("");
+    expect(EXPLORER_CODE).not.toContain(
+      'from "Common/UI/Components/Input/Input"',
+    );
+    expect(EXPLORER_CODE).not.toContain("<Input ");
+  });
+
+  /*
+   * Picking a hit is a drill, and the explorer has exactly one: changeSite,
+   * which resets the search, the health filter and the device view, and
+   * mirrors the new site into the URL. A second, hand-rolled drill here
+   * would skip some of that.
+   */
+  test("a picked hit drills through changeSite", () => {
+    expect(EXPLORER_SEARCH_BOX).toContain("onSelectSite={changeSite}");
+  });
+
+  test("the box keeps driving the level's local filter", () => {
+    expect(EXPLORER_SEARCH_BOX).toContain("value={searchText}");
+    expect(EXPLORER_SEARCH_BOX).toContain("onChange={setSearchText}");
+    expect(EXPLORER_SEARCH_BOX).toContain(
+      "localMatchCount={searchedSites.length}",
+    );
+    expect(EXPLORER_SEARCH_BOX).toContain(
+      "localTotalCount={allLevelSites.length}",
+    );
+    expect(EXPLORER_SEARCH_BOX).toContain("childTypeLabel={childTypeLabel}");
+  });
+
+  /*
+   * Its own test-id prefix. Without one the explorer would render under
+   * the Network Map's "network-map-search" ids, and the two pages' tests
+   * would be reading each other's elements.
+   */
+  test("the box renders under the explorer's own test-id prefix", () => {
+    expect(EXPLORER_SEARCH_BOX).toContain(
+      'dataTestId="topology-hierarchy-search"',
+    );
+  });
+
+  /*
+   * The explorer already prints "x of y regions" beside the box. The box's
+   * own "Showing x of y at this level" line would say it twice.
+   */
+  test("the box's own local count is switched off", () => {
+    expect(EXPLORER_SEARCH_BOX).toContain("showLocalCount={false}");
+  });
+
+  test("the placeholder says the search reaches the whole network, translated", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        'const SEARCH_PLACEHOLDER: string = "Search sites by name — anywhere in your network";',
+      ),
+    );
+    expect(EXPLORER_SEARCH_BOX).toContain(
+      squash("translateString(SEARCH_PLACEHOLDER) || SEARCH_PLACEHOLDER"),
+    );
+    // The old level-only wording is gone.
+    expect(EXPLORER_CODE).not.toContain("`Search ${childTypeLabelPlural}`");
+  });
+
+  /*
+   * The empty level points at the dropdown only when the dropdown can have
+   * an answer. The box asks the server from MIN_SITE_SEARCH_CHARS, and the
+   * copy has to use the same test — a sentence promising matches "anywhere
+   * in your network" over a one-letter search the box never sends would
+   * send the reader to an empty panel.
+   */
+  test("the empty-state copy uses the box's own remote-search threshold", () => {
+    expect(EXPLORER_CODE).toContain("isRemoteSearchable,");
+    expect(EXPLORER_CODE).toContain(
+      squash('} from "../NetworkSite/SiteSearchUtil";'),
+    );
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "isRemoteSearchable(normalizedSearch) ? `No ${childTypeLabelPlural}",
+      ),
+    );
+    expect(EXPLORER_CODE).toContain(
+      "Click the search box to see matching sites from anywhere in your network",
+    );
+  });
+
+  /*
+   * The Network Map is the page the box came from, and it keeps its ids:
+   * no dataTestId prop means the default "network-map-search" prefix, and
+   * no showLocalCount means the map still prints its own count (it has no
+   * "x of y" line of its own beside the box).
+   */
+  test("the Network Map keeps the default prefix and its local count", () => {
+    const mapCode: string = readCode("Pages", "NetworkSite", "NetworkMap.tsx");
+    const mapBox: string = jsxElement(mapCode, "SiteSearchBox");
+    expect(mapBox).not.toBe("");
+    expect(mapBox).toContain("onSelectSite={changeSite}");
+    expect(mapBox).not.toContain("dataTestId");
+    expect(mapBox).not.toContain("showLocalCount");
+
+    const boxCode: string = readCode(
+      "Components",
+      "NetworkSite",
+      "SiteSearchBox.tsx",
+    );
+    expect(boxCode).toContain(
+      squash('const DEFAULT_TEST_ID: string = "network-map-search";'),
+    );
+    expect(boxCode).toContain(
+      squash("const testId: string = props.dataTestId || DEFAULT_TEST_ID;"),
+    );
+  });
+
+  /*
+   * The server half. The box's local filter requires every typed word, in
+   * any order; the search route used to match the whole string as one
+   * substring, so "michigan 104822" narrowed the cards to "Unit 104822 -
+   * Michigan Ave" while the dropdown under the same box said nothing
+   * matched. Both halves now apply the same rule.
+   */
+  describe("POST /network-site/search", () => {
+    const ROUTES: string = readFeatureCode(
+      "BaseAPI",
+      "API",
+      "NetworkSiteHierarchy.ts",
+    );
+    const routeStart: number = ROUTES.indexOf('"/network-site/search"');
+    const routeEnd: number = ROUTES.indexOf("router.post(", routeStart);
+    const SEARCH_ROUTE: string = ROUTES.slice(
+      routeStart,
+      routeEnd < 0 ? undefined : routeEnd,
+    );
+
+    test("the route exists", () => {
+      expect(routeStart).toBeGreaterThan(-1);
+      expect(SEARCH_ROUTE).toContain("NetworkSiteService.findBy(");
+    });
+
+    test("matches every word of the text, anywhere in the name", () => {
+      expect(compact(SEARCH_ROUTE)).toContain(
+        compact(
+          "name: QueryHelper.searchAllWords( NetworkSiteHierarchyUtil.splitSearchWords(searchText)",
+        ),
+      );
+    });
+
+    test("no longer matches the whole text as one substring", () => {
+      expect(compact(ROUTES)).not.toContain(
+        compact("name: QueryHelper.search(searchText)"),
+      );
+    });
+
+    /*
+     * An empty box is no results, never a query for every site in the
+     * project. searchAllWords already turns zero words into a predicate
+     * that matches nothing; this early return means the query never runs.
+     */
+    test("an empty text short-circuits before the query", () => {
+      expect(SEARCH_ROUTE).toContain(
+        squash(
+          'NetworkSiteHierarchyUtil.normalizeSearchText(body["searchText"]);',
+        ),
+      );
+      const emptyReturn: number = SEARCH_ROUTE.indexOf(
+        squash("if (!searchText) { return Response.sendJsonObjectResponse("),
+      );
+      expect(emptyReturn).toBeGreaterThan(-1);
+      expect(emptyReturn).toBeLessThan(
+        SEARCH_ROUTE.indexOf("NetworkSiteService.findBy("),
+      );
+    });
+
+    // Still scoped to the caller's project, and to what they may read.
+    test("stays project- and permission-scoped", () => {
+      expect(SEARCH_ROUTE).toContain(squash("projectId: projectId,"));
+      expect(SEARCH_ROUTE).toContain(squash("props: props,"));
+    });
+  });
+});
