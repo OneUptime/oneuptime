@@ -541,13 +541,16 @@ function vitalsWith(
   value: (d: WebVitalDefinition) => number | null,
 ): Array<WebVital> {
   return WebVitalDefinitions.map((d: WebVitalDefinition): WebVital => {
+    const reported: number | null = value(d);
     return {
       key: d.key,
       label: d.label,
       description: d.description,
-      value: value(d),
+      value: reported,
       unit: d.unit,
       thresholds: d.thresholds,
+      // As fetchWebVitals reports it: the first alias, once one has data.
+      metricName: reported === null ? null : d.names[0] || null,
     };
   });
 }
