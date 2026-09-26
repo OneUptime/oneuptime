@@ -1,9 +1,10 @@
-import InventoryItemService, {
+import InventoryItemService from "../../../Server/Services/InventoryItemService";
+import {
   INVENTORY_OVERVIEW_GROUP_BY,
   INVENTORY_OVERVIEW_SELECT,
   InventoryOverviewCounts,
   readInventoryOverviewGroups,
-} from "../../../Server/Services/InventoryItemService";
+} from "../../../Server/Utils/Inventory/InventoryOverviewAggregation";
 import AggregateBy, {
   AggregateColumn,
   AggregateRow,

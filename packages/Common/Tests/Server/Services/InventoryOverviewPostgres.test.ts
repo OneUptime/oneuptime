@@ -5,7 +5,7 @@ import {
   INVENTORY_OVERVIEW_SELECT,
   InventoryOverviewCounts,
   readInventoryOverviewGroups,
-} from "../../../Server/Services/InventoryItemService";
+} from "../../../Server/Utils/Inventory/InventoryOverviewAggregation";
 import {
   AggregateColumn,
   AggregateRow,
@@ -101,7 +101,11 @@ describePostgres("inventory overview counts against Postgres", () => {
     // Ancient timestamps that must never read as stale.
     await seed(EntityType.Host, EntitySource.Inventory, 365 * 1440 * MINUTE);
     await seed(EntityType.Host, EntitySource.Inventory, null);
-    await seed(EntityType.ExternalService, EntitySource.Manual, 90 * 1440 * MINUTE);
+    await seed(
+      EntityType.ExternalService,
+      EntitySource.Manual,
+      90 * 1440 * MINUTE,
+    );
     await seed(EntityType.Service, "some-future-source", 3 * 1440 * MINUTE);
     await seed("some.future.type", EntitySource.Discovered, 3 * 1440 * MINUTE);
     // Outside the Overview: archived, and another project's.
