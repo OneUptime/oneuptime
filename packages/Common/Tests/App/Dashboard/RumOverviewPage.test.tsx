@@ -40,6 +40,7 @@ const countMock: MockFunction = getJestMockFunction();
 const fetchSpanMetricsMock: MockFunction = getJestMockFunction();
 const fetchSpanNameStatsMock: MockFunction = getJestMockFunction();
 const fetchWebVitalsMock: MockFunction = getJestMockFunction();
+const fetchWebVitalByRouteMock: MockFunction = getJestMockFunction();
 const fetchSignalsMock: MockFunction = getJestMockFunction();
 const fetchSessionReplayListMock: MockFunction = getJestMockFunction();
 const lineChartMock: MockFunction = getJestMockFunction();
@@ -204,6 +205,9 @@ jest.mock(
       fetchWebVitals: (...args: Array<unknown>): unknown => {
         return fetchWebVitalsMock(...args);
       },
+      fetchWebVitalByRoute: (...args: Array<unknown>): unknown => {
+        return fetchWebVitalByRouteMock(...args);
+      },
       fetchLogAndExceptionSignals: (...args: Array<unknown>): unknown => {
         return fetchSignalsMock(...args);
       },
@@ -279,6 +283,7 @@ import {
   SpanNameStats,
   LogAndExceptionSignals,
   WebVital,
+  WebVitalByRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
@@ -367,9 +372,24 @@ const VITALS: Array<WebVital> = WebVitalDefinitions.map(
       value: d.unit === "score" ? 0.05 : d.thresholds.warn / 2,
       unit: d.unit,
       thresholds: d.thresholds,
+      metricName: null,
     };
   },
 );
+
+/* INP as instrumentation that emits web_vital.inp reports it. */
+const VITALS_WITH_INP: Array<WebVital> = VITALS.map((v: WebVital): WebVital => {
+  return v.key === "inp"
+    ? { ...v, value: 260, metricName: "web_vital.inp" }
+    : v;
+});
+
+const NO_ROUTES: WebVitalByRoute = {
+  routeAttribute: null,
+  routes: [],
+  totalRoutes: null,
+  failed: false,
+};
 
 function sessions(count: number): Array<{ sessionId: string }> {
   return Array.from({ length: count }, (_: unknown, i: number) => {
@@ -419,6 +439,7 @@ interface Scenario {
   pageLoadStats?: Promise<SpanNameStats> | undefined;
   signals?: Promise<LogAndExceptionSignals> | undefined;
   vitals?: Promise<Array<WebVital>> | undefined;
+  inpByRoute?: Promise<WebVitalByRoute> | undefined;
   sessionList?: Promise<unknown> | undefined;
 }
 
@@ -443,6 +464,9 @@ function arrange(scenario: Scenario = {}): void {
   });
   fetchWebVitalsMock.mockImplementation(() => {
     return scenario.vitals ?? Promise.resolve(VITALS);
+  });
+  fetchWebVitalByRouteMock.mockImplementation(() => {
+    return scenario.inpByRoute ?? Promise.resolve(NO_ROUTES);
   });
   fetchSessionReplayListMock.mockImplementation(() => {
     return (
@@ -560,6 +584,7 @@ beforeEach(() => {
     fetchSpanMetricsMock,
     fetchSpanNameStatsMock,
     fetchWebVitalsMock,
+    fetchWebVitalByRouteMock,
     fetchSignalsMock,
     fetchSessionReplayListMock,
     lineChartMock,
@@ -1191,5 +1216,107 @@ describe("RUM overview: refreshing", () => {
     await flush();
 
     expectTile("Page loads", "42", "3 failed");
+  });
+});
+
+/*
+ * Issue #3975. The app-wide INP mixes every view of a single-page app
+ * together; the per-route card is where the slow one shows up.
+ */
+describe("RUM overview: INP by route", () => {
+  test("is not shown, and not asked for, until INP has reported", async () => {
+    arrange();
+    await renderPage();
+
+    expect(fetchWebVitalByRouteMock).not.toHaveBeenCalled();
+    expect(screen.queryByText("INP by route")).toBeNull();
+  });
+
+  test("asks for INP per route under the name the vitals card found it by", async () => {
+    arrange({ vitals: Promise.resolve(VITALS_WITH_INP) });
+    await renderPage();
+
+    expect(fetchWebVitalByRouteMock).toHaveBeenCalledTimes(1);
+
+    const request: {
+      primaryEntityId: ObjectID;
+      metricName: string;
+      start: Date;
+      end: Date;
+    } = fetchWebVitalByRouteMock.mock.calls[0]![0] as {
+      primaryEntityId: ObjectID;
+      metricName: string;
+      start: Date;
+      end: Date;
+    };
+
+    expect(request.metricName).toBe("web_vital.inp");
+    expect(request.primaryEntityId.toString()).toBe(MODEL_ID);
+    expect(request.end.getTime()).toBeGreaterThan(request.start.getTime());
+  });
+
+  test("lists the routes slowest first, each rated, and explains itself", async () => {
+    arrange({
+      vitals: Promise.resolve(VITALS_WITH_INP),
+      inpByRoute: Promise.resolve({
+        routeAttribute: "app.route",
+        routes: [
+          { route: "/products/:id", value: 620 },
+          { route: "/cart", value: 240 },
+          { route: "/", value: 90 },
+        ],
+        totalRoutes: 12,
+        failed: false,
+      }),
+    });
+    await renderPage();
+
+    expect(screen.getByText("INP by route")).toBeInTheDocument();
+    expect(
+      await tooltipTextOf(
+        screen.getByRole("button", { name: "About INP by route" }),
+      ),
+    ).toBe(RUM_METRIC_DESCRIPTIONS.inpByRoute);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "web-vital-route-row",
+    );
+
+    expect(
+      rows.map((row: HTMLElement): string => {
+        return row.textContent || "";
+      }),
+    ).toEqual([
+      "/products/:id620 msPoor",
+      "/cart240 msNeeds work",
+      "/90 msGood",
+    ]);
+    expect(screen.getByText("(app.route)")).toBeInTheDocument();
+    expect(screen.getByText(/The 3 slowest of 12/)).toBeInTheDocument();
+  });
+
+  test("INP without a route attribute says how to add one", async () => {
+    arrange({ vitals: Promise.resolve(VITALS_WITH_INP) });
+    await renderPage();
+
+    expect(
+      screen.getByText("INP is reported, but not per route"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "How to measure INP per route" }),
+    ).toHaveAttribute("href", "/docs/rum/web-vitals#single-page-apps");
+  });
+
+  test("a failed lookup says so rather than claiming there are no routes", async () => {
+    arrange({
+      vitals: Promise.resolve(VITALS_WITH_INP),
+      inpByRoute: Promise.resolve({ ...NO_ROUTES, failed: true }),
+    });
+    await renderPage();
+
+    expect(
+      screen.getByText("Could not load INP by route."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("INP is reported, but not per route")).toBeNull();
   });
 });
