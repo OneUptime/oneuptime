@@ -9,12 +9,16 @@ import EntitySource from "../../../Types/Telemetry/EntitySource";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import InfrastructureGraph, {
   InfrastructureMapLayout,
+  MAX_DRAWN_LINES,
+  MAX_LANES,
   MAX_MAP_CARDS,
+  MAX_ROUTE_SLOTS,
   TRAFFIC_EDGE_PREFIX,
   TRAFFIC_ROUTE_EDGE_TYPE,
   TrafficEdgeData,
   cardForNode,
   describeTrafficLink,
+  directLinePoint,
   layoutInfrastructureMap,
   trafficEdges,
   trafficLanePath,
@@ -51,6 +55,9 @@ jest.mock("react-i18next", () => {
  * and an arrow per placement. React Flow's rendering is the only boundary
  * replaced; layout runs for real.
  */
+/* Every fitView the map asks the (mocked) React Flow instance for. */
+const mockFitView: MockFunction = getJestMockFunction().mockReturnValue(true);
+
 jest.mock("reactflow", () => {
   return {
     __esModule: true,
@@ -61,7 +68,15 @@ jest.mock("reactflow", () => {
       onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
       onEdgeMouseEnter?: (event: React.MouseEvent, edge: Edge) => void;
       onEdgeMouseLeave?: (event: React.MouseEvent, edge: Edge) => void;
+      onInit?: (instance: unknown) => void;
     }): React.ReactElement => {
+      React.useEffect(() => {
+        props.onInit?.({
+          fitView: (...args: Array<unknown>): unknown => {
+            return mockFitView(...args);
+          },
+        });
+      }, []);
       return (
         <div data-testid="infrastructure-canvas">
           {props.nodes.map((node: Node): React.ReactElement => {
@@ -951,7 +966,11 @@ describe("traffic between the cards (issue #3972)", () => {
       nodeIds: collectMapCards(withCalls, "node-k"),
       now: NOW,
     });
-    expect(layout.traffic).toEqual({ links: [], isPartial: false });
+    expect(layout.traffic).toEqual({
+      links: [],
+      isPartial: false,
+      internalCalls: 0,
+    });
     expect(layout.routes.size).toBe(0);
     // Without traffic, the service column and its arrows are back.
     expect(layout.edges).toHaveLength(4);
@@ -1252,7 +1271,7 @@ describe("InfrastructureGraph traffic", () => {
     expect(onOpenTraffic).toHaveBeenCalledTimes(1);
   });
 
-  test("the invisible slots a routed line runs through open nothing", () => {
+  test("the invisible markers around a routed line open nothing", () => {
     const onOpenTraffic: MockFunction = getJestMockFunction();
     const onOpenNode: MockFunction = getJestMockFunction();
     const model: InfrastructureTopologyModel = aksNodeModel();
@@ -1266,10 +1285,13 @@ describe("InfrastructureGraph traffic", () => {
         now={NOW}
       />,
     );
-    const slots: Array<HTMLElement> =
+    /* Two corners of what the routed line reaches, whatever it crosses. */
+    const markers: Array<HTMLElement> =
       screen.getAllByTestId(/^node-route-slot:/);
-    expect(slots).toHaveLength(1);
-    fireEvent.click(slots[0]!);
+    expect(markers).toHaveLength(2);
+    for (const marker of markers) {
+      fireEvent.click(marker);
+    }
     expect(onOpenNode).not.toHaveBeenCalled();
     expect(onOpenTraffic).not.toHaveBeenCalled();
   });
@@ -1336,6 +1358,434 @@ describe("InfrastructureGraph traffic", () => {
       screen.getByTestId("infrastructure-traffic-status"),
     ).toHaveTextContent(
       "No services are known to run on these cards, so there are no calls to draw between them.",
+    );
+  });
+});
+
+/*
+ * Verification of the traffic drawing found that dense scopes, crossing
+ * lines and stacked lanes could still hide lines or freeze the page; each
+ * case below pins the fix.
+ */
+const LANE_GAP: number = 40;
+const LABEL_WIDTH: number = 76;
+const LABEL_HEIGHT: number = 24;
+const HANDLE_Y: number = 64;
+const CARD_WIDTH: number = 256;
+
+function labelBoxesOverlap(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): boolean {
+  return (
+    Math.abs(a.x - b.x) < LABEL_WIDTH && Math.abs(a.y - b.y) < LABEL_HEIGHT
+  );
+}
+
+/* Where each direct line's label lands, from the layout's own choice. */
+function directLabels(
+  layout: InfrastructureMapLayout,
+  t?: number,
+): Array<{ x: number; y: number }> {
+  return layout.traffic.links
+    .filter((link: InfrastructureTrafficLink): boolean => {
+      return layout.labelPositions.has(link.id);
+    })
+    .map((link: InfrastructureTrafficLink): { x: number; y: number } => {
+      const from: { x: number; y: number } = positionOf(layout, link.from);
+      const to: { x: number; y: number } = positionOf(layout, link.to);
+      return directLinePoint({
+        sourceX: from.x + CARD_WIDTH,
+        sourceY: from.y + HANDLE_Y,
+        targetX: to.x,
+        targetY: to.y + HANDLE_Y,
+        t: t ?? layout.labelPositions.get(link.id)!,
+      });
+    });
+}
+
+/* Every host runs every one of `services`; `calls` are between services. */
+function meshModel(
+  hostCount: number,
+  services: Array<string>,
+  calls: Array<[string, string, number]>,
+): InfrastructureTopologyModel {
+  const entities: Array<TopologyEntity> = [];
+  const relationships: Array<TopologyRelationship> = [];
+  for (const name of services) {
+    entities.push(entity(name, EntityType.Service, name));
+  }
+  for (let index: number = 0; index < hostCount; index++) {
+    const host: string = `h${String(index).padStart(2, "0")}`;
+    entities.push(entity(host, EntityType.Host, `machine-${host}q`));
+    for (const name of services) {
+      relationships.push(edge(name, host, EntityRelationshipType.HostedOn));
+    }
+  }
+  for (const [from, to, count] of calls) {
+    relationships.push(call(from, to, count, 0, 10));
+  }
+  return buildInfrastructureTopologyModel(entities, relationships);
+}
+
+function hostIds(count: number): Array<string> {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return `h${String(index).padStart(2, "0")}`;
+  });
+}
+
+describe("dense and tangled scopes stay drawable and legible", () => {
+  test("a call between two services on every machine draws only the busiest lines, few slots and lanes", () => {
+    /* 48 machines, each running both services: a complete graph of 2,256 lines. */
+    const model: InfrastructureTopologyModel = meshModel(
+      MAX_MAP_CARDS,
+      ["svc-a", "svc-b"],
+      [["svc-a", "svc-b", 900]],
+    );
+    const started: number = performance.now();
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: hostIds(MAX_MAP_CARDS),
+      now: NOW,
+    });
+    const elapsed: number = performance.now() - started;
+    expect(layout.traffic.links).toHaveLength(MAX_DRAWN_LINES);
+    expect(layout.omittedLinks).toBe(48 * 47 - MAX_DRAWN_LINES);
+    let slots: number = 0;
+    for (const route of layout.routes.values()) {
+      slots += route.length;
+    }
+    expect(slots).toBeLessThanOrEqual(MAX_ROUTE_SLOTS);
+    expect(layout.lanes.size).toBeLessThanOrEqual(MAX_LANES);
+    expect(layout.extents.length).toBeLessThanOrEqual(2);
+    // Generous: the unbounded version took seconds here.
+    expect(elapsed).toBeLessThan(3000);
+
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={hostIds(MAX_MAP_CARDS)}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    // The cards and at most two markers: no node per slot or lane.
+    expect(screen.getAllByTestId(/^node-/).length).toBeLessThanOrEqual(
+      MAX_MAP_CARDS + 2,
+    );
+    expect(
+      screen.getByTestId("infrastructure-traffic-status"),
+    ).toHaveTextContent("The busiest 100 of 2,256 connections");
+  });
+
+  test("when the call budget runs out the map says totals may be short", () => {
+    /*
+     * 90 services on each of 48 machines, calling in a chain: 89 calls x
+     * 2,256 pairs of machines is past MAX_TRAFFIC_PAIRS.
+     */
+    const services: Array<string> = Array.from(
+      { length: 90 },
+      (_value: unknown, index: number) => {
+        return `s${String(index).padStart(2, "0")}`;
+      },
+    );
+    const calls: Array<[string, string, number]> = [];
+    for (let index: number = 1; index < services.length; index++) {
+      calls.push([services[index - 1]!, services[index]!, 10]);
+    }
+    const model: InfrastructureTopologyModel = meshModel(
+      MAX_MAP_CARDS,
+      services,
+      calls,
+    );
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={hostIds(MAX_MAP_CARDS)}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    expect(
+      screen.getByTestId("infrastructure-traffic-status"),
+    ).toHaveTextContent(
+      "Too many calls in this scope to count every one: some lines may be missing and some totals short.",
+    );
+  });
+
+  test("crossing lines between the same two layers keep their labels apart", () => {
+    const model: InfrastructureTopologyModel = hostsModel([
+      ["a", "x", 900],
+      ["a", "y", 600],
+      ["b", "x", 300],
+      ["b", "y", 150],
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: ["h-a", "h-b", "h-x", "h-y"],
+      now: NOW,
+    });
+    expect(layout.labelPositions.size).toBe(4);
+    // Every label in the middle would put two of them on the same point...
+    const centred: Array<{ x: number; y: number }> = directLabels(layout, 0.5);
+    const collides: boolean = centred.some(
+      (a: { x: number; y: number }, i: number): boolean => {
+        return centred.slice(i + 1).some((b: { x: number; y: number }) => {
+          return labelBoxesOverlap(a, b);
+        });
+      },
+    );
+    expect(collides).toBe(true);
+    // ...so the layout slides them along their lines until none overlap.
+    const placed: Array<{ x: number; y: number }> = directLabels(layout);
+    placed.forEach((a: { x: number; y: number }, i: number) => {
+      placed.slice(i + 1).forEach((b: { x: number; y: number }) => {
+        expect(labelBoxesOverlap(a, b)).toBe(false);
+      });
+    });
+  });
+
+  test("lanes that run alongside each other are a full lane apart", () => {
+    /* Layered with half-row offsets, which used to put two lanes 4px apart. */
+    const model: InfrastructureTopologyModel = hostsModel([
+      ["cart", "api", 50],
+      ["cart", "db", 50],
+      ["db", "api", 50],
+      ["api", "db", 50],
+      ["db", "web", 50],
+      ["db", "cart", 50],
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: ["h-api", "h-cart", "h-db", "h-web"],
+      now: NOW,
+    });
+    expect(layout.lanes.size).toBeGreaterThanOrEqual(2);
+    const spans: Array<{ left: number; right: number; y: number }> = [];
+    for (const [linkId, y] of layout.lanes) {
+      const link: InfrastructureTrafficLink = layout.traffic.links.find(
+        (item: InfrastructureTrafficLink) => {
+          return item.id === linkId;
+        },
+      )!;
+      spans.push({
+        left: positionOf(layout, link.to).x - 48,
+        right: positionOf(layout, link.from).x + CARD_WIDTH + 48,
+        y,
+      });
+    }
+    spans.forEach(
+      (a: { left: number; right: number; y: number }, i: number) => {
+        spans
+          .slice(i + 1)
+          .forEach((b: { left: number; right: number; y: number }) => {
+            if (a.left < b.right && b.left < a.right) {
+              expect(Math.abs(a.y - b.y)).toBeGreaterThanOrEqual(LANE_GAP);
+            }
+          });
+      },
+    );
+  });
+
+  test("past the lane budget, lines against the flow loop back the plain way", () => {
+    /* A chain of 14 machines calling both ways: 13 lines against the flow. */
+    const calls: Array<[string, string, number]> = [];
+    for (let index: number = 1; index <= MAX_LANES + 1; index++) {
+      calls.push([`n${index - 1}`, `n${index}`, 100]);
+      calls.push([`n${index}`, `n${index - 1}`, 10]);
+    }
+    const model: InfrastructureTopologyModel = hostsModel(calls);
+    const nodeIds: Array<string> = Array.from(
+      { length: MAX_LANES + 2 },
+      (_value: unknown, index: number) => {
+        return `h-n${index}`;
+      },
+    );
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds,
+      now: NOW,
+    });
+    expect(layout.lanes.size).toBe(0);
+    const edges: Array<Edge<TrafficEdgeData>> = trafficEdges({
+      model,
+      links: layout.traffic.links,
+      label: "calls",
+      metricsWindowSeconds: WINDOW_SECONDS,
+      routes: layout.routes,
+      lanes: layout.lanes,
+      labelPositions: layout.labelPositions,
+    });
+    const backward: Array<Edge<TrafficEdgeData>> = edges.filter(
+      (item: Edge<TrafficEdgeData>): boolean => {
+        return (
+          positionOf(layout, item.target).x < positionOf(layout, item.source).x
+        );
+      },
+    );
+    expect(backward).toHaveLength(MAX_LANES + 1);
+    for (const item of backward) {
+      expect(item.type).toBe("default");
+    }
+  });
+
+  test("past the slot budget, lines that skip layers are drawn directly", () => {
+    const calls: Array<[string, string, number]> = [];
+    for (let index: number = 1; index < 10; index++) {
+      calls.push([`n${index - 1}`, `n${index}`, 100]);
+    }
+    /* From the first two machines to everything further down the chain. */
+    for (let index: number = 2; index < 10; index++) {
+      calls.push(["n0", `n${index}`, 5]);
+      if (index > 2) {
+        calls.push(["n1", `n${index}`, 5]);
+      }
+    }
+    const model: InfrastructureTopologyModel = hostsModel(calls);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: Array.from({ length: 10 }, (_value: unknown, index: number) => {
+        return `h-n${index}`;
+      }),
+      now: NOW,
+    });
+    // 36 + 28 slots would be needed: past the budget, so none are used.
+    expect(layout.routes.size).toBe(0);
+    expect(layout.labelPositions.size).toBe(layout.traffic.links.length);
+  });
+
+  test("when breaking a cycle would cut a routed chain, lines are drawn directly", () => {
+    /* A graph whose layers the slots would change; found by a random search. */
+    const pairs: Array<[number, number]> = [
+      [4, 1],
+      [0, 5],
+      [5, 1],
+      [3, 0],
+      [1, 5],
+      [2, 5],
+      [4, 2],
+      [3, 1],
+      [1, 2],
+      [4, 3],
+    ];
+    const model: InfrastructureTopologyModel = hostsModel(
+      pairs.map(([from, to]: [number, number]): [string, string, number] => {
+        return [`n${from}`, `n${to}`, 10];
+      }),
+    );
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: Array.from({ length: 6 }, (_value: unknown, index: number) => {
+        return `h-n${index}`;
+      }),
+      now: NOW,
+    });
+    const long: Array<InfrastructureTrafficLink> = layout.traffic.links.filter(
+      (link: InfrastructureTrafficLink): boolean => {
+        return (
+          positionOf(layout, link.to).x - positionOf(layout, link.from).x > 356
+        );
+      },
+    );
+    expect(long.length).toBeGreaterThan(0);
+    expect(layout.routes.size).toBe(0);
+    // Drawn directly, with label positions like any direct line.
+    for (const link of long) {
+      expect(layout.labelPositions.has(link.id)).toBe(true);
+    }
+  });
+
+  test("calls that stay inside one card are named, not denied", () => {
+    render(
+      <InfrastructureGraph
+        model={aksNodeModel()}
+        nodeIds={["node-k"]}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    expect(
+      screen.getByTestId("infrastructure-traffic-status"),
+    ).toHaveTextContent(
+      "The services on these cards only call each other within the same card, so no line joins two cards. The Service Map shows those calls.",
+    );
+  });
+
+  test("the map refits when its traffic moves the cards, even with the same cards", () => {
+    const nodeIds: Array<string> = collectMapCards(aksNodeModel(), "node-k");
+    const { rerender } = render(
+      <InfrastructureGraph
+        model={aksNodeModel()}
+        nodeIds={nodeIds}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    const fitsBefore: number = mockFitView.mock.calls.length;
+    expect(fitsBefore).toBeGreaterThan(0);
+    rerender(
+      <InfrastructureGraph
+        model={aksNodeModel([call("svc-backend", "svc-blob", 1200, 6, 45)])}
+        nodeIds={nodeIds}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    expect(mockFitView.mock.calls.length).toBeGreaterThan(fitsBefore);
+  });
+
+  test("a map with lanes above its cards is sized for them", () => {
+    /* Every machine down a chain calls back to the first: stacked lanes. */
+    const calls: Array<[string, string, number]> = [];
+    for (let index: number = 1; index <= 6; index++) {
+      calls.push([`n${index - 1}`, `n${index}`, 100]);
+      calls.push([`n${index}`, "n0", 10]);
+    }
+    const model: InfrastructureTopologyModel = hostsModel(calls);
+    const nodeIds: Array<string> = Array.from(
+      { length: 7 },
+      (_value: unknown, index: number) => {
+        return `h-n${index}`;
+      },
+    );
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds,
+      now: NOW,
+    });
+    expect(layout.lanes.size).toBe(6);
+    let top: number = 0;
+    let bottom: number = 0;
+    for (const point of [
+      ...layout.nodes.map((node: Node): { x: number; y: number } => {
+        return node.position;
+      }),
+      ...layout.extents,
+    ]) {
+      top = Math.min(top, point.y);
+      bottom = Math.max(bottom, point.y + 128);
+    }
+    expect(top).toBeLessThan(-200);
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={nodeIds}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    const height: number = parseInt(
+      screen.getByTestId("infrastructure-map").style.height,
+      10,
+    );
+    expect(height).toBe(
+      Math.round(Math.min(820, Math.max(380, (bottom - top) * 0.85 + 100))),
     );
   });
 });

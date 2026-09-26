@@ -77,6 +77,29 @@ const CARD_GAP_Y: number = TOPOLOGY_NODE_HEIGHT + 24;
 const TRAFFIC_COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 100;
 // Height of one lane above the cards, for a line that runs against the flow.
 const LANE_GAP: number = 40;
+// How far a line leaves or enters a card sideways before it turns.
+const LINE_REACH: number = 48;
+/*
+ * Budgets that keep a dense scope drawable (a mesh of calls between dozens
+ * of machines would otherwise mean thousands of lines, slots and lanes).
+ * Past MAX_DRAWN_LINES only the busiest lines are drawn, and the map says
+ * so; past MAX_ROUTE_SLOTS lines that skip layers are drawn directly; past
+ * MAX_LANES lines against the flow loop back as React Flow draws them.
+ */
+export const MAX_DRAWN_LINES: number = 100;
+export const MAX_ROUTE_SLOTS: number = 60;
+export const MAX_LANES: number = 12;
+/*
+ * A line's label, roughly, and where along a direct line it may sit: the
+ * middle first, then further out, so two labels never share a point.
+ */
+const LABEL_WIDTH: number = 76;
+const LABEL_HEIGHT: number = 24;
+const LABEL_POSITIONS: ReadonlyArray<number> = [
+  0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85,
+];
+/* Where a card's handles sit, for placing labels before cards are measured. */
+const ESTIMATED_HANDLE_Y: number = TOPOLOGY_NODE_HEIGHT / 2;
 const OVERFLOW_ID: string = "__more__";
 const SERVICE_PREFIX: string = "service:";
 export const TRAFFIC_EDGE_PREFIX: string = "traffic:";
@@ -147,10 +170,10 @@ const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
 };
 
 /*
- * An invisible marker where a routed line runs through an empty slot or
- * a lane above the cards. The view is fitted to nodes, so without it a line
- * where no card sits could fall outside the fitted view. It takes no
- * pointer events, so hovering or clicking the line there still reaches it.
+ * An invisible marker at a corner of what routed lines and lanes reach
+ * beyond the cards. The view is fitted to nodes, so without the two of them
+ * a line where no card sits could fall outside the fitted view. They take
+ * no pointer events, so a line running past one can still be hovered.
  */
 export const ROUTE_SLOT_CLASS: string = "infrastructure-route-slot";
 const ROUTE_SLOT_PREFIX: string = "route-slot:";
@@ -159,7 +182,7 @@ const RouteSlot: FunctionComponent<NodeProps> = (): ReactElement => {
   return (
     <div
       aria-hidden="true"
-      style={{ width: TOPOLOGY_NODE_WIDTH, height: 88, pointerEvents: "none" }}
+      style={{ width: 1, height: 1, pointerEvents: "none" }}
     />
   );
 };
@@ -244,6 +267,18 @@ export interface InfrastructureMapLayout {
    * against the flow (right to left) takes, one lane per such line.
    */
   lanes: Map<string, number>;
+  /*
+   * Link id → how far along a direct line (0 to 1) its label sits, chosen
+   * so no two labels cover each other.
+   */
+  labelPositions: Map<string, number>;
+  /*
+   * Opposite corners of what routed lines and lanes reach beyond the cards
+   * (none when they stay among them), so the view can be fitted to them.
+   */
+  extents: Array<LayoutPoint>;
+  /* Lines past MAX_DRAWN_LINES, the quietest, left undrawn. */
+  omittedLinks: number;
 }
 
 /*
@@ -291,10 +326,19 @@ function placeTalkingCards(data: {
     string,
     Array<string>
   >();
+  /* Too many slots would crowd the drawing: then every line is direct. */
+  let slotsNeeded: number = 0;
+  for (const link of data.links) {
+    slotsNeeded += Math.max(
+      0,
+      layerIn(direct, link.to) - layerIn(direct, link.from) - 1,
+    );
+  }
+  const routes: boolean = slotsNeeded <= MAX_ROUTE_SLOTS;
   data.links.forEach((link: InfrastructureTrafficLink, index: number) => {
     const fromLayer: number = layerIn(direct, link.from);
     const toLayer: number = layerIn(direct, link.to);
-    if (toLayer - fromLayer < 2) {
+    if (!routes || toLayer - fromLayer < 2) {
       edges.push({ from: link.from, to: link.to });
       return;
     }
@@ -430,12 +474,34 @@ export function layoutInfrastructureMap(data: {
     return node.serviceKeys.length > 0;
   }).length;
 
-  const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
+  const counted: InfrastructureTraffic = computeInfrastructureTraffic(
     model,
     shown.map((node: InfrastructureNode): string => {
       return node.id;
     }),
   );
+  /* Past the budget, the busiest lines are drawn and the rest counted. */
+  const traffic: InfrastructureTraffic =
+    counted.links.length > MAX_DRAWN_LINES
+      ? {
+          ...counted,
+          links: [...counted.links]
+            .sort(
+              (
+                left: InfrastructureTrafficLink,
+                right: InfrastructureTrafficLink,
+              ): number => {
+                return (
+                  right.calls - left.calls ||
+                  right.errors - left.errors ||
+                  (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+                );
+              },
+            )
+            .slice(0, MAX_DRAWN_LINES),
+        }
+      : counted;
+  const omittedLinks: number = counted.links.length - traffic.links.length;
   const talking: Set<string> = new Set<string>();
   for (const link of traffic.links) {
     talking.add(link.from);
@@ -635,36 +701,194 @@ export function layoutInfrastructureMap(data: {
    * A call that runs against the flow — the other half of a two-way pair, or
    * a call back up a chain — would loop behind the cards between its ends,
    * and its label would sit on the forward line's. It takes a lane of its
-   * own above everything between its ends instead.
+   * own above everything between its ends instead, clear of every lane it
+   * runs alongside. Past MAX_LANES they loop back as React Flow draws them.
    */
   const lanes: Map<string, number> = new Map<string, number>();
-  for (const link of traffic.links) {
-    const from: LayoutPoint = positionOf(link.from);
-    const to: LayoutPoint = positionOf(link.to);
-    if (to.x > from.x) {
-      continue;
-    }
-    const within: (x: number) => boolean = (x: number): boolean => {
-      return x >= to.x && x <= from.x;
-    };
-    let top: number = Math.min(from.y, to.y);
-    for (const id of talking) {
-      const at: LayoutPoint = positionOf(id);
-      if (within(at.x)) {
-        top = Math.min(top, at.y);
-      }
-    }
-    for (const slots of routes.values()) {
-      for (const slot of slots) {
-        if (within(slot.x)) {
-          top = Math.min(top, slot.y);
+  const laneSpans: Array<{ left: number; right: number; y: number }> = [];
+  const backLinks: Array<InfrastructureTrafficLink> = traffic.links.filter(
+    (link: InfrastructureTrafficLink): boolean => {
+      return positionOf(link.to).x <= positionOf(link.from).x;
+    },
+  );
+  if (backLinks.length <= MAX_LANES) {
+    for (const link of backLinks) {
+      const from: LayoutPoint = positionOf(link.from);
+      const to: LayoutPoint = positionOf(link.to);
+      const within: (x: number) => boolean = (x: number): boolean => {
+        return x >= to.x && x <= from.x;
+      };
+      let top: number = Math.min(from.y, to.y);
+      for (const id of talking) {
+        const at: LayoutPoint = positionOf(id);
+        if (within(at.x)) {
+          top = Math.min(top, at.y);
         }
       }
+      for (const slots of routes.values()) {
+        for (const slot of slots) {
+          if (within(slot.x)) {
+            top = Math.min(top, slot.y);
+          }
+        }
+      }
+      const left: number = to.x - LINE_REACH;
+      const right: number = from.x + TOPOLOGY_NODE_WIDTH + LINE_REACH;
+      let y: number = top - LANE_GAP;
+      /* Lanes only move up, so this settles. */
+      let moved: boolean = true;
+      while (moved) {
+        moved = false;
+        for (const span of laneSpans) {
+          if (
+            span.left < right &&
+            left < span.right &&
+            Math.abs(span.y - y) < LANE_GAP
+          ) {
+            y = span.y - LANE_GAP;
+            moved = true;
+          }
+        }
+      }
+      laneSpans.push({ left, right, y });
+      lanes.set(link.id, y);
     }
-    lanes.set(link.id, top - LANE_GAP * (lanes.size + 1));
   }
 
-  return { nodes, edges, traffic, routes, lanes };
+  /*
+   * Labels. A lane's sits above its source card, a routed line's in its
+   * first slot; a direct line's slides along the line until it covers no
+   * other label (busiest lines choose first).
+   */
+  const placedLabels: Array<LayoutPoint> = [];
+  const isFree: (point: LayoutPoint) => boolean = (
+    point: LayoutPoint,
+  ): boolean => {
+    return placedLabels.every((other: LayoutPoint): boolean => {
+      return (
+        Math.abs(other.x - point.x) >= LABEL_WIDTH ||
+        Math.abs(other.y - point.y) >= LABEL_HEIGHT
+      );
+    });
+  };
+  for (const [linkId, laneY] of lanes) {
+    const link: InfrastructureTrafficLink | undefined = traffic.links.find(
+      (item: InfrastructureTrafficLink): boolean => {
+        return item.id === linkId;
+      },
+    );
+    if (link) {
+      placedLabels.push({
+        x: positionOf(link.from).x + TOPOLOGY_NODE_WIDTH / 2,
+        y: laneY,
+      });
+    }
+  }
+  for (const slots of routes.values()) {
+    const first: LayoutPoint | undefined = slots[0];
+    if (first) {
+      placedLabels.push({
+        x: first.x + TOPOLOGY_NODE_WIDTH / 2,
+        y: first.y + ESTIMATED_HANDLE_Y,
+      });
+    }
+  }
+  const labelPositions: Map<string, number> = new Map<string, number>();
+  const directLinks: Array<InfrastructureTrafficLink> = traffic.links
+    .filter((link: InfrastructureTrafficLink): boolean => {
+      return (
+        !lanes.has(link.id) &&
+        !routes.has(link.id) &&
+        positionOf(link.to).x > positionOf(link.from).x
+      );
+    })
+    .sort(
+      (
+        left: InfrastructureTrafficLink,
+        right: InfrastructureTrafficLink,
+      ): number => {
+        return (
+          right.calls - left.calls ||
+          (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+        );
+      },
+    );
+  for (const link of directLinks) {
+    const from: LayoutPoint = positionOf(link.from);
+    const to: LayoutPoint = positionOf(link.to);
+    const at: (t: number) => LayoutPoint = (t: number): LayoutPoint => {
+      return directLinePoint({
+        sourceX: from.x + TOPOLOGY_NODE_WIDTH,
+        sourceY: from.y + ESTIMATED_HANDLE_Y,
+        targetX: to.x,
+        targetY: to.y + ESTIMATED_HANDLE_Y,
+        t,
+      });
+    };
+    const t: number =
+      LABEL_POSITIONS.find((candidate: number): boolean => {
+        return isFree(at(candidate));
+      }) ?? 0.5;
+    labelPositions.set(link.id, t);
+    placedLabels.push(at(t));
+  }
+
+  /* What routed lines and lanes reach beyond the cards. */
+  const reached: Array<LayoutPoint> = [];
+  for (const slots of routes.values()) {
+    for (const slot of slots) {
+      reached.push(
+        { x: slot.x, y: slot.y },
+        { x: slot.x + TOPOLOGY_NODE_WIDTH, y: slot.y + TOPOLOGY_NODE_HEIGHT },
+      );
+    }
+  }
+  for (const span of laneSpans) {
+    reached.push(
+      { x: span.left, y: span.y - LABEL_HEIGHT },
+      { x: span.right, y: span.y },
+    );
+  }
+  const extents: Array<LayoutPoint> =
+    reached.length > 0
+      ? [
+          {
+            x: Math.min(
+              ...reached.map((point: LayoutPoint): number => {
+                return point.x;
+              }),
+            ),
+            y: Math.min(
+              ...reached.map((point: LayoutPoint): number => {
+                return point.y;
+              }),
+            ),
+          },
+          {
+            x: Math.max(
+              ...reached.map((point: LayoutPoint): number => {
+                return point.x;
+              }),
+            ),
+            y: Math.max(
+              ...reached.map((point: LayoutPoint): number => {
+                return point.y;
+              }),
+            ),
+          },
+        ]
+      : [];
+
+  return {
+    nodes,
+    edges,
+    traffic,
+    routes,
+    lanes,
+    labelPositions,
+    extents,
+    omittedLinks,
+  };
 }
 
 /** "12/min", "0.4% errors" or "45ms" for a line: one metric of its traffic. */
@@ -718,6 +942,8 @@ export interface TrafficEdgeData {
   sourceTop?: number | undefined;
   /* The lane a line running against the flow takes (see the layout). */
   laneY?: number | undefined;
+  /* How far along a direct line its label sits (see the layout). */
+  labelT?: number | undefined;
 }
 
 /*
@@ -735,7 +961,7 @@ export function trafficLanePath(data: {
   targetY: number;
   laneY: number;
 }): { path: string; labelX: number; labelY: number } {
-  const reach: number = 48;
+  const reach: number = LINE_REACH;
   const { sourceX, sourceY, targetX, targetY, laneY } = data;
   return {
     path:
@@ -745,6 +971,50 @@ export function trafficLanePath(data: {
       `C ${targetX - reach},${laneY} ${targetX - reach},${targetY} ${targetX},${targetY}`,
     labelX: sourceX - TOPOLOGY_NODE_WIDTH / 2,
     labelY: laneY,
+  };
+}
+
+/*
+ * A point along a direct line between neighbouring layers, drawn as React
+ * Flow draws its default edge: a curve leaving the source and entering the
+ * target horizontally, with both control points halfway across.
+ */
+export function directLinePoint(data: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  t: number;
+}): LayoutPoint {
+  const { sourceX, sourceY, targetX, targetY, t } = data;
+  const middle: number = (sourceX + targetX) / 2;
+  const u: number = 1 - t;
+  return {
+    x:
+      u * u * u * sourceX +
+      3 * u * u * t * middle +
+      3 * u * t * t * middle +
+      t * t * t * targetX,
+    y: sourceY + (targetY - sourceY) * (3 * t * t - 2 * t * t * t),
+  };
+}
+
+/* A direct line, with its label `t` of the way along it. */
+export function trafficDirectPath(data: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  t: number;
+}): { path: string; labelX: number; labelY: number } {
+  const middle: number = (data.sourceX + data.targetX) / 2;
+  const label: LayoutPoint = directLinePoint(data);
+  return {
+    path:
+      `M ${data.sourceX},${data.sourceY} ` +
+      `C ${middle},${data.sourceY} ${middle},${data.targetY} ${data.targetX},${data.targetY}`,
+    labelX: label.x,
+    labelY: label.y,
   };
 }
 
@@ -794,7 +1064,7 @@ export function trafficRoutePath(data: {
   };
 }
 
-const TrafficRouteEdge: FunctionComponent<EdgeProps<TrafficEdgeData>> = (
+export const TrafficRouteEdge: FunctionComponent<EdgeProps<TrafficEdgeData>> = (
   props: EdgeProps<TrafficEdgeData>,
 ): ReactElement => {
   const route: { path: string; labelX: number; labelY: number } =
@@ -806,17 +1076,25 @@ const TrafficRouteEdge: FunctionComponent<EdgeProps<TrafficEdgeData>> = (
           targetY: props.targetY,
           laneY: props.data.laneY,
         })
-      : trafficRoutePath({
-          sourceX: props.sourceX,
-          sourceY: props.sourceY,
-          targetX: props.targetX,
-          targetY: props.targetY,
-          waypoints: props.data?.waypoints || [],
-          handleOffset:
-            props.data?.sourceTop === undefined
-              ? TOPOLOGY_NODE_HEIGHT / 2
-              : props.sourceY - props.data.sourceTop,
-        });
+      : !props.data?.waypoints?.length
+        ? trafficDirectPath({
+            sourceX: props.sourceX,
+            sourceY: props.sourceY,
+            targetX: props.targetX,
+            targetY: props.targetY,
+            t: props.data?.labelT ?? 0.5,
+          })
+        : trafficRoutePath({
+            sourceX: props.sourceX,
+            sourceY: props.sourceY,
+            targetX: props.targetX,
+            targetY: props.targetY,
+            waypoints: props.data?.waypoints || [],
+            handleOffset:
+              props.data?.sourceTop === undefined
+                ? TOPOLOGY_NODE_HEIGHT / 2
+                : props.sourceY - props.data.sourceTop,
+          });
   return (
     <BaseEdge
       path={route.path}
@@ -859,6 +1137,8 @@ export function trafficEdges(data: {
   cardTops?: Map<string, number> | undefined;
   /* Lines that run against the flow, and their lanes (see the layout). */
   lanes?: Map<string, number> | undefined;
+  /* Where each direct line's label sits (see the layout). */
+  labelPositions?: Map<string, number> | undefined;
 }): Array<Edge<TrafficEdgeData>> {
   return data.links.map(
     (link: InfrastructureTrafficLink, index: number): Edge<TrafficEdgeData> => {
@@ -875,14 +1155,19 @@ export function trafficEdges(data: {
         link.id,
       );
       const laneY: number | undefined = data.lanes?.get(link.id);
+      const labelT: number | undefined = data.labelPositions?.get(link.id);
+      /*
+       * A line the layout placed (a lane, a route, or a direct line with its
+       * label position) is drawn by TrafficRouteEdge; anything else — a line
+       * against the flow past the lane budget — as React Flow draws it.
+       */
+      const placed: boolean =
+        laneY !== undefined || Boolean(waypoints) || labelT !== undefined;
       return {
         id,
         source: link.from,
         target: link.to,
-        type:
-          waypoints || laneY !== undefined
-            ? TRAFFIC_ROUTE_EDGE_TYPE
-            : "default",
+        type: placed ? TRAFFIC_ROUTE_EDGE_TYPE : "default",
         label:
           metric && link.calls > 0
             ? trafficMetricLabel(link, metric, data.metricsWindowSeconds)
@@ -918,7 +1203,9 @@ export function trafficEdges(data: {
             ? { link, laneY }
             : waypoints
               ? { link, waypoints, sourceTop: data.cardTops?.get(link.from) }
-              : { link },
+              : labelT !== undefined
+                ? { link, labelT }
+                : { link },
       };
     },
   );
@@ -973,6 +1260,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         metricsWindowSeconds,
         routes: layout.routes,
         lanes: layout.lanes,
+        labelPositions: layout.labelPositions,
         cardTops: new Map<string, number>(
           layout.nodes.map((node: Node<CardData>): [string, number] => {
             return [node.id, node.position.y];
@@ -982,42 +1270,25 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     ];
   }, [layout, props.model, trafficLabel, hoveredEdgeId, metricsWindowSeconds]);
 
+  /* The cards, plus at most two markers for what lines reach beyond them. */
   const flowNodes: Array<Node> = useMemo(() => {
-    const slots: Array<Node> = [];
-    const markers: Array<LayoutPoint> = [];
-    for (const route of layout.routes.values()) {
-      markers.push(...route);
-    }
-    /* A lane runs above the cards: mark it too, clear of its label. */
-    for (const [linkId, laneY] of layout.lanes) {
-      const link: InfrastructureTrafficLink | undefined =
-        layout.traffic.links.find((item: InfrastructureTrafficLink) => {
-          return item.id === linkId;
-        });
-      const target: Node<CardData> | undefined = layout.nodes.find(
-        (node: Node<CardData>) => {
-          return node.id === link?.to;
-        },
-      );
-      if (target) {
-        markers.push({ x: target.position.x, y: laneY - LANE_GAP / 2 });
-      }
-    }
-    for (const marker of markers) {
-      slots.push({
-        id: `${ROUTE_SLOT_PREFIX}${slots.length}`,
-        type: "infrastructureRouteSlot",
-        position: marker,
-        data: {},
-        className: ROUTE_SLOT_CLASS,
-        style: { pointerEvents: "none" },
-        selectable: false,
-        focusable: false,
-        draggable: false,
-        connectable: false,
-      });
-    }
-    return [...layout.nodes, ...slots];
+    return [
+      ...layout.nodes,
+      ...layout.extents.map((corner: LayoutPoint, index: number): Node => {
+        return {
+          id: `${ROUTE_SLOT_PREFIX}${index}`,
+          type: "infrastructureRouteSlot",
+          position: corner,
+          data: {},
+          className: ROUTE_SLOT_CLASS,
+          style: { pointerEvents: "none" },
+          selectable: false,
+          focusable: false,
+          draggable: false,
+          connectable: false,
+        };
+      }),
+    ];
   }, [layout]);
 
   const hoveredLink: InfrastructureTrafficLink | null =
@@ -1029,9 +1300,14 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       )?.link) ||
     null;
 
-  const layoutKey: string = layout.nodes
-    .map((node: Node<CardData>): string => {
-      return node.id;
+  /*
+   * Refit whenever the drawing moves, not only when its cards change: with
+   * traffic, the calls place the cards, so "Show inactive" can move them
+   * or add lanes while the same cards stay.
+   */
+  const layoutKey: string = flowNodes
+    .map((node: Node): string => {
+      return `${node.id}@${Math.round(node.position.x)},${Math.round(node.position.y)}`;
     })
     .join("|");
 
@@ -1063,13 +1339,17 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     );
   }
 
-  let drawingHeight: number = 0;
+  /* From the highest lane to the lowest card. */
+  let drawingTop: number = 0;
+  let drawingBottom: number = 0;
   for (const node of flowNodes) {
-    drawingHeight = Math.max(
-      drawingHeight,
+    drawingTop = Math.min(drawingTop, node.position.y);
+    drawingBottom = Math.max(
+      drawingBottom,
       node.position.y + TOPOLOGY_NODE_HEIGHT,
     );
   }
+  const drawingHeight: number = drawingBottom - drawingTop;
 
   const linkCount: number = layout.traffic.links.length;
   const runsServices: boolean = layout.nodes.some(
@@ -1082,20 +1362,29 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
    * known between services, so a scope where nothing reports a service has
    * none to draw, and says so rather than looking broken.
    */
+  const totalLinks: number = linkCount + layout.omittedLinks;
   const trafficStatus: string =
     linkCount > 0
-      ? `${linkCount.toLocaleString()} ${t(
-          linkCount === 1 ? "connection" : "connections",
-        )} · ${t(
+      ? `${
+          layout.omittedLinks > 0
+            ? `${t("The busiest")} ${linkCount.toLocaleString()} ${t("of")} ${totalLinks.toLocaleString()} ${t("connections")}`
+            : `${linkCount.toLocaleString()} ${t(
+                linkCount === 1 ? "connection" : "connections",
+              )}`
+        } · ${t(
           "Lines are calls between the services on these cards, measured per service.",
         )}`
-      : runsServices
+      : layout.traffic.internalCalls > 0
         ? t(
-            "The services on these cards were not seen calling each other in this time range.",
+            "The services on these cards only call each other within the same card, so no line joins two cards. The Service Map shows those calls.",
           )
-        : t(
-            "No services are known to run on these cards, so there are no calls to draw between them.",
-          );
+        : runsServices
+          ? t(
+              "The services on these cards were not seen calling each other in this time range.",
+            )
+          : t(
+              "No services are known to run on these cards, so there are no calls to draw between them.",
+            );
 
   return (
     <div data-testid="infrastructure-map-container">
@@ -1112,7 +1401,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
           {layout.traffic.isPartial && (
             <span className="ml-1 font-medium text-amber-700">
               {t(
-                "Some lines are not drawn: too many calls in this scope. Open a smaller scope to see them all.",
+                "Too many calls in this scope to count every one: some lines may be missing and some totals short. Open a smaller scope to see them all.",
               )}
             </span>
           )}
