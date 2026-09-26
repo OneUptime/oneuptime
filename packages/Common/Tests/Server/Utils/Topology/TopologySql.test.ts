@@ -41,7 +41,8 @@ import { describe, expect, test } from "@jest/globals";
  *
  *   - the project is always bound, as $1, and never spliced into the text;
  *   - every table reference is scoped to live rows (deletedAt, and for items
- *     isArchived) — including the aliases inside sub-selects;
+ *     isArchived) — including the aliases inside sub-selects — and every
+ *     relationship reference to the range, except in the all-time reads;
  *   - nothing a request supplies reaches the text, however hostile;
  *   - every parameter is referenced (Postgres rejects an unreferenced one
  *     with "could not determine data type of parameter") and every
@@ -192,9 +193,15 @@ function escapeRegExp(value: string): string {
  * alias (not preceded by another identifier character, so `i` never matches
  * inside `dup`).
  */
+interface WellFormedOptions {
+  itemsMayIncludeArchived?: boolean;
+  /* The all-time reads: relationships however long ago they were seen. */
+  relationshipsAllTime?: boolean;
+}
+
 function requiredPredicates(
   reference: TableReference,
-  options: { itemsMayIncludeArchived?: boolean },
+  options: WellFormedOptions,
 ): Array<string> {
   const alias: string = `(?<![A-Za-z0-9_"])${escapeRegExp(reference.alias)}`;
   const predicates: Array<string> = [
@@ -202,7 +209,9 @@ function requiredPredicates(
     `${alias}\\."deletedAt" IS NULL`,
   ];
   if (reference.table === "InventoryItemRelationship") {
-    predicates.push(`${alias}\\."lastSeenAt" >= \\$\\d+`);
+    if (!options.relationshipsAllTime) {
+      predicates.push(`${alias}\\."lastSeenAt" >= \\$\\d+`);
+    }
   } else if (!options.itemsMayIncludeArchived) {
     predicates.push(`${alias}\\."isArchived" = false`);
   }
@@ -211,7 +220,7 @@ function requiredPredicates(
 
 function expectWellFormed(
   statement: TopologySqlStatement,
-  options: { itemsMayIncludeArchived?: boolean } = {},
+  options: WellFormedOptions = {},
 ): void {
   const sql: string = normalize(statement.sql);
 
@@ -643,7 +652,7 @@ describe("TopologySql statements", () => {
     ): TopologySqlStatement => {
       return entitySectionsStatement({
         projectId: PROJECT_ID,
-        rangeStart: RANGE_START,
+        scope: { kind: "range", rangeStart: RANGE_START },
         projectTypes: [EntityType.Service],
         entityKey: HOSTILE,
         isService: true,
@@ -685,6 +694,80 @@ describe("TopologySql statements", () => {
       );
     });
 
+    test("the entity all time: archived rows too, a live row before an archived one", () => {
+      const statement: TopologySqlStatement = entityStatement({
+        projectId: PROJECT_ID,
+        projectTypes: [EntityType.Service],
+        entityKey: HOSTILE,
+        entityType: EntityType.Service,
+        includeArchived: true,
+      });
+      expectWellFormed(statement, { itemsMayIncludeArchived: true });
+      const sql: string = normalize(statement.sql);
+      expect(sql).not.toContain(`"isArchived" = false`);
+      expect(sql).toContain(
+        `ORDER BY (i."entityType" = $4::text) DESC NULLS LAST, i."isArchived" ASC, i."createdAt" ASC, i."_id" DESC LIMIT 1`,
+      );
+      expect(statement.params).toEqual([
+        PROJECT_ID,
+        [EntityType.Service],
+        HOSTILE,
+        EntityType.Service,
+      ]);
+    });
+
+    test("sections all time: every stored relationship, archived other ends with their ids", () => {
+      const statement: TopologySqlStatement = entitySectionsStatement({
+        projectId: PROJECT_ID,
+        scope: { kind: "allTime" },
+        projectTypes: [EntityType.Service],
+        entityKey: HOSTILE,
+        isService: true,
+        scanLimit: 100_001,
+        window: { kind: "top", dependencyRows: 100, otherRows: 25 },
+      });
+      expectWellFormed(statement, {
+        itemsMayIncludeArchived: true,
+        relationshipsAllTime: true,
+      });
+      const sql: string = normalize(statement.sql);
+      // No range: nothing about lastSeenAt but the newest-first scan order.
+      expect(sql).not.toMatch(/"lastSeenAt" >=/);
+      expect(sql).not.toContain(`"isArchived" = false`);
+      expect(sql).toContain(
+        `WHERE r."projectId" = $1 AND r."deletedAt" IS NULL AND r."fromEntityKey" = $3 ORDER BY r."lastSeenAt" DESC, r."_id" ASC`,
+      );
+      expect(sql).toContain(
+        `WHERE r."projectId" = $1 AND r."deletedAt" IS NULL AND r."toEntityKey" = $3 AND r."fromEntityKey" <> $3`,
+      );
+      // The other end: its id, a live row winning a key an archived one shares.
+      expect(sql).toContain(`i."_id"::text AS "id"`);
+      expect(sql).toContain(
+        `ORDER BY i."entityKey", i."isArchived" ASC, i."createdAt" ASC, i."_id" DESC`,
+      );
+      expect(sql).toContain(`o."id" AS "otherId"`);
+      expect(sql).toContain(`'otherId', r."otherId"`);
+      expect(statement.params).not.toContain(RANGE_START);
+      expect(statement.params.slice(0, 4)).toEqual([
+        PROJECT_ID,
+        [EntityType.Service],
+        HOSTILE,
+        100_001,
+      ]);
+    });
+
+    test("sections in a range stay as they were: live other ends, no ids", () => {
+      const sql: string = normalize(
+        sectionsFor({ kind: "top", dependencyRows: 100, otherRows: 25 }).sql,
+      );
+      expect(sql).not.toContain("otherId");
+      expect(sql).not.toContain(`i."_id"::text`);
+      expect(sql).not.toContain(`"isArchived" ASC`);
+      expect(sql).toContain(
+        `ORDER BY i."entityKey", i."createdAt" ASC, i."_id" DESC`,
+      );
+    });
+
     test("a page of one section is bound, not spliced", () => {
       const statement: TopologySqlStatement = sectionsFor({
         kind: "page",
@@ -709,13 +792,28 @@ describe("TopologySql statements", () => {
 describe("expectWellFormed catches a reading of a table without its own scope", () => {
   const sections: TopologySqlStatement = entitySectionsStatement({
     projectId: PROJECT_ID,
-    rangeStart: RANGE_START,
+    scope: { kind: "range", rangeStart: RANGE_START },
     projectTypes: [EntityType.Service],
     entityKey: "svc-a",
     isService: true,
     scanLimit: 100_001,
     window: { kind: "top", dependencyRows: 100, otherRows: 25 },
   });
+
+  const allTimeSections: TopologySqlStatement = entitySectionsStatement({
+    projectId: PROJECT_ID,
+    scope: { kind: "allTime" },
+    projectTypes: [EntityType.Service],
+    entityKey: "svc-a",
+    isService: true,
+    scanLimit: 100_001,
+    window: { kind: "top", dependencyRows: 100, otherRows: 25 },
+  });
+
+  const ALL_TIME: WellFormedOptions = {
+    itemsMayIncludeArchived: true,
+    relationshipsAllTime: true,
+  };
 
   /* `statement` with `remove` taken out once, after the first `after`. */
   function without(
@@ -738,7 +836,29 @@ describe("expectWellFormed catches a reading of a table without its own scope", 
     expect(() => {
       expectWellFormed(sections);
     }).not.toThrow();
+    expect(() => {
+      expectWellFormed(allTimeSections, ALL_TIME);
+    }).not.toThrow();
   });
+
+  test.each([
+    ["scan_out", "the tenant", `r."projectId" = $1 AND `],
+    ["scan_out", "the deleted filter", `r."deletedAt" IS NULL AND `],
+    ["scan_in", "the tenant", `r."projectId" = $1 AND `],
+    ["scan_in", "the deleted filter", `r."deletedAt" IS NULL AND `],
+    ["others", "the tenant", `i."projectId" = $1 AND `],
+    ["others", "the deleted filter", `i."deletedAt" IS NULL AND `],
+  ])(
+    "the all-time %s without %s fails, though it reads no range",
+    (cte: string, _label: string, predicate: string) => {
+      expect(() => {
+        expectWellFormed(
+          without(allTimeSections, `${cte} AS MATERIALIZED (`, predicate),
+          ALL_TIME,
+        );
+      }).toThrow();
+    },
+  );
 
   test.each([
     ["the tenant", `r."projectId" = $1 AND `],

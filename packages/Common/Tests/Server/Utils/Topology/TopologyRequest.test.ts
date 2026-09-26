@@ -5,6 +5,8 @@ import TopologyRequest, {
   RANGE_START_MAX_FUTURE_SKEW_MS,
   TopologyCollectionRequest,
   TopologyCollectionSearchRequest,
+  TopologyEntityAllTimeConnectionsRequest,
+  TopologyEntityAllTimeRequest,
   TopologyEntityConnectionsRequest,
   TopologyEntityRequest,
   floorToMinute,
@@ -530,5 +532,112 @@ describe("TopologyRequest", () => {
         );
       }, message);
     });
+  });
+
+  /*
+   * The inventory item page reads all time: the same entity and page fields
+   * as the drawer, with no range start to require, floor or clamp.
+   */
+  describe("entity and connections, all time", () => {
+    test("needs no range start, and ignores one sent anyway", () => {
+      const withoutRange: TopologyEntityAllTimeRequest =
+        TopologyRequest.parseEntityAllTimeRequest({ entityKey: "ns-a" });
+      expect(withoutRange).toEqual({ entityKey: "ns-a", entityType: null });
+
+      for (const rangeStart of [RANGE_START, "not a date", 42]) {
+        expect(
+          TopologyRequest.parseEntityAllTimeRequest({
+            rangeStart,
+            entityKey: "ns-a",
+            entityType: EntityType.KubernetesNamespace,
+          }),
+        ).toEqual({
+          entityKey: "ns-a",
+          entityType: EntityType.KubernetesNamespace,
+        });
+      }
+    });
+
+    test("a page defaults to the section's own row count", () => {
+      const page: TopologyEntityAllTimeConnectionsRequest =
+        TopologyRequest.parseEntityAllTimeConnectionsRequest({
+          entityKey: "ns-a",
+          section: "related",
+          offset: 25,
+        });
+      expect(page).toEqual({
+        entityKey: "ns-a",
+        entityType: null,
+        section: "related",
+        offset: 25,
+        limit: TopologyApiLimits.EntityOtherRows,
+      });
+      expect(
+        TopologyRequest.parseEntityAllTimeConnectionsRequest({
+          entityKey: "svc-a",
+          section: "calls",
+          offset: 0,
+          limit: TopologyApiLimits.EntityConnectionsPageSizeMax,
+        }).limit,
+      ).toBe(TopologyApiLimits.EntityConnectionsPageSizeMax);
+    });
+
+    test.each([
+      ["not an object", [], /body must be a JSON object/],
+      ["no key", {}, /entityKey must be a string/],
+      ["an empty key", { entityKey: "" }, /entityKey cannot be empty/],
+      [
+        "a key too long",
+        { entityKey: "k".repeat(MAX_ENTITY_KEY_LENGTH + 1) },
+        /entityKey cannot be longer/,
+      ],
+      [
+        "a non-string type",
+        { entityKey: "k", entityType: 3 },
+        /entityType must be a string/,
+      ],
+    ])(
+      "the entity rejects %s",
+      (_label: string, body: unknown, message: RegExp) => {
+        expectBadData(() => {
+          return TopologyRequest.parseEntityAllTimeRequest(body);
+        }, message);
+      },
+    );
+
+    test.each([
+      ["no key", { entityKey: undefined }, /entityKey must be a string/],
+      [
+        "an unknown section",
+        { section: "neighbours" },
+        /section must be one of calls, calledBy, runsOn, related/,
+      ],
+      ["no offset", { offset: undefined }, /offset is required/],
+      ["a negative offset", { offset: -1 }, /offset must be an integer from 0/],
+      [
+        "an offset past the scan limit",
+        { offset: TopologyApiLimits.EntityConnectionScanLimit + 1 },
+        /offset must be an integer/,
+      ],
+      ["a fractional offset", { offset: 2.5 }, /offset must be an integer/],
+      [
+        "a limit above the page maximum",
+        { limit: TopologyApiLimits.EntityConnectionsPageSizeMax + 1 },
+        /limit must be an integer from 1/,
+      ],
+      ["a zero limit", { limit: 0 }, /limit must be an integer from 1/],
+    ])(
+      "a page rejects %s",
+      (_label: string, change: JSONObject, message: RegExp) => {
+        expectBadData(() => {
+          return TopologyRequest.parseEntityAllTimeConnectionsRequest({
+            entityKey: "svc-a",
+            section: "related",
+            offset: 0,
+            ...change,
+          });
+        }, message);
+      },
+    );
   });
 });

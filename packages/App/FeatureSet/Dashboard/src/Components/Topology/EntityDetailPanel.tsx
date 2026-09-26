@@ -49,6 +49,7 @@ import {
   describeEntityDetailError,
   fetchEntityConnections,
   fetchEntityDetail,
+  formatConnectionTotal,
   pageSizeForSection,
   sectionReloadLimit,
 } from "./EntityDetailApi";
@@ -271,11 +272,6 @@ function withFlag<T>(
     next[section] = value;
   }
   return next;
-}
-
-/* "1,234", or "1,234+" when the server stopped counting early. */
-function formatTotal(total: number, isScanLimited: boolean): string {
-  return `${total.toLocaleString()}${isScanLimited ? "+" : ""}`;
 }
 
 /* The database-link resolver reads an inventory row; hand it the full one. */
@@ -956,7 +952,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     return (
       <div key={config.section} data-testid={config.testId}>
         <h3 className="text-sm font-semibold text-gray-900">
-          {title} ({formatTotal(section.total, loaded.isScanLimited)})
+          {title} ({formatConnectionTotal(section.total, loaded.isScanLimited)})
         </h3>
         {config.reportsUnknown && section.unknownTotal > 0 && (
           <p className="mt-0.5 text-xs text-gray-500">
@@ -1017,7 +1013,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-gray-500">
               {t("Showing")} {section.rows.length.toLocaleString()} {t("of")}{" "}
-              {formatTotal(section.total, loaded.isScanLimited)}
+              {formatConnectionTotal(section.total, loaded.isScanLimited)}
             </p>
             <button
               type="button"

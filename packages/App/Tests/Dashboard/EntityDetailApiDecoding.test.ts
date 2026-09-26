@@ -7,6 +7,8 @@ import {
   TopologyApiLimits,
   TopologyConnectionRowJSON,
   TopologyConnectionSectionJSON,
+  TopologyEntityAllTimeConnectionsResponseJSON,
+  TopologyEntityAllTimeResponseJSON,
   TopologyEntityConnectionsResponseJSON,
   TopologyEntityResponseJSON,
 } from "Common/Types/Topology/TopologyApi";
@@ -979,6 +981,247 @@ describe("fetchEntityDetail / fetchEntityConnections", () => {
     await expect(
       api.fetchEntityDetail({ entityKey: "k" }, RANGE_START),
     ).rejects.toBeInstanceOf(TopologyOutdatedError);
+  });
+});
+
+/*
+ * The inventory item page reads the same sections all time: no range start
+ * in the request or the response, and every row names the other end's
+ * inventory item so the page can link to it.
+ */
+describe("all-time reads (the inventory item page)", () => {
+  const POD_ID: string = "5b2f5b1c-0000-4000-8000-0000000000b1";
+
+  function allTimeResponse(): TopologyEntityAllTimeResponseJSON {
+    const response: JSONObject = asJSON(
+      entityResponse({
+        sections: {
+          calls: emptySectionJSON(),
+          calledBy: emptySectionJSON(),
+          runsOn: emptySectionJSON(),
+          related: section(
+            [
+              row({
+                relationshipType: "part-of",
+                direction: "in",
+                otherKey: "pod-1",
+                otherId: POD_ID,
+                otherName: "api-7d9f",
+                otherType: "k8s.pod",
+                callCount: null,
+                errorCount: null,
+                avgDurationMs: null,
+              }),
+              row({
+                relationshipType: "part-of",
+                direction: "in",
+                otherKey: "pod-gone",
+                otherKnown: false,
+                otherId: null,
+                otherName: null,
+                otherType: null,
+                callCount: null,
+                errorCount: null,
+                avgDurationMs: null,
+                lastSeenAt: null,
+              }),
+            ],
+            { total: 12_345, unknownTotal: 4_000, nextOffset: 2 },
+          ),
+        },
+      }),
+    );
+    delete response["rangeStart"];
+    return response as unknown as TopologyEntityAllTimeResponseJSON;
+  }
+
+  function allTimeConnectionsResponse(): TopologyEntityAllTimeConnectionsResponseJSON {
+    const response: JSONObject = asJSON(
+      connectionsResponse({
+        section: "related",
+        connections: section(
+          [
+            row({
+              otherKey: "pod-3",
+              otherId: POD_ID,
+              relationshipType: "part-of",
+            }),
+          ],
+          { total: 12_345, nextOffset: 28 },
+        ),
+      }),
+    );
+    delete response["rangeStart"];
+    return response as unknown as TopologyEntityAllTimeConnectionsResponseJSON;
+  }
+
+  test("requests carry the key, the type only when known, and never a range start", () => {
+    expect(
+      asJSON(
+        api.buildEntityAllTimeRequest({
+          entityKey: "ns-key",
+          entityType: "k8s.namespace",
+          displayName: "payments",
+        }),
+      ),
+    ).toEqual({ entityKey: "ns-key", entityType: "k8s.namespace" });
+    expect(asJSON(api.buildEntityAllTimeRequest({ entityKey: "k" }))).toEqual({
+      entityKey: "k",
+    });
+
+    expect(
+      asJSON(
+        api.buildEntityAllTimeConnectionsRequest(
+          { entityKey: "ns-key" },
+          "related",
+          25,
+          25,
+        ),
+      ),
+    ).toEqual({
+      entityKey: "ns-key",
+      section: "related",
+      offset: 25,
+      limit: 25,
+    });
+
+    const clamped: JSONObject = asJSON(
+      api.buildEntityAllTimeConnectionsRequest(
+        { entityKey: "k" },
+        "calls",
+        -3.5,
+        10_000,
+      ),
+    );
+    expect(clamped["offset"]).toBe(0);
+    expect(clamped["limit"]).toBe(
+      TopologyApiLimits.EntityConnectionsPageSizeMax,
+    );
+  });
+
+  test("posts to the all-time endpoint and decodes exact totals and the other end's id", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, asJSON(allTimeResponse()), {}),
+    );
+    const controller: AbortController = new AbortController();
+
+    const decoded: EntityDetailData = await api.fetchEntityAllTime(
+      { entityKey: "ns-key", entityType: "k8s.namespace" },
+      { signal: controller.signal },
+    );
+
+    const request: PostRequest = lastRequest();
+    expect(request.url.toString()).toMatch(
+      /\/telemetry\/topology\/entity\/all-time$/,
+    );
+    expect(request.data).toEqual({
+      entityKey: "ns-key",
+      entityType: "k8s.namespace",
+    });
+    expect(request.headers).toEqual({ tenantid: "project-1" });
+    expect(request.options.signal).toBe(controller.signal);
+
+    expect(decoded.rangeStart).toBeNull();
+    expect(decoded.entity?.entityKey).toBe("svc-key");
+    const related: EntityConnectionSection = decoded.sections.related;
+    expect(related.total).toBe(12_345);
+    expect(related.unknownTotal).toBe(4_000);
+    expect(related.nextOffset).toBe(2);
+    expect(related.rows[0]).toMatchObject({
+      direction: "in",
+      otherKey: "pod-1",
+      otherKnown: true,
+      otherId: POD_ID,
+      otherName: "api-7d9f",
+      otherType: "k8s.pod",
+    });
+    // Nothing to link to: the other end is not in inventory.
+    expect(related.rows[1]!.otherKnown).toBe(false);
+    expect(related.rows[1]!.otherId).toBeUndefined();
+  });
+
+  test("'Show more' posts to the all-time connections endpoint", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        asJSON(allTimeConnectionsResponse()),
+        {},
+      ),
+    );
+
+    const page: EntityConnectionsPage = await api.fetchEntityAllTimeConnections(
+      { entityKey: "ns-key" },
+      "related",
+      2,
+      25,
+    );
+
+    const request: PostRequest = lastRequest();
+    expect(request.url.toString()).toMatch(
+      /\/telemetry\/topology\/entity\/all-time\/connections$/,
+    );
+    expect(request.data).toEqual({
+      entityKey: "ns-key",
+      section: "related",
+      offset: 2,
+      limit: 25,
+    });
+    expect(page.rangeStart).toBeNull();
+    expect(page.connections.total).toBe(12_345);
+    expect(page.connections.rows[0]!.otherId).toBe(POD_ID);
+  });
+
+  test("a page of another section is refused", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        asJSON(allTimeConnectionsResponse()),
+        {},
+      ),
+    );
+
+    await expect(
+      api.fetchEntityAllTimeConnections({ entityKey: "k" }, "calls", 0, 25),
+    ).rejects.toThrow(/Expected connections for "calls"/);
+  });
+
+  test("a server without the all-time routes, or in another format, is an outdated bundle", async () => {
+    postMock.mockResolvedValue(
+      new HTTPErrorResponse(404, { message: "Not found" }, {}),
+    );
+    await expect(
+      api.fetchEntityAllTime({ entityKey: "k" }),
+    ).rejects.toBeInstanceOf(TopologyOutdatedError);
+
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        asJSON({ ...allTimeResponse(), formatVersion: 2 }),
+        {},
+      ),
+    );
+    await expect(
+      api.fetchEntityAllTime({ entityKey: "k" }),
+    ).rejects.toBeInstanceOf(TopologyOutdatedError);
+  });
+
+  test("an id that is blank or not a string is no id", () => {
+    for (const otherId of ["", 42, null, undefined]) {
+      expect(
+        api.decodeConnection({ ...asJSON(row()), otherId } as JSONObject)
+          ?.otherId,
+      ).toBeUndefined();
+    }
+  });
+
+  test("totals read as exact, or as lower bounds when the scan stopped", () => {
+    expect(api.formatConnectionTotal(12_345, false)).toBe(
+      (12_345).toLocaleString(),
+    );
+    expect(api.formatConnectionTotal(100_000, true)).toBe(
+      `${(100_000).toLocaleString()}+`,
+    );
+    expect(api.formatConnectionTotal(0, false)).toBe("0");
   });
 });
 

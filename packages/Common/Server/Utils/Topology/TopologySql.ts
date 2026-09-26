@@ -175,6 +175,14 @@ export function liveItemSql(alias: string, projectId: string): string {
   );
 }
 
+/*
+ * A non-deleted row of the project, for the all-time reads: an item archived
+ * or not, or a relationship however long ago it was seen.
+ */
+export function storedRowSql(alias: string, projectId: string): string {
+  return `${alias}."projectId" = ${projectId} AND ${alias}."deletedAt" IS NULL`;
+}
+
 /* A non-deleted relationship of the project that was seen in the range. */
 export function inRangeRelationshipSql(
   alias: string,
@@ -809,14 +817,20 @@ export function collectionSearchStatement(data: {
 }
 
 /*
- * The item behind a drawer. The key alone identifies it (the winning row);
- * a known type narrows the choice when two rows share the key.
+ * The item behind a drawer or an inventory read. The key alone identifies it
+ * (the winning row); a known type narrows the choice when two rows share the
+ * key.
  */
 export function entityStatement(data: {
   projectId: string;
   projectTypes: Array<string>;
   entityKey: string;
   entityType: string | null;
+  /*
+   * The all-time reads find archived items too; a live row still wins over
+   * an archived one that shares its key.
+   */
+  includeArchived?: boolean | undefined;
 }): TopologySqlStatement {
   const params: TopologySqlParams = new TopologySqlParams();
   const projectId: string = params.add(data.projectId);
@@ -829,15 +843,26 @@ export function entityStatement(data: {
       `i."identifyingAttributes" AS "identifyingAttributes", ` +
       `i."descriptiveAttributes" AS "descriptiveAttributes" ` +
       `FROM "InventoryItem" i ` +
-      `WHERE ${liveItemSql("i", projectId)} ` +
+      `WHERE ${data.includeArchived ? storedRowSql("i", projectId) : liveItemSql("i", projectId)} ` +
       `AND i."entityType" = ANY(${projectTypes}::text[]) ` +
       `AND i."entityKey" = ${params.add(data.entityKey)} ` +
       `ORDER BY (i."entityType" = ${params.add(data.entityType)}::text) DESC NULLS LAST, ` +
+      `${data.includeArchived ? `i."isArchived" ASC, ` : ""}` +
       `i."createdAt" ASC, i."_id" DESC ` +
       `LIMIT 1`,
     params: params.list(),
   };
 }
+
+/*
+ * Which relationships and items an entity's sections cover: the drawer's
+ * range over live items, or — for the inventory item page, which has no
+ * range — everything the inventory holds: every non-deleted relationship
+ * however long ago it was seen, with archived items as known other ends.
+ */
+export type TopologyEntityScope =
+  | { kind: "range"; rangeStart: string }
+  | { kind: "allTime" };
 
 export type TopologyEntitySectionWindow =
   | {
@@ -855,7 +880,7 @@ export type TopologyEntitySectionWindow =
     };
 
 /*
- * An entity's in-range relationships, classified into the drawer's four
+ * An entity's relationships in `scope`, classified into the drawer's four
  * sections, with exact per-section totals and the requested rows.
  *
  * At most `scanLimit` relationships are read — outbound first, then inbound,
@@ -865,12 +890,17 @@ export type TopologyEntitySectionWindow =
  * winning row); a relationship to anything else stays in its section as an
  * unknown row, and is counted in `unknownTotal`.
  *
+ * All time, the other end is looked up among archived items too (a live row
+ * still wins a shared key) and each row carries its `otherId`. A relationship
+ * that never reported a lastSeenAt sorts first under DESC, so the scan limit
+ * drops the oldest discovered edges before it drops one of those.
+ *
  * Returns one row: `scanned` (relationships read), `sections` (JSON array of
  * {section, total, unknownTotal}) and `rows` (JSON array, section then rank).
  */
 export function entitySectionsStatement(data: {
   projectId: string;
-  rangeStart: string;
+  scope: TopologyEntityScope;
   projectTypes: Array<string>;
   entityKey: string;
   isService: boolean;
@@ -879,7 +909,15 @@ export function entitySectionsStatement(data: {
 }): TopologySqlStatement {
   const params: TopologySqlParams = new TopologySqlParams();
   const projectId: string = params.add(data.projectId);
-  const rangeStart: string = params.add(data.rangeStart);
+  const allTime: boolean = data.scope.kind === "allTime";
+  const relationshipScope: string =
+    data.scope.kind === "range"
+      ? inRangeRelationshipSql(
+          "r",
+          projectId,
+          params.add(data.scope.rangeStart),
+        )
+      : storedRowSql("r", projectId);
   const projectTypes: string = params.add(data.projectTypes);
   const entityKey: string = params.add(data.entityKey);
   const scanLimit: string = params.add(data.scanLimit);
@@ -918,27 +956,30 @@ export function entitySectionsStatement(data: {
       `WITH scan_out AS MATERIALIZED (` +
       `SELECT ${scanColumns("out", `"toEntityKey"`)} ` +
       `FROM "InventoryItemRelationship" r ` +
-      `WHERE ${inRangeRelationshipSql("r", projectId, rangeStart)} ` +
+      `WHERE ${relationshipScope} ` +
       `AND r."fromEntityKey" = ${entityKey} ` +
       `ORDER BY r."lastSeenAt" DESC, r."_id" ASC LIMIT ${scanLimit}::int), ` +
       `scan_in AS MATERIALIZED (` +
       `SELECT ${scanColumns("in", `"fromEntityKey"`)} ` +
       `FROM "InventoryItemRelationship" r ` +
-      `WHERE ${inRangeRelationshipSql("r", projectId, rangeStart)} ` +
+      `WHERE ${relationshipScope} ` +
       `AND r."toEntityKey" = ${entityKey} AND r."fromEntityKey" <> ${entityKey} ` +
       `ORDER BY r."lastSeenAt" DESC, r."_id" ASC ` +
       `LIMIT GREATEST(0, ${scanLimit}::int - (SELECT COUNT(*)::int FROM scan_out))), ` +
       `scan AS (SELECT * FROM scan_out UNION ALL SELECT * FROM scan_in), ` +
       `others AS MATERIALIZED (` +
       `SELECT DISTINCT ON (i."entityKey") i."entityKey" AS "key", ` +
+      `${allTime ? `i."_id"::text AS "id", ` : ""}` +
       `i."entityType" AS "type", i."displayName" AS "name" ` +
       `FROM "InventoryItem" i ` +
-      `WHERE ${liveItemSql("i", projectId)} ` +
+      `WHERE ${allTime ? storedRowSql("i", projectId) : liveItemSql("i", projectId)} ` +
       `AND i."entityType" = ANY(${projectTypes}::text[]) ` +
       `AND i."entityKey" IN (SELECT s."otherKey" FROM scan s) ` +
-      `ORDER BY i."entityKey", i."createdAt" ASC, i."_id" DESC), ` +
+      `ORDER BY i."entityKey", ${allTime ? `i."isArchived" ASC, ` : ""}` +
+      `i."createdAt" ASC, i."_id" DESC), ` +
       `classified AS MATERIALIZED (` +
       `SELECT s.*, (o."key" IS NOT NULL) AS "otherKnown", ` +
+      `${allTime ? `o."id" AS "otherId", ` : ""}` +
       `o."type" AS "otherType", o."name" AS "otherName", ` +
       `CASE WHEN s."relationshipType" = ${dependsOn} AND s."direction" = 'out' THEN 'calls' ` +
       `WHEN s."relationshipType" = ${dependsOn} THEN 'calledBy' ` +
@@ -964,7 +1005,9 @@ export function entitySectionsStatement(data: {
       `(SELECT COALESCE(json_agg(json_build_object(` +
       `'section', r."section", 'relationshipType', r."relationshipType", ` +
       `'direction', r."direction", 'otherKey', r."otherKey", ` +
-      `'otherKnown', r."otherKnown", 'otherName', r."otherName", ` +
+      `'otherKnown', r."otherKnown", ` +
+      `${allTime ? `'otherId', r."otherId", ` : ""}` +
+      `'otherName', r."otherName", ` +
       `'otherType', r."otherType", 'callCount', r."callCount", ` +
       `'errorCount', r."errorCount", 'avgDurationMs', r."avgDurationMs", ` +
       `'lastSeenAt', ${epochMsSql(`r."lastSeenAt"`)}) ` +

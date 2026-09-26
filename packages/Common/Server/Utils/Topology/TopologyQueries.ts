@@ -15,6 +15,8 @@ import {
   TopologyConnectionSection,
   TopologyConnectionSectionJSON,
   TopologyDependencyJSON,
+  TopologyEntityAllTimeConnectionsResponseJSON,
+  TopologyEntityAllTimeResponseJSON,
   TopologyEntityConnectionsResponseJSON,
   TopologyEntityDetailJSON,
   TopologyEntityJSON,
@@ -34,12 +36,17 @@ import {
 import {
   TopologyCollectionRequest,
   TopologyCollectionSearchRequest,
+  TopologyConnectionsPage,
+  TopologyEntityAllTimeConnectionsRequest,
+  TopologyEntityAllTimeRequest,
   TopologyEntityConnectionsRequest,
   TopologyEntityRequest,
+  TopologyEntityTarget,
   TopologyRangeRequest,
   rowsForSection,
 } from "./TopologyRequest";
 import {
+  TopologyEntityScope,
   TopologyEntitySectionWindow,
   TopologySqlStatement,
   TopologyWinnerScope,
@@ -200,7 +207,7 @@ function toServiceMapEntity(row: JSONObject): TopologyServiceMapEntityJSON {
 
 function toConnectionRow(value: unknown): TopologyConnectionRowJSON {
   const row: JSONObject = (value || {}) as JSONObject;
-  return {
+  const connection: TopologyConnectionRowJSON = {
     relationshipType: readString(row, "relationshipType"),
     direction: row["direction"] === "in" ? "in" : "out",
     otherKey: readString(row, "otherKey"),
@@ -212,6 +219,11 @@ function toConnectionRow(value: unknown): TopologyConnectionRowJSON {
     avgDurationMs: readNullableNumber(row, "avgDurationMs"),
     lastSeenAt: readNullableNumber(row, "lastSeenAt"),
   };
+  // Only the all-time statement selects it; the drawer's rows stay as they were.
+  if ("otherId" in row) {
+    connection.otherId = readNullableString(row, "otherId");
+  }
+  return connection;
 }
 
 function compareCodeUnits(left: string, right: string): number {
@@ -339,6 +351,17 @@ export default class TopologyQueries {
     return {
       formatVersion: TOPOLOGY_API_FORMAT_VERSION,
       rangeStart: rangeStart.toISOString(),
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  /* The all-time responses have no range start to echo. */
+  public static allTimeEnvelope(): Omit<
+    TopologyResponseEnvelopeJSON,
+    "rangeStart"
+  > {
+    return {
+      formatVersion: TOPOLOGY_API_FORMAT_VERSION,
       generatedAt: new Date().toISOString(),
     };
   }
@@ -1030,11 +1053,11 @@ export default class TopologyQueries {
     const result: {
       entity: TopologyEntityDetailJSON | null;
       decoded: DecodedSections;
-    } = await TopologyQueries.readEntityAndSections(request, {
-      kind: "top",
-      dependencyRows: TopologyApiLimits.EntityDependencyRows,
-      otherRows: TopologyApiLimits.EntityOtherRows,
-    });
+    } = await TopologyQueries.readEntityAndSections(
+      request,
+      { kind: "range", rangeStart: request.rangeStart.toISOString() },
+      TopologyQueries.firstView(),
+    );
 
     return {
       ...TopologyQueries.envelope(request.rangeStart),
@@ -1052,12 +1075,11 @@ export default class TopologyQueries {
     const result: {
       entity: TopologyEntityDetailJSON | null;
       decoded: DecodedSections;
-    } = await TopologyQueries.readEntityAndSections(request, {
-      kind: "page",
-      section: request.section,
-      offset: request.offset,
-      limit: request.limit || rowsForSection(request.section),
-    });
+    } = await TopologyQueries.readEntityAndSections(
+      request,
+      { kind: "range", rangeStart: request.rangeStart.toISOString() },
+      TopologyQueries.pageWindow(request),
+    );
 
     return {
       ...TopologyQueries.envelope(request.rangeStart),
@@ -1067,15 +1089,84 @@ export default class TopologyQueries {
     };
   }
 
+  /*
+   * The inventory item page: the drawer's sections over everything the
+   * inventory holds — every relationship however long ago it was seen, for
+   * an item archived or not, with archived other ends named and linkable.
+   */
+  @CaptureSpan()
+  public static async getEntityAllTime(
+    request: TopologyEntityAllTimeRequest & TopologyProjectScope,
+  ): Promise<TopologyEntityAllTimeResponseJSON> {
+    const result: {
+      entity: TopologyEntityDetailJSON | null;
+      decoded: DecodedSections;
+    } = await TopologyQueries.readEntityAndSections(
+      request,
+      { kind: "allTime" },
+      TopologyQueries.firstView(),
+    );
+
+    return {
+      ...TopologyQueries.allTimeEnvelope(),
+      entity: result.entity,
+      sections: result.decoded.sections,
+      isScanLimited: result.decoded.isScanLimited,
+    };
+  }
+
+  /* "Show more" on the inventory item page: one all-time section's page. */
+  @CaptureSpan()
+  public static async getEntityAllTimeConnections(
+    request: TopologyEntityAllTimeConnectionsRequest & TopologyProjectScope,
+  ): Promise<TopologyEntityAllTimeConnectionsResponseJSON> {
+    const result: {
+      entity: TopologyEntityDetailJSON | null;
+      decoded: DecodedSections;
+    } = await TopologyQueries.readEntityAndSections(
+      request,
+      { kind: "allTime" },
+      TopologyQueries.pageWindow(request),
+    );
+
+    return {
+      ...TopologyQueries.allTimeEnvelope(),
+      section: request.section,
+      connections: result.decoded.sections[request.section],
+      isScanLimited: result.decoded.isScanLimited,
+    };
+  }
+
+  /* The first view: the top rows of every section. */
+  private static firstView(): TopologyEntitySectionWindow {
+    return {
+      kind: "top",
+      dependencyRows: TopologyApiLimits.EntityDependencyRows,
+      otherRows: TopologyApiLimits.EntityOtherRows,
+    };
+  }
+
+  private static pageWindow(
+    request: TopologyConnectionsPage,
+  ): TopologyEntitySectionWindow {
+    return {
+      kind: "page",
+      section: request.section,
+      offset: request.offset,
+      limit: request.limit || rowsForSection(request.section),
+    };
+  }
+
   private static async readEntityAndSections(
-    request: TopologyEntityRequest & TopologyProjectScope,
+    request: TopologyEntityTarget & TopologyProjectScope,
+    scope: TopologyEntityScope,
     window: TopologyEntitySectionWindow,
   ): Promise<{
     entity: TopologyEntityDetailJSON | null;
     decoded: DecodedSections;
   }> {
     const projectId: string = request.projectId.toString();
-    const rangeStart: string = request.rangeStart.toISOString();
+    const allTime: boolean = scope.kind === "allTime";
 
     return await TopologyQueries.inReadOnlySnapshot(
       async (
@@ -1101,6 +1192,7 @@ export default class TopologyQueries {
             projectTypes,
             entityKey: request.entityKey,
             entityType: request.entityType,
+            includeArchived: allTime,
           }),
         );
         const entityRow: JSONObject | undefined = entityRows[0];
@@ -1127,7 +1219,7 @@ export default class TopologyQueries {
         const sectionRows: Array<JSONObject> = await runner.query(
           entitySectionsStatement({
             projectId,
-            rangeStart,
+            scope,
             projectTypes,
             entityKey: entity.key,
             isService: entity.type === EntityType.Service,

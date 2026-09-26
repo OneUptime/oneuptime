@@ -15,6 +15,8 @@ import {
   TopologyCollectionResponseJSON,
   TopologyCollectionSearchResponseJSON,
   TopologyConnectionRowJSON,
+  TopologyEntityAllTimeConnectionsResponseJSON,
+  TopologyEntityAllTimeResponseJSON,
   TopologyEntityConnectionsResponseJSON,
   TopologyEntityJSON,
   TopologyEntityResponseJSON,
@@ -91,6 +93,7 @@ interface RelationshipFixture {
   from: string;
   to: string;
   type: string;
+  source?: string | undefined;
   lastSeenAt?: Date | null | undefined;
   deleted?: boolean | undefined;
   projectId?: ObjectID | undefined;
@@ -303,6 +306,7 @@ describePostgres.each(INDEX_VARIANTS)(
           "fromEntityKey",
           "toEntityKey",
           "relationshipType",
+          "source",
           "lastSeenAt",
           "callCount",
           "errorCount",
@@ -319,6 +323,7 @@ describePostgres.each(INDEX_VARIANTS)(
             fixture.from,
             fixture.to,
             fixture.type,
+            fixture.source || EntitySource.Discovered,
             fixture.lastSeenAt === undefined ? IN_RANGE : fixture.lastSeenAt,
             fixture.callCount === undefined ? null : fixture.callCount,
             fixture.errorCount === undefined ? null : fixture.errorCount,
@@ -2119,6 +2124,354 @@ describePostgres.each(INDEX_VARIANTS)(
           const response: TopologyEntityResponseJSON = await entity("ns-a");
           expect(response.isScanLimited).toBe(false);
           expect(response.sections.related.total).toBe(3);
+        } finally {
+          TopologyApiLimits.EntityConnectionScanLimit = limit;
+        }
+      });
+    });
+    /*
+     * The inventory item page's reads: the drawer's sections with no range,
+     * over archived items too, each other end carrying its id.
+     */
+    describe("entity all time", () => {
+      const LONG_AGO: Date = new Date("2025-01-15T00:00:00.000Z");
+      const POD_ID: string = "00000000-0000-4000-8000-0000000000a1";
+      const ARCHIVED_POD_ID: string = "00000000-0000-4000-8000-0000000000a2";
+      const NS_ID: string = "00000000-0000-4000-8000-0000000000a3";
+
+      async function allTime(
+        entityKey: string,
+        entityType: string | null = null,
+      ): Promise<TopologyEntityAllTimeResponseJSON> {
+        return await TopologyQueries.getEntityAllTime({
+          projectId: PROJECT_ID,
+          entityKey,
+          entityType,
+        });
+      }
+
+      test("every stored relationship counts, however old, undated or drawn by hand", async () => {
+        await items([
+          { key: "svc-a", type: EntityType.Service, name: "Checkout" },
+          { key: "svc-c", type: EntityType.Service, name: "Frontend" },
+          { key: "db-1", type: EntityType.Database, name: "Orders DB" },
+          { key: "db-old", type: EntityType.Database, name: "Legacy DB" },
+          { key: "vendor", type: EntityType.RemoteService, name: "Vendor" },
+          { key: "svc-undated", type: EntityType.Service, name: "Undated" },
+        ]);
+        const dependsOn: string = EntityRelationshipType.DependsOn;
+        await relationships([
+          { from: "svc-a", to: "db-1", type: dependsOn, callCount: 10 },
+          { from: "svc-a", to: "db-old", type: dependsOn, lastSeenAt: STALE },
+          // Drawn by hand long ago: never re-bumped, never pruned.
+          {
+            from: "svc-a",
+            to: "vendor",
+            type: dependsOn,
+            source: EntitySource.Manual,
+            lastSeenAt: LONG_AGO,
+          },
+          {
+            from: "svc-undated",
+            to: "svc-a",
+            type: dependsOn,
+            lastSeenAt: null,
+          },
+          { from: "svc-c", to: "svc-a", type: dependsOn, callCount: 3 },
+          // Not stored any more, or not this project's.
+          { from: "svc-a", to: "db-2", type: dependsOn, deleted: true },
+          {
+            from: "svc-a",
+            to: "db-3",
+            type: dependsOn,
+            projectId: OTHER_PROJECT_ID,
+          },
+        ]);
+
+        const response: TopologyEntityAllTimeResponseJSON =
+          await allTime("svc-a");
+        expect(response).not.toHaveProperty("rangeStart");
+        expect(response.isScanLimited).toBe(false);
+        expect(response.sections.calls.total).toBe(3);
+        // callCount DESC NULLS LAST, then by label.
+        expect(otherKeysOf(response.sections.calls.rows)).toEqual([
+          "db-1",
+          "db-old",
+          "vendor",
+        ]);
+        expect(response.sections.calls.rows[2]).toMatchObject({
+          otherKey: "vendor",
+          otherKnown: true,
+          otherName: "Vendor",
+          otherType: EntityType.RemoteService,
+          lastSeenAt: LONG_AGO.getTime(),
+        });
+        expect(response.sections.calledBy.total).toBe(2);
+        expect(otherKeysOf(response.sections.calledBy.rows)).toEqual([
+          "svc-c",
+          "svc-undated",
+        ]);
+        expect(response.sections.calledBy.rows[1]!.lastSeenAt).toBeNull();
+
+        // The drawer, over its range, sees only what reported in it.
+        const drawer: TopologyEntityResponseJSON =
+          await TopologyQueries.getEntity({
+            ...scope(),
+            entityKey: "svc-a",
+            entityType: null,
+          });
+        expect(otherKeysOf(drawer.sections.calls.rows)).toEqual(["db-1"]);
+        expect(otherKeysOf(drawer.sections.calledBy.rows)).toEqual(["svc-c"]);
+      });
+
+      test("an archived item has its connections; archived ends are named and linkable, unknown ends are not", async () => {
+        await items([
+          {
+            key: "ns-a",
+            type: EntityType.KubernetesNamespace,
+            name: "payments",
+            archived: true,
+            id: NS_ID,
+          },
+          {
+            key: "pod-1",
+            type: EntityType.KubernetesPod,
+            name: "api-7d9f",
+            id: POD_ID,
+          },
+          {
+            key: "pod-archived",
+            type: EntityType.KubernetesPod,
+            name: "api-old",
+            archived: true,
+            id: ARCHIVED_POD_ID,
+          },
+          {
+            key: "pod-deleted",
+            type: EntityType.KubernetesPod,
+            name: "api-deleted",
+            deleted: true,
+          },
+        ]);
+        const partOf: string = EntityRelationshipType.PartOf;
+        await relationships([
+          { from: "pod-1", to: "ns-a", type: partOf },
+          { from: "pod-archived", to: "ns-a", type: partOf, lastSeenAt: STALE },
+          { from: "pod-deleted", to: "ns-a", type: partOf },
+          { from: "pod-gone", to: "ns-a", type: partOf },
+        ]);
+
+        const response: TopologyEntityAllTimeResponseJSON =
+          await allTime("ns-a");
+        expect(response.entity).toMatchObject({
+          id: NS_ID,
+          key: "ns-a",
+          name: "payments",
+        });
+        expect(response.sections.related.total).toBe(4);
+        expect(response.sections.related.unknownTotal).toBe(2);
+        // Known first, by label; then the unknown ends by key.
+        expect(
+          response.sections.related.rows.map(
+            (
+              row: TopologyConnectionRowJSON,
+            ): [string, boolean, string | null | undefined, string | null] => {
+              return [row.otherKey, row.otherKnown, row.otherId, row.otherName];
+            },
+          ),
+        ).toEqual([
+          ["pod-1", true, POD_ID, "api-7d9f"],
+          ["pod-archived", true, ARCHIVED_POD_ID, "api-old"],
+          ["pod-deleted", false, null, null],
+          ["pod-gone", false, null, null],
+        ]);
+
+        // The drawer finds no live item with the key, so it lists nothing.
+        const drawer: TopologyEntityResponseJSON =
+          await TopologyQueries.getEntity({
+            ...scope(),
+            entityKey: "ns-a",
+            entityType: null,
+          });
+        expect(drawer.entity).toBeNull();
+      });
+
+      test("a live row wins a key an archived row shares, for the entity and for its other ends", async () => {
+        await items([
+          // Earlier, so it would win if archived rows were not ranked last.
+          {
+            key: "twin",
+            type: EntityType.KubernetesNode,
+            name: "archived twin",
+            archived: true,
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+          },
+          {
+            key: "twin",
+            type: EntityType.Host,
+            name: "live twin",
+            createdAt: new Date("2026-09-02T00:00:00.000Z"),
+            id: "00000000-0000-4000-8000-0000000000b1",
+          },
+          { key: "svc-a", type: EntityType.Service, name: "Checkout" },
+        ]);
+        await relationship({
+          from: "svc-a",
+          to: "twin",
+          type: EntityRelationshipType.HostedOn,
+        });
+
+        expect((await allTime("twin")).entity!.name).toBe("live twin");
+        const service: TopologyEntityAllTimeResponseJSON =
+          await allTime("svc-a");
+        expect(service.sections.runsOn.rows).toHaveLength(1);
+        expect(service.sections.runsOn.rows[0]).toMatchObject({
+          otherKey: "twin",
+          otherId: "00000000-0000-4000-8000-0000000000b1",
+          otherName: "live twin",
+        });
+      });
+
+      test("a deleted, foreign or unknown key is not found and has no sections", async () => {
+        await items([
+          { key: "svc-deleted", type: EntityType.Service, deleted: true },
+          {
+            key: "svc-foreign",
+            type: EntityType.Service,
+            projectId: OTHER_PROJECT_ID,
+          },
+          { key: "svc-a", type: EntityType.Service },
+        ]);
+        await relationships([
+          {
+            from: "svc-deleted",
+            to: "svc-a",
+            type: EntityRelationshipType.DependsOn,
+          },
+          {
+            from: "svc-foreign",
+            to: "svc-a",
+            type: EntityRelationshipType.DependsOn,
+            projectId: OTHER_PROJECT_ID,
+          },
+        ]);
+        for (const key of ["svc-deleted", "svc-foreign", "nope"]) {
+          const response: TopologyEntityAllTimeResponseJSON =
+            await allTime(key);
+          expect(response.entity).toBeNull();
+          expect(response.sections.calls.total).toBe(0);
+          expect(response.sections.related.rows).toEqual([]);
+        }
+      });
+
+      test("a hub's section pages to its exact total, every connection exactly once", async () => {
+        const pods: number = TopologyApiLimits.EntityOtherRows * 2 + 7;
+        await item({ key: "ns-hub", type: EntityType.KubernetesNamespace });
+        await bulkItems({
+          type: EntityType.KubernetesPod,
+          prefix: "pod-",
+          count: pods,
+        });
+        const fixtures: Array<RelationshipFixture> = [];
+        for (let index: number = 1; index <= pods; index++) {
+          fixtures.push({
+            from: `pod-${index}`,
+            to: "ns-hub",
+            type: EntityRelationshipType.PartOf,
+            // Most pods are long gone; all time, every edge still counts.
+            lastSeenAt: index % 3 === 0 ? IN_RANGE : STALE,
+          });
+        }
+        await relationships(fixtures);
+
+        const first: TopologyEntityAllTimeResponseJSON =
+          await allTime("ns-hub");
+        expect(first.sections.related.total).toBe(pods);
+        expect(first.sections.related.rows).toHaveLength(
+          TopologyApiLimits.EntityOtherRows,
+        );
+        const seen: Array<string> = otherKeysOf(first.sections.related.rows);
+        let offset: number | null = first.sections.related.nextOffset;
+        let pages: number = 0;
+        while (offset !== null) {
+          const page: TopologyEntityAllTimeConnectionsResponseJSON =
+            await TopologyQueries.getEntityAllTimeConnections({
+              projectId: PROJECT_ID,
+              entityKey: "ns-hub",
+              entityType: null,
+              section: "related",
+              offset,
+              limit: TopologyApiLimits.EntityOtherRows,
+            });
+          expect(page).not.toHaveProperty("rangeStart");
+          expect(page.section).toBe("related");
+          expect(page.connections.total).toBe(pods);
+          seen.push(...otherKeysOf(page.connections.rows));
+          offset = page.connections.nextOffset;
+          pages++;
+        }
+        expect(pages).toBe(2);
+        expect(seen).toHaveLength(pods);
+        expect(new Set<string>(seen).size).toBe(pods);
+
+        // The drawer's range counts only the pods that reported in it.
+        const drawer: TopologyEntityResponseJSON =
+          await TopologyQueries.getEntity({
+            ...scope(),
+            entityKey: "ns-hub",
+            entityType: null,
+          });
+        expect(drawer.sections.related.total).toBe(Math.floor(pods / 3));
+      });
+
+      test("past the scan limit, undated relationships are kept before the oldest dated ones", async () => {
+        const limit: number = TopologyApiLimits.EntityConnectionScanLimit;
+        TopologyApiLimits.EntityConnectionScanLimit = 3;
+        try {
+          await item({ key: "ns-a", type: EntityType.KubernetesNamespace });
+          await relationships([
+            {
+              from: "vendor",
+              to: "ns-a",
+              type: EntityRelationshipType.DependsOn,
+              source: EntitySource.Manual,
+              lastSeenAt: null,
+            },
+            {
+              from: "pod-old",
+              to: "ns-a",
+              type: EntityRelationshipType.PartOf,
+              lastSeenAt: LONG_AGO,
+            },
+            {
+              from: "pod-stale",
+              to: "ns-a",
+              type: EntityRelationshipType.PartOf,
+              lastSeenAt: STALE,
+            },
+            {
+              from: "pod-new",
+              to: "ns-a",
+              type: EntityRelationshipType.PartOf,
+              lastSeenAt: IN_RANGE,
+            },
+            {
+              from: "pod-newest",
+              to: "ns-a",
+              type: EntityRelationshipType.PartOf,
+              lastSeenAt: new Date(IN_RANGE.getTime() + 60_000),
+            },
+          ]);
+          const response: TopologyEntityAllTimeResponseJSON =
+            await allTime("ns-a");
+          expect(response.isScanLimited).toBe(true);
+          // limit + 1 read: the undated one, then the three newest.
+          expect(
+            [
+              ...otherKeysOf(response.sections.calledBy.rows),
+              ...otherKeysOf(response.sections.related.rows),
+            ].sort(),
+          ).toEqual(["pod-new", "pod-newest", "pod-stale", "vendor"]);
         } finally {
           TopologyApiLimits.EntityConnectionScanLimit = limit;
         }

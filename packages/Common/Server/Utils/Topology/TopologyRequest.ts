@@ -68,17 +68,33 @@ export interface TopologyCollectionSearchRequest extends TopologyRangeRequest {
   types: Array<TopologyCollectionSearchType>;
 }
 
-export interface TopologyEntityRequest extends TopologyRangeRequest {
+/* Which entity a drawer or inventory read is about. */
+export interface TopologyEntityTarget {
   entityKey: string;
   entityType: string | null;
 }
 
-export interface TopologyEntityConnectionsRequest
-  extends TopologyEntityRequest {
+export interface TopologyEntityRequest
+  extends TopologyRangeRequest,
+    TopologyEntityTarget {}
+
+/* One page of one section ("Show more"). */
+export interface TopologyConnectionsPage {
   section: TopologyConnectionSection;
   offset: number;
   limit: number;
 }
+
+export interface TopologyEntityConnectionsRequest
+  extends TopologyEntityRequest,
+    TopologyConnectionsPage {}
+
+/* The all-time variant: no range (see TopologyEntityAllTimeRequestJSON). */
+export type TopologyEntityAllTimeRequest = TopologyEntityTarget;
+
+export interface TopologyEntityAllTimeConnectionsRequest
+  extends TopologyEntityTarget,
+    TopologyConnectionsPage {}
 
 /* Rows a section returns before "Show more", and the default page size. */
 export function rowsForSection(section: TopologyConnectionSection): number {
@@ -199,11 +215,7 @@ export default class TopologyRequest {
     const json: JSONObject = TopologyRequest.asObject(body);
     return {
       rangeStart: TopologyRequest.parseRangeStart(json, now),
-      entityKey: TopologyRequest.parseString(json["entityKey"], "entityKey", {
-        maxLength: MAX_ENTITY_KEY_LENGTH,
-        allowEmpty: false,
-      }),
-      entityType: TopologyRequest.parseOptionalEntityType(json["entityType"]),
+      ...TopologyRequest.parseEntityTarget(json),
     };
   }
 
@@ -216,6 +228,41 @@ export default class TopologyRequest {
       json,
       now,
     );
+    return { ...entity, ...TopologyRequest.parseConnectionsPage(json) };
+  }
+
+  /* The all-time reads take no range start; one sent anyway is ignored. */
+  public static parseEntityAllTimeRequest(
+    body: unknown,
+  ): TopologyEntityAllTimeRequest {
+    return TopologyRequest.parseEntityTarget(TopologyRequest.asObject(body));
+  }
+
+  public static parseEntityAllTimeConnectionsRequest(
+    body: unknown,
+  ): TopologyEntityAllTimeConnectionsRequest {
+    const json: JSONObject = TopologyRequest.asObject(body);
+    return {
+      ...TopologyRequest.parseEntityTarget(json),
+      ...TopologyRequest.parseConnectionsPage(json),
+    };
+  }
+
+  // -------------------------------------------------------------- fields
+
+  private static parseEntityTarget(json: JSONObject): TopologyEntityTarget {
+    return {
+      entityKey: TopologyRequest.parseString(json["entityKey"], "entityKey", {
+        maxLength: MAX_ENTITY_KEY_LENGTH,
+        allowEmpty: false,
+      }),
+      entityType: TopologyRequest.parseOptionalEntityType(json["entityType"]),
+    };
+  }
+
+  private static parseConnectionsPage(
+    json: JSONObject,
+  ): TopologyConnectionsPage {
     const rawSection: unknown = json["section"];
     const section: TopologyConnectionSection | undefined =
       TOPOLOGY_CONNECTION_SECTIONS.find(
@@ -229,7 +276,6 @@ export default class TopologyRequest {
       );
     }
     return {
-      ...entity,
       section,
       offset: TopologyRequest.parseInteger(json["offset"], "offset", {
         min: 0,
@@ -243,8 +289,6 @@ export default class TopologyRequest {
       }),
     };
   }
-
-  // -------------------------------------------------------------- fields
 
   private static asObject(value: unknown, field: string = "body"): JSONObject {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
