@@ -121,7 +121,7 @@ type CallFunction = (body: JSONObject) => Promise<jest.Mock>;
 const callStatus: CallFunction = async (
   body: JSONObject,
 ): Promise<jest.Mock> => {
-  const next: jest.Mock = jest.fn();
+  const next: jest.Mock = jest.fn() as unknown as jest.Mock;
   const req: ExpressRequest = { body: body } as unknown as ExpressRequest;
   await mockRouter
     .match("post", ROUTE)
