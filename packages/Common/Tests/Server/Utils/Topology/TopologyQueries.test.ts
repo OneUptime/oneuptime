@@ -695,6 +695,25 @@ describe("TopologyQueries", () => {
             { service: "svc-z", target: "pod-1" },
           ]),
         ],
+        [
+          'r."callCount" AS "callCount"',
+          rows([
+            {
+              from: "svc-b",
+              to: "svc-a",
+              callCount: "12",
+              errorCount: 0,
+              avgDurationMs: null,
+            },
+            {
+              from: "svc-a",
+              to: "svc-b",
+              callCount: 1200,
+              errorCount: "6",
+              avgDurationMs: "45.5",
+            },
+          ]),
+        ],
       ]);
 
       const response: TopologyInfrastructureResponseJSON =
@@ -772,6 +791,29 @@ describe("TopologyQueries", () => {
         [0, 3],
         [1, 2],
       ]);
+      // Calls between the placed services, by index, sorted by (from, to).
+      expect(response.dependencies).toEqual([
+        {
+          from: 0,
+          to: 1,
+          callCount: 1200,
+          errorCount: 6,
+          avgDurationMs: 45.5,
+        },
+        { from: 1, to: 0, callCount: 12, errorCount: 0, avgDurationMs: null },
+      ]);
+      expect(response.dependencyTruncation).toBeNull();
+      const calls: RecordedStatement = dataStatements(database).find(
+        (statement: RecordedStatement): boolean => {
+          return statement.sql.includes('r."callCount" AS "callCount"');
+        },
+      )!;
+      // Callers and callees are both the placed services, in key order.
+      expect(calls.params[3]).toEqual(["svc-a", "svc-b"]);
+      expect(calls.params[4]).toEqual(["svc-a", "svc-b"]);
+      expect(calls.params[calls.params.length - 1]).toBe(
+        TopologyApiLimits.MaxServiceMapDependencies + 1,
+      );
       expect(response.totals).toEqual({
         resources: 6 + TopologyApiLimits.InlineFlatItemsPerType + 1,
         activeResources: 5 + 7,
@@ -846,6 +888,173 @@ describe("TopologyQueries", () => {
       } finally {
         TopologyApiLimits.MaxInfrastructureNodes = cap;
       }
+    });
+
+    /*
+     * Issue #3972: the map draws the traffic between resources from the calls
+     * between the services placed on them.
+     */
+    describe("calls between placed services", () => {
+      function tracedDatabase(
+        placements: Array<JSONObject>,
+        calls: Array<JSONObject>,
+        extra: Array<[string, Responder]> = [],
+      ): FakeDatabase {
+        return useDatabase([
+          typesRule([EntityType.Service, EntityType.KubernetesPod]),
+          duplicatesRule(),
+          ...extra,
+          [
+            'GROUP BY i."entityType"',
+            rows([{ type: EntityType.KubernetesPod, total: 3, active: 3 }]),
+          ],
+          [
+            "candidates AS MATERIALIZED",
+            rows([
+              nodeRow("pod-a", EntityType.KubernetesPod),
+              nodeRow("pod-b", EntityType.KubernetesPod),
+              nodeRow("pod-c", EntityType.KubernetesPod),
+            ]),
+          ],
+          [
+            'i."displayName" AS "name" FROM',
+            rows([
+              { key: "svc-a", name: "a" },
+              { key: "svc-b", name: "b" },
+              { key: "svc-c", name: "c" },
+              { key: "svc-idle", name: "idle" },
+            ]),
+          ],
+          ['AS "target"', rows(placements)],
+          ['r."callCount" AS "callCount"', rows(calls)],
+        ]);
+      }
+
+      function callStatements(
+        database: FakeDatabase,
+      ): Array<RecordedStatement> {
+        return dataStatements(database).filter(
+          (statement: RecordedStatement): boolean => {
+            return (
+              statement.sql.includes(
+                'FROM "InventoryItemRelationship" r WHERE',
+              ) && statement.sql.includes('r."toEntityKey" = ANY(')
+            );
+          },
+        );
+      }
+
+      test("only services placed on a shipped node are asked about, as callers and callees", async () => {
+        const database: FakeDatabase = tracedDatabase(
+          [
+            { service: "svc-c", target: "pod-c" },
+            { service: "svc-a", target: "pod-a" },
+            { service: "svc-a", target: "pod-b" },
+            /* Placed only on something that was not shipped. */
+            { service: "svc-b", target: "switch-9" },
+          ],
+          [{ from: "svc-a", to: "svc-c", callCount: 3 }],
+        );
+        const response: TopologyInfrastructureResponseJSON =
+          await TopologyQueries.getInfrastructure(scope());
+        const [statement] = callStatements(database);
+        expect(statement!.params[3]).toEqual(["svc-a", "svc-c"]);
+        expect(statement!.params[4]).toEqual(["svc-a", "svc-c"]);
+        expect(response.dependencies).toEqual([
+          {
+            from: 0,
+            to: 2,
+            callCount: 3,
+            errorCount: null,
+            avgDurationMs: null,
+          },
+        ]);
+      });
+
+      test("fewer than two placed services cannot call each other: nothing is read", async () => {
+        const database: FakeDatabase = tracedDatabase(
+          [
+            { service: "svc-a", target: "pod-a" },
+            { service: "svc-a", target: "pod-b" },
+          ],
+          [],
+        );
+        const response: TopologyInfrastructureResponseJSON =
+          await TopologyQueries.getInfrastructure(scope());
+        expect(callStatements(database)).toEqual([]);
+        expect(response.dependencies).toEqual([]);
+        expect(response.dependencyTruncation).toBeNull();
+      });
+
+      test("rows naming an unknown service or calling themselves are dropped", async () => {
+        tracedDatabase(
+          [
+            { service: "svc-a", target: "pod-a" },
+            { service: "svc-b", target: "pod-b" },
+          ],
+          [
+            { from: "svc-a", to: "svc-a", callCount: 1 },
+            { from: "svc-a", to: "svc-gone", callCount: 1 },
+            { from: "svc-gone", to: "svc-b", callCount: 1 },
+            { from: "svc-b", to: "svc-a", callCount: 2, errorCount: 1 },
+          ],
+        );
+        const response: TopologyInfrastructureResponseJSON =
+          await TopologyQueries.getInfrastructure(scope());
+        expect(response.dependencies).toEqual([
+          { from: 1, to: 0, callCount: 2, errorCount: 1, avgDurationMs: null },
+        ]);
+      });
+
+      test("over the call cap: the first calls and the exact total", async () => {
+        const cap: number = TopologyApiLimits.MaxServiceMapDependencies;
+        TopologyApiLimits.MaxServiceMapDependencies = 1;
+        try {
+          const database: FakeDatabase = tracedDatabase(
+            [
+              { service: "svc-a", target: "pod-a" },
+              { service: "svc-b", target: "pod-b" },
+              { service: "svc-c", target: "pod-c" },
+            ],
+            [
+              { from: "svc-c", to: "svc-a", callCount: 9 },
+              { from: "svc-a", to: "svc-b", callCount: 5 },
+            ],
+            [
+              [
+                'SELECT COUNT(*)::int AS "total" FROM "InventoryItemRelationship"',
+                rows([{ total: "17" }]),
+              ],
+            ],
+          );
+          const response: TopologyInfrastructureResponseJSON =
+            await TopologyQueries.getInfrastructure(scope());
+          /* The first row in the Service Map's order is the one kept. */
+          expect(response.dependencies).toEqual([
+            {
+              from: 2,
+              to: 0,
+              callCount: 9,
+              errorCount: null,
+              avgDurationMs: null,
+            },
+          ]);
+          expect(response.dependencyTruncation).toEqual({
+            shown: 1,
+            total: 17,
+          });
+          const counted: RecordedStatement = dataStatements(database).find(
+            (statement: RecordedStatement): boolean => {
+              return statement.sql.startsWith(
+                'SELECT COUNT(*)::int AS "total" FROM "InventoryItemRelationship"',
+              );
+            },
+          )!;
+          expect(counted.params[4]).toEqual(["svc-a", "svc-b", "svc-c"]);
+        } finally {
+          TopologyApiLimits.MaxServiceMapDependencies = cap;
+        }
+      });
     });
 
     test("only collections and no services: no node, service or duplicate reads", async () => {

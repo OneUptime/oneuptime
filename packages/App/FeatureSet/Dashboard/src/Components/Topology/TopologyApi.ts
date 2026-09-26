@@ -229,28 +229,16 @@ export function decodeServiceMapResponse(json: unknown): ServiceMapData {
     if (!from || !to) {
       continue;
     }
-    const relationship: TopologyRelationship = {
-      fromEntityKey: from,
-      toEntityKey: to,
-      relationshipType: EntityRelationshipType.DependsOn,
-    };
-    const callCount: number | undefined = readOptionalNumber(row["callCount"]);
-    if (callCount !== undefined) {
-      relationship.callCount = callCount;
-    }
-    const errorCount: number | undefined = readOptionalNumber(
-      row["errorCount"],
+    relationships.push(
+      withTraffic(
+        {
+          fromEntityKey: from,
+          toEntityKey: to,
+          relationshipType: EntityRelationshipType.DependsOn,
+        },
+        row,
+      ),
     );
-    if (errorCount !== undefined) {
-      relationship.errorCount = errorCount;
-    }
-    const avgDurationMs: number | undefined = readOptionalNumber(
-      row["avgDurationMs"],
-    );
-    if (avgDurationMs !== undefined) {
-      relationship.avgDurationMs = avgDurationMs;
-    }
-    relationships.push(relationship);
   }
 
   const runsOnCounts: TopologyRunsOnCounts = new Map<
@@ -420,6 +408,37 @@ export function decodeInfrastructureResponse(
     });
   }
 
+  /*
+   * Calls between placed services, which the map draws as traffic between
+   * the resources they run on. A server that predates them sends none, and
+   * the map simply draws no traffic.
+   */
+  const serviceKeyAt: (index: JSONValue | undefined) => string | null = (
+    index: JSONValue | undefined,
+  ): string | null => {
+    if (typeof index !== "number" || !Number.isInteger(index)) {
+      return null;
+    }
+    return services[index]?.entityKey || null;
+  };
+  for (const row of readObjectArray(body, "dependencies")) {
+    const from: string | null = serviceKeyAt(row["from"]);
+    const to: string | null = serviceKeyAt(row["to"]);
+    if (!from || !to || from === to) {
+      continue;
+    }
+    relationships.push(
+      withTraffic(
+        {
+          fromEntityKey: from,
+          toEntityKey: to,
+          relationshipType: EntityRelationshipType.DependsOn,
+        },
+        row,
+      ),
+    );
+  }
+
   const entities: Array<TopologyEntity> = [];
   for (const entity of [...nodes, ...services]) {
     if (entity) {
@@ -458,6 +477,10 @@ export function decodeInfrastructureResponse(
     collections: collections,
     totals: totals,
     truncation: readTruncation(body["truncation"], "resources"),
+    dependencyTruncation: readTruncation(
+      body["dependencyTruncation"],
+      "connections",
+    ),
   };
 }
 
@@ -487,6 +510,31 @@ export function decodeEntity(row: JSONObject): TopologyEntity | null {
     entity.lastSeenAt = lastSeenAt;
   }
   return entity;
+}
+
+/*
+ * A dependency's traffic, copied onto its relationship. A metric the server
+ * sent as null (or garbage) stays absent, as it was on the old list rows.
+ */
+function withTraffic(
+  relationship: TopologyRelationship,
+  row: JSONObject,
+): TopologyRelationship {
+  const callCount: number | undefined = readOptionalNumber(row["callCount"]);
+  if (callCount !== undefined) {
+    relationship.callCount = callCount;
+  }
+  const errorCount: number | undefined = readOptionalNumber(row["errorCount"]);
+  if (errorCount !== undefined) {
+    relationship.errorCount = errorCount;
+  }
+  const avgDurationMs: number | undefined = readOptionalNumber(
+    row["avgDurationMs"],
+  );
+  if (avgDurationMs !== undefined) {
+    relationship.avgDurationMs = avgDurationMs;
+  }
+  return relationship;
 }
 
 function isJSONObject(value: unknown): value is JSONObject {

@@ -13,6 +13,7 @@ import {
   TopologyEntityDetailJSON,
   TopologyEntityResponseJSON,
   TopologyInfrastructureCollectionJSON,
+  TopologyInfrastructureDependencyJSON,
   TopologyInfrastructureNodeJSON,
   TopologyInfrastructureResponseJSON,
   TopologyInfrastructureServiceJSON,
@@ -707,6 +708,48 @@ export function referenceInfrastructure(
     return left[0] - right[0] || left[1] - right[1];
   });
 
+  /*
+   * Infrastructure traffic: in-range calls between two different services that each
+   * have a placement onto a shipped node, by service index, ordered by
+   * (from, to). A pair is at most one row (the relationship natural key).
+   */
+  const placedServiceKeys: Set<string> = new Set<string>(
+    placements.map((placement: [number, number]): string => {
+      return services[placement[0]]!.key;
+    }),
+  );
+  const dependencies: Array<TopologyInfrastructureDependencyJSON> =
+    snapshot.inRange
+      .filter((relationship: ReferenceRelationship): boolean => {
+        return (
+          relationship.type === EntityRelationshipType.DependsOn &&
+          relationship.from !== relationship.to &&
+          placedServiceKeys.has(relationship.from) &&
+          placedServiceKeys.has(relationship.to)
+        );
+      })
+      .map(
+        (
+          relationship: ReferenceRelationship,
+        ): TopologyInfrastructureDependencyJSON => {
+          return {
+            from: serviceIndexByKey.get(relationship.from)!,
+            to: serviceIndexByKey.get(relationship.to)!,
+            callCount: relationship.callCount,
+            errorCount: relationship.errorCount,
+            avgDurationMs: relationship.avgDurationMs,
+          };
+        },
+      )
+      .sort(
+        (
+          left: TopologyInfrastructureDependencyJSON,
+          right: TopologyInfrastructureDependencyJSON,
+        ): number => {
+          return left.from - right.from || left.to - right.to;
+        },
+      );
+
   let resources: number = nodes.length;
   for (const collection of collections) {
     resources += collection.total;
@@ -722,6 +765,8 @@ export function referenceInfrastructure(
       },
     ),
     placements,
+    dependencies,
+    dependencyTruncation: null,
     collections,
     totals: { resources, activeResources },
     truncation: null,

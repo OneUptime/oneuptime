@@ -16,6 +16,11 @@
  *     Kubernetes namespace/node/deployment, cross-service calls are paired
  *     from traces, and the databases/APIs services call are inferred from
  *     client spans.
+ *
+ *   aksNodeTraffic — the estate in issue #3972: an AKS cluster whose pods
+ *     are known only by the node they run on (no deployment), with the
+ *     services on those pods calling each other. Opening a node must show
+ *     how its pods talk, not a grid of standalone cards.
  */
 
 const K8S_ALPHABET = "bcdfghjklmnpqrstvwxz2456789";
@@ -182,9 +187,84 @@ function buildSelfHostedDiscovered(api) {
   calls("service-api", "remote-twilio", 420, 9, 540);
 }
 
+function buildAksNodeTraffic(api) {
+  const random = seededRandom(3972);
+  api.addEntity("cluster-aks", "aks-prod", "k8s.cluster");
+  const nodes = {
+    k: "aks-agentpool-14451756-vmss00001k",
+    j: "aks-agentpool-14451756-vmss00001j",
+    q: "aks-agentpool-18230412-vmss000018",
+  };
+  for (const name of Object.values(nodes)) {
+    api.addEntity(`node-${name}`, name, "k8s.node");
+    api.connect(`node-${name}`, "cluster-aks", "member-of");
+  }
+
+  const services = [
+    "wb-ims-frontend",
+    "wb-ims-backend",
+    "wb-ims-blob",
+    "wb-ims-integration-edh",
+    "wb-ims-mcp-remote",
+  ];
+  for (const name of services) {
+    const entity = api.addEntity(`service-${name}`, name, "service");
+    entity.descriptiveAttributes = { "telemetry.sdk.language": "dotnet" };
+  }
+
+  /* Which workloads each node runs; cilium runs everywhere, and no service. */
+  const placement = {
+    k: [
+      "wb-ims-backend",
+      "wb-ims-blob",
+      "wb-ims-integration-edh",
+      "wb-ims-mcp-remote",
+    ],
+    j: ["wb-ims-frontend", "wb-ims-backend", "cilium"],
+    q: ["wb-ims-blob", "wb-ims-integration-edh", "cilium"],
+  };
+  for (const [node, workloads] of Object.entries(placement)) {
+    for (const workload of workloads) {
+      const name = `${workload}-${k8sSuffix(random, 10)}-${k8sSuffix(random, 5)}`;
+      const key = `pod-${name}`;
+      const pod = api.addEntity(key, name, "k8s.pod");
+      pod.lastSeenAt = new Date(NOW - Math.floor(random() * 10) * MINUTE);
+      api.connect(key, `node-${nodes[node]}`, "runs-on");
+      api.connect(key, "cluster-aks", "member-of");
+      if (services.includes(workload)) {
+        api.connect(`service-${workload}`, key, "runs-on");
+      }
+    }
+  }
+
+  const database = api.addEntity("db-ims", "ims-sql", "database");
+  database.descriptiveAttributes = { "db.system.name": "mssql" };
+
+  const calls = (from, to, callCount, errorCount, avgDurationMs) => {
+    api.connect(
+      `service-${from}`,
+      to.startsWith("db-") ? to : `service-${to}`,
+      "depends-on",
+      {
+        callCount,
+        errorCount,
+        avgDurationMs,
+      },
+    );
+  };
+  calls("wb-ims-frontend", "wb-ims-backend", 54000, 27, 64);
+  calls("wb-ims-backend", "wb-ims-blob", 7200, 36, 45);
+  calls("wb-ims-backend", "wb-ims-integration-edh", 1800, 180, 120);
+  calls("wb-ims-integration-edh", "wb-ims-blob", 360, 0, 20);
+  calls("wb-ims-mcp-remote", "wb-ims-backend", 540, 0, 15);
+  /* A database is not infrastructure: never a line on this map. */
+  calls("wb-ims-backend", "db-ims", 91000, 12, 4);
+}
+
 const DATASETS = {
   selfHostedLegacy: buildSelfHostedLegacy,
   selfHostedDiscovered: buildSelfHostedDiscovered,
+  aksNodeTraffic: buildAksNodeTraffic,
 };
 
 export function loadDataset(name, api) {

@@ -1230,6 +1230,149 @@ describePostgres.each(INDEX_VARIANTS)(
         expect(response.collections).toEqual([]);
       });
 
+      /*
+       * Issue #3972: the map draws the traffic between resources from the
+       * calls between the services placed on them.
+       */
+      test("calls: in-range depends-on between two placed services, with traffic, by index", async () => {
+        await items([
+          { key: "pod-a", type: EntityType.KubernetesPod },
+          { key: "pod-b", type: EntityType.KubernetesPod },
+          { key: "pod-c", type: EntityType.KubernetesPod, lastSeenAt: STALE },
+          { key: "svc-a", type: EntityType.Service },
+          { key: "svc-b", type: EntityType.Service },
+          { key: "svc-c", type: EntityType.Service },
+          { key: "svc-idle", type: EntityType.Service },
+          { key: "db-1", type: EntityType.Database },
+        ]);
+        const runsOn: string = EntityRelationshipType.RunsOn;
+        const dependsOn: string = EntityRelationshipType.DependsOn;
+        await relationships([
+          { from: "svc-a", to: "pod-a", type: runsOn },
+          { from: "svc-b", to: "pod-b", type: runsOn },
+          // A pod that went quiet is still shipped, so svc-c is placed.
+          { from: "svc-c", to: "pod-c", type: runsOn },
+          // A placement out of range places nothing.
+          { from: "svc-idle", to: "pod-a", type: runsOn, lastSeenAt: STALE },
+          {
+            from: "svc-a",
+            to: "svc-b",
+            type: dependsOn,
+            callCount: 1200,
+            errorCount: 6,
+            avgDurationMs: 45,
+          },
+          { from: "svc-b", to: "svc-a", type: dependsOn, callCount: 12 },
+          {
+            from: "svc-a",
+            to: "svc-c",
+            type: dependsOn,
+            callCount: 5,
+            errorCount: 0,
+            avgDurationMs: 3,
+          },
+          // Not between two placed services.
+          { from: "svc-a", to: "svc-idle", type: dependsOn, callCount: 7 },
+          { from: "svc-idle", to: "svc-a", type: dependsOn, callCount: 7 },
+          { from: "svc-a", to: "db-1", type: dependsOn, callCount: 7 },
+          { from: "svc-a", to: "svc-a", type: dependsOn, callCount: 7 },
+          // Not in range / deleted / foreign.
+          {
+            from: "svc-b",
+            to: "svc-c",
+            type: dependsOn,
+            callCount: 7,
+            lastSeenAt: STALE,
+          },
+          {
+            from: "svc-c",
+            to: "svc-a",
+            type: dependsOn,
+            callCount: 7,
+            deleted: true,
+          },
+          {
+            from: "svc-c",
+            to: "svc-b",
+            type: dependsOn,
+            callCount: 7,
+            projectId: OTHER_PROJECT_ID,
+          },
+        ]);
+
+        const response: TopologyInfrastructureResponseJSON =
+          await TopologyQueries.getInfrastructure(scope());
+
+        expect(
+          response.services.map(
+            (service: { key: string; name: string | null }): string => {
+              return service.key;
+            },
+          ),
+        ).toEqual(["svc-a", "svc-b", "svc-c", "svc-idle"]);
+        expect(response.dependencies).toEqual([
+          { from: 0, to: 1, callCount: 1200, errorCount: 6, avgDurationMs: 45 },
+          { from: 0, to: 2, callCount: 5, errorCount: 0, avgDurationMs: 3 },
+          {
+            from: 1,
+            to: 0,
+            callCount: 12,
+            errorCount: null,
+            avgDurationMs: null,
+          },
+        ]);
+        expect(response.dependencyTruncation).toBeNull();
+      });
+
+      test("calls over the cap: the first in the Service Map's order, and the exact total", async () => {
+        const cap: number = TopologyApiLimits.MaxServiceMapDependencies;
+        TopologyApiLimits.MaxServiceMapDependencies = 1;
+        try {
+          await items([
+            { key: "pod-a", type: EntityType.KubernetesPod },
+            { key: "pod-b", type: EntityType.KubernetesPod },
+            { key: "svc-a", type: EntityType.Service },
+            { key: "svc-b", type: EntityType.Service },
+          ]);
+          await relationships([
+            { from: "svc-a", to: "pod-a", type: EntityRelationshipType.RunsOn },
+            { from: "svc-b", to: "pod-b", type: EntityRelationshipType.RunsOn },
+            {
+              from: "svc-a",
+              to: "svc-b",
+              type: EntityRelationshipType.DependsOn,
+              callCount: 1,
+              createdAt: new Date("2026-09-01T00:00:00.000Z"),
+            },
+            {
+              from: "svc-b",
+              to: "svc-a",
+              type: EntityRelationshipType.DependsOn,
+              callCount: 2,
+              createdAt: new Date("2026-09-02T00:00:00.000Z"),
+            },
+          ]);
+          const response: TopologyInfrastructureResponseJSON =
+            await TopologyQueries.getInfrastructure(scope());
+          // Newest first, as the Service Map reads them.
+          expect(response.dependencies).toEqual([
+            {
+              from: 1,
+              to: 0,
+              callCount: 2,
+              errorCount: null,
+              avgDurationMs: null,
+            },
+          ]);
+          expect(response.dependencyTruncation).toEqual({
+            shown: 1,
+            total: 2,
+          });
+        } finally {
+          TopologyApiLimits.MaxServiceMapDependencies = cap;
+        }
+      });
+
       test("a flat type above the inline budget becomes a collection with exact counts", async () => {
         await bulkItems({
           type: EntityType.NetworkDevice,

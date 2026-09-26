@@ -12,13 +12,16 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
+import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { getInventoryTypeIcon } from "../Inventory/InventoryTypeCatalog";
 import InfrastructureGraph from "./InfrastructureGraph";
+import EdgeDetailPanel from "./EdgeDetailPanel";
 import EntityDetailPanel from "./EntityDetailPanel";
 import {
   CollectionCursor,
@@ -32,7 +35,9 @@ import {
 import {
   InfrastructureNode,
   InfrastructureSearchIndex,
+  InfrastructureServiceCall,
   InfrastructureTopologyModel,
+  InfrastructureTrafficLink,
   buildInfrastructureSearchIndex,
   buildInfrastructureTopologyModel,
   collectMapCards,
@@ -95,6 +100,11 @@ export interface ComponentProps {
   metricsWindowSeconds: number;
   /** The range start the server used; activity is judged against it. */
   rangeStart?: Date | null | undefined;
+  /*
+   * The page's time range, for a traffic line's history. Without it a
+   * line on the map is not clickable.
+   */
+  timeRange?: RangeStartAndEndDateTime | undefined;
   includeInactive?: boolean | undefined;
   /** Focus a service on the Service Map. */
   onOpenServiceMap?: ((serviceKey: string) => void) | undefined;
@@ -513,6 +523,39 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       displayName: model.serviceByKey.get(serviceKey)?.displayName,
     });
   };
+  /*
+   * A traffic line opens the history of the busiest call it stands for — the
+   * Service Map's own drill-down, since traffic is measured per service
+   * pair. One drawer at a time: it replaces a resource's details.
+   */
+  const [trafficCall, setTrafficCall] =
+    useState<InfrastructureServiceCall | null>(null);
+  const openTraffic: (link: InfrastructureTrafficLink) => void = (
+    link: InfrastructureTrafficLink,
+  ): void => {
+    const busiest: InfrastructureServiceCall | undefined = link.serviceCalls[0];
+    if (!busiest) {
+      return;
+    }
+    setDetailTarget(null);
+    setTrafficCall(busiest);
+  };
+  useEffect(() => {
+    if (detailTarget) {
+      setTrafficCall(null);
+    }
+  }, [detailTarget]);
+  const serviceEntity: (key: string) => TopologyEntity = (
+    key: string,
+  ): TopologyEntity => {
+    return (
+      model.serviceByKey.get(key) || {
+        entityKey: key,
+        entityType: EntityType.Service,
+      }
+    );
+  };
+
   const changeView: (value: InfrastructureView) => void = (
     value: InfrastructureView,
   ): void => {
@@ -1831,15 +1874,17 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <div className="overflow-hidden rounded-xl border border-gray-200">
                   <p className="border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs text-gray-500">
                     {t(
-                      "The workloads and machines in this scope, and the services running on them. Open a card to look inside it.",
+                      "The workloads and machines in this scope, the services running on them, and the calls between them. Open a card to look inside it.",
                     )}
                   </p>
                   <InfrastructureGraph
                     key={effectiveScopeId}
                     model={model}
                     nodeIds={mapCards}
+                    metricsWindowSeconds={props.metricsWindowSeconds}
                     onOpenNode={openNode}
                     onOpenService={openService}
+                    onOpenTraffic={props.timeRange ? openTraffic : undefined}
                     onShowAll={() => {
                       changeView("list");
                     }}
@@ -1860,6 +1905,27 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
+
+      {trafficCall && props.timeRange && (
+        <EdgeDetailPanel
+          key={`${trafficCall.from}->${trafficCall.to}`}
+          fromEntity={serviceEntity(trafficCall.from)}
+          toEntity={serviceEntity(trafficCall.to)}
+          relationship={{
+            fromEntityKey: trafficCall.from,
+            toEntityKey: trafficCall.to,
+            relationshipType: EntityRelationshipType.DependsOn,
+            callCount: trafficCall.calls,
+            errorCount: trafficCall.errors,
+            avgDurationMs: trafficCall.avgDurationMs ?? undefined,
+          }}
+          timeRange={props.timeRange}
+          metricsWindowSeconds={props.metricsWindowSeconds}
+          onClose={() => {
+            setTrafficCall(null);
+          }}
+        />
+      )}
 
       {detailTarget && (
         /*

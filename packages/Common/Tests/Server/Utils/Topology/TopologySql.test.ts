@@ -452,6 +452,42 @@ describe("TopologySql statements", () => {
       if (mode === "rows") {
         expect(sql).toContain(`ORDER BY r."createdAt" DESC, r."_id" ASC`);
       }
+      /* The Service Map reads every callee: no callee filter. */
+      expect(sql).not.toContain(`r."toEntityKey" = ANY(`);
+    }
+  });
+
+  test("infrastructure dependencies: only calls into the given callees, bound as an array", () => {
+    for (const mode of ["rows", "count"] as const) {
+      const statement: TopologySqlStatement = serviceMapDependenciesStatement({
+        projectId: PROJECT_ID,
+        rangeStart: RANGE_START,
+        serviceKeys: ["svc-a", HOSTILE],
+        calleeKeys: ["svc-b", HOSTILE],
+        mode,
+        limit: 10,
+      });
+      expectWellFormed(statement);
+      const sql: string = normalize(statement.sql);
+      expect(statement.params).toContainEqual(["svc-a", HOSTILE]);
+      expect(statement.params).toContainEqual(["svc-b", HOSTILE]);
+      const callees: string = `$${
+        statement.params.findIndex((param: unknown): boolean => {
+          return (
+            Array.isArray(param) && (param as Array<string>)[0] === "svc-b"
+          );
+        }) + 1
+      }`;
+      expect(sql).toContain(`r."toEntityKey" = ANY(${callees}::text[])`);
+      expect(sql).toContain(`r."fromEntityKey" <> r."toEntityKey"`);
+      expect(sql).toContain(
+        `r."relationshipType" = $3 AND r."fromEntityKey" <> r."toEntityKey"`,
+      );
+      if (mode === "count") {
+        expect(sql).toContain(`SELECT COUNT(*)::int AS "total"`);
+      } else {
+        expect(sql).toContain(`ORDER BY r."createdAt" DESC, r."_id" ASC`);
+      }
     }
   });
 

@@ -405,11 +405,14 @@ export function serviceMapEntitiesStatement(data: {
  * In-range `depends-on` relationships whose caller is one of the services, in
  * the order the old list API returned them (createdAt DESC, _id ASC) so the
  * browser sums traffic in the same order and averages come out bit-identical.
+ * `calleeKeys` narrows them to calls into those keys (Infrastructure asks
+ * only for calls between services it can place).
  */
 export function serviceMapDependenciesStatement(data: {
   projectId: string;
   rangeStart: string;
   serviceKeys: Array<string>;
+  calleeKeys?: Array<string> | undefined;
   mode: TopologyStatementMode;
   limit: number;
 }): TopologySqlStatement {
@@ -420,7 +423,10 @@ export function serviceMapDependenciesStatement(data: {
     `${inRangeRelationshipSql("r", projectId, rangeStart)} ` +
     `AND r."relationshipType" = ${params.add(EntityRelationshipType.DependsOn)} ` +
     `AND r."fromEntityKey" <> r."toEntityKey" ` +
-    `AND r."fromEntityKey" = ANY(${params.add(data.serviceKeys)}::text[])`;
+    `AND r."fromEntityKey" = ANY(${params.add(data.serviceKeys)}::text[])` +
+    (data.calleeKeys
+      ? ` AND r."toEntityKey" = ANY(${params.add(data.calleeKeys)}::text[])`
+      : "");
 
   if (data.mode === "count") {
     return {

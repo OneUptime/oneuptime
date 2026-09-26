@@ -17,7 +17,12 @@ import {
   TopologyEntity,
   TopologyRelationship,
 } from "./TopologyData";
-import { metaForEntityType } from "./TopologyMeta";
+import {
+  SERVICE_MAP_TOLERATED_ERROR_RATE,
+  TrafficHealth,
+  healthForErrorRate,
+  metaForEntityType,
+} from "./TopologyMeta";
 import { nounForType } from "./ServiceMapViewModel";
 import { workloadNameForReplica } from "./WorkloadNaming";
 
@@ -42,6 +47,8 @@ import { workloadNameForReplica } from "./WorkloadNaming";
  *     which workload they belong to.
  *   - Services are attached to where they run (and roll up to every
  *     container above), so every level answers "what is running in here".
+ *   - Calls between those services are kept too, so a map can draw the
+ *     traffic between the resources they run on (computeInfrastructureTraffic).
  *
  * The model is built from the Topology API's view-shaped rows (at most two
  * containment relationships per resource, chosen by the server with the same
@@ -85,6 +92,23 @@ export interface InfrastructureTopologyModel {
   groupCount: number;
   /** Infrastructure edges between included resources (not services). */
   relationships: Array<TopologyRelationship>;
+  /*
+   * In-range calls between two services that both run on something in this
+   * model (`depends-on`), ordered by (caller, callee) key. Traffic is only
+   * ever measured per service pair, so this is what every line a map draws
+   * between two resources is made of.
+   */
+  serviceCalls: Array<InfrastructureServiceCall>;
+}
+
+/** One service calling another, with the traffic of the latest window. */
+export interface InfrastructureServiceCall {
+  from: string;
+  to: string;
+  calls: number;
+  errors: number;
+  /** Call-weighted average, or null when the call reported no duration. */
+  avgDurationMs: number | null;
 }
 
 export interface BuildInfrastructureOptions {
@@ -579,6 +603,58 @@ export function buildInfrastructureTopologyModel(
     }
   }
 
+  /*
+   * Calls between placed services. A service that runs on nothing here has
+   * no resource to draw its calls from or to, so its calls are left out —
+   * which is also exactly what the Topology API ships (calls between
+   * services placed on a shipped resource), so the reduced payload and the
+   * whole inventory keep the same calls.
+   */
+  const placedServiceKeys: Set<string> = new Set<string>();
+  for (const keys of serviceKeysByNode.values()) {
+    for (const key of keys) {
+      placedServiceKeys.add(key);
+    }
+  }
+  const serviceCalls: Array<InfrastructureServiceCall> = [];
+  const seenCalls: Set<string> = new Set<string>();
+  for (const edge of relationships) {
+    if (edge.relationshipType !== EntityRelationshipType.DependsOn) {
+      continue;
+    }
+    const from: string = edge.fromEntityKey || "";
+    const to: string = edge.toEntityKey || "";
+    if (
+      from === to ||
+      !placedServiceKeys.has(from) ||
+      !placedServiceKeys.has(to)
+    ) {
+      continue;
+    }
+    const callId: string = `${from}\u0000${to}`;
+    if (seenCalls.has(callId)) {
+      continue;
+    }
+    seenCalls.add(callId);
+    serviceCalls.push({
+      from,
+      to,
+      calls: Math.max(0, edge.callCount || 0),
+      errors: Math.max(0, edge.errorCount || 0),
+      avgDurationMs:
+        typeof edge.avgDurationMs === "number" && edge.avgDurationMs >= 0
+          ? edge.avgDurationMs
+          : null,
+    });
+  }
+  serviceCalls.sort(
+    (left: InfrastructureServiceCall, right: InfrastructureServiceCall) => {
+      return (
+        compareKeys(left.from, right.from) || compareKeys(left.to, right.to)
+      );
+    },
+  );
+
   const byServiceName: (a: string, b: string) => number = (
     a: string,
     b: string,
@@ -666,6 +742,7 @@ export function buildInfrastructureTopologyModel(
     inactiveCount,
     groupCount,
     relationships: infraRelationships,
+    serviceCalls,
   };
 }
 
@@ -904,4 +981,154 @@ export function collectMapCards(
     visit(id);
   }
   return cards;
+}
+
+/** Traffic along one line of a map: from one card to another. */
+export interface InfrastructureTrafficLink {
+  /* Unique per (from, to); not meant for display. */
+  id: string;
+  from: string;
+  to: string;
+  calls: number;
+  errors: number;
+  /** Call-weighted average, or null when no call reported a duration. */
+  avgDurationMs: number | null;
+  health: TrafficHealth;
+  /** The service calls this line stands for, busiest first. */
+  serviceCalls: Array<InfrastructureServiceCall>;
+}
+
+export interface InfrastructureTraffic {
+  links: Array<InfrastructureTrafficLink>;
+  /* MAX_TRAFFIC_PAIRS was reached, so some lines are missing. */
+  isPartial: boolean;
+}
+
+/*
+ * The most (call, pair of cards) combinations one map adds up. Each call is
+ * counted once per pair of cards its two services run on, which stays small
+ * wherever a card holds a workload or a machine; this only bounds a scope in
+ * which hundreds of services run on nearly every card.
+ */
+export const MAX_TRAFFIC_PAIRS: number = 200_000;
+
+function compareServiceCalls(
+  left: InfrastructureServiceCall,
+  right: InfrastructureServiceCall,
+): number {
+  return (
+    right.calls - left.calls ||
+    compareKeys(left.from, right.from) ||
+    compareKeys(left.to, right.to)
+  );
+}
+
+/**
+ * The traffic between the cards a map draws: a line from card X to card Y
+ * for every service running on X that calls a service running on Y (as
+ * `serviceKeys` says, so a card counts what runs anywhere below it).
+ *
+ * Calls are only measured per service pair, never per pod or host, so a
+ * line carries the whole of each call it stands for, and a call whose two
+ * services run on several cards appears on each line between them. Calls
+ * between two services on the same card stay inside it and draw nothing.
+ */
+export function computeInfrastructureTraffic(
+  model: InfrastructureTopologyModel,
+  cardIds: Array<string>,
+  maxPairs: number = MAX_TRAFFIC_PAIRS,
+): InfrastructureTraffic {
+  const cardsByService: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  const seenCards: Set<string> = new Set<string>();
+  for (const cardId of cardIds) {
+    const node: InfrastructureNode | undefined = model.nodes.get(cardId);
+    if (!node || seenCards.has(cardId)) {
+      continue;
+    }
+    seenCards.add(cardId);
+    for (const serviceKey of node.serviceKeys) {
+      let cards: Array<string> | undefined = cardsByService.get(serviceKey);
+      if (!cards) {
+        cards = [];
+        cardsByService.set(serviceKey, cards);
+      }
+      cards.push(cardId);
+    }
+  }
+
+  const links: Map<string, InfrastructureTrafficLink> = new Map<
+    string,
+    InfrastructureTrafficLink
+  >();
+  let remaining: number = maxPairs;
+  let isPartial: boolean = false;
+  for (const call of model.serviceCalls) {
+    const fromCards: Array<string> | undefined = cardsByService.get(call.from);
+    const toCards: Array<string> | undefined = cardsByService.get(call.to);
+    if (!fromCards || !toCards) {
+      continue;
+    }
+    for (const from of fromCards) {
+      for (const to of toCards) {
+        if (from === to) {
+          continue;
+        }
+        if (remaining <= 0) {
+          isPartial = true;
+          break;
+        }
+        remaining--;
+        const id: string = `${from}\u0000${to}`;
+        let link: InfrastructureTrafficLink | undefined = links.get(id);
+        if (!link) {
+          link = {
+            id,
+            from,
+            to,
+            calls: 0,
+            errors: 0,
+            avgDurationMs: null,
+            health: "unknown",
+            serviceCalls: [],
+          };
+          links.set(id, link);
+        }
+        /*
+         * Durations average by calls, like the Service Map's totals; a call
+         * with no count adds the line but no traffic.
+         */
+        if (call.calls > 0) {
+          if (call.avgDurationMs !== null) {
+            link.avgDurationMs =
+              ((link.avgDurationMs || 0) * link.calls +
+                call.avgDurationMs * call.calls) /
+              (link.calls + call.calls);
+          }
+          link.calls += call.calls;
+          link.errors += call.errors;
+        }
+        link.serviceCalls.push(call);
+      }
+      if (isPartial) {
+        break;
+      }
+    }
+    if (isPartial) {
+      break;
+    }
+  }
+
+  const result: Array<InfrastructureTrafficLink> = Array.from(links.values());
+  for (const link of result) {
+    link.health = healthForErrorRate(
+      link.calls,
+      link.errors,
+      SERVICE_MAP_TOLERATED_ERROR_RATE,
+    );
+    link.serviceCalls.sort(compareServiceCalls);
+  }
+  return { links: result, isPartial };
 }
