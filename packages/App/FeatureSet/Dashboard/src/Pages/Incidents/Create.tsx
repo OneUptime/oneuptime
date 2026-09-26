@@ -66,18 +66,32 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import AlertBanner, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import AlertElement from "../../Components/Alert/Alert";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
 import IncidentFromAlerts, {
   AlertForIncidentPrefill,
+  AlertsToAcknowledge,
+  AlertStateForAcknowledgement,
   IncidentPrefillFromAlerts,
   NamedResource,
   ParsedAlertIds,
   SeverityForMapping,
 } from "Common/Utils/Incident/IncidentFromAlerts";
 import IconProp from "Common/Types/Icon/IconProp";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import {
+  getAcknowledgeAlertsDescription,
+  getAcknowledgeAlertsTitle,
+} from "../../Components/Incident/AcknowledgeAlertsOnDeclare";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -170,6 +184,18 @@ const IncidentCreate: FunctionComponent<
    */
   const [isPrivateFromAlerts, setIsPrivateFromAlerts] =
     useState<boolean>(false);
+  /*
+   * Declaring the incident does not, on its own, stop the alerts escalating:
+   * only acknowledging an alert does. So the page offers to acknowledge the
+   * alerts that are not acknowledged yet as the incident is declared, ticked
+   * by default - whoever declares an incident from an alert is responding to
+   * it. Null when that is not on offer (every alert is acknowledged already,
+   * or the alert states could not be read).
+   */
+  const [alertsToAcknowledge, setAlertsToAcknowledge] =
+    useState<AlertsToAcknowledge | null>(null);
+  const [shouldAcknowledgeAlerts, setShouldAcknowledgeAlerts] =
+    useState<boolean>(true);
 
   useEffect(() => {
     const incidentTemplateId: string | null =
@@ -289,14 +315,16 @@ const IncidentCreate: FunctionComponent<
         }
       }
 
-      const [alerts, alertSeverities, incidentSeverities]: [
+      const [alerts, alertSeverities, incidentSeverities, alertStates]: [
         Array<Alert>,
         Array<SeverityForMapping>,
         Array<SeverityForMapping>,
+        Array<AlertStateForAcknowledgement> | null,
       ] = await Promise.all([
         fetchAlertsToLink(parsedAlertIds.alertIds),
         fetchAlertSeverities(),
         fetchIncidentSeverities(),
+        fetchAlertStates(),
       ]);
 
       const prefill: IncidentPrefillFromAlerts =
@@ -306,7 +334,24 @@ const IncidentCreate: FunctionComponent<
           incidentSeverities: incidentSeverities,
         });
 
+      const toAcknowledge: AlertsToAcknowledge | null = alertStates
+        ? IncidentFromAlerts.getAlertsToAcknowledge({
+            alerts: alerts.map((alert: Alert) => {
+              return {
+                id: alert._id?.toString() || "",
+                currentAlertStateId: alert.currentAlertStateId?.toString(),
+              };
+            }),
+            alertStates: alertStates,
+          })
+        : null;
+
       setAlertsToLink(alerts);
+      setAlertsToAcknowledge(
+        toAcknowledge && toAcknowledge.alertIds.length > 0
+          ? toAcknowledge
+          : null,
+      );
       setMissingAlertCount(parsedAlertIds.alertIds.length - alerts.length);
       setWereAlertIdsTruncated(parsedAlertIds.wasTruncated);
       setIsPrivateFromAlerts(prefill.isPrivate);
@@ -339,6 +384,7 @@ const IncidentCreate: FunctionComponent<
         alertNumber: true,
         alertNumberWithPrefix: true,
         alertSeverityId: true,
+        currentAlertStateId: true,
         isPrivate: true,
         monitor: { _id: true, name: true },
         hosts: { _id: true, name: true },
@@ -386,6 +432,37 @@ const IncidentCreate: FunctionComponent<
       return [];
     }
   };
+
+  /*
+   * The alert states only decide whether to offer acknowledging the alerts.
+   * A failed read leaves that offer out (null) rather than block the page.
+   */
+  const fetchAlertStates: () => Promise<Array<AlertStateForAcknowledgement> | null> =
+    async (): Promise<Array<AlertStateForAcknowledgement> | null> => {
+      try {
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, order: true, isAcknowledgedState: true },
+            sort: { order: SortOrder.Ascending },
+          });
+
+        return result.data.map(
+          (state: AlertState): AlertStateForAcknowledgement => {
+            return {
+              id: state._id?.toString() || "",
+              order: state.order,
+              isAcknowledgedState: state.isAcknowledgedState,
+            };
+          },
+        );
+      } catch {
+        return null;
+      }
+    };
 
   const fetchIncidentSeverities: () => Promise<
     Array<SeverityForMapping>
@@ -552,6 +629,26 @@ const IncidentCreate: FunctionComponent<
     return null;
   };
 
+  /*
+   * Acknowledging writes each alert's state timeline, so it needs that
+   * permission. A missing one is shown - the box locked, saying why - and an
+   * unknown answer (the permission snapshot has not loaded) leaves the box
+   * out, like every other gate. The server checks the same permission again.
+   */
+  const acknowledgeGate: PermissionGateResult = PermissionGate.check(
+    new AlertStateTimeline(),
+    ModelAction.Create,
+  );
+
+  const isAcknowledgeOffered: boolean =
+    alertsToAcknowledge !== null &&
+    (acknowledgeGate.isAllowed || Boolean(acknowledgeGate.disabledReason));
+
+  const willAcknowledgeAlerts: boolean =
+    alertsToAcknowledge !== null &&
+    acknowledgeGate.isAllowed &&
+    shouldAcknowledgeAlerts;
+
   return (
     <Fragment>
       <Card
@@ -619,6 +716,40 @@ const IncidentCreate: FunctionComponent<
                       them.
                     </p>
                   )}
+                  {isAcknowledgeOffered && alertsToAcknowledge && (
+                    <div
+                      className="mt-3"
+                      data-testid="incident-create-acknowledge-alerts"
+                    >
+                      <CheckboxElement
+                        dataTestId="incident-create-acknowledge-alerts-checkbox"
+                        title={getAcknowledgeAlertsTitle(
+                          alertsToAcknowledge,
+                          alertsToLink.length,
+                        )}
+                        description={getAcknowledgeAlertsDescription(
+                          alertsToAcknowledge,
+                          acknowledgeGate.disabledReason,
+                        )}
+                        value={willAcknowledgeAlerts}
+                        disabled={!acknowledgeGate.isAllowed}
+                        hoverText={acknowledgeGate.disabledReason}
+                        onChange={(value: boolean) => {
+                          setShouldAcknowledgeAlerts(value);
+                        }}
+                      />
+                    </div>
+                  )}
+                  {alertsToAcknowledge && !willAcknowledgeAlerts && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-alerts-keep-escalating"
+                    >
+                      {alertsToAcknowledge.alertIds.length === 1
+                        ? "Declaring the incident does not acknowledge the alert on its own: it keeps escalating until someone acknowledges it."
+                        : "Declaring the incident does not acknowledge the alerts on its own: they keep escalating until someone acknowledges them."}
+                    </p>
+                  )}
                 </div>
               }
             />
@@ -655,6 +786,17 @@ const IncidentCreate: FunctionComponent<
                     alertsToLink.map((alert: Alert): string => {
                       return alert._id?.toString() || "";
                     });
+
+                  /*
+                   * Only sent when the box is on screen, allowed and
+                   * ticked: the server then acknowledges the alerts (the
+                   * ones not acknowledged yet) as this user once they are
+                   * linked.
+                   */
+                  if (willAcknowledgeAlerts) {
+                    miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] =
+                      true;
+                  }
                 }
 
                 return item;

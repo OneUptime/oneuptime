@@ -112,9 +112,13 @@ import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
 import IncidentAlertService, {
+  AcknowledgeDeclaredAlertsResult,
   LinkAlertsToIncidentResult,
 } from "./IncidentAlertService";
-import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+} from "../../Types/Incident/IncidentAlertLink";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -131,6 +135,11 @@ type UpdateCarryForward = Dictionary<{
 type IncidentCreateCarryForward = {
   // Validated, deduplicated alert ids to link once the incident exists.
   alertIdsToLink: Array<ObjectID>;
+  /*
+   * Acknowledge those alerts once they are linked, as the declaring user
+   * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
+   */
+  acknowledgeAlerts: boolean;
 } | null;
 
 type IncidentUpdatePayload = {
@@ -809,14 +818,33 @@ export class Service extends DatabaseService<Model> {
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
-    if (alertIdsToLink !== undefined && alertIdsToLink !== null) {
-      carryForward = {
-        alertIdsToLink:
-          await IncidentAlertService.validateAlertIdsForNewIncident({
+    const validatedAlertIds: Array<ObjectID> =
+      alertIdsToLink !== undefined && alertIdsToLink !== null
+        ? await IncidentAlertService.validateAlertIdsForNewIncident({
             projectId: projectId,
             alertIds: alertIdsToLink,
             props: createBy.props,
-          }),
+          })
+        : [];
+
+    /*
+     * Asking to acknowledge the alerts is checked here too, with the alert
+     * ids, so a caller who may not change alert states is refused before the
+     * incident exists rather than left with alerts that keep paging.
+     */
+    const acknowledgeAlerts: boolean =
+      IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
+        projectId: projectId,
+        acknowledgeAlerts:
+          createBy.miscDataProps?.[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY],
+        alertIds: validatedAlertIds,
+        props: createBy.props,
+      });
+
+    if (validatedAlertIds.length > 0) {
+      carryForward = {
+        alertIdsToLink: validatedAlertIds,
+        acknowledgeAlerts: acknowledgeAlerts,
       };
     }
 
@@ -1744,6 +1772,16 @@ export class Service extends DatabaseService<Model> {
     return carryForward?.alertIdsToLink || [];
   }
 
+  // Whether the declaration asked for its alerts to be acknowledged.
+  private shouldAcknowledgeAlertsDeclaredWith(
+    onCreate: OnCreate<Model>,
+  ): boolean {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.acknowledgeAlerts === true;
+  }
+
   /*
    * Who declared the incident, as "Linked by" on the links and the actor of
    * their feed entries. A user is recorded as themselves and an API key as
@@ -1778,6 +1816,11 @@ export class Service extends DatabaseService<Model> {
    * the incident's title when the incident is private, and a rule can make
    * it private after it was saved. (The alerts' owners are added to a private
    * incident later in the chain, once its workspace channels exist.)
+   *
+   * When the declaration asked for it, the alerts are then acknowledged as
+   * the declaring user, which stops their on-call escalation. Also awaited,
+   * so the alerts' own pages agree with what the user just asked for, and
+   * also never allowed to fail the incident.
    */
   @CaptureSpan()
   private async linkAlertsDeclaredWithIncident(
@@ -1818,6 +1861,38 @@ export class Service extends DatabaseService<Model> {
     } catch (error) {
       logger.error(
         `Linking the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    if (!this.shouldAcknowledgeAlertsDeclaredWith(onCreate)) {
+      return;
+    }
+
+    try {
+      const acknowledged: AcknowledgeDeclaredAlertsResult =
+        await IncidentAlertService.acknowledgeAlertsDeclaredWithIncident({
+          projectId: createdItem.projectId,
+          incidentId: createdItem.id,
+          alertIds: alertIds,
+          acknowledgedByUserId: this.getDeclaringUserId(onCreate, createdItem),
+        });
+
+      if (acknowledged.failed.length > 0) {
+        logger.error(
+          `${acknowledged.failed.length} of ${alertIds.length} alerts could not be acknowledged as the incident they were declared with was declared.`,
+          {
+            projectId: createdItem.projectId.toString(),
+            incidentId: createdItem.id.toString(),
+          } as LogAttributes,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `Acknowledging the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
         {
           projectId: createdItem.projectId.toString(),
           incidentId: createdItem.id.toString(),

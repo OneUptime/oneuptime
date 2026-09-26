@@ -13,6 +13,18 @@
 export const INCIDENT_ALERT_IDS_TO_LINK_KEY: string = "alertIdsToLink";
 
 /*
+ * Declaring an incident from alerts does not, on its own, change the alerts:
+ * they keep escalating until somebody acknowledges them. Sending
+ * `miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] = true` along with
+ * INCIDENT_ALERT_IDS_TO_LINK_KEY also acknowledges them, as the declaring
+ * user, once they are linked - which is what stops their on-call escalation.
+ * Alerts already acknowledged (or past it) are left as they are. Off unless
+ * asked for, and the caller must be allowed to change alert states.
+ */
+export const INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY: string =
+  "acknowledgeAlertsToLink";
+
+/*
  * The create-incident page reads the alerts to declare an incident from out of
  * this query string parameter, as a comma separated list of alert ids.
  */

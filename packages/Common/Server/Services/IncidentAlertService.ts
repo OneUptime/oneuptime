@@ -31,6 +31,7 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -44,6 +45,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
@@ -142,6 +144,13 @@ export function chooseLinkedAlertTargetState<
 export interface LinkAlertsToIncidentResult {
   linkedAlertIds: Array<ObjectID>;
   alreadyLinkedAlertIds: Array<ObjectID>;
+  failed: Array<{ alertId: ObjectID; message: string }>;
+}
+
+export interface AcknowledgeDeclaredAlertsResult {
+  acknowledgedAlertIds: Array<ObjectID>;
+  // Already acknowledged, resolved or in a later state: left as they were.
+  alreadyAcknowledgedAlertIds: Array<ObjectID>;
   failed: Array<{ alertId: ObjectID; message: string }>;
 }
 
@@ -1255,6 +1264,286 @@ export class Service extends DatabaseService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * Reads miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] on an
+   * incident create: whether to acknowledge the alerts the incident is
+   * declared from once they are linked. Called from IncidentService's
+   * onBeforeCreate after the alert ids were validated, so a caller who may
+   * not change alert states is refused before the incident number is taken -
+   * rather than being told the incident was declared while its alerts kept
+   * paging. Absent, null or false means no.
+   */
+  public validateAcknowledgeAlertsForNewIncident(data: {
+    projectId: ObjectID | undefined;
+    acknowledgeAlerts: unknown;
+    alertIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    if (
+      data.acknowledgeAlerts === undefined ||
+      data.acknowledgeAlerts === null ||
+      data.acknowledgeAlerts === false
+    ) {
+      return false;
+    }
+
+    if (data.acknowledgeAlerts !== true) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} must be true or false.`,
+      );
+    }
+
+    if (data.alertIds.length === 0) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+      );
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to acknowledge alerts.",
+      );
+    }
+
+    if (!data.props.isRoot) {
+      /*
+       * The acknowledgements are written as root once the alerts are linked
+       * (see acknowledgeAlertsDeclaredWithIncident), so this is where the
+       * caller's own right to change an alert's state is checked. Which
+       * alerts they may touch was settled by validateAlertIdsForNewIncident,
+       * which read every one of them as the caller.
+       */
+      const probe: AlertStateTimeline = new AlertStateTimeline();
+      probe.projectId = data.projectId;
+      probe.alertId = data.alertIds[0]!;
+      probe.alertStateId = ObjectID.generate();
+
+      try {
+        ModelPermission.checkCreatePermissions(
+          AlertStateTimeline,
+          probe,
+          data.props,
+        );
+      } catch (error) {
+        // A lapsed session or an unpaid project keeps its own answer.
+        if (
+          error instanceof NotAuthorizedException ||
+          error instanceof BadDataException
+        ) {
+          throw new BadDataException(
+            "You do not have permission to acknowledge alerts in this project.",
+          );
+        }
+
+        throw error;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * Acknowledges the alerts an incident was just declared from, when the
+   * declaration asked for it (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY). An
+   * alert's on-call escalation and its per-user notifications stop once the
+   * alert is acknowledged (the workers check at their next run), so this is
+   * what makes declaring an incident stop the alerts paging.
+   *
+   * Written as root - the caller's right to change alert states was checked
+   * before the incident was created - and credited to the declaring user, as
+   * if they had pressed Acknowledge on each alert themselves: the alert's
+   * owners are told, and the alert's feed says who and why. Alerts that are
+   * already acknowledged, resolved or in any later state are left as they
+   * are; nothing is ever moved backwards. One alert failing never stops the
+   * others, and never fails the incident. A project without an Acknowledged
+   * state has nothing to acknowledge with.
+   */
+  @CaptureSpan()
+  public async acknowledgeAlertsDeclaredWithIncident(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertIds: Array<ObjectID>;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<AcknowledgeDeclaredAlertsResult> {
+    const result: AcknowledgeDeclaredAlertsResult = {
+      acknowledgedAlertIds: [],
+      alreadyAcknowledgedAlertIds: [],
+      failed: [],
+    };
+
+    const alertIds: Array<ObjectID> = uniqueIds(data.alertIds);
+
+    if (alertIds.length === 0) {
+      return result;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      incidentId: data.incidentId.toString(),
+    } as LogAttributes;
+
+    const acknowledgedState: AlertState | null =
+      await AlertStateService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          isAcknowledgedState: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !acknowledgedState ||
+      !acknowledgedState._id ||
+      acknowledgedState.order === undefined ||
+      acknowledgedState.order === null
+    ) {
+      const message: string =
+        "This project has no Acknowledged alert state, so the alerts could not be acknowledged.";
+
+      logger.error(`IncidentAlertService: ${message}`, logAttributes);
+
+      for (const alertId of alertIds) {
+        result.failed.push({ alertId: alertId, message: message });
+      }
+
+      return result;
+    }
+
+    const acknowledgedStateId: ObjectID = new ObjectID(
+      acknowledgedState._id.toString(),
+    );
+    const acknowledgedOrder: number = acknowledgedState.order;
+
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: data.incidentId,
+      select: {
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const incidentLabel: string = withNumber(
+      "Incident",
+      formatNumber(
+        incident?.incidentNumberWithPrefix,
+        incident?.incidentNumber,
+      ),
+    );
+
+    const rootCause: string = `Acknowledged because ${incidentLabel} was declared from this alert.`;
+
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(alertIds),
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateOrderByAlertId: Map<string, number | undefined> = new Map();
+
+    for (const alert of alerts) {
+      if (alert._id) {
+        stateOrderByAlertId.set(
+          normalizeId(alert._id),
+          alert.currentAlertState?.order ?? undefined,
+        );
+      }
+    }
+
+    for (const alertId of alertIds) {
+      const key: string = normalizeId(alertId);
+
+      if (!stateOrderByAlertId.has(key)) {
+        result.failed.push({
+          alertId: alertId,
+          message: "The alert could not be found in this project.",
+        });
+        continue;
+      }
+
+      const stateOrder: number | undefined = stateOrderByAlertId.get(key);
+
+      if (stateOrder !== undefined && stateOrder >= acknowledgedOrder) {
+        result.alreadyAcknowledgedAlertIds.push(alertId);
+        continue;
+      }
+
+      try {
+        await AlertService.changeAlertState({
+          projectId: data.projectId,
+          alertId: alertId,
+          alertStateId: acknowledgedStateId,
+          notifyOwners: true,
+          rootCause: rootCause,
+          stateChangeLog: undefined,
+          createdByUserId: data.acknowledgedByUserId,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        result.acknowledgedAlertIds.push(alertId);
+      } catch (error) {
+        /*
+         * Somebody (or the linked-alert sync) acknowledged or resolved the
+         * alert in the meantime, and the timeline refused to move it
+         * backwards. That is the outcome asked for, not a failure.
+         */
+        if (await this.isAlertAtOrPastAcknowledged(alertId)) {
+          result.alreadyAcknowledgedAlertIds.push(alertId);
+          continue;
+        }
+
+        const message: string =
+          error instanceof Error ? error.message : String(error);
+
+        result.failed.push({ alertId: alertId, message: message });
+
+        logger.error(
+          `IncidentAlertService could not acknowledge alert ${alertId.toString()} for the incident it was declared with: ${message}`,
+          {
+            ...logAttributes,
+            alertId: alertId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  // False when the alert or its state cannot be read.
+  @CaptureSpan()
+  private async isAlertAtOrPastAcknowledged(
+    alertId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      return await AlertService.isAlertAcknowledged({ alertId: alertId });
+    } catch {
+      return false;
+    }
   }
 
   /*

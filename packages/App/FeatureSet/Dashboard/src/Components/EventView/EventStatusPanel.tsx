@@ -27,6 +27,21 @@ export interface EventStateAction {
 }
 
 /*
+ * A header action that is not a state change - "Declare Incident" on an
+ * alert, say. It sits in the same row as the state actions, with the same
+ * size and the neutral look, so the state action stays the one primary
+ * button. A disabled one can carry a tooltip saying why.
+ */
+export interface EventPanelAction {
+  id: string;
+  label: string;
+  icon?: IconProp | undefined;
+  onClick: () => void;
+  isDisabled?: boolean | undefined;
+  tooltip?: string | undefined;
+}
+
+/*
  * A short "label value" pair shown under the header pills, e.g.
  * { label: "Declared", value: "Sep 14, 18:01" } or
  * { label: "Monitor", value: <Link ...>checkout-api</Link> }.
@@ -56,6 +71,13 @@ export interface ComponentProps {
   durationEndsAt?: Date | undefined;
   actions: Array<EventStateAction>;
   onActionClick: (stateId: string) => void;
+  /*
+   * Non-state actions, shown after the state actions and before the "More
+   * actions" menu. They never change what that menu offers, and they are
+   * shown whatever the current state is - even when there is no state
+   * action left.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onStateSelect?: ((stateId: string) => void) | undefined;
   moreMenuTitle?: string | undefined;
   isDisabled?: boolean | undefined;
@@ -169,17 +191,22 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const actionBaseClassName: string =
+    "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+  const primaryActionClassName: string =
+    "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
+  const neutralActionClassName: string =
+    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
   ): ReactElement => {
     const isPrimary: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
-    const baseClassName: string =
-      "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
     const variantClassName: string = isPrimary
-      ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700"
-      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+      ? primaryActionClassName
+      : neutralActionClassName;
 
     return (
       <button
@@ -191,13 +218,73 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         onClick={() => {
           props.onActionClick(action.stateId);
         }}
-        className={`${baseClassName} ${variantClassName}`}
+        className={`${actionBaseClassName} ${variantClassName}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
         )}
         <span className="truncate">{translatedActionLabel}</span>
       </button>
+    );
+  };
+
+  const getSecondaryActionButton: (action: EventPanelAction) => ReactElement = (
+    action: EventPanelAction,
+  ): ReactElement => {
+    const translatedActionLabel: string =
+      translateString(action.label) || action.label;
+    const translatedTooltip: string | undefined = action.tooltip
+      ? translateString(action.tooltip) || action.tooltip
+      : undefined;
+    const isDisabled: boolean = Boolean(props.isDisabled || action.isDisabled);
+    /*
+     * A disabled <button> swallows the pointer, and tippy will not show a
+     * tooltip on a disabled trigger, so a disabled action with a reason hands
+     * the pointer (and keyboard focus) to a wrapper that carries the tooltip -
+     * the same arrangement as the shared Button.
+     */
+    const hasReachableTooltip: boolean = isDisabled && Boolean(translatedTooltip);
+
+    const button: ReactElement = (
+      <button
+        key={action.id}
+        id={action.id}
+        type="button"
+        title={hasReachableTooltip ? undefined : translatedActionLabel}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        onClick={() => {
+          if (isDisabled) {
+            return;
+          }
+
+          action.onClick();
+        }}
+        className={`${actionBaseClassName} ${neutralActionClassName}${
+          hasReachableTooltip ? " pointer-events-none w-full" : ""
+        }`}
+      >
+        {action.icon && (
+          <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+        )}
+        <span className="truncate">{translatedActionLabel}</span>
+      </button>
+    );
+
+    if (!hasReachableTooltip) {
+      return button;
+    }
+
+    return (
+      <Tooltip key={action.id} text={translatedTooltip}>
+        <span
+          className="inline-flex min-w-[7rem] max-w-full flex-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
+          tabIndex={0}
+          data-testid={`${action.id}-disabled-wrapper`}
+        >
+          {button}
+        </span>
+      </Tooltip>
     );
   };
 
@@ -210,6 +297,9 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     >
       {props.actions.map((action: EventStateAction) => {
         return getActionButton(action);
+      })}
+      {(props.secondaryActions || []).map((action: EventPanelAction) => {
+        return getSecondaryActionButton(action);
       })}
       {props.onStateSelect && statesForMenu.length > 0 && (
         <MoreMenu

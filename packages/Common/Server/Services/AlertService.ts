@@ -1768,6 +1768,12 @@ ${alertSeverity.name}
     notifyOwners: boolean;
     rootCause: string | undefined;
     stateChangeLog: JSONObject | undefined;
+    /*
+     * The user the change is credited to (the alert's feed names them), for
+     * a change a user asked for that is written on their behalf. Unset for
+     * changes the system makes on its own.
+     */
+    createdByUserId?: ObjectID | undefined;
     props: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const {
@@ -1777,6 +1783,7 @@ ${alertSeverity.name}
       notifyOwners,
       rootCause,
       stateChangeLog,
+      createdByUserId,
       props,
     } = data;
 
@@ -1820,6 +1827,10 @@ ${alertSeverity.name}
     }
     if (rootCause) {
       statusTimeline.rootCause = rootCause;
+    }
+
+    if (createdByUserId) {
+      statusTimeline.createdByUserId = createdByUserId;
     }
 
     await AlertStateTimelineService.create({

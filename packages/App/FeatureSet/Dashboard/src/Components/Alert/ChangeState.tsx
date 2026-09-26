@@ -27,6 +27,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -40,6 +41,7 @@ import {
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
+import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -419,6 +421,18 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
+  /*
+   * Declaring an incident from the alert sits beside Acknowledge / Resolve,
+   * and stays there once the alert is resolved (declaring after the fact is
+   * allowed everywhere else too). Gated on permissions only - no request.
+   */
+  const declareIncidentAction: EventPanelAction | null =
+    getDeclareIncidentFromAlertAction(props.alertId);
+
+  const secondaryActions: Array<EventPanelAction> = declareIncidentAction
+    ? [declareIncidentAction]
+    : [];
+
   const isAcknowledgeTarget: boolean =
     selectedAlertState?.isAcknowledgedState || false;
   const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
@@ -466,6 +480,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         onActionClick={(stateId: string) => {
           openModalForState(stateId);
         }}
+        secondaryActions={secondaryActions}
         onStateSelect={(stateId: string) => {
           openModalForState(stateId);
         }}
