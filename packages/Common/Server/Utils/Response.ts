@@ -451,6 +451,37 @@ export default class Response {
       .send(item);
   }
 
+  /*
+   * Send a body that is ALREADY serialized JSON, as is.
+   *
+   * For responses built once and handed out many times (the Topology maps
+   * cache their serialized payload): sendJsonObjectResponse would parse
+   * nothing but re-stringify a multi-megabyte object on every hit, and
+   * res.send would hash the whole body for an ETag nobody can use on a POST.
+   * writeHead + end skips both, the way sendHtmlResponse does.
+   *
+   * no-store: the body is one project's inventory, read under the caller's
+   * permissions. The audit log gets its size, never the payload.
+   */
+  @CaptureSpan()
+  public static sendJsonStringResponse(
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    json: string,
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    Response.setNoCacheHeaders(oneUptimeResponse);
+    oneUptimeResponse.logBody = {
+      contentType: "application/json",
+      characters: json.length,
+    };
+    oneUptimeResponse.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+    });
+    oneUptimeResponse.end(json);
+  }
+
   @CaptureSpan()
   public static sendTextResponse(
     _req: ExpressRequest,
