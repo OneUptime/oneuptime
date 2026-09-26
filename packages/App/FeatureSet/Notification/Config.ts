@@ -448,3 +448,6 @@ export const CallDefaultCostInCentsPerMinute: number = process.env[
 
 // Call provider type
 export const CallProvider: string = process.env["CALL_PROVIDER"] || "twilio";
+
+// SMS provider type
+export const SmsProvider: string = process.env["SMS_PROVIDER"] || "twilio";
