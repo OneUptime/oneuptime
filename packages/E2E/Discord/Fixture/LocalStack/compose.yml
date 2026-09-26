@@ -1,0 +1,66 @@
+services:
+  valkey:
+    image: redis:7-bookworm
+    command: [redis-server, --requirepass, "${VALKEY_PASSWORD}", --save, "", --appendonly, "no"]
+    networks: [oneuptime]
+    healthcheck:
+      test: [CMD, redis-cli, -a, "${VALKEY_PASSWORD}", ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  postgres:
+    extends: {file: base.yml, service: postgres}
+    image: postgres:15-bookworm
+    restart: "no"
+  clickhouse:
+    extends: {file: base.yml, service: clickhouse}
+    restart: "no"
+  app:
+    extends: {file: base.yml, service: app}
+    image: oneuptime-discord-e2e-app:local
+    pull_policy: never
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      clickhouse: {condition: service_healthy}
+  ingress:
+    image: oneuptime-discord-e2e-ingress:local
+    pull_policy: never
+    depends_on: [app]
+    environment:
+      HOST: oneuptime.test
+      SERVER_APP_HOSTNAME: app
+      SERVER_HOME_HOSTNAME: app
+      APP_PORT: "3002"
+      HOME_PORT: "1444"
+      BILLING_ENABLED: "false"
+      PROVISION_SSL: ""
+      NGINX_LISTEN_ADDRESS: ""
+      NGINX_LISTEN_OPTIONS: ""
+      NGINX_INGEST_ACCESS_LOG: "on"
+    networks:
+      oneuptime:
+        aliases: [oneuptime.test]
+  e2e:
+    image: oneuptime-discord-e2e-tests:local
+    pull_policy: never
+    networks: [oneuptime]
+    environment:
+      HOST: oneuptime.test:7849
+      HTTP_PROTOCOL: http
+      BILLING_ENABLED: "false"
+      PLAYWRIGHT_HTML_REPORT: /evidence/html
+      PLAYWRIGHT_JSON_OUTPUT_NAME: /evidence/results.json
+      TMPDIR: /evidence/runtime-tmp
+    volumes:
+      - evidence:/evidence
+    profiles: [test]
+volumes:
+  postgres:
+  clickhouse:
+  evidence:
+networks:
+  oneuptime:
+    driver: bridge
+    internal: true

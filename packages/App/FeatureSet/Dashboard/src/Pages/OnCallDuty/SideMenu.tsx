@@ -173,6 +173,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.MicrosoftTeams,
         },
+        {
+          link: {
+            title: "Discord",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_DISCORD
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Hashtag,
+        },
       ],
     },
     {

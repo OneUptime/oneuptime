@@ -189,6 +189,15 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       items: [
         {
           link: {
+            title: "Discord",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_DISCORD_INTEGRATION] as Route,
+            ),
+          },
+          icon: IconProp.Chat,
+        },
+        {
+          link: {
             title: "Slack",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,

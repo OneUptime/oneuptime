@@ -21,6 +21,7 @@ import AlertViewAILogs from "../Pages/Alerts/View/AILogs";
 import AlertsWorkspaceConnectionSlack from "../Pages/Alerts/WorkspaceConnectionSlack";
 
 import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
+import AlertWorkspaceConnectionDiscord from "../Pages/Alerts/WorkspaceConnectionDiscord";
 
 import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
 
@@ -171,6 +172,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD] || ""
+          }
+          element={
+            <AlertWorkspaceConnectionDiscord
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD] as Route
               }
             />
           }

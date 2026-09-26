@@ -116,7 +116,16 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by MicrosoftTeamsInstalledTeam.id — see that type, the key is not always a Graph team id.
 }
 
-export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
+export interface DiscordMiscData extends MiscData {
+  guildName: string;
+  botUserId: string;
+  incidentChannelId?: string;
+}
+
+export type WorkspaceMiscData =
+  | SlackMiscData
+  | MicrosoftTeamsMiscData
+  | DiscordMiscData;
 
 /*
  * Keys that older releases wrote into miscData and that must never be served

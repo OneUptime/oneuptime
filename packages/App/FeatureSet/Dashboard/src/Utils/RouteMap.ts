@@ -14,6 +14,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD]:
+    "workspace-connection-discord",
 
   // Monitor Settings
   [PageMap.MONITORS_SETTINGS]: "settings/status",
@@ -802,6 +804,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_DISCORD]:
+    "workspace-connection-discord",
   [PageMap.INCIDENT_CREATE]: "create",
 
   // Incident Episodes
@@ -884,6 +888,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD]: "workspace-connection-discord",
 
   // Alert Episodes
   [PageMap.ALERT_EPISODES]: "episodes",
@@ -950,6 +955,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD]:
+    "workspace-connection-discord",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
 
   // Scheduled Maintenance Settings
@@ -1012,6 +1019,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
+  [PageMap.SETTINGS_DISCORD_INTEGRATION]: "discord-integration",
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -1099,6 +1107,8 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_DISCORD]:
+    "workspace-connection-discord",
 
   // Incoming Call Policy
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: "incoming-call-policies",
@@ -1129,6 +1139,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
   [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: "incident-on-call-rules",
+  [PageMap.USER_SETTINGS_DISCORD_INTEGRATION]: "discord-integration",
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
@@ -1197,6 +1208,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD]
     }`,
   ),
 
@@ -1420,6 +1436,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD]
     }`,
   ),
 
@@ -1768,6 +1789,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_DISCORD]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_DISCORD]
     }`,
   ),
 
@@ -2234,6 +2260,15 @@ const RouteMap: Dictionary<Route> = {
         ScheduledMaintenanceEventsRoutePath[
           PageMap
             .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+        ]
+      }`,
+    ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+        ScheduledMaintenanceEventsRoutePath[
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
         ]
       }`,
     ),
@@ -5632,6 +5667,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_DISCORD]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_DISCORD]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]
@@ -6058,6 +6099,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.USER_SETTINGS_DISCORD_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_DISCORD_INTEGRATION]
+    }`,
+  ),
+
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_SLACK_INTEGRATION]
@@ -6397,6 +6444,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_APIKEY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_APIKEY_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_DISCORD_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_DISCORD_INTEGRATION]
     }`,
   ),
 
