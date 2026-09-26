@@ -30,6 +30,13 @@ export enum TopologyApiPath {
   InfrastructureCollectionSearch = "/telemetry/topology/infrastructure/collection-search",
   Entity = "/telemetry/topology/entity",
   EntityConnections = "/telemetry/topology/entity/connections",
+  /*
+   * The same sections over everything the inventory holds rather than over a
+   * range (see TopologyEntityAllTimeRequestJSON): the inventory item page's
+   * Connections card, which has no time range.
+   */
+  EntityAllTime = "/telemetry/topology/entity/all-time",
+  EntityAllTimeConnections = "/telemetry/topology/entity/all-time/connections",
 }
 
 export const TopologyApiLimits: {
@@ -139,11 +146,16 @@ export interface TopologyCollectionSearchRequestJSON
   types: Array<{ entityType: string; nameTerms: Array<string> }>;
 }
 
-export interface TopologyEntityRequestJSON extends TopologyRangeRequestJSON {
+/* Which entity a drawer or inventory read is about. */
+export interface TopologyEntityTargetJSON {
   entityKey: string;
   /* Narrows the lookup when the caller knows it; the key alone is enough. */
   entityType?: string | null | undefined;
 }
+
+export interface TopologyEntityRequestJSON
+  extends TopologyRangeRequestJSON,
+    TopologyEntityTargetJSON {}
 
 export type TopologyConnectionSection =
   | "calls"
@@ -154,13 +166,30 @@ export type TopologyConnectionSection =
 export const TOPOLOGY_CONNECTION_SECTIONS: ReadonlyArray<TopologyConnectionSection> =
   ["calls", "calledBy", "runsOn", "related"];
 
-/** "Show more" for one drawer section. */
-export interface TopologyEntityConnectionsRequestJSON
-  extends TopologyEntityRequestJSON {
+/** Where one page of one section starts, and how many rows it holds. */
+export interface TopologyConnectionsPageRequestJSON {
   section: TopologyConnectionSection;
   offset: number;
   limit?: number | undefined;
 }
+
+/** "Show more" for one drawer section. */
+export interface TopologyEntityConnectionsRequestJSON
+  extends TopologyEntityRequestJSON,
+    TopologyConnectionsPageRequestJSON {}
+
+/*
+ * The all-time variant, for the inventory item page. It has no range start:
+ * every relationship the inventory holds counts however long ago it was last
+ * seen (edges drawn by hand are never re-bumped and never pruned, so a range
+ * would hide them), and archived items count as items — both the entity
+ * asked about, which the inventory page still shows, and the other ends.
+ */
+export type TopologyEntityAllTimeRequestJSON = TopologyEntityTargetJSON;
+
+export interface TopologyEntityAllTimeConnectionsRequestJSON
+  extends TopologyEntityTargetJSON,
+    TopologyConnectionsPageRequestJSON {}
 
 // --------------------------------------------------------------- responses
 
@@ -311,8 +340,16 @@ export interface TopologyConnectionRowJSON {
   /* "out" when the entity is the relationship's `from` (self-loops too). */
   direction: "out" | "in";
   otherKey: string;
-  /* false when the other end is not a non-archived item ("Undiscovered resource"). */
+  /*
+   * false when the other end is not a non-archived item ("Undiscovered
+   * resource"); for the all-time endpoints, when it is not an item at all.
+   */
   otherKnown: boolean;
+  /*
+   * InventoryItem _id of the other end, so the inventory page can link to it.
+   * Sent by the all-time endpoints only; null when otherKnown is false.
+   */
+  otherId?: string | null | undefined;
   otherName: string | null;
   otherType: string | null;
   callCount: number | null;
@@ -353,3 +390,18 @@ export interface TopologyEntityConnectionsResponseJSON
   connections: TopologyConnectionSectionJSON;
   isScanLimited: boolean;
 }
+
+/*
+ * The all-time responses (TopologyEntityAllTimeRequestJSON) are shaped like
+ * the drawer's, without a range start to echo: `entity` is found among
+ * archived items too, and every row carries `otherId`.
+ */
+export type TopologyEntityAllTimeResponseJSON = Omit<
+  TopologyEntityResponseJSON,
+  "rangeStart"
+>;
+
+export type TopologyEntityAllTimeConnectionsResponseJSON = Omit<
+  TopologyEntityConnectionsResponseJSON,
+  "rangeStart"
+>;

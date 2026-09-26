@@ -211,7 +211,7 @@ describe("no CRUD router claims a Topology path", () => {
     expect(new InventoryItemRelationship().crudApiPath?.toString()).toBe(
       "/inventory-item-relationship",
     );
-    expect(TOPOLOGY_PATHS.length).toBe(6);
+    expect(TOPOLOGY_PATHS.length).toBe(8);
   });
 
   test("every Topology path lives under /telemetry/topology", () => {

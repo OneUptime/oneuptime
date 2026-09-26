@@ -15,6 +15,9 @@ import {
   TopologyApiLimits,
   TopologyCollectionResponseJSON,
   TopologyCollectionSearchResponseJSON,
+  TopologyConnectionRowJSON,
+  TopologyEntityAllTimeConnectionsResponseJSON,
+  TopologyEntityAllTimeResponseJSON,
   TopologyEntityConnectionsResponseJSON,
   TopologyEntityJSON,
   TopologyEntityResponseJSON,
@@ -181,6 +184,13 @@ describe("TopologyQueries", () => {
         () => {
           return TopologyQueries.getEntity({
             ...scope(),
+            entityKey: "svc-a",
+            entityType: null,
+          });
+        },
+        () => {
+          return TopologyQueries.getEntityAllTime({
+            projectId: PROJECT_ID,
             entityKey: "svc-a",
             entityType: null,
           });
@@ -1193,6 +1203,223 @@ describe("TopologyQueries", () => {
         });
       // 1 + 2 rows reaches the total of 3.
       expect(later.connections.nextOffset).toBeNull();
+    });
+  });
+  /*
+   * The inventory item page: the drawer's reads with no range, archived
+   * items found, and the other end's id on every row.
+   */
+  describe("all time", () => {
+    const entityRow: JSONObject = {
+      id: "0b9c0d4e-0000-4000-8000-000000000002",
+      key: "ns-a",
+      type: EntityType.KubernetesNamespace,
+      name: "payments",
+      source: "discovered",
+      lastSeenAt: null,
+      firstSeenAt: null,
+      resourceType: null,
+      resourceId: null,
+      identifyingAttributes: null,
+      descriptiveAttributes: null,
+    };
+
+    const sectionsRow: JSONObject = {
+      scanned: 3,
+      sections: [{ section: "related", total: 3, unknownTotal: 1 }],
+      rows: [
+        {
+          section: "related",
+          relationshipType: "part-of",
+          direction: "in",
+          otherKey: "pod-1",
+          otherKnown: true,
+          otherId: "0b9c0d4e-0000-4000-8000-000000000003",
+          otherName: "api-7d9f",
+          otherType: "k8s.pod",
+          callCount: null,
+          errorCount: null,
+          avgDurationMs: null,
+          lastSeenAt: 1790000000000,
+        },
+        {
+          section: "related",
+          relationshipType: "part-of",
+          direction: "out",
+          otherKey: "gone",
+          otherKnown: false,
+          otherId: null,
+          otherName: null,
+          otherType: null,
+          callCount: null,
+          errorCount: null,
+          avgDurationMs: null,
+          lastSeenAt: null,
+        },
+      ],
+    };
+
+    function allTimeDatabase(): FakeDatabase {
+      return useDatabase([
+        typesRule([EntityType.KubernetesNamespace, EntityType.KubernetesPod]),
+        ["LIMIT 1", rows([entityRow])],
+        ["scan_out AS MATERIALIZED", rows([sectionsRow])],
+      ]);
+    }
+
+    test("the entity and its sections: no range read or echoed, other ends carry their ids", async () => {
+      const database: FakeDatabase = allTimeDatabase();
+      const response: TopologyEntityAllTimeResponseJSON =
+        await TopologyQueries.getEntityAllTime({
+          projectId: PROJECT_ID,
+          entityKey: "ns-a",
+          entityType: EntityType.KubernetesNamespace,
+        });
+
+      expect(response.formatVersion).toBe(TOPOLOGY_API_FORMAT_VERSION);
+      expect(response).not.toHaveProperty("rangeStart");
+      expect(Number.isNaN(Date.parse(response.generatedAt))).toBe(false);
+      expect(response.entity).toMatchObject({
+        id: "0b9c0d4e-0000-4000-8000-000000000002",
+        key: "ns-a",
+      });
+      expect(response.isScanLimited).toBe(false);
+      expect(response.sections.related.total).toBe(3);
+      expect(response.sections.related.unknownTotal).toBe(1);
+      expect(response.sections.related.nextOffset).toBe(2);
+      expect(response.sections.related.rows[0]).toEqual({
+        relationshipType: "part-of",
+        direction: "in",
+        otherKey: "pod-1",
+        otherKnown: true,
+        otherId: "0b9c0d4e-0000-4000-8000-000000000003",
+        otherName: "api-7d9f",
+        otherType: "k8s.pod",
+        callCount: null,
+        errorCount: null,
+        avgDurationMs: null,
+        lastSeenAt: 1790000000000,
+      });
+      expect(response.sections.related.rows[1]!.otherId).toBeNull();
+
+      const [types, entity, sections] = dataStatements(database);
+      expect(types!.sql).toContain("project_types");
+      // Archived items are found, so nothing filters them out.
+      expect(entity!.sql).not.toContain(`"isArchived" = false`);
+      expect(entity!.sql).toContain(`i."isArchived" ASC`);
+      expect(sections!.sql).not.toContain(`"lastSeenAt" >=`);
+      expect(sections!.sql).toContain(`o."id" AS "otherId"`);
+      // Not a service: its outbound runs-on is not a runsOn section.
+      expect(sections!.params).toContain(false);
+      expect(sections!.params).toContain(
+        TopologyApiLimits.EntityConnectionScanLimit + 1,
+      );
+      for (const statement of [types!, entity!, sections!]) {
+        expect(statement.params[0]).toBe(PROJECT_ID.toString());
+      }
+    });
+
+    test("the drawer's rows never gain an id", async () => {
+      const drawerRows: Array<JSONObject> = (
+        sectionsRow["rows"] as Array<JSONObject>
+      ).map((row: JSONObject): JSONObject => {
+        const rest: JSONObject = { ...row };
+        delete rest["otherId"];
+        return rest;
+      });
+      useDatabase([
+        typesRule([EntityType.KubernetesNamespace]),
+        ["LIMIT 1", rows([entityRow])],
+        [
+          "scan_out AS MATERIALIZED",
+          (sql: string): Array<JSONObject> => {
+            expect(sql).not.toContain("otherId");
+            return [{ ...sectionsRow, rows: drawerRows }];
+          },
+        ],
+      ]);
+      const response: TopologyEntityResponseJSON =
+        await TopologyQueries.getEntity({
+          ...scope(),
+          entityKey: "ns-a",
+          entityType: null,
+        });
+      expect(response.rangeStart).toBe(RANGE_START.toISOString());
+      expect(response.sections.related.rows).toHaveLength(2);
+      for (const row of response.sections.related.rows) {
+        expect(row).not.toHaveProperty("otherId");
+      }
+    });
+
+    test("not found: no sections are read", async () => {
+      const database: FakeDatabase = useDatabase([
+        typesRule([EntityType.Service]),
+        ["LIMIT 1", rows([])],
+      ]);
+      const response: TopologyEntityAllTimeResponseJSON =
+        await TopologyQueries.getEntityAllTime({
+          projectId: PROJECT_ID,
+          entityKey: "nope",
+          entityType: null,
+        });
+      expect(response.entity).toBeNull();
+      expect(response.sections.related).toEqual({
+        total: 0,
+        unknownTotal: 0,
+        rows: [],
+        nextOffset: null,
+      });
+      expect(dataStatements(database)).toHaveLength(2);
+    });
+
+    test("show more: one section's page, from the request's offset, with no range", async () => {
+      const database: FakeDatabase = allTimeDatabase();
+      const response: TopologyEntityAllTimeConnectionsResponseJSON =
+        await TopologyQueries.getEntityAllTimeConnections({
+          projectId: PROJECT_ID,
+          entityKey: "ns-a",
+          entityType: null,
+          section: "related",
+          offset: 1,
+          limit: 2,
+        });
+      expect(response).not.toHaveProperty("rangeStart");
+      expect(response.section).toBe("related");
+      expect(response.connections.total).toBe(3);
+      expect(
+        response.connections.rows.map(
+          (row: TopologyConnectionRowJSON): string | null | undefined => {
+            return row.otherId;
+          },
+        ),
+      ).toEqual(["0b9c0d4e-0000-4000-8000-000000000003", null]);
+      // 1 + 2 rows reaches the total of 3.
+      expect(response.connections.nextOffset).toBeNull();
+      const sections: RecordedStatement = dataStatements(database)[2]!;
+      expect(sections.params.slice(-3)).toEqual([1, "related", 2]);
+    });
+
+    test("more relationships than the scan limit: totals are lower bounds", async () => {
+      useDatabase([
+        typesRule([EntityType.KubernetesNamespace]),
+        ["LIMIT 1", rows([entityRow])],
+        [
+          "scan_out AS MATERIALIZED",
+          rows([
+            {
+              ...sectionsRow,
+              scanned: TopologyApiLimits.EntityConnectionScanLimit + 1,
+            },
+          ]),
+        ],
+      ]);
+      const response: TopologyEntityAllTimeResponseJSON =
+        await TopologyQueries.getEntityAllTime({
+          projectId: PROJECT_ID,
+          entityKey: "ns-a",
+          entityType: null,
+        });
+      expect(response.isScanLimited).toBe(true);
     });
   });
 });

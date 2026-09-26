@@ -90,6 +90,8 @@ jest.mock("Common/Server/Utils/Topology/TopologyQueries", () => {
       getCollectionSearch: jest.fn(),
       getEntity: jest.fn(),
       getEntityConnections: jest.fn(),
+      getEntityAllTime: jest.fn(),
+      getEntityAllTimeConnections: jest.fn(),
     },
   };
 });
@@ -114,7 +116,9 @@ type QueryName =
   | "getCollectionPage"
   | "getCollectionSearch"
   | "getEntity"
-  | "getEntityConnections";
+  | "getEntityConnections"
+  | "getEntityAllTime"
+  | "getEntityAllTimeConnections";
 
 const queries: Record<QueryName, jest.Mock> =
   TopologyQueries as unknown as Record<QueryName, jest.Mock>;
@@ -127,6 +131,15 @@ interface RouteCase {
   body: JSONObject;
   readsRelationships: boolean;
   cached: boolean;
+  /* false for the all-time reads, which take no range start. */
+  ranged: boolean;
+}
+
+/* A body the route refuses with a 400 before reading anything. */
+function invalidBodyFor(route: RouteCase): JSONObject {
+  return route.ranged
+    ? { ...route.body, rangeStart: "not a date" }
+    : { ...route.body, entityKey: "" };
 }
 
 const ROUTES: Array<RouteCase> = [
@@ -136,6 +149,7 @@ const ROUTES: Array<RouteCase> = [
     body: { rangeStart: RANGE_START },
     readsRelationships: true,
     cached: true,
+    ranged: true,
   },
   {
     path: TopologyApiPath.Infrastructure,
@@ -143,6 +157,7 @@ const ROUTES: Array<RouteCase> = [
     body: { rangeStart: RANGE_START },
     readsRelationships: true,
     cached: true,
+    ranged: true,
   },
   {
     path: TopologyApiPath.InfrastructureCollection,
@@ -155,6 +170,7 @@ const ROUTES: Array<RouteCase> = [
     },
     readsRelationships: false,
     cached: false,
+    ranged: true,
   },
   {
     path: TopologyApiPath.InfrastructureCollectionSearch,
@@ -166,6 +182,7 @@ const ROUTES: Array<RouteCase> = [
     },
     readsRelationships: false,
     cached: false,
+    ranged: true,
   },
   {
     path: TopologyApiPath.Entity,
@@ -173,6 +190,7 @@ const ROUTES: Array<RouteCase> = [
     body: { rangeStart: RANGE_START, entityKey: "svc-a" },
     readsRelationships: true,
     cached: false,
+    ranged: true,
   },
   {
     path: TopologyApiPath.EntityConnections,
@@ -185,6 +203,23 @@ const ROUTES: Array<RouteCase> = [
     },
     readsRelationships: true,
     cached: false,
+    ranged: true,
+  },
+  {
+    path: TopologyApiPath.EntityAllTime,
+    query: "getEntityAllTime",
+    body: { entityKey: "svc-a" },
+    readsRelationships: true,
+    cached: false,
+    ranged: false,
+  },
+  {
+    path: TopologyApiPath.EntityAllTimeConnections,
+    query: "getEntityAllTimeConnections",
+    body: { entityKey: "svc-a", section: "related", offset: 25 },
+    readsRelationships: true,
+    cached: false,
+    ranged: false,
   },
 ];
 
@@ -449,14 +484,16 @@ describe("Topology API", () => {
       expect((request["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
       );
-      expect(request["rangeStart"]).toEqual(FLOORED);
+      if (route.ranged) {
+        expect(request["rangeStart"]).toEqual(FLOORED);
+      } else {
+        // An all-time read has no range, whatever the body says.
+        expect(request).not.toHaveProperty("rangeStart");
+      }
     });
 
     test("an invalid body is a 400 and reads nothing", async () => {
-      const { next } = await call(route.path, {
-        ...route.body,
-        rangeStart: "not a date",
-      });
+      const { next } = await call(route.path, invalidBodyFor(route));
       expect(errorFrom(next)).toBeInstanceOf(BadDataException);
       expectNothingRead();
     });
@@ -479,7 +516,7 @@ describe("Topology API", () => {
         new NotAuthorizedException("You do not have permissions to read"),
       );
       await call(route.path, route.body);
-      await call(route.path, { ...route.body, rangeStart: "not a date" });
+      await call(route.path, invalidBodyFor(route));
       expect(run).not.toHaveBeenCalled();
 
       permissionCheck.mockRestore();
@@ -644,6 +681,22 @@ describe("Topology API", () => {
         },
         /offset/,
       ],
+      [TopologyApiPath.EntityAllTime, { entityType: 7 }, /entityKey/],
+      [
+        TopologyApiPath.EntityAllTimeConnections,
+        { entityKey: "k", section: "calls" },
+        /offset is required/,
+      ],
+      [
+        TopologyApiPath.EntityAllTimeConnections,
+        {
+          entityKey: "k",
+          section: "calls",
+          offset: 0,
+          limit: TopologyApiLimits.EntityConnectionsPageSizeMax + 1,
+        },
+        /limit must be an integer/,
+      ],
     ])(
       "%s rejects %j",
       async (route: string, body: JSONObject, message: RegExp) => {
@@ -670,6 +723,24 @@ describe("Topology API", () => {
         nameTerms: ["core", "sw"],
         cursor: null,
         limit: 50,
+      });
+    });
+
+    test("an all-time page reaches the query without a range, defaulted to the section's page", async () => {
+      await call(TopologyApiPath.EntityAllTimeConnections, {
+        rangeStart: RANGE_START,
+        entityKey: "ns-a",
+        entityType: "k8s.namespace",
+        section: "related",
+        offset: 25,
+      });
+      expect(queries.getEntityAllTimeConnections.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        entityKey: "ns-a",
+        entityType: "k8s.namespace",
+        section: "related",
+        offset: 25,
+        limit: TopologyApiLimits.EntityOtherRows,
       });
     });
   });
@@ -1055,6 +1126,16 @@ describe("Topology API", () => {
       [
         TopologyApiPath.EntityConnections,
         "getEntityConnections" as QueryName,
+        { entityKey: "svc-a", section: "related", offset: 25 },
+      ],
+      [
+        TopologyApiPath.EntityAllTime,
+        "getEntityAllTime" as QueryName,
+        { entityKey: "svc-a" },
+      ],
+      [
+        TopologyApiPath.EntityAllTimeConnections,
+        "getEntityAllTimeConnections" as QueryName,
         { entityKey: "svc-a", section: "related", offset: 25 },
       ],
       [

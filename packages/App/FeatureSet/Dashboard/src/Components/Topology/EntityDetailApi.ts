@@ -6,8 +6,12 @@ import {
   TopologyApiLimits,
   TopologyApiPath,
   TopologyConnectionSection,
+  TopologyConnectionsPageRequestJSON,
+  TopologyEntityAllTimeConnectionsRequestJSON,
+  TopologyEntityAllTimeRequestJSON,
   TopologyEntityConnectionsRequestJSON,
   TopologyEntityRequestJSON,
+  TopologyEntityTargetJSON,
 } from "Common/Types/Topology/TopologyApi";
 import {
   TOPOLOGY_BUSY_MESSAGE,
@@ -28,6 +32,11 @@ import { EntityDetailTarget, TopologyEntity } from "./TopologyData";
  * now classifies all of them and returns exact totals with the top rows of
  * each section, so the drawer's counts are true however large the entity's
  * neighbourhood is.
+ *
+ * The inventory item page reads the same sections all time instead — every
+ * relationship the inventory holds, for an item archived or not — from
+ * /entity/all-time and /entity/all-time/connections, through the same
+ * decoders.
  *
  * React-free on purpose: App tests exercise the request shapes and the
  * decoders without a DOM.
@@ -52,6 +61,8 @@ export interface EntityConnection {
   otherKey: string;
   /** false when the other end is not in inventory ("Undiscovered resource"). */
   otherKnown: boolean;
+  /** InventoryItem _id of the other end; the all-time reads send it. */
+  otherId?: string | undefined;
   otherName?: string | undefined;
   otherType?: string | undefined;
   callCount?: number | undefined;
@@ -76,9 +87,15 @@ export type EntityConnectionSections = Record<
 >;
 
 export interface EntityDetailData {
-  /** The range start the server used, or null if it sent none we can read. */
+  /*
+   * The range start the server used, or null if it sent none we can read
+   * (the all-time reads have none).
+   */
   rangeStart: Date | null;
-  /** null when no non-archived item has the key any more. */
+  /*
+   * null when no non-archived item has the key any more (all time: no item
+   * at all, archived or not).
+   */
   entity: EntityDetail | null;
   sections: EntityConnectionSections;
   /** The server stopped reading relationships early: totals are lower bounds. */
@@ -119,18 +136,41 @@ export function sectionReloadLimit(
   );
 }
 
-export function buildEntityDetailRequest(
+/* The key, and the type only when known. */
+function buildEntityTarget(
   target: EntityDetailTarget,
-  rangeStart: Date,
-): TopologyEntityRequestJSON {
-  const request: TopologyEntityRequestJSON = {
-    rangeStart: rangeStart.toISOString(),
-    entityKey: target.entityKey,
-  };
+): TopologyEntityTargetJSON {
+  const request: TopologyEntityTargetJSON = { entityKey: target.entityKey };
   if (target.entityType) {
     request.entityType = target.entityType;
   }
   return request;
+}
+
+/* One section's page, within the server's limits. */
+function buildConnectionsPage(
+  section: TopologyConnectionSection,
+  offset: number,
+  limit: number,
+): TopologyConnectionsPageRequestJSON {
+  return {
+    section: section,
+    offset: Math.max(0, Math.floor(offset)),
+    limit: Math.min(
+      TopologyApiLimits.EntityConnectionsPageSizeMax,
+      Math.max(1, Math.floor(limit)),
+    ),
+  };
+}
+
+export function buildEntityDetailRequest(
+  target: EntityDetailTarget,
+  rangeStart: Date,
+): TopologyEntityRequestJSON {
+  return {
+    rangeStart: rangeStart.toISOString(),
+    ...buildEntityTarget(target),
+  };
 }
 
 export function buildEntityConnectionsRequest(
@@ -142,12 +182,26 @@ export function buildEntityConnectionsRequest(
 ): TopologyEntityConnectionsRequestJSON {
   return {
     ...buildEntityDetailRequest(target, rangeStart),
-    section: section,
-    offset: Math.max(0, Math.floor(offset)),
-    limit: Math.min(
-      TopologyApiLimits.EntityConnectionsPageSizeMax,
-      Math.max(1, Math.floor(limit)),
-    ),
+    ...buildConnectionsPage(section, offset, limit),
+  };
+}
+
+/* The all-time reads carry no range start. */
+export function buildEntityAllTimeRequest(
+  target: EntityDetailTarget,
+): TopologyEntityAllTimeRequestJSON {
+  return buildEntityTarget(target);
+}
+
+export function buildEntityAllTimeConnectionsRequest(
+  target: EntityDetailTarget,
+  section: TopologyConnectionSection,
+  offset: number,
+  limit: number,
+): TopologyEntityAllTimeConnectionsRequestJSON {
+  return {
+    ...buildEntityTarget(target),
+    ...buildConnectionsPage(section, offset, limit),
   };
 }
 
@@ -252,6 +306,7 @@ export function decodeConnection(value: unknown): EntityConnection | null {
     direction: row["direction"] === "in" ? "in" : "out",
     otherKey: otherKey,
     otherKnown: row["otherKnown"] === true,
+    otherId: asName(row["otherId"]),
     otherName: asName(row["otherName"]),
     otherType: asName(row["otherType"]),
     callCount: asNumber(row["callCount"]),
@@ -333,6 +388,14 @@ export function decodeEntityConnectionsResponse(
     connections: decodeConnectionSection(envelope["connections"]),
     isScanLimited: envelope["isScanLimited"] === true,
   };
+}
+
+/* "1,234", or "1,234+" when the server stopped counting early. */
+export function formatConnectionTotal(
+  total: number,
+  isScanLimited: boolean,
+): string {
+  return `${total.toLocaleString()}${isScanLimited ? "+" : ""}`;
 }
 
 /* A stable identity for a connection row within one entity's drawer. */
@@ -431,7 +494,11 @@ export function appendConnectionsPage(
  */
 function postEntityRequest(
   path: TopologyApiPath,
-  body: TopologyEntityRequestJSON | TopologyEntityConnectionsRequestJSON,
+  body:
+    | TopologyEntityRequestJSON
+    | TopologyEntityConnectionsRequestJSON
+    | TopologyEntityAllTimeRequestJSON
+    | TopologyEntityAllTimeConnectionsRequestJSON,
   options: EntityDetailRequestOptions,
 ): Promise<JSONObject> {
   /* The request types are plain JSON; they only lack an index signature. */
@@ -462,6 +529,34 @@ export async function fetchEntityConnections(
   const json: JSONObject = await postEntityRequest(
     TopologyApiPath.EntityConnections,
     buildEntityConnectionsRequest(target, rangeStart, section, offset, limit),
+    options,
+  );
+  return decodeEntityConnectionsResponse(json, section);
+}
+
+/* The inventory item page: the entity's sections over all time. */
+export async function fetchEntityAllTime(
+  target: EntityDetailTarget,
+  options: EntityDetailRequestOptions = {},
+): Promise<EntityDetailData> {
+  const json: JSONObject = await postEntityRequest(
+    TopologyApiPath.EntityAllTime,
+    buildEntityAllTimeRequest(target),
+    options,
+  );
+  return decodeEntityDetailResponse(json);
+}
+
+export async function fetchEntityAllTimeConnections(
+  target: EntityDetailTarget,
+  section: TopologyConnectionSection,
+  offset: number,
+  limit: number,
+  options: EntityDetailRequestOptions = {},
+): Promise<EntityConnectionsPage> {
+  const json: JSONObject = await postEntityRequest(
+    TopologyApiPath.EntityAllTimeConnections,
+    buildEntityAllTimeConnectionsRequest(target, section, offset, limit),
     options,
   );
   return decodeEntityConnectionsResponse(json, section);

@@ -18,6 +18,8 @@ import TopologyQueries from "Common/Server/Utils/Topology/TopologyQueries";
 import TopologyRequest, {
   TopologyCollectionRequest,
   TopologyCollectionSearchRequest,
+  TopologyEntityAllTimeConnectionsRequest,
+  TopologyEntityAllTimeRequest,
   TopologyEntityConnectionsRequest,
   TopologyEntityRequest,
   TopologyMapRequest,
@@ -370,6 +372,89 @@ export default class TopologyAPI {
                 projectId,
                 () => {
                   return TopologyQueries.getEntityConnections({
+                    ...request,
+                    projectId,
+                  });
+                },
+                abandoned,
+              ),
+            ),
+          );
+        } catch (err) {
+          return passOn(err, res, next);
+        }
+      },
+    );
+
+    /*
+     * The inventory item page's Connections: the drawer's sections over
+     * everything the inventory holds, with no range.
+     */
+    router.post(
+      TopologyApiPath.EntityAllTime,
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
+        try {
+          const projectId: ObjectID = await authorizeTopologyRead(
+            req,
+            "itemsAndRelationships",
+          );
+          const request: TopologyEntityAllTimeRequest =
+            TopologyRequest.parseEntityAllTimeRequest(req.body);
+
+          return Response.sendJsonStringResponse(
+            req,
+            res,
+            JSON.stringify(
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getEntityAllTime({
+                    ...request,
+                    projectId,
+                  });
+                },
+                abandoned,
+              ),
+            ),
+          );
+        } catch (err) {
+          return passOn(err, res, next);
+        }
+      },
+    );
+
+    // Its "Show more": the next page of one all-time section.
+    router.post(
+      TopologyApiPath.EntityAllTimeConnections,
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
+        try {
+          const projectId: ObjectID = await authorizeTopologyRead(
+            req,
+            "itemsAndRelationships",
+          );
+          const request: TopologyEntityAllTimeConnectionsRequest =
+            TopologyRequest.parseEntityAllTimeConnectionsRequest(req.body);
+
+          return Response.sendJsonStringResponse(
+            req,
+            res,
+            JSON.stringify(
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getEntityAllTimeConnections({
                     ...request,
                     projectId,
                   });
