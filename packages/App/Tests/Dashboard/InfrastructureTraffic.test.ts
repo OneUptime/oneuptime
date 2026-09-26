@@ -529,11 +529,11 @@ describe("traffic between the cards of a map", () => {
     const link: InfrastructureTrafficLink = traffic.links[0]!;
     expect(link.calls).toBe(500);
     expect(link.errors).toBe(3);
-    /* Weighted exactly like the Service Map's totals, in call order a,b. */
-    const afterAc: number = 10;
-    const afterAd: number = (afterAc * 100 + 0 * 0) / 100;
-    const expected: number = (afterAd * 200 + 50 * 300) / 500;
-    expect(link.avgDurationMs).toBeCloseTo(expected);
+    /*
+     * Weighted by calls over the calls that reported a duration (a->c and
+     * b->c); a->d reported none, so it neither counts nor dilutes.
+     */
+    expect(link.avgDurationMs).toBeCloseTo((100 * 10 + 300 * 50) / 400);
     expect(callPairs(link.serviceCalls)).toEqual([
       "b -> c",
       "a -> c",
@@ -681,6 +681,101 @@ describe("traffic between the cards of a map", () => {
     expect(computeInfrastructureTraffic(model, ["a", "b"])).toEqual({
       links: [],
       isPartial: false,
+      internalCalls: 0,
     });
+  });
+
+  test("the average latency does not depend on the order calls arrive in", () => {
+    const entities: Array<TopologyEntity> = [
+      entity("a", EntityType.Service),
+      entity("b", EntityType.Service),
+      entity("c", EntityType.Service),
+      entity("left", EntityType.Host, "left-box"),
+      entity("right", EntityType.Host, "right-box"),
+    ];
+    const placement: Array<TopologyRelationship> = [
+      edge("a", "left", EntityRelationshipType.HostedOn),
+      edge("b", "left", EntityRelationshipType.HostedOn),
+      edge("c", "right", EntityRelationshipType.HostedOn),
+    ];
+    /* Equal volumes, so busiest-first cannot fix the order either way. */
+    const calls: Array<TopologyRelationship> = [
+      call("a", "c", 100),
+      call("b", "c", 100, 0, 50),
+    ];
+    const forward: InfrastructureTrafficLink = computeInfrastructureTraffic(
+      buildInfrastructureTopologyModel(entities, [...placement, ...calls], {
+        rangeStart: RANGE_START,
+      }),
+      ["left", "right"],
+    ).links[0]!;
+    const backward: InfrastructureTrafficLink = computeInfrastructureTraffic(
+      buildInfrastructureTopologyModel(
+        entities,
+        [...placement, ...calls].reverse(),
+        { rangeStart: RANGE_START },
+      ),
+      ["left", "right"],
+    ).links[0]!;
+    expect(forward.avgDurationMs).toBe(50);
+    expect(backward.avgDurationMs).toBe(50);
+  });
+
+  test("calls between services that share a card are counted as staying inside it", () => {
+    const model: InfrastructureTopologyModel = aksModel();
+    /* On node-k alone every call stays inside; mcp -> backend does too. */
+    const inside: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "node-k",
+    ]);
+    expect(inside.links).toEqual([]);
+    expect(inside.internalCalls).toBe(4);
+    /* Pod by pod, each service is alone on its card. */
+    expect(
+      computeInfrastructureTraffic(model, collectMapCards(model, "node-k"))
+        .internalCalls,
+    ).toBe(0);
+  });
+
+  test("when the budget runs out, the quietest calls are the ones left out", () => {
+    const entities: Array<TopologyEntity> = [
+      entity("left", EntityType.Host, "left-box"),
+      entity("right", EntityType.Host, "right-box"),
+    ];
+    const relationships: Array<TopologyRelationship> = [];
+    /* Keys sort quiet-first, so key order would spend the budget on them. */
+    const volumes: Array<[string, number]> = [
+      ["a-quiet", 1],
+      ["b-quiet", 2],
+      ["y-busy", 5000],
+      ["z-busy", 9000],
+    ];
+    for (const [name] of volumes) {
+      entities.push(entity(`${name}-caller`, EntityType.Service));
+      entities.push(entity(`${name}-callee`, EntityType.Service));
+      relationships.push(
+        edge(`${name}-caller`, "left", EntityRelationshipType.HostedOn),
+        edge(`${name}-callee`, "right", EntityRelationshipType.HostedOn),
+      );
+    }
+    for (const [name, count] of volumes) {
+      relationships.push(call(`${name}-caller`, `${name}-callee`, count, 0, 5));
+    }
+    const model: InfrastructureTopologyModel = buildInfrastructureTopologyModel(
+      entities,
+      relationships,
+      { rangeStart: RANGE_START },
+    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
+      model,
+      ["left", "right"],
+      2,
+    );
+    expect(traffic.isPartial).toBe(true);
+    expect(traffic.links).toHaveLength(1);
+    expect(traffic.links[0]!.calls).toBe(14000);
+    expect(callPairs(traffic.links[0]!.serviceCalls)).toEqual([
+      "z-busy-caller -> z-busy-callee",
+      "y-busy-caller -> y-busy-callee",
+    ]);
   });
 });

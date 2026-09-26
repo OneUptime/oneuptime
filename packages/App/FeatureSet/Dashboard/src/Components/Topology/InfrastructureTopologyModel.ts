@@ -991,7 +991,10 @@ export interface InfrastructureTrafficLink {
   to: string;
   calls: number;
   errors: number;
-  /** Call-weighted average, or null when no call reported a duration. */
+  /**
+   * Average duration weighted by calls, over the calls that reported one;
+   * null when none did.
+   */
   avgDurationMs: number | null;
   health: TrafficHealth;
   /** The service calls this line stands for, busiest first. */
@@ -1000,8 +1003,17 @@ export interface InfrastructureTrafficLink {
 
 export interface InfrastructureTraffic {
   links: Array<InfrastructureTrafficLink>;
-  /* MAX_TRAFFIC_PAIRS was reached, so some lines are missing. */
+  /*
+   * MAX_TRAFFIC_PAIRS was reached: the quietest calls were not counted, so
+   * lines may be missing and the totals of those drawn may be short.
+   */
   isPartial: boolean;
+  /*
+   * Service calls whose two services share a card. Such a call stays inside
+   * the card and draws no line there, so a scope with only these calls has
+   * traffic but no lines.
+   */
+  internalCalls: number;
 }
 
 /*
@@ -1012,12 +1024,14 @@ export interface InfrastructureTraffic {
  */
 export const MAX_TRAFFIC_PAIRS: number = 200_000;
 
-function compareServiceCalls(
+/* Busiest first: most calls, then most errors, then by key. */
+export function compareServiceCalls(
   left: InfrastructureServiceCall,
   right: InfrastructureServiceCall,
 ): number {
   return (
     right.calls - left.calls ||
+    right.errors - left.errors ||
     compareKeys(left.from, right.from) ||
     compareKeys(left.to, right.to)
   );
@@ -1031,7 +1045,11 @@ function compareServiceCalls(
  * Calls are only measured per service pair, never per pod or host, so a
  * line carries the whole of each call it stands for, and a call whose two
  * services run on several cards appears on each line between them. Calls
- * between two services on the same card stay inside it and draw nothing.
+ * between two services on the same card stay inside it and draw nothing;
+ * they are counted in `internalCalls`.
+ *
+ * Calls are added busiest first, so when the MAX_TRAFFIC_PAIRS budget runs
+ * out it is the quietest calls that go uncounted.
  */
 export function computeInfrastructureTraffic(
   model: InfrastructureTopologyModel,
@@ -1063,17 +1081,31 @@ export function computeInfrastructureTraffic(
     string,
     InfrastructureTrafficLink
   >();
+  /*
+   * Per link: the calls that reported a duration and their summed duration,
+   * so the average is exact whatever order the calls arrive in.
+   */
+  const timed: Map<string, { calls: number; totalMs: number }> = new Map<
+    string,
+    { calls: number; totalMs: number }
+  >();
   let remaining: number = maxPairs;
   let isPartial: boolean = false;
-  for (const call of model.serviceCalls) {
+  let internalCalls: number = 0;
+  const calls: Array<InfrastructureServiceCall> = [...model.serviceCalls].sort(
+    compareServiceCalls,
+  );
+  for (const call of calls) {
     const fromCards: Array<string> | undefined = cardsByService.get(call.from);
     const toCards: Array<string> | undefined = cardsByService.get(call.to);
     if (!fromCards || !toCards) {
       continue;
     }
+    let isInternal: boolean = false;
     for (const from of fromCards) {
       for (const to of toCards) {
         if (from === to) {
+          isInternal = true;
           continue;
         }
         if (remaining <= 0) {
@@ -1096,25 +1128,28 @@ export function computeInfrastructureTraffic(
           };
           links.set(id, link);
         }
-        /*
-         * Durations average by calls, like the Service Map's totals; a call
-         * with no count adds the line but no traffic.
-         */
+        /* A call with no count adds the line but no traffic. */
         if (call.calls > 0) {
-          if (call.avgDurationMs !== null) {
-            link.avgDurationMs =
-              ((link.avgDurationMs || 0) * link.calls +
-                call.avgDurationMs * call.calls) /
-              (link.calls + call.calls);
-          }
           link.calls += call.calls;
           link.errors += call.errors;
+          if (call.avgDurationMs !== null) {
+            const total: { calls: number; totalMs: number } = timed.get(id) || {
+              calls: 0,
+              totalMs: 0,
+            };
+            total.calls += call.calls;
+            total.totalMs += call.avgDurationMs * call.calls;
+            timed.set(id, total);
+          }
         }
         link.serviceCalls.push(call);
       }
       if (isPartial) {
         break;
       }
+    }
+    if (isInternal) {
+      internalCalls++;
     }
     if (isPartial) {
       break;
@@ -1123,6 +1158,10 @@ export function computeInfrastructureTraffic(
 
   const result: Array<InfrastructureTrafficLink> = Array.from(links.values());
   for (const link of result) {
+    const total: { calls: number; totalMs: number } | undefined = timed.get(
+      link.id,
+    );
+    link.avgDurationMs = total ? total.totalMs / total.calls : null;
     link.health = healthForErrorRate(
       link.calls,
       link.errors,
@@ -1130,5 +1169,5 @@ export function computeInfrastructureTraffic(
     );
     link.serviceCalls.sort(compareServiceCalls);
   }
-  return { links: result, isPartial };
+  return { links: result, isPartial, internalCalls };
 }
