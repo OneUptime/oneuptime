@@ -310,6 +310,15 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
     });
     const view: RenderResult = render(element());
     await screen.findByTestId("event-notes-feed");
+    /*
+     * The feed is in the DOM as soon as React commits it, but its mount
+     * effect is passive and runs on a later tick - later still on a loaded
+     * machine. Wait for it, so a test that reads feedMounts reads it after
+     * the mount rather than racing it.
+     */
+    await waitFor(() => {
+      expect(feedMounts).toContain(currentEventId);
+    });
     return view;
   }
 
