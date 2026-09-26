@@ -33,6 +33,8 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import { IncidentSubscriberAudienceCounts } from "../../Types/StatusPage/IncidentSubscriberAudience";
+import Dictionary from "../../Types/Dictionary";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -1188,6 +1190,87 @@ Stay informed about service availability! 🚀`;
     } as LogAttributes);
 
     return subscribers;
+  }
+
+  /*
+   * How many subscribers of each status page each channel reaches, for the
+   * audience summary shown before an incident or a public note is sent
+   * (IncidentSubscriberAudience). The same subscribers getSubscribersByStatusPage
+   * sends to - confirmed, not unsubscribed - counted per channel in one
+   * aggregate query rather than read out: it never loads an address.
+   *
+   * A channel counts a subscriber whenever the job would send on it, which is
+   * whenever that column holds a value; a subscription with both an email and
+   * a phone counts once on each. Rows are pinned to the project, whatever ids
+   * the caller passes.
+   *
+   * Keyed by the lower-cased status page id. A page with no active subscriber
+   * has no entry.
+   */
+  @CaptureSpan()
+  public async countActiveSubscribersByChannel(data: {
+    projectId: ObjectID;
+    statusPageIds: Array<ObjectID>;
+  }): Promise<Dictionary<IncidentSubscriberAudienceCounts>> {
+    const counts: Dictionary<IncidentSubscriberAudienceCounts> = {};
+
+    const statusPageIds: Array<string> = [];
+
+    for (const statusPageId of data.statusPageIds) {
+      const id: string = statusPageId.toString().trim().toLowerCase();
+
+      if (id && !statusPageIds.includes(id)) {
+        statusPageIds.push(id);
+      }
+    }
+
+    if (statusPageIds.length === 0) {
+      return counts;
+    }
+
+    const rows: Array<{
+      statusPageId: string;
+      email: string;
+      sms: string;
+      slack: string;
+      microsoftTeams: string;
+      webhook: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT
+         "statusPageId"::text AS "statusPageId",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberEmail"), '') IS NOT NULL)::text AS "email",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberPhone"), '') IS NOT NULL)::text AS "sms",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("slackIncomingWebhookUrl"), '') IS NOT NULL)::text AS "slack",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("microsoftTeamsIncomingWebhookUrl"), '') IS NOT NULL)::text AS "microsoftTeams",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberWebhook"), '') IS NOT NULL)::text AS "webhook"
+       FROM "StatusPageSubscriber"
+       WHERE "projectId" = $1
+         AND "statusPageId" = ANY($2::uuid[])
+         AND "isUnsubscribed" = false
+         AND "isSubscriptionConfirmed" = true
+         AND "deletedAt" IS NULL
+       GROUP BY "statusPageId"`,
+      [data.projectId.toString(), statusPageIds],
+    );
+
+    const toCount: (value: string | undefined) => number = (
+      value: string | undefined,
+    ): number => {
+      const count: number = parseInt(value || "0", 10);
+      return Number.isFinite(count) && count > 0 ? count : 0;
+    };
+
+    for (const row of rows) {
+      counts[row.statusPageId.toLowerCase()] = {
+        email: toCount(row.email),
+        sms: toCount(row.sms),
+        slack: toCount(row.slack),
+        microsoftTeams: toCount(row.microsoftTeams),
+        webhook: toCount(row.webhook),
+      };
+    }
+
+    return counts;
   }
 
   public getUnsubscribeLink(
