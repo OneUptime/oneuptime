@@ -185,3 +185,19 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ReminderRuleLookupPostgres.test.ts --forceExit
+
+      # Clones the migrated StatusPage and subscriber notification template
+      # tables into an isolated schema and runs the worker's template lookup
+      # against them: a page's linked template must still be found behind
+      # more than 100 newer templates from other projects, and another
+      # project's template never is.
+      - name: Test status page subscriber template lookup on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_TEMPLATE_LOOKUP_TESTS: "true"
+          SUBSCRIBER_TEMPLATE_LOOKUP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_TEMPLATE_LOOKUP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_TEMPLATE_LOOKUP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSubscriberNotificationTemplateLookupPostgres.test.ts --forceExit
