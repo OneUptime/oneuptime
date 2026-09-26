@@ -20,6 +20,17 @@ export const RANGE_START_MAX_FUTURE_SKEW_MS: number = 5 * 60 * 1000;
 /* Earliest accepted range start; Postgres has no year 0 and nothing is older. */
 const RANGE_START_MIN_MS: number = Date.UTC(1970, 0, 1);
 
+/*
+ * The oldest range start the maps honour; an older one is clamped to it (and
+ * the clamped value is what the response echoes). Relationships are pruned
+ * after 30 days and discovered resources sooner, so an older start draws the
+ * same map — but every distinct minute is its own whole-inventory build and
+ * cache entry, so an open-ended range would let one caller fan out builds by
+ * varying the minute.
+ */
+export const MAP_RANGE_START_MAX_AGE_MS: number =
+  TopologyApiLimits.MaxMapRangeStartAgeDays * 24 * 60 * 60 * 1000;
+
 /* Entity keys and types are varchar(100); a little slack for multi-byte text. */
 export const MAX_ENTITY_KEY_LENGTH: number = 512;
 export const MAX_ENTITY_TYPE_LENGTH: number = 200;
@@ -31,6 +42,12 @@ const ISO_DATE_TIME_PATTERN: RegExp =
 export interface TopologyRangeRequest {
   /* Floored to the minute: every "in range" decision and the cache use it. */
   rangeStart: Date;
+}
+
+/* The Service Map and Infrastructure maps. */
+export interface TopologyMapRequest extends TopologyRangeRequest {
+  /* An explicit refresh: skip the cached copy (see TopologyMapRequestJSON). */
+  fresh: boolean;
 }
 
 export interface TopologyCollectionRequest extends TopologyRangeRequest {
@@ -76,12 +93,23 @@ export function floorToMinute(date: Date): Date {
 }
 
 export default class TopologyRequest {
-  public static parseRangeRequest(
+  public static parseMapRequest(
     body: unknown,
     now: Date = new Date(),
-  ): TopologyRangeRequest {
+  ): TopologyMapRequest {
     const json: JSONObject = TopologyRequest.asObject(body);
-    return { rangeStart: TopologyRequest.parseRangeStart(json, now) };
+    const rangeStart: Date = TopologyRequest.clampMapRangeStart(
+      TopologyRequest.parseRangeStart(json, now),
+      now,
+    );
+    const fresh: unknown = json["fresh"];
+    return {
+      rangeStart,
+      fresh:
+        fresh === undefined
+          ? false
+          : TopologyRequest.parseBoolean(fresh, "fresh"),
+    };
   }
 
   public static parseCollectionRequest(
@@ -223,6 +251,17 @@ export default class TopologyRequest {
       throw new BadDataException(`${field} must be a JSON object`);
     }
     return value as JSONObject;
+  }
+
+  /*
+   * A custom range can start long before anything the maps could draw; clamp
+   * it to the oldest start they honour, on a minute boundary like every other.
+   */
+  public static clampMapRangeStart(rangeStart: Date, now: Date): Date {
+    const oldest: Date = new Date(
+      Math.ceil((now.getTime() - MAP_RANGE_START_MAX_AGE_MS) / 60_000) * 60_000,
+    );
+    return rangeStart.getTime() < oldest.getTime() ? oldest : rangeStart;
   }
 
   private static parseRangeStart(json: JSONObject, now: Date): Date {

@@ -1,5 +1,8 @@
+import { PostgresStatementTimeoutMs } from "../../../../Server/EnvironmentConfig";
 import InventoryItemService from "../../../../Server/Services/InventoryItemService";
-import TopologyQueries from "../../../../Server/Utils/Topology/TopologyQueries";
+import TopologyQueries, {
+  statementTimeoutSql,
+} from "../../../../Server/Utils/Topology/TopologyQueries";
 import {
   CONTAINER_SPECIFICITY_RANKS,
   NESTING_RELATIONSHIP_RANKS,
@@ -150,23 +153,92 @@ describe("TopologyQueries", () => {
   });
 
   describe("the read snapshot", () => {
-    test("one REPEATABLE READ transaction, made read-only, without parallel workers or JIT, before any read", async () => {
+    test("one REPEATABLE READ transaction, made read-only, with the server-side statement timeout, without parallel workers or JIT, before any read", async () => {
       const database: FakeDatabase = useDatabase([typesRule([])]);
 
       await TopologyQueries.getServiceMap(scope());
 
       expect(database.isolationLevels).toEqual(["REPEATABLE READ"]);
+      expect(PostgresStatementTimeoutMs).toBeGreaterThan(0);
       expect(
-        database.statements.slice(0, 3).map((statement: RecordedStatement) => {
+        database.statements.slice(0, 4).map((statement: RecordedStatement) => {
           return statement.sql;
         }),
       ).toEqual([
         "SET TRANSACTION READ ONLY",
+        `SET LOCAL statement_timeout = ${Math.floor(PostgresStatementTimeoutMs)}`,
         "SET LOCAL max_parallel_workers_per_gather = 0",
         "SET LOCAL jit = off",
       ]);
-      expect(database.statements[3]!.sql).toContain("project_types");
+      expect(database.statements[4]!.sql).toContain("project_types");
     });
+
+    test("every endpoint's snapshot sets the statement timeout before its first read", async () => {
+      const runs: Array<() => Promise<unknown>> = [
+        () => {
+          return TopologyQueries.getInfrastructure(scope());
+        },
+        () => {
+          return TopologyQueries.getEntity({
+            ...scope(),
+            entityKey: "svc-a",
+            entityType: null,
+          });
+        },
+        () => {
+          return TopologyQueries.getCollectionPage({
+            ...scope(),
+            entityType: EntityType.IoTDevice,
+            includeInactive: false,
+            nameTerms: [],
+            cursor: null,
+            limit: 10,
+          });
+        },
+        () => {
+          return TopologyQueries.getCollectionSearch({
+            ...scope(),
+            includeInactive: false,
+            types: [{ entityType: EntityType.IoTDevice, nameTerms: [] }],
+          });
+        },
+      ];
+      for (const run of runs) {
+        const database: FakeDatabase = useDatabase([
+          typesRule([]),
+          ["COUNT(*)", rows([{ total: 0, count: 0 }])],
+          ['"InventoryItem" i', rows([])],
+        ]);
+        await run();
+        const timeoutAt: number = database.statements.findIndex(
+          (statement: RecordedStatement): boolean => {
+            return statement.sql.startsWith("SET LOCAL statement_timeout");
+          },
+        );
+        const firstRead: number = database.statements.findIndex(
+          (statement: RecordedStatement): boolean => {
+            return !statement.sql.startsWith("SET ");
+          },
+        );
+        expect(timeoutAt).toBe(1);
+        expect(firstRead).toBeGreaterThan(timeoutAt);
+      }
+    });
+
+    test.each([
+      [30_000, "SET LOCAL statement_timeout = 30000"],
+      [1, "SET LOCAL statement_timeout = 1"],
+      [2500.9, "SET LOCAL statement_timeout = 2500"],
+      [0, null],
+      [-5, null],
+      [Number.NaN, null],
+      [Number.POSITIVE_INFINITY, null],
+    ])(
+      "statementTimeoutSql(%p) = %p: an integer, or the connection's own when none is configured",
+      (timeoutMs: number, expected: string | null) => {
+        expect(statementTimeoutSql(timeoutMs)).toBe(expected);
+      },
+    );
 
     test("a failing statement rejects the request", async () => {
       useDatabase([

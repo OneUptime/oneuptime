@@ -33,8 +33,13 @@ import {
  *     built yet (Helm runs migrations asynchronously). Many keys travel as
  *     one array parameter, never as a sub-select over a CTE, so the planner
  *     knows how many there are (see itemsByKeysStatement).
- *   - Relationship end keys and tie-breaks compare in code-unit order
- *     (COLLATE "C"), the Dashboard's order and far cheaper to sort.
+ *   - Relationship end keys and tie-breaks compare with COLLATE "C": byte
+ *     order of the UTF-8 encoding, which is code-POINT order — far cheaper
+ *     to sort than the database collation, and what the Dashboard's
+ *     code-point comparator (TopologyTypeRules.compareCodePoints) matches.
+ *     Note it is not JavaScript's `<` (UTF-16 code-unit order), which
+ *     disagrees where a character outside the Basic Multilingual Plane meets
+ *     one in U+E000..U+FFFF.
  *   - Counts are cast to int (node-postgres returns bigint as a string) and
  *     timestamps leave the database as epoch milliseconds (float8), so hot
  *     result sets never allocate a Date per row.
@@ -596,7 +601,7 @@ function infrastructureNodesCteSql(data: {
  *   candidates: C -> P where C's type nests, the relationship type ranks,
  *               P is another node and P's type is a container.
  *   rank:       relationship priority DESC, container specificity DESC,
- *               P's key (code-unit order) ASC.
+ *               P's key (code-point order, COLLATE "C") ASC.
  *
  * `parent` is the best candidate over all nodes; `activeParent` the best
  * over active nodes, which the browser falls back to when inactive resources
@@ -644,9 +649,10 @@ export function infrastructureNodesStatement(data: {
   );
   const nestableTypes: string = params.add(NESTABLE_CHILD_TYPE_LIST);
   /*
-   * Keys sort in code-unit order here for two reasons: it is the Dashboard's
-   * tie-break, and a byte comparison is an order of magnitude cheaper than the
-   * database collation over a few hundred thousand candidates.
+   * Keys sort with COLLATE "C" (code-point order) here for two reasons: the
+   * Dashboard breaks the same tie with a code-point comparator, and a byte
+   * comparison is an order of magnitude cheaper than the database collation
+   * over a few hundred thousand candidates.
    */
   const ranking: string =
     `ORDER BY c."child" COLLATE "C", c."priority" DESC, c."specificity" DESC, ` +
@@ -710,8 +716,9 @@ function collectionWhereSql(data: {
 
 /*
  * One page of a collection, keyset-paged on (display name, key). The name
- * sorts in the database's collation (what a person expects), the key in code
- * units; both orders are total, so a cursor never skips or repeats a row.
+ * sorts in the database's collation (what a person expects), the key with
+ * COLLATE "C" (code points); both orders are total, so a cursor never skips
+ * or repeats a row.
  */
 export function collectionPageStatement(data: {
   projectId: string;

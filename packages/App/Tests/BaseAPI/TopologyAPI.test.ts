@@ -4,6 +4,11 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ModelPermission from "Common/Server/Types/Database/Permissions/Index";
 import ownerTableRegistry from "Common/Server/Types/Database/Permissions/OwnerTableRegistry";
 import Response from "Common/Server/Utils/Response";
+import TopologyConcurrencyLimiter, {
+  TOPOLOGY_BUSY_MESSAGE,
+  TOPOLOGY_BUSY_RETRY_AFTER_SECONDS,
+  TOPOLOGY_CONCURRENCY_LIMITS,
+} from "Common/Server/Utils/Topology/TopologyConcurrencyLimiter";
 import TopologyQueries from "Common/Server/Utils/Topology/TopologyQueries";
 import TopologyResponseCache from "Common/Server/Utils/Topology/TopologyResponseCache";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
@@ -12,13 +17,17 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
-import { TopologyApiPath } from "Common/Types/Topology/TopologyApi";
+import {
+  TopologyApiLimits,
+  TopologyApiPath,
+} from "Common/Types/Topology/TopologyApi";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import UserType from "Common/Types/UserType";
 import {
@@ -226,21 +235,73 @@ type PermissionCheckSpy = {
 
 let permissionCheck: PermissionCheckSpy;
 
+interface Called {
+  next: jest.Mock;
+  res: ExpressResponse;
+  req: ExpressRequest;
+  /* res.setHeader, the only thing a route writes on res itself. */
+  setHeader: jest.Mock;
+}
+
+/*
+ * Starts a request and returns once the handler has settled. The props are
+ * read synchronously when the handler starts, so requests started together
+ * with different props each keep their own.
+ */
 async function call(
   route: string,
   body: unknown,
   props: DatabaseCommonInteractionProps = propsForRequest,
-): Promise<{ next: jest.Mock; res: ExpressResponse; req: ExpressRequest }> {
+): Promise<Called> {
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(props);
   const next: jest.Mock = jest.fn() as unknown as jest.Mock;
+  const setHeader: jest.Mock = jest.fn() as unknown as jest.Mock;
   const req: ExpressRequest = { body } as unknown as ExpressRequest;
-  const res: ExpressResponse = {} as ExpressResponse;
+  const res: ExpressResponse = { setHeader } as unknown as ExpressResponse;
   await mockRouter
     .match("post", route)
     .handlerFunction(req, res, next as unknown as NextFunction);
-  return { next, res, req };
+  return { next, res, req, setHeader };
+}
+
+/* Lets handlers that are waiting on promises run up to their next wait. */
+async function settle(): Promise<void> {
+  for (let round: number = 0; round < 3; round++) {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+  }
+}
+
+/*
+ * Makes `query` hang until released, so requests pile up in the limiter.
+ * Returns the release for every call made so far and to come.
+ */
+function holdQueries(query: jest.Mock): { releaseAll: () => void } {
+  const releases: Array<() => void> = [];
+  let released: boolean = false;
+  query.mockImplementation((): Promise<JSONObject> => {
+    if (released) {
+      return Promise.resolve({ held: false });
+    }
+    return new Promise<JSONObject>(
+      (resolve: (value: JSONObject) => void): void => {
+        releases.push((): void => {
+          resolve({ held: true });
+        });
+      },
+    );
+  });
+  return {
+    releaseAll: (): void => {
+      released = true;
+      for (const release of releases.splice(0)) {
+        release();
+      }
+    },
+  };
 }
 
 function errorFrom(next: jest.Mock): Error {
@@ -284,6 +345,9 @@ describe("Topology API", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    // Every test gives back what it took from the shared per-process limiter.
+    expect(TopologyConcurrencyLimiter.runningCount()).toBe(0);
+    expect(TopologyConcurrencyLimiter.waitingCount()).toBe(0);
   });
 
   test("every route is a POST behind getUserMiddleware alone", () => {
@@ -399,9 +463,107 @@ describe("Topology API", () => {
 
     test("a failing query is passed on", async () => {
       queries[route.query].mockRejectedValue(new Error("statement timeout"));
-      const { next } = await call(route.path, route.body);
+      const { next, setHeader } = await call(route.path, route.body);
       expect(errorFrom(next).message).toBe("statement timeout");
       expect(responseUtil.sendJsonStringResponse).not.toHaveBeenCalled();
+      expect(setHeader).not.toHaveBeenCalled();
+    });
+
+    test("reads under the limiter, for the caller's project, only after its checks", async () => {
+      const run: jest.Mock = jest.spyOn(
+        TopologyConcurrencyLimiter,
+        "run",
+      ) as unknown as jest.Mock;
+
+      permissionCheck.mockRejectedValue(
+        new NotAuthorizedException("You do not have permissions to read"),
+      );
+      await call(route.path, route.body);
+      await call(route.path, { ...route.body, rangeStart: "not a date" });
+      expect(run).not.toHaveBeenCalled();
+
+      permissionCheck.mockRestore();
+      jest
+        .spyOn(ModelPermission, "checkReadQueryPermission")
+        .mockResolvedValue({} as never);
+      queries[route.query].mockImplementation(async (): Promise<JSONObject> => {
+        // The read happens inside the slot the limiter granted.
+        expect(
+          TopologyConcurrencyLimiter.runningCount(PROJECT_ID.toString()),
+        ).toBe(1);
+        return { from: route.query };
+      });
+      const { next } = await call(route.path, route.body);
+      expect(next).not.toHaveBeenCalled();
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(run.mock.calls[0]![0]).toBe(PROJECT_ID.toString());
+      expect(queries[route.query]).toHaveBeenCalledTimes(1);
+    });
+
+    test("a busy project is answered 429 with Retry-After once its queue is full; other projects still get through", async () => {
+      const held: { releaseAll: () => void } = holdQueries(
+        queries[route.query],
+      );
+      /*
+       * Its running share, then its whole waiting share; one more is
+       * refused. Map requests use a different minute each, so none shares
+       * another's build (that is what a flood of cache misses looks like).
+       */
+      const accepted: number =
+        TOPOLOGY_CONCURRENCY_LIMITS.maxRunningPerProject +
+        TOPOLOGY_CONCURRENCY_LIMITS.maxWaitingPerProject;
+      const bodyFor: (index: number) => JSONObject = (
+        index: number,
+      ): JSONObject => {
+        return {
+          ...route.body,
+          rangeStart: new Date(
+            FLOORED.getTime() - index * 60_000,
+          ).toISOString(),
+        };
+      };
+      const pending: Array<Promise<Called>> = [];
+      for (let index: number = 0; index < accepted; index++) {
+        pending.push(call(route.path, bodyFor(index)));
+      }
+      await settle();
+      expect(queries[route.query]).toHaveBeenCalledTimes(
+        TOPOLOGY_CONCURRENCY_LIMITS.maxRunningPerProject,
+      );
+
+      const refused: Called = await call(route.path, bodyFor(accepted));
+      const error: Error = errorFrom(refused.next);
+      expect(error).toBeInstanceOf(TooManyRequestsException);
+      expect(error.message).toBe(TOPOLOGY_BUSY_MESSAGE);
+      expect(refused.setHeader).toHaveBeenCalledWith(
+        "Retry-After",
+        String(TOPOLOGY_BUSY_RETRY_AFTER_SECONDS),
+      );
+
+      // Another project is under its own limit and the process has room.
+      const other: Promise<Called> = call(
+        route.path,
+        bodyFor(accepted + 1),
+        memberProps(OTHER_PROJECT_ID),
+      );
+      await settle();
+      expect(queries[route.query]).toHaveBeenCalledTimes(
+        TOPOLOGY_CONCURRENCY_LIMITS.maxRunningPerProject + 1,
+      );
+      const calls: Array<Array<unknown>> = queries[route.query].mock.calls;
+      expect((calls[calls.length - 1]![0] as JSONObject)["projectId"]).toBe(
+        OTHER_PROJECT_ID,
+      );
+
+      held.releaseAll();
+      const done: Array<Called> = await Promise.all([...pending, other]);
+      for (const finished of done) {
+        expect(finished.next).not.toHaveBeenCalled();
+      }
+      expect(queries[route.query]).toHaveBeenCalledTimes(accepted + 1);
+      expect(responseUtil.sendJsonStringResponse).toHaveBeenCalledTimes(
+        accepted + 1,
+      );
     });
 
     test(
@@ -582,6 +744,37 @@ describe("Topology API", () => {
       expect(sentJson(1)).toEqual({ entities: [] });
     });
 
+    test("a cache hit takes no limiter slot", async () => {
+      const run: jest.Mock = jest.spyOn(
+        TopologyConcurrencyLimiter,
+        "run",
+      ) as unknown as jest.Mock;
+      await call(TopologyApiPath.Infrastructure, { rangeStart: RANGE_START });
+      await call(TopologyApiPath.Infrastructure, { rangeStart: RANGE_START });
+      expect(queries.getInfrastructure).toHaveBeenCalledTimes(1);
+      expect(run).toHaveBeenCalledTimes(1);
+    });
+
+    test("requests sharing a build share its slot", async () => {
+      const held: { releaseAll: () => void } = holdQueries(
+        queries.getServiceMap,
+      );
+      const run: jest.Mock = jest.spyOn(
+        TopologyConcurrencyLimiter,
+        "run",
+      ) as unknown as jest.Mock;
+      const all: Array<Promise<Called>> = [];
+      for (let index: number = 0; index < 5; index++) {
+        all.push(call(TopologyApiPath.ServiceMap, { rangeStart: RANGE_START }));
+      }
+      await settle();
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(TopologyConcurrencyLimiter.waitingCount()).toBe(0);
+      held.releaseAll();
+      await Promise.all(all);
+      expect(responseUtil.sendJsonStringResponse).toHaveBeenCalledTimes(5);
+    });
+
     test("a failed build is not cached: the next request builds again", async () => {
       queries.getServiceMap.mockRejectedValueOnce(new Error("timeout"));
       const failed: { next: jest.Mock } = await call(
@@ -594,6 +787,140 @@ describe("Topology API", () => {
       await call(TopologyApiPath.ServiceMap, { rangeStart: RANGE_START });
       expect(queries.getServiceMap).toHaveBeenCalledTimes(2);
       expect(sentJson(0)).toEqual({ from: "getServiceMap" });
+    });
+  });
+
+  describe("an explicit refresh (fresh)", () => {
+    beforeEach(() => {
+      const builds: { count: number } = { count: 0 };
+      const build: () => Promise<JSONObject> =
+        async (): Promise<JSONObject> => {
+          builds.count++;
+          return { generatedAt: `build-${builds.count}` };
+        };
+      queries.getServiceMap.mockImplementation(build);
+      queries.getInfrastructure.mockImplementation(build);
+    });
+
+    test.each([
+      [TopologyApiPath.ServiceMap, "getServiceMap"],
+      [TopologyApiPath.Infrastructure, "getInfrastructure"],
+    ] as Array<[TopologyApiPath, QueryName]>)(
+      "%s: after a warm hit, a fresh request rebuilds and replaces the cached map",
+      async (route: TopologyApiPath, query: QueryName) => {
+        await call(route, { rangeStart: RANGE_START });
+        await call(route, { rangeStart: RANGE_START });
+        expect(queries[query]).toHaveBeenCalledTimes(1);
+        expect(sentJson(1)).toEqual({ generatedAt: "build-1" });
+
+        const refreshed: Called = await call(route, {
+          rangeStart: RANGE_START,
+          fresh: true,
+        });
+        expect(refreshed.next).not.toHaveBeenCalled();
+        expect(queries[query]).toHaveBeenCalledTimes(2);
+        expect(sentJson(2)).toEqual({ generatedAt: "build-2" });
+
+        // The next ordinary request gets the refreshed copy, from the cache.
+        await call(route, { rangeStart: RANGE_START, fresh: false });
+        expect(queries[query]).toHaveBeenCalledTimes(2);
+        expect(sentJson(3)).toEqual({ generatedAt: "build-2" });
+
+        // The query sees the range only, never the flag.
+        expect(queries[query].mock.calls[1]![0]).toEqual({
+          rangeStart: FLOORED,
+          projectId: PROJECT_ID,
+        });
+      },
+    );
+
+    test("a fresh request joins a build already running instead of starting another", async () => {
+      const held: { releaseAll: () => void } = holdQueries(
+        queries.getServiceMap,
+      );
+      const cold: Promise<Called> = call(TopologyApiPath.ServiceMap, {
+        rangeStart: RANGE_START,
+      });
+      await settle();
+      const fresh: Promise<Called> = call(TopologyApiPath.ServiceMap, {
+        rangeStart: RANGE_START,
+        fresh: true,
+      });
+      await settle();
+      held.releaseAll();
+      await Promise.all([cold, fresh]);
+      expect(queries.getServiceMap).toHaveBeenCalledTimes(1);
+      expect(sentJson(0)).toEqual({ held: true });
+      expect(sentJson(1)).toEqual({ held: true });
+    });
+
+    test("a fresh request is still authorized first", async () => {
+      await call(TopologyApiPath.ServiceMap, { rangeStart: RANGE_START });
+      permissionCheck.mockRejectedValue(
+        new NotAuthorizedException("blocked by a team rule"),
+      );
+      const { next } = await call(TopologyApiPath.ServiceMap, {
+        rangeStart: RANGE_START,
+        fresh: true,
+      });
+      expect(errorFrom(next)).toBeInstanceOf(NotAuthorizedException);
+      expect(queries.getServiceMap).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      ["a string", "true"],
+      ["a number", 1],
+      ["null", null],
+    ])(
+      "fresh as %s is a 400 and reads nothing",
+      async (_label: string, fresh: unknown) => {
+        const { next } = await call(TopologyApiPath.Infrastructure, {
+          rangeStart: RANGE_START,
+          fresh,
+        });
+        const error: Error = errorFrom(next);
+        expect(error).toBeInstanceOf(BadDataException);
+        expect(error.message).toMatch(/fresh must be a boolean/);
+        expectNothingRead();
+      },
+    );
+  });
+
+  describe("the maps' range start is bounded in the past", () => {
+    const tooOld: string = new Date(
+      Date.now() -
+        (TopologyApiLimits.MaxMapRangeStartAgeDays + 1) * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    test.each([
+      [TopologyApiPath.ServiceMap, "getServiceMap"],
+      [TopologyApiPath.Infrastructure, "getInfrastructure"],
+    ])(
+      "%s clamps a start more than 400 days ago instead of refusing it",
+      async (route: TopologyApiPath, method: string) => {
+        const { next } = await call(route, { rangeStart: tooOld });
+        expect(next).not.toHaveBeenCalled();
+        const query: jest.Mock = queries[method as QueryName];
+        expect(query).toHaveBeenCalledTimes(1);
+        const used: Date = (query.mock.calls[0]![0] as { rangeStart: Date })
+          .rangeStart;
+        expect(used.getTime()).toBeGreaterThan(new Date(tooOld).getTime());
+        expect(used.getTime()).toBeGreaterThanOrEqual(
+          Date.now() -
+            TopologyApiLimits.MaxMapRangeStartAgeDays * 24 * 60 * 60 * 1000 -
+            60_000,
+        );
+      },
+    );
+
+    test("a map a year back is still served", async () => {
+      const { next } = await call(TopologyApiPath.ServiceMap, {
+        rangeStart: new Date(
+          Date.now() - 365 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+      });
+      expect(next).not.toHaveBeenCalled();
+      expect(queries.getServiceMap).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -743,6 +1070,11 @@ describe("the stubs in this file track the route they stand in for", () => {
     expect(membersUsedOn("ModelPermission")).toEqual(
       new Set<string>(["checkReadQueryPermission"]),
     );
+    // The limiter is real here; the tests spy on the one member it uses.
+    expect(membersUsedOn("TopologyConcurrencyLimiter")).toEqual(
+      new Set<string>(["run"]),
+    );
+    expect(typeof TopologyConcurrencyLimiter.run).toBe("function");
     expect(typeof CommonAPI.getDatabaseCommonInteractionProps).toBe("function");
     expect(typeof CommonAPI.assertTenantScoped).toBe("function");
     expect(typeof ModelPermission.checkReadQueryPermission).toBe("function");

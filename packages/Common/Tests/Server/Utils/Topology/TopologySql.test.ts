@@ -80,17 +80,133 @@ function placeholders(sql: string): Array<number> {
   });
 }
 
-/*
- * Every alias the statement reads a table through, e.g. `"InventoryItem" i`
- * → i. Checked against the live-row predicates below.
- */
-function aliasesOf(sql: string, table: string): Array<string> {
-  const aliases: Array<string> = [];
-  const pattern: RegExp = new RegExp(`"${table}" ([a-z_]+)`, "g");
-  for (const match of sql.matchAll(pattern)) {
-    aliases.push(match[1] as string);
+/* The tables every statement here reads, and what scopes each reference. */
+const TABLE_PATTERN: RegExp = /"(InventoryItem|InventoryItemRelationship)"/g;
+const REFERENCE_PATTERN: RegExp =
+  /"(InventoryItem|InventoryItemRelationship)" ([a-z_]+)/g;
+
+interface TableReference {
+  table: string;
+  alias: string;
+  at: number;
+}
+
+/* Every `"Table" alias` in the text, where it is. */
+function referencesOf(sql: string): Array<TableReference> {
+  const references: Array<TableReference> = [];
+  for (const match of sql.matchAll(REFERENCE_PATTERN)) {
+    references.push({
+      table: match[1] as string,
+      alias: match[2] as string,
+      at: match.index as number,
+    });
   }
-  return aliases;
+  return references;
+}
+
+/* Parenthesized groups as [open, close] offsets; string literals skipped. */
+function groupsOf(sql: string): Array<[number, number]> {
+  const groups: Array<[number, number]> = [];
+  const open: Array<number> = [];
+  let inLiteral: boolean = false;
+  for (let index: number = 0; index < sql.length; index++) {
+    const character: string = sql[index] as string;
+    if (character === "'") {
+      inLiteral = !inLiteral;
+    } else if (!inLiteral && character === "(") {
+      open.push(index);
+    } else if (!inLiteral && character === ")") {
+      const start: number | undefined = open.pop();
+      if (start === undefined) {
+        throw new Error(`unbalanced ")" at ${index}`);
+      }
+      groups.push([start, index]);
+    }
+  }
+  if (open.length > 0 || inLiteral) {
+    throw new Error("unbalanced statement text");
+  }
+  return groups;
+}
+
+/*
+ * The text a table reference's own predicates must be in: the innermost
+ * parenthesized group around it (its sub-select or CTE body; the whole
+ * statement at the top level), minus every group nested in it that reads a
+ * table itself — so a predicate on another reading of the same table, or on
+ * a sub-select's own alias, can never stand in for this one's.
+ */
+function ownScopeOf(
+  sql: string,
+  groups: Array<[number, number]>,
+  references: Array<TableReference>,
+  reference: TableReference,
+): { key: string; text: string } {
+  let scope: [number, number] = [-1, sql.length];
+  for (const group of groups) {
+    if (
+      group[0] < reference.at &&
+      reference.at < group[1] &&
+      group[0] > scope[0]
+    ) {
+      scope = group;
+    }
+  }
+  const nestedReaders: Array<[number, number]> = groups
+    .filter((group: [number, number]): boolean => {
+      return (
+        group[0] > scope[0] &&
+        group[1] < scope[1] &&
+        references.some((other: TableReference): boolean => {
+          return group[0] < other.at && other.at < group[1];
+        })
+      );
+    })
+    .sort((left: [number, number], right: [number, number]): number => {
+      return left[0] - right[0];
+    });
+  let text: string = "";
+  let cursor: number = scope[0] + 1;
+  for (const group of nestedReaders) {
+    if (group[0] < cursor) {
+      /* Inside a group already cut out. */
+      continue;
+    }
+    text += `${sql.slice(cursor, group[0])} (...) `;
+    cursor = group[1] + 1;
+  }
+  text += sql.slice(cursor, scope[1]);
+  return { key: `${scope[0]}:${scope[1]}`, text };
+}
+
+function countOf(text: string, pattern: string): number {
+  return Array.from(text.matchAll(new RegExp(pattern, "g"))).length;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/*
+ * The live-row predicates every reading of a table needs, as patterns on its
+ * alias (not preceded by another identifier character, so `i` never matches
+ * inside `dup`).
+ */
+function requiredPredicates(
+  reference: TableReference,
+  options: { itemsMayIncludeArchived?: boolean },
+): Array<string> {
+  const alias: string = `(?<![A-Za-z0-9_"])${escapeRegExp(reference.alias)}`;
+  const predicates: Array<string> = [
+    `${alias}\\."projectId" = \\$1(?!\\d)`,
+    `${alias}\\."deletedAt" IS NULL`,
+  ];
+  if (reference.table === "InventoryItemRelationship") {
+    predicates.push(`${alias}\\."lastSeenAt" >= \\$\\d+`);
+  } else if (!options.itemsMayIncludeArchived) {
+    predicates.push(`${alias}\\."isArchived" = false`);
+  }
+  return predicates;
 }
 
 function expectWellFormed(
@@ -111,24 +227,47 @@ function expectWellFormed(
   expect(statement.params[0]).toBe(PROJECT_ID);
   expect(sql).not.toContain(PROJECT_ID);
 
-  const itemAliases: Array<string> = aliasesOf(sql, "InventoryItem");
-  const relationshipAliases: Array<string> = aliasesOf(
-    sql,
-    "InventoryItemRelationship",
+  /*
+   * Every reading of a table is scoped by predicates of its OWN: counted per
+   * reference, inside the sub-select or CTE that reads it. Two readings of
+   * one table under one alias (the drawer's outbound and inbound scans) each
+   * need their own set; one set elsewhere in the statement proves nothing.
+   */
+  const references: Array<TableReference> = referencesOf(sql);
+  expect(references.length).toBeGreaterThan(0);
+  // Every table is read through an alias the checks below can follow.
+  expect(Array.from(sql.matchAll(TABLE_PATTERN)).length).toBe(
+    references.length,
   );
-  expect(itemAliases.length + relationshipAliases.length).toBeGreaterThan(0);
-
-  for (const alias of itemAliases) {
-    expect(sql).toContain(`${alias}."projectId" = $1`);
-    expect(sql).toContain(`${alias}."deletedAt" IS NULL`);
-    if (!options.itemsMayIncludeArchived) {
-      expect(sql).toContain(`${alias}."isArchived" = false`);
+  const groups: Array<[number, number]> = groupsOf(sql);
+  const needed: Map<string, { text: string; count: number }> = new Map<
+    string,
+    { text: string; count: number }
+  >();
+  for (const reference of references) {
+    const scope: { key: string; text: string } = ownScopeOf(
+      sql,
+      groups,
+      references,
+      reference,
+    );
+    for (const predicate of requiredPredicates(reference, options)) {
+      const key: string = `${scope.key}|${predicate}`;
+      const entry: { text: string; count: number } = needed.get(key) || {
+        text: scope.text,
+        count: 0,
+      };
+      entry.count++;
+      needed.set(key, entry);
     }
   }
-  for (const alias of relationshipAliases) {
-    expect(sql).toContain(`${alias}."projectId" = $1`);
-    expect(sql).toContain(`${alias}."deletedAt" IS NULL`);
-    expect(sql).toContain(`${alias}."lastSeenAt" >= $`);
+  for (const [key, entry] of needed) {
+    const predicate: string = key.slice(key.indexOf("|") + 1);
+    expect({
+      predicate,
+      scope: entry.text,
+      found: countOf(entry.text, predicate) >= entry.count,
+    }).toEqual({ predicate, scope: entry.text, found: true });
   }
 
   // Nothing request-supplied is spliced into the text.
@@ -385,7 +524,7 @@ describe("TopologySql statements", () => {
       expect(sql).not.toMatch(/THEN [0-9]/);
     });
 
-    test("ranks priority, then specificity, then the parent key in code-unit order", () => {
+    test("ranks priority, then specificity, then the parent key in code-point order", () => {
       expect(sql).toContain(
         `ORDER BY c."child" COLLATE "C", c."priority" DESC, c."specificity" DESC, c."parent" COLLATE "C" ASC`,
       );
@@ -394,7 +533,7 @@ describe("TopologySql statements", () => {
       expect(sql).toContain(`r."fromEntityKey" <> r."toEntityKey"`);
     });
 
-    test("orders nodes by type then key in code-unit order", () => {
+    test("orders nodes by type then key in code-point order", () => {
       expect(sql).toContain(
         `ORDER BY n."type" COLLATE "C" ASC, n."key" COLLATE "C" ASC`,
       );
@@ -559,5 +698,120 @@ describe("TopologySql statements", () => {
         /r\."section" = \$\d+::text AND r\."rank" > \$\d+::int AND r\."rank" <= \$\d+::int \+ \$\d+::int/,
       );
     });
+  });
+});
+
+/*
+ * The check above is only worth something if it fails on a statement that
+ * drops a predicate from ONE reading of a table while another reading keeps
+ * it — which a search over the whole text cannot see.
+ */
+describe("expectWellFormed catches a reading of a table without its own scope", () => {
+  const sections: TopologySqlStatement = entitySectionsStatement({
+    projectId: PROJECT_ID,
+    rangeStart: RANGE_START,
+    projectTypes: [EntityType.Service],
+    entityKey: "svc-a",
+    isService: true,
+    scanLimit: 100_001,
+    window: { kind: "top", dependencyRows: 100, otherRows: 25 },
+  });
+
+  /* `statement` with `remove` taken out once, after the first `after`. */
+  function without(
+    statement: TopologySqlStatement,
+    after: string,
+    remove: string,
+  ): TopologySqlStatement {
+    const sql: string = normalize(statement.sql);
+    const from: number = sql.indexOf(after);
+    expect(from).toBeGreaterThanOrEqual(0);
+    const at: number = sql.indexOf(remove, from);
+    expect(at).toBeGreaterThan(from);
+    return {
+      sql: sql.slice(0, at) + sql.slice(at + remove.length),
+      params: statement.params,
+    };
+  }
+
+  test("the intact statements pass", () => {
+    expect(() => {
+      expectWellFormed(sections);
+    }).not.toThrow();
+  });
+
+  test.each([
+    ["the tenant", `r."projectId" = $1 AND `],
+    ["the deleted filter", `r."deletedAt" IS NULL AND `],
+    ["the range", ` AND r."lastSeenAt" >= $2`],
+  ])(
+    "the drawer's inbound scan without %s fails, though the outbound scan keeps it",
+    (_label: string, predicate: string) => {
+      const broken: TopologySqlStatement = without(
+        sections,
+        "scan_in AS MATERIALIZED (",
+        predicate,
+      );
+      // Still somewhere in the text: a whole-statement search would pass.
+      expect(broken.sql).toContain(predicate.replace(/^ AND | AND $/g, ""));
+      expect(() => {
+        expectWellFormed(broken);
+      }).toThrow();
+    },
+  );
+
+  test("the drawer's outbound scan without the tenant fails too", () => {
+    expect(() => {
+      expectWellFormed(
+        without(
+          sections,
+          "scan_out AS MATERIALIZED (",
+          `r."projectId" = $1 AND `,
+        ),
+      );
+    }).toThrow();
+  });
+
+  test("the other-end lookup without the archive filter fails", () => {
+    expect(() => {
+      expectWellFormed(
+        without(
+          sections,
+          "others AS MATERIALIZED (",
+          `i."isArchived" = false AND `,
+        ),
+      );
+    }).toThrow();
+  });
+
+  test("a winner sub-select cannot lend its predicates to the outer reading, nor the other way round", () => {
+    const services: TopologySqlStatement = servicesStatement({
+      projectId: PROJECT_ID,
+      winner: WITH_DUPLICATES,
+    });
+    expect(() => {
+      expectWellFormed(services);
+    }).not.toThrow();
+    expect(() => {
+      expectWellFormed(without(services, "SELECT", `i."deletedAt" IS NULL`));
+    }).toThrow();
+    expect(() => {
+      expectWellFormed(
+        without(
+          services,
+          `"InventoryItem" dup`,
+          `AND dup."deletedAt" IS NULL `,
+        ),
+      );
+    }).toThrow();
+  });
+
+  test("a table read without an alias fails", () => {
+    expect(() => {
+      expectWellFormed({
+        sql: `SELECT COUNT(*) FROM "InventoryItem" i WHERE i."projectId" = $1 AND i."isArchived" = false AND i."deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "InventoryItem" WHERE "projectId" = $1)`,
+        params: [PROJECT_ID],
+      });
+    }).toThrow();
   });
 });

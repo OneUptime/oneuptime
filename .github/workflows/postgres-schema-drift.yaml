@@ -192,7 +192,10 @@ jobs:
       # choice, activity, winners among duplicate keys, collections, keyset
       # paging, search escaping and the drawer's sections. The differential
       # suite then checks the same SQL against a reference implementation of
-      # the spec on seeded random estates.
+      # the spec on seeded random estates, the activity parity suite checks
+      # the SQL activity predicate against the Dashboard's over a truth table,
+      # and the migration suite runs the entity-key index migration's build
+      # and skip branches against a clone of InventoryItem.
       - name: Test the Topology API's SQL against the migrated schema
         working-directory: packages/Common
         env:
@@ -204,4 +207,6 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Topology/TopologyQueriesPostgres.test.ts
           Tests/Server/Utils/Topology/TopologyQueriesDifferentialPostgres.test.ts
+          Tests/Server/Utils/Topology/TopologyActivityParityPostgres.test.ts
+          Tests/Server/Utils/Topology/InventoryItemEntityKeyIndexMigrationPostgres.test.ts
           --forceExit

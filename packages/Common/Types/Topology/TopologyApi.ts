@@ -62,6 +62,15 @@ export const TopologyApiLimits: {
    * reports its totals as lower bounds ("100,000+") instead of timing out.
    */
   EntityConnectionScanLimit: number;
+  /*
+   * Oldest range start the two maps honour, in days before now; an older one
+   * is clamped to it and the clamped value is echoed. Well past the longest
+   * relative range the time picker offers (3 months) and past every retention
+   * that matters (relationships are pruned after 30 days), and it bounds how
+   * many distinct minutes — each a separate whole-inventory build and cache
+   * entry — a caller can ask for.
+   */
+  MaxMapRangeStartAgeDays: number;
 } = {
   MaxServiceMapEntities: 50_000,
   MaxServiceMapDependencies: 200_000,
@@ -76,6 +85,7 @@ export const TopologyApiLimits: {
   EntityOtherRows: 25,
   EntityConnectionsPageSizeMax: 200,
   EntityConnectionScanLimit: 100_000,
+  MaxMapRangeStartAgeDays: 400,
 };
 
 // ---------------------------------------------------------------- requests
@@ -85,9 +95,21 @@ export interface TopologyRangeRequestJSON {
   rangeStart: string;
 }
 
-export type TopologyServiceMapRequestJSON = TopologyRangeRequestJSON;
+/** The Service Map and Infrastructure maps. */
+export interface TopologyMapRequestJSON extends TopologyRangeRequestJSON {
+  /*
+   * An explicit refresh by the user ("Refresh topology"). The maps are served
+   * from a short-lived per-process cache (up to a minute old); a fresh
+   * request skips that cached copy and rebuilds — still sharing a build of
+   * the same map that is already running — and the new result replaces the
+   * cached one. Omit (or false) for every other load.
+   */
+  fresh?: boolean | undefined;
+}
 
-export type TopologyInfrastructureRequestJSON = TopologyRangeRequestJSON;
+export type TopologyServiceMapRequestJSON = TopologyMapRequestJSON;
+
+export type TopologyInfrastructureRequestJSON = TopologyMapRequestJSON;
 
 export interface TopologyCollectionCursorJSON {
   /** Display name of the last row of the previous page ("" when it had none). */

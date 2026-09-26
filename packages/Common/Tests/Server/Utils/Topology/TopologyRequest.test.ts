@@ -1,4 +1,5 @@
 import TopologyRequest, {
+  MAP_RANGE_START_MAX_AGE_MS,
   MAX_CURSOR_NAME_LENGTH,
   MAX_ENTITY_KEY_LENGTH,
   RANGE_START_MAX_FUTURE_SKEW_MS,
@@ -40,7 +41,7 @@ describe("TopologyRequest", () => {
   describe("rangeStart", () => {
     test("is floored to the minute", () => {
       expect(
-        TopologyRequest.parseRangeRequest({ rangeStart: RANGE_START }, NOW)
+        TopologyRequest.parseMapRequest({ rangeStart: RANGE_START }, NOW)
           .rangeStart,
       ).toEqual(FLOORED);
       expect(floorToMinute(new Date("2026-09-26T11:00:59.999Z"))).toEqual(
@@ -54,8 +55,7 @@ describe("TopologyRequest", () => {
       ["with nanoseconds", "2026-09-26T11:00:45.123456789Z"],
     ])("accepts ISO 8601 %s", (_label: string, value: string) => {
       expect(
-        TopologyRequest.parseRangeRequest({ rangeStart: value }, NOW)
-          .rangeStart,
+        TopologyRequest.parseMapRequest({ rangeStart: value }, NOW).rangeStart,
       ).toEqual(FLOORED);
     });
 
@@ -64,7 +64,7 @@ describe("TopologyRequest", () => {
         NOW.getTime() + RANGE_START_MAX_FUTURE_SKEW_MS,
       ).toISOString();
       expect(() => {
-        return TopologyRequest.parseRangeRequest({ rangeStart: ahead }, NOW);
+        return TopologyRequest.parseMapRequest({ rangeStart: ahead }, NOW);
       }).not.toThrow();
     });
 
@@ -103,7 +103,7 @@ describe("TopologyRequest", () => {
       "rejects rangeStart %s",
       (_label: string, body: JSONObject, message: RegExp) => {
         expectBadData(() => {
-          return TopologyRequest.parseRangeRequest(body, NOW);
+          return TopologyRequest.parseMapRequest(body, NOW);
         }, message);
       },
     );
@@ -114,8 +114,115 @@ describe("TopologyRequest", () => {
       ["a string", RANGE_START],
     ])("rejects a body that is %s", (_label: string, body: unknown) => {
       expectBadData(() => {
-        return TopologyRequest.parseRangeRequest(body, NOW);
+        return TopologyRequest.parseMapRequest(body, NOW);
       }, /body must be a JSON object/);
+    });
+  });
+
+  describe("the maps' range start is clamped to at most 400 days ago", () => {
+    test("the bound is the contract's", () => {
+      expect(TopologyApiLimits.MaxMapRangeStartAgeDays).toBe(400);
+      expect(MAP_RANGE_START_MAX_AGE_MS).toBe(400 * 24 * 60 * 60 * 1000);
+    });
+
+    test("the oldest whole minute inside 400 days is kept as sent", () => {
+      const oldest: Date = floorToMinute(
+        new Date(NOW.getTime() - MAP_RANGE_START_MAX_AGE_MS + 60_000),
+      );
+      expect(
+        TopologyRequest.parseMapRequest(
+          { rangeStart: oldest.toISOString() },
+          NOW,
+        ).rangeStart,
+      ).toEqual(oldest);
+    });
+
+    /*
+     * Relationships are pruned after 30 days, so an older start draws the
+     * same map; clamping (rather than refusing) keeps an old custom range
+     * working while every such request shares one cache entry.
+     */
+    test.each([
+      ["a minute past the bound", MAP_RANGE_START_MAX_AGE_MS + 60_000],
+      ["two years", 2 * 365 * 24 * 60 * 60 * 1000],
+      ["the epoch", NOW.getTime()],
+    ])(
+      "%s before now is clamped to the oldest honoured minute",
+      (_label: string, ageMs: number) => {
+        const clamped: Date = TopologyRequest.parseMapRequest(
+          { rangeStart: new Date(NOW.getTime() - ageMs).toISOString() },
+          NOW,
+        ).rangeStart;
+        expect(clamped.getTime() % 60_000).toBe(0);
+        expect(clamped.getTime()).toBeGreaterThanOrEqual(
+          NOW.getTime() - MAP_RANGE_START_MAX_AGE_MS,
+        );
+        expect(clamped.getTime()).toBeLessThan(
+          NOW.getTime() - MAP_RANGE_START_MAX_AGE_MS + 60_000,
+        );
+      },
+    );
+
+    test("every over-old start shares one clamped value (one cache entry)", () => {
+      const starts: Array<number> = [401, 500, 5000].map(
+        (days: number): number => {
+          return TopologyRequest.parseMapRequest(
+            {
+              rangeStart: new Date(
+                NOW.getTime() - days * 24 * 60 * 60 * 1000,
+              ).toISOString(),
+            },
+            NOW,
+          ).rangeStart.getTime();
+        },
+      );
+      expect(new Set<number>(starts).size).toBe(1);
+    });
+
+    test("the drawer and collections are not bound by it (their start comes from a map)", () => {
+      const old: string = new Date(
+        NOW.getTime() - MAP_RANGE_START_MAX_AGE_MS - 86_400_000,
+      ).toISOString();
+      expect(() => {
+        return TopologyRequest.parseEntityRequest(
+          { rangeStart: old, entityKey: "k" },
+          NOW,
+        );
+      }).not.toThrow();
+    });
+  });
+
+  describe("fresh (an explicit refresh of a map)", () => {
+    test("absent means a cached map may answer", () => {
+      expect(
+        TopologyRequest.parseMapRequest({ rangeStart: RANGE_START }, NOW),
+      ).toEqual({ rangeStart: FLOORED, fresh: false });
+    });
+
+    test.each([true, false])(
+      "a boolean %p is taken as given",
+      (fresh: boolean) => {
+        expect(
+          TopologyRequest.parseMapRequest(
+            { rangeStart: RANGE_START, fresh },
+            NOW,
+          ),
+        ).toEqual({ rangeStart: FLOORED, fresh });
+      },
+    );
+
+    test.each([
+      ["a string", "true"],
+      ["a number", 1],
+      ["null", null],
+      ["an object", {}],
+    ])("rejects %s", (_label: string, fresh: unknown) => {
+      expectBadData(() => {
+        return TopologyRequest.parseMapRequest(
+          { rangeStart: RANGE_START, fresh },
+          NOW,
+        );
+      }, /fresh must be a boolean/);
     });
   });
 

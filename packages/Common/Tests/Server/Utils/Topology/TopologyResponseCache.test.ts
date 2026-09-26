@@ -210,4 +210,96 @@ describe("TopologyResponseCache", () => {
     expect(cache.size()).toBe(0);
     expect(cache.byteSize()).toBe(0);
   });
+
+  describe("fresh (an explicit refresh)", () => {
+    test("after a warm hit, rebuilds and replaces the entry for everyone", async () => {
+      const cache: TopologyResponseCache = new TopologyResponseCache();
+      let builds: number = 0;
+      const build: () => Promise<string> = async (): Promise<string> => {
+        builds++;
+        return `{"build":${builds}}`;
+      };
+      expect(await cache.getOrBuild("k", build)).toBe(`{"build":1}`);
+      expect(await cache.getOrBuild("k", build)).toBe(`{"build":1}`);
+
+      expect(await cache.getOrBuild("k", build, { fresh: true })).toBe(
+        `{"build":2}`,
+      );
+      expect(builds).toBe(2);
+      // The refreshed copy is what the next ordinary request gets.
+      expect(await cache.getOrBuild("k", build)).toBe(`{"build":2}`);
+      expect(builds).toBe(2);
+      expect(cache.size()).toBe(1);
+      expect(cache.byteSize()).toBe(`{"build":2}`.length * 2);
+    });
+
+    test("joins a build already in flight instead of starting a second", async () => {
+      const cache: TopologyResponseCache = new TopologyResponseCache();
+      const pending: Deferred = deferred();
+      let builds: number = 0;
+      const build: () => Promise<string> = (): Promise<string> => {
+        builds++;
+        return pending.promise;
+      };
+      const cold: Promise<string> = cache.getOrBuild("k", build);
+      const fresh: Promise<string> = cache.getOrBuild("k", build, {
+        fresh: true,
+      });
+      expect(cache.inFlightCount()).toBe(1);
+      pending.resolve("payload");
+      expect(await Promise.all([cold, fresh])).toEqual(["payload", "payload"]);
+      expect(builds).toBe(1);
+    });
+
+    test("ordinary requests during a refresh still get the cached copy, then the new one", async () => {
+      const cache: TopologyResponseCache = new TopologyResponseCache();
+      cache.set("k", "old");
+      const pending: Deferred = deferred();
+      const refresh: Promise<string> = cache.getOrBuild(
+        "k",
+        () => {
+          return pending.promise;
+        },
+        { fresh: true },
+      );
+      expect(
+        await cache.getOrBuild("k", async () => {
+          return "unexpected";
+        }),
+      ).toBe("old");
+      pending.resolve("new");
+      expect(await refresh).toBe("new");
+      expect(cache.get("k")).toBe("new");
+    });
+
+    test("a failed refresh is not cached and leaves the previous copy in place", async () => {
+      const cache: TopologyResponseCache = new TopologyResponseCache();
+      cache.set("k", "old");
+      await expect(
+        cache.getOrBuild(
+          "k",
+          async (): Promise<string> => {
+            throw new Error("statement timeout");
+          },
+          { fresh: true },
+        ),
+      ).rejects.toThrow("statement timeout");
+      expect(cache.get("k")).toBe("old");
+      expect(cache.inFlightCount()).toBe(0);
+    });
+
+    test("fresh: false behaves like no option", async () => {
+      const cache: TopologyResponseCache = new TopologyResponseCache();
+      cache.set("k", "cached");
+      expect(
+        await cache.getOrBuild(
+          "k",
+          async () => {
+            return "built";
+          },
+          { fresh: false },
+        ),
+      ).toBe("cached");
+    });
+  });
 });

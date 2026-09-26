@@ -12,6 +12,11 @@
  * same promise. A failed build is never cached; its followers see the same
  * failure and the next request starts over.
  *
+ * An explicit refresh (`fresh`) skips the cached copy but not the rest: it
+ * joins a build of the key already in flight (which began reading at most one
+ * build's duration before the refresh) or starts one, and the result replaces
+ * the cached copy for everyone.
+ *
  * Bounded by a byte budget rather than an entry count: a large estate's
  * infrastructure payload is tens of megabytes, so a count bound says nothing
  * about memory. Oldest entries are evicted first (Map iteration order is
@@ -59,14 +64,20 @@ export class TopologyResponseCache {
     },
   ) {}
 
-  /* The cached value for `key`, or the result of `build` (shared, cached). */
+  /*
+   * The cached value for `key`, or the result of `build` (shared, cached).
+   * With `fresh`, never the cached value: a build in flight or a new one.
+   */
   public async getOrBuild(
     key: string,
     build: () => Promise<string>,
+    options: { fresh?: boolean | undefined } = {},
   ): Promise<string> {
-    const cached: string | undefined = this.get(key);
-    if (cached !== undefined) {
-      return cached;
+    if (!options.fresh) {
+      const cached: string | undefined = this.get(key);
+      if (cached !== undefined) {
+        return cached;
+      }
     }
 
     const running: Promise<string> | undefined = this.inFlight.get(key);

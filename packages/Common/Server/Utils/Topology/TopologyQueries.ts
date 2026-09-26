@@ -1,3 +1,4 @@
+import { PostgresStatementTimeoutMs } from "../../EnvironmentConfig";
 import InventoryItemService from "../../Services/InventoryItemService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { JSONObject } from "../../../Types/JSON";
@@ -74,7 +75,27 @@ import { EntityManager } from "typeorm";
  * over one project and does not need the workers. JIT is off too: it spends
  * 100-200 ms compiling each large statement and wins nothing back on reads of
  * this size.
+ *
+ * The statement timeout is set on the transaction as well, not left to the
+ * connection's startup parameter: PgBouncer drops that parameter, and behind
+ * it nothing but node-postgres's client-side query_timeout would remain — which
+ * abandons a query without cancelling it, leaving one of the heaviest reads in
+ * the app running on the server (holding its snapshot) after the user was
+ * already told it failed. The configured value stays below that client
+ * timeout, so Postgres cancels first.
  */
+
+/*
+ * `SET LOCAL statement_timeout = <ms>` for the configured statement timeout,
+ * or null when none is configured (0, or not a number): then the connection's
+ * own setting applies, as for every other query.
+ */
+export function statementTimeoutSql(timeoutMs: number): string | null {
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 1) {
+    return null;
+  }
+  return `SET LOCAL statement_timeout = ${Math.floor(timeoutMs)}`;
+}
 
 export interface TopologyStatementRunner {
   query(statement: TopologySqlStatement): Promise<Array<JSONObject>>;
@@ -279,8 +300,8 @@ function decodeSections(
 export default class TopologyQueries {
   /*
    * Runs `work` on one pooled connection inside a READ ONLY REPEATABLE READ
-   * transaction. TypeORM commits on success, rolls back on failure and
-   * always releases the connection.
+   * transaction with a server-side statement timeout. TypeORM commits on
+   * success, rolls back on failure and always releases the connection.
    */
   public static async inReadOnlySnapshot<T>(
     work: (runner: TopologyStatementRunner) => Promise<T>,
@@ -290,6 +311,12 @@ export default class TopologyQueries {
       "REPEATABLE READ",
       async (transaction: EntityManager): Promise<T> => {
         await transaction.query("SET TRANSACTION READ ONLY");
+        const statementTimeout: string | null = statementTimeoutSql(
+          PostgresStatementTimeoutMs,
+        );
+        if (statementTimeout) {
+          await transaction.query(statementTimeout);
+        }
         await transaction.query(
           "SET LOCAL max_parallel_workers_per_gather = 0",
         );

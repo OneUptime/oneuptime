@@ -1,4 +1,5 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
+import { PostgresStatementTimeoutMs } from "../../../../Server/EnvironmentConfig";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import TopologyQueries, {
   TopologyStatementRunner,
@@ -32,9 +33,9 @@ import { DataSource } from "typeorm";
  * runner; only a real planner and executor can say whether the nesting
  * choice, the activity predicate, the winner among duplicate keys, the
  * collection keyset and the drawer's sections actually return the rows the
- * contract promises. Collation matters here in particular: ties are broken in
- * code-unit order (COLLATE "C"), which differs from the database's default
- * collation exactly on mixed-case keys.
+ * contract promises. Collation matters here in particular: ties are broken
+ * with COLLATE "C" (code-point order), which differs from the database's
+ * default collation exactly on mixed-case keys.
  *
  * Opt in with RUN_POSTGRES_TOPOLOGY_TESTS=true against a Postgres migrated to
  * the current head (the Postgres Schema Drift workflow's database right after
@@ -392,6 +393,28 @@ describePostgres.each(INDEX_VARIANTS)(
             },
           ),
         ).rejects.toThrow(/read-only transaction/);
+      });
+
+      /*
+       * Behind PgBouncer the connection's startup statement_timeout is
+       * dropped; the transaction carries its own, so Postgres cancels a
+       * runaway read itself before the client-side query_timeout abandons it.
+       */
+      test("carries the configured statement timeout, for the transaction only", async () => {
+        const inside: string = await TopologyQueries.inReadOnlySnapshot(
+          async (runner: TopologyStatementRunner): Promise<string> => {
+            const rows: Array<JSONObject> = await runner.query({
+              sql: `SELECT setting FROM pg_settings WHERE name = 'statement_timeout'`,
+              params: [],
+            });
+            return rows[0]!["setting"] as string;
+          },
+        );
+        expect(inside).toBe(String(Math.floor(PostgresStatementTimeoutMs)));
+        const after: Array<{ setting: string }> = await database.query(
+          `SELECT setting FROM pg_settings WHERE name = 'statement_timeout'`,
+        );
+        expect(after[0]!.setting).not.toBe(inside);
       });
 
       test("the worker setting does not leak to the pooled connection", async () => {
@@ -913,7 +936,7 @@ describePostgres.each(INDEX_VARIANTS)(
           // pod-1: part-of beats runs-on.
           { from: "pod-1", to: "ns-a", type: partOf },
           { from: "pod-1", to: "node-B", type: runsOn },
-          // pod-2: a full tie, broken by key in code-unit order ("B" < "a").
+          // pod-2: a full tie, broken by key in code-point order ("B" < "a").
           { from: "pod-2", to: "node-a", type: runsOn },
           { from: "pod-2", to: "node-B", type: runsOn },
           // pod-3: same priority, the more specific container wins.
@@ -994,7 +1017,7 @@ describePostgres.each(INDEX_VARIANTS)(
           : response.nodes[node.parent]!.key;
       }
 
-      test("ships only infrastructure nodes, ordered by type then key in code-unit order", async () => {
+      test("ships only infrastructure nodes, ordered by type then key in code-point order", async () => {
         await seedCluster();
 
         const response: TopologyInfrastructureResponseJSON =
@@ -1036,7 +1059,7 @@ describePostgres.each(INDEX_VARIANTS)(
           "pod-2",
           "node-B",
           EntityRelationshipType.RunsOn,
-          "a full tie goes to the smaller key in code-unit order",
+          "a full tie goes to the smaller key in code-point order",
         ],
         [
           "pod-3",
@@ -1309,7 +1332,7 @@ describePostgres.each(INDEX_VARIANTS)(
         });
       }
 
-      test("keyset pages cover every row exactly once, by name then key in code-unit order", async () => {
+      test("keyset pages cover every row exactly once, by name then key in code-point order", async () => {
         await items([
           { key: "k-3", type: EntityType.NetworkDevice, name: "beta" },
           { key: "k-B", type: EntityType.NetworkDevice, name: "alpha" },
@@ -1857,6 +1880,228 @@ describePostgres.each(INDEX_VARIANTS)(
         } finally {
           TopologyApiLimits.EntityConnectionScanLimit = limit;
         }
+      });
+
+      test("inbound rows that are stale, soft-deleted, undated or another project's reach no section", async () => {
+        await items([
+          { key: "svc-a", type: EntityType.Service, name: "Checkout" },
+          { key: "svc-c", type: EntityType.Service, name: "Frontend" },
+          { key: "svc-stale", type: EntityType.Service },
+          { key: "svc-deleted-edge", type: EntityType.Service },
+          { key: "svc-undated", type: EntityType.Service },
+          {
+            key: "svc-foreign",
+            type: EntityType.Service,
+            projectId: OTHER_PROJECT_ID,
+          },
+          { key: "pod-1", type: EntityType.KubernetesPod },
+          { key: "pod-stale", type: EntityType.KubernetesPod },
+          { key: "pod-deleted-edge", type: EntityType.KubernetesPod },
+          {
+            key: "pod-foreign",
+            type: EntityType.KubernetesPod,
+            projectId: OTHER_PROJECT_ID,
+          },
+        ]);
+        const dependsOn: string = EntityRelationshipType.DependsOn;
+        const runsOn: string = EntityRelationshipType.RunsOn;
+        await relationships([
+          // The two that count: one caller, one resource running the service.
+          { from: "svc-c", to: "svc-a", type: dependsOn, callCount: 3 },
+          { from: "pod-1", to: "svc-a", type: runsOn },
+          // Into svc-a, but not in range, deleted, undated or foreign.
+          {
+            from: "svc-stale",
+            to: "svc-a",
+            type: dependsOn,
+            lastSeenAt: STALE,
+          },
+          {
+            from: "svc-deleted-edge",
+            to: "svc-a",
+            type: dependsOn,
+            deleted: true,
+          },
+          {
+            from: "svc-undated",
+            to: "svc-a",
+            type: dependsOn,
+            lastSeenAt: null,
+          },
+          {
+            from: "svc-foreign",
+            to: "svc-a",
+            type: dependsOn,
+            projectId: OTHER_PROJECT_ID,
+          },
+          { from: "pod-stale", to: "svc-a", type: runsOn, lastSeenAt: STALE },
+          {
+            from: "pod-deleted-edge",
+            to: "svc-a",
+            type: runsOn,
+            deleted: true,
+          },
+          {
+            from: "pod-foreign",
+            to: "svc-a",
+            type: runsOn,
+            projectId: OTHER_PROJECT_ID,
+          },
+        ]);
+
+        const response: TopologyEntityResponseJSON = await entity("svc-a");
+        expect(response.isScanLimited).toBe(false);
+        expect(response.sections.calledBy.total).toBe(1);
+        expect(response.sections.calledBy.unknownTotal).toBe(0);
+        expect(otherKeysOf(response.sections.calledBy.rows)).toEqual(["svc-c"]);
+        expect(response.sections.related.total).toBe(1);
+        expect(response.sections.related.unknownTotal).toBe(0);
+        expect(
+          response.sections.related.rows.map(
+            (row: TopologyConnectionRowJSON): string => {
+              return `${row.direction}:${row.relationshipType}:${row.otherKey}`;
+            },
+          ),
+        ).toEqual([`in:${runsOn}:pod-1`]);
+        expect(response.sections.calls.total).toBe(0);
+        expect(response.sections.runsOn.total).toBe(0);
+
+        // "Show more" reads through the same scan.
+        const page: TopologyEntityConnectionsResponseJSON =
+          await TopologyQueries.getEntityConnections({
+            ...scope(),
+            entityKey: "svc-a",
+            entityType: null,
+            section: "calledBy",
+            offset: 0,
+            limit: 50,
+          });
+        expect(page.connections.total).toBe(1);
+        expect(otherKeysOf(page.connections.rows)).toEqual(["svc-c"]);
+      });
+
+      test("past the scan limit on outbound alone, the newest outbound rows are the ones kept", async () => {
+        const limit: number = TopologyApiLimits.EntityConnectionScanLimit;
+        TopologyApiLimits.EntityConnectionScanLimit = 3;
+        try {
+          await item({ key: "ns-a", type: EntityType.KubernetesNamespace });
+          const outbound: Array<RelationshipFixture> = [];
+          // Inserted oldest-last so insertion order cannot pass for recency.
+          for (let index: number = 5; index >= 0; index--) {
+            outbound.push({
+              from: "ns-a",
+              to: `target-${index}`,
+              type: EntityRelationshipType.PartOf,
+              lastSeenAt: new Date(IN_RANGE.getTime() + index * 60_000),
+            });
+          }
+          await relationships(outbound);
+          // Newer than every outbound row, but outbound is read first.
+          await relationship({
+            from: "pod-newest",
+            to: "ns-a",
+            type: EntityRelationshipType.PartOf,
+            lastSeenAt: new Date(IN_RANGE.getTime() + 3_600_000),
+          });
+
+          const response: TopologyEntityResponseJSON = await entity("ns-a");
+          expect(response.isScanLimited).toBe(true);
+          // limit + 1 relationships read: the four newest outbound.
+          expect(response.sections.related.total).toBe(4);
+          expect(otherKeysOf(response.sections.related.rows).sort()).toEqual([
+            "target-2",
+            "target-3",
+            "target-4",
+            "target-5",
+          ]);
+        } finally {
+          TopologyApiLimits.EntityConnectionScanLimit = limit;
+        }
+      });
+
+      test("a duplicated other-end key is named and typed by its createdAt ASC, _id DESC winner", async () => {
+        const early: Date = new Date("2026-09-01T00:00:00.000Z");
+        const late: Date = new Date("2026-09-02T00:00:00.000Z");
+        await items([
+          { key: "svc-a", type: EntityType.Service, name: "Checkout" },
+          // Earliest live row wins over a later one...
+          {
+            key: "twin",
+            type: EntityType.Database,
+            name: "later row",
+            createdAt: late,
+          },
+          {
+            key: "twin",
+            type: EntityType.Host,
+            name: "earliest row",
+            createdAt: early,
+          },
+          // ...and an even earlier row does not count once archived or deleted.
+          {
+            key: "twin",
+            type: EntityType.KubernetesPod,
+            name: "archived row",
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+            archived: true,
+          },
+          {
+            key: "twin",
+            type: EntityType.KubernetesNode,
+            name: "deleted row",
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+            deleted: true,
+          },
+          // Same createdAt: the larger _id wins.
+          {
+            key: "tie",
+            type: EntityType.Database,
+            name: "smaller id",
+            createdAt: early,
+            id: "00000000-0000-4000-8000-000000000001",
+          },
+          {
+            key: "tie",
+            type: EntityType.Host,
+            name: "larger id",
+            createdAt: early,
+            id: "00000000-0000-4000-8000-000000000002",
+          },
+        ]);
+        await relationships([
+          {
+            from: "svc-a",
+            to: "twin",
+            type: EntityRelationshipType.DependsOn,
+            callCount: 2,
+          },
+          {
+            from: "svc-a",
+            to: "tie",
+            type: EntityRelationshipType.DependsOn,
+            callCount: 1,
+          },
+        ]);
+
+        const response: TopologyEntityResponseJSON = await entity("svc-a");
+        expect(
+          response.sections.calls.rows.map(
+            (
+              row: TopologyConnectionRowJSON,
+            ): [string, boolean, string | null, string | null] => {
+              return [
+                row.otherKey,
+                row.otherKnown,
+                row.otherName,
+                row.otherType,
+              ];
+            },
+          ),
+        ).toEqual([
+          ["twin", true, "earliest row", EntityType.Host],
+          ["tie", true, "larger id", EntityType.Host],
+        ]);
+        expect(response.sections.calls.total).toBe(2);
       });
 
       test("exactly the limit is not scan limited", async () => {
