@@ -1,14 +1,15 @@
-import {
-  SMSDefaultCostInCents,
-  SMSHighRiskCostInCents,
-  getTwilioConfig,
-} from "../Config";
+import { SMSDefaultCostInCents, SMSHighRiskCostInCents } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import SafeHtml from "Common/Types/SafeHtml";
+import Exception from "Common/Types/Exception/Exception";
+import SmsSendException, {
+  ISmsProvider,
+  SmsSendResult,
+} from "Common/Types/SMS/SmsProvider";
 import SmsStatus from "Common/Types/SmsStatus";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Text from "Common/Types/Text";
@@ -26,8 +27,7 @@ import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import Twilio from "twilio";
-import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
+import SmsProviderFactory from "../Providers/SmsProviderFactory";
 
 export default class SmsService {
   public static async sendSms(
@@ -239,31 +239,10 @@ export default class SmsService {
         smsLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
       }
 
-      const twilioConfig: TwilioConfig | null =
-        options.customTwilioConfig || (await getTwilioConfig());
-
-      if (!twilioConfig) {
-        /*
-         * Nobody has filled in Twilio credentials in Global Settings (or the
-         * caller passed a project-level config that is empty). Failing to send
-         * is the correct behaviour, not a defect, so do not open an Issue.
-         */
-        throw new BadDataException("Twilio Config not found").asUserError();
-      }
-
-      const client: Twilio.Twilio = Twilio(
-        twilioConfig.accountSid,
-        twilioConfig.authToken,
-      );
-
-      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
-        to: to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        secondaryPhoneNumbersToPickFrom:
-          twilioConfig.secondaryPhoneNumbers || [],
-      });
-
-      smsLog.fromNumber = fromNumber;
+      const smsProvider: ISmsProvider =
+        await SmsProviderFactory.getProviderWithOptionalConfig(
+          options.customTwilioConfig,
+        );
 
       let project: Project | null = null;
 
@@ -442,22 +421,23 @@ export default class SmsService {
         }
       }
 
-      const twillioMessage: MessageInstance = await client.messages.create({
-        body: message,
-        to: to.toString(),
-        from: fromNumber.toString(), // From a valid Twilio number
-        ...(statusCallbackUrl ? { statusCallback: statusCallbackUrl } : {}),
+      const smsSendResult: SmsSendResult = await smsProvider.sendSms({
+        to: to,
+        message: message,
+        ...(statusCallbackUrl ? { statusCallbackUrl: statusCallbackUrl } : {}),
       });
 
+      smsLog.fromNumber = smsSendResult.fromNumber;
+
       /*
-       * messages.create resolves once Twilio accepts the message (typically status
-       * "queued"/"accepted"). The terminal delivered/undelivered/failed state arrives
-       * later via the status callback above.
+       * The provider resolves once it accepts the message (typically status
+       * "queued"/"accepted"). The terminal delivered/undelivered/failed state
+       * arrives later via the status callback.
        */
       smsLog.status =
-        SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
+        SmsService.mapProviderStatusToSmsStatus(smsSendResult.providerStatus) ||
         SmsStatus.Sent;
-      smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
+      smsLog.statusMessage = "Message ID: " + smsSendResult.providerMessageId;
 
       logger.debug("SMS message sent successfully.");
       logger.debug(smsLog.statusMessage);
@@ -488,11 +468,21 @@ export default class SmsService {
         e && e.message ? e.message.toString() : e.toString();
 
       /*
-       * Twilio SDK errors expose a numeric `code` (e.g. 21211). Surface it so
-       * operators can see exactly why a send was rejected.
+       * Surface provider error codes (e.g. Twilio's 21211), OneUptime
+       * exception codes, and codes from arbitrary third-party errors (e.g.
+       * Postgres error codes) so operators can see exactly why a send failed.
        */
-      if (e && (e.code || e.code === 0)) {
+      if (e instanceof SmsSendException) {
+        if (e.errorCode) {
+          smsLog.errorCode = e.errorCode.toString();
+        }
+      } else if (e instanceof Exception) {
         smsLog.errorCode = e.code.toString();
+      } else if (e && typeof e === "object" && "code" in e) {
+        const code: unknown = e.code;
+        if (code || code === 0) {
+          smsLog.errorCode = String(code);
+        }
       }
 
       logger.error("SMS message failed to send.");
@@ -516,6 +506,7 @@ export default class SmsService {
             status: smsLog.status!,
             statusMessage: smsLog.statusMessage!,
             smsCostInUSDCents: smsLog.smsCostInUSDCents!,
+            ...(smsLog.fromNumber ? { fromNumber: smsLog.fromNumber } : {}),
             ...(smsLog.errorCode ? { errorCode: smsLog.errorCode } : {}),
           },
         });
