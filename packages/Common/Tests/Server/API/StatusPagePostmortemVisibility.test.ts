@@ -86,6 +86,7 @@ function mockServices(data: { overview: boolean }): Fixtures {
   page.projectId = ObjectID.generate();
   page.isPublicStatusPage = true;
   page.showIncidentsOnStatusPage = true;
+  page.onlyShowScopedIncidents = false;
 
   const resource: StatusPageResource = new StatusPageResource();
   resource._id = ObjectID.generate().toString();
@@ -220,6 +221,15 @@ function mockServices(data: { overview: boolean }): Fixtures {
 
     // The overview also fetches timeline summaries, which select no postmortem.
     if (!select["postmortemNote"]) {
+      return Promise.resolve([]);
+    }
+
+    /*
+     * Each read is asked in two halves (IncidentStatusPageScope): incidents
+     * limited to no status page, which these all are, and incidents limited
+     * to this page, of which there are none.
+     */
+    if (query["isScopedToStatusPages"] !== false) {
       return Promise.resolve([]);
     }
 
@@ -406,7 +416,8 @@ describe("StatusPageAPI postmortem visibility", () => {
         statusPageId: fixtures.statusPageId,
       });
 
-      expect(fixtures.incidentReadSpy).toHaveBeenCalledTimes(2);
+      // Recent and active incidents, each read in two halves.
+      expect(fixtures.incidentReadSpy).toHaveBeenCalledTimes(2 * 2);
       expectVisibility({
         payload,
         key: "incidents",
@@ -433,7 +444,8 @@ describe("StatusPageAPI postmortem visibility", () => {
         incidentId: incident._id!,
       });
 
-      expect(fixtures.incidentReadSpy).toHaveBeenCalledTimes(1);
+      // The one incident, read in two halves.
+      expect(fixtures.incidentReadSpy).toHaveBeenCalledTimes(2);
       expectVisibility({ payload, key: "incidents", incidents: [incident] });
       expectSourcesUnchanged(fixtures);
     },

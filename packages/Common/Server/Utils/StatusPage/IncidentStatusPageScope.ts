@@ -123,6 +123,19 @@ export const INCIDENT_SCOPE_COLUMNS: ReadonlyArray<string> = [
   "statusPagesNotifiedOnCreation",
 ];
 
+/*
+ * What isIncidentInScope reads of an incident, for a caller that reads
+ * incidents by id (an episode's members) and applies the scope in memory.
+ * Such a caller removes the columns again (removeScopeColumns) before
+ * anything it read is serialized.
+ */
+export const INCIDENT_SCOPE_SELECT: Select<Incident> = {
+  isScopedToStatusPages: true,
+  statusPages: {
+    _id: true,
+  },
+};
+
 // What every subscriber job reads of the resources an incident affects.
 export const SUBSCRIBER_NOTIFICATION_RESOURCE_SELECT: Select<StatusPageResource> =
   {

@@ -63,7 +63,8 @@ import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResour
 import MonitorGroupService from "./MonitorGroupService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
-import IncidentService from "./IncidentService";
+import IncidentStatusPageScope from "../Utils/StatusPage/IncidentStatusPageScope";
+import Select from "../Types/Database/Select";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService, {
   MergedDowntimeTotals,
@@ -121,6 +122,17 @@ export {
 export const STATUS_PAGE_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
   "requireSsoForLogin",
 ];
+
+/*
+ * What a report's incident counts read of the status page: which project's
+ * incidents to count, and whether the page only shows incidents limited to
+ * it (IncidentStatusPageScope decides from that which incidents count).
+ */
+export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
+  _id: true,
+  projectId: true,
+  onlyShowScopedIncidents: true,
+};
 
 export class Service extends DatabaseService<StatusPage> {
   /*
@@ -1432,6 +1444,8 @@ export class Service extends DatabaseService<StatusPage> {
       },
       select: {
         downtimeMonitorStatuses: true,
+        // What the incident counts below are scoped by.
+        ...INCIDENT_COUNT_STATUS_PAGE_SELECT,
       },
     });
 
@@ -1499,7 +1513,7 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
-      statusPageId: data.statusPageId,
+      statusPage: statusPage,
       startDate: startDate,
       endDate: endDate,
     });
@@ -1661,6 +1675,7 @@ export class Service extends DatabaseService<StatusPage> {
         reportItem: {
           resourceName: resource.displayName || "",
           totalIncidentCount: await this.getIncidentCountByMonitorIds({
+            statusPage: statusPage,
             monitorIds: monitorIdsForThisResource,
             startDate: startDate,
             endDate: endDate,
@@ -1710,6 +1725,7 @@ export class Service extends DatabaseService<StatusPage> {
 
     const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> =
       await this.getReportGroupMetrics({
+        statusPage: statusPage,
         statusPageGroups: statusPageGroups,
         entries: entries,
         monitorIdsByResourceIndex: monitorIdsByResourceIndex,
@@ -1817,6 +1833,11 @@ export class Service extends DatabaseService<StatusPage> {
    */
   @CaptureSpan()
   public async getReportGroupMetrics(data: {
+    /*
+     * The status page the report is for, which the incident counts are
+     * scoped by: loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT.
+     */
+    statusPage: StatusPage;
     statusPageGroups: Array<StatusPageGroup>;
     entries: Array<StatusPageReportResourceEntry>;
     monitorIdsByResourceIndex: Array<Array<ObjectID>>;
@@ -1913,6 +1934,7 @@ export class Service extends DatabaseService<StatusPage> {
         totalIncidentCount =
           monitorIds.length > 0
             ? await this.getIncidentCountByMonitorIds({
+                statusPage: data.statusPage,
                 monitorIds: monitorIds,
                 startDate: data.reportWindow.startDate,
                 endDate: data.reportWindow.endDate,
@@ -1963,13 +1985,41 @@ export class Service extends DatabaseService<StatusPage> {
     });
   }
 
+  /*
+   * How many incidents the status page shows on these monitors, created in
+   * the window: the report's count for a resource, a group or the page.
+   *
+   * It counts what the page shows, through IncidentStatusPageScope - an
+   * incident limited to other status pages is not counted, nor is an
+   * unlimited one on a page that only shows incidents limited to it - and
+   * only the project's incidents visible on status pages. (Before the scope,
+   * this counted every incident on the monitors, hidden ones and all.)
+   *
+   * The status page must be loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT. It
+   * is passed in rather than read here because a report counts once for each
+   * resource and group.
+   */
   @CaptureSpan()
   public async getIncidentCountByMonitorIds(data: {
+    statusPage: StatusPage;
     monitorIds: Array<ObjectID>;
     startDate: Date;
     endDate: Date;
   }): Promise<number> {
-    const incidentCount: PositiveNumber = await IncidentService.countBy({
+    // No monitor, so no incident on one to count.
+    if (data.monitorIds.length === 0) {
+      return 0;
+    }
+
+    if (!data.statusPage.projectId) {
+      throw new BadDataException(
+        "Cannot count the incidents on a status page without its project.",
+      );
+    }
+
+    return await IncidentStatusPageScope.countIncidentsForStatusPage({
+      statusPage: data.statusPage,
+      projectId: data.statusPage.projectId,
       query: {
         monitors: data.monitorIds as any,
         createdAt: QueryHelper.inBetween(data.startDate, data.endDate),
@@ -1978,24 +2028,31 @@ export class Service extends DatabaseService<StatusPage> {
         isRoot: true,
       },
     });
-
-    return incidentCount.toNumber();
   }
 
+  // How many incidents the status page shows, over all of its monitors.
   @CaptureSpan()
   public async getIncidentCountOnStatusPage(data: {
-    statusPageId: ObjectID;
+    // Loaded with INCIDENT_COUNT_STATUS_PAGE_SELECT.
+    statusPage: StatusPage;
     startDate: Date;
     endDate: Date;
   }): Promise<number> {
+    if (!data.statusPage.id) {
+      throw new BadDataException(
+        "Cannot count the incidents on a status page without its id.",
+      );
+    }
+
     const monitorsOnStatusPage: {
       monitorsOnStatusPage: Array<ObjectID>;
       monitorsInGroup: Dictionary<Array<ObjectID>>;
     } = await this.getMonitorIdsOnStatusPage({
-      statusPageId: data.statusPageId,
+      statusPageId: data.statusPage.id,
     });
 
     return this.getIncidentCountByMonitorIds({
+      statusPage: data.statusPage,
       monitorIds: monitorsOnStatusPage.monitorsOnStatusPage,
       startDate: data.startDate,
       endDate: data.endDate,

@@ -32,12 +32,17 @@ import ts from "typescript";
  *     that selects its incidents' monitors (use
  *     IncidentStatusPageScope.getEpisodeMemberIncidents).
  *
- * The status page display queries and report counts are converted to the
- * helper in the next stage of #4035, so their current call sites are listed
- * in PENDING_CONVERSION below. The list must match what is found exactly: a
- * new site fails the test, and so does a listed site that no longer exists,
- * so converting a site means deleting its entry, and the list can only
- * shrink. When it is empty, it stays empty.
+ * The status page display queries and the report counts go through the
+ * helper too (findIncidentsForStatusPage, findOneIncidentForStatusPage,
+ * countIncidentsForStatusPage), so in those files no call site may work out
+ * reach from monitors at all. What they may still do is read an episode's
+ * member incidents by id, to map the episode to the page's monitors - but
+ * only as the incidents given to StatusPageAPI.keepMemberIncidentsInScope,
+ * with the scope columns selected (INCIDENT_SCOPE_SELECT), so that a member
+ * limited to other status pages is dropped and the scope columns are removed
+ * before anything is serialized. And an incident is serialized for a public
+ * page only by serializeIncidentsForStatusPage, which removes the scope
+ * columns whatever a select brought in.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
@@ -71,61 +76,12 @@ const HELPER_FILE: string =
   "Common/Server/Utils/StatusPage/IncidentStatusPageScope.ts";
 
 /*
- * The call sites that still work out an incident's reach from its monitors,
- * by file, enclosing method and call, with how many there are. Each is
- * converted to IncidentStatusPageScope in the next stage of #4035 (status page
- * display: findIncidentsForStatusPage / findOneIncidentForStatusPage; report
- * counts: countIncidentsForStatusPage), which must empty this list.
- *
- * Not enforceable here, and so also on that stage's list: the episode member
- * fetches in getEpisodes and buildOverviewResponse read their incidents by id
- * and select monitors to map them to pages. They must add the scope columns
- * and apply IncidentStatusPageScope.isIncidentInScope.
+ * The methods that may read incidents directly in the status page files, and
+ * what they must do with them. See the top of this file.
  */
-const PENDING_CONVERSION: Array<CallSiteCount> = [
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "getIncidents",
-    call: "IncidentService.findBy",
-    count: 2,
-  },
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "getEpisodes",
-    call: "IncidentService.findBy",
-    count: 1,
-  },
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "buildOverviewResponse",
-    call: "IncidentService.findBy",
-    count: 3,
-  },
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "getIncidentPostmortemAttachment",
-    call: "IncidentService.findOneBy",
-    count: 1,
-  },
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "getIncidentPublicNoteAttachment",
-    call: "IncidentService.findOneBy",
-    count: 1,
-  },
-  {
-    file: "Common/Server/API/StatusPageAPI.ts",
-    within: "getIncidentEpisodePublicNoteAttachment",
-    call: "IncidentService.findOneBy",
-    count: 1,
-  },
-  {
-    file: "Common/Server/Services/StatusPageService.ts",
-    within: "getIncidentCountByMonitorIds",
-    call: "IncidentService.countBy",
-    count: 1,
-  },
-];
+const MEMBER_INCIDENT_FILTER: string = "keepMemberIncidentsInScope";
+const INCIDENT_SERIALIZER: string = "serializeIncidentsForStatusPage";
+const INCIDENT_SCOPE_SELECT_NAME: string = "INCIDENT_SCOPE_SELECT";
 
 // The IncidentService calls that take a query.
 const INCIDENT_QUERY_METHODS: ReadonlyArray<string> = [
@@ -150,11 +106,13 @@ interface CallSite {
   call: string;
 }
 
-interface CallSiteCount {
+// A direct incident read, or an incident serialization, that breaks a rule.
+interface Violation {
   file: string;
+  line: number;
   within: string;
   call: string;
-  count: number;
+  problem: string;
 }
 
 interface ScanOptions {
@@ -516,34 +474,217 @@ function discoverJobFiles(): Array<string> {
     .sort();
 }
 
-function countByLocation(sites: Array<CallSite>): Array<CallSiteCount> {
-  const counts: Map<string, CallSiteCount> = new Map();
+// The call a node sits in the arguments of, up to the function it is in.
+function isArgumentOfCallTo(node: ts.Node, methodName: string): boolean {
+  let current: ts.Node | undefined = node.parent;
 
-  for (const site of sites) {
-    const key: string = `${site.file}|${site.within}|${site.call}`;
-    const existing: CallSiteCount | undefined = counts.get(key);
+  while (current && !ts.isFunctionLike(current)) {
+    if (
+      ts.isCallExpression(current) &&
+      current.arguments.some((argument: ts.Expression): boolean => {
+        return argument.pos <= node.pos && node.end <= argument.end;
+      })
+    ) {
+      const callee: ts.Expression = unwrap(current.expression);
 
-    if (existing) {
-      existing.count += 1;
-    } else {
-      counts.set(key, {
-        file: site.file,
-        within: site.within,
-        call: site.call,
-        count: 1,
-      });
+      const name: string | null = ts.isPropertyAccessExpression(callee)
+        ? callee.name.text
+        : ts.isIdentifier(callee)
+          ? callee.text
+          : null;
+
+      if (name === methodName) {
+        return true;
+      }
     }
+
+    current = current.parent;
   }
 
-  return sortCounts(Array.from(counts.values()));
+  return false;
 }
 
-function sortCounts(counts: Array<CallSiteCount>): Array<CallSiteCount> {
-  return [...counts].sort((a: CallSiteCount, b: CallSiteCount): number => {
-    return `${a.file}|${a.within}|${a.call}`.localeCompare(
-      `${b.file}|${b.within}|${b.call}`,
+// Whether these object literals spread in the named identifier.
+function spreadsIdentifier(
+  literals: Array<ts.ObjectLiteralExpression>,
+  name: string,
+): boolean {
+  return literals.some((literal: ts.ObjectLiteralExpression): boolean => {
+    return literal.properties.some(
+      (property: ts.ObjectLiteralElementLike): boolean => {
+        return (
+          ts.isSpreadAssignment(property) &&
+          ts.isIdentifier(unwrap(property.expression)) &&
+          (unwrap(property.expression) as ts.Identifier).text === name
+        );
+      },
     );
   });
+}
+
+/*
+ * The incident reads in a status page file that do not go through
+ * IncidentStatusPageScope and break the rule for them: each must be the
+ * incidents given to keepMemberIncidentsInScope, and must select the scope
+ * columns that filter reads.
+ */
+function findUnscopedIncidentReads(data: {
+  file: string;
+  text: string;
+}): Array<Violation> {
+  const source: ts.SourceFile = ts.createSourceFile(
+    data.file,
+    data.text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  const violations: Array<Violation> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "IncidentService" &&
+      INCIDENT_QUERY_METHODS.includes(node.expression.name.text)
+    ) {
+      const call: string = `IncidentService.${node.expression.name.text}`;
+      const selects: Array<ts.ObjectLiteralExpression> = propertyValues(
+        objectLiteralsOf(node.arguments[0]),
+        "select",
+      ).flatMap((value: ts.Expression) => {
+        return objectLiteralsOf(value);
+      });
+
+      const problems: Array<string> = [];
+
+      if (!isArgumentOfCallTo(node, MEMBER_INCIDENT_FILTER)) {
+        problems.push(`not given to ${MEMBER_INCIDENT_FILTER}`);
+      }
+
+      const selectsScope: boolean =
+        spreadsIdentifier(selects, INCIDENT_SCOPE_SELECT_NAME) ||
+        (hasKey(selects, "isScopedToStatusPages") &&
+          hasKey(selects, "statusPages"));
+
+      if (!selectsScope) {
+        problems.push("does not select the scope columns");
+      }
+
+      for (const problem of problems) {
+        violations.push({
+          file: data.file,
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+          within: enclosingName(node),
+          call: call,
+          problem: problem,
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return violations;
+}
+
+/*
+ * Incidents turned into JSON (BaseModel.toJSON, toJSONArray or toJSONObject
+ * with the Incident model) anywhere but the serializer that removes the
+ * scope columns.
+ */
+function findIncidentSerializationsOutsideSerializer(data: {
+  file: string;
+  text: string;
+}): Array<Violation> {
+  const source: ts.SourceFile = ts.createSourceFile(
+    data.file,
+    data.text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  const violations: Array<Violation> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "BaseModel" &&
+      ["toJSON", "toJSONArray", "toJSONObject"].includes(
+        node.expression.name.text,
+      ) &&
+      node.arguments[1] &&
+      ts.isIdentifier(unwrap(node.arguments[1])) &&
+      (unwrap(node.arguments[1]) as ts.Identifier).text === "Incident"
+    ) {
+      const within: string = enclosingName(node);
+
+      if (within !== INCIDENT_SERIALIZER) {
+        violations.push({
+          file: data.file,
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+          within: within,
+          call: `BaseModel.${node.expression.name.text}`,
+          problem: `serializes an incident outside ${INCIDENT_SERIALIZER}`,
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return violations;
+}
+
+// The source of a method, found by name.
+function methodText(text: string, methodName: string): string {
+  const source: ts.SourceFile = ts.createSourceFile(
+    "Method.ts",
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  let found: string = "";
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isMethodDeclaration(node) &&
+      node.name &&
+      node.name.getText(source) === methodName
+    ) {
+      found = node.getText(source);
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+}
+
+function describeViolations(violations: Array<Violation>): string {
+  return violations
+    .map((violation: Violation): string => {
+      return `${violation.file}:${violation.line} ${violation.call} in ${violation.within}: ${violation.problem}`;
+    })
+    .join("\n");
 }
 
 function describeSites(sites: Array<CallSite>): string {
@@ -586,7 +727,7 @@ describe("Incident reach is decided only by IncidentStatusPageScope", () => {
     },
   );
 
-  test("the status page API and service work out reach only at the sites pending conversion", () => {
+  test("the status page API and service work out no status page reach of their own", () => {
     const sites: Array<CallSite> = STATUS_PAGE_FILES.flatMap(
       (file: string): Array<CallSite> => {
         return findReachCallSites({
@@ -598,11 +739,69 @@ describe("Incident reach is decided only by IncidentStatusPageScope", () => {
     );
 
     /*
-     * A difference here is either a new call site that works out reach from
-     * monitors (use IncidentStatusPageScope instead), or a converted one
-     * whose PENDING_CONVERSION entry should now be removed.
+     * A site here decides from an incident's monitors what a status page
+     * shows or counts. Use IncidentStatusPageScope.findIncidentsForStatusPage,
+     * findOneIncidentForStatusPage or countIncidentsForStatusPage instead.
      */
-    expect(countByLocation(sites)).toEqual(sortCounts(PENDING_CONVERSION));
+    expect(describeSites(sites)).toBe("");
+  });
+
+  test("the status page API and service read incidents directly only as episode members, filtered by scope", () => {
+    const violations: Array<Violation> = STATUS_PAGE_FILES.flatMap(
+      (file: string): Array<Violation> => {
+        return findUnscopedIncidentReads({
+          file: file,
+          text: readPackageFile(file),
+        });
+      },
+    );
+
+    expect(describeViolations(violations)).toBe("");
+  });
+
+  test("the status page API serializes incidents only through the serializer that removes the scope columns", () => {
+    const file: string = "Common/Server/API/StatusPageAPI.ts";
+
+    expect(
+      describeViolations(
+        findIncidentSerializationsOutsideSerializer({
+          file: file,
+          text: readPackageFile(file),
+        }),
+      ),
+    ).toBe("");
+  });
+
+  test("the serializer and the member filter remove the scope columns, and the filter applies the scope", () => {
+    const text: string = readPackageFile("Common/Server/API/StatusPageAPI.ts");
+
+    const serializer: string = methodText(text, INCIDENT_SERIALIZER);
+    expect(serializer).toContain("IncidentStatusPageScope.removeScopeColumns(");
+
+    const memberFilter: string = methodText(text, MEMBER_INCIDENT_FILTER);
+    expect(memberFilter).toContain(
+      "IncidentStatusPageScope.isIncidentInScope(",
+    );
+    expect(memberFilter).toContain(
+      "IncidentStatusPageScope.removeScopeColumns(",
+    );
+  });
+
+  test("the status page API and service ask IncidentStatusPageScope what a page shows and counts", () => {
+    const api: string = readPackageFile("Common/Server/API/StatusPageAPI.ts");
+    expect(api).toContain(
+      "IncidentStatusPageScope.findIncidentsForStatusPage(",
+    );
+    expect(api).toContain(
+      "IncidentStatusPageScope.findOneIncidentForStatusPage(",
+    );
+
+    const service: string = readPackageFile(
+      "Common/Server/Services/StatusPageService.ts",
+    );
+    expect(service).toContain(
+      "IncidentStatusPageScope.countIncidentsForStatusPage(",
+    );
   });
 
   test("the helper is where the monitor lookups live", () => {
@@ -753,5 +952,156 @@ describe("the reach call-site scanner", () => {
     ]);
     // Outside the jobs those two are not this test's business.
     expect(scan(text, false)).toEqual([]);
+  });
+});
+
+/*
+ * The rules for the status page files, on small sources: incidents read
+ * directly must go through the member filter with their scope selected, and
+ * be serialized only by the serializer that strips the scope columns.
+ */
+describe("the status page incident read and serialization scanners", () => {
+  function reads(text: string): Array<string> {
+    return findUnscopedIncidentReads({
+      file: "Example.ts",
+      text: text,
+    }).map((violation: Violation): string => {
+      return `${violation.call} in ${violation.within}: ${violation.problem}`;
+    });
+  }
+
+  function serializations(text: string): Array<string> {
+    return findIncidentSerializationsOutsideSerializer({
+      file: "Example.ts",
+      text: text,
+    }).map((violation: Violation): string => {
+      return `${violation.call} in ${violation.within}`;
+    });
+  }
+
+  test("a member read given to the filter with the scope select spread in passes", () => {
+    expect(
+      reads(`
+        class A {
+          public async getEpisodes(): Promise<void> {
+            members = this.keepMemberIncidentsInScope({
+              incidents: await IncidentService.findBy({
+                query: { _id: QueryHelper.any(ids) },
+                select: { _id: true, monitors: { _id: true }, ...INCIDENT_SCOPE_SELECT },
+                limit: 10,
+                skip: 0,
+                props: { isRoot: true },
+              }),
+              statusPage: page,
+            });
+          }
+        }
+      `),
+    ).toEqual([]);
+  });
+
+  test("the scope columns may also be selected by name", () => {
+    expect(
+      reads(`
+        class A {
+          public async load(): Promise<void> {
+            members = this.keepMemberIncidentsInScope({
+              incidents: await IncidentService.findBy({
+                query: { _id: x },
+                select: { isScopedToStatusPages: true, statusPages: { _id: true } },
+                props: {},
+              }),
+              statusPage: page,
+            });
+          }
+        }
+      `),
+    ).toEqual([]);
+  });
+
+  test("a read not given to the filter, or without the scope columns, is flagged", () => {
+    expect(
+      reads(`
+        class A {
+          public async unfiltered(): Promise<void> {
+            const incidents = await IncidentService.findBy({
+              query: { _id: x },
+              select: { _id: true, ...INCIDENT_SCOPE_SELECT },
+              props: {},
+            });
+            members = this.keepMemberIncidentsInScope({ incidents, statusPage: page });
+          }
+          public async unselected(): Promise<void> {
+            members = this.keepMemberIncidentsInScope({
+              incidents: await IncidentService.findBy({
+                query: { _id: x },
+                select: { _id: true, isScopedToStatusPages: true },
+                props: {},
+              }),
+              statusPage: page,
+            });
+          }
+          public async count(): Promise<void> {
+            await IncidentService.countBy({ query: { projectId: p }, props: {} });
+          }
+        }
+      `),
+    ).toEqual([
+      "IncidentService.findBy in unfiltered: not given to keepMemberIncidentsInScope",
+      "IncidentService.findBy in unselected: does not select the scope columns",
+      "IncidentService.countBy in count: not given to keepMemberIncidentsInScope",
+      "IncidentService.countBy in count: does not select the scope columns",
+    ]);
+  });
+
+  test("reads through IncidentStatusPageScope are not direct reads", () => {
+    expect(
+      reads(`
+        async function list(): Promise<void> {
+          await IncidentStatusPageScope.findIncidentsForStatusPage({ statusPage, query: { monitors: ids }, select: {}, limit: 1, props: {} });
+          await IncidentStatusPageScope.countIncidentsForStatusPage({ statusPage, projectId, query: {} });
+        }
+      `),
+    ).toEqual([]);
+  });
+
+  test("incidents turned into JSON outside the serializer are flagged, other models are not", () => {
+    expect(
+      serializations(`
+        class A {
+          private serializeIncidentsForStatusPage(incidents: Array<Incident>): JSONArray {
+            return incidents.map((incident: Incident) => {
+              return BaseModel.toJSON(incident, Incident);
+            });
+          }
+          public async overview(): Promise<JSONObject> {
+            return {
+              timelineIncidents: BaseModel.toJSONArray(timeline, Incident),
+              one: BaseModel.toJSONObject(incident, Incident),
+              episodes: BaseModel.toJSONArray(episodes, IncidentEpisode),
+              notes: BaseModel.toJSONArray(notes, IncidentPublicNote),
+            };
+          }
+        }
+      `),
+    ).toEqual([
+      "BaseModel.toJSONArray in overview",
+      "BaseModel.toJSONObject in overview",
+    ]);
+  });
+
+  test("finds a method's source by name", () => {
+    const text: string = `
+      class A {
+        private one(): void { first(); }
+        private keepMemberIncidentsInScope(): void { IncidentStatusPageScope.isIncidentInScope(a, b); }
+      }
+    `;
+
+    expect(methodText(text, "keepMemberIncidentsInScope")).toContain(
+      "IncidentStatusPageScope.isIncidentInScope(",
+    );
+    expect(methodText(text, "one")).not.toContain("isIncidentInScope");
+    expect(methodText(text, "missing")).toBe("");
   });
 });

@@ -10,6 +10,7 @@ import StatusPageService from "../../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_COLUMNS,
+  INCIDENT_SCOPE_SELECT,
   ResolvedIncidentStatusPages,
   StatusPageExclusionReason,
   SUBSCRIBER_NOTIFICATION_RESOURCE_SELECT,
@@ -1533,6 +1534,53 @@ describe("IncidentStatusPageScope.removeScopeColumns", () => {
       expect(Object.prototype.hasOwnProperty.call(cleaned, column)).toBe(false);
     }
     expect(JSON.stringify(cleaned)).not.toContain("Secret site");
+  });
+
+  test("removes them from an incident's JSON too", () => {
+    const json: JSONObject = {
+      _id: INCIDENT_A,
+      title: "Checkout down",
+      isScopedToStatusPages: true,
+      statusPages: [{ _id: "x", name: "Secret site" }],
+      statusPagesNotifiedOnCreation: ["x"],
+    };
+
+    expect(IncidentStatusPageScope.removeScopeColumns(json)).toEqual({
+      _id: INCIDENT_A,
+      title: "Checkout down",
+    });
+  });
+});
+
+describe("INCIDENT_SCOPE_SELECT", () => {
+  test("selects what isIncidentInScope reads, all of it scope columns to remove again", () => {
+    expect(Object.keys(INCIDENT_SCOPE_SELECT).sort()).toEqual([
+      "isScopedToStatusPages",
+      "statusPages",
+    ]);
+
+    for (const column of Object.keys(INCIDENT_SCOPE_SELECT)) {
+      expect(INCIDENT_SCOPE_COLUMNS).toContain(column);
+    }
+  });
+
+  test("an incident read with it can be placed in or out of a page's scope", () => {
+    const incident: Incident = new Incident();
+    incident.isScopedToStatusPages = true;
+    incident.statusPages = [makePage({ id: sitePageId(1), name: siteName(1) })];
+
+    expect(
+      IncidentStatusPageScope.isIncidentInScope(incident, {
+        _id: sitePageId(1),
+        onlyShowScopedIncidents: true,
+      }),
+    ).toBe(true);
+    expect(
+      IncidentStatusPageScope.isIncidentInScope(incident, {
+        _id: sitePageId(2),
+        onlyShowScopedIncidents: false,
+      }),
+    ).toBe(false);
   });
 });
 
