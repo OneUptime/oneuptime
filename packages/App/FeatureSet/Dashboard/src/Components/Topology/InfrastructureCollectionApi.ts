@@ -8,7 +8,12 @@ import {
   TopologyCollectionRequestJSON,
   TopologyCollectionSearchRequestJSON,
 } from "Common/Types/Topology/TopologyApi";
-import { TopologyOutdatedError, postTopologyApi } from "./TopologyApi";
+import {
+  TOPOLOGY_BUSY_MESSAGE,
+  TopologyOutdatedError,
+  isTopologyBusyError,
+  postTopologyApi,
+} from "./TopologyApi";
 import { TopologyEntity } from "./TopologyData";
 
 /*
@@ -314,29 +319,50 @@ export async function fetchCollectionSearchCounts(
   return counts;
 }
 
-/*
- * What the page tells the user when a collection request fails. The copy
- * for a format mismatch is fixed (and translated by the caller); anything
- * else carries the server's own explanation when it gave one.
- */
-export function describeCollectionError(error: unknown): {
+/* The busy copy lives with the transport; re-exported for this module's callers. */
+export { TOPOLOGY_BUSY_MESSAGE };
+
+export interface CollectionErrorDescription {
+  /* The server speaks another format: only reloading the page can help. */
   isOutdated: boolean;
+  /*
+   * The server is running as many Topology requests as it allows and turned
+   * this one away (429): trying again in a moment will work.
+   */
+  isBusy: boolean;
   detail: string;
-} {
+}
+
+/*
+ * What the page tells the user when a collection request fails. The page
+ * shows fixed (translated) copy for a format mismatch and for a busy server;
+ * anything else carries the server's own explanation when it gave one.
+ */
+export function describeCollectionError(
+  error: unknown,
+): CollectionErrorDescription {
   if (error instanceof TopologyOutdatedError) {
-    return { isOutdated: true, detail: error.message };
+    return { isOutdated: true, isBusy: false, detail: error.message };
   }
   if (error instanceof HTTPErrorResponse) {
+    if (isTopologyBusyError(error)) {
+      return {
+        isOutdated: false,
+        isBusy: true,
+        detail: error.message || TOPOLOGY_BUSY_MESSAGE,
+      };
+    }
     if (error.statusCode === 502 || error.statusCode === 504) {
       return {
         isOutdated: false,
+        isBusy: false,
         detail: "Error connecting to server. Please try again in few minutes.",
       };
     }
-    return { isOutdated: false, detail: error.message || "" };
+    return { isOutdated: false, isBusy: false, detail: error.message || "" };
   }
   if (error instanceof Error) {
-    return { isOutdated: false, detail: error.message || "" };
+    return { isOutdated: false, isBusy: false, detail: error.message || "" };
   }
-  return { isOutdated: false, detail: "" };
+  return { isOutdated: false, isBusy: false, detail: "" };
 }

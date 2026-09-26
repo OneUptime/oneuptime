@@ -13,6 +13,7 @@ import {
   TopologyInfrastructureNodeJSON,
   TopologyInfrastructureResponseJSON,
   TopologyServiceMapResponseJSON,
+  TopologyTruncationJSON,
 } from "Common/Types/Topology/TopologyApi";
 
 /*
@@ -59,19 +60,23 @@ jest.mock("Common/UI/Utils/API/API", () => {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
+  TOPOLOGY_BUSY_MESSAGE,
   TOPOLOGY_OUTDATED_MESSAGE,
   TopologyOutdatedError,
+  TopologyRequestOptions,
   decodeInfrastructureResponse,
   decodeServiceMapResponse,
   decodeTopologyEnvelope,
   fetchInfrastructureData,
   fetchServiceMapData,
+  isTopologyBusyError,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyApi";
 import {
   InfrastructureData,
   ServiceMapData,
   TopologyEntity,
   TopologyRelationship,
+  TopologyTruncation,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 import { isEntityActive } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyActivity";
 import computeInfraParenting from "../../FeatureSet/Dashboard/src/Components/Topology/InfrastructureNesting";
@@ -391,7 +396,7 @@ describe("decodeServiceMapResponse", () => {
     expect(data.runsOnCounts.get("svc-payments")).toEqual([
       { entityType: EntityType.KubernetesPod, active: 0, total: 2 },
     ]);
-    expect(data.truncation).toBeNull();
+    expect(data.truncations).toEqual([]);
   });
 
   /*
@@ -463,7 +468,9 @@ describe("decodeServiceMapResponse", () => {
     expect(data.runsOnCounts.get("a")).toEqual([
       { entityType: EntityType.KubernetesPod, active: 2, total: 7 },
     ]);
-    expect(data.truncation).toEqual({ shown: 10, total: 12 });
+    expect(data.truncations).toEqual([
+      { kind: "resources", shown: 10, total: 12 },
+    ]);
   });
 
   /*
@@ -541,42 +548,68 @@ describe("decodeServiceMapResponse", () => {
     expect(data.entities).toEqual([]);
     expect(data.relationships).toEqual([]);
     expect(data.runsOnCounts.size).toBe(0);
-    expect(data.truncation).toBeNull();
+    expect(data.truncations).toEqual([]);
   });
 
-  test.each([
+  /*
+   * The two caps limit different things: the entity cap hides whole
+   * services and callees, the dependency cap hides connections between
+   * them. The banner words each one for what it is, so the decoder keeps
+   * both, each with its kind — folding them into one "resources" figure
+   * would call 200,000 connection rows "resources".
+   */
+  type CapCase = [
+    string,
+    TopologyTruncationJSON | null,
+    TopologyTruncationJSON | null,
+    Array<TopologyTruncation>,
+  ];
+  const CAP_CASES: Array<CapCase> = [
     [
       "the entity cap",
       { shown: 50000, total: 61234 },
       null,
-      { shown: 50000, total: 61234 },
+      [{ kind: "resources", shown: 50000, total: 61234 }],
     ],
     [
       "the dependency cap",
       null,
       { shown: 200000, total: 250001 },
-      { shown: 200000, total: 250001 },
+      [{ kind: "connections", shown: 200000, total: 250001 }],
     ],
     [
-      "both caps (the entity cap wins)",
+      "both caps (resources first, and neither is lost)",
       { shown: 50000, total: 50001 },
       { shown: 200000, total: 200002 },
-      { shown: 50000, total: 50001 },
+      [
+        { kind: "resources", shown: 50000, total: 50001 },
+        { kind: "connections", shown: 200000, total: 200002 },
+      ],
     ],
-  ])(
-    "reports %s as the tab's truncation",
+    ["no cap", null, null, []],
+  ];
+
+  test.each(CAP_CASES)(
+    "reports %s with its kind",
     (
       _label: string,
-      entityTruncation: { shown: number; total: number } | null,
-      dependencyTruncation: { shown: number; total: number } | null,
-      expected: { shown: number; total: number },
+      entityTruncation: TopologyTruncationJSON | null,
+      dependencyTruncation: TopologyTruncationJSON | null,
+      expected: Array<TopologyTruncation>,
     ) => {
       const data: ServiceMapData = decodeServiceMapResponse(
         serviceMapPayload({ entityTruncation, dependencyTruncation }),
       );
-      expect(data.truncation).toEqual(expected);
+      expect(data.truncations).toEqual(expected);
     },
   );
+
+  test("a truncation that is not an object is no truncation", () => {
+    const payload: JSONObject = serviceMapPayload() as unknown as JSONObject;
+    payload["entityTruncation"] = "lots";
+    payload["dependencyTruncation"] = [200000, 250001];
+    expect(decodeServiceMapResponse(payload).truncations).toEqual([]);
+  });
 });
 
 describe("decodeInfrastructureResponse", () => {
@@ -873,7 +906,11 @@ describe("decodeInfrastructureResponse", () => {
         totals: { resources: 212345, activeResources: 180000 },
       }),
     );
-    expect(data.truncation).toEqual({ shown: 200000, total: 212345 });
+    expect(data.truncation).toEqual({
+      kind: "resources",
+      shown: 200000,
+      total: 212345,
+    });
     expect(data.totals).toEqual({
       resources: 212345,
       activeResources: 180000,
@@ -1075,6 +1112,58 @@ describe("TopologyApi transport", () => {
     },
   );
 
+  /*
+   * An explicit refresh asks the server to rebuild instead of answering from
+   * its response cache. The flag is sent only when set: every ordinary load
+   * keeps the exact body the cache is keyed for.
+   */
+  test.each([
+    ["the service map", TopologyApiPath.ServiceMap],
+    ["infrastructure", TopologyApiPath.Infrastructure],
+  ])(
+    "fetching %s sends fresh: true only when asked to",
+    async (label: string, path: TopologyApiPath) => {
+      respondWith(
+        path === TopologyApiPath.ServiceMap
+          ? serviceMapPayload()
+          : infrastructurePayload(),
+      );
+      const fetchData: (
+        options?: TopologyRequestOptions | undefined,
+      ) => Promise<unknown> = (
+        options?: TopologyRequestOptions | undefined,
+      ): Promise<unknown> => {
+        return label === "the service map"
+          ? fetchServiceMapData(RANGE_START, options)
+          : fetchInfrastructureData(RANGE_START, options);
+      };
+
+      const controller: AbortController = new AbortController();
+      await fetchData({ fresh: true, signal: controller.signal });
+      expect(lastPostOptions().url.toString()).toBe(
+        `http://localhost/api${path}`,
+      );
+      expect(lastPostOptions().data).toEqual({
+        rangeStart: "2026-09-20T10:15:37.123Z",
+        fresh: true,
+      });
+      expect(lastPostOptions().options.signal).toBe(controller.signal);
+
+      const ordinary: Array<TopologyRequestOptions | undefined> = [
+        { fresh: false },
+        {},
+        undefined,
+      ];
+      for (const options of ordinary) {
+        await fetchData(options);
+        expect(lastPostOptions().data).toEqual({
+          rangeStart: "2026-09-20T10:15:37.123Z",
+        });
+        expect(lastPostOptions().data).not.toHaveProperty("fresh");
+      }
+    },
+  );
+
   test("the decoded data carries the server's echo, not the requested start", async () => {
     respondWith(serviceMapPayload());
     const data: ServiceMapData = await fetchServiceMapData(RANGE_START);
@@ -1140,6 +1229,44 @@ describe("TopologyApi transport", () => {
       await expect(fetchInfrastructureData(RANGE_START)).rejects.toBe(error);
     },
   );
+
+  /*
+   * The server caps concurrent topology work and answers 429 when it is
+   * full. That passes, unlike an outdated bundle: callers recognise it and
+   * offer "Try again" with a friendly message.
+   */
+  test("a 429 rejects with the HTTPErrorResponse, recognised as busy rather than outdated", async () => {
+    const busy: HTTPErrorResponse = new HTTPErrorResponse(
+      429,
+      { message: "Too many topology requests are running." },
+      {},
+    );
+    postMock.mockResolvedValue(busy);
+    let thrown: unknown = null;
+    try {
+      await fetchServiceMapData(RANGE_START);
+    } catch (error: unknown) {
+      thrown = error;
+    }
+    expect(thrown).toBe(busy);
+    expect(thrown).not.toBeInstanceOf(TopologyOutdatedError);
+    expect(isTopologyBusyError(thrown)).toBe(true);
+    expect(TOPOLOGY_BUSY_MESSAGE).toBe(
+      "The topology service is busy. Try again in a moment.",
+    );
+  });
+
+  test.each([
+    ["a 500", new HTTPErrorResponse(500, { message: "Nope" }, {})],
+    ["a 503", new HTTPErrorResponse(503, { message: "Nope" }, {})],
+    ["a 404", new HTTPErrorResponse(404, { message: "Nope" }, {})],
+    ["an outdated bundle", new TopologyOutdatedError()],
+    ["a plain error", new Error("429")],
+    ["a status-shaped object", { statusCode: 429 }],
+    ["nothing", null],
+  ])("%s is not a busy server", (_label: string, error: unknown) => {
+    expect(isTopologyBusyError(error)).toBe(false);
+  });
 
   test("a transport failure (e.g. an aborted request) propagates", async () => {
     const failure: Error = new Error("Request Canceled.");

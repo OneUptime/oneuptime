@@ -174,7 +174,12 @@ export function compareNames(a: string, b: string): number {
   return NAME_COLLATOR.compare(a, b);
 }
 
-/* Code-unit order: the final, locale-free tie-break (like COLLATE "C"). */
+/*
+ * Code-unit order: the final, locale-free tie-break for orders only this page
+ * makes. (Where the server's choice must be matched — which container a
+ * resource nests in — InfrastructureNesting compares code points, as
+ * COLLATE "C" does; the two differ only beyond U+FFFF.)
+ */
 function compareKeys(a: string, b: string): number {
   if (a === b) {
     return 0;

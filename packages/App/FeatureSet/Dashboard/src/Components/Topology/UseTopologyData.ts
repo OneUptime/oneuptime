@@ -12,11 +12,13 @@ import {
   useState,
 } from "react";
 import {
+  TOPOLOGY_BUSY_MESSAGE,
   TOPOLOGY_OUTDATED_MESSAGE,
   TopologyOutdatedError,
   TopologyRequestOptions,
   fetchInfrastructureData,
   fetchServiceMapData,
+  isTopologyBusyError,
 } from "./TopologyApi";
 import { InfrastructureData, ServiceMapData } from "./TopologyData";
 
@@ -35,6 +37,12 @@ import { InfrastructureData, ServiceMapData } from "./TopologyData";
  * requests in flight are aborted, both tabs are dropped and only the active
  * tab loads again. A response from an older generation (or an older attempt
  * of the same tab) is ignored, so it can never overwrite a newer one.
+ *
+ * The server keeps each map for a minute. Only reload() — the user asking
+ * for current data — bypasses that: the first load of each tab in the
+ * generation it starts is sent as `fresh`, so a tab opened after the refresh
+ * is current too. Range and project changes, retries and tab switches take
+ * whatever the server has.
  *
  * Network discovery has its own live data source and never loads anything
  * here.
@@ -70,7 +78,10 @@ export interface TopologyDataState {
 }
 
 export interface TopologyData extends TopologyDataState {
-  /* Start a new generation and load the active tab. */
+  /*
+   * Start a new generation and load the active tab, bypassing the server's
+   * response cache for each tab's first load in it.
+   */
   reload: () => void;
   /* Load one tab again (after an error), leaving the other tab alone. */
   retry: (view: TopologyView) => void;
@@ -140,6 +151,10 @@ function toLoadError(error: unknown): TopologyLoadError {
   if (error instanceof TopologyOutdatedError) {
     return { message: TOPOLOGY_OUTDATED_MESSAGE, isOutdated: true };
   }
+  /* The server is at its topology limit (429): it passes, so "Try again". */
+  if (isTopologyBusyError(error)) {
+    return { message: TOPOLOGY_BUSY_MESSAGE, isOutdated: false };
+  }
   return { message: API.getFriendlyMessage(error), isOutdated: false };
 }
 
@@ -185,6 +200,14 @@ export default function useTopologyData(
     Record<TabKey, number>
   >({ serviceMap: 0, infrastructure: 0 });
   const attemptCounterRef: MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Tabs whose first load in the current generation must bypass the
+   * server's response cache: both after reload(), none after any other
+   * restart. A tab leaves the set when that load is sent.
+   */
+  const freshTabsRef: MutableRefObject<Set<TabKey>> = useRef<Set<TabKey>>(
+    new Set<TabKey>(),
+  );
   const latestRef: MutableRefObject<LatestInputs> = useRef<LatestInputs>({
     timeRange,
     projectId,
@@ -233,6 +256,7 @@ export default function useTopologyData(
       }
 
       const generation: number = current.generation;
+      const fresh: boolean = freshTabsRef.current.delete(key);
       attemptCounterRef.current += 1;
       const attempt: number = attemptCounterRef.current;
       attemptsRef.current[key] = attempt;
@@ -259,7 +283,7 @@ export default function useTopologyData(
 
       const request: Promise<ServiceMapData | InfrastructureData> = FETCHERS[
         key
-      ](rangeStart, { signal: controller.signal });
+      ](rangeStart, { signal: controller.signal, fresh: fresh });
       request.then(
         (data: ServiceMapData | InfrastructureData): void => {
           if (!isWanted()) {
@@ -296,11 +320,15 @@ export default function useTopologyData(
 
   /*
    * A new generation: re-pin the range, forget both tabs and load `view`
-   * (the active tab) — or nothing, when it is the Network tab.
+   * (the active tab) — or nothing, when it is the Network tab. `fresh` marks
+   * the generation as an explicit refresh (see freshTabsRef).
    */
-  const restart: (view: TopologyView) => void = useCallback(
-    (view: TopologyView): void => {
+  const restart: (view: TopologyView, fresh: boolean) => void = useCallback(
+    (view: TopologyView, fresh: boolean): void => {
       abortAll();
+      freshTabsRef.current = fresh
+        ? new Set<TabKey>(TAB_KEYS)
+        : new Set<TabKey>();
       const now: Date = new Date();
       const rangeStart: Date = RangeStartAndEndDateTimeUtil.getStartAndEndDate(
         latestRef.current.timeRange,
@@ -338,14 +366,14 @@ export default function useTopologyData(
    * unless that range has drifted, in which case the load starts a new
    * generation so both tabs keep describing the same window.
    */
-  const loadFresh: (view: TopologyView) => void = useCallback(
+  const loadEmptyTab: (view: TopologyView) => void = useCallback(
     (view: TopologyView): void => {
       const key: TabKey | null = tabKeyForView(view);
       if (!key) {
         return;
       }
       if (hasPinnedRangeDrifted()) {
-        restart(view);
+        restart(view, false);
         return;
       }
       loadTab(key);
@@ -355,16 +383,16 @@ export default function useTopologyData(
 
   /* A new range or project is a new generation. */
   useEffect(() => {
-    restart(latestRef.current.activeView);
+    restart(latestRef.current.activeView, false);
   }, [timeRange, projectId, restart]);
 
   /* The first activation of a tab loads it; later ones change nothing. */
   useEffect(() => {
     const key: TabKey | null = tabKeyForView(activeView);
     if (key && storeRef.current[key].status === "idle") {
-      loadFresh(activeView);
+      loadEmptyTab(activeView);
     }
-  }, [activeView, loadFresh]);
+  }, [activeView, loadEmptyTab]);
 
   /* Nothing may land after unmount. */
   useEffect(() => {
@@ -374,14 +402,14 @@ export default function useTopologyData(
   }, [abortAll]);
 
   const reload: () => void = useCallback((): void => {
-    restart(latestRef.current.activeView);
+    restart(latestRef.current.activeView, true);
   }, [restart]);
 
   const retry: (view: TopologyView) => void = useCallback(
     (view: TopologyView): void => {
-      loadFresh(view);
+      loadEmptyTab(view);
     },
-    [loadFresh],
+    [loadEmptyTab],
   );
 
   return { ...state, reload, retry };

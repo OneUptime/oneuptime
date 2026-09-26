@@ -11,6 +11,7 @@ import {
   TopologyEntityResponseJSON,
 } from "Common/Types/Topology/TopologyApi";
 import type {
+  AppendedConnectionsPage,
   EntityConnection,
   EntityConnectionSection,
   EntityConnectionsPage,
@@ -58,6 +59,8 @@ type TopologyApiModule =
 let api: EntityDetailApiModule;
 /* The drawer shares the maps' "reload the page" error. */
 let TopologyOutdatedError: TopologyApiModule["TopologyOutdatedError"];
+/* ...and the maps' "busy, try again" copy for a 429. */
+let TOPOLOGY_BUSY_MESSAGE: string;
 let postMock: jest.Mock;
 
 const RANGE_START: Date = new Date("2026-09-26T10:00:00.000Z");
@@ -226,11 +229,11 @@ beforeAll(async () => {
   api = await import(
     "../../FeatureSet/Dashboard/src/Components/Topology/EntityDetailApi"
   );
-  TopologyOutdatedError = (
-    await import(
-      "../../FeatureSet/Dashboard/src/Components/Topology/TopologyApi"
-    )
-  ).TopologyOutdatedError;
+  const topologyApi: TopologyApiModule = await import(
+    "../../FeatureSet/Dashboard/src/Components/Topology/TopologyApi"
+  );
+  TopologyOutdatedError = topologyApi.TopologyOutdatedError;
+  TOPOLOGY_BUSY_MESSAGE = topologyApi.TOPOLOGY_BUSY_MESSAGE;
 });
 
 beforeEach(() => {
@@ -327,6 +330,24 @@ describe("entity drawer requests", () => {
     );
     expect(api.pageSizeForSection("related")).toBe(
       TopologyApiLimits.EntityOtherRows,
+    );
+  });
+
+  test("'Reload list' asks for what the section showed plus a page, within the page cap", () => {
+    expect(api.sectionReloadLimit("runsOn", 39)).toBe(
+      39 + TopologyApiLimits.EntityOtherRows,
+    );
+    expect(api.sectionReloadLimit("related", 0)).toBe(
+      TopologyApiLimits.EntityOtherRows,
+    );
+    expect(api.sectionReloadLimit("calls", 50)).toBe(
+      50 + TopologyApiLimits.EntityDependencyRows,
+    );
+    expect(api.sectionReloadLimit("calledBy", 150)).toBe(
+      TopologyApiLimits.EntityConnectionsPageSizeMax,
+    );
+    expect(api.sectionReloadLimit("runsOn", 10_000)).toBe(
+      TopologyApiLimits.EntityConnectionsPageSizeMax,
     );
   });
 });
@@ -665,15 +686,16 @@ describe("appendConnectionsPage", () => {
       rows: [decodedRow("a"), decodedRow("b")],
       nextOffset: 2,
     };
-    const result: {
-      merged: EntityConnectionSection;
-      firstNewRowId: string | null;
-    } = api.appendConnectionsPage("runsOn", current, {
-      total: 41,
-      unknownTotal: 4,
-      rows: [decodedRow("c"), decodedRow("d")],
-      nextOffset: 4,
-    });
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
+      "runsOn",
+      current,
+      {
+        total: 41,
+        unknownTotal: 4,
+        rows: [decodedRow("c"), decodedRow("d")],
+        nextOffset: 4,
+      },
+    );
 
     expect(
       result.merged.rows.map((r: EntityConnection) => {
@@ -686,15 +708,14 @@ describe("appendConnectionsPage", () => {
     expect(result.firstNewRowId).toBe(
       api.connectionId("runsOn", decodedRow("c")),
     );
+    /* Pages that line up with what is shown: nothing was skipped. */
+    expect(result.listChanged).toBe(false);
     /* The current section is not mutated. */
     expect(current.rows).toHaveLength(2);
   });
 
   test("rows the drawer already shows are skipped when offsets shift between requests", () => {
-    const result: {
-      merged: EntityConnectionSection;
-      firstNewRowId: string | null;
-    } = api.appendConnectionsPage(
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
       "runsOn",
       {
         total: 3,
@@ -719,13 +740,15 @@ describe("appendConnectionsPage", () => {
       api.connectionId("runsOn", decodedRow("c")),
     );
     expect(result.merged.nextOffset).toBeNull();
+    /*
+     * A repeated row means the ranking moved under the user: whatever took
+     * its place may never be returned, so the drawer offers a reload.
+     */
+    expect(result.listChanged).toBe(true);
   });
 
   test("a page with nothing new names no row to focus, and the total never trails the rows", () => {
-    const result: {
-      merged: EntityConnectionSection;
-      firstNewRowId: string | null;
-    } = api.appendConnectionsPage(
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
       "related",
       {
         total: 2,
@@ -739,6 +762,49 @@ describe("appendConnectionsPage", () => {
     expect(result.firstNewRowId).toBeNull();
     expect(result.merged.total).toBe(2);
     expect(result.merged.unknownTotal).toBe(2);
+    expect(result.listChanged).toBe(true);
+  });
+
+  test("a last page that leaves the list short of its total is a changed list", () => {
+    const result: AppendedConnectionsPage = api.appendConnectionsPage(
+      "runsOn",
+      {
+        total: 4,
+        unknownTotal: 0,
+        rows: [decodedRow("a"), decodedRow("b")],
+        nextOffset: 2,
+      },
+      { total: 4, unknownTotal: 0, rows: [decodedRow("d")], nextOffset: null },
+    );
+
+    expect(result.merged.rows).toHaveLength(3);
+    expect(result.merged.nextOffset).toBeNull();
+    expect(result.listChanged).toBe(true);
+  });
+
+  test("a short page with more to come, or a complete last page, is not", () => {
+    const current: EntityConnectionSection = {
+      total: 4,
+      unknownTotal: 0,
+      rows: [decodedRow("a"), decodedRow("b")],
+      nextOffset: 2,
+    };
+    expect(
+      api.appendConnectionsPage("runsOn", current, {
+        total: 4,
+        unknownTotal: 0,
+        rows: [decodedRow("c")],
+        nextOffset: 3,
+      }).listChanged,
+    ).toBe(false);
+    expect(
+      api.appendConnectionsPage("runsOn", current, {
+        total: 4,
+        unknownTotal: 0,
+        rows: [decodedRow("c"), decodedRow("d")],
+        nextOffset: null,
+      }).listChanged,
+    ).toBe(false);
   });
 
   test("one resource related in both directions is two rows", () => {
@@ -853,8 +919,28 @@ describe("describeEntityDetailError", () => {
   test("an outdated bundle has fixed copy the drawer translates", () => {
     expect(api.describeEntityDetailError(new TopologyOutdatedError())).toEqual({
       isOutdated: true,
+      isBusy: false,
       detail: "Topology was updated. Reload the page.",
     });
+  });
+
+  test("a busy server (429) has the maps' fixed copy, and is worth retrying", () => {
+    expect(
+      api.describeEntityDetailError(
+        new HTTPErrorResponse(
+          429,
+          { message: "Too many topology requests are running." },
+          {},
+        ),
+      ),
+    ).toEqual({
+      isOutdated: false,
+      isBusy: true,
+      detail: TOPOLOGY_BUSY_MESSAGE,
+    });
+    expect(TOPOLOGY_BUSY_MESSAGE).toBe(
+      "The topology service is busy. Try again in a moment.",
+    );
   });
 
   test("a server error carries the server's explanation", () => {
@@ -862,7 +948,7 @@ describe("describeEntityDetailError", () => {
       api.describeEntityDetailError(
         new HTTPErrorResponse(403, { message: "Forbidden here" }, {}),
       ),
-    ).toEqual({ isOutdated: false, detail: "Forbidden here" });
+    ).toEqual({ isOutdated: false, isBusy: false, detail: "Forbidden here" });
     expect(
       api.describeEntityDetailError(new HTTPErrorResponse(502, {}, {})).detail,
     ).toMatch(/Error connecting to server/);
@@ -871,10 +957,12 @@ describe("describeEntityDetailError", () => {
   test("anything else says what it can, or nothing", () => {
     expect(api.describeEntityDetailError(new Error("socket hang up"))).toEqual({
       isOutdated: false,
+      isBusy: false,
       detail: "socket hang up",
     });
     expect(api.describeEntityDetailError("weird")).toEqual({
       isOutdated: false,
+      isBusy: false,
       detail: "",
     });
   });

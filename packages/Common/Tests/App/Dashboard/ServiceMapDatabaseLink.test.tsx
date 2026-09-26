@@ -1034,9 +1034,12 @@ describe("resolveDatabaseServerLink", () => {
 describe("the Service Map detail drawer", () => {
   const RANGE_START: Date = new Date("2026-09-26T10:00:00.000Z");
 
-  function detailOf(node: InventoryItem): EntityDetail {
+  function detailOf(
+    node: InventoryItem,
+    id: string = "1a1a0000-0000-4000-8000-000000000001",
+  ): EntityDetail {
     const detail: EntityDetail = {
-      id: "1a1a0000-0000-4000-8000-000000000001",
+      id: id,
       entityKey: node.entityKey!,
       entityType: node.entityType!,
     };
@@ -1052,10 +1055,10 @@ describe("the Service Map detail drawer", () => {
     return detail;
   }
 
-  function answerWith(node: InventoryItem): EntityDetailData {
+  function answerWith(node: InventoryItem, id?: string): EntityDetailData {
     return {
       rangeStart: RANGE_START,
-      entity: detailOf(node),
+      entity: detailOf(node, id),
       sections: {
         calls: emptyConnectionSection(),
         calledBy: emptyConnectionSection(),
@@ -1211,5 +1214,58 @@ describe("the Service Map detail drawer", () => {
     expect(await screen.findByText("Open database")).toBeInTheDocument();
 
     expect(endpointLookups()).toHaveLength(lookups);
+  });
+
+  test("moving the open drawer to another database never shows the first one's link", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
+    const orders: InventoryItem = databaseNode({
+      "db.system.name": "postgresql",
+      "server.address": "db.prod.example.com",
+    });
+    /* Another database on the map, which no DatabaseServer owns. */
+    const reports: InventoryItem = {
+      ...databaseNode({
+        "db.system.name": "postgresql",
+        "server.address": "reports.example.com",
+      }),
+      entityKey: "reports-node",
+      displayName: "reports",
+    } as unknown as InventoryItem;
+    let answerReports: (value: EntityDetailData) => void = () => {
+      return undefined;
+    };
+    fetchEntityDetailMock.mockImplementation(
+      (target: { entityKey: string }) => {
+        if (target.entityKey !== "reports-node") {
+          return Promise.resolve(answerWith(orders));
+        }
+        return new Promise<EntityDetailData>(
+          (resolve: (value: EntityDetailData) => void) => {
+            answerReports = resolve;
+          },
+        );
+      },
+    );
+
+    const view: RenderResult = render(panelFor(orders, RANGE_START));
+    expect(
+      (await screen.findByText("Open database")).closest("a"),
+    ).toHaveAttribute("href", databasePage(DATABASE_ID));
+
+    /* The same drawer, now for the other database: no remount. */
+    view.rerender(panelFor(reports, RANGE_START));
+    expect(screen.queryByText("Open database")).not.toBeInTheDocument();
+
+    const lookupsBefore: number = endpointLookups().length;
+    await act(async () => {
+      answerReports(
+        answerWith(reports, "1a1a0000-0000-4000-8000-000000000002"),
+      );
+    });
+    await waitFor(() => {
+      expect(endpointLookups().length).toBeGreaterThan(lookupsBefore);
+    });
+    await screen.findByText("Inventory details");
+    expect(screen.queryByText("Open database")).not.toBeInTheDocument();
   });
 });

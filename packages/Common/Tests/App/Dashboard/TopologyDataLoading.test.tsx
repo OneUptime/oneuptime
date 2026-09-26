@@ -118,6 +118,8 @@ interface PostOptions {
 interface RecordedRequest {
   path: string;
   rangeStart: string;
+  /* The whole body, to tell a `fresh` request from an ordinary one. */
+  body: JSONObject;
   headers: Dictionary<string>;
   signal: AbortSignal | undefined;
   respond: (payload: JSONObject) => void;
@@ -226,6 +228,7 @@ function installFakeServer(): void {
         const request: RecordedRequest = {
           path: pathOf(options.url),
           rangeStart: String(options.data["rangeStart"]),
+          body: options.data,
           headers: options.headers,
           signal: options.options?.signal,
           respond: (payload: JSONObject): void => {
@@ -242,6 +245,22 @@ function installFakeServer(): void {
         }
       },
     );
+  });
+}
+
+/*
+ * How each request asked: "fresh" when it told the server to bypass its
+ * response cache, "cached" when it sent the ordinary body (no `fresh` key at
+ * all — the flag is never sent as false).
+ */
+function freshness(list: Array<RecordedRequest>): Array<string> {
+  return list.map((request: RecordedRequest): string => {
+    if (request.body["fresh"] === true) {
+      return "fresh";
+    }
+    return "fresh" in request.body
+      ? `unexpected fresh: ${String(request.body["fresh"])}`
+      : "cached";
   });
 }
 
@@ -792,6 +811,186 @@ describe("per-tab errors and retry", () => {
   );
 });
 
+describe("an explicit refresh bypasses the server's response cache", () => {
+  /*
+   * The server keeps each map for a minute, keyed by the floored range
+   * start. A custom range (or a click within the same minute) would get the
+   * same payload back, so reload() — and only reload() — asks for a rebuild.
+   */
+  test("ordinary loads, tab switches, range and project changes are never fresh", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #2");
+    });
+    getProjectIdMock.mockReturnValue(
+      new ObjectID("22222222-2222-4222-8222-222222222222"),
+    );
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #3");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(requests).toHaveLength(5);
+    expect(freshness(requests)).toEqual([
+      "cached",
+      "cached",
+      "cached",
+      "cached",
+      "cached",
+    ]);
+  });
+
+  test("reload() sends the active tab fresh, and the other tab's first load in that generation too", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #2");
+    });
+    expect(text("generation")).toBe("2");
+    expect(freshness(requestsTo(TopologyApiPath.ServiceMap))).toEqual([
+      "cached",
+      "fresh",
+    ]);
+    /* The refresh re-pinned the same custom start: only the flag differs. */
+    expect(requests[1]!.rangeStart).toBe(requests[0]!.rangeStart);
+
+    /*
+     * Infrastructure was never loaded in this generation: opened after the
+     * refresh, it must not be answered from the pre-refresh cache either.
+     */
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(freshness(requestsTo(TopologyApiPath.Infrastructure))).toEqual([
+      "fresh",
+    ]);
+
+    /* Switching back and forth loads nothing more. */
+    view.rerender(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await flush();
+    expect(requests).toHaveLength(3);
+
+    /* The next ordinary generation is back to the cache. */
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #2");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #3");
+    });
+    expect(freshness(requests.slice(3))).toEqual(["cached", "cached"]);
+  });
+
+  test("each tab is sent fresh once per refresh: a retry after it is an ordinary load", async () => {
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    autoRespond = false;
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    await act(async () => {
+      lastRequestTo(TopologyApiPath.ServiceMap).fail(500, "Please retry");
+    });
+    expect(text("sm-status")).toBe("error");
+
+    autoRespond = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("2");
+    expect(freshness(requests)).toEqual(["cached", "fresh", "cached"]);
+  });
+
+  test("a second reload is fresh again, and a reload that supersedes a pending one aborts it", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(freshness(requests)).toEqual(["cached", "fresh", "fresh"]);
+    expect(requests[1]!.signal?.aborted).toBe(true);
+    expect(requests[2]!.signal?.aborted).toBe(false);
+    await act(async () => {
+      requests[2]!.respond(
+        serviceMapPayload(requests[2]!.rangeStart, "rebuilt"),
+      );
+    });
+    expect(text("sm-entities")).toBe("rebuilt");
+    expect(text("generation")).toBe("3");
+  });
+
+  test("a refresh on the Network tab makes the next opened tab fresh", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Network" />,
+    );
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(postMock).not.toHaveBeenCalled();
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(freshness(requests)).toEqual(["fresh"]);
+  });
+});
+
+describe("a busy server", () => {
+  /*
+   * The server caps concurrent topology work and answers 429 when it is
+   * full. That passes: the tab says so in plain words and keeps "Try
+   * again", rather than the "Reload the page" path of an outdated bundle.
+   */
+  test("a 429 is a friendly, retryable error, and retry recovers", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    await act(async () => {
+      requests[0]!.fail(429, "Too many topology requests are running.");
+    });
+    expect(text("sm-status")).toBe("error");
+    expect(text("sm-error")).toBe(
+      "The topology service is busy. Try again in a moment.",
+    );
+    expect(text("sm-outdated")).toBe("false");
+    expect(text("sm-entities")).toBe("");
+
+    autoRespond = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(text("sm-error")).toBe("");
+    expect(requests).toHaveLength(2);
+  });
+});
+
 describe("a relative range drifts while a tab waits to be opened", () => {
   /*
    * Only Date is faked: promises, timers and Testing Library's polling keep
@@ -891,6 +1090,27 @@ describe("a relative range drifts while a tab waits to be opened", () => {
     });
     expect(text("generation")).toBe("1");
     expect(text("sm-status")).toBe("ready");
+  });
+
+  test("a drifted lazy tab after a refresh re-pins as an ordinary load", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    const view: ReturnType<typeof render> = render(
+      <Probe range={LAST_HOUR} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #2");
+    });
+    jest.setSystemTime(new Date("2026-09-02T12:10:00.000Z"));
+    view.rerender(<Probe range={LAST_HOUR} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("3");
+    expect(freshness(requests)).toEqual(["cached", "fresh", "cached"]);
   });
 
   test("a drifted retry re-pins instead of loading the old window", async () => {

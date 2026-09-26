@@ -51,6 +51,15 @@ import {
 
 const postMock: MockFunction = getJestMockFunction();
 
+/*
+ * What the page's translations return. Identity by default; a test that
+ * needs to see which fragments were translated swaps it for a marker.
+ */
+const identity: (value: string) => string = (value: string): string => {
+  return value;
+};
+let translate: (value: string) => string = identity;
+
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
@@ -95,7 +104,7 @@ jest.mock("react-i18next", () => {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return translate(value);
         },
       };
     },
@@ -298,6 +307,8 @@ interface PostOptions {
 interface RecordedRequest {
   path: string;
   rangeStart: string;
+  /* True when the request asked the server to bypass its response cache. */
+  fresh: boolean;
   respond: (payload: JSONObject) => void;
   fail: (statusCode: number, message: string) => void;
 }
@@ -418,6 +429,7 @@ function installFakeServer(): void {
         const request: RecordedRequest = {
           path: options.url.toString().replace(/^.*\/api(?=\/)/, ""),
           rangeStart: String(options.data["rangeStart"]),
+          fresh: options.data["fresh"] === true,
           respond: (payload: JSONObject): void => {
             resolve(new HTTPResponse<JSONObject>(200, payload, {}));
           },
@@ -459,6 +471,7 @@ function tab(name: string): HTMLElement {
 beforeEach(() => {
   requests = [];
   answer = defaultAnswer;
+  translate = identity;
   postMock.mockReset();
   installFakeServer();
   window.history.replaceState({}, "", "/dashboard/project/topology/overview");
@@ -710,6 +723,51 @@ describe("errors stay inside their tab", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  /*
+   * The server caps concurrent topology work and answers 429 when it is
+   * full. That passes in a moment, so the tab says so in plain, translated
+   * words and offers "Try again" — not the outdated-bundle reload.
+   */
+  test("a busy server (429) gets a friendly message and Try again, which recovers", async () => {
+    answer = (): Answer => {
+      return {
+        status: 429,
+        message: "Too many topology requests are running for this project.",
+      };
+    };
+    translate = (value: string): string => {
+      return value === "The topology service is busy. Try again in a moment."
+        ? "[busy, translated]"
+        : value;
+    };
+    renderPage();
+    const failure: HTMLElement = await screen.findByText("[busy, translated]");
+    expect(failure.closest('[role="alert"]')).not.toBeNull();
+    expect(
+      screen.queryByText(
+        "Too many topology requests are running for this project.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Topology was updated. Reload the page."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reload page" }),
+    ).not.toBeInTheDocument();
+
+    answer = defaultAnswer;
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByTestId("topology-services")).toBeVisible();
+    expect(screen.queryByText("[busy, translated]")).not.toBeInTheDocument();
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(2);
+    /* A retry is an ordinary load, not an explicit refresh. */
+    expect(
+      requests.map((request: RecordedRequest): boolean => {
+        return request.fresh;
+      }),
+    ).toEqual([false, false]);
+  });
 });
 
 describe("the refresh button and the time range", () => {
@@ -758,6 +816,51 @@ describe("the refresh button and the time range", () => {
     expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(2);
   });
 
+  /*
+   * The server keeps each map for a minute. The refresh button is the user
+   * asking for current data, so it — and nothing else — bypasses that cache,
+   * for the active tab and for the other tab's first load after it.
+   */
+  test("refresh asks the server for fresh data; ordinary loads use its cache", async () => {
+    renderPage();
+    await screen.findByTestId("topology-services");
+    fireEvent.click(tab("Infrastructure"));
+    await screen.findByTestId("topology-infrastructure");
+    fireEvent.click(tab("Service Map"));
+    fireEvent.click(screen.getByTestId("topology-show-inactive"));
+    expect(
+      requests.map((request: RecordedRequest): boolean => {
+        return request.fresh;
+      }),
+    ).toEqual([false, false]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh topology" }));
+    await waitFor(() => {
+      expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(2);
+    });
+    await screen.findByTestId("topology-services");
+    fireEvent.click(tab("Infrastructure"));
+    await screen.findByTestId("topology-infrastructure");
+    expect(
+      requests.map((request: RecordedRequest): string => {
+        return `${request.path}:${request.fresh ? "fresh" : "cached"}`;
+      }),
+    ).toEqual([
+      `${TopologyApiPath.ServiceMap}:cached`,
+      `${TopologyApiPath.Infrastructure}:cached`,
+      `${TopologyApiPath.ServiceMap}:fresh`,
+      `${TopologyApiPath.Infrastructure}:fresh`,
+    ]);
+
+    /* A new time range is an ordinary load again. */
+    fireEvent.click(screen.getByRole("button", { name: "Pick the past hour" }));
+    await waitFor(() => {
+      expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(3);
+    });
+    await screen.findByTestId("topology-infrastructure");
+    expect(requests[requests.length - 1]!.fresh).toBe(false);
+  });
+
   test("a new time range reloads the active tab for that range", async () => {
     renderPage();
     await screen.findByTestId("topology-services");
@@ -776,6 +879,11 @@ describe("the refresh button and the time range", () => {
 });
 
 describe("the truncation banner", () => {
+  const SERVICE_MAP_NOTE: string =
+    "The map, counts and search cover what is shown.";
+  const INFRASTRUCTURE_NOTE: string =
+    "Counts are exact; the map and search cover the resources shown.";
+
   test("appears only for the active tab's truncated payload, with exact totals", async () => {
     answer = (request: RecordedRequest): Answer => {
       return request.path === TopologyApiPath.ServiceMap
@@ -791,9 +899,13 @@ describe("the truncation banner", () => {
     expect(banner).toHaveTextContent(
       `${(50000).toLocaleString()} of ${(61234).toLocaleString()} resources shown.`,
     );
-    expect(banner).toHaveTextContent(
-      "Counts are exact; the map and search cover the resources shown.",
-    );
+    /*
+     * The Service Map's tiles count what was shipped, so it must not claim
+     * its counts are exact.
+     */
+    expect(banner).toHaveTextContent(SERVICE_MAP_NOTE);
+    expect(banner).not.toHaveTextContent("Counts are exact");
+    expect(banner).not.toHaveTextContent("connections shown.");
     expect(banner).not.toHaveTextContent("Partial inventory");
 
     fireEvent.click(tab("Infrastructure"));
@@ -805,6 +917,67 @@ describe("the truncation banner", () => {
 
     fireEvent.click(tab("Service Map"));
     expect(screen.getByTestId("topology-truncation")).toBeVisible();
+  });
+
+  /*
+   * The dependency cap limits connection rows, not resources: calling
+   * 200,000 connections "resources" would misstate what is missing.
+   */
+  test("a Service Map with only its connections capped says connections", async () => {
+    answer = (request: RecordedRequest): Answer => {
+      return request.path === TopologyApiPath.ServiceMap
+        ? serviceMapPayload({
+            dependencyTruncation: { shown: 200000, total: 250001 },
+          })
+        : infrastructurePayload();
+    };
+    renderPage();
+    await screen.findByTestId("topology-services");
+    const banner: HTMLElement = screen.getByTestId("topology-truncation");
+    expect(banner.textContent).toBe(
+      `${(200000).toLocaleString()} of ${(250001).toLocaleString()} connections shown. ${SERVICE_MAP_NOTE}`,
+    );
+    expect(banner).not.toHaveTextContent("resources shown.");
+    expect(banner).not.toHaveTextContent("Counts are exact");
+  });
+
+  test("a Service Map with both caps hit reports both", async () => {
+    answer = (): Answer => {
+      return serviceMapPayload({
+        entityTruncation: { shown: 50000, total: 50001 },
+        dependencyTruncation: { shown: 200000, total: 200002 },
+      });
+    };
+    renderPage();
+    await screen.findByTestId("topology-services");
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `${(50000).toLocaleString()} of ${(50001).toLocaleString()} resources shown. ` +
+        `${(200000).toLocaleString()} of ${(200002).toLocaleString()} connections shown. ` +
+        SERVICE_MAP_NOTE,
+    );
+  });
+
+  /*
+   * Every word of the banner goes through translation, and no number is
+   * baked into a key: the fragments are translated, the figures are not.
+   */
+  test("the banner is built from translated fragments with the numbers outside them", async () => {
+    translate = (value: string): string => {
+      return `«${value}»`;
+    };
+    answer = (): Answer => {
+      return serviceMapPayload({
+        entityTruncation: { shown: 50000, total: 50001 },
+        dependencyTruncation: { shown: 200000, total: 200002 },
+      });
+    };
+    renderPage();
+    await screen.findByTestId("topology-services");
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `${(50000).toLocaleString()} «of» ${(50001).toLocaleString()} «resources shown.» ` +
+        `${(200000).toLocaleString()} «of» ${(200002).toLocaleString()} «connections shown.» ` +
+        `«${SERVICE_MAP_NOTE}»`,
+    );
   });
 
   test("an Infrastructure cap shows on Infrastructure only, and reaches the explorer", async () => {
@@ -820,8 +993,12 @@ describe("the truncation banner", () => {
     expect(screen.queryByTestId("topology-truncation")).not.toBeInTheDocument();
     fireEvent.click(tab("Infrastructure"));
     await screen.findByTestId("topology-infrastructure");
-    expect(screen.getByTestId("topology-truncation")).toHaveTextContent(
-      `${(200000).toLocaleString()} of ${(212345).toLocaleString()} resources shown.`,
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `${(200000).toLocaleString()} of ${(212345).toLocaleString()} resources shown. ${INFRASTRUCTURE_NOTE}`,
+    );
+    /* Only Infrastructure's summary switches to the server's exact totals. */
+    expect(screen.getByTestId("topology-truncation")).not.toHaveTextContent(
+      SERVICE_MAP_NOTE,
     );
     expect(screen.getByTestId("infrastructure-truncation")).toHaveTextContent(
       "200000/212345",

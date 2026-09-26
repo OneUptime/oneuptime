@@ -18,6 +18,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -116,6 +117,7 @@ import {
   TopologyEntityDetailJSON,
   TopologyEntityResponseJSON,
 } from "../../../Types/Topology/TopologyApi";
+import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -1014,6 +1016,273 @@ describe("Show more", () => {
   });
 });
 
+describe("a list that changed while the user paged it", () => {
+  /*
+   * Paging is by offset over a ranking the server recomputes per request,
+   * and the ranking moves while the drawer is open. The worked example:
+   * pod-3 is pruned after the first page, so it now sorts last as unknown
+   * and pod-26 moves up to rank 25 — the page at offset 25 starts at pod-27,
+   * repeats pod-3 at its end, and pod-26 is never returned.
+   */
+  function driftedPage(): JSONObject {
+    return connectionsResponse(
+      "runsOn",
+      sectionOf(
+        [
+          ...pods(27, 40),
+          connection({
+            relationshipType: "runs-on",
+            otherKey: "pod-3",
+            otherKnown: false,
+            otherName: null,
+            otherType: null,
+          }),
+        ],
+        { total: 40, unknownTotal: 4, nextOffset: null },
+      ),
+    );
+  }
+
+  function runsOnSection(): HTMLElement {
+    return screen.getByTestId("entity-detail-runs-on");
+  }
+
+  function runsOnRows(): Array<HTMLElement> {
+    return within(runsOnSection()).getAllByRole("listitem");
+  }
+
+  function changedNote(): HTMLElement | null {
+    return screen.queryByTestId("entity-detail-runs-on-changed");
+  }
+
+  test("a page that repeats rows and ends short of the total says so, and offers a reload", async () => {
+    let reloaded: boolean = false;
+    serve((request: PostRequest): Answer => {
+      if (!isConnectionsRequest(request)) {
+        return checkoutResponse();
+      }
+      if (request.data["offset"] === 0) {
+        reloaded = true;
+        return connectionsResponse(
+          "runsOn",
+          sectionOf(pods(1, 40), { total: 40, nextOffset: null }),
+        );
+      }
+      return driftedPage();
+    });
+
+    renderPanel({
+      onSelectEntity: () => {
+        return undefined;
+      },
+    });
+    await waitForConnections();
+    expect(changedNote()).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    await waitFor(() => {
+      expect(changedNote()).not.toBeNull();
+    });
+    expect(changedNote()).toHaveTextContent(
+      "This list changed while you were browsing.",
+    );
+    /* 39 rows under "Runs on (40)", and no way to page on. */
+    expect(runsOnRows()).toHaveLength(39);
+    expect(within(runsOnSection()).getByRole("heading")).toHaveTextContent(
+      "Runs on (40)",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Show more: Runs on" }),
+    ).not.toBeInTheDocument();
+    /* The page still added rows: focus is on the first of them. */
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", {
+          name: "View details for checkout-pod-27",
+        }),
+      );
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reload list: Runs on" }),
+    );
+
+    await waitFor(() => {
+      expect(changedNote()).toBeNull();
+    });
+    expect(reloaded).toBe(true);
+    const reload: PostRequest = requests().filter(isConnectionsRequest)[1]!;
+    /* From the start, as many rows as it showed plus a page. */
+    expect(reload.data).toEqual({
+      rangeStart: RANGE_START.toISOString(),
+      entityKey: "svc",
+      entityType: EntityType.Service,
+      section: "runsOn",
+      offset: 0,
+      limit: 39 + 25,
+    });
+    expect(runsOnRows()).toHaveLength(40);
+    expect(
+      screen.getByRole("button", { name: "View details for checkout-pod-26" }),
+    ).toBeInTheDocument();
+    /* The reload replaced the list: pod-3 is back in its place, once. */
+    expect(runsOnRows()[2]).toHaveTextContent("checkout-pod-3");
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", {
+          name: "View details for checkout-pod-1",
+        }),
+      );
+    });
+    /* Only that section was asked for again; the entity was not. */
+    expect(entityRequests()).toHaveLength(1);
+  });
+
+  test("a last page that ends short of its total says so even with nothing repeated", async () => {
+    serve((request: PostRequest): Answer => {
+      return isConnectionsRequest(request)
+        ? connectionsResponse(
+            "runsOn",
+            sectionOf(pods(27, 40), { total: 40, nextOffset: null }),
+          )
+        : checkoutResponse();
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    await waitFor(() => {
+      expect(runsOnRows()).toHaveLength(39);
+    });
+    expect(changedNote()).toHaveTextContent(
+      "This list changed while you were browsing.",
+    );
+  });
+
+  test("a page of nothing but repeated rows moves focus to the reload", async () => {
+    serve((request: PostRequest): Answer => {
+      return isConnectionsRequest(request)
+        ? connectionsResponse(
+            "runsOn",
+            sectionOf(pods(21, 25), { total: 40, nextOffset: 30 }),
+          )
+        : checkoutResponse();
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    const reload: HTMLElement = await screen.findByRole("button", {
+      name: "Reload list: Runs on",
+    });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(reload);
+    });
+    expect(runsOnRows()).toHaveLength(25);
+    /* Paging can still go on; the note stays until the list is reloaded. */
+    expect(
+      screen.getByRole("button", { name: "Show more: Runs on" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a page that lines up with what is shown says nothing", async () => {
+    serve((request: PostRequest): Answer => {
+      return isConnectionsRequest(request)
+        ? connectionsResponse(
+            "runsOn",
+            sectionOf(pods(26, 40), { total: 40, nextOffset: null }),
+          )
+        : checkoutResponse();
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    await waitFor(() => {
+      expect(runsOnRows()).toHaveLength(40);
+    });
+    expect(changedNote()).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Reload list/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failed reload keeps the list and the offer to reload it", async () => {
+    let failReload: boolean = true;
+    serve((request: PostRequest): Answer => {
+      if (!isConnectionsRequest(request)) {
+        return checkoutResponse();
+      }
+      if (request.data["offset"] === 0) {
+        return failReload
+          ? new HTTPErrorResponse(500, { message: "Database busy" }, {})
+          : connectionsResponse(
+              "runsOn",
+              sectionOf(pods(1, 40), { total: 40, nextOffset: null }),
+            );
+      }
+      return driftedPage();
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Reload list: Runs on" }),
+    );
+
+    const alert: HTMLElement =
+      await within(runsOnSection()).findByRole("alert");
+    expect(alert).toHaveTextContent("Could not reload this list.");
+    expect(alert).toHaveTextContent("Database busy");
+    expect(runsOnRows()).toHaveLength(39);
+
+    failReload = false;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reload list: Runs on" }),
+    );
+    await waitFor(() => {
+      expect(runsOnRows()).toHaveLength(40);
+    });
+    expect(changedNote()).toBeNull();
+    expect(
+      within(runsOnSection()).queryByRole("alert"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("reloading the drawer for a new range drops the note", async () => {
+    serve((request: PostRequest): Answer => {
+      return isConnectionsRequest(request) ? driftedPage() : checkoutResponse();
+    });
+
+    const view: RenderResult = renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+    await waitFor(() => {
+      expect(changedNote()).not.toBeNull();
+    });
+
+    view.rerender(
+      <EntityDetailPanel
+        entity={CHECKOUT}
+        rangeStart={LATER_RANGE_START}
+        metricsWindowSeconds={60}
+        onClose={() => {
+          return undefined;
+        }}
+      />,
+    );
+    await waitForConnections();
+
+    expect(runsOnRows()).toHaveLength(25);
+    expect(changedNote()).toBeNull();
+  });
+});
+
 describe("a resource that is gone, and failures", () => {
   test("a key no item has any more keeps the header and says it is gone", async () => {
     serveEntity(entityResponse(null));
@@ -1095,6 +1364,135 @@ describe("a resource that is gone, and failures", () => {
       "Topology was updated. Reload the page.",
     );
   });
+
+  test("an outdated server is offered a page reload, never a retry that cannot work", async () => {
+    const reload: SpyInstance<() => void> = jest
+      .spyOn(Navigation, "reload")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    serve((): Answer => {
+      return { ...checkoutResponse(), formatVersion: 999 };
+    });
+
+    renderPanel();
+
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(
+      within(alert).queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(entityRequests()).toHaveLength(1);
+  });
+
+  test("a busy server says so, and trying again works", async () => {
+    const reload: SpyInstance<() => void> = jest
+      .spyOn(Navigation, "reload")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    let busy: boolean = true;
+    serve((): Answer => {
+      return busy
+        ? new HTTPErrorResponse(
+            429,
+            { message: "Too many topology requests are running." },
+            {},
+          )
+        : checkoutResponse();
+    });
+
+    renderPanel();
+
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Could not load this resource's connections.",
+    );
+    expect(alert).toHaveTextContent(
+      "The topology service is busy. Try again in a moment.",
+    );
+    expect(
+      within(alert).queryByRole("button", { name: "Reload page" }),
+    ).not.toBeInTheDocument();
+
+    busy = false;
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+
+    expect(
+      await screen.findByTestId("entity-detail-calls"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(entityRequests()).toHaveLength(2);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  test("Show more against an outdated server offers a page reload and stops paging that section", async () => {
+    const reload: SpyInstance<() => void> = jest
+      .spyOn(Navigation, "reload")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    serve((request: PostRequest): Answer => {
+      return isConnectionsRequest(request)
+        ? new HTTPErrorResponse(404, { message: "Not found" }, {})
+        : checkoutResponse();
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    const runsOn: HTMLElement = screen.getByTestId("entity-detail-runs-on");
+    const alert: HTMLElement = await within(runsOn).findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Could not load more connections. Topology was updated. Reload the page.",
+    );
+    /* A further page would fail the same way: no Show more to press. */
+    expect(
+      screen.queryByRole("button", { name: "Show more: Runs on" }),
+    ).not.toBeInTheDocument();
+    expect(within(runsOn).getAllByRole("listitem")).toHaveLength(25);
+
+    fireEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(requests().filter(isConnectionsRequest)).toHaveLength(1);
+  });
+
+  test("Show more against a busy server says so, and can be pressed again", async () => {
+    let busy: boolean = true;
+    serve((request: PostRequest): Answer => {
+      if (!isConnectionsRequest(request)) {
+        return checkoutResponse();
+      }
+      return busy
+        ? new HTTPErrorResponse(429, { message: "Busy" }, {})
+        : connectionsResponse(
+            "runsOn",
+            sectionOf(pods(26, 40), { total: 40, nextOffset: null }),
+          );
+    });
+
+    renderPanel();
+    await waitForConnections();
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+
+    const runsOn: HTMLElement = screen.getByTestId("entity-detail-runs-on");
+    const alert: HTMLElement = await within(runsOn).findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Could not load more connections. The topology service is busy. Try again in a moment.",
+    );
+    expect(
+      within(alert).queryByRole("button", { name: "Reload page" }),
+    ).not.toBeInTheDocument();
+
+    busy = false;
+    fireEvent.click(screen.getByRole("button", { name: "Show more: Runs on" }));
+    await waitFor(() => {
+      expect(within(runsOn).getAllByRole("listitem")).toHaveLength(40);
+    });
+    expect(within(runsOn).queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
 
 describe("switching entities and ranges", () => {
@@ -1123,23 +1521,67 @@ describe("switching entities and ranges", () => {
         : checkoutResponse();
     });
 
-    const view: RenderResult = renderPanel();
+    /*
+     * What the page showed at each commit, tagged with the entity it had
+     * asked the drawer for. A sibling's layout effect runs once React has
+     * written a commit to the DOM and before any passive effect — including
+     * the drawer's own reset to "loading" — so it sees the FIRST commit for
+     * the new entity: the one frame in which rows fetched for the previous
+     * entity could still be painted under the new header. Assertions made
+     * after rerender() cannot: act() has flushed that reset by then.
+     */
+    const commits: Array<{ entityKey: string; text: string }> = [];
+    const Probe: React.FunctionComponent<{ entityKey: string }> = (props: {
+      entityKey: string;
+    }): null => {
+      React.useLayoutEffect(() => {
+        commits.push({
+          entityKey: props.entityKey,
+          text: document.body.textContent || "",
+        });
+      });
+      return null;
+    };
+    const page: (target: EntityDetailTarget) => React.ReactElement = (
+      target: EntityDetailTarget,
+    ): React.ReactElement => {
+      return (
+        <>
+          <EntityDetailPanel
+            entity={target}
+            rangeStart={RANGE_START}
+            metricsWindowSeconds={60}
+            onClose={() => {
+              return undefined;
+            }}
+          />
+          <Probe entityKey={target.entityKey} />
+        </>
+      );
+    };
+
+    const view: RenderResult = render(page(CHECKOUT));
     await screen.findByText("Checkout API depends on Orders database");
 
     view.rerender(
-      <EntityDetailPanel
-        entity={{
-          entityKey: "web",
-          entityType: EntityType.Service,
-          displayName: "Web frontend",
-        }}
-        rangeStart={RANGE_START}
-        metricsWindowSeconds={60}
-        onClose={() => {
-          return undefined;
-        }}
-      />,
+      page({
+        entityKey: "web",
+        entityType: EntityType.Service,
+        displayName: "Web frontend",
+      }),
     );
+
+    const webCommits: Array<{ entityKey: string; text: string }> =
+      commits.filter((commit: { entityKey: string; text: string }): boolean => {
+        return commit.entityKey === "web";
+      });
+    expect(webCommits.length).toBeGreaterThan(0);
+    for (const commit of webCommits) {
+      expect(commit.text).not.toContain("Orders database");
+      expect(commit.text).not.toContain("Calls (2)");
+      expect(commit.text).not.toContain("Runs on (40)");
+      expect(commit.text).toContain("Loading connections…");
+    }
 
     expect(
       screen.queryByText("Checkout API depends on Orders database"),

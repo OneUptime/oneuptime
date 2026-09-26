@@ -22,6 +22,7 @@ import InfrastructureGraph from "./InfrastructureGraph";
 import EntityDetailPanel from "./EntityDetailPanel";
 import {
   CollectionCursor,
+  CollectionErrorDescription,
   CollectionPage,
   describeCollectionError,
   fetchCollectionPage,
@@ -103,18 +104,24 @@ type InfrastructureView = "list" | "map";
 
 type RequestStatus = "loading" | "ready" | "error";
 
+interface CollectionFailure {
+  message: string;
+  /* The server speaks another format: reloading the page is the only cure. */
+  isOutdated: boolean;
+}
+
 interface CollectionPageState {
   key: string;
   status: RequestStatus;
   page: CollectionPage | null;
-  error: string;
+  error: CollectionFailure | null;
 }
 
 interface CollectionSearchState {
   key: string;
   status: RequestStatus;
   counts: Map<string, number>;
-  error: string;
+  error: CollectionFailure | null;
 }
 
 interface CollectionMatch {
@@ -220,15 +227,31 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     return translateString(value) || value;
   };
 
-  const describeError: (error: unknown) => string = (
+  /*
+   * A busy server (429) is worth another try in a moment; a server that
+   * speaks another format is not — only loading the matching page helps.
+   */
+  const describeError: (error: unknown) => CollectionFailure = (
     error: unknown,
-  ): string => {
-    const described: { isOutdated: boolean; detail: string } =
+  ): CollectionFailure => {
+    const described: CollectionErrorDescription =
       describeCollectionError(error);
     if (described.isOutdated) {
-      return t("Topology was updated. Reload the page.");
+      return {
+        message: t("Topology was updated. Reload the page."),
+        isOutdated: true,
+      };
     }
-    return described.detail || t("Something went wrong. Please try again.");
+    if (described.isBusy) {
+      return {
+        message: t("The topology service is busy. Try again in a moment."),
+        isOutdated: false,
+      };
+    }
+    return {
+      message: described.detail || t("Something went wrong. Please try again."),
+      isOutdated: false,
+    };
   };
 
   const model: InfrastructureTopologyModel = useMemo(() => {
@@ -311,6 +334,12 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const [appliedFocus, setAppliedFocus] = useState<string | null>(null);
   /* Name terms the open collection is filtered by (from a search match). */
   const [collectionFilter, setCollectionFilter] = useState<Array<string>>([]);
+  /*
+   * The keyset stack of the open collection: one cursor per page visited,
+   * for the listing named by `baseKey`. It is only ever used for that
+   * listing, and starts over whenever a scope is opened or the listing
+   * changes (see below), so nothing reopens deep inside a collection.
+   */
   const [collectionPaging, setCollectionPaging] = useState<{
     baseKey: string;
     cursors: Array<CollectionCursor | null>;
@@ -446,6 +475,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     setScopeId(id);
     setSearch("");
     setCollectionFilter(nameTerms);
+    // A collection always opens on its first page, even the one already open.
+    setCollectionPaging({ baseKey: "", cursors: [null] });
     Navigation.setQueryString({
       infraFocus: id === ROOT_ID ? null : id,
       infraSearch: null,
@@ -551,7 +582,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       key,
       status: "loading",
       counts: new Map<string, number>(),
-      error: "",
+      error: null,
     });
     const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
       fetchCollectionSearchCounts(
@@ -561,7 +592,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       )
         .then((counts: Map<string, number>) => {
           if (!controller.signal.aborted) {
-            setCollectionSearch({ key, status: "ready", counts, error: "" });
+            setCollectionSearch({ key, status: "ready", counts, error: null });
           }
         })
         .catch((error: unknown) => {
@@ -636,13 +667,35 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     ? JSON.stringify([collectionBaseKey, collectionCursor])
     : "";
 
+  /*
+   * A stack belongs to the listing it was built for. When the listing
+   * changes — another collection, the name filter, Show inactive, leaving
+   * the collection — the stored stack is replaced by a fresh one for the
+   * new listing, so switching back (say, Show inactive off again) starts at
+   * page 1 instead of resuming a cursor that may point past the end. The
+   * render in between already reads page 1 (the keys differ), so this never
+   * fetches a stale page first.
+   */
+  useEffect(() => {
+    setCollectionPaging(
+      (previous: {
+        baseKey: string;
+        cursors: Array<CollectionCursor | null>;
+      }) => {
+        return previous.baseKey === collectionBaseKey
+          ? previous
+          : { baseKey: collectionBaseKey, cursors: [null] };
+      },
+    );
+  }, [collectionBaseKey]);
+
   useEffect(() => {
     if (!collectionScope || !props.rangeStart) {
       return;
     }
     const key: string = collectionPageKey;
     const controller: AbortController = new AbortController();
-    setCollectionPageState({ key, status: "loading", page: null, error: "" });
+    setCollectionPageState({ key, status: "loading", page: null, error: null });
     fetchCollectionPage(
       props.rangeStart,
       {
@@ -656,7 +709,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     )
       .then((page: CollectionPage) => {
         if (!controller.signal.aborted) {
-          setCollectionPageState({ key, status: "ready", page, error: "" });
+          setCollectionPageState({ key, status: "ready", page, error: null });
         }
       })
       .catch((error: unknown) => {
@@ -1074,6 +1127,39 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The way out of a failed request: try again, or — when the server speaks
+   * another format and no retry can succeed — reload the page.
+   */
+  const renderRecovery: (
+    failure: CollectionFailure | null,
+    onRetry: () => void,
+    className: string,
+  ) => ReactElement = (
+    failure: CollectionFailure | null,
+    onRetry: () => void,
+    className: string,
+  ): ReactElement => {
+    if (failure?.isOutdated) {
+      return (
+        <button
+          type="button"
+          className={className}
+          onClick={() => {
+            Navigation.reload();
+          }}
+        >
+          {t("Reload page")}
+        </button>
+      );
+    }
+    return (
+      <button type="button" className={className} onClick={onRetry}>
+        {t("Try again")}
+      </button>
+    );
+  };
+
   const renderCollectionTable: (
     collection: InfrastructureNode,
   ) => ReactElement = (collection: InfrastructureNode): ReactElement => {
@@ -1136,18 +1222,16 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             role="alert"
             className="rounded-xl border border-red-200 bg-red-50 px-6 py-6 text-center text-sm text-red-700"
           >
-            <p>{state.error}</p>
-            <button
-              type="button"
-              className={`${BUTTON} mt-3 bg-white text-gray-700 shadow-sm hover:bg-gray-50`}
-              onClick={() => {
+            <p>{state.error?.message}</p>
+            {renderRecovery(
+              state.error,
+              () => {
                 setCollectionRetry((value: number): number => {
                   return value + 1;
                 });
-              }}
-            >
-              {t("Try again")}
-            </button>
+              },
+              `${BUTTON} mt-3 bg-white text-gray-700 shadow-sm hover:bg-gray-50`,
+            )}
           </div>
         </div>
       );
@@ -1155,6 +1239,56 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     const page: CollectionPage = state.page;
     const pageIndex: number = collectionCursors.length - 1;
     const pageCount: number = Math.max(1, Math.ceil(page.total / PAGE_SIZE));
+    const pager: ReactElement = renderPager({
+      label: `${t("Page")} ${(pageIndex + 1).toLocaleString()} ${t("of")} ${pageCount.toLocaleString()} · ${page.total.toLocaleString()} ${noun(page.total)}`,
+      canGoBack: pageIndex > 0,
+      canGoForward: Boolean(page.nextCursor),
+      onBack: () => {
+        setCollectionPaging({
+          baseKey: collectionBaseKey,
+          cursors: collectionCursors.slice(0, -1),
+        });
+      },
+      onForward: () => {
+        setCollectionPaging({
+          baseKey: collectionBaseKey,
+          cursors: [...collectionCursors, page.nextCursor],
+        });
+      },
+    });
+    if (page.items.length === 0 && pageIndex > 0) {
+      /*
+       * The items past this page's cursor went away (pruned, archived or
+       * renamed) after the previous page was read. The collection is not
+       * empty, so say what happened and keep a way back.
+       */
+      return (
+        <div>
+          {filterNote}
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <div
+              className="px-6 py-10 text-center text-sm text-gray-500"
+              data-testid="infrastructure-collection-page-empty"
+            >
+              <p>{t("No more items on this page.")}</p>
+              <button
+                type="button"
+                className={`${BUTTON} mt-3 bg-white text-gray-700 shadow-sm hover:bg-gray-50`}
+                onClick={() => {
+                  setCollectionPaging({
+                    baseKey: collectionBaseKey,
+                    cursors: [null],
+                  });
+                }}
+              >
+                {t("Back to the first page")}
+              </button>
+            </div>
+            {pager}
+          </div>
+        </div>
+      );
+    }
     return (
       <div>
         {filterNote}
@@ -1251,23 +1385,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </tbody>
               </table>
             </div>
-            {renderPager({
-              label: `${t("Page")} ${(pageIndex + 1).toLocaleString()} ${t("of")} ${pageCount.toLocaleString()} · ${page.total.toLocaleString()} ${noun(page.total)}`,
-              canGoBack: pageIndex > 0,
-              canGoForward: Boolean(page.nextCursor),
-              onBack: () => {
-                setCollectionPaging({
-                  baseKey: collectionBaseKey,
-                  cursors: collectionCursors.slice(0, -1),
-                });
-              },
-              onForward: () => {
-                setCollectionPaging({
-                  baseKey: collectionBaseKey,
-                  cursors: [...collectionCursors, page.nextCursor],
-                });
-              },
-            })}
+            {pager}
           </div>
         )}
       </div>
@@ -1334,19 +1452,17 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             >
               <span>
                 {t("Could not search large collections.")}{" "}
-                {currentCollectionSearch.error}
+                {currentCollectionSearch.error?.message}
               </span>
-              <button
-                type="button"
-                className="rounded font-medium text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500"
-                onClick={() => {
+              {renderRecovery(
+                currentCollectionSearch.error,
+                () => {
                   setCollectionSearchRetry((value: number): number => {
                     return value + 1;
                   });
-                }}
-              >
-                {t("Try again")}
-              </button>
+                },
+                "rounded font-medium text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500",
+              )}
             </div>
           )}
         </div>
@@ -1738,8 +1854,12 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       </div>
 
       {detailTarget && (
+        /*
+         * One drawer for every entity shown in turn: it stays open (and keeps
+         * focus) while a connection row switches it to another entity, and
+         * handles the switch itself.
+         */
         <EntityDetailPanel
-          key={detailTarget.entityKey}
           entity={detailTarget}
           rangeStart={props.rangeStart}
           metricsWindowSeconds={props.metricsWindowSeconds}

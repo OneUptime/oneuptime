@@ -3,7 +3,10 @@ import { JSONObject } from "Common/Types/JSON";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
-import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
+import {
+  TopologyApiLimits,
+  TopologyInfrastructureNodeJSON,
+} from "Common/Types/Topology/TopologyApi";
 import {
   FLAT_TYPES,
   SeededRandom,
@@ -651,21 +654,19 @@ describe("Topology reduction parity: reduced payloads draw the maps the whole in
   });
 
   /*
-   * KNOWN MISMATCH (reported, not fixed here — the task forbids product
-   * changes): containment ties are broken by the container's key in
-   * COLLATE "C" order on the server (spec, semantics 4) — code-point order on
-   * a UTF-8 database — but in UTF-16 code-unit order by the Dashboard
-   * (InfrastructureNesting.computeInfraParenting: `parentKey <
-   * current.edge.toEntityKey`). The two agree for every key in the Basic
-   * Multilingual Plane, and real entity keys are 16 hex characters, so this
-   * cannot happen with discovered data; it can with a key written by hand.
-   * With a candidate container keyed "node-�" and one keyed
-   * "node-\u{1F600}" (same relationship priority, same type), the server
-   * picks "node-�" (U+FFFD < U+1F600) and ships only that container,
-   * while the old full-data model picks "node-\u{1F600}" (0xD83D < 0xFFFD),
-   * so the pod nests under a different node than it used to.
+   * Containment ties are broken by the container's key in COLLATE "C" order
+   * on the server (spec, semantics 4) — code-point order on a UTF-8
+   * database — and the Dashboard now breaks them the same way
+   * (InfrastructureNesting.computeInfraParenting uses compareCodePoints).
+   * UTF-16 code-unit order (`<`) agrees for every key up to U+FFFF but not
+   * where a character beyond it meets one in U+E000..U+FFFF: with candidate
+   * containers keyed "node-\uFFFD" and "node-\u{1F600}" (same relationship
+   * priority, same type), code points pick "node-\uFFFD" (U+FFFD < U+1F600)
+   * while code units picked "node-\u{1F600}" (0xD83D < 0xFFFD). The server
+   * ships only the container it picked, so a code-unit client used to nest
+   * the pod under a different node than the whole inventory gave it.
    */
-  test.skip("KNOWN MISMATCH: a container tie between a key beyond the BMP and one in U+E000..U+FFFF", () => {
+  test("a container tie between a key beyond the BMP and one in U+E000..U+FFFF is broken by code point, as on the server", () => {
     const at: Date = new Date(RANGE_START.getTime() + 60_000);
     const item: (key: string, type: string) => ReferenceItem = (
       key: string,
@@ -712,17 +713,50 @@ describe("Topology reduction parity: reduced payloads draw the maps the whole in
         avgDurationMs: null,
       };
     };
+    const inPlane: string = "node-\uFFFD";
+    const beyondPlane: string = "node-\u{1F600}";
     const estate: ReferenceEstate = {
       items: [
         item("pod", EntityType.KubernetesPod),
-        item("node-�", EntityType.KubernetesNode),
-        item("node-\u{1F600}", EntityType.KubernetesNode),
+        item(inPlane, EntityType.KubernetesNode),
+        item(beyondPlane, EntityType.KubernetesNode),
       ],
       relationships: [
-        partOf("pod", "node-�", "00000000-0000-4000-a000-000000000001"),
-        partOf("pod", "node-\u{1F600}", "00000000-0000-4000-a000-000000000002"),
+        partOf("pod", inPlane, "00000000-0000-4000-a000-000000000001"),
+        partOf("pod", beyondPlane, "00000000-0000-4000-a000-000000000002"),
       ],
     };
     checkParity("non-BMP container tie", estate, emptyCoverage());
+
+    /* Whichever order the relationships arrive in. */
+    checkParity(
+      "non-BMP container tie, relationships reversed",
+      { ...estate, relationships: [...estate.relationships].reverse() },
+      emptyCoverage(),
+    );
+
+    /* And the winner is the server's: the pod nests under U+FFFD's node. */
+    const original: OriginalSnapshot = originalSnapshot(estate);
+    for (const relationships of [
+      original.relationships,
+      [...original.relationships].reverse(),
+    ]) {
+      const model: InfrastructureTopologyModel =
+        buildInfrastructureTopologyModel(original.entities, relationships, {
+          rangeStart: RANGE_START,
+        });
+      expect(model.nodes.get("pod")?.parentId).toBe(inPlane);
+    }
+    const shipped: ReferenceInfrastructureResponse = referenceInfrastructure(
+      estate,
+      { projectId: PROJECT_ID, rangeStart: RANGE_START },
+    );
+    const pod: TopologyInfrastructureNodeJSON | undefined = shipped.nodes.find(
+      (node: TopologyInfrastructureNodeJSON): boolean => {
+        return node.key === "pod";
+      },
+    );
+    expect(pod?.parent).toBeDefined();
+    expect(shipped.nodes[pod!.parent!]?.key).toBe(inPlane);
   });
 });

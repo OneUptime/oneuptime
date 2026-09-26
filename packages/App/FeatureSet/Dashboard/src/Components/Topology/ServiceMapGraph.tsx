@@ -1393,7 +1393,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
 
       {selectedTarget && (
         <EntityDetailPanel
-          key={selectedTarget.entityKey}
           entity={selectedTarget}
           rangeStart={props.rangeStart}
           traffic={selectedEntry ? trafficFor(selectedEntry) : undefined}

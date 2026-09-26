@@ -489,21 +489,66 @@ describe("failures", () => {
     ).rejects.toBe(failure);
     expect(api.describeCollectionError(failure)).toEqual({
       isOutdated: false,
+      isBusy: false,
       detail: "entityType must be a flat infrastructure type",
     });
+  });
+
+  test("a busy server (429) is thrown as it came and reads as busy, not outdated", async () => {
+    const failure: HTTPErrorResponse = new HTTPErrorResponse(
+      429,
+      { message: "Too many topology requests. Try again shortly." },
+      {},
+    );
+    postMock.mockResolvedValue(failure);
+    await expect(
+      api.fetchCollectionPage(RANGE_START, {
+        entityType: "iot.device",
+        includeInactive: false,
+      }),
+    ).rejects.toBe(failure);
+    expect(api.describeCollectionError(failure)).toEqual({
+      isOutdated: false,
+      isBusy: true,
+      detail: "Too many topology requests. Try again shortly.",
+    });
+    /* Without an explanation from the server, the busy copy stands in. */
+    expect(
+      api.describeCollectionError(new HTTPErrorResponse(429, {}, {})),
+    ).toEqual({
+      isOutdated: false,
+      isBusy: true,
+      detail: api.TOPOLOGY_BUSY_MESSAGE,
+    });
+    expect(api.TOPOLOGY_BUSY_MESSAGE).toBe(
+      "The topology service is busy. Try again in a moment.",
+    );
   });
 
   test("errors describe themselves for the page", () => {
     expect(api.describeCollectionError(new TopologyOutdatedError())).toEqual({
       isOutdated: true,
+      isBusy: false,
       detail: "Topology was updated. Reload the page.",
     });
     expect(
-      api.describeCollectionError(new HTTPErrorResponse(504, {}, {})).detail,
-    ).toMatch(/connecting to server/);
-    expect(api.describeCollectionError(new Error("boom")).detail).toBe("boom");
+      api.describeCollectionError(new HTTPErrorResponse(504, {}, {})),
+    ).toEqual({
+      isOutdated: false,
+      isBusy: false,
+      detail: expect.stringMatching(/connecting to server/),
+    });
+    expect(
+      api.describeCollectionError(new HTTPErrorResponse(503, {}, {})).isBusy,
+    ).toBe(false);
+    expect(api.describeCollectionError(new Error("boom"))).toEqual({
+      isOutdated: false,
+      isBusy: false,
+      detail: "boom",
+    });
     expect(api.describeCollectionError("?")).toEqual({
       isOutdated: false,
+      isBusy: false,
       detail: "",
     });
   });

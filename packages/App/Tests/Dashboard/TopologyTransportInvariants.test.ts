@@ -83,6 +83,7 @@ function countOccurrences(haystack: string, needle: string): number {
  */
 const SOURCE_FILE: RegExp = /\.(ts|tsx|json)$/;
 const DISCOVERED_LITERAL: RegExp = /["']discovered["']/;
+const DIGIT: RegExp = /\d/;
 
 function listSourceFiles(root: string): Array<string> {
   const files: Array<string> = [];
@@ -221,8 +222,27 @@ describe("the Topology page no longer lists the inventory through the generic AP
     );
     /* API is imported only to phrase an error. */
     expect(callsOf(code, /\bAPI\.(\w+)/g)).toEqual(["getFriendlyMessage"]);
-    /* The abort signal reaches the request. */
-    expect(code).toContain("{ signal: controller.signal }");
+    /* The abort signal and the explicit-refresh flag reach the request. */
+    expect(code).toContain("{ signal: controller.signal, fresh: fresh }");
+  });
+
+  /*
+   * Only the user's own refresh may bypass the server's response cache:
+   * every other new generation (range, project, a drifted pin) is an
+   * ordinary load. TopologyDataLoading checks the behaviour; this pins that
+   * no second caller starts a fresh generation.
+   */
+  test("only reload() starts a generation that bypasses the server's cache", () => {
+    const code: string = readCode(HOOK.path);
+
+    expect(callsOf(code, /\brestart\([^()]*, (true|false)\)/g)).toEqual([
+      "false",
+      "false",
+      "true",
+    ]);
+    expect(code).toMatch(
+      /const reload: \(\) => void = useCallback\(\(\): void => \{ restart\(latestRef\.current\.activeView, true\); \}/,
+    );
   });
 
   test("the views fetch only through their Topology API clients", () => {
@@ -369,14 +389,35 @@ describe('the "Partial inventory loaded" banner is gone', () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the page's only truncation banner is the exact-totals one", () => {
+  /*
+   * One banner, worded per cap and per tab from translated fragments whose
+   * keys hold no numbers. "Counts are exact" is only true on Infrastructure,
+   * whose summary switches to the server's totals; the Service Map's counts
+   * come from what was shipped.
+   */
+  test("the page's only truncation banner words each cap for what it limited", () => {
     const code: string = readCode(PAGE.path);
 
     expect(countOccurrences(code, 'data-testid="topology-truncation"')).toBe(1);
+    expect(code).toContain('translateString("of")');
     expect(code).toContain('translateString("resources shown.")');
-    expect(code).toContain(
-      '"Counts are exact; the map and search cover the resources shown."',
+    expect(code).toContain('translateString("connections shown.")');
+    expect(
+      countOccurrences(
+        code,
+        '"Counts are exact; the map and search cover the resources shown."',
+      ),
+    ).toBe(1);
+    expect(code).toContain('"The map, counts and search cover what is shown."');
+    expect(code).toMatch(
+      /activeTabName === "Infrastructure" \? translateString\( "Counts are exact; the map and search cover the resources shown\.", \)/,
     );
+    const keys: Array<string> = callsOf(code, /translateString\("([^"]*)"\)/g);
+    expect(
+      keys.filter((key: string): boolean => {
+        return DIGIT.test(key);
+      }),
+    ).toEqual([]);
   });
 });
 

@@ -113,6 +113,8 @@ interface PostOptions {
 interface RecordedRequest {
   path: string;
   rangeStart: string;
+  /* The `fresh` flag as sent; undefined when the body had none. */
+  fresh: unknown;
   tenant: string;
   signal: AbortSignal | undefined;
   respond: (payload: JSONObject) => void;
@@ -198,6 +200,7 @@ function installFakeServer(): void {
         const request: RecordedRequest = {
           path: pathOf(options.url),
           rangeStart: String(options.data["rangeStart"]),
+          fresh: options.data["fresh"],
           tenant: String(options.headers["tenantid"]),
           signal: options.options?.signal,
           respond: (payload: JSONObject): void => {
@@ -315,6 +318,15 @@ describe("StrictMode's double mount", () => {
     expect(live(serviceMap)).toEqual([serviceMap[1]]);
     expect(serviceMap[1]!.rangeStart).toBe(serviceMap[0]!.rangeStart);
     expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(0);
+    /*
+     * The replayed mount is not the user's refresh: neither load may make
+     * the server skip its response cache.
+     */
+    expect(
+      serviceMap.map((request: RecordedRequest): unknown => {
+        return request.fresh;
+      }),
+    ).toEqual([undefined, undefined]);
 
     /* The discarded mount's answer arriving first changes nothing... */
     await act(async () => {
@@ -354,6 +366,9 @@ describe("StrictMode's double mount", () => {
 
     /* Updates are not replayed: one Infrastructure load, no Service Map reload. */
     expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(1);
+    expect(
+      requestsTo(TopologyApiPath.Infrastructure)[0]!.fresh,
+    ).toBeUndefined();
     expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(
       serviceMapRequests,
     );

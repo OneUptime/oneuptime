@@ -59,7 +59,11 @@ let mockStatuses: Map<string, ServiceOperationalStatus> = new Map<
   string,
   ServiceOperationalStatus
 >();
-/* Every drawer instance, by the entity it was mounted for. */
+/*
+ * Every drawer instance, by the entity it was mounted for. The map keeps one
+ * drawer while the user moves between entities (a remount would replay the
+ * slide-in and drop keyboard focus), so a new entry means a new drawer.
+ */
 const mockDrawerMounts: Array<string> = [];
 /* The props of the drawer as last rendered. */
 let mockDrawerProps: Record<string, unknown> | null = null;
@@ -146,6 +150,7 @@ jest.mock(
             role="dialog"
             aria-label="Service details"
             data-mounted-for={mountedFor}
+            data-entity-key={props.entity.entityKey}
           >
             <p data-testid="drawer-name">
               {props.entity.displayName || props.entity.entityKey}
@@ -936,7 +941,7 @@ describe("details", () => {
   test("the drawer opens on a preview of the node and the server's range start", async () => {
     await renderGraph();
     fireEvent.click(screen.getByTestId("map-node-api"));
-    expect(drawer()).toHaveAttribute("data-mounted-for", "api");
+    expect(drawer()).toHaveAttribute("data-entity-key", "api");
     expect(drawerTarget()).toEqual({
       entityKey: "api",
       entityType: EntityType.Service,
@@ -977,20 +982,21 @@ describe("details", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "View related dependency" }),
     );
-    expect(drawer()).toHaveAttribute("data-mounted-for", "postgres");
+    expect(drawer()).toHaveAttribute("data-entity-key", "postgres");
     expect(screen.getByTestId("drawer-name")).toHaveTextContent("postgres");
     expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent(
       "Database · PostgreSQL",
     );
-    // A new drawer for the new node, never the old one re-used.
-    expect(mockDrawerMounts).toEqual(["api", "postgres"]);
+    // The open drawer carries on to the new node: never a remount.
+    expect(mockDrawerMounts).toEqual(["api"]);
+    expect(drawer()).toHaveAttribute("data-mounted-for", "api");
     expect(onOpenInfrastructure).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "View caller" }));
     expect(screen.getByTestId("drawer-name")).toHaveTextContent("web");
     expect(screen.getByTestId("drawer-status")).toHaveTextContent(
       "Entry point",
     );
-    expect(mockDrawerMounts).toEqual(["api", "postgres", "web"]);
+    expect(mockDrawerMounts).toEqual(["api"]);
   });
 
   test("a runs-on row opens the Infrastructure view and closes the drawer", async () => {
@@ -1016,7 +1022,7 @@ describe("details", () => {
     await renderGraph();
     fireEvent.click(screen.getByTestId("map-node-api"));
     fireEvent.click(screen.getByRole("button", { name: "View placement" }));
-    expect(drawer()).toHaveAttribute("data-mounted-for", "pod-1");
+    expect(drawer()).toHaveAttribute("data-entity-key", "pod-1");
     expect(drawerTarget()).toEqual({
       entityKey: "pod-1",
       entityType: EntityType.KubernetesPod,
@@ -1039,7 +1045,7 @@ describe("details", () => {
       screen.getByRole("button", { name: "View inactive caller" }),
     );
     expect(onOpenInfrastructure).not.toHaveBeenCalled();
-    expect(drawer()).toHaveAttribute("data-mounted-for", "legacy");
+    expect(drawer()).toHaveAttribute("data-entity-key", "legacy");
     expect(drawerTarget()).toEqual({
       entityKey: "legacy",
       entityType: EntityType.Service,
@@ -1059,11 +1065,11 @@ describe("details", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "View related instance" }),
     );
-    expect(drawer()).toHaveAttribute("data-mounted-for", "api-instance-1");
+    expect(drawer()).toHaveAttribute("data-entity-key", "api-instance-1");
     fireEvent.click(
       screen.getByRole("button", { name: "View untyped resource" }),
     );
-    expect(drawer()).toHaveAttribute("data-mounted-for", "mystery-key");
+    expect(drawer()).toHaveAttribute("data-entity-key", "mystery-key");
     expect(drawerTarget()).toEqual({ entityKey: "mystery-key" });
     expect(onOpenInfrastructure).not.toHaveBeenCalled();
   });
@@ -1077,7 +1083,7 @@ describe("details", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "View related dependency" }),
     );
-    expect(drawer()).toHaveAttribute("data-mounted-for", "postgres");
+    expect(drawer()).toHaveAttribute("data-entity-key", "postgres");
     expect(
       screen.getByRole("button", { name: "Show its connections" }),
     ).toBeInTheDocument();
@@ -1085,10 +1091,12 @@ describe("details", () => {
       screen.getByRole("button", { name: "View inactive caller" }),
     );
     fireEvent.click(screen.getByTestId("map-node-web"));
-    expect(drawer()).toHaveAttribute("data-mounted-for", "web");
+    expect(drawer()).toHaveAttribute("data-entity-key", "web");
     expect(screen.getByTestId("drawer-status")).toHaveTextContent(
       "Entry point",
     );
+    /* Rows and map clicks alike moved the one open drawer along. */
+    expect(mockDrawerMounts).toEqual(["api"]);
   });
 
   test("a connection closes a drawer that is open off the map", async () => {
@@ -1112,7 +1120,7 @@ describe("details", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "View inactive caller" }),
     );
-    expect(drawer()).toHaveAttribute("data-mounted-for", "legacy");
+    expect(drawer()).toHaveAttribute("data-entity-key", "legacy");
     expect(screen.getByTestId("drawer-status")).toHaveTextContent(
       "No calls observed",
     );

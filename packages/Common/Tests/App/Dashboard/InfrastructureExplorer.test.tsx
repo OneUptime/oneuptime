@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  RenderResult,
   cleanup,
   fireEvent,
   render,
@@ -17,10 +18,13 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
+import type { SpyInstance } from "jest-mock";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
 import ObjectID from "../../../Types/ObjectID";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Navigation from "../../../UI/Utils/Navigation";
 import InfrastructureExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
 import type {
   CollectionPage,
@@ -35,6 +39,7 @@ import {
   TopologyRelationship,
   TopologyTruncation,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
+import { TopologyOutdatedError } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyApi";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -117,8 +122,9 @@ jest.mock(
 
 /*
  * The drawer fetches its own details; here it only shows what it was handed
- * (the preview target) and exposes its callbacks. Every mount is recorded so
- * a test can see what the page asked it to show.
+ * (the preview target) and exposes its callbacks. Every mount and every
+ * render is recorded, so a test can see what the page asked it to show and
+ * whether it kept one drawer or built a new one.
  */
 interface DrawerProps {
   entity: EntityDetailTarget;
@@ -131,12 +137,14 @@ interface DrawerProps {
   onOpenInfrastructure?: ((key: string) => void) | undefined;
 }
 const mockDrawerMounts: Array<DrawerProps> = [];
+const mockDrawerRenders: Array<DrawerProps> = [];
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel",
   () => {
     const MockDrawer: (props: DrawerProps) => React.ReactElement = (
       props: DrawerProps,
     ): React.ReactElement => {
+      mockDrawerRenders.push(props);
       React.useEffect(() => {
         mockDrawerMounts.push(props);
       }, []);
@@ -183,29 +191,27 @@ jest.mock(
   },
 );
 
+/*
+ * Only the two requests are replaced: how a failure is classified (a busy
+ * server, a newer format) is the real module's, so the page is tested
+ * against what the transport really reports.
+ */
 const mockFetchCollectionPage: MockFunction = getJestMockFunction();
 const mockFetchCollectionSearchCounts: MockFunction = getJestMockFunction();
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureCollectionApi",
   () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureCollectionApi",
+    ) as Record<string, unknown>;
     return {
+      ...actual,
       __esModule: true,
       fetchCollectionPage: (...args: Array<unknown>): unknown => {
         return mockFetchCollectionPage(...args);
       },
       fetchCollectionSearchCounts: (...args: Array<unknown>): unknown => {
         return mockFetchCollectionSearchCounts(...args);
-      },
-      isCollectionSearchable: (terms: Array<string>): boolean => {
-        return terms.length <= 10;
-      },
-      describeCollectionError: (
-        error: unknown,
-      ): { isOutdated: boolean; detail: string } => {
-        return {
-          isOutdated: false,
-          detail: error instanceof Error ? error.message : "",
-        };
       },
     };
   },
@@ -347,15 +353,15 @@ function page(
   };
 }
 
-function renderExplorer(
-  options: {
-    data?: Fixture;
-    includeInactive?: boolean;
-    onOpenServiceMap?: (key: string) => void;
-  } = {},
-): void {
+interface ExplorerOptions {
+  data?: Fixture;
+  includeInactive?: boolean;
+  onOpenServiceMap?: (key: string) => void;
+}
+
+function explorer(options: ExplorerOptions = {}): React.ReactElement {
   const data: Fixture = options.data || fixtures();
-  render(
+  return (
     <MemoryRouter>
       <InfrastructureExplorer
         entities={data.entities}
@@ -368,8 +374,17 @@ function renderExplorer(
         includeInactive={options.includeInactive}
         onOpenServiceMap={options.onOpenServiceMap}
       />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+/*
+ * Renders the explorer; rerender it through the result with `explorer(...)`
+ * and the SAME fixture object, as TopologyPage does when only "Show
+ * inactive" changes (the explorer is not remounted for that).
+ */
+function renderExplorer(options: ExplorerOptions = {}): RenderResult {
+  return render(explorer(options));
 }
 
 function search(value: string): void {
@@ -398,13 +413,49 @@ function tree(): HTMLElement {
   return aside;
 }
 
+/* What the drawer was last asked to show. */
 function lastDrawer(): DrawerProps {
   const props: DrawerProps | undefined =
-    mockDrawerMounts[mockDrawerMounts.length - 1];
+    mockDrawerRenders[mockDrawerRenders.length - 1];
   if (!props) {
     throw new Error("the drawer never opened");
   }
   return props;
+}
+
+function pageRequest(index: number): CollectionPageRequest {
+  const call: Array<unknown> | undefined =
+    mockFetchCollectionPage.mock.calls[index];
+  if (!call) {
+    throw new Error(`no collection page request #${index + 1}`);
+  }
+  return call[1] as CollectionPageRequest;
+}
+
+function lastPageRequest(): CollectionPageRequest {
+  return pageRequest(mockFetchCollectionPage.mock.calls.length - 1);
+}
+
+/* A page of IoT devices "iot-<from>" .. "iot-<to>" that says where the next starts. */
+function iotPage(
+  from: number,
+  to: number,
+  total: number,
+  hasMore: boolean = true,
+): CollectionPage {
+  const items: Array<TopologyEntity> = [];
+  for (let index: number = from; index <= to; index++) {
+    const name: string = `sensor-${String(index).padStart(3, "0")}`;
+    items.push(entity(`iot-${index}`, EntityType.IoTDevice, name));
+  }
+  const last: TopologyEntity | undefined = items[items.length - 1];
+  return page(
+    items,
+    total,
+    hasMore && last
+      ? { name: last.displayName || "", key: last.entityKey || "" }
+      : null,
+  );
 }
 
 beforeEach(() => {
@@ -414,6 +465,7 @@ beforeEach(() => {
     "/dashboard/project/topology/overview?tab=Infrastructure",
   );
   mockDrawerMounts.length = 0;
+  mockDrawerRenders.length = 0;
   mockFetchCollectionPage.mockReset();
   mockFetchCollectionSearchCounts.mockReset();
 });
@@ -587,8 +639,17 @@ describe("navigation", () => {
       "data-entity-type",
       EntityType.Service,
     );
-    // A new entity is a new drawer, never the old one re-labelled.
-    expect(mockDrawerMounts).toHaveLength(2);
+    /*
+     * The same drawer shows the new entity: it is not torn down and built
+     * again (that would drop keyboard focus to the page and replay the
+     * slide-in); the drawer itself handles the switch.
+     */
+    expect(mockDrawerMounts).toHaveLength(1);
+    expect(lastDrawer().entity).toEqual({
+      entityKey: "api",
+      entityType: EntityType.Service,
+      displayName: "api",
+    });
     fireEvent.click(
       screen.getByRole("button", { name: "Show on the service map" }),
     );
@@ -1160,5 +1221,317 @@ describe("map", () => {
       "true",
     );
     expect(rows()).toHaveLength(3);
+  });
+});
+
+/*
+ * A fake collection server: two IoT devices a page, keyset-paged by the
+ * last key, with 4,200 active devices and 5,000 with inactive ones included.
+ */
+function serveIotPages(options: { emptyAfter?: number } = {}): void {
+  mockFetchCollectionPage.mockImplementation(
+    (_rangeStart: unknown, request: unknown): Promise<CollectionPage> => {
+      const pageRequest: CollectionPageRequest =
+        request as CollectionPageRequest;
+      const total: number = pageRequest.includeInactive ? 5000 : 4200;
+      const start: number = pageRequest.cursor
+        ? Number(pageRequest.cursor.key.replace("iot-", "")) + 1
+        : 1;
+      if (options.emptyAfter !== undefined && start > options.emptyAfter) {
+        // Everything past the cursor went away between the two requests.
+        return Promise.resolve(page([], total - 50, null));
+      }
+      return Promise.resolve(iotPage(start, start + 1, total));
+    },
+  );
+}
+
+async function expectPageLabel(label: string): Promise<void> {
+  await waitFor(() => {
+    expect(screen.getByText(label)).toBeVisible();
+  });
+}
+
+describe("collection paging", () => {
+  test("a collection always opens on its first page, however it is reopened", async () => {
+    serveIotPages();
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 3 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toEqual({
+      name: "sensor-004",
+      key: "iot-4",
+    });
+
+    // Away to the overview and back from the tree.
+    fireEvent.click(screen.getByTestId("infrastructure-tree-root"));
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "All infrastructure",
+    );
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+
+    // The collection's own tree row, while it is open.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+
+    // Its breadcrumb.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    fireEvent.click(
+      within(
+        screen.getByRole("navigation", { name: "Infrastructure location" }),
+      ).getByRole("button", { name: "IoT Devices" }),
+    );
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+
+    // A search match that lists the whole collection.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    search("iot");
+    fireEvent.click(screen.getByTestId("infrastructure-collection-match"));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+
+    // Its card on the overview map.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByTestId("infrastructure-tree-root"));
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(screen.getByTestId(`map-card-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+  });
+
+  test("an empty page past the first says so and leads back to the first page", async () => {
+    serveIotPages({ emptyAfter: 2 });
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    const empty: HTMLElement = await screen.findByTestId(
+      "infrastructure-collection-page-empty",
+    );
+    expect(empty).toHaveTextContent("No more items on this page.");
+    expect(
+      screen.queryByText("Nothing inside this resource."),
+    ).not.toBeInTheDocument();
+    // The pager is still there, with the way back.
+    expect(screen.getByText("Page 2 of 83 · 4,150 IoT devices")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+
+    fireEvent.click(
+      within(empty).getByRole("button", { name: "Back to the first page" }),
+    );
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(lastPageRequest().cursor).toBeNull();
+    expect(screen.getAllByTestId("infrastructure-collection-row")).toHaveLength(
+      2,
+    );
+
+    // Previous gets there too.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByTestId("infrastructure-collection-page-empty");
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+  });
+
+  test("an empty first page still reads as an empty collection", async () => {
+    mockFetchCollectionPage.mockResolvedValue(page([], 0, null));
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    expect(
+      await screen.findByText("Nothing inside this resource."),
+    ).toBeVisible();
+    expect(
+      screen.queryByTestId("infrastructure-collection-page-empty"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("Show inactive with a collection open or searched", () => {
+  test("toggling it lists the open collection again from its first page, with the new total", async () => {
+    serveIotPages();
+    const data: Fixture = withCollection();
+    const view: RenderResult = renderExplorer({ data });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+
+    view.rerender(explorer({ data, includeInactive: true }));
+    await expectPageLabel("Page 1 of 100 · 5,000 IoT devices");
+    expect(lastPageRequest()).toEqual({
+      entityType: EntityType.IoTDevice,
+      includeInactive: true,
+      nameTerms: [],
+      cursor: null,
+      limit: 50,
+    });
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "IoT Devices",
+    );
+
+    /*
+     * And straight back to active only: page 1 again, never the page-2
+     * cursor the active-only listing had before the toggle.
+     */
+    const before: number = mockFetchCollectionPage.mock.calls.length;
+    view.rerender(explorer({ data, includeInactive: false }));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    const after: number = mockFetchCollectionPage.mock.calls.length;
+    expect(after).toBeGreaterThan(before);
+    for (let index: number = before; index < after; index++) {
+      expect(pageRequest(index)).toEqual({
+        entityType: EntityType.IoTDevice,
+        includeInactive: false,
+        nameTerms: [],
+        cursor: null,
+        limit: 50,
+      });
+    }
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+  });
+
+  test("toggling it asks the server again how many collection items match", async () => {
+    mockFetchCollectionSearchCounts.mockImplementation(
+      (
+        _rangeStart: unknown,
+        request: unknown,
+      ): Promise<Map<string, number>> => {
+        return Promise.resolve(
+          new Map<string, number>([
+            [
+              EntityType.IoTDevice,
+              (request as CollectionSearchRequest).includeInactive
+                ? 1500
+                : 1234,
+            ],
+          ]),
+        );
+      },
+    );
+    const data: Fixture = withCollection();
+    const view: RenderResult = renderExplorer({ data });
+    search("sensor");
+    expect(
+      await screen.findByTestId("infrastructure-collection-match"),
+    ).toHaveTextContent("1,234 matching IoT devices");
+    expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(1);
+
+    view.rerender(explorer({ data, includeInactive: true }));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("infrastructure-collection-match"),
+      ).toHaveTextContent("1,500 matching IoT devices");
+    });
+    expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(2);
+    expect(mockFetchCollectionSearchCounts.mock.calls[1]![1]).toEqual({
+      includeInactive: true,
+      types: [{ entityType: EntityType.IoTDevice, nameTerms: ["sensor"] }],
+    });
+    expect(screen.getByText("1,500 matches")).toBeVisible();
+  });
+});
+
+describe("collection request failures", () => {
+  const BUSY: string = "The topology service is busy. Try again in a moment.";
+
+  function tooManyRequests(): HTTPErrorResponse {
+    return new HTTPErrorResponse(
+      429,
+      { message: "Too many topology requests are running. Try again shortly." },
+      {},
+    );
+  }
+
+  test("a busy server (429) on a page says so and offers another try", async () => {
+    mockFetchCollectionPage
+      .mockRejectedValueOnce(tooManyRequests())
+      .mockResolvedValueOnce(iotPage(1, 2, 4200));
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    const alert: HTMLElement = await screen.findByRole("alert");
+    // The page's own (translated) copy, not the server's wording.
+    expect(alert).toHaveTextContent(BUSY);
+    expect(alert).not.toHaveTextContent("Too many topology requests");
+    expect(alert).not.toHaveTextContent("Topology was updated");
+    expect(
+      within(alert).queryByRole("button", { name: "Reload page" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    expect(mockFetchCollectionPage).toHaveBeenCalledTimes(2);
+  });
+
+  test("a busy server (429) on a search says so and offers another try", async () => {
+    mockFetchCollectionSearchCounts
+      .mockRejectedValueOnce(tooManyRequests())
+      .mockResolvedValueOnce(
+        new Map<string, number>([[EntityType.IoTDevice, 9]]),
+      );
+    renderExplorer({ data: withCollection() });
+    search("sensor");
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      `Could not search large collections. ${BUSY}`,
+    );
+    expect(alert).not.toHaveTextContent("Too many topology requests");
+    expect(
+      within(alert).queryByRole("button", { name: "Reload page" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByTestId("infrastructure-collection-match"),
+    ).toHaveTextContent("9 matching IoT devices");
+  });
+
+  test("a newer server format offers a reload, since trying again cannot help", async () => {
+    const reload: SpyInstance<() => void> = jest
+      .spyOn(Navigation, "reload")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    mockFetchCollectionPage.mockRejectedValue(new TopologyOutdatedError(99));
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Topology was updated. Reload the page.");
+    expect(
+      within(alert).queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(mockFetchCollectionPage).toHaveBeenCalledTimes(1);
+  });
+
+  test("a newer server format on a search offers a reload too", async () => {
+    const reload: SpyInstance<() => void> = jest
+      .spyOn(Navigation, "reload")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    mockFetchCollectionSearchCounts.mockRejectedValue(
+      new TopologyOutdatedError(99),
+    );
+    renderExplorer({ data: withCollection() });
+    search("sensor");
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Could not search large collections. Topology was updated. Reload the page.",
+    );
+    fireEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 });

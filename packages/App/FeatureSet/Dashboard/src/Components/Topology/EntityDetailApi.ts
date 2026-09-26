@@ -10,8 +10,10 @@ import {
   TopologyEntityRequestJSON,
 } from "Common/Types/Topology/TopologyApi";
 import {
+  TOPOLOGY_BUSY_MESSAGE,
   TopologyOutdatedError,
   TopologyRequestOptions,
+  isTopologyBusyError,
   postTopologyApi,
 } from "./TopologyApi";
 import { EntityDetailTarget, TopologyEntity } from "./TopologyData";
@@ -100,6 +102,21 @@ export function pageSizeForSection(section: TopologyConnectionSection): number {
   return section === "calls" || section === "calledBy"
     ? TopologyApiLimits.EntityDependencyRows
     : TopologyApiLimits.EntityOtherRows;
+}
+
+/*
+ * Rows to ask for when a section is reloaded from its start ("Reload list"
+ * after the list changed under the user): what it showed plus one more
+ * page, within the endpoint's page cap.
+ */
+export function sectionReloadLimit(
+  section: TopologyConnectionSection,
+  shownRows: number,
+): number {
+  return Math.min(
+    TopologyApiLimits.EntityConnectionsPageSizeMax,
+    Math.max(0, Math.floor(shownRows)) + pageSizeForSection(section),
+  );
 }
 
 export function buildEntityDetailRequest(
@@ -331,17 +348,36 @@ export function connectionId(
   ]);
 }
 
+export interface AppendedConnectionsPage {
+  merged: EntityConnectionSection;
+  /* The first row the page added (focus moves there), or null. */
+  firstNewRowId: string | null;
+  /*
+   * The list changed on the server between two pages, so what the drawer
+   * shows may have skipped rows: the page repeated rows already shown, or
+   * the list ended with fewer rows than its total.
+   */
+  listChanged: boolean;
+}
+
 /*
  * Append a "Show more" page to what the drawer already shows. Rows it
- * already has are skipped (the inventory can change between the two
- * requests, shifting offsets), and the counts are the latest the server
+ * already has are skipped, and the counts are the latest the server
  * reported.
+ *
+ * Paging is by offset over a ranking the server recomputes on every
+ * request, and that ranking moves while the drawer is open (call counts
+ * are rewritten, ends are pruned or renamed, new relationships arrive). A
+ * row that moved across the offset between two requests is then never
+ * returned: the page repeats a row instead, or the list ends short of its
+ * total. Neither can be repaired by merging, so it is reported as
+ * `listChanged` and the drawer offers to reload the list.
  */
 export function appendConnectionsPage(
   section: TopologyConnectionSection,
   current: EntityConnectionSection,
   page: EntityConnectionSection,
-): { merged: EntityConnectionSection; firstNewRowId: string | null } {
+): AppendedConnectionsPage {
   const seen: Set<string> = new Set<string>(
     current.rows.map((row: EntityConnection): string => {
       return connectionId(section, row);
@@ -349,9 +385,11 @@ export function appendConnectionsPage(
   );
   const rows: Array<EntityConnection> = current.rows.slice();
   let firstNewRowId: string | null = null;
+  let repeatedRows: number = 0;
   for (const row of page.rows) {
     const id: string = connectionId(section, row);
     if (seen.has(id)) {
+      repeatedRows++;
       continue;
     }
     seen.add(id);
@@ -369,6 +407,8 @@ export function appendConnectionsPage(
       nextOffset: page.nextOffset,
     },
     firstNewRowId: firstNewRowId,
+    listChanged:
+      repeatedRows > 0 || (page.nextOffset === null && rows.length < total),
   };
 }
 
@@ -417,29 +457,47 @@ export async function fetchEntityConnections(
   return decodeEntityConnectionsResponse(json, section);
 }
 
+export interface EntityDetailErrorDescription {
+  /*
+   * The server speaks another Topology format (or lacks the route): only
+   * loading the matching bundle helps, so the drawer offers a page reload
+   * instead of a retry that would fail the same way.
+   */
+  isOutdated: boolean;
+  /* The server turned the request away while busy (429): retry shortly. */
+  isBusy: boolean;
+  /* Fixed copy the caller translates when isOutdated or isBusy. */
+  detail: string;
+}
+
 /*
  * What the drawer tells the user when a request fails. The copy for a
- * format mismatch is fixed (and translated by the caller); anything else
- * carries the server's own explanation when it gave one.
+ * format mismatch and for a busy server is fixed (and translated by the
+ * caller); anything else carries the server's own explanation when it gave
+ * one.
  */
-export function describeEntityDetailError(error: unknown): {
-  isOutdated: boolean;
-  detail: string;
-} {
+export function describeEntityDetailError(
+  error: unknown,
+): EntityDetailErrorDescription {
   if (error instanceof TopologyOutdatedError) {
-    return { isOutdated: true, detail: error.message };
+    return { isOutdated: true, isBusy: false, detail: error.message };
+  }
+  /* The server was at its limit on topology work (429); that passes. */
+  if (isTopologyBusyError(error)) {
+    return { isOutdated: false, isBusy: true, detail: TOPOLOGY_BUSY_MESSAGE };
   }
   if (error instanceof HTTPErrorResponse) {
     if (error.statusCode === 502 || error.statusCode === 504) {
       return {
         isOutdated: false,
+        isBusy: false,
         detail: "Error connecting to server. Please try again in few minutes.",
       };
     }
-    return { isOutdated: false, detail: error.message || "" };
+    return { isOutdated: false, isBusy: false, detail: error.message || "" };
   }
   if (error instanceof Error) {
-    return { isOutdated: false, detail: error.message || "" };
+    return { isOutdated: false, isBusy: false, detail: error.message || "" };
   }
-  return { isOutdated: false, detail: "" };
+  return { isOutdated: false, isBusy: false, detail: "" };
 }

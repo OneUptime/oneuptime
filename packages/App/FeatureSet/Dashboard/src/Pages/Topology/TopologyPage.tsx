@@ -104,9 +104,23 @@ const TopologyPage: FunctionComponent<
   const isActiveTabLoading: boolean =
     activeTab !== null &&
     (activeTab.status === "idle" || activeTab.status === "loading");
-  /* A safety cap was hit for the payload on screen (never in practice). */
-  const activeTruncation: TopologyTruncation | null =
-    activeTab?.status === "ready" ? activeTab.data?.truncation || null : null;
+  /*
+   * The safety caps the payload on screen hit (never in practice). The
+   * Service Map can hit two at once: its resources and its connections.
+   */
+  let activeTruncations: Array<TopologyTruncation> = [];
+  if (
+    activeTabName === "Service Map" &&
+    topology.serviceMap.status === "ready"
+  ) {
+    activeTruncations = topology.serviceMap.data?.truncations || [];
+  } else if (
+    activeTabName === "Infrastructure" &&
+    topology.infrastructure.status === "ready" &&
+    topology.infrastructure.data?.truncation
+  ) {
+    activeTruncations = [topology.infrastructure.data.truncation];
+  }
 
   /*
    * Loading/error live INSIDE each telemetry tab: the tabs load
@@ -406,18 +420,41 @@ const TopologyPage: FunctionComponent<
           </div>
         )}
       </div>
-      {activeTruncation && (
+      {activeTruncations.length > 0 && (
         <div
           role="status"
           data-testid="topology-truncation"
           className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
-          <span className="font-semibold">
-            {`${activeTruncation.shown.toLocaleString()} ${translateString("of")} ${activeTruncation.total.toLocaleString()} ${translateString("resources shown.")}`}
-          </span>{" "}
-          {translateString(
-            "Counts are exact; the map and search cover the resources shown.",
+          {activeTruncations.map(
+            (truncation: TopologyTruncation): ReactElement => {
+              const isConnections: boolean = truncation.kind === "connections";
+              return (
+                <React.Fragment
+                  key={isConnections ? "connections" : "resources"}
+                >
+                  <span className="font-semibold">
+                    {`${truncation.shown.toLocaleString()} ${translateString("of")} ${truncation.total.toLocaleString()} ${
+                      isConnections
+                        ? translateString("connections shown.")
+                        : translateString("resources shown.")
+                    }`}
+                  </span>{" "}
+                </React.Fragment>
+              );
+            },
           )}
+          {/*
+           * Infrastructure's summary switches to the server's exact totals
+           * when capped; the Service Map's counts come from what was shipped.
+           */}
+          {activeTabName === "Infrastructure"
+            ? translateString(
+                "Counts are exact; the map and search cover the resources shown.",
+              )
+            : translateString(
+                "The map, counts and search cover what is shown.",
+              )}
         </div>
       )}
       <div

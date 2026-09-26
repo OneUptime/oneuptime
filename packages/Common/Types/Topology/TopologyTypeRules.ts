@@ -111,6 +111,43 @@ export const SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
   "messaging.system",
 ];
 
+/*
+ * Orders two keys by Unicode code point, which is the order Postgres gives
+ * `COLLATE "C"` on a UTF-8 database (UTF-8 bytes sort like code points). The
+ * server breaks ranking ties that way, so wherever the Dashboard must pick
+ * the same winner it compares with this rather than with `<`.
+ *
+ * JavaScript's `<` compares UTF-16 code units. The two orders agree
+ * everywhere except where a character beyond U+FFFF (stored as a surrogate
+ * pair, U+D800-U+DFFF) meets one in U+E000-U+FFFF: as code units the
+ * surrogate is smaller, as code points it is larger. Keys made only of
+ * characters up to U+FFFF therefore compare exactly as `<` compares them.
+ */
+export function compareCodePoints(a: string, b: string): number {
+  if (a === b) {
+    return 0;
+  }
+  const length: number = Math.min(a.length, b.length);
+  for (let index: number = 0; index < length; index++) {
+    const left: number = a.charCodeAt(index);
+    const right: number = b.charCodeAt(index);
+    if (left === right) {
+      continue;
+    }
+    if (left >= 0xd800 && right >= 0xd800) {
+      const leftIsSurrogate: boolean = left <= 0xdfff;
+      const rightIsSurrogate: boolean = right <= 0xdfff;
+      if (leftIsSurrogate !== rightIsSurrogate) {
+        /* The half of a character beyond U+FFFF outranks U+E000-U+FFFF. */
+        return leftIsSurrogate ? 1 : -1;
+      }
+    }
+    return left < right ? -1 : 1;
+  }
+  /* One is a prefix of the other: the shorter sorts first. */
+  return a.length < b.length ? -1 : 1;
+}
+
 export function isTopologyInfrastructureType(
   entityType: string | undefined | null,
 ): boolean {

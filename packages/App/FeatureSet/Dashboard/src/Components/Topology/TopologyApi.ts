@@ -23,6 +23,7 @@ import {
   TopologyRunsOnCount,
   TopologyRunsOnCounts,
   TopologyTruncation,
+  TopologyTruncationKind,
 } from "./TopologyData";
 
 /*
@@ -62,9 +63,28 @@ export class TopologyOutdatedError extends Error {
   }
 }
 
+export const TOPOLOGY_BUSY_MESSAGE: string =
+  "The topology service is busy. Try again in a moment.";
+
+/*
+ * The server limits how much topology work runs at once and answers 429
+ * (TooManyRequestsException) when it is full. Unlike an outdated bundle,
+ * this passes: the caller should offer "Try again". postTopologyApi rejects
+ * with the HTTPErrorResponse itself, so this is how every caller — the page,
+ * the drawer, the collection table — recognises it.
+ */
+export function isTopologyBusyError(error: unknown): boolean {
+  return error instanceof HTTPErrorResponse && error.statusCode === 429;
+}
+
 export interface TopologyRequestOptions {
   /* Aborts the request when the page no longer wants its answer. */
   signal?: AbortSignal | undefined;
+  /*
+   * An explicit refresh by the user: the server rebuilds the map instead of
+   * answering from its short-lived response cache. Sent only when true.
+   */
+  fresh?: boolean | undefined;
 }
 
 /*
@@ -109,6 +129,9 @@ export async function fetchServiceMapData(
   const request: TopologyServiceMapRequestJSON = {
     rangeStart: rangeStart.toISOString(),
   };
+  if (options?.fresh === true) {
+    request.fresh = true;
+  }
   return decodeServiceMapResponse(
     await postTopologyApi(TopologyApiPath.ServiceMap, { ...request }, options),
   );
@@ -121,6 +144,9 @@ export async function fetchInfrastructureData(
   const request: TopologyInfrastructureRequestJSON = {
     rangeStart: rangeStart.toISOString(),
   };
+  if (options?.fresh === true) {
+    request.fresh = true;
+  }
   return decodeInfrastructureResponse(
     await postTopologyApi(
       TopologyApiPath.Infrastructure,
@@ -250,19 +276,34 @@ export function decodeServiceMapResponse(json: unknown): ServiceMapData {
     });
   }
 
+  /*
+   * The two caps limit different things — whole services and callees, or
+   * the dependency rows between them — and both can be hit at once, so each
+   * is kept with its kind and the banner words each one for what it is.
+   */
+  const truncations: Array<TopologyTruncation> = [];
+  const entityTruncation: TopologyTruncation | null = readTruncation(
+    body["entityTruncation"],
+    "resources",
+  );
+  if (entityTruncation) {
+    truncations.push(entityTruncation);
+  }
+  const dependencyTruncation: TopologyTruncation | null = readTruncation(
+    body["dependencyTruncation"],
+    "connections",
+  );
+  if (dependencyTruncation) {
+    truncations.push(dependencyTruncation);
+  }
+
   return {
     rangeStart: envelope.rangeStart,
     loadedAt: envelope.generatedAt,
     entities: entities,
     relationships: relationships,
     runsOnCounts: runsOnCounts,
-    /*
-     * One banner per tab: the entity cap is the one that hides whole
-     * services, so it wins when both were hit.
-     */
-    truncation:
-      readTruncation(body["entityTruncation"]) ||
-      readTruncation(body["dependencyTruncation"]),
+    truncations: truncations,
   };
 }
 
@@ -416,7 +457,7 @@ export function decodeInfrastructureResponse(
     relationships: relationships,
     collections: collections,
     totals: totals,
-    truncation: readTruncation(body["truncation"]),
+    truncation: readTruncation(body["truncation"], "resources"),
   };
 }
 
@@ -539,11 +580,13 @@ function readStringBag(value: JSONValue | undefined): JSONObject | null {
 
 function readTruncation(
   value: JSONValue | undefined,
+  kind: TopologyTruncationKind,
 ): TopologyTruncation | null {
   if (!isJSONObject(value)) {
     return null;
   }
   return {
+    kind: kind,
     shown: readCount(value["shown"]),
     total: readCount(value["total"]),
   };

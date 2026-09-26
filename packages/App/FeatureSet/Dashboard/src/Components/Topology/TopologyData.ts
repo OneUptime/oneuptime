@@ -43,8 +43,17 @@ export interface TopologyRunsOnCount {
 /** Service entity key → what it runs on, by type. */
 export type TopologyRunsOnCounts = Map<string, Array<TopologyRunsOnCount>>;
 
+/*
+ * What a safety cap limited: whole resources (the Service Map's services and
+ * callees, Infrastructure's resources), or the connections between them (the
+ * Service Map's dependencies).
+ */
+export type TopologyTruncationKind = "resources" | "connections";
+
 /** A safety cap was hit: `shown` of `total` rows were returned. */
 export interface TopologyTruncation {
+  /* The decoders always set it; absent reads as "resources". */
+  kind?: TopologyTruncationKind | undefined;
   shown: number;
   total: number;
 }
@@ -58,7 +67,11 @@ export interface ServiceMapData {
   /** In-range `depends-on` relationships whose caller is a service. */
   relationships: Array<TopologyRelationship>;
   runsOnCounts: TopologyRunsOnCounts;
-  truncation: TopologyTruncation | null;
+  /*
+   * Every safety cap the payload hit — the resource cap first, then the
+   * connection cap; both can be hit at once. Empty when nothing was capped.
+   */
+  truncations: Array<TopologyTruncation>;
 }
 
 /*
@@ -97,6 +110,7 @@ export interface InfrastructureData {
   relationships: Array<TopologyRelationship>;
   collections: Array<InfrastructureCollection>;
   totals: InfrastructureTotals;
+  /* The resource cap, when it was hit (kind "resources"). */
   truncation: TopologyTruncation | null;
 }
 

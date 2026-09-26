@@ -4,6 +4,7 @@ import {
   CONTAINER_SPECIFICITY,
   NESTABLE_CHILD_TYPES,
   NESTING_RELATIONSHIP_PRIORITY,
+  compareCodePoints,
 } from "Common/Types/Topology/TopologyTypeRules";
 
 /*
@@ -28,7 +29,9 @@ import {
  *   Pass 1 left parentless, so structural nesting always wins.
  *
  * Determinism matters (the same graph must always lay out identically), so
- * every tie is broken by an explicit code-unit key comparison.
+ * every tie is broken by an explicit key comparison, in code-point order:
+ * the order the server's SQL ranks containers in (COLLATE "C"), so both pick
+ * the same container even for keys beyond U+FFFF.
  */
 
 /*
@@ -144,7 +147,7 @@ export default function computeInfraParenting(
       (score[0] === current.score[0] && score[1] > current.score[1]) ||
       (score[0] === current.score[0] &&
         score[1] === current.score[1] &&
-        parentKey < current.edge.toEntityKey);
+        compareCodePoints(parentKey, current.edge.toEntityKey) < 0);
     if (better) {
       structuralCandidate.set(childKey, { edge, score });
     }
@@ -197,7 +200,7 @@ export default function computeInfraParenting(
     }
 
     const current: InfraEdgeInput | undefined = groupCandidate.get(childKey);
-    if (!current || serviceKey < current.fromEntityKey) {
+    if (!current || compareCodePoints(serviceKey, current.fromEntityKey) < 0) {
       groupCandidate.set(childKey, edge);
     }
   }

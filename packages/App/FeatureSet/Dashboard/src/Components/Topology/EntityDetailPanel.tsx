@@ -16,6 +16,7 @@ import { TopologyConnectionSection } from "Common/Types/Topology/TopologyApi";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -36,17 +37,20 @@ import {
 import { TrafficTotals } from "./ServiceMapViewModel";
 import { EntityDetailTarget } from "./TopologyData";
 import {
+  AppendedConnectionsPage,
   EntityConnection,
   EntityConnectionSection,
   EntityConnectionsPage,
   EntityDetail,
   EntityDetailData,
+  EntityDetailErrorDescription,
   appendConnectionsPage,
   connectionId,
   describeEntityDetailError,
   fetchEntityConnections,
   fetchEntityDetail,
   pageSizeForSection,
+  sectionReloadLimit,
 } from "./EntityDetailApi";
 import {
   TypedRowLink,
@@ -62,9 +66,17 @@ import {
  * The caller hands over what it already knows (key, type, name), so the
  * header renders at once; the drawer then asks the server for the entity's
  * full row and its connections, classified and counted over the whole
- * inventory. Callers render it with `key={entityKey}`, so every entity gets
- * a fresh drawer; the drawer still refuses to show rows fetched for another
- * entity or range should a caller forget.
+ * inventory.
+ *
+ * Callers keep ONE drawer mounted while the user moves from entity to
+ * entity (a connection row, another map node): no `key` per entity. A
+ * remount would tear down the side-over, replay its slide-in, and drop
+ * keyboard focus to <body> with the row that had it. So the drawer handles
+ * a changed entity itself: it never shows rows fetched for another entity
+ * or range, aborts what the previous entity still had in flight, tags its
+ * best-effort links with the row they belong to, and moves focus to the top
+ * of its content when focus was in the drawer (or lost), so keyboard users
+ * stay in it and screen readers announce the new entity.
  */
 
 export interface EntityTrafficSummary {
@@ -148,18 +160,42 @@ const SECTIONS: Array<SectionConfig> = [
 
 type SectionFlags<T> = Partial<Record<TopologyConnectionSection, T>>;
 
+/*
+ * A section's own requests: "more" appends the next page ("Show more"),
+ * "reload" refetches the section from its start ("Reload list").
+ */
+type SectionAction = "more" | "reload";
+
+interface SectionError extends EntityDetailErrorDescription {
+  action: SectionAction;
+}
+
 interface DrawerState {
   /* Which request this state answers: entity key, type and range start. */
   requestKey: string;
   status: "loading" | "ready" | "error";
   data: EntityDetailData | null;
-  error: { isOutdated: boolean; detail: string } | null;
-  /* Sections with a "Show more" request in flight. */
-  loadingMore: SectionFlags<boolean>;
-  /* The last "Show more" failure per section ("" when it gave no detail). */
-  moreErrors: SectionFlags<string>;
-  /* The first row a "Show more" added; focus moves to it once rendered. */
-  focusRowId: string | null;
+  error: EntityDetailErrorDescription | null;
+  /* Sections with a request of their own in flight, and which. */
+  loadingMore: SectionFlags<SectionAction>;
+  /* The last failed section request, per section. */
+  moreErrors: SectionFlags<SectionError>;
+  /*
+   * Sections whose list changed on the server while the user paged it, so
+   * rows may be missing (see appendConnectionsPage): they offer a reload.
+   */
+  changedSections: SectionFlags<boolean>;
+  /*
+   * What a section request wants focused once rendered: a row it added, the
+   * section's "Reload list", or the top of the drawer (FOCUS_TOP).
+   */
+  focusId: string | null;
+}
+
+const FOCUS_TOP: string = "top";
+
+function reloadFocusId(section: TopologyConnectionSection): string {
+  return `reload:${section}`;
 }
 
 /* Best-effort links, tagged with the row they were resolved for. */
@@ -210,8 +246,17 @@ function loadingState(requestKey: string): DrawerState {
     error: null,
     loadingMore: {},
     moreErrors: {},
-    focusRowId: null,
+    changedSections: {},
+    focusId: null,
   };
+}
+
+/* Fixed copy (outdated bundle, busy server) is translated; the rest is not. */
+function errorDetail(
+  error: EntityDetailErrorDescription,
+  t: (value: string) => string,
+): string {
+  return error.isOutdated || error.isBusy ? t(error.detail) : error.detail;
 }
 
 function withFlag<T>(
@@ -321,8 +366,18 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   > = useRef<Map<TopologyConnectionSection, AbortController>>(
     new Map<TopologyConnectionSection, AbortController>(),
   );
-  const rowElements: React.MutableRefObject<Map<string, HTMLLIElement>> =
-    useRef<Map<string, HTMLLIElement>>(new Map<string, HTMLLIElement>());
+  /* Rows and "Reload list" buttons a section request may move focus to. */
+  const focusables: React.MutableRefObject<Map<string, HTMLElement>> = useRef<
+    Map<string, HTMLElement>
+  >(new Map<string, HTMLElement>());
+  /* The drawer's content, and the focus target at its top. */
+  const contentRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const focusTargetRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /* The entity focus was last settled for (the first one needs nothing). */
+  const focusedEntityKey: React.MutableRefObject<string> =
+    useRef<string>(entityKey);
 
   /*
    * Only a state that answers the current request is shown: until the
@@ -533,35 +588,101 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     };
   }, [linkSourceId]);
 
-  /* After "Show more", move focus to the first row it added. */
+  /*
+   * Another entity in the same drawer (a connection row was opened, or
+   * another node was clicked). The row that had focus is gone with the
+   * previous entity's sections, which leaves focus on <body>; move it to
+   * the top of the drawer so keyboard users stay in it and screen readers
+   * announce the new entity. Focus the user put elsewhere (the map, the
+   * search box) stays there. The first entity needs nothing: opening the
+   * drawer keeps the behaviour of whatever opened it.
+   */
   useEffect(() => {
-    if (!state.focusRowId) {
+    if (focusedEntityKey.current === entityKey) {
       return;
     }
-    const element: HTMLLIElement | undefined = rowElements.current.get(
-      state.focusRowId,
-    );
+    focusedEntityKey.current = entityKey;
+    const target: HTMLDivElement | null = focusTargetRef.current;
+    if (!target) {
+      return;
+    }
+    const active: Element | null = document.activeElement;
+    const drawer: Element | null =
+      contentRef.current?.closest('[role="dialog"]') || contentRef.current;
+    if (
+      !active ||
+      active === document.body ||
+      Boolean(drawer && drawer.contains(active))
+    ) {
+      target.focus();
+    }
+  }, [entityKey]);
+
+  /*
+   * After a section request, move focus to what it asked for: the first row
+   * "Show more" added, "Reload list" when the list changed under the user,
+   * or the top of the drawer when what had focus is gone.
+   */
+  useEffect(() => {
+    if (!state.focusId) {
+      return;
+    }
+    const element: HTMLElement | undefined =
+      state.focusId === FOCUS_TOP
+        ? undefined
+        : focusables.current.get(state.focusId);
     if (element) {
-      const button: HTMLButtonElement | null = element.querySelector("button");
+      const button: HTMLButtonElement | null =
+        element instanceof HTMLButtonElement
+          ? element
+          : element.querySelector("button");
       (button || element).focus();
+    } else {
+      focusTargetRef.current?.focus();
     }
     setState((previous: DrawerState): DrawerState => {
-      return previous.focusRowId ? { ...previous, focusRowId: null } : previous;
+      return previous.focusId ? { ...previous, focusId: null } : previous;
     });
-  }, [state.focusRowId]);
+  }, [state.focusId]);
 
-  const showMore: (
+  const registerFocusable: (
+    id: string,
+  ) => (element: HTMLElement | null) => void = (
+    id: string,
+  ): ((element: HTMLElement | null) => void) => {
+    return (element: HTMLElement | null): void => {
+      if (element) {
+        focusables.current.set(id, element);
+      } else {
+        focusables.current.delete(id);
+      }
+    };
+  };
+
+  /*
+   * A section's own request: "more" appends the page after the rows shown;
+   * "reload" refetches the section from its start, as many rows as it
+   * showed plus a page, and replaces it.
+   */
+  const loadSection: (
     section: TopologyConnectionSection,
+    action: SectionAction,
   ) => Promise<void> = async (
     section: TopologyConnectionSection,
+    action: SectionAction,
   ): Promise<void> => {
     if (!data || !fullEntity || rangeStartMs === null) {
       return;
     }
-    const offset: number | null = data.sections[section].nextOffset;
+    const shown: EntityConnectionSection = data.sections[section];
+    const offset: number | null = action === "reload" ? 0 : shown.nextOffset;
     if (offset === null || current?.loadingMore[section]) {
       return;
     }
+    const limit: number =
+      action === "reload"
+        ? sectionReloadLimit(section, shown.rows.length)
+        : pageSizeForSection(section);
     const key: string = requestKey;
     moreControllers.current.get(section)?.abort();
     const controller: AbortController = new AbortController();
@@ -572,8 +693,12 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       }
       return {
         ...previous,
-        loadingMore: withFlag<boolean>(previous.loadingMore, section, true),
-        moreErrors: withFlag<string>(previous.moreErrors, section, null),
+        loadingMore: withFlag<SectionAction>(
+          previous.loadingMore,
+          section,
+          action,
+        ),
+        moreErrors: withFlag<SectionError>(previous.moreErrors, section, null),
       };
     });
 
@@ -583,7 +708,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         new Date(rangeStartMs),
         section,
         offset,
-        pageSizeForSection(section),
+        limit,
         { signal: controller.signal },
       );
       if (controller.signal.aborted) {
@@ -593,33 +718,64 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         if (previous.requestKey !== key || !previous.data) {
           return previous;
         }
-        const appended: {
-          merged: EntityConnectionSection;
-          firstNewRowId: string | null;
-        } = appendConnectionsPage(
-          section,
-          previous.data.sections[section],
-          page.connections,
-        );
+        let next: EntityConnectionSection;
+        let changed: boolean;
+        let focusId: string | null;
+        if (action === "reload") {
+          next = page.connections;
+          changed = false;
+          const first: EntityConnection | undefined = next.rows[0];
+          focusId = first ? connectionId(section, first) : FOCUS_TOP;
+        } else {
+          const appended: AppendedConnectionsPage = appendConnectionsPage(
+            section,
+            previous.data.sections[section],
+            page.connections,
+          );
+          next = appended.merged;
+          changed =
+            Boolean(previous.changedSections[section]) || appended.listChanged;
+          const last: EntityConnection | undefined =
+            next.rows[next.rows.length - 1];
+          /*
+           * The first new row; else, when the list changed, its reload;
+           * else, when "Show more" is gone, the last row.
+           */
+          focusId =
+            appended.firstNewRowId ||
+            (changed ? reloadFocusId(section) : null) ||
+            (next.nextOffset === null && last
+              ? connectionId(section, last)
+              : null);
+        }
         return {
           ...previous,
           data: {
             ...previous.data,
             sections: {
               ...previous.data.sections,
-              [section]: appended.merged,
+              [section]: next,
             },
             isScanLimited: previous.data.isScanLimited || page.isScanLimited,
           },
-          loadingMore: withFlag<boolean>(previous.loadingMore, section, null),
-          focusRowId: appended.firstNewRowId,
+          loadingMore: withFlag<SectionAction>(
+            previous.loadingMore,
+            section,
+            null,
+          ),
+          changedSections: withFlag<boolean>(
+            previous.changedSections,
+            section,
+            changed ? true : null,
+          ),
+          focusId: focusId,
         };
       });
     } catch (error: unknown) {
       if (controller.signal.aborted) {
         return;
       }
-      const described: { isOutdated: boolean; detail: string } =
+      const described: EntityDetailErrorDescription =
         describeEntityDetailError(error);
       setState((previous: DrawerState): DrawerState => {
         if (previous.requestKey !== key) {
@@ -627,12 +783,15 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         }
         return {
           ...previous,
-          loadingMore: withFlag<boolean>(previous.loadingMore, section, null),
-          moreErrors: withFlag<string>(
-            previous.moreErrors,
+          loadingMore: withFlag<SectionAction>(
+            previous.loadingMore,
             section,
-            described.isOutdated ? t(described.detail) : described.detail,
+            null,
           ),
+          moreErrors: withFlag<SectionError>(previous.moreErrors, section, {
+            ...described,
+            action: action,
+          }),
         };
       });
     } finally {
@@ -742,13 +901,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         key={id}
         className="rounded-md py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         tabIndex={-1}
-        ref={(element: HTMLLIElement | null) => {
-          if (element) {
-            rowElements.current.set(id, element);
-          } else {
-            rowElements.current.delete(id);
-          }
-        }}
+        ref={registerFocusable(id)}
       >
         {open ? (
           <button
@@ -787,10 +940,19 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       return null;
     }
     const title: string = t(config.title);
-    const isLoadingMore: boolean = Boolean(
-      current?.loadingMore[config.section],
-    );
-    const moreError: string | undefined = current?.moreErrors[config.section];
+    const pending: SectionAction | undefined =
+      current?.loadingMore[config.section];
+    const moreError: SectionError | undefined =
+      current?.moreErrors[config.section];
+    /*
+     * A server in another format fails every further page the same way:
+     * offer the page reload instead of controls that cannot work.
+     */
+    const isOutdated: boolean = Boolean(moreError?.isOutdated);
+    const listChanged: boolean =
+      Boolean(current?.changedSections[config.section]) && !isOutdated;
+    const actionClassName: string =
+      "rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-wait disabled:text-gray-400";
     return (
       <div key={config.section} data-testid={config.testId}>
         <h3 className="text-sm font-semibold text-gray-900">
@@ -807,13 +969,51 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             return renderRow(config, row);
           })}
         </ul>
-        {moreError !== undefined && (
-          <p role="alert" className="mt-1 text-xs text-red-600">
-            {t("Could not load more connections.")}
-            {moreError ? ` ${moreError}` : ""}
-          </p>
+        {moreError && (
+          <div role="alert" className="mt-1 text-xs text-red-600">
+            <p>
+              {moreError.action === "reload"
+                ? t("Could not reload this list.")
+                : t("Could not load more connections.")}
+              {moreError.detail ? ` ${errorDetail(moreError, t)}` : ""}
+            </p>
+            {isOutdated && (
+              <button
+                type="button"
+                className={`mt-1 ${actionClassName}`}
+                onClick={() => {
+                  Navigation.reload();
+                }}
+              >
+                {t("Reload page")}
+              </button>
+            )}
+          </div>
         )}
-        {section.nextOffset !== null && (
+        {listChanged && (
+          <div
+            className="mt-1 flex items-center justify-between gap-2"
+            data-testid={`${config.testId}-changed`}
+          >
+            <p className="text-xs text-amber-700">
+              {t("This list changed while you were browsing.")}
+            </p>
+            <button
+              type="button"
+              className={actionClassName}
+              aria-label={`${t("Reload list")}: ${title}`}
+              disabled={Boolean(pending)}
+              aria-busy={pending === "reload"}
+              ref={registerFocusable(reloadFocusId(config.section))}
+              onClick={() => {
+                void loadSection(config.section, "reload");
+              }}
+            >
+              {pending === "reload" ? t("Loading…") : t("Reload list")}
+            </button>
+          </div>
+        )}
+        {section.nextOffset !== null && !isOutdated && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-gray-500">
               {t("Showing")} {section.rows.length.toLocaleString()} {t("of")}{" "}
@@ -821,15 +1021,15 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </p>
             <button
               type="button"
-              className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-wait disabled:text-gray-400"
+              className={actionClassName}
               aria-label={`${t("Show more")}: ${title}`}
-              disabled={isLoadingMore}
-              aria-busy={isLoadingMore}
+              disabled={Boolean(pending)}
+              aria-busy={pending === "more"}
               onClick={() => {
-                void showMore(config.section);
+                void loadSection(config.section, "more");
               }}
             >
-              {isLoadingMore ? t("Loading…") : t("Show more")}
+              {pending === "more" ? t("Loading…") : t("Show more")}
             </button>
           </div>
         )}
@@ -839,8 +1039,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
 
   const renderConnections: () => ReactElement = (): ReactElement => {
     if (status === "error") {
-      const error: { isOutdated: boolean; detail: string } | null =
-        current?.error || null;
+      const error: EntityDetailErrorDescription | null = current?.error || null;
       return (
         <div
           role="alert"
@@ -851,21 +1050,35 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           </p>
           {error?.detail ? (
             <p className="mt-0.5 text-xs text-red-700">
-              {error.isOutdated ? t(error.detail) : error.detail}
+              {errorDetail(error, t)}
             </p>
           ) : (
             <></>
           )}
           <div className="mt-2">
-            <Button
-              title={t("Try again")}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                setAttempt((previous: number): number => {
-                  return previous + 1;
-                });
-              }}
-            />
+            {error?.isOutdated ? (
+              /*
+               * The server speaks another format than this bundle: asking
+               * again gets the same answer, only the matching bundle helps.
+               */
+              <Button
+                title={t("Reload page")}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={() => {
+                  Navigation.reload();
+                }}
+              />
+            ) : (
+              <Button
+                title={t("Try again")}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={() => {
+                  setAttempt((previous: number): number => {
+                    return previous + 1;
+                  });
+                }}
+              />
+            )}
           </div>
         </div>
       );
@@ -952,218 +1165,232 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       ? matchedDevice.value
       : null;
 
-  if (isMissing) {
-    return (
-      <SideOver
-        title={displayName}
-        description={props.traffic?.subtitle || typeMeta.label}
-        onClose={props.onClose}
-        size={SideOverSize.Small}
-      >
-        <p
-          className="text-sm text-gray-600"
-          data-testid="entity-detail-missing"
-        >
-          {t("This resource is no longer in Inventory.")}
-        </p>
-      </SideOver>
-    );
-  }
+  const description: string = props.traffic?.subtitle || typeMeta.label;
 
+  /*
+   * One SideOver for every state and every entity, so it stays mounted
+   * while the user moves between entities (no slide-in replay).
+   */
   return (
     <SideOver
       title={displayName}
-      description={props.traffic?.subtitle || typeMeta.label}
+      description={description}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
-      <div className="space-y-6">
-        {props.traffic && (
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: props.traffic.statusColor }}
-              aria-hidden={true}
-            />
-            <span data-testid="entity-detail-status">
-              {t(props.traffic.statusLabel)}
-            </span>
-          </div>
-        )}
-
-        {props.onFocus && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              title={t(props.focusButtonLabel || "Explore connections")}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                props.onFocus?.(entityKey);
-              }}
-            />
-          </div>
-        )}
-
-        {props.traffic && (
-          <div className="grid gap-2">
-            {renderTraffic("Requests it answered", props.traffic.inbound)}
-            {renderTraffic("Calls it made", props.traffic.outbound)}
-            <p className="text-xs text-gray-400">
-              {t("Latest ~15-minute window.")}
-            </p>
-          </div>
-        )}
-
-        {props.incidentStatus &&
-        props.incidentStatus.activeIncidentCount > 0 ? (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("Active incidents")} (
-              {props.incidentStatus.activeIncidentCount})
-            </h3>
-            <ul className="mt-1 divide-y divide-gray-100">
-              {props.incidentStatus.incidents.map(
-                (item: ServiceStatusItem): ReactElement => {
-                  return renderStatusItem(
-                    item,
-                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                    "#dc2626",
-                  );
-                },
-              )}
-            </ul>
-          </div>
+      <div ref={contentRef} className="relative">
+        {/*
+         * Where focus lands when the drawer switches to another entity: at
+         * the top of the content, read out as the entity's name and kind.
+         */}
+        <div
+          ref={focusTargetRef}
+          tabIndex={-1}
+          className="sr-only"
+          data-testid="entity-detail-focus-target"
+        >
+          {`${displayName}, ${description}`}
+        </div>
+        {isMissing ? (
+          <p
+            className="text-sm text-gray-600"
+            data-testid="entity-detail-missing"
+          >
+            {t("This resource is no longer in Inventory.")}
+          </p>
         ) : (
-          <></>
-        )}
-
-        {props.incidentStatus && props.incidentStatus.activeAlertCount > 0 ? (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("Active alerts")} ({props.incidentStatus.activeAlertCount})
-            </h3>
-            <ul className="mt-1 divide-y divide-gray-100">
-              {props.incidentStatus.alerts.map(
-                (item: ServiceStatusItem): ReactElement => {
-                  return renderStatusItem(
-                    item,
-                    RouteMap[PageMap.ALERT_VIEW] as Route,
-                    "#f59e0b",
-                  );
-                },
-              )}
-            </ul>
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {renderConnections()}
-
-        {fullEntity && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("Details")}
-            </h3>
-            <dl className="mt-2 space-y-1 text-sm text-gray-600">
-              <div className="flex justify-between gap-4">
-                <dt>{t("Type")}</dt>
-                <dd className="text-right text-gray-900">
-                  {t(typeMeta.label)}
-                </dd>
+          <div className="space-y-6">
+            {props.traffic && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: props.traffic.statusColor }}
+                  aria-hidden={true}
+                />
+                <span data-testid="entity-detail-status">
+                  {t(props.traffic.statusLabel)}
+                </span>
               </div>
-              {attributes.map(
-                (item: { label: string; value: string }): ReactElement => {
-                  return (
-                    <div
-                      key={item.label}
-                      className="flex justify-between gap-4"
-                    >
-                      <dt>{t(item.label)}</dt>
-                      <dd className="break-all text-right text-gray-900">
-                        {item.value}
+            )}
+
+            {props.onFocus && (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  title={t(props.focusButtonLabel || "Explore connections")}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    props.onFocus?.(entityKey);
+                  }}
+                />
+              </div>
+            )}
+
+            {props.traffic && (
+              <div className="grid gap-2">
+                {renderTraffic("Requests it answered", props.traffic.inbound)}
+                {renderTraffic("Calls it made", props.traffic.outbound)}
+                <p className="text-xs text-gray-400">
+                  {t("Latest ~15-minute window.")}
+                </p>
+              </div>
+            )}
+
+            {props.incidentStatus &&
+            props.incidentStatus.activeIncidentCount > 0 ? (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("Active incidents")} (
+                  {props.incidentStatus.activeIncidentCount})
+                </h3>
+                <ul className="mt-1 divide-y divide-gray-100">
+                  {props.incidentStatus.incidents.map(
+                    (item: ServiceStatusItem): ReactElement => {
+                      return renderStatusItem(
+                        item,
+                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        "#dc2626",
+                      );
+                    },
+                  )}
+                </ul>
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {props.incidentStatus &&
+            props.incidentStatus.activeAlertCount > 0 ? (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("Active alerts")} ({props.incidentStatus.activeAlertCount})
+                </h3>
+                <ul className="mt-1 divide-y divide-gray-100">
+                  {props.incidentStatus.alerts.map(
+                    (item: ServiceStatusItem): ReactElement => {
+                      return renderStatusItem(
+                        item,
+                        RouteMap[PageMap.ALERT_VIEW] as Route,
+                        "#f59e0b",
+                      );
+                    },
+                  )}
+                </ul>
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {renderConnections()}
+
+            {fullEntity && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("Details")}
+                </h3>
+                <dl className="mt-2 space-y-1 text-sm text-gray-600">
+                  <div className="flex justify-between gap-4">
+                    <dt>{t("Type")}</dt>
+                    <dd className="text-right text-gray-900">
+                      {t(typeMeta.label)}
+                    </dd>
+                  </div>
+                  {attributes.map(
+                    (item: { label: string; value: string }): ReactElement => {
+                      return (
+                        <div
+                          key={item.label}
+                          className="flex justify-between gap-4"
+                        >
+                          <dt>{t(item.label)}</dt>
+                          <dd className="break-all text-right text-gray-900">
+                            {item.value}
+                          </dd>
+                        </div>
+                      );
+                    },
+                  )}
+                  {fullEntity.firstSeenAt && (
+                    <div className="flex justify-between gap-4">
+                      <dt>{t("First seen")}</dt>
+                      <dd className="text-right">
+                        {OneUptimeDate.getDateAsLocalFormattedString(
+                          fullEntity.firstSeenAt,
+                        )}
                       </dd>
                     </div>
-                  );
-                },
-              )}
-              {fullEntity.firstSeenAt && (
-                <div className="flex justify-between gap-4">
-                  <dt>{t("First seen")}</dt>
-                  <dd className="text-right">
-                    {OneUptimeDate.getDateAsLocalFormattedString(
-                      fullEntity.firstSeenAt,
-                    )}
-                  </dd>
-                </div>
-              )}
-              {fullEntity.lastSeenAt && (
-                <div className="flex justify-between gap-4">
-                  <dt>{t("Last seen")}</dt>
-                  <dd className="text-right">
-                    {OneUptimeDate.getDateAsLocalFormattedString(
-                      fullEntity.lastSeenAt,
-                    )}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </div>
-        )}
+                  )}
+                  {fullEntity.lastSeenAt && (
+                    <div className="flex justify-between gap-4">
+                      <dt>{t("Last seen")}</dt>
+                      <dd className="text-right">
+                        {OneUptimeDate.getDateAsLocalFormattedString(
+                          fullEntity.lastSeenAt,
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
 
-        {fullEntity && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">{t("Open")}</h3>
-            <ul className="mt-2 space-y-2 text-sm">
-              {fullEntity.id && (
-                <li>
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.INVENTORY_VIEW] as Route,
-                      { modelId: new ObjectID(fullEntity.id) },
-                    )}
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    {t("Inventory details")}
-                  </Link>
-                </li>
-              )}
-              {serviceId && (
-                <li>
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                      { modelId: new ObjectID(serviceId) },
-                    )}
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    {t("Traces for this service")}
-                  </Link>
-                </li>
-              )}
-              {resolvedDatabaseLink && (
-                <li>
-                  <Link
-                    to={resolvedDatabaseLink.route}
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    {t(resolvedDatabaseLink.label)}
-                  </Link>
-                </li>
-              )}
-              {device?._id && (
-                <li>
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
-                      { modelId: new ObjectID(device._id.toString()) },
-                    )}
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    {t("Network device:")} {device.name || "device"}
-                  </Link>
-                </li>
-              )}
-            </ul>
+            {fullEntity && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("Open")}
+                </h3>
+                <ul className="mt-2 space-y-2 text-sm">
+                  {fullEntity.id && (
+                    <li>
+                      <Link
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.INVENTORY_VIEW] as Route,
+                          { modelId: new ObjectID(fullEntity.id) },
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        {t("Inventory details")}
+                      </Link>
+                    </li>
+                  )}
+                  {serviceId && (
+                    <li>
+                      <Link
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
+                          { modelId: new ObjectID(serviceId) },
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        {t("Traces for this service")}
+                      </Link>
+                    </li>
+                  )}
+                  {resolvedDatabaseLink && (
+                    <li>
+                      <Link
+                        to={resolvedDatabaseLink.route}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        {t(resolvedDatabaseLink.label)}
+                      </Link>
+                    </li>
+                  )}
+                  {device?._id && (
+                    <li>
+                      <Link
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+                          { modelId: new ObjectID(device._id.toString()) },
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        {t("Network device:")} {device.name || "device"}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
