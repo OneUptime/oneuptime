@@ -13,39 +13,71 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import TopologyPage from "../../App/FeatureSet/Dashboard/src/Pages/Topology/TopologyPage";
 import InventoryLayout from "../../App/FeatureSet/Dashboard/src/Pages/Inventory/Layout";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
+import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { loadDataset } from "./Datasets";
+import {
+  answerTopologyRequest,
+  isTopologyApiUrl,
+  topologyRouteFor,
+} from "./TopologyApiFixture";
 
-// These are deliberately synthetic records. Only data access is replaced:
-// the page, filters, layout engines, graph components and drawers are real.
-const entities = [];
+/*
+ * These are deliberately synthetic records. Only data access is replaced:
+ * the page, its Topology API client and decoders, filters, layout engines,
+ * graph components and drawers are real. The records are inventory ROWS
+ * (InventoryItem / InventoryItemRelationship columns); TopologyApiFixture.js
+ * reduces them to the payloads the server's Topology API would return.
+ */
+const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
+const CREATED_AT = new Date("2026-09-01T08:00:00Z").getTime();
+const items = [];
 const relationships = [];
 let identifier = 1;
 function addEntity(key, name, type) {
-  const entity = new InventoryItem();
-  entity._id = `00000000-0000-4000-8000-${String(identifier++).padStart(12, "0")}`;
-  entity.entityKey = key;
-  entity.displayName = name;
-  entity.entityType = type;
-  entity.firstSeenAt = new Date("2026-09-01T08:00:00Z");
-  entity.lastSeenAt = new Date("2026-09-07T10:00:00Z");
-  entity.source = "discovered";
-  entities.push(entity);
+  const index = identifier++;
+  const entity = {
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    projectId: PROJECT_ID,
+    key,
+    type,
+    name,
+    source: "discovered",
+    firstSeenAt: new Date("2026-09-01T08:00:00Z"),
+    lastSeenAt: new Date("2026-09-07T10:00:00Z"),
+    createdAt: new Date(CREATED_AT + index * 1000),
+    isArchived: false,
+    deleted: false,
+    descriptiveAttributes: null,
+    identifyingAttributes: null,
+    resourceType: null,
+    resourceId: null,
+  };
+  items.push(entity);
   return entity;
 }
 function connect(from, to, type, metrics = {}) {
-  const edge = new InventoryItemRelationship();
-  edge.fromEntityKey = from;
-  edge.toEntityKey = to;
-  edge.relationshipType = type;
-  edge.lastSeenAt = new Date("2026-09-07T10:00:00Z");
-  Object.assign(edge, metrics);
+  const index = relationships.length + 1;
+  const edge = {
+    id: `00000000-0000-4000-9000-${String(index).padStart(12, "0")}`,
+    projectId: PROJECT_ID,
+    from,
+    to,
+    type,
+    lastSeenAt: new Date("2026-09-07T10:00:00Z"),
+    createdAt: new Date(CREATED_AT + index * 1000),
+    deleted: false,
+    callCount: null,
+    errorCount: null,
+    avgDurationMs: null,
+    ...metrics,
+  };
   relationships.push(edge);
   return edge;
 }
@@ -132,6 +164,31 @@ function buildDefaultDataset() {
     { callCount: 12000, errorCount: 12, avgDurationMs: 18 },
   );
   connect("service-catalog", "host-2", EntityRelationshipType.HostedOn);
+
+  /*
+   * A flat type with more items than the server ships row by row
+   * (TopologyApiLimits.InlineFlatItemsPerType): the Infrastructure payload
+   * carries only its exact counts, and the explorer pages its items from
+   * /infrastructure/collection and searches them with /collection-search.
+   * Mirrored from the IoT device table, so every one counts as active.
+   */
+  const devices = 1250;
+  if (devices <= TopologyApiLimits.InlineFlatItemsPerType) {
+    throw new Error(
+      "The IoT fleet must exceed TopologyApiLimits.InlineFlatItemsPerType to be a collection.",
+    );
+  }
+  for (let device = 1; device <= devices; device++) {
+    const entity = addEntity(
+      `iot-device-${device}`,
+      `warehouse-sensor-${String(device).padStart(4, "0")}`,
+      EntityType.IoTDevice,
+    );
+    entity.source = "inventory";
+    entity.lastSeenAt = new Date(
+      new Date("2026-09-07T10:00:00Z").getTime() - (device % 30) * 60 * 1000,
+    );
+  }
 }
 if (!usesNamedDataset) {
   buildDefaultDataset();
@@ -264,36 +321,90 @@ const sites = [
   site("singapore", "Singapore office"),
 ];
 
+const estate = { projectId: PROJECT_ID, items, relationships };
+
+/*
+ * What the page asked for, for the specs to assert on:
+ *   requests  — every stubbed call, in order.
+ *   rejected  — Topology requests answered with an error: refused by the
+ *               server's parser (400, a client bug) or failed in the fixture
+ *               itself (500). Injected failures are not listed.
+ *   unhandled — Topology routes this fixture does not know (a new endpoint
+ *               the fixture must learn, never answered with a silent default).
+ * A spec can make a Topology route fail before the page loads with
+ * `window.__topologyFixtureFailures = [{ path, status, times }]`.
+ */
 window.__topologyFixtureRequests = [];
-// Honour the one query bound the topology hook sends: `lastSeenAt >= start`.
-function matchesQuery(row, query) {
-  const lowerBound = query?.lastSeenAt?.value;
-  if (lowerBound instanceof Date && row.lastSeenAt instanceof Date) {
-    return row.lastSeenAt.getTime() >= lowerBound.getTime();
+window.__topologyFixtureRejected = [];
+window.__topologyFixtureUnhandled = [];
+window.__topologyFixtureFailures = window.__topologyFixtureFailures || [];
+
+function injectedFailure(path) {
+  const failure = window.__topologyFixtureFailures.find((candidate) => {
+    return (
+      candidate.path === path &&
+      (candidate.times === undefined || candidate.times > 0)
+    );
+  });
+  if (!failure) {
+    return null;
   }
-  return true;
+  if (failure.times !== undefined) {
+    failure.times--;
+  }
+  return new HTTPErrorResponse(
+    failure.status,
+    {
+      message: failure.message || "The fixture was told to fail this request.",
+    },
+    {},
+  );
 }
-ModelAPI.getList = async ({ modelType, query }) => {
+
+function postTopology(route, data) {
+  const path = topologyRouteFor(route);
+  if (!path) {
+    window.__topologyFixtureUnhandled.push({ route, data });
+    return new HTTPErrorResponse(404, { message: `No route for ${route}` }, {});
+  }
+  const failure = injectedFailure(path);
+  if (failure) {
+    return failure;
+  }
+  const answer = answerTopologyRequest(estate, path, data);
+  if (answer.status !== 200) {
+    window.__topologyFixtureRejected.push({
+      path,
+      data,
+      status: answer.status,
+      message: answer.body.message,
+    });
+  }
+  return answer.status === 200
+    ? new HTTPResponse(200, answer.body, {})
+    : new HTTPErrorResponse(answer.status, answer.body, {});
+}
+
+/*
+ * The maps no longer list inventory rows; the drawer still lists a few other
+ * models (a service's telemetry link, a host's network device), which have
+ * no fixture data.
+ */
+ModelAPI.getList = async ({ modelType }) => {
   window.__topologyFixtureRequests.push({
     operation: "list",
     model: modelType.name,
   });
-  const rows =
-    modelType === InventoryItem
-      ? entities
-      : modelType === InventoryItemRelationship
-        ? relationships
-        : [];
-  const data = rows.filter((row) => {
-    return matchesQuery(row, query);
-  });
-  return { data, count: data.length, skip: 0, limit: 10000 };
+  return { data: [], count: 0, skip: 0, limit: 10 };
 };
 ModelAPI.getCommonHeaders = () => ({});
 ModelAPI.getItem = async () => null;
 API.post = async ({ url, data }) => {
   const route = url.toString();
   window.__topologyFixtureRequests.push({ operation: "post", route, data });
+  if (isTopologyApiUrl(route)) {
+    return postTopology(route, data);
+  }
   if (route.includes("/network-site/children")) {
     const selected = sites.find((item) => item.id === data?.siteId);
     return {
