@@ -3769,6 +3769,32 @@ function expectActionsBesideTitle(boxes: HeroTitleRowBoxes): void {
   ).toBeLessThanOrEqual(1);
 }
 
+/*
+ * The actions never squeeze the title: a title that does not show whole has
+ * every pixel the row leaves it - the whole row under the actions below xl,
+ * everything left of the actions (less the gap) from xl. Whether a given
+ * title fits depends on the machine's fonts (CI's are wider than a Mac's),
+ * so this pins the room the title gets, not that it fits.
+ */
+async function expectTitleNotSqueezed(
+  page: Page,
+  boxes: HeroTitleRowBoxes,
+): Promise<void> {
+  if (!(await isOverflowing(heroTitle(page)))) {
+    return;
+  }
+
+  const isBeside: boolean = Math.abs(boxes.actions.y - boxes.titleBlock.y) <= 1;
+  const room: number = isBeside
+    ? boxes.actions.x - boxes.row.x - TITLE_ACTIONS_GAP
+    : boxes.row.width;
+
+  expect(
+    boxes.titleBlock.width,
+    "a truncated title has all the room the actions leave it",
+  ).toBeGreaterThanOrEqual(room - 1);
+}
+
 interface HeroLayoutCase {
   // Test title.
   title: string;
@@ -3930,17 +3956,8 @@ test.describe("the hero's title row across widths", () => {
         } else {
           expectActionsUnderTitle(boxes);
         }
-        /*
-         * The title is never squeezed by the actions. Only a phone is too
-         * narrow for these titles (292px of the 297px and 315px they need),
-         * and there the title still has the whole row.
-         */
-        if (width >= 768) {
-          expect(
-            await isOverflowing(heroTitle(page)),
-            "the title is truncated",
-          ).toBe(false);
-        }
+
+        await expectTitleNotSqueezed(page, boxes);
 
         if (width === 390 && rows[rows.length - 1]!.length === 1) {
           // On a phone a button alone on its row fills it.
@@ -3970,9 +3987,10 @@ test.describe("the hero's title row across widths", () => {
     await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
 
     // 1279px: the widest header that still stacks.
-    expectActionsUnderTitle(await heroTitleRowBoxes(page));
+    const stackedBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(stackedBoxes);
     expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(false);
+    await expectTitleNotSqueezed(page, stackedBoxes);
     const stackedHeight: number = (await documentBox(hero(page))).height;
 
     // One more pixel and the same page lays the row out side by side.
@@ -3983,9 +4001,10 @@ test.describe("the hero's title row across widths", () => {
         return Math.round(boxes.actions.y - boxes.titleBlock.y);
       })
       .toBe(0);
-    expectActionsBesideTitle(await heroTitleRowBoxes(page));
+    const besideBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(besideBoxes);
     expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(false);
+    await expectTitleNotSqueezed(page, besideBoxes);
     // The actions' own row is gone: the header is 48px shorter.
     expect(
       stackedHeight - (await documentBox(hero(page))).height,
@@ -4009,10 +4028,12 @@ test.describe("the hero's title row across widths", () => {
       ...ALL_CREATED_ALERT_ACTIONS,
     ]);
 
-    expectActionsUnderTitle(await heroTitleRowBoxes(page));
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(boxes);
     expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
     // Wider than the header: cut at its full width, whole in its tooltip.
     expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
     await heroTitle(page).hover();
     await expect(page.getByRole("tooltip")).toHaveText(ALERT_LONG_TITLE);
     await expectNoHorizontalOverflow(page);
@@ -4041,7 +4062,11 @@ test.describe("the hero's title row across widths", () => {
       await heroActionRows(page),
       "the actions' rows beside a long title",
     ).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    expectActionsBesideTitle(await heroTitleRowBoxes(page));
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(boxes);
+    // Cut, but with every pixel left of the actions.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
   });
 
   test("on a phone an acknowledged alert keeps Declare Incident's whole label", async ({
