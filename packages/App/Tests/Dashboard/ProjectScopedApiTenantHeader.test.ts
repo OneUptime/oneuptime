@@ -47,6 +47,7 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/unlink-monitor/",
   "/incident/generate-postmortem-from-ai/",
   "/incident-episode/generate-postmortem-from-ai/",
+  "/incident/subscriber-audience",
 ];
 
 /*
@@ -83,6 +84,14 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Pages", "Incidents", "EpisodeView", "Postmortem.tsx"],
     routePrefix: "/incident-episode/generate-postmortem-from-ai/",
+  },
+  /*
+   * The "Will notify" audience summary and the picker's warnings all ask
+   * through this one hook.
+   */
+  {
+    page: ["Components", "Incident", "useSubscriberAudience.ts"],
+    routePrefix: "/incident/subscriber-audience",
   },
 ];
 

@@ -1,4 +1,5 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
+import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
 import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
 import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
 import PageMap from "../../../Utils/PageMap";
@@ -60,6 +61,16 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
         isNotifyingByDefault,
         quietDescription:
           PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+        /*
+         * Who the note will reach: the status pages this incident's scope
+         * lets through, with an "up to" count per channel.
+         */
+        audienceSummary: (
+          <SubscriberAudienceSummary
+            request={{ incidentId: modelId }}
+            dataTestId="incident-public-note-audience"
+          />
+        ),
       }}
       templates={{
         modelType: IncidentNoteTemplate,

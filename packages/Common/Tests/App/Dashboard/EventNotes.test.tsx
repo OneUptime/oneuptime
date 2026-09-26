@@ -1253,6 +1253,64 @@ describe("event notes: the composer", () => {
     ).toBe(true);
   });
 
+  /*
+   * Who the note will reach ("Will notify: Site 03 (up to 41 email)"), for
+   * the incident pages that pass one (SubscriberAudienceSummary): under the
+   * notify box, and only while it is ticked - an unticked note reaches nobody.
+   */
+  test("shows who the note will reach while notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: (
+          <div data-testid="stub-audience">Will notify: Site 03</div>
+        ),
+      },
+    });
+    await openComposer();
+
+    expect(
+      within(screen.getByTestId("note-notify-audience")).getByTestId(
+        "stub-audience",
+      ),
+    ).toHaveTextContent("Will notify: Site 03");
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  test("a quiet incident shows the audience only once notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: false,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: <div data-testid="stub-audience">Will notify</div>,
+      },
+    });
+    await openComposer();
+
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  test("without an audience to show, the notify box stands alone", async () => {
+    await renderPublic();
+    await openComposer();
+
+    expect(screen.getByTestId("note-notify-checkbox")).toBeChecked();
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
+  });
+
   test("unticking on a notifying incident explains the note still goes on the status page", async () => {
     await renderPublic();
     await openComposer();

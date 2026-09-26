@@ -532,6 +532,8 @@ const INCIDENT_CASE: PageCase = {
     "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
+    // The status pages the incident is limited to, read only.
+    "Status Page Scope",
     "Labels",
     "Incident Number",
     "Incident ID",

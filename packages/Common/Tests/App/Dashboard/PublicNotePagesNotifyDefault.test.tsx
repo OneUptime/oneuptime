@@ -48,6 +48,7 @@ type RecordedFeedProps = {
   subscriberNotifications?: {
     isNotifyingByDefault: boolean;
     quietDescription: string;
+    audienceSummary?: ReactElement | undefined;
   };
 };
 
@@ -155,6 +156,12 @@ interface PublicNotePageCase {
   parentIdField: string;
   eventNoun: string;
   attachmentApiPath: string;
+  /*
+   * Whether a new note shows who it will reach. Only incidents have the
+   * audience summary (SubscriberAudienceSummary): the status pages their scope
+   * lets through.
+   */
+  hasAudienceSummary: boolean;
 }
 
 const PAGES: Array<PublicNotePageCase> = [
@@ -169,6 +176,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "incidentId",
     eventNoun: "incident",
     attachmentApiPath: "/incident-public-note/attachment",
+    hasAudienceSummary: true,
   },
   {
     name: "scheduled maintenance event",
@@ -181,6 +189,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "scheduledMaintenanceId",
     eventNoun: "scheduled maintenance event",
     attachmentApiPath: "/scheduled-maintenance-public-note/attachment",
+    hasAudienceSummary: false,
   },
   {
     name: "incident episode",
@@ -193,6 +202,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "incidentEpisodeId",
     eventNoun: "episode",
     attachmentApiPath: "/incident-episode-public-note/attachment",
+    hasAudienceSummary: false,
   },
 ];
 
@@ -354,10 +364,34 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
     test("an event created without notifying subscribers starts it unticked, with the reason", async () => {
       await renderFor(false);
 
-      expect(feed().subscriberNotifications).toEqual({
+      const settings: Record<string, unknown> = {
+        ...feed().subscriberNotifications,
+      };
+      delete settings["audienceSummary"];
+
+      expect(settings).toEqual({
         isNotifyingByDefault: false,
         quietDescription: page.quietDescription,
       });
+    });
+
+    test("a new note shows who it will reach where the event has a scope", async () => {
+      await renderFor(true);
+
+      const audience: ReactElement | undefined =
+        feed().subscriberNotifications?.audienceSummary;
+
+      if (!page.hasAudienceSummary) {
+        expect(audience).toBeUndefined();
+        return;
+      }
+
+      expect(audience).toBeDefined();
+      expect(
+        (
+          audience!.props as { request: { incidentId: ObjectID } }
+        ).request.incidentId.toString(),
+      ).toBe(EVENT_ID);
     });
 
     test.each([

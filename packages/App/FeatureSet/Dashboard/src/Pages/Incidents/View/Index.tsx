@@ -81,6 +81,8 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -1219,6 +1221,30 @@ const IncidentView: FunctionComponent<
                           <></>
                         )}
                       </div>
+                    );
+                  },
+                },
+                /*
+                 * The status pages this incident is limited to, read only;
+                 * it is changed on the Settings tab. The pages are read by
+                 * the element itself: this card already reads two lists.
+                 */
+                {
+                  field: {
+                    isScopedToStatusPages: true,
+                  },
+                  title: IncidentStatusPageScopeCopy.overviewFieldTitle,
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <IncidentStatusPageScopeView
+                        isScopedToStatusPages={item.isScopedToStatusPages}
+                        incidentId={modelId}
+                        editRoute={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route,
+                          { modelId: modelId },
+                        )}
+                      />
                     );
                   },
                 },

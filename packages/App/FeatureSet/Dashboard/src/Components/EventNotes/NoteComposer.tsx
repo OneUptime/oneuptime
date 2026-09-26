@@ -58,6 +58,11 @@ export interface ComponentProps {
   editorKey: string;
   isAttachmentsEnabled: boolean;
   notifyOption?: NotifyOption | undefined;
+  /*
+   * Who the notification would reach ("Will notify: Site 03 (up to 41
+   * email)"), shown under the notify checkbox while it is ticked.
+   */
+  notifyAudience?: ReactElement | undefined;
   isPostedAtEditable: boolean;
   isSubmitting: boolean;
   error?: string | undefined;
@@ -377,6 +382,13 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
                   : props.notifyOption.uncheckedDescription,
               )}
             </p>
+            {props.values.shouldNotify && props.notifyAudience ? (
+              <div data-testid="note-notify-audience">
+                {props.notifyAudience}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       )}

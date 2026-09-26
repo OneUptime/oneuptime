@@ -92,6 +92,11 @@ export interface EventNotesSubscriberConfig {
   isNotifyingByDefault: boolean;
   // Why it starts unticked, shown while it is.
   quietDescription: string;
+  /*
+   * Who a new note would reach, shown under "Notify status page
+   * subscribers" while it is ticked (SubscriberAudienceSummary for incidents).
+   */
+  audienceSummary?: ReactElement | undefined;
 }
 
 export interface ComponentProps<TNote extends BaseModel> {
@@ -733,6 +738,7 @@ function EventNotes<TNote extends BaseModel>(
         editorKey={`create-${composerRevision}`}
         isAttachmentsEnabled={isCreateAttachmentsEnabled}
         notifyOption={createNotifyOption}
+        notifyAudience={props.subscriberNotifications?.audienceSummary}
         isPostedAtEditable={isCreatePostedAtEditable}
         isSubmitting={isPosting}
         error={postError}

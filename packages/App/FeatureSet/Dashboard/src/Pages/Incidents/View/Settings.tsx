@@ -19,6 +19,27 @@ import NextReminderCountdown, {
   ReminderRuleScope,
 } from "../../../Components/Reminders/NextReminderCountdown";
 import { getIncidentCreatedRenotifyFormField } from "../../../Components/Incident/IncidentCreatedRenotifyFormField";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
+import {
+  StatusPagePickerAccessHint,
+  StatusPagesNotListingMonitorsWarning,
+  TranslatedScopeNotice,
+} from "../../../Components/Incident/IncidentStatusPageScopeNotices";
+import {
+  canNotifyAddedStatusPages,
+  getNamedStatusPages,
+  getNotifiedStatusPagesBeingRemoved,
+  isClearingScope,
+  joinStatusPageNames,
+  NamedStatusPage,
+} from "../../../Components/Incident/IncidentStatusPageScopeForm";
+import { getIncidentScopeAddedPagesFormField } from "../../../Components/Incident/IncidentScopeAddedPagesFormField";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../../Components/Incident/useStatusPagePickerAccess";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -84,6 +105,119 @@ const IncidentDelete: FunctionComponent<
     return fields;
   }, [canRenotifyOnPublish, isResolved]);
 
+  /*
+   * The incident as the 'Status Page Scope' card last loaded it: the pages it
+   * is limited to, the ones already told it was created, and whether its
+   * 'created' notification can go out at all. The edit form's warnings and
+   * its added-pages checkbox are worked out against it.
+   */
+  const [scopeIncident, setScopeIncident] = useState<Incident | null>(null);
+
+  /*
+   * Both cards read the incident's visibility and its 'created' notification
+   * state: publishing it in one changes what the other offers (adding pages
+   * queues the notification, and a queued notification is not offered again
+   * on publish). So a save in either card reloads the other.
+   */
+  const [settingsRefresher, setSettingsRefresher] = useState<boolean>(false);
+  const [scopeRefresher, setScopeRefresher] = useState<boolean>(false);
+
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
+
+  const loadedStatusPages: Array<NamedStatusPage> = getNamedStatusPages(
+    scopeIncident?.statusPages,
+  );
+
+  const canNotifyAddedPages: boolean = Boolean(
+    scopeIncident &&
+      canNotifyAddedStatusPages({
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+          scopeIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        isVisibleOnStatusPage: scopeIncident.isVisibleOnStatusPage,
+        isPrivate: scopeIncident.isPrivate,
+      }),
+  );
+
+  const scopeFormFields: Fields<Incident> = useMemo(() => {
+    const fields: Fields<Incident> = [
+      {
+        field: {
+          statusPages: true,
+        },
+        title: IncidentStatusPageScopeCopy.pickerTitle,
+        description: IncidentStatusPageScopeCopy.pickerDescription,
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        dropdownModal: {
+          type: StatusPage,
+          labelField: "name",
+          valueField: "_id",
+        },
+        required: false,
+        placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+        getFooterElement: (values: FormValues<Incident>) => {
+          const formValue: unknown = (values as Record<string, unknown>)[
+            "statusPages"
+          ];
+
+          /*
+           * Pages that already heard about the incident hear nothing more
+           * once removed - not even that it was resolved.
+           */
+          const removingNotified: Array<NamedStatusPage> =
+            getNotifiedStatusPagesBeingRemoved({
+              loadedStatusPages: loadedStatusPages,
+              notifiedStatusPageIds:
+                scopeIncident?.statusPagesNotifiedOnCreation,
+              formValue: formValue,
+            });
+
+          return (
+            <>
+              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
+              <StatusPagesNotListingMonitorsWarning
+                monitorIds={scopeIncident?.monitors}
+                statusPageIds={formValue}
+              />
+              {removingNotified.length > 0 ? (
+                <TranslatedScopeNotice
+                  text={
+                    IncidentStatusPageScopeCopy.removingNotifiedPagesWarning
+                  }
+                  values={{ names: joinStatusPageNames(removingNotified) }}
+                  dataTestId="incident-scope-removing-notified-pages"
+                />
+              ) : (
+                <></>
+              )}
+              {isClearingScope({
+                isScoped: scopeIncident?.isScopedToStatusPages,
+                formValue: formValue,
+              }) ? (
+                <TranslatedScopeNotice
+                  text={IncidentStatusPageScopeCopy.clearingScopeWarning}
+                  dataTestId="incident-scope-clearing"
+                />
+              ) : (
+                <></>
+              )}
+            </>
+          );
+        },
+      },
+    ];
+
+    if (canNotifyAddedPages) {
+      fields.push(
+        getIncidentScopeAddedPagesFormField({
+          loadedStatusPages: scopeIncident?.statusPages,
+        }),
+      );
+    }
+
+    return fields;
+  }, [scopeIncident, canNotifyAddedPages, statusPagePickerAccess]);
+
   return (
     <Fragment>
       <CardModelDetail
@@ -91,6 +225,12 @@ const IncidentDelete: FunctionComponent<
         cardProps={{
           title: "Incident Settings",
           description: "Manage settings for this incident here.",
+        }}
+        refresher={settingsRefresher}
+        onSaveSuccess={() => {
+          setScopeRefresher((current: boolean): boolean => {
+            return !current;
+          });
         }}
         isEditable={true}
         editButtonText="Edit Settings"
@@ -126,6 +266,62 @@ const IncidentDelete: FunctionComponent<
           },
           onItemLoaded: (item: Incident) => {
             setLoadedIncident(item);
+          },
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail
+        name="Status Page Scope"
+        cardProps={{
+          title: IncidentStatusPageScopeCopy.settingsCardTitle,
+          description: IncidentStatusPageScopeCopy.settingsCardDescription,
+        }}
+        refresher={scopeRefresher}
+        onSaveSuccess={() => {
+          setSettingsRefresher((current: boolean): boolean => {
+            return !current;
+          });
+        }}
+        isEditable={true}
+        editButtonText={IncidentStatusPageScopeCopy.settingsEditButton}
+        formFields={scopeFormFields}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: Incident,
+          id: "model-detail-incident-status-page-scope",
+          fields: [
+            {
+              field: {
+                statusPages: {
+                  _id: true,
+                  name: true,
+                },
+              },
+              title: IncidentStatusPageScopeCopy.scopeFieldTitle,
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <IncidentStatusPageScopeView
+                    isScopedToStatusPages={item.isScopedToStatusPages}
+                    statusPages={item.statusPages || []}
+                  />
+                );
+              },
+            },
+          ],
+          selectMoreFields: {
+            isScopedToStatusPages: true,
+            statusPagesNotifiedOnCreation: true,
+            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+            isVisibleOnStatusPage: true,
+            isPrivate: true,
+            monitors: {
+              _id: true,
+            },
+          },
+          onItemLoaded: (item: Incident) => {
+            setScopeIncident(item);
           },
           modelId: modelId,
         }}

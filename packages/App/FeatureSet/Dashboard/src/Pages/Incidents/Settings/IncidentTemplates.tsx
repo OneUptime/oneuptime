@@ -24,6 +24,12 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../../Components/Incident/useStatusPagePickerAccess";
 import React, {
   Fragment,
   FunctionComponent,
@@ -42,6 +48,10 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   const [createInitialValues, setCreateInitialValues] = useState<
     FormValues<IncidentTemplate>
   >({});
+
+  // Picking status pages needs status page read access (see the hint).
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
 
   const fetchFirstIncidentState: () => Promise<void> =
     async (): Promise<void> => {
@@ -302,6 +312,30 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                 });
               }
             },
+          },
+          /*
+           * The status pages incidents declared from this template are
+           * limited to - a 'Region East outage' template can carry the East
+           * site pages.
+           */
+          {
+            field: {
+              statusPages: true,
+            },
+            title: IncidentStatusPageScopeCopy.pickerTitle,
+            stepId: "resources-affected",
+            description: IncidentStatusPageScopeCopy.templatePickerDescription,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: StatusPage,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+            footerElement: (
+              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
+            ),
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes

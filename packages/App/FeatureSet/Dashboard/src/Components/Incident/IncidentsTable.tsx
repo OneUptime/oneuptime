@@ -46,6 +46,7 @@ import {
 } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import buildStatusPageScopeFacet from "./buildStatusPageScopeFacet";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import React, {
   FunctionComponent,
@@ -285,6 +286,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       // Burn rate incidents are linked to the SLO that declared them.
       includeServiceLevelObjective: true,
     }),
+    // Incidents limited to some status pages (Incident.statusPages).
+    buildStatusPageScopeFacet(),
   ];
 
   /*

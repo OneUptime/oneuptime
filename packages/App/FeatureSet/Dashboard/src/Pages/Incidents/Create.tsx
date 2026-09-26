@@ -78,6 +78,20 @@ import IncidentFromAlerts, {
   SeverityForMapping,
 } from "Common/Utils/Incident/IncidentFromAlerts";
 import IconProp from "Common/Types/Icon/IconProp";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import SubscriberAudienceSummary from "../../Components/Incident/SubscriberAudienceSummary";
+import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
+import {
+  StatusPagePickerAccessHint,
+  StatusPagesNotListingMonitorsWarning,
+  TranslatedScopeNotice,
+  TranslatedScopeText,
+} from "../../Components/Incident/IncidentStatusPageScopeNotices";
+import { getIdsFromFormValue } from "../../Components/Incident/IncidentStatusPageScopeForm";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../Components/Incident/useStatusPagePickerAccess";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -140,10 +154,66 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
   };
 };
 
+/*
+ * Why no status page subscriber will hear about the incident being declared,
+ * whatever pages it reaches - or undefined when they may.
+ */
+type GetAudienceQuietReasonFunction = (
+  values: FormValues<Incident>,
+) => string | undefined;
+
+const getAudienceQuietReason: GetAudienceQuietReasonFunction = (
+  values: FormValues<Incident>,
+): string | undefined => {
+  const formValues: Record<string, unknown> = values as Record<string, unknown>;
+
+  if (formValues["isPrivate"] === true) {
+    return IncidentStatusPageScopeCopy.audiencePrivateIncident;
+  }
+
+  if (
+    formValues["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"] ===
+    false
+  ) {
+    return IncidentStatusPageScopeCopy.audienceNotifyOff;
+  }
+
+  return undefined;
+};
+
+/*
+ * "Will notify: ..." for the incident as the form stands: its monitors and
+ * the status pages it is limited to.
+ */
+type GetAudienceSummaryFunction = (
+  values: FormValues<Incident>,
+) => ReactElement;
+
+const getAudienceSummary: GetAudienceSummaryFunction = (
+  values: FormValues<Incident>,
+): ReactElement => {
+  return (
+    <SubscriberAudienceSummary
+      dataTestId="incident-create-subscriber-audience"
+      request={{
+        monitorIds: values.monitors,
+        statusPageIds: values.statusPages,
+      }}
+      quietReason={getAudienceQuietReason(values)}
+    />
+  );
+};
+
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * Whether the status page picker has anything to offer: picking status
+   * pages needs status page read access, which incident roles do not have.
+   */
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
   const [error, setError] = useState<string>("");
   const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
     useRef<Array<RoleAssignment>>([]);
@@ -438,6 +508,8 @@ const IncidentCreate: FunctionComponent<
           onCallDutyPolicies: true,
           labels: true,
           changeMonitorStatusToId: true,
+          // Declaring from a template that has status pages scopes the incident.
+          statusPages: true,
         },
       });
 
@@ -527,6 +599,11 @@ const IncidentCreate: FunctionComponent<
         labels: incidentTemplate.labels?.map((label: Label) => {
           return label.id!.toString();
         }),
+        statusPages: incidentTemplate.statusPages?.map(
+          (statusPage: StatusPage) => {
+            return statusPage.id!.toString();
+          },
+        ),
         changeMonitorStatusTo:
           incidentTemplate.changeMonitorStatusToId?.toString(),
         onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
@@ -971,6 +1048,65 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 /*
+                 * The status pages this incident is limited to. Left empty,
+                 * it shows on and notifies every status page that lists its
+                 * monitors, as always; picked, only those pages among them.
+                 * The entity dropdown gives it a Labels tab, so every page
+                 * with a label ('Region East') is one click.
+                 */
+                {
+                  field: {
+                    statusPages: true,
+                  },
+                  title: IncidentStatusPageScopeCopy.pickerTitle,
+                  stepId: "resources-affected",
+                  description: IncidentStatusPageScopeCopy.pickerDescription,
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: StatusPage,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return (
+                      <>
+                        <StatusPagePickerAccessHint
+                          access={statusPagePickerAccess}
+                        />
+                        <StatusPagesNotListingMonitorsWarning
+                          monitorIds={values.monitors}
+                          statusPageIds={values.statusPages}
+                        />
+                      </>
+                    );
+                  },
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    const statusPageIds: Array<string> = getIdsFromFormValue(
+                      item.statusPages,
+                    );
+
+                    if (statusPageIds.length === 0) {
+                      return (
+                        <TranslatedScopeText
+                          text={IncidentStatusPageScopeCopy.noScopeSummary}
+                        />
+                      );
+                    }
+
+                    return (
+                      <FetchStatusPages
+                        statusPageIds={statusPageIds.map(
+                          (id: string): ObjectID => {
+                            return new ObjectID(id);
+                          },
+                        )}
+                      />
+                    );
+                  },
+                },
+                /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * hosts/kubernetesClusters/dockerHosts/podmanHosts/
                  * databaseServers/services on load and submit.
@@ -1161,6 +1297,27 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitor Status",
+                  /*
+                   * Monitor status is not scoped: every status page that
+                   * lists the monitor shows it.
+                   */
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (
+                      !values.changeMonitorStatusTo ||
+                      getIdsFromFormValue(values.statusPages).length === 0
+                    ) {
+                      return undefined;
+                    }
+
+                    return (
+                      <TranslatedScopeNotice
+                        text={
+                          IncidentStatusPageScopeCopy.changeMonitorStatusWarning
+                        }
+                        dataTestId="incident-create-monitor-status-scope-warning"
+                      />
+                    );
+                  },
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.changeMonitorStatusTo) {
                       return (
@@ -1244,6 +1401,13 @@ const IncidentCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
+                  // Who that is, before anything is sent.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return getAudienceSummary(values);
+                  },
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    return getAudienceSummary(item);
+                  },
                 },
                 {
                   field: {
@@ -1256,6 +1420,25 @@ const IncidentCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,
+                  // Private wins over the status pages it is limited to.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (
+                      (values as Record<string, unknown>)["isPrivate"] !==
+                        true ||
+                      getIdsFromFormValue(values.statusPages).length === 0
+                    ) {
+                      return undefined;
+                    }
+
+                    return (
+                      <TranslatedScopeNotice
+                        text={
+                          IncidentStatusPageScopeCopy.privateIncidentWarning
+                        }
+                        dataTestId="incident-create-private-scope-warning"
+                      />
+                    );
+                  },
                 },
               ]}
               steps={[
