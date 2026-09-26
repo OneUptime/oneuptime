@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/ee",
-  "version": "14.0.4",
+  "version": "14.0.5",
   "description": "OneUptime Enterprise Edition modules. Licensed under ee/LICENSE, not Apache-2.0.",
   "private": true,
   "repository": {
