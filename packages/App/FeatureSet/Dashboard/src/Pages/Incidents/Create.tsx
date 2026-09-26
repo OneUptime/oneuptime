@@ -82,16 +82,17 @@ import IncidentFromAlerts, {
 } from "Common/Utils/Incident/IncidentFromAlerts";
 import IconProp from "Common/Types/Icon/IconProp";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
-import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import {
+  ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
   getAcknowledgeAlertsDescription,
+  getAcknowledgeAlertsGate,
   getAcknowledgeAlertsTitle,
+  getAlertsKeepEscalatingNote,
 } from "../../Components/Incident/AcknowledgeAlertsOnDeclare";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
+import Link from "Common/UI/Components/Link/Link";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -154,6 +155,23 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
   };
 };
 
+type GetIncidentReferenceFunction = (incident: Incident) => string;
+
+// "Incident INC-42" / "Incident #42", as the link pages list incidents.
+const getIncidentReference: GetIncidentReferenceFunction = (
+  incident: Incident,
+): string => {
+  if (incident.incidentNumberWithPrefix) {
+    return `Incident ${incident.incidentNumberWithPrefix}`;
+  }
+
+  if (typeof incident.incidentNumber === "number") {
+    return `Incident #${incident.incidentNumber}`;
+  }
+
+  return "Incident";
+};
+
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -196,6 +214,15 @@ const IncidentCreate: FunctionComponent<
     useState<AlertsToAcknowledge | null>(null);
   const [shouldAcknowledgeAlerts, setShouldAcknowledgeAlerts] =
     useState<boolean>(true);
+  /*
+   * Incidents the alerts are already linked to, by alert id. Declaring is a
+   * click away on an alert's page, and several responders can land on the
+   * same alert in an outage, so the banner says when an alert already has an
+   * incident - a hint, never a block.
+   */
+  const [incidentsLinkedToAlerts, setIncidentsLinkedToAlerts] = useState<
+    Map<string, Array<Incident>>
+  >(new Map());
 
   useEffect(() => {
     const incidentTemplateId: string | null =
@@ -315,16 +342,24 @@ const IncidentCreate: FunctionComponent<
         }
       }
 
-      const [alerts, alertSeverities, incidentSeverities, alertStates]: [
+      const [
+        alerts,
+        alertSeverities,
+        incidentSeverities,
+        alertStates,
+        existingLinks,
+      ]: [
         Array<Alert>,
         Array<SeverityForMapping>,
         Array<SeverityForMapping>,
         Array<AlertStateForAcknowledgement> | null,
+        Map<string, Array<Incident>>,
       ] = await Promise.all([
         fetchAlertsToLink(parsedAlertIds.alertIds),
         fetchAlertSeverities(),
         fetchIncidentSeverities(),
         fetchAlertStates(),
+        fetchIncidentsLinkedToAlerts(parsedAlertIds.alertIds),
       ]);
 
       const prefill: IncidentPrefillFromAlerts =
@@ -347,6 +382,7 @@ const IncidentCreate: FunctionComponent<
         : null;
 
       setAlertsToLink(alerts);
+      setIncidentsLinkedToAlerts(existingLinks);
       setAlertsToAcknowledge(
         toAcknowledge && toAcknowledge.alertIds.length > 0
           ? toAcknowledge
@@ -431,6 +467,58 @@ const IncidentCreate: FunctionComponent<
     } catch {
       return [];
     }
+  };
+
+  /*
+   * Only a hint on the banner, so a failed read (or no permission to read
+   * links) leaves it out rather than block the page. A private incident's
+   * links are not returned to somebody who cannot see it.
+   */
+  const fetchIncidentsLinkedToAlerts: (
+    alertIds: Array<string>,
+  ) => Promise<Map<string, Array<Incident>>> = async (
+    alertIds: Array<string>,
+  ): Promise<Map<string, Array<Incident>>> => {
+    const byAlertId: Map<string, Array<Incident>> = new Map();
+
+    try {
+      const result: ListResult<IncidentAlert> =
+        await ModelAPI.getList<IncidentAlert>({
+          modelType: IncidentAlert,
+          query: {
+            alertId: new Includes(alertIds),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            alertId: true,
+            incident: {
+              _id: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+            },
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+        });
+
+      for (const link of result.data) {
+        const alertId: string = link.alertId?.toString() || "";
+
+        if (!alertId || !link.incident?._id) {
+          continue;
+        }
+
+        const incidents: Array<Incident> = byAlertId.get(alertId) || [];
+        incidents.push(link.incident);
+        byAlertId.set(alertId, incidents);
+      }
+    } catch {
+      return new Map();
+    }
+
+    return byAlertId;
   };
 
   /*
@@ -630,15 +718,11 @@ const IncidentCreate: FunctionComponent<
   };
 
   /*
-   * Acknowledging writes each alert's state timeline, so it needs that
-   * permission. A missing one is shown - the box locked, saying why - and an
+   * A missing permission is shown - the box locked, saying why - and an
    * unknown answer (the permission snapshot has not loaded) leaves the box
-   * out, like every other gate. The server checks the same permission again.
+   * out, like every other gate. The server checks again, per alert.
    */
-  const acknowledgeGate: PermissionGateResult = PermissionGate.check(
-    new AlertStateTimeline(),
-    ModelAction.Create,
-  );
+  const acknowledgeGate: PermissionGateResult = getAcknowledgeAlertsGate();
 
   const isAcknowledgeOffered: boolean =
     alertsToAcknowledge !== null &&
@@ -677,6 +761,11 @@ const IncidentCreate: FunctionComponent<
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {alertsToLink.map((alert: Alert): ReactElement => {
+                      const linkedIncidents: Array<Incident> =
+                        incidentsLinkedToAlerts.get(
+                          alert._id?.toString() || "",
+                        ) || [];
+
                       return (
                         <li key={alert._id?.toString()}>
                           <span className="mr-1 font-medium">
@@ -686,10 +775,64 @@ const IncidentCreate: FunctionComponent<
                             :
                           </span>
                           <AlertElement alert={alert} />
+                          {linkedIncidents.length > 0 && (
+                            <span
+                              className="ml-1"
+                              data-testid="incident-create-alert-already-linked"
+                            >
+                              (already linked to{" "}
+                              {linkedIncidents.map(
+                                (
+                                  incident: Incident,
+                                  index: number,
+                                ): ReactElement => {
+                                  return (
+                                    <Fragment key={incident._id?.toString()}>
+                                      {index > 0 ? ", " : ""}
+                                      <Link
+                                        className="font-medium underline"
+                                        to={RouteUtil.populateRouteParams(
+                                          RouteMap[
+                                            PageMap.INCIDENT_VIEW
+                                          ] as Route,
+                                          {
+                                            modelId: new ObjectID(
+                                              incident._id!.toString(),
+                                            ),
+                                          },
+                                        )}
+                                      >
+                                        {getIncidentReference(incident)}
+                                      </Link>
+                                    </Fragment>
+                                  );
+                                },
+                              )}
+                              )
+                            </span>
+                          )}
                         </li>
                       );
                     })}
                   </ul>
+                  {alertsToLink.some((alert: Alert): boolean => {
+                    return (
+                      (
+                        incidentsLinkedToAlerts.get(
+                          alert._id?.toString() || "",
+                        ) || []
+                      ).length > 0
+                    );
+                  }) && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-alerts-already-linked-note"
+                    >
+                      {alertsToLink.length === 1
+                        ? "This alert is already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alert to it from the alert's Linked Incidents page instead."
+                        : "Some of these alerts are already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alerts to it from the alerts list instead."}
+                    </p>
+                  )}
                   {isPrivateFromAlerts && (
                     <p
                       className="mt-2"
@@ -745,9 +888,10 @@ const IncidentCreate: FunctionComponent<
                       className="mt-2"
                       data-testid="incident-create-alerts-keep-escalating"
                     >
-                      {alertsToAcknowledge.alertIds.length === 1
-                        ? "Declaring the incident does not acknowledge the alert on its own: it keeps escalating until someone acknowledges it."
-                        : "Declaring the incident does not acknowledge the alerts on its own: they keep escalating until someone acknowledges them."}
+                      {getAlertsKeepEscalatingNote(
+                        alertsToAcknowledge,
+                        alertsToLink.length,
+                      )}
                     </p>
                   )}
                 </div>
@@ -1245,12 +1389,16 @@ const IncidentCreate: FunctionComponent<
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (
                       !item.onCallDutyPolicies ||
-                      !Array.isArray(item.onCallDutyPolicies)
+                      !Array.isArray(item.onCallDutyPolicies) ||
+                      item.onCallDutyPolicies.length === 0
                     ) {
                       return (
                         <p>
                           No on-call policies will be executed when this
                           incident is created.
+                          {willAcknowledgeAlerts
+                            ? ` ${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}`
+                            : ""}
                         </p>
                       );
                     }
