@@ -12,8 +12,8 @@ import { AddSessionReplaySameOriginTracePropagation1794800000000 } from "./17948
 import { AddIncidentAlert1794900000000 } from "./1794900000000-AddIncidentAlert";
 import { AddDatabaseServerTables1795000000000 } from "./1795000000000-AddDatabaseServerTables";
 import { AddUserProjectSsoConsent1795100000000 } from "./1795100000000-AddUserProjectSsoConsent";
-import { SkipHiddenIncidentCreatedNotifications1795200000000 } from "./1795200000000-SkipHiddenIncidentCreatedNotifications";
-import { AddIncidentStatusPageScope1795300000000 } from "./1795300000000-AddIncidentStatusPageScope";
+import { SkipHiddenIncidentCreatedNotifications1795300000000 } from "./1795300000000-SkipHiddenIncidentCreatedNotifications";
+import { AddIncidentStatusPageScope1795400000000 } from "./1795400000000-AddIncidentStatusPageScope";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1226,6 +1226,6 @@ export default [
   AddIncidentAlert1794900000000,
   AddDatabaseServerTables1795000000000,
   AddUserProjectSsoConsent1795100000000,
-  SkipHiddenIncidentCreatedNotifications1795200000000,
-  AddIncidentStatusPageScope1795300000000,
+  SkipHiddenIncidentCreatedNotifications1795300000000,
+  AddIncidentStatusPageScope1795400000000,
 ];

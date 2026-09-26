@@ -1,8 +1,8 @@
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import {
   HIDDEN_FROM_STATUS_PAGES_MESSAGE,
-  SkipHiddenIncidentCreatedNotifications1795200000000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795200000000-SkipHiddenIncidentCreatedNotifications";
+  SkipHiddenIncidentCreatedNotifications1795300000000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795300000000-SkipHiddenIncidentCreatedNotifications";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ObjectID from "../../../../Types/ObjectID";
 import IncidentCreatedRenotify from "../../../../Types/StatusPage/IncidentCreatedRenotify";
@@ -25,7 +25,7 @@ import {
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
- * SkipHiddenIncidentCreatedNotifications1795200000000 settles the 'incident
+ * SkipHiddenIncidentCreatedNotifications1795300000000 settles the 'incident
  * created' subscriber notification of hidden incidents that the old worker
  * marked InProgress and then abandoned. The worker only picks up Pending
  * rows, so those rows could never move again; Skipped is what the fixed
@@ -48,7 +48,7 @@ async function statementsFor(
     },
   } as unknown as QueryRunner;
 
-  await new SkipHiddenIncidentCreatedNotifications1795200000000()[direction](
+  await new SkipHiddenIncidentCreatedNotifications1795300000000()[direction](
     runner,
   );
   return statements;
@@ -65,7 +65,7 @@ function incidentColumn(property: string): ColumnMetadataArgs {
   return column!;
 }
 
-describe("SkipHiddenIncidentCreatedNotifications1795200000000 SQL contract", () => {
+describe("SkipHiddenIncidentCreatedNotifications1795300000000 SQL contract", () => {
   test("up() runs a single UPDATE of Incident and no schema change", async () => {
     const statements: Array<Statement> = await statementsFor("up");
 
@@ -131,23 +131,23 @@ describe("SkipHiddenIncidentCreatedNotifications1795200000000 SQL contract", () 
     expect(await statementsFor("down")).toEqual([]);
   });
 
-  test("is registered exactly once, as the newest migration, so it runs on boot", () => {
+  test("is registered exactly once, after the migrations before it, so it runs on boot", () => {
     const registered: Array<new () => MigrationInterface> =
       SchemaMigrations.filter(
         (migration: new () => MigrationInterface): boolean => {
           return (
-            migration === SkipHiddenIncidentCreatedNotifications1795200000000
+            migration === SkipHiddenIncidentCreatedNotifications1795300000000
           );
         },
       );
 
     expect(registered).toHaveLength(1);
-    expect(new SkipHiddenIncidentCreatedNotifications1795200000000().name).toBe(
-      "SkipHiddenIncidentCreatedNotifications1795200000000",
+    expect(new SkipHiddenIncidentCreatedNotifications1795300000000().name).toBe(
+      "SkipHiddenIncidentCreatedNotifications1795300000000",
     );
     expect(
       SchemaMigrations.indexOf(
-        SkipHiddenIncidentCreatedNotifications1795200000000,
+        SkipHiddenIncidentCreatedNotifications1795300000000,
       ),
     ).toBeGreaterThan(
       SchemaMigrations.findIndex(
@@ -188,8 +188,8 @@ describePostgres(
     const schema: string = `hidden_incident_notifications_${ObjectID.generate()
       .toString()
       .replace(/-/g, "")}`;
-    const migration: SkipHiddenIncidentCreatedNotifications1795200000000 =
-      new SkipHiddenIncidentCreatedNotifications1795200000000();
+    const migration: SkipHiddenIncidentCreatedNotifications1795300000000 =
+      new SkipHiddenIncidentCreatedNotifications1795300000000();
 
     let database: DataSource;
     let runner: QueryRunner;

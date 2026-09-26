@@ -1,4 +1,4 @@
-import { AddIncidentStatusPageScope1795300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795300000000-AddIncidentStatusPageScope";
+import { AddIncidentStatusPageScope1795400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795400000000-AddIncidentStatusPageScope";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentTemplate from "../../../../Models/DatabaseModels/IncidentTemplate";
@@ -30,7 +30,7 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  * IncidentStatusPageScopePostgres exercises it against a real database.
  */
 
-const OWN_CLASS_NAME: string = "AddIncidentStatusPageScope1795300000000";
+const OWN_CLASS_NAME: string = "AddIncidentStatusPageScope1795400000000";
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
@@ -42,7 +42,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1795300000000-AddIncidentStatusPageScope.ts",
+  "1795400000000-AddIncidentStatusPageScope.ts",
 );
 
 function timestampOfClassName(className: string): number | null {
@@ -65,7 +65,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddIncidentStatusPageScope1795300000000()[direction](queryRunner);
+  await new AddIncidentStatusPageScope1795400000000()[direction](queryRunner);
 
   return statements;
 }
@@ -123,7 +123,7 @@ describe("AddIncidentStatusPageScope migration - identity and registration", () 
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddIncidentStatusPageScope1795300000000().name).toBe(
+    expect(new AddIncidentStatusPageScope1795400000000().name).toBe(
       OWN_CLASS_NAME,
     );
   });

@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * - StatusPage.onlyShowScopedIncidents: pages that never show or notify an
  *   unscoped incident. Off for every existing page.
  */
-export class AddIncidentStatusPageScope1795300000000
+export class AddIncidentStatusPageScope1795400000000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentStatusPageScope1795300000000";
+  public name: string = "AddIncidentStatusPageScope1795400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

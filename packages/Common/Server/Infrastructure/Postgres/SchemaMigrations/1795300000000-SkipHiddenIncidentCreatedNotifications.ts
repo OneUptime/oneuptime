@@ -31,10 +31,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export const HIDDEN_FROM_STATUS_PAGES_MESSAGE: string =
   "Incident is not visible on status pages. Skipping notifications to subscribers.";
 
-export class SkipHiddenIncidentCreatedNotifications1795200000000
+export class SkipHiddenIncidentCreatedNotifications1795300000000
   implements MigrationInterface
 {
-  public name: string = "SkipHiddenIncidentCreatedNotifications1795200000000";
+  public name: string = "SkipHiddenIncidentCreatedNotifications1795300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
