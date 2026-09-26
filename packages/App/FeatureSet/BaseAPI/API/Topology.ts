@@ -12,6 +12,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import TopologyConcurrencyLimiter, {
   TOPOLOGY_BUSY_RETRY_AFTER_SECONDS,
+  TopologyRequestAbandonedError,
 } from "Common/Server/Utils/Topology/TopologyConcurrencyLimiter";
 import TopologyQueries from "Common/Server/Utils/Topology/TopologyQueries";
 import TopologyRequest, {
@@ -89,16 +90,46 @@ async function authorizeTopologyRead(
   return projectId;
 }
 
-/* One read, run when the limiter has a slot for the project. */
+/*
+ * Fires when the client goes away before its response is written (the drawer
+ * aborts the previous entity's request on every click), so the limiter can
+ * give the queue place to someone still waiting.
+ */
+function abandonedWhenClientLeaves(res: ExpressResponse): AbortSignal {
+  const controller: AbortController = new AbortController();
+  if (typeof res.on === "function") {
+    res.on("close", (): void => {
+      if (!res.writableFinished) {
+        controller.abort();
+      }
+    });
+  }
+  return controller.signal;
+}
+
+/*
+ * One read, run when the limiter has a slot for the project. A per-request
+ * read passes `signal` so an abandoned request never starts; a map build is
+ * shared by everyone asking for the same map, so it is never abandoned.
+ */
 async function limited<T>(
   projectId: ObjectID,
   read: () => Promise<T>,
+  signal?: AbortSignal | undefined,
 ): Promise<T> {
-  return await TopologyConcurrencyLimiter.run<T>(projectId.toString(), read);
+  return await TopologyConcurrencyLimiter.run<T>(
+    projectId.toString(),
+    read,
+    signal,
+  );
 }
 
 /* Hands an error to the error handler; a busy limiter adds Retry-After. */
 function passOn(err: unknown, res: ExpressResponse, next: NextFunction): void {
+  if (err instanceof TopologyRequestAbandonedError) {
+    // The client is gone; there is nobody to answer.
+    return;
+  }
   if (err instanceof TooManyRequestsException) {
     res.setHeader("Retry-After", String(TOPOLOGY_BUSY_RETRY_AFTER_SECONDS));
   }
@@ -211,6 +242,7 @@ export default class TopologyAPI {
         res: ExpressResponse,
         next: NextFunction,
       ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
         try {
           const projectId: ObjectID = await authorizeTopologyRead(req, "items");
           const request: TopologyCollectionRequest =
@@ -220,12 +252,16 @@ export default class TopologyAPI {
             req,
             res,
             JSON.stringify(
-              await limited(projectId, () => {
-                return TopologyQueries.getCollectionPage({
-                  ...request,
-                  projectId,
-                });
-              }),
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getCollectionPage({
+                    ...request,
+                    projectId,
+                  });
+                },
+                abandoned,
+              ),
             ),
           );
         } catch (err) {
@@ -243,6 +279,7 @@ export default class TopologyAPI {
         res: ExpressResponse,
         next: NextFunction,
       ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
         try {
           const projectId: ObjectID = await authorizeTopologyRead(req, "items");
           const request: TopologyCollectionSearchRequest =
@@ -252,12 +289,16 @@ export default class TopologyAPI {
             req,
             res,
             JSON.stringify(
-              await limited(projectId, () => {
-                return TopologyQueries.getCollectionSearch({
-                  ...request,
-                  projectId,
-                });
-              }),
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getCollectionSearch({
+                    ...request,
+                    projectId,
+                  });
+                },
+                abandoned,
+              ),
             ),
           );
         } catch (err) {
@@ -275,6 +316,7 @@ export default class TopologyAPI {
         res: ExpressResponse,
         next: NextFunction,
       ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
         try {
           const projectId: ObjectID = await authorizeTopologyRead(
             req,
@@ -287,9 +329,13 @@ export default class TopologyAPI {
             req,
             res,
             JSON.stringify(
-              await limited(projectId, () => {
-                return TopologyQueries.getEntity({ ...request, projectId });
-              }),
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getEntity({ ...request, projectId });
+                },
+                abandoned,
+              ),
             ),
           );
         } catch (err) {
@@ -307,6 +353,7 @@ export default class TopologyAPI {
         res: ExpressResponse,
         next: NextFunction,
       ): Promise<void> => {
+        const abandoned: AbortSignal = abandonedWhenClientLeaves(res);
         try {
           const projectId: ObjectID = await authorizeTopologyRead(
             req,
@@ -319,12 +366,16 @@ export default class TopologyAPI {
             req,
             res,
             JSON.stringify(
-              await limited(projectId, () => {
-                return TopologyQueries.getEntityConnections({
-                  ...request,
-                  projectId,
-                });
-              }),
+              await limited(
+                projectId,
+                () => {
+                  return TopologyQueries.getEntityConnections({
+                    ...request,
+                    projectId,
+                  });
+                },
+                abandoned,
+              ),
             ),
           );
         } catch (err) {

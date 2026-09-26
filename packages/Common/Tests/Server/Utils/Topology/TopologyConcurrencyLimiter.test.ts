@@ -4,6 +4,7 @@ import TopologyConcurrencyLimiterInstance, {
   TOPOLOGY_CONCURRENCY_LIMITS,
   TopologyConcurrencyLimiter,
   TopologyConcurrencyLimits,
+  TopologyRequestAbandonedError,
 } from "../../../../Server/Utils/Topology/TopologyConcurrencyLimiter";
 import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
 import TooManyRequestsException from "../../../../Types/Exception/TooManyRequestsException";
@@ -53,6 +54,7 @@ function launch(
   projectId: string,
   label: string,
   order: Array<string>,
+  signal?: AbortSignal,
 ): Job {
   let finish: () => void = (): void => {
     return undefined;
@@ -72,18 +74,22 @@ function launch(
       fail(error);
     },
   };
-  job.result = limiter.run(projectId, (): Promise<string> => {
-    job.started = true;
-    order.push(label);
-    return new Promise<string>(
-      (resolve: (value: string) => void, reject: (error: Error) => void) => {
-        finish = (): void => {
-          resolve(label);
-        };
-        fail = reject;
-      },
-    );
-  });
+  job.result = limiter.run(
+    projectId,
+    (): Promise<string> => {
+      job.started = true;
+      order.push(label);
+      return new Promise<string>(
+        (resolve: (value: string) => void, reject: (error: Error) => void) => {
+          finish = (): void => {
+            resolve(label);
+          };
+          fail = reject;
+        },
+      );
+    },
+    signal,
+  );
   job.result.then(
     (): void => {
       job.settled = true;
@@ -413,5 +419,116 @@ describe("TopologyConcurrencyLimiter", () => {
     expect(waiting.settled).toBe(false);
     waiting.finish();
     expect(await waiting.result).toBe("waiting");
+  });
+  /*
+   * The drawer aborts the previous entity's request on every click. A queued
+   * request whose client has gone must give its place back at once and never
+   * run, or one person clicking through the drawer fills their project's
+   * queue with dead reads ahead of the one they are waiting for.
+   */
+  describe("a request whose client has gone", () => {
+    test("leaves the queue at once, never runs, and frees its place for others", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter({
+          ...LIMITS,
+          maxRunning: 1,
+          maxWaitingPerProject: 1,
+        });
+      const order: Array<string> = [];
+      const running: Job = launch(limiter, "a", "running", order);
+      const controller: AbortController = new AbortController();
+      const abandoned: Job = launch(
+        limiter,
+        "a",
+        "abandoned",
+        order,
+        controller.signal,
+      );
+      await settle();
+      expect(limiter.waitingCount("a")).toBe(1);
+
+      controller.abort();
+      expect(await refusal(abandoned)).toBeInstanceOf(
+        TopologyRequestAbandonedError,
+      );
+      expect(limiter.waitingCount("a")).toBe(0);
+
+      // Its place is free again: the project's next request queues, not 429.
+      const next: Job = launch(limiter, "a", "next", order);
+      await settle();
+      expect(next.settled).toBe(false);
+      expect(limiter.waitingCount("a")).toBe(1);
+
+      running.finish();
+      await settle();
+      next.finish();
+      expect(await next.result).toBe("next");
+      expect(order).toEqual(["running", "next"]);
+      expect(abandoned.started).toBe(false);
+      expect(limiter.runningCount()).toBe(0);
+    });
+
+    test("an already-abandoned request takes no slot and never runs", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter(LIMITS);
+      const controller: AbortController = new AbortController();
+      controller.abort();
+      const order: Array<string> = [];
+      const job: Job = launch(limiter, "a", "gone", order, controller.signal);
+      expect(await refusal(job)).toBeInstanceOf(TopologyRequestAbandonedError);
+      expect(job.started).toBe(false);
+      expect(limiter.runningCount()).toBe(0);
+      expect(limiter.waitingCount()).toBe(0);
+    });
+
+    test("abandoned while its slot is being handed over: the slot goes back unused", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter({ ...LIMITS, maxRunning: 1 });
+      const order: Array<string> = [];
+      const running: Job = launch(limiter, "a", "running", order);
+      const controller: AbortController = new AbortController();
+      const handedOver: Job = launch(
+        limiter,
+        "b",
+        "handed-over",
+        order,
+        controller.signal,
+      );
+      const after: Job = launch(limiter, "c", "after", order);
+      await settle();
+
+      // The slot is granted synchronously; the abort lands before work runs.
+      running.finish();
+      controller.abort();
+      expect(await refusal(handedOver)).toBeInstanceOf(
+        TopologyRequestAbandonedError,
+      );
+      await settle();
+      expect(handedOver.started).toBe(false);
+      expect(after.started).toBe(true);
+      after.finish();
+      await after.result;
+      expect(limiter.runningCount()).toBe(0);
+    });
+
+    test("a read that already started is not interrupted by its client leaving", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter(LIMITS);
+      const controller: AbortController = new AbortController();
+      const order: Array<string> = [];
+      const job: Job = launch(
+        limiter,
+        "a",
+        "started",
+        order,
+        controller.signal,
+      );
+      await settle();
+      expect(job.started).toBe(true);
+      controller.abort();
+      job.finish();
+      expect(await job.result).toBe("started");
+      expect(limiter.runningCount()).toBe(0);
+    });
   });
 });

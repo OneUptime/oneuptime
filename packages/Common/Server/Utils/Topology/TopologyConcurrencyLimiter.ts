@@ -22,6 +22,11 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
  * `maxWaitMs`, is answered 429 (TooManyRequestsException) at once: the
  * Dashboard shows "busy, try again" rather than a request that hangs.
  *
+ * A request whose client has gone (the drawer aborts the previous entity's
+ * load on every click) gives up its queue place at once and never starts:
+ * otherwise one person clicking through the drawer would queue dead reads
+ * ahead of the one they are waiting for and fill their project's queue.
+ *
  * Per process, like the response cache; there is no cross-process
  * coordination, so the cluster-wide bound is this times the API replicas.
  */
@@ -53,10 +58,19 @@ export const TOPOLOGY_CONCURRENCY_LIMITS: TopologyConcurrencyLimits = {
   maxWaitMs: 30_000,
 };
 
+/* The caller went away before its read started; nobody is waiting for it. */
+export class TopologyRequestAbandonedError extends Error {
+  public constructor() {
+    super("The Topology request was abandoned by its client.");
+    this.name = "TopologyRequestAbandonedError";
+  }
+}
+
 interface Waiter {
   projectId: string;
   start: () => void;
   timer: ReturnType<typeof setTimeout> | null;
+  detach: () => void;
 }
 
 export class TopologyConcurrencyLimiter {
@@ -76,11 +90,20 @@ export class TopologyConcurrencyLimiter {
   /*
    * Runs `work` once a slot for `projectId` is free, and frees it when the
    * work settles, however it settles. Throws TooManyRequestsException
-   * without running `work` when the queue is full or the wait too long.
+   * without running `work` when the queue is full or the wait too long, and
+   * TopologyRequestAbandonedError without running it when `signal` fires
+   * first (a read that has started runs to completion).
    */
-  public async run<T>(projectId: string, work: () => Promise<T>): Promise<T> {
-    await this.acquire(projectId);
+  public async run<T>(
+    projectId: string,
+    work: () => Promise<T>,
+    signal?: AbortSignal | undefined,
+  ): Promise<T> {
+    await this.acquire(projectId, signal);
     try {
+      if (signal?.aborted) {
+        throw new TopologyRequestAbandonedError();
+      }
       return await work();
     } finally {
       this.release(projectId);
@@ -115,7 +138,14 @@ export class TopologyConcurrencyLimiter {
     this.runningByProject.set(projectId, this.runningCount(projectId) + 1);
   }
 
-  private acquire(projectId: string): Promise<void> {
+  private acquire(
+    projectId: string,
+    signal: AbortSignal | undefined,
+  ): Promise<void> {
+    if (signal?.aborted) {
+      return Promise.reject(new TopologyRequestAbandonedError());
+    }
+
     if (this.canStart(projectId)) {
       this.take(projectId);
       return Promise.resolve();
@@ -132,16 +162,35 @@ export class TopologyConcurrencyLimiter {
 
     return new Promise<void>(
       (resolve: () => void, reject: (error: Error) => void): void => {
-        const waiter: Waiter = { projectId, start: resolve, timer: null };
+        /* Leaves the queue (if still in it) and rejects with `error`. */
+        const leave: (error: Error) => void = (error: Error): void => {
+          const index: number = this.waiting.indexOf(waiter);
+          if (index >= 0) {
+            this.waiting.splice(index, 1);
+            waiter.detach();
+            reject(error);
+          }
+        };
+        const onAbort: () => void = (): void => {
+          leave(new TopologyRequestAbandonedError());
+        };
+        const waiter: Waiter = {
+          projectId,
+          start: resolve,
+          timer: null,
+          detach: (): void => {
+            if (waiter.timer) {
+              clearTimeout(waiter.timer);
+            }
+            signal?.removeEventListener("abort", onAbort);
+          },
+        };
         if (Number.isFinite(this.limits.maxWaitMs)) {
           waiter.timer = setTimeout((): void => {
-            const index: number = this.waiting.indexOf(waiter);
-            if (index >= 0) {
-              this.waiting.splice(index, 1);
-              reject(new TooManyRequestsException(TOPOLOGY_BUSY_MESSAGE));
-            }
+            leave(new TooManyRequestsException(TOPOLOGY_BUSY_MESSAGE));
           }, this.limits.maxWaitMs);
         }
+        signal?.addEventListener("abort", onAbort);
         this.waiting.push(waiter);
       },
     );
@@ -167,9 +216,7 @@ export class TopologyConcurrencyLimiter {
     for (const waiter of this.waiting) {
       if (this.canStart(waiter.projectId)) {
         this.take(waiter.projectId);
-        if (waiter.timer) {
-          clearTimeout(waiter.timer);
-        }
+        waiter.detach();
         waiter.start();
       } else {
         stillWaiting.push(waiter);

@@ -999,6 +999,137 @@ describe("Topology API", () => {
       expectNothingRead();
     });
   });
+
+  /*
+   * The drawer aborts the previous entity's request on every click. Those
+   * requests must give their place in the limiter back and never read, or
+   * one person clicking through the drawer queues dead reads ahead of the
+   * one they are waiting for and turns everyone in the project away (429).
+   */
+  describe("a request whose client has gone", () => {
+    interface OpenCall {
+      done: Promise<void>;
+      next: jest.Mock;
+      close: () => void;
+    }
+
+    /* A request on a response that can be closed, like a real socket. */
+    function open(route: string, body: JSONObject): OpenCall {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(propsForRequest);
+      const next: jest.Mock = jest.fn() as unknown as jest.Mock;
+      const onClose: Array<() => void> = [];
+      const res: ExpressResponse = {
+        setHeader: jest.fn(),
+        writableFinished: false,
+        on: (event: string, listener: () => void): void => {
+          if (event === "close") {
+            onClose.push(listener);
+          }
+        },
+      } as unknown as ExpressResponse;
+      const req: ExpressRequest = { body } as unknown as ExpressRequest;
+      const done: Promise<void> = Promise.resolve(
+        mockRouter
+          .match("post", route)
+          .handlerFunction(req, res, next as unknown as NextFunction),
+      );
+      return {
+        done,
+        next,
+        close: (): void => {
+          for (const listener of onClose) {
+            listener();
+          }
+        },
+      };
+    }
+
+    test.each([
+      [
+        TopologyApiPath.Entity,
+        "getEntity" as QueryName,
+        { entityKey: "svc-a" },
+      ],
+      [
+        TopologyApiPath.EntityConnections,
+        "getEntityConnections" as QueryName,
+        { entityKey: "svc-a", section: "related", offset: 25 },
+      ],
+      [
+        TopologyApiPath.InfrastructureCollection,
+        "getCollectionPage" as QueryName,
+        { entityType: EntityType.IoTDevice, includeInactive: false },
+      ],
+      [
+        TopologyApiPath.InfrastructureCollectionSearch,
+        "getCollectionSearch" as QueryName,
+        {
+          includeInactive: false,
+          types: [{ entityType: EntityType.IoTDevice, nameTerms: [] }],
+        },
+      ],
+    ])(
+      "%s: an abandoned queued request frees its place, never reads and is not answered",
+      async (route: string, query: QueryName, extra: JSONObject) => {
+        const held: { releaseAll: () => void } = holdQueries(queries[query]);
+        const body: JSONObject = { rangeStart: RANGE_START, ...extra };
+        const running: Array<OpenCall> = [];
+        for (
+          let index: number = 0;
+          index < TOPOLOGY_CONCURRENCY_LIMITS.maxRunningPerProject;
+          index++
+        ) {
+          running.push(open(route, body));
+        }
+        const abandoned: OpenCall = open(route, body);
+        await settle();
+        expect(queries[query]).toHaveBeenCalledTimes(running.length);
+        expect(
+          TopologyConcurrencyLimiter.waitingCount(PROJECT_ID.toString()),
+        ).toBe(1);
+
+        abandoned.close();
+        await abandoned.done;
+        expect(
+          TopologyConcurrencyLimiter.waitingCount(PROJECT_ID.toString()),
+        ).toBe(0);
+        // Nobody is listening: no error response is attempted either.
+        expect(abandoned.next).not.toHaveBeenCalled();
+
+        held.releaseAll();
+        await Promise.all(
+          running.map((call: OpenCall): Promise<void> => {
+            return call.done;
+          }),
+        );
+        expect(queries[query]).toHaveBeenCalledTimes(running.length);
+        expect(responseUtil.sendJsonStringResponse).toHaveBeenCalledTimes(
+          running.length,
+        );
+      },
+    );
+
+    test("a map build is shared, so a viewer leaving never abandons it", async () => {
+      const held: { releaseAll: () => void } = holdQueries(
+        queries["getInfrastructure"],
+      );
+      const first: OpenCall = open(TopologyApiPath.Infrastructure, {
+        rangeStart: RANGE_START,
+      });
+      const second: OpenCall = open(TopologyApiPath.Infrastructure, {
+        rangeStart: RANGE_START,
+      });
+      await settle();
+      first.close();
+      held.releaseAll();
+      await Promise.all([first.done, second.done]);
+      expect(queries["getInfrastructure"]).toHaveBeenCalledTimes(1);
+      expect(second.next).not.toHaveBeenCalled();
+      expect(responseUtil.sendJsonStringResponse).toHaveBeenCalledTimes(2);
+    });
+  });
 });
 
 /*
