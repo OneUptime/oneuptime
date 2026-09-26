@@ -33,7 +33,14 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
  * permission-scoped model layer, so callers only see what they can read.
  */
 
-const MAX_SERVICE_NAMES: number = 500;
+/*
+ * The Service Map asks for every service it draws, and a project can hold as
+ * many services as the discovery budget admits. A lower cap here silently
+ * dropped the overlay (and with it "Need attention") for every service past
+ * the cap. This endpoint reads the project's services, incidents and alerts
+ * once whatever the list holds, so the list length only bounds the loop.
+ */
+export const MAX_SERVICE_NAMES: number = LIMIT_PER_PROJECT;
 const MAX_ITEMS_PER_SERVICE: number = 5;
 
 interface StatusItem {
