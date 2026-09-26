@@ -237,10 +237,14 @@ jest.mock(
         truncation?: TopologyTruncation | null;
         includeInactive?: boolean;
         rangeStart?: Date | null;
+        timeRange?: RangeStartAndEndDateTime;
         onOpenServiceMap?: (key: string) => void;
       }): React.ReactElement => {
         return (
           <div data-testid="topology-infrastructure">
+            <span data-testid="infrastructure-time-range">
+              {props.timeRange ? props.timeRange.range : "unset"}
+            </span>
             Infrastructure: {names(props.entities)}
             <span data-testid="infrastructure-relationships">
               {props.relationships
@@ -549,6 +553,49 @@ describe("what each tab loads", () => {
     expect(screen.getByTestId("infrastructure-range-start")).toHaveTextContent(
       ECHOED_RANGE_START,
     );
+  });
+
+  /*
+   * A traffic line on the map opens its call history for the page's time
+   * range, so the explorer must be handed the range the picker shows.
+   */
+  test("Infrastructure is handed the page's time range, and follows the picker", async () => {
+    window.history.replaceState({}, "", "?tab=Infrastructure");
+    renderPage();
+    await screen.findByTestId("topology-infrastructure");
+    expect(screen.getByTestId("infrastructure-time-range")).toHaveTextContent(
+      TimeRange.PAST_ONE_DAY,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Pick the past hour" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("infrastructure-time-range")).toHaveTextContent(
+        TimeRange.PAST_ONE_HOUR,
+      );
+    });
+  });
+
+  test("Infrastructure receives the calls between placed services with their traffic", async () => {
+    window.history.replaceState({}, "", "?tab=Infrastructure");
+    answer = (): Answer => {
+      return infrastructurePayload({
+        services: [
+          { key: "checkout", name: "Checkout API" },
+          { key: "payments", name: "Payments" },
+        ],
+        placements: [
+          [0, 1],
+          [1, 0],
+        ],
+        dependencies: [
+          { from: 0, to: 1, callCount: 90, errorCount: 1, avgDurationMs: 12 },
+        ],
+      });
+    };
+    renderPage();
+    await screen.findByTestId("topology-infrastructure");
+    expect(
+      screen.getByTestId("infrastructure-relationships"),
+    ).toHaveTextContent("checkout-depends-on->payments");
   });
 
   test("Infrastructure shows its own loader while it loads", async () => {
@@ -1002,6 +1049,44 @@ describe("the truncation banner", () => {
     );
     expect(screen.getByTestId("infrastructure-truncation")).toHaveTextContent(
       "200000/212345",
+    );
+  });
+
+  test("an Infrastructure with only its connections capped says connections, with Infrastructure's note", async () => {
+    window.history.replaceState({}, "", "?tab=Infrastructure");
+    answer = (request: RecordedRequest): Answer => {
+      return request.path === TopologyApiPath.Infrastructure
+        ? infrastructurePayload({
+            dependencyTruncation: { shown: 200000, total: 250001 },
+          })
+        : serviceMapPayload();
+    };
+    renderPage();
+    await screen.findByTestId("topology-infrastructure");
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `${(200000).toLocaleString()} of ${(250001).toLocaleString()} connections shown. ${INFRASTRUCTURE_NOTE}`,
+    );
+    /* The resources were not capped, so the explorer is not told they were. */
+    expect(screen.getByTestId("infrastructure-truncation")).toHaveTextContent(
+      "none",
+    );
+  });
+
+  test("an Infrastructure with both caps hit reports resources, then connections", async () => {
+    window.history.replaceState({}, "", "?tab=Infrastructure");
+    answer = (request: RecordedRequest): Answer => {
+      return request.path === TopologyApiPath.Infrastructure
+        ? infrastructurePayload({
+            truncation: { shown: 200000, total: 212345 },
+            dependencyTruncation: { shown: 200000, total: 200002 },
+          })
+        : serviceMapPayload();
+    };
+    renderPage();
+    await screen.findByTestId("topology-infrastructure");
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `${(200000).toLocaleString()} of ${(212345).toLocaleString()} resources shown. ` +
+        `${(200000).toLocaleString()} of ${(200002).toLocaleString()} connections shown. ${INFRASTRUCTURE_NOTE}`,
     );
   });
 

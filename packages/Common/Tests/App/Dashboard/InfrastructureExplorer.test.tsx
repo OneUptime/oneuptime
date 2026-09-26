@@ -1416,6 +1416,58 @@ describe("traffic on the map", () => {
     expect(lastDrawer().entity.entityKey).toBe("api");
   });
 
+  test("a line standing for several calls opens the busiest of them", () => {
+    const base: Fixture = tracedFixture();
+    renderExplorer({
+      data: {
+        ...base,
+        /* A cron job on one app host calls home far more than the api does. */
+        entities: [...base.entities, entity("cron", EntityType.Service)],
+        relationships: [
+          ...base.relationships,
+          hostedOn("cron", "h1"),
+          {
+            ...relationship("cron", "home", EntityRelationshipType.DependsOn),
+            callCount: 900,
+            errorCount: 0,
+            avgDurationMs: 8,
+          },
+        ],
+      },
+      timeRange: TIME_RANGE,
+    });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Map traffic ${APP_GROUP} -> ${HOME_GROUP}`,
+      }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "cron calls home" }),
+    ).toBeInTheDocument();
+    const panel: EdgePanelProps =
+      mockEdgePanelRenders[mockEdgePanelRenders.length - 1]!;
+    expect(panel.relationship.callCount).toBe(900);
+  });
+
+  test("one drawer at a time: opening a line closes a resource's details", () => {
+    renderExplorer({ data: tracedFixture(), timeRange: TIME_RANGE });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(screen.getByRole("button", { name: "Map service api" }));
+    expect(screen.getByRole("dialog", { name: "api" })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Map traffic ${APP_GROUP} -> ${HOME_GROUP}`,
+      }),
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "api" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "api calls home" }),
+    ).toBeInTheDocument();
+  });
+
   test("without the page's time range there is no history to open", () => {
     renderExplorer({ data: tracedFixture() });
     fireEvent.click(screen.getByTestId("infrastructure-view-map"));

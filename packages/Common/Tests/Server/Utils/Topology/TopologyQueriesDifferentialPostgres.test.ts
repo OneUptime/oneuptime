@@ -524,6 +524,7 @@ describePostgres.each(INDEX_VARIANTS)(
       let collections: number = 0;
       let duplicates: number = 0;
       let collectedDuplicates: number = 0;
+      let calls: number = 0;
       for (let seed: number = 1; seed <= ESTATES_PER_VARIANT; seed++) {
         const random: SeededRandom = new SeededRandom(7_000 + seed);
         const withCollection: boolean = seed % 3 === 1;
@@ -553,11 +554,14 @@ describePostgres.each(INDEX_VARIANTS)(
           drawer,
         );
 
-        const collected: Set<string> = new Set<string>(
+        const reference: ReferenceInfrastructureResponse =
           referenceInfrastructure(estate, {
             projectId: PROJECT_ID.toString(),
             rangeStart: RANGE_START,
-          }).collections.map((collection: { type: string }): string => {
+          });
+        calls += reference.dependencies.length;
+        const collected: Set<string> = new Set<string>(
+          reference.collections.map((collection: { type: string }): string => {
             return collection.type;
           }),
         );
@@ -595,6 +599,8 @@ describePostgres.each(INDEX_VARIANTS)(
       expect(collections).toBeGreaterThan(0);
       expect(duplicates).toBeGreaterThan(0);
       expect(collectedDuplicates).toBeGreaterThan(0);
+      /* Infrastructure's calls between placed services were compared too. */
+      expect(calls).toBeGreaterThan(0);
     }, 300_000);
 
     test("a container tie between a key beyond the BMP and one in U+E000..U+FFFF is broken by code point", async () => {

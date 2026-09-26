@@ -501,6 +501,12 @@ test("infrastructure draws the traffic between the pods on a node, with its metr
   expect(overlaps, "the routed line's label sits clear of the card").toBe(
     false,
   );
+  // Hovering the routed line names the calls it stands for.
+  await backendToBlob.locator(".react-flow__edge-textwrapper").hover();
+  await expect(page.getByTestId("infrastructure-traffic-hover")).toHaveText(
+    "wb-ims-backend → wb-ims-blob: 480/min · 0.5% errors · 45ms avg",
+  );
+  await page.mouse.move(0, 0);
   await screenshot(page, "aks-node-map-traffic-synthetic");
 
   await page.getByLabel("Line labels").selectOption("errors");
