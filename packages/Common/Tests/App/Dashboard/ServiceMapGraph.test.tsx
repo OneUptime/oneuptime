@@ -17,21 +17,28 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { ServiceOperationalStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 import ServiceMapGraph from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/ServiceMapGraph";
+import {
+  EntityDetailTarget,
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyRunsOnCount,
+  TopologyRunsOnCounts,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The Service Map component: what a person sees first, how they narrow it
  * down, and how they get to details. Graph drawing itself (React Flow) is
- * replaced by a stand-in that renders nodes and edges as buttons, so these
- * tests exercise the component's decisions, not the canvas.
+ * replaced by a stand-in that renders nodes and edges as buttons, and the
+ * detail drawer (which fetches its own connections) by a stand-in that
+ * records the props it was given, so these tests exercise the component's
+ * decisions, not the canvas or the drawer.
  */
 
 const mockFitView: MockFunction = getJestMockFunction();
@@ -52,6 +59,14 @@ let mockStatuses: Map<string, ServiceOperationalStatus> = new Map<
   string,
   ServiceOperationalStatus
 >();
+/*
+ * Every drawer instance, by the entity it was mounted for. The map keeps one
+ * drawer while the user moves between entities (a remount would replay the
+ * slide-in and drop keyboard focus), so a new entry means a new drawer.
+ */
+const mockDrawerMounts: Array<string> = [];
+/* The props of the drawer as last rendered. */
+let mockDrawerProps: Record<string, unknown> | null = null;
 
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
@@ -94,41 +109,143 @@ jest.mock(
     };
   },
 );
+/*
+ * The drawer's props contract: a preview of the entity (it fetches the rest
+ * itself), the server's range start, and callbacks. Its connection rows are
+ * stood in for by buttons that call back the way the real rows do: a
+ * "runs on" row opens the Infrastructure view when it can, every other row
+ * asks the map to select what it points at.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel",
   () => {
+    type Target = {
+      entityKey: string;
+      entityType?: string;
+      displayName?: string;
+    };
     return {
       __esModule: true,
       default: (props: {
-        entity: InventoryItem;
+        entity: Target;
+        rangeStart?: Date | null;
         traffic?: { statusLabel: string; subtitle: string };
+        incidentStatus?: { activeIncidentCount: number } | null;
         onClose: () => void;
-        onFocus: (key: string) => void;
-        onSelectEntity?: (key: string) => void;
+        onFocus?: (key: string) => void;
+        focusButtonLabel?: string;
+        onSelectEntity?: (target: Target) => void;
+        onOpenInfrastructure?: (key: string) => void;
       }) => {
+        mockDrawerProps = props as unknown as Record<string, unknown>;
+        const [mountedFor] = React.useState<string>(props.entity.entityKey);
+        React.useEffect(() => {
+          mockDrawerMounts.push(props.entity.entityKey);
+        }, []);
+        const select: (target: Target) => void = (target: Target): void => {
+          props.onSelectEntity?.(target);
+        };
         return (
-          <div role="dialog" aria-label="Service details">
-            <p>{props.entity.displayName}</p>
+          <div
+            role="dialog"
+            aria-label="Service details"
+            data-mounted-for={mountedFor}
+            data-entity-key={props.entity.entityKey}
+          >
+            <p data-testid="drawer-name">
+              {props.entity.displayName || props.entity.entityKey}
+            </p>
+            <p data-testid="drawer-type">{props.entity.entityType || ""}</p>
             <p data-testid="drawer-status">{props.traffic?.statusLabel}</p>
             <p data-testid="drawer-subtitle">{props.traffic?.subtitle}</p>
+            <p data-testid="drawer-incidents">
+              {String(props.incidentStatus?.activeIncidentCount ?? "none")}
+            </p>
             <button onClick={props.onClose}>Close service</button>
+            {props.onFocus ? (
+              <button
+                onClick={() => {
+                  props.onFocus?.(props.entity.entityKey);
+                }}
+              >
+                {props.focusButtonLabel || "Focus"}
+              </button>
+            ) : (
+              <></>
+            )}
             <button
               onClick={() => {
-                props.onFocus(props.entity.entityKey!);
-              }}
-            >
-              Focus this service
-            </button>
-            <button
-              onClick={() => {
-                props.onSelectEntity?.("postgres");
+                select({
+                  entityKey: "postgres",
+                  entityType: "database",
+                  displayName: "postgres",
+                });
               }}
             >
               View related dependency
             </button>
             <button
               onClick={() => {
-                props.onSelectEntity?.("pod-1");
+                select({
+                  entityKey: "web",
+                  entityType: "service",
+                  displayName: "web",
+                });
+              }}
+            >
+              View caller
+            </button>
+            <button
+              onClick={() => {
+                select({
+                  entityKey: "legacy",
+                  entityType: "service",
+                  displayName: "legacy",
+                });
+              }}
+            >
+              View inactive caller
+            </button>
+            <button
+              onClick={() => {
+                select({
+                  entityKey: "api-instance-1",
+                  entityType: "service.instance",
+                  displayName: "api-instance-1",
+                });
+              }}
+            >
+              View related instance
+            </button>
+            <button
+              onClick={() => {
+                select({ entityKey: "mystery-key" });
+              }}
+            >
+              View untyped resource
+            </button>
+            <button
+              onClick={() => {
+                select({
+                  entityKey: "node-7",
+                  entityType: "k8s.node",
+                  displayName: "node-7",
+                });
+              }}
+            >
+              View related node
+            </button>
+            <button
+              onClick={() => {
+                if (props.onOpenInfrastructure) {
+                  props.onOpenInfrastructure("pod-1");
+                } else {
+                  select({
+                    entityKey: "pod-1",
+                    entityType: "k8s.pod",
+                    displayName: "pod-1",
+                  });
+                }
               }}
             >
               View placement
@@ -146,8 +263,8 @@ jest.mock(
       __esModule: true,
       default: (props: {
         onClose: () => void;
-        fromEntity: InventoryItem;
-        toEntity: InventoryItem;
+        fromEntity: TopologyEntity;
+        toEntity: TopologyEntity;
       }) => {
         return (
           <div role="dialog" aria-label="Connection details">
@@ -281,9 +398,9 @@ const RANGE_START: Date = new Date("2026-09-06T10:00:00Z");
 
 function item(
   key: string,
-  type: EntityType,
-  overrides: Partial<InventoryItem> = {},
-): InventoryItem {
+  type: EntityType | string,
+  overrides: Partial<TopologyEntity> = {},
+): TopologyEntity {
   return {
     entityKey: key,
     displayName: key,
@@ -291,7 +408,7 @@ function item(
     source: EntitySource.Discovered,
     lastSeenAt: NOW,
     ...overrides,
-  } as InventoryItem;
+  };
 }
 
 function edge(
@@ -300,7 +417,7 @@ function edge(
   calls?: number,
   errors?: number,
   type: EntityRelationshipType = EntityRelationshipType.DependsOn,
-): InventoryItemRelationship {
+): TopologyRelationship {
   return {
     fromEntityKey: from,
     toEntityKey: to,
@@ -308,32 +425,54 @@ function edge(
     callCount: calls,
     errorCount: errors,
     avgDurationMs: calls === undefined ? undefined : 25,
-  } as InventoryItemRelationship;
+  };
 }
 
-const ENTITIES: Array<InventoryItem> = [
+function runsOn(
+  entityType: string,
+  active: number,
+  total: number,
+): TopologyRunsOnCount {
+  return { entityType, active, total };
+}
+
+/*
+ * What the Service Map payload carries: services, what they call and the
+ * depends-on rows between them — no pods or hosts. Where services run comes
+ * as counts.
+ */
+const ENTITIES: Array<TopologyEntity> = [
   item("web", EntityType.Service),
   item("api", EntityType.Service),
   item("worker", EntityType.Service),
   item("postgres", EntityType.Database, {
     descriptiveAttributes: { "db.system.name": "postgresql" },
   }),
-  item("pod-1", EntityType.KubernetesPod),
   item("legacy", EntityType.Service, {
     lastSeenAt: new Date("2026-08-01T00:00:00Z"),
   }),
 ];
 
-const RELATIONSHIPS: Array<InventoryItemRelationship> = [
+const RELATIONSHIPS: Array<TopologyRelationship> = [
   edge("web", "api", 600, 60),
   edge("api", "postgres", 900, 0),
-  edge("api", "pod-1", undefined, undefined, EntityRelationshipType.RunsOn),
 ];
+
+const RUNS_ON_COUNTS: TopologyRunsOnCounts = new Map<
+  string,
+  Array<TopologyRunsOnCount>
+>([
+  ["api", [runsOn(EntityType.KubernetesPod, 1, 3)]],
+  ["worker", [runsOn(EntityType.Host, 0, 2)]],
+  ["legacy", [runsOn(EntityType.Host, 0, 1)]],
+]);
 
 async function renderGraph(
   options: {
-    entities?: Array<InventoryItem>;
-    relationships?: Array<InventoryItemRelationship>;
+    entities?: Array<TopologyEntity>;
+    relationships?: Array<TopologyRelationship>;
+    /* null renders without counts, the way full rows are fed. */
+    runsOnCounts?: TopologyRunsOnCounts | null;
     includeInactive?: boolean;
     onOpenInfrastructure?: (key: string) => void;
   } = {},
@@ -344,6 +483,11 @@ async function renderGraph(
         <ServiceMapGraph
           entities={options.entities || ENTITIES}
           relationships={options.relationships || RELATIONSHIPS}
+          runsOnCounts={
+            options.runsOnCounts === undefined
+              ? RUNS_ON_COUNTS
+              : options.runsOnCounts || undefined
+          }
           metricsWindowSeconds={60}
           timeRange={{ range: TimeRange.PAST_ONE_DAY }}
           rangeStart={RANGE_START}
@@ -355,11 +499,21 @@ async function renderGraph(
   });
 }
 
+function drawer(): HTMLElement {
+  return screen.getByRole("dialog", { name: "Service details" });
+}
+
+function drawerTarget(): EntityDetailTarget {
+  return mockDrawerProps!["entity"] as EntityDetailTarget;
+}
+
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
   mockStatuses = new Map<string, ServiceOperationalStatus>();
   mockSetQuery.mockClear();
   mockFitView.mockClear();
+  mockDrawerMounts.length = 0;
+  mockDrawerProps = null;
 });
 afterEach(() => {
   cleanup();
@@ -430,8 +584,111 @@ describe("first impression", () => {
   });
 });
 
+describe("where services run", () => {
+  test("comes from the server's counts of what reported in the range", async () => {
+    await renderGraph();
+    // api runs on 1 active pod of 3; web has no counts at all.
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-footer",
+      "Runs on 1 pod",
+    );
+    expect(screen.getByTestId("map-node-web")).toHaveAttribute(
+      "data-footer",
+      "",
+    );
+    // worker runs on 2 hosts, neither of which reported: nothing to say.
+    expect(
+      within(screen.getByTestId("service-map-unconnected")).getByRole(
+        "button",
+        { name: /worker/ },
+      ),
+    ).toHaveTextContent(/^workerService$/);
+  });
+
+  test("counts every resource when inactive ones are shown", async () => {
+    await renderGraph({ includeInactive: true });
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-footer",
+      "Runs on 3 pods",
+    );
+    const tray: HTMLElement = screen.getByTestId("service-map-unconnected");
+    expect(
+      within(tray).getByRole("button", { name: /worker/ }),
+    ).toHaveTextContent("Service · 2 hosts");
+    expect(
+      within(tray).getByRole("button", { name: /legacy/ }),
+    ).toHaveTextContent("Service · 1 host");
+  });
+
+  test("reads several types most first, in the table too", async () => {
+    await renderGraph({
+      runsOnCounts: new Map<string, Array<TopologyRunsOnCount>>([
+        [
+          "api",
+          [
+            runsOn(EntityType.Host, 2, 2),
+            runsOn(EntityType.KubernetesPod, 12, 12),
+          ],
+        ],
+      ]),
+    });
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-footer",
+      "Runs on 12 pods · 2 hosts",
+    );
+    fireEvent.click(screen.getByTestId("service-map-view-list"));
+    expect(
+      screen.getByRole("button", { name: "api", exact: true }).closest("tr"),
+    ).toHaveTextContent("Service · 12 pods · 2 hosts");
+  });
+
+  test("without counts, is counted from runs-on rows to resources it was given", async () => {
+    await renderGraph({
+      entities: [
+        ...ENTITIES,
+        item("pod-1", EntityType.KubernetesPod),
+        item("pod-2", EntityType.KubernetesPod),
+        item("old-host", EntityType.Host, {
+          lastSeenAt: new Date("2026-08-01T00:00:00Z"),
+        }),
+      ],
+      relationships: [
+        ...RELATIONSHIPS,
+        edge(
+          "api",
+          "pod-1",
+          undefined,
+          undefined,
+          EntityRelationshipType.RunsOn,
+        ),
+        edge(
+          "api",
+          "pod-2",
+          undefined,
+          undefined,
+          EntityRelationshipType.RunsOn,
+        ),
+        edge(
+          "api",
+          "old-host",
+          undefined,
+          undefined,
+          EntityRelationshipType.HostedOn,
+        ),
+      ],
+      runsOnCounts: null,
+    });
+    expect(screen.getByTestId("map-node-api")).toHaveAttribute(
+      "data-footer",
+      "Runs on 2 pods",
+    );
+    // Infrastructure is never a node of the Service Map.
+    expect(screen.queryByTestId("map-node-pod-1")).not.toBeInTheDocument();
+  });
+});
+
 describe("a project with services but no observed calls", () => {
-  const entities: Array<InventoryItem> = [
+  const entities: Array<TopologyEntity> = [
     item("dashboard", EntityType.Service),
     item("probe", EntityType.Service),
   ];
@@ -681,23 +938,204 @@ describe("connections", () => {
 });
 
 describe("details", () => {
-  test("the drawer navigates to map nodes and hands infrastructure to its own view", async () => {
+  test("the drawer opens on a preview of the node and the server's range start", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    expect(drawer()).toHaveAttribute("data-entity-key", "api");
+    expect(drawerTarget()).toEqual({
+      entityKey: "api",
+      entityType: EntityType.Service,
+      displayName: "api",
+    });
+    expect(mockDrawerProps!["rangeStart"]).toBe(RANGE_START);
+    expect(mockDrawerProps!["metricsWindowSeconds"]).toBe(60);
+    expect(mockDrawerProps!["focusButtonLabel"]).toBe("Show its connections");
+    expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent("Service");
+    expect(screen.getByTestId("drawer-status")).toHaveTextContent(
+      "High error rate",
+    );
+    // The drawer fetches connections itself: the map hands it no rows.
+    expect(mockDrawerProps).not.toHaveProperty("relationships");
+    expect(mockDrawerProps).not.toHaveProperty("entityByKey");
+  });
+
+  test("an unnamed node's preview leaves naming to the drawer", async () => {
+    await renderGraph({
+      entities: [
+        item("svc", EntityType.Service, { displayName: undefined }),
+        item("db", EntityType.Database, { displayName: undefined }),
+      ],
+      relationships: [edge("svc", "db", 5, 0)],
+    });
+    fireEvent.click(screen.getByTestId("map-node-db"));
+    expect(drawerTarget()).toEqual({
+      entityKey: "db",
+      entityType: EntityType.Database,
+      displayName: undefined,
+    });
+  });
+
+  test("a row pointing at a node of the map selects that node", async () => {
     const onOpenInfrastructure: MockFunction = getJestMockFunction();
     await renderGraph({ onOpenInfrastructure });
     fireEvent.click(screen.getByTestId("map-node-api"));
-    expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent("Service");
     fireEvent.click(
       screen.getByRole("button", { name: "View related dependency" }),
     );
-    expect(
-      screen.getByRole("dialog", { name: "Service details" }),
-    ).toHaveTextContent("postgres");
+    expect(drawer()).toHaveAttribute("data-entity-key", "postgres");
+    expect(screen.getByTestId("drawer-name")).toHaveTextContent("postgres");
     expect(screen.getByTestId("drawer-subtitle")).toHaveTextContent(
       "Database · PostgreSQL",
     );
+    // The open drawer carries on to the new node: never a remount.
+    expect(mockDrawerMounts).toEqual(["api"]);
+    expect(drawer()).toHaveAttribute("data-mounted-for", "api");
+    expect(onOpenInfrastructure).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "View caller" }));
+    expect(screen.getByTestId("drawer-name")).toHaveTextContent("web");
+    expect(screen.getByTestId("drawer-status")).toHaveTextContent(
+      "Entry point",
+    );
+    expect(mockDrawerMounts).toEqual(["api"]);
+  });
+
+  test("a runs-on row opens the Infrastructure view and closes the drawer", async () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    await renderGraph({ onOpenInfrastructure });
+    fireEvent.click(screen.getByTestId("map-node-api"));
     fireEvent.click(screen.getByRole("button", { name: "View placement" }));
+    expect(onOpenInfrastructure).toHaveBeenCalledTimes(1);
     expect(onOpenInfrastructure).toHaveBeenCalledWith("pod-1");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("any other infrastructure a row points at opens in the Infrastructure view", async () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    await renderGraph({ onOpenInfrastructure });
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(screen.getByRole("button", { name: "View related node" }));
+    expect(onOpenInfrastructure).toHaveBeenCalledWith("node-7");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("without an Infrastructure view, infrastructure opens in the drawer", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(screen.getByRole("button", { name: "View placement" }));
+    expect(drawer()).toHaveAttribute("data-entity-key", "pod-1");
+    expect(drawerTarget()).toEqual({
+      entityKey: "pod-1",
+      entityType: EntityType.KubernetesPod,
+      displayName: "pod-1",
+    });
+    // Not a node of this map: no traffic, and nothing to focus on.
+    expect(screen.getByTestId("drawer-status")).toBeEmptyDOMElement();
+    expect(mockDrawerProps!["onFocus"]).toBeUndefined();
+    expect(mockDrawerProps!["onOpenInfrastructure"]).toBeUndefined();
+    expect(
+      screen.queryByRole("button", { name: "Show its connections" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a service that is not on the map opens in the drawer, not elsewhere", async () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    await renderGraph({ onOpenInfrastructure });
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View inactive caller" }),
+    );
+    expect(onOpenInfrastructure).not.toHaveBeenCalled();
+    expect(drawer()).toHaveAttribute("data-entity-key", "legacy");
+    expect(drawerTarget()).toEqual({
+      entityKey: "legacy",
+      entityType: EntityType.Service,
+      displayName: "legacy",
+    });
+    expect(screen.getByTestId("drawer-status")).toBeEmptyDOMElement();
+    expect(screen.getByTestId("drawer-incidents")).toHaveTextContent("none");
+    expect(
+      screen.queryByRole("button", { name: "Show its connections" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("application types and untyped resources open in the drawer", async () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    await renderGraph({ onOpenInfrastructure });
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View related instance" }),
+    );
+    expect(drawer()).toHaveAttribute("data-entity-key", "api-instance-1");
+    fireEvent.click(
+      screen.getByRole("button", { name: "View untyped resource" }),
+    );
+    expect(drawer()).toHaveAttribute("data-entity-key", "mystery-key");
+    expect(drawerTarget()).toEqual({ entityKey: "mystery-key" });
+    expect(onOpenInfrastructure).not.toHaveBeenCalled();
+  });
+
+  test("from a drawer off the map, rows and the map lead back onto it", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View inactive caller" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "View related dependency" }),
+    );
+    expect(drawer()).toHaveAttribute("data-entity-key", "postgres");
+    expect(
+      screen.getByRole("button", { name: "Show its connections" }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "View inactive caller" }),
+    );
+    fireEvent.click(screen.getByTestId("map-node-web"));
+    expect(drawer()).toHaveAttribute("data-entity-key", "web");
+    expect(screen.getByTestId("drawer-status")).toHaveTextContent(
+      "Entry point",
+    );
+    /* Rows and map clicks alike moved the one open drawer along. */
+    expect(mockDrawerMounts).toEqual(["api"]);
+  });
+
+  test("a connection closes a drawer that is open off the map", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View inactive caller" }),
+    );
+    fireEvent.click(screen.getByTestId("map-edge-api->postgres"));
+    expect(
+      screen.queryByRole("dialog", { name: "Service details" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Connection details" }),
+    ).toBeInTheDocument();
+  });
+
+  test("with inactive services shown, the same service is a node again", async () => {
+    await renderGraph({ includeInactive: true });
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View inactive caller" }),
+    );
+    expect(drawer()).toHaveAttribute("data-entity-key", "legacy");
+    expect(screen.getByTestId("drawer-status")).toHaveTextContent(
+      "No calls observed",
+    );
+    expect(
+      screen.getByRole("button", { name: "Show its connections" }),
+    ).toBeInTheDocument();
+  });
+
+  test("closing the drawer clears the selection", async () => {
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    fireEvent.click(screen.getByRole("button", { name: "Close service" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    expect(mockDrawerMounts).toEqual(["api", "api"]);
   });
 
   test("focusing from the drawer opens that node's connections on the map", async () => {
@@ -706,7 +1144,9 @@ describe("details", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "postgres", exact: true }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Focus this service" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show its connections" }),
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("service-map-view-map")).toHaveAttribute(
       "aria-pressed",
@@ -714,6 +1154,38 @@ describe("details", () => {
     );
     expect(window.location.search).toContain("focus=postgres");
     expect(screen.queryByTestId("map-node-web")).not.toBeInTheDocument();
+  });
+
+  test("a service's incidents reach its drawer; a dependency's never do", async () => {
+    mockStatuses.set("api", {
+      serviceId: "api-id",
+      activeIncidentCount: 2,
+      worstIncidentSeverityName: "Critical",
+      worstIncidentSeverityColor: "#dc2626",
+      incidents: [],
+      activeAlertCount: 0,
+      worstAlertSeverityName: null,
+      worstAlertSeverityColor: null,
+      alerts: [],
+    });
+    mockStatuses.set("postgres", {
+      serviceId: "postgres-id",
+      activeIncidentCount: 5,
+      worstIncidentSeverityName: "Critical",
+      worstIncidentSeverityColor: "#dc2626",
+      incidents: [],
+      activeAlertCount: 0,
+      worstAlertSeverityName: null,
+      worstAlertSeverityColor: null,
+      alerts: [],
+    });
+    await renderGraph();
+    fireEvent.click(screen.getByTestId("map-node-api"));
+    expect(screen.getByTestId("drawer-incidents")).toHaveTextContent("2");
+    fireEvent.click(
+      screen.getByRole("button", { name: "View related dependency" }),
+    );
+    expect(screen.getByTestId("drawer-incidents")).toHaveTextContent("none");
   });
 
   test("incidents take precedence over traffic in status", async () => {
@@ -755,7 +1227,7 @@ describe("table", () => {
   });
 
   test("a large catalog opens as a paged table with a hint to narrow it", async () => {
-    const many: Array<InventoryItem> = Array.from(
+    const many: Array<TopologyEntity> = Array.from(
       { length: 130 },
       (_value: unknown, index: number) => {
         return item(

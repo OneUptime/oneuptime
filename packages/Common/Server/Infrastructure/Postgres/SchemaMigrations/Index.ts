@@ -12,6 +12,7 @@ import { AddSessionReplaySameOriginTracePropagation1794800000000 } from "./17948
 import { AddIncidentAlert1794900000000 } from "./1794900000000-AddIncidentAlert";
 import { AddDatabaseServerTables1795000000000 } from "./1795000000000-AddDatabaseServerTables";
 import { AddUserProjectSsoConsent1795100000000 } from "./1795100000000-AddUserProjectSsoConsent";
+import { AddInventoryItemProjectEntityKeyIndex1795200000000 } from "./1795200000000-AddInventoryItemProjectEntityKeyIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1224,4 +1225,5 @@ export default [
   AddIncidentAlert1794900000000,
   AddDatabaseServerTables1795000000000,
   AddUserProjectSsoConsent1795100000000,
+  AddInventoryItemProjectEntityKeyIndex1795200000000,
 ];

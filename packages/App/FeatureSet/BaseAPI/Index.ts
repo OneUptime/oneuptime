@@ -118,6 +118,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
+import TopologyAPI from "./API/Topology";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -5742,6 +5743,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceOperationalStatusAPI().getRouter(),
     );
+    /*
+     * The Topology maps (Service Map, Infrastructure and the detail drawer).
+     * Mounted after the InventoryItem / InventoryItemRelationship CRUD
+     * routers; every path is under /telemetry/topology, which no CRUD router
+     * claims.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new TopologyAPI().getRouter());
   },
 };
 

@@ -11,6 +11,47 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/topology",
 );
 
+/* Topology API routes, as the page posts them (see TopologyApiFixture.js). */
+const SERVICE_MAP_API: string = "/telemetry/topology/service-map";
+const INFRASTRUCTURE_API: string = "/telemetry/topology/infrastructure";
+const COLLECTION_API: string = "/telemetry/topology/infrastructure/collection";
+const COLLECTION_SEARCH_API: string =
+  "/telemetry/topology/infrastructure/collection-search";
+const ENTITY_API: string = "/telemetry/topology/entity";
+const ENTITY_CONNECTIONS_API: string = "/telemetry/topology/entity/connections";
+
+interface FixtureRequest {
+  operation: "list" | "post";
+  model?: string;
+  route?: string;
+  data?: Record<string, unknown>;
+}
+
+interface FixtureRejection {
+  path: string;
+  status: number;
+  message: string;
+}
+
+interface FixtureLog {
+  requests: Array<FixtureRequest>;
+  rejected: Array<FixtureRejection>;
+  unhandled: Array<{ route: string }>;
+}
+
+interface FixtureFailure {
+  path: string;
+  status: number;
+  times?: number;
+}
+
+interface FixtureWindow {
+  __topologyFixtureRequests: Array<FixtureRequest>;
+  __topologyFixtureRejected: Array<FixtureRejection>;
+  __topologyFixtureUnhandled: Array<{ route: string }>;
+  __topologyFixtureFailures: Array<FixtureFailure>;
+}
+
 async function screenshot(page: Page, name: string): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
   await page.screenshot({
@@ -40,6 +81,48 @@ function infrastructureRows(page: Page): ReturnType<Page["getByTestId"]> {
   return page.getByTestId("infrastructure-row");
 }
 
+async function fixtureLog(page: Page): Promise<FixtureLog> {
+  return page.evaluate((): FixtureLog => {
+    const fixture: FixtureWindow = window as unknown as FixtureWindow;
+    return {
+      requests: fixture.__topologyFixtureRequests || [],
+      rejected: fixture.__topologyFixtureRejected || [],
+      unhandled: fixture.__topologyFixtureUnhandled || [],
+    };
+  });
+}
+
+/* The bodies the page posted to one Topology API route, oldest first. */
+async function topologyPosts(
+  page: Page,
+  apiPath: string,
+): Promise<Array<Record<string, unknown>>> {
+  const log: FixtureLog = await fixtureLog(page);
+  return log.requests
+    .filter((request: FixtureRequest): boolean => {
+      return (
+        request.operation === "post" &&
+        new URL(request.route || "", "http://localhost").pathname.endsWith(
+          apiPath,
+        )
+      );
+    })
+    .map((request: FixtureRequest): Record<string, unknown> => {
+      return request.data || {};
+    });
+}
+
+/* Makes the fixture's Topology API fail a route before the page loads. */
+async function failTopologyRoute(
+  page: Page,
+  failure: FixtureFailure,
+): Promise<void> {
+  await page.addInitScript((planned: FixtureFailure): void => {
+    const fixture: FixtureWindow = window as unknown as FixtureWindow;
+    fixture.__topologyFixtureFailures = [planned];
+  }, failure);
+}
+
 test.beforeEach(async ({ page }: { page: Page }) => {
   pageErrors.set(page, []);
   page.on("pageerror", (error: Error): void => {
@@ -60,9 +143,34 @@ test.beforeEach(async ({ page }: { page: Page }) => {
   });
 });
 
-test.afterEach(({ page }: { page: Page }) => {
+test.afterEach(async ({ page }: { page: Page }) => {
   expect(pageErrors.get(page) || [], "No uncaught browser errors").toEqual([]);
   pageErrors.delete(page);
+  /*
+   * The page speaks the fixture's Topology API: nothing it asked for was
+   * refused by the server's request parser or fell through to an unknown
+   * route, the payloads decoded (no "Topology was updated" dead end), and
+   * the maps never listed inventory rows the old way.
+   */
+  await expect(page.getByText(/Topology was updated/)).toHaveCount(0);
+  const log: FixtureLog = await fixtureLog(page);
+  expect(
+    log.rejected,
+    "Topology requests refused by the server's parser or failed in the fixture",
+  ).toEqual([]);
+  expect(log.unhandled, "Topology routes the fixture does not know").toEqual(
+    [],
+  );
+  expect(
+    log.requests.filter((request: FixtureRequest): boolean => {
+      return (
+        request.operation === "list" &&
+        (request.model === "InventoryItem" ||
+          request.model === "InventoryItemRelationship")
+      );
+    }),
+    "Inventory rows listed by the browser",
+  ).toEqual([]);
 });
 
 test("infrastructure is a tree of containers with a table per scope, search and a one-level map", async ({
@@ -77,6 +185,9 @@ test("infrastructure is a tree of containers with a table per scope, search and 
       .getByRole("region", { name: "Kubernetes" })
       .getByTestId("infrastructure-row"),
   ).toHaveCount(2);
+  // One view-shaped request for the open tab; the Service Map is not loaded.
+  expect(await topologyPosts(page, INFRASTRUCTURE_API)).toHaveLength(1);
+  expect(await topologyPosts(page, SERVICE_MAP_API)).toHaveLength(0);
   await screenshot(page, "infrastructure-overview-synthetic");
 
   await page
@@ -268,6 +379,239 @@ test("a self-hosted estate after the fix: databases and APIs on the map, workloa
   await page.getByTestId("infrastructure-view-map").click();
   await expect(page.locator(".react-flow__node")).toHaveCount(13);
   await screenshot(page, "discovered-infrastructure-map-synthetic");
+});
+
+test("a relationship to something no longer in inventory is listed in the drawer, never opened", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Infrastructure");
+  await page
+    .getByRole("searchbox", { name: "Search infrastructure" })
+    .fill("cache-primary");
+  // The IoT collection was searched too, on the server, and matched nothing.
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await topologyPosts(page, COLLECTION_SEARCH_API)).length;
+    })
+    .toBeGreaterThan(0);
+  await expect(page.getByText("Searching large collections…")).toHaveCount(0);
+  await expect(page.getByTestId("infrastructure-collection-match")).toHaveCount(
+    0,
+  );
+  await page
+    .getByRole("button", {
+      name: "View details for cache-primary",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "cache-primary", exact: true }),
+  ).toBeVisible();
+  const related: ReturnType<Page["getByTestId"]> = page.getByTestId(
+    "entity-detail-related",
+  );
+  await expect(related).toContainText("Related infrastructure (2)");
+  await expect(related).toContainText("1 no longer in inventory");
+  await expect(related).toContainText("Undiscovered resource");
+  await expect(
+    related.getByRole("button", { name: /Undiscovered resource/ }),
+  ).toHaveCount(0);
+  expect(await topologyPosts(page, ENTITY_API)).toEqual([
+    expect.objectContaining({ entityKey: "host-2", entityType: "host" }),
+  ]);
+  await screenshot(page, "infrastructure-undiscovered-connection-synthetic");
+});
+
+test("a large IoT fleet is a collection: exact counts, server-paged items and search over every item", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Infrastructure");
+  const fleet: ReturnType<Page["getByTestId"]> = page
+    .getByRole("region", { name: "Network & devices" })
+    .getByTestId("infrastructure-row");
+  await expect(fleet).toHaveCount(1);
+  await expect(fleet).toContainText("1,250 IoT devices");
+
+  await page
+    .getByRole("button", { name: "Open IoT Devices", exact: true })
+    .click();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "IoT Devices",
+  );
+  const items: ReturnType<Page["getByTestId"]> = page.getByTestId(
+    "infrastructure-collection-row",
+  );
+  await expect(items).toHaveCount(50);
+  await expect(items.first()).toContainText("warehouse-sensor-0001");
+  await expect(
+    page.getByText("Page 1 of 25 · 1,250 IoT devices", { exact: true }),
+  ).toBeVisible();
+  await screenshot(page, "infrastructure-collection-synthetic");
+
+  // Keyset paging: page 2 starts after the last row of page 1.
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(
+    page.getByText("Page 2 of 25 · 1,250 IoT devices", { exact: true }),
+  ).toBeVisible();
+  await expect(items.first()).toContainText("warehouse-sensor-0051");
+  const pages: Array<Record<string, unknown>> = await topologyPosts(
+    page,
+    COLLECTION_API,
+  );
+  expect(pages[pages.length - 1]).toMatchObject({
+    entityType: "iot.device",
+    includeInactive: false,
+    limit: 50,
+    cursor: { name: "warehouse-sensor-0050", key: "iot-device-50" },
+  });
+  await page.getByRole("button", { name: "Previous", exact: true }).click();
+  await expect(
+    page.getByText("Page 1 of 25 · 1,250 IoT devices", { exact: true }),
+  ).toBeVisible();
+  await expect(items.first()).toContainText("warehouse-sensor-0001");
+
+  // Search reaches items the browser never downloaded.
+  await page
+    .getByRole("searchbox", { name: "Search infrastructure" })
+    .fill("sensor-1234");
+  const match: ReturnType<Page["getByTestId"]> = page.getByTestId(
+    "infrastructure-collection-match",
+  );
+  await expect(match).toHaveCount(1);
+  await expect(match).toContainText("1 matching IoT device");
+  expect(await topologyPosts(page, COLLECTION_SEARCH_API)).toContainEqual(
+    expect.objectContaining({
+      types: [{ entityType: "iot.device", nameTerms: ["sensor-1234"] }],
+    }),
+  );
+  await match.click();
+  await expect(items).toHaveCount(1);
+  await expect(items.first()).toContainText("warehouse-sensor-1234");
+  await page
+    .getByRole("button", {
+      name: "View details for warehouse-sensor-1234",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "warehouse-sensor-1234", exact: true }),
+  ).toBeVisible();
+  const details: Array<Record<string, unknown>> = await topologyPosts(
+    page,
+    ENTITY_API,
+  );
+  expect(details[details.length - 1]).toMatchObject({
+    entityKey: "iot-device-1234",
+  });
+  await screenshot(page, "infrastructure-collection-item-details-synthetic");
+});
+
+test("the drawer counts every connection and pages the rest from the server", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Infrastructure", "dataset=selfHostedDiscovered");
+  await page
+    .getByRole("button", { name: "Open oneuptime-prod", exact: true })
+    .click();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "oneuptime-prod",
+  );
+  await page.getByRole("button", { name: "View details", exact: true }).click();
+  await expect(page.getByTestId("side-over-title")).toHaveText(
+    "oneuptime-prod",
+  );
+
+  // A namespace, 3 nodes, 6 deployments and 45 pods are members of it.
+  const related: ReturnType<Page["getByTestId"]> = page.getByTestId(
+    "entity-detail-related",
+  );
+  const rows: ReturnType<Page["locator"]> = related.getByRole("listitem");
+  const showMore: ReturnType<Page["locator"]> = related.getByRole("button", {
+    name: /^Show more/,
+  });
+  await expect(related).toContainText("Related infrastructure (55)");
+  await expect(rows).toHaveCount(25);
+  await screenshot(page, "infrastructure-cluster-details-synthetic");
+  await showMore.click();
+  await expect(rows).toHaveCount(50);
+  await showMore.click();
+  await expect(rows).toHaveCount(55);
+  await expect(showMore).toHaveCount(0);
+  expect(await topologyPosts(page, ENTITY_CONNECTIONS_API)).toEqual([
+    expect.objectContaining({
+      entityKey: "cluster-prod",
+      section: "related",
+      offset: 25,
+      limit: 25,
+    }),
+    expect.objectContaining({
+      entityKey: "cluster-prod",
+      section: "related",
+      offset: 50,
+      limit: 25,
+    }),
+  ]);
+});
+
+test("refresh asks the server for current data, including a tab opened after it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Service Map");
+  await expect(page.locator(".react-flow__node")).toHaveCount(6);
+  expect(await topologyPosts(page, SERVICE_MAP_API)).toEqual([
+    expect.not.objectContaining({ fresh: expect.anything() }),
+  ]);
+
+  await page.getByRole("button", { name: "Refresh topology" }).click();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await topologyPosts(page, SERVICE_MAP_API)).length;
+    })
+    .toBe(2);
+  await expect(page.locator(".react-flow__node")).toHaveCount(6);
+  expect((await topologyPosts(page, SERVICE_MAP_API))[1]).toMatchObject({
+    fresh: true,
+  });
+
+  await page.getByRole("tab", { name: "Infrastructure", exact: true }).click();
+  await expect(page.getByTestId("infrastructure-explorer")).toBeVisible();
+  expect(await topologyPosts(page, INFRASTRUCTURE_API)).toEqual([
+    expect.objectContaining({ fresh: true }),
+  ]);
+});
+
+test("a busy Topology API offers a retry that recovers, not a reload", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await failTopologyRoute(page, {
+    path: SERVICE_MAP_API,
+    status: 429,
+    times: 1,
+  });
+  await openView(page, "Service Map");
+  const alert: ReturnType<Page["getByRole"]> = page.getByRole("alert");
+  await expect(alert).toContainText(
+    "The topology service is busy. Try again in a moment.",
+  );
+  await expect(
+    alert.getByRole("button", { name: "Reload page", exact: true }),
+  ).toHaveCount(0);
+  await screenshot(page, "service-map-busy-synthetic");
+
+  await alert.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(page.getByTestId("service-map-canvas")).toBeVisible();
+  await expect(page.locator(".react-flow__node")).toHaveCount(6);
+  expect(await topologyPosts(page, SERVICE_MAP_API)).toHaveLength(2);
 });
 
 test("network sites lead to a real device map with recoverable progressive controls", async ({

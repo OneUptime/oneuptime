@@ -17,25 +17,61 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
-import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import URL from "../../../Types/API/URL";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import ListResult from "../../../Types/BaseDatabase/ListResult";
+import Dictionary from "../../../Types/Dictionary";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import EntityType from "../../../Types/Telemetry/EntityType";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
-import useTopologyData from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/UseTopologyData";
+import {
+  TOPOLOGY_API_FORMAT_VERSION,
+  TopologyApiPath,
+} from "../../../Types/Topology/TopologyApi";
+import useTopologyData, {
+  TOPOLOGY_RANGE_REPIN_AFTER_MS,
+  TopologyData,
+  TopologyView,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/UseTopologyData";
+import { TopologyEntity } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 
-const getListMock: MockFunction = getJestMockFunction();
+/*
+ * useTopologyData decides WHEN the Topology page talks to the server: one
+ * POST per telemetry tab, the first time that tab is opened, pinned to one
+ * range start per generation. These tests drive it through the one seam the
+ * browser really has — API.post — with a fake server that records every
+ * request and answers when the test says so.
+ */
+
+const postMock: MockFunction = getJestMockFunction();
 const getProjectIdMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      post: (...args: Array<unknown>) => {
+        return postMock(...args);
+      },
+      getFriendlyMessage: (error: unknown): string => {
+        if (error && typeof error === "object" && "message" in error) {
+          return String((error as { message: unknown }).message);
+        }
+        return "Unable to load topology";
+      },
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getList: (...args: Array<unknown>) => {
-        return getListMock(...args);
+      getCommonHeaders: (): Dictionary<string> => {
+        return { tenantid: String(getProjectIdMock()) };
       },
     },
   };
@@ -52,26 +88,13 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/API/API", () => {
-  return {
-    __esModule: true,
-    default: {
-      getFriendlyMessage: (error: unknown): string => {
-        return error instanceof Error
-          ? error.message
-          : "Unable to load topology";
-      },
-    },
-  };
-});
-
 const PROJECT_ID: ObjectID = new ObjectID(
   "dde060c6-fe0d-49ce-b44c-4035a13bc1db",
 );
 const FIRST_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.CUSTOM,
   startAndEndDate: new InBetween<Date>(
-    new Date("2026-09-01T09:15:00.000Z"),
+    new Date("2026-09-01T09:15:27.000Z"),
     new Date("2026-09-01T10:15:00.000Z"),
   ),
 };
@@ -82,297 +105,1038 @@ const SECOND_RANGE: RangeStartAndEndDateTime = {
     new Date("2026-09-02T10:15:00.000Z"),
   ),
 };
+const LAST_HOUR: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
 
-type TopologyListResult = ListResult<InventoryItem | InventoryItemRelationship>;
+interface PostOptions {
+  url: URL;
+  data: JSONObject;
+  headers: Dictionary<string>;
+  options?: { signal?: AbortSignal };
+}
 
-interface DeferredResult {
-  promise: Promise<TopologyListResult>;
-  resolve: (result: TopologyListResult) => void;
+/* One request the fake server received, answerable by the test. */
+interface RecordedRequest {
+  path: string;
+  rangeStart: string;
+  /* The whole body, to tell a `fresh` request from an ordinary one. */
+  body: JSONObject;
+  headers: Dictionary<string>;
+  signal: AbortSignal | undefined;
+  respond: (payload: JSONObject) => void;
+  fail: (statusCode: number, message: string) => void;
   reject: (error: Error) => void;
 }
 
-function deferred(): DeferredResult {
-  let resolve!: (result: TopologyListResult) => void;
-  let reject!: (error: Error) => void;
-  const promise: Promise<TopologyListResult> = new Promise(
-    (
-      resolvePromise: (result: TopologyListResult) => void,
-      rejectPromise: (error: Error) => void,
-    ): void => {
-      resolve = resolvePromise;
-      reject = rejectPromise;
-    },
-  );
-  return { promise, resolve, reject };
+let requests: Array<RecordedRequest> = [];
+/* When true, every request is answered at once with defaultPayload. */
+let autoRespond: boolean = true;
+
+function pathOf(url: URL): string {
+  return url.toString().replace(/^.*\/api(?=\/)/, "");
 }
 
-function result(name?: string, count?: number): TopologyListResult {
-  const data: Array<InventoryItem> = [];
-  if (name) {
-    const entity: InventoryItem = new InventoryItem();
-    entity.entityKey = name;
-    entity.displayName = name;
-    data.push(entity);
+function requestsTo(path: TopologyApiPath): Array<RecordedRequest> {
+  return requests.filter((request: RecordedRequest): boolean => {
+    return request.path === path;
+  });
+}
+
+function lastRequestTo(path: TopologyApiPath): RecordedRequest {
+  const matching: Array<RecordedRequest> = requestsTo(path);
+  return matching[matching.length - 1]!;
+}
+
+/*
+ * The server floors the range start to the minute and echoes it; each answer
+ * names its own ordinal so a test can tell which response is on screen.
+ */
+function floorToMinute(iso: string): string {
+  const time: number = new Date(iso).getTime();
+  return new Date(time - (time % 60000)).toISOString();
+}
+
+function serviceMapPayload(
+  rangeStart: string,
+  serviceName: string,
+  extra: JSONObject = {},
+): JSONObject {
+  return {
+    formatVersion: TOPOLOGY_API_FORMAT_VERSION,
+    rangeStart: floorToMinute(rangeStart),
+    generatedAt: "2026-09-02T10:15:30.000Z",
+    entities: [
+      {
+        key: `service:${serviceName}`,
+        type: EntityType.Service,
+        name: serviceName,
+        source: "discovered",
+        lastSeenAt: null,
+      },
+    ],
+    dependencies: [],
+    runsOn: [],
+    entityTruncation: null,
+    dependencyTruncation: null,
+    ...extra,
+  };
+}
+
+function infrastructurePayload(
+  rangeStart: string,
+  hostName: string,
+): JSONObject {
+  return {
+    formatVersion: TOPOLOGY_API_FORMAT_VERSION,
+    rangeStart: floorToMinute(rangeStart),
+    generatedAt: "2026-09-02T10:15:30.000Z",
+    nodes: [
+      {
+        key: `host:${hostName}`,
+        type: EntityType.Host,
+        name: hostName,
+        source: "discovered",
+        lastSeenAt: null,
+      },
+    ],
+    services: [],
+    placements: [],
+    collections: [],
+    totals: { resources: 1, activeResources: 1 },
+    truncation: null,
+  };
+}
+
+function defaultPayload(request: RecordedRequest): JSONObject {
+  const ordinal: number = requestsTo(request.path as TopologyApiPath).length;
+  if (request.path === TopologyApiPath.ServiceMap) {
+    return serviceMapPayload(request.rangeStart, `service map #${ordinal}`);
   }
-  return { data, count: count ?? data.length, skip: 0, limit: 1000 };
+  return infrastructurePayload(
+    request.rangeStart,
+    `infrastructure #${ordinal}`,
+  );
 }
 
-function Probe(props: { range: RangeStartAndEndDateTime }): React.ReactElement {
-  const data: ReturnType<typeof useTopologyData> = useTopologyData(props.range);
+function installFakeServer(): void {
+  postMock.mockImplementation((...args: Array<unknown>) => {
+    const options: PostOptions = args[0] as PostOptions;
+    return new Promise(
+      (
+        resolve: (value: HTTPResponse<JSONObject> | HTTPErrorResponse) => void,
+        reject: (error: Error) => void,
+      ): void => {
+        const request: RecordedRequest = {
+          path: pathOf(options.url),
+          rangeStart: String(options.data["rangeStart"]),
+          body: options.data,
+          headers: options.headers,
+          signal: options.options?.signal,
+          respond: (payload: JSONObject): void => {
+            resolve(new HTTPResponse<JSONObject>(200, payload, {}));
+          },
+          fail: (statusCode: number, message: string): void => {
+            resolve(new HTTPErrorResponse(statusCode, { message }, {}));
+          },
+          reject: reject,
+        };
+        requests.push(request);
+        if (autoRespond) {
+          request.respond(defaultPayload(request));
+        }
+      },
+    );
+  });
+}
+
+/*
+ * How each request asked: "fresh" when it told the server to bypass its
+ * response cache, "cached" when it sent the ordinary body (no `fresh` key at
+ * all — the flag is never sent as false).
+ */
+function freshness(list: Array<RecordedRequest>): Array<string> {
+  return list.map((request: RecordedRequest): string => {
+    if (request.body["fresh"] === true) {
+      return "fresh";
+    }
+    return "fresh" in request.body
+      ? `unexpected fresh: ${String(request.body["fresh"])}`
+      : "cached";
+  });
+}
+
+function names(entities: Array<TopologyEntity> | undefined): string {
+  return (entities || [])
+    .map((entity: TopologyEntity): string => {
+      return entity.displayName || "";
+    })
+    .join(",");
+}
+
+function Probe(props: {
+  range: RangeStartAndEndDateTime;
+  view: TopologyView;
+}): React.ReactElement {
+  const data: TopologyData = useTopologyData(props.range, props.view);
   return (
     <div>
-      <span data-testid="loading">{String(data.isLoading)}</span>
-      <span data-testid="error">{data.error}</span>
-      <span data-testid="entities">
-        {data.entities
-          .map((entity: InventoryItem) => {
-            return entity.displayName;
-          })
-          .join(",")}
+      <span data-testid="generation">{data.generation}</span>
+      <span data-testid="pinned">
+        {data.pinnedRangeStart?.toISOString() || ""}
       </span>
-      <span data-testid="relationships">{data.relationships.length}</span>
-      <span data-testid="truncated">{String(data.isTruncated)}</span>
-      <span data-testid="updated">
-        {data.lastUpdatedAt?.toISOString() || ""}
+      <span data-testid="sm-status">{data.serviceMap.status}</span>
+      <span data-testid="sm-error">{data.serviceMap.error?.message || ""}</span>
+      <span data-testid="sm-outdated">
+        {String(Boolean(data.serviceMap.error?.isOutdated))}
       </span>
-      <span data-testid="range-start">
-        {data.rangeStart?.toISOString() || ""}
+      <span data-testid="sm-entities">
+        {names(data.serviceMap.data?.entities)}
+      </span>
+      <span data-testid="sm-range-start">
+        {data.serviceMap.data?.rangeStart.toISOString() || ""}
+      </span>
+      <span data-testid="sm-loaded-at">
+        {data.serviceMap.loadedAt?.toISOString() || ""}
+      </span>
+      <span data-testid="infra-status">{data.infrastructure.status}</span>
+      <span data-testid="infra-error">
+        {data.infrastructure.error?.message || ""}
+      </span>
+      <span data-testid="infra-outdated">
+        {String(Boolean(data.infrastructure.error?.isOutdated))}
+      </span>
+      <span data-testid="infra-entities">
+        {names(data.infrastructure.data?.entities)}
+      </span>
+      <span data-testid="infra-range-start">
+        {data.infrastructure.data?.rangeStart.toISOString() || ""}
       </span>
       <button type="button" onClick={data.reload}>
         Reload topology
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          data.retry("Service Map");
+        }}
+      >
+        Retry service map
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          data.retry("Infrastructure");
+        }}
+      >
+        Retry infrastructure
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          data.retry("Network");
+        }}
+      >
+        Retry network
       </button>
     </div>
   );
 }
 
+function text(testId: string): string {
+  return screen.getByTestId(testId).textContent || "";
+}
+
+async function flush(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 beforeEach(() => {
-  getListMock.mockReset();
+  requests = [];
+  autoRespond = true;
+  postMock.mockReset();
   getProjectIdMock.mockReset();
   getProjectIdMock.mockReturnValue(PROJECT_ID);
-  getListMock.mockResolvedValue(result());
+  installFakeServer();
 });
 
 afterEach(() => {
   cleanup();
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
 
-describe("topology inventory loading", () => {
-  test("loads the complete current catalog with a full-precision connection recency bound", async () => {
-    render(<Probe range={FIRST_RANGE} />);
+describe("which tab loads, and when", () => {
+  test("the active tab loads with exactly one POST pinned to the range start", async () => {
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
     await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
+      expect(text("sm-status")).toBe("ready");
     });
-    expect(getListMock).toHaveBeenCalledTimes(2);
-    const entityRequest: { query: Record<string, unknown> } =
-      getListMock.mock.calls[0]![0];
-    const relationshipRequest: { query: Record<string, unknown> } =
-      getListMock.mock.calls[1]![0];
-    expect(entityRequest.query["projectId"]).toEqual(PROJECT_ID);
-    expect(entityRequest.query["isArchived"]).toBe(false);
-    expect(entityRequest.query).not.toHaveProperty("lastSeenAt");
-    expect(relationshipRequest.query["projectId"]).toEqual(PROJECT_ID);
-    expect(relationshipRequest.query["lastSeenAt"]).toEqual(
-      new GreaterThanOrEqual<Date>(FIRST_RANGE.startAndEndDate!.startValue),
-    );
-    expect(screen.getByTestId("updated").textContent).not.toBe("");
+    expect(requests).toHaveLength(1);
+    const request: RecordedRequest = requests[0]!;
+    expect(request.path).toBe(TopologyApiPath.ServiceMap);
+    /* The exact start, unfloored: flooring is the server's job. */
+    expect(request.rangeStart).toBe("2026-09-01T09:15:27.000Z");
+    expect(request.headers).toEqual({ tenantid: PROJECT_ID.toString() });
+    expect(text("pinned")).toBe("2026-09-01T09:15:27.000Z");
+    expect(text("sm-entities")).toBe("service map #1");
+    /* Views judge activity against the server's echo, not the request. */
+    expect(text("sm-range-start")).toBe("2026-09-01T09:15:00.000Z");
+    expect(text("sm-loaded-at")).toBe("2026-09-02T10:15:30.000Z");
+    expect(text("infra-status")).toBe("idle");
   });
 
-  test("loads what the maps need to judge activity and describe resources", async () => {
-    render(<Probe range={FIRST_RANGE} />);
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
-    });
-    const entityRequest: { select: Record<string, boolean> } =
-      getListMock.mock.calls[0]![0];
-    const relationshipRequest: { select: Record<string, boolean> } =
-      getListMock.mock.calls[1]![0];
-    expect(entityRequest.select).toMatchObject({
-      entityKey: true,
-      entityType: true,
-      source: true,
-      lastSeenAt: true,
-      descriptiveAttributes: true,
-      identifyingAttributes: true,
-    });
-    expect(relationshipRequest.select).toMatchObject({
-      callCount: true,
-      lastSeenAt: true,
-    });
-    // The snapshot remembers the range start it was loaded for.
-    expect(screen.getByTestId("range-start")).toHaveTextContent(
-      FIRST_RANGE.startAndEndDate!.startValue.toISOString(),
-    );
+  test("the Network tab loads nothing at all", async () => {
+    render(<Probe range={FIRST_RANGE} view="Network" />);
+    await flush();
+    expect(postMock).not.toHaveBeenCalled();
+    expect(text("sm-status")).toBe("idle");
+    expect(text("infra-status")).toBe("idle");
+    fireEvent.click(screen.getByRole("button", { name: "Retry network" }));
+    await flush();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
-  test("only publishes a snapshot after inventory and relationships both finish", async () => {
-    const relationships: DeferredResult = deferred();
-    getListMock.mockResolvedValueOnce(result("Checkout API"));
-    getListMock.mockReturnValueOnce(relationships.promise);
-    render(<Probe range={FIRST_RANGE} />);
-    await act(async () => {
-      await Promise.resolve();
+  test("a shared Infrastructure link loads only Infrastructure", async () => {
+    render(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
     });
-    expect(screen.getByTestId("loading")).toHaveTextContent("true");
-    expect(screen.getByTestId("entities")).toBeEmptyDOMElement();
-    await act(async () => {
-      relationships.resolve(result());
+    expect(
+      requests.map((request: RecordedRequest) => {
+        return request.path;
+      }),
+    ).toEqual([TopologyApiPath.Infrastructure]);
+    expect(text("infra-entities")).toBe("infrastructure #1");
+    expect(text("infra-range-start")).toBe("2026-09-01T09:15:00.000Z");
+    expect(text("sm-status")).toBe("idle");
+  });
+
+  test("a tab loads on first activation only; switching back and forth never refetches", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
     });
-    expect(screen.getByTestId("entities")).toHaveTextContent("Checkout API");
-    expect(screen.getByTestId("loading")).toHaveTextContent("false");
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    for (const next of [
+      "Service Map",
+      "Network",
+      "Infrastructure",
+      "Service Map",
+    ] as Array<TopologyView>) {
+      view.rerender(<Probe range={FIRST_RANGE} view={next} />);
+      await flush();
+    }
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(1);
+    expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(1);
+    expect(text("sm-entities")).toBe("service map #1");
+    expect(text("infra-entities")).toBe("infrastructure #1");
+    /* Both tabs describe the same moment. */
+    expect(requests[0]!.rangeStart).toBe(requests[1]!.rangeStart);
+    expect(text("generation")).toBe("1");
+  });
+
+  test("switching away from a loading tab neither cancels nor repeats it", async () => {
+    autoRespond = false;
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await flush();
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await flush();
+    view.rerender(<Probe range={FIRST_RANGE} view="Network" />);
+    await flush();
+    view.rerender(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    expect(requests).toHaveLength(2);
+    expect(text("sm-status")).toBe("loading");
+    expect(text("infra-status")).toBe("loading");
+    expect(requests[0]!.signal?.aborted).toBe(false);
+    expect(requests[1]!.signal?.aborted).toBe(false);
+    await act(async () => {
+      requests[1]!.respond(
+        infrastructurePayload(requests[1]!.rangeStart, "late infrastructure"),
+      );
+      requests[0]!.respond(
+        serviceMapPayload(requests[0]!.rangeStart, "late service map"),
+      );
+    });
+    expect(text("sm-entities")).toBe("late service map");
+    expect(text("infra-entities")).toBe("late infrastructure");
+  });
+});
+
+describe("generations: range, project and reload", () => {
+  test("a range change aborts in-flight work, drops both tabs and reloads only the active one", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    autoRespond = false;
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await flush();
+    const obsoleteInfrastructure: RecordedRequest = lastRequestTo(
+      TopologyApiPath.Infrastructure,
+    );
+    expect(text("infra-status")).toBe("loading");
+
+    autoRespond = true;
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(obsoleteInfrastructure.signal?.aborted).toBe(true);
+    expect(text("generation")).toBe("2");
+    expect(text("pinned")).toBe("2026-09-02T09:15:00.000Z");
+    expect(lastRequestTo(TopologyApiPath.Infrastructure).rangeStart).toBe(
+      "2026-09-02T09:15:00.000Z",
+    );
+    /* The Service Map's old-range data is gone and was NOT refetched. */
+    expect(text("sm-status")).toBe("idle");
+    expect(text("sm-entities")).toBe("");
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(1);
+
+    /* The obsolete answer arriving now changes nothing. */
+    await act(async () => {
+      obsoleteInfrastructure.respond(
+        infrastructurePayload(
+          obsoleteInfrastructure.rangeStart,
+          "obsolete range",
+        ),
+      );
+    });
+    expect(text("infra-entities")).toBe("infrastructure #2");
+
+    /* Opening the Service Map again loads it for the new range. */
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(2);
+    expect(lastRequestTo(TopologyApiPath.ServiceMap).rangeStart).toBe(
+      "2026-09-02T09:15:00.000Z",
+    );
   });
 
   test("an older range finishing last cannot replace the selected range", async () => {
-    const oldEntities: DeferredResult = deferred();
-    const oldRelationships: DeferredResult = deferred();
-    getListMock.mockReturnValueOnce(oldEntities.promise);
-    getListMock.mockReturnValueOnce(oldRelationships.promise);
+    autoRespond = false;
     const view: ReturnType<typeof render> = render(
-      <Probe range={FIRST_RANGE} />,
+      <Probe range={FIRST_RANGE} view="Service Map" />,
     );
-    getListMock.mockResolvedValueOnce(result("Latest range"));
-    getListMock.mockResolvedValueOnce(result());
-    view.rerender(<Probe range={SECOND_RANGE} />);
+    await flush();
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await flush();
+    expect(requests).toHaveLength(2);
+    await act(async () => {
+      requests[1]!.respond(
+        serviceMapPayload(requests[1]!.rangeStart, "latest range"),
+      );
+    });
+    expect(text("sm-entities")).toBe("latest range");
+    await act(async () => {
+      requests[0]!.respond(
+        serviceMapPayload(requests[0]!.rangeStart, "obsolete range", {
+          entityTruncation: { shown: 1, total: 100 },
+        }),
+      );
+    });
+    expect(text("sm-entities")).toBe("latest range");
+    expect(text("sm-range-start")).toBe("2026-09-02T09:15:00.000Z");
+  });
+
+  test("an obsolete failure cannot clear the loading state or show an error", async () => {
+    autoRespond = false;
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await flush();
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await flush();
+    await act(async () => {
+      requests[0]!.reject(new Error("An old request failed"));
+    });
+    expect(text("sm-status")).toBe("loading");
+    expect(text("sm-error")).toBe("");
+    await act(async () => {
+      requests[1]!.respond(
+        serviceMapPayload(requests[1]!.rangeStart, "current inventory"),
+      );
+    });
+    expect(text("sm-entities")).toBe("current inventory");
+    expect(text("sm-error")).toBe("");
+  });
+
+  test("reload() starts a new generation and loads only the active tab", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
     await waitFor(() => {
-      expect(screen.getByTestId("entities")).toHaveTextContent("Latest range");
+      expect(text("sm-status")).toBe("ready");
     });
-    await act(async () => {
-      oldEntities.resolve(result("Obsolete range", 100));
-      oldRelationships.resolve(result());
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
     });
-    expect(screen.getByTestId("entities")).toHaveTextContent("Latest range");
-    expect(screen.getByTestId("truncated")).toHaveTextContent("false");
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #2");
+    });
+    expect(text("generation")).toBe("2");
+    expect(text("sm-status")).toBe("idle");
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(1);
+    expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(2);
+    view.rerender(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #2");
+    });
   });
 
-  test("an obsolete failure cannot clear the current loading state or show an error", async () => {
-    const oldEntities: DeferredResult = deferred();
-    const latestEntities: DeferredResult = deferred();
-    getListMock.mockReturnValueOnce(oldEntities.promise);
-    getListMock.mockResolvedValueOnce(result());
-    const view: ReturnType<typeof render> = render(
-      <Probe range={FIRST_RANGE} />,
-    );
-    getListMock.mockReturnValueOnce(latestEntities.promise);
-    getListMock.mockResolvedValueOnce(result());
-    view.rerender(<Probe range={SECOND_RANGE} />);
+  test("reload() while a request is pending aborts it and ignores its answer", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(requests).toHaveLength(2);
+    expect(requests[0]!.signal?.aborted).toBe(true);
+    expect(requests[1]!.signal?.aborted).toBe(false);
     await act(async () => {
-      oldEntities.reject(new Error("An old request failed"));
+      requests[1]!.respond(
+        serviceMapPayload(requests[1]!.rangeStart, "reloaded"),
+      );
     });
-    expect(screen.getByTestId("loading")).toHaveTextContent("true");
-    expect(screen.getByTestId("error")).toBeEmptyDOMElement();
     await act(async () => {
-      latestEntities.resolve(result("Current inventory"));
+      requests[0]!.reject(new Error("Request Canceled."));
     });
-    expect(screen.getByTestId("entities")).toHaveTextContent(
-      "Current inventory",
-    );
-    expect(screen.getByTestId("error")).toBeEmptyDOMElement();
+    expect(text("sm-entities")).toBe("reloaded");
+    expect(text("sm-error")).toBe("");
   });
 
-  test.each(["inventory", "relationships"])(
-    "reports a failed %s request without presenting a partial graph, then retries",
-    async (failedRequest: string) => {
-      if (failedRequest === "inventory") {
-        getListMock.mockRejectedValueOnce(new Error("Please retry"));
-        getListMock.mockResolvedValueOnce(result());
-      } else {
-        getListMock.mockResolvedValueOnce(result("Partial inventory"));
-        getListMock.mockRejectedValueOnce(new Error("Please retry"));
-      }
-      render(<Probe range={FIRST_RANGE} />);
-      await waitFor(() => {
-        expect(screen.getByTestId("error")).toHaveTextContent("Please retry");
-      });
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
-      expect(screen.getByTestId("entities")).toBeEmptyDOMElement();
-      expect(screen.getByTestId("updated")).toBeEmptyDOMElement();
-      getListMock.mockResolvedValueOnce(result("Recovered inventory"));
-      getListMock.mockResolvedValueOnce(result());
-      fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
-      await waitFor(() => {
-        expect(screen.getByTestId("entities")).toHaveTextContent(
-          "Recovered inventory",
-        );
-      });
-      expect(screen.getByTestId("error")).toBeEmptyDOMElement();
-      expect(getListMock).toHaveBeenCalledTimes(4);
-    },
-  );
-
-  test.each(["inventory", "relationships"])(
-    "flags a truncated %s response and clears the warning after a complete reload",
-    async (truncatedRequest: string) => {
-      getListMock.mockResolvedValueOnce(
-        result("API", truncatedRequest === "inventory" ? 2000 : 1),
-      );
-      getListMock.mockResolvedValueOnce(
-        result(undefined, truncatedRequest === "relationships" ? 2000 : 0),
-      );
-      render(<Probe range={FIRST_RANGE} />);
-      await waitFor(() => {
-        expect(screen.getByTestId("truncated")).toHaveTextContent("true");
-      });
-      fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
-      await waitFor(() => {
-        expect(screen.getByTestId("loading")).toHaveTextContent("false");
-      });
-      expect(screen.getByTestId("truncated")).toHaveTextContent("false");
-    },
-  );
+  test("reload() on the Network tab re-pins the range but requests nothing", async () => {
+    render(<Probe range={FIRST_RANGE} view="Network" />);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(text("generation")).toBe("2");
+    expect(postMock).not.toHaveBeenCalled();
+  });
 
   test("changing projects refetches and ignores the previous project's response", async () => {
-    const oldEntities: DeferredResult = deferred();
-    getListMock.mockReturnValueOnce(oldEntities.promise);
-    getListMock.mockResolvedValueOnce(result());
+    autoRespond = false;
     const view: ReturnType<typeof render> = render(
-      <Probe range={FIRST_RANGE} />,
+      <Probe range={FIRST_RANGE} view="Service Map" />,
     );
+    await flush();
     const nextProject: ObjectID = new ObjectID(
       "22222222-2222-4222-8222-222222222222",
     );
     getProjectIdMock.mockReturnValue(nextProject);
-    getListMock.mockResolvedValueOnce(result("Project two inventory"));
-    getListMock.mockResolvedValueOnce(result());
-    view.rerender(<Probe range={FIRST_RANGE} />);
-    await waitFor(() => {
-      expect(screen.getByTestId("entities")).toHaveTextContent(
-        "Project two inventory",
+    view.rerender(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    expect(requests).toHaveLength(2);
+    expect(requests[0]!.signal?.aborted).toBe(true);
+    expect(requests[1]!.headers).toEqual({ tenantid: nextProject.toString() });
+    await act(async () => {
+      requests[1]!.respond(
+        serviceMapPayload(requests[1]!.rangeStart, "project two"),
       );
     });
-    expect(getListMock.mock.calls[2]![0].query.projectId).toEqual(nextProject);
     await act(async () => {
-      oldEntities.resolve(result("Project one inventory"));
+      requests[0]!.respond(
+        serviceMapPayload(requests[0]!.rangeStart, "project one"),
+      );
     });
-    expect(screen.getByTestId("entities")).toHaveTextContent(
-      "Project two inventory",
-    );
+    expect(text("sm-entities")).toBe("project two");
   });
 
-  test("never sends an unscoped inventory request without a project", async () => {
+  test("never sends an unscoped request without a project", async () => {
     getProjectIdMock.mockReturnValue(null);
-    render(<Probe range={FIRST_RANGE} />);
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
     await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("false");
+      expect(text("sm-status")).toBe("error");
     });
-    expect(getListMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId("error")).toHaveTextContent("Select a project");
+    expect(text("sm-error")).toContain("Select a project");
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("error");
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry infrastructure" }),
+    );
+    await flush();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
-  test("a retry supersedes a still-pending request for the same range", async () => {
-    const firstAttempt: DeferredResult = deferred();
-    getListMock.mockReturnValueOnce(firstAttempt.promise);
-    getListMock.mockResolvedValueOnce(result());
-    render(<Probe range={FIRST_RANGE} />);
-    getListMock.mockResolvedValueOnce(result("Retry result"));
-    getListMock.mockResolvedValueOnce(result());
+  test("unmounting aborts in-flight requests", async () => {
+    autoRespond = false;
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await flush();
+    view.unmount();
+    expect(requests[0]!.signal?.aborted).toBe(true);
+    await act(async () => {
+      requests[0]!.respond(
+        serviceMapPayload(requests[0]!.rangeStart, "after unmount"),
+      );
+    });
+  });
+});
+
+describe("per-tab errors and retry", () => {
+  test("a failed tab reports its own error; retry reloads only that tab", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    autoRespond = false;
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await flush();
+    await act(async () => {
+      lastRequestTo(TopologyApiPath.Infrastructure).fail(500, "Please retry");
+    });
+    expect(text("infra-status")).toBe("error");
+    expect(text("infra-error")).toBe("Please retry");
+    expect(text("infra-outdated")).toBe("false");
+    /* The other tab is untouched. */
+    expect(text("sm-status")).toBe("ready");
+    expect(text("sm-entities")).toBe("service map #1");
+
+    autoRespond = true;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry infrastructure" }),
+    );
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("infra-error")).toBe("");
+    expect(requestsTo(TopologyApiPath.Infrastructure)).toHaveLength(2);
+    expect(requestsTo(TopologyApiPath.ServiceMap)).toHaveLength(1);
+    /* Same generation, same pinned range as the Service Map. */
+    expect(text("generation")).toBe("1");
+    expect(lastRequestTo(TopologyApiPath.Infrastructure).rangeStart).toBe(
+      requests[0]!.rangeStart,
+    );
+    expect(text("sm-entities")).toBe("service map #1");
+  });
+
+  test.each([
+    ["a transport error", "reject"],
+    ["an HTTP error", "fail"],
+  ])(
+    "%s never presents partial data, and retry recovers",
+    async (_label: string, mode: string) => {
+      autoRespond = false;
+      render(<Probe range={FIRST_RANGE} view="Service Map" />);
+      await flush();
+      await act(async () => {
+        if (mode === "reject") {
+          requests[0]!.reject(new Error("Network is down"));
+        } else {
+          requests[0]!.fail(503, "Network is down");
+        }
+      });
+      expect(text("sm-status")).toBe("error");
+      expect(text("sm-error")).toBe("Network is down");
+      expect(text("sm-entities")).toBe("");
+      expect(text("sm-loaded-at")).toBe("");
+      autoRespond = true;
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry service map" }),
+      );
+      await waitFor(() => {
+        expect(text("sm-status")).toBe("ready");
+      });
+      expect(text("sm-entities")).toBe("service map #2");
+    },
+  );
+
+  test("a retry supersedes a still-pending attempt of the same tab", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await flush();
+    expect(requests).toHaveLength(2);
+    expect(requests[0]!.signal?.aborted).toBe(true);
+    await act(async () => {
+      requests[1]!.respond(
+        serviceMapPayload(requests[1]!.rangeStart, "retry result"),
+      );
+    });
+    await act(async () => {
+      requests[0]!.reject(new Error("Original attempt failed"));
+    });
+    expect(text("sm-entities")).toBe("retry result");
+    expect(text("sm-error")).toBe("");
+    expect(text("generation")).toBe("1");
+  });
+
+  test.each([
+    ["a newer payload format", "version"],
+    ["a server without the endpoint (404)", "404"],
+  ])(
+    "%s is reported as an outdated page, not a transient failure",
+    async (_label: string, mode: string) => {
+      autoRespond = false;
+      render(<Probe range={FIRST_RANGE} view="Service Map" />);
+      await flush();
+      await act(async () => {
+        if (mode === "version") {
+          requests[0]!.respond(
+            serviceMapPayload(requests[0]!.rangeStart, "future", {
+              formatVersion: TOPOLOGY_API_FORMAT_VERSION + 1,
+            }),
+          );
+        } else {
+          requests[0]!.fail(404, "Not found");
+        }
+      });
+      expect(text("sm-status")).toBe("error");
+      expect(text("sm-outdated")).toBe("true");
+      expect(text("sm-error")).toBe("Topology was updated. Reload the page.");
+      expect(text("sm-entities")).toBe("");
+    },
+  );
+});
+
+describe("an explicit refresh bypasses the server's response cache", () => {
+  /*
+   * The server keeps each map for a minute, keyed by the floored range
+   * start. A custom range (or a click within the same minute) would get the
+   * same payload back, so reload() — and only reload() — asks for a rebuild.
+   */
+  test("ordinary loads, tab switches, range and project changes are never fresh", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #2");
+    });
+    getProjectIdMock.mockReturnValue(
+      new ObjectID("22222222-2222-4222-8222-222222222222"),
+    );
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #3");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(requests).toHaveLength(5);
+    expect(freshness(requests)).toEqual([
+      "cached",
+      "cached",
+      "cached",
+      "cached",
+      "cached",
+    ]);
+  });
+
+  test("reload() sends the active tab fresh, and the other tab's first load in that generation too", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
     fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
     await waitFor(() => {
-      expect(screen.getByTestId("entities")).toHaveTextContent("Retry result");
+      expect(text("sm-entities")).toBe("service map #2");
     });
+    expect(text("generation")).toBe("2");
+    expect(freshness(requestsTo(TopologyApiPath.ServiceMap))).toEqual([
+      "cached",
+      "fresh",
+    ]);
+    /* The refresh re-pinned the same custom start: only the flag differs. */
+    expect(requests[1]!.rangeStart).toBe(requests[0]!.rangeStart);
+
+    /*
+     * Infrastructure was never loaded in this generation: opened after the
+     * refresh, it must not be answered from the pre-refresh cache either.
+     */
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(freshness(requestsTo(TopologyApiPath.Infrastructure))).toEqual([
+      "fresh",
+    ]);
+
+    /* Switching back and forth loads nothing more. */
+    view.rerender(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await flush();
+    expect(requests).toHaveLength(3);
+
+    /* The next ordinary generation is back to the cache. */
+    view.rerender(<Probe range={SECOND_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-entities")).toBe("infrastructure #2");
+    });
+    view.rerender(<Probe range={SECOND_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #3");
+    });
+    expect(freshness(requests.slice(3))).toEqual(["cached", "cached"]);
+  });
+
+  test("a refresh stays fresh until it succeeds: 'Try again' after a failed refresh is fresh too", async () => {
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    autoRespond = false;
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
     await act(async () => {
-      firstAttempt.reject(new Error("Original attempt failed"));
+      lastRequestTo(TopologyApiPath.ServiceMap).fail(500, "Please retry");
     });
-    expect(screen.getByTestId("entities")).toHaveTextContent("Retry result");
-    expect(screen.getByTestId("error")).toBeEmptyDOMElement();
+    expect(text("sm-status")).toBe("error");
+
+    autoRespond = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("2");
+    /* A cached answer here would silently undo the refresh the user asked for. */
+    expect(freshness(requests)).toEqual(["cached", "fresh", "fresh"]);
+
+    /* Once it succeeded, further loads in the generation are ordinary. */
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(requests).toHaveLength(4);
+    });
+    expect(freshness(requests)[3]).toBe("cached");
+  });
+
+  test("a second reload is fresh again, and a reload that supersedes a pending one aborts it", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(freshness(requests)).toEqual(["cached", "fresh", "fresh"]);
+    expect(requests[1]!.signal?.aborted).toBe(true);
+    expect(requests[2]!.signal?.aborted).toBe(false);
+    await act(async () => {
+      requests[2]!.respond(
+        serviceMapPayload(requests[2]!.rangeStart, "rebuilt"),
+      );
+    });
+    expect(text("sm-entities")).toBe("rebuilt");
+    expect(text("generation")).toBe("3");
+  });
+
+  test("a refresh on the Network tab makes the next opened tab fresh", async () => {
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Network" />,
+    );
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await flush();
+    expect(postMock).not.toHaveBeenCalled();
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(freshness(requests)).toEqual(["fresh"]);
+  });
+});
+
+describe("a busy server", () => {
+  /*
+   * The server caps concurrent topology work and answers 429 when it is
+   * full. That passes: the tab says so in plain words and keeps "Try
+   * again", rather than the "Reload the page" path of an outdated bundle.
+   */
+  test("a 429 is a friendly, retryable error, and retry recovers", async () => {
+    autoRespond = false;
+    render(<Probe range={FIRST_RANGE} view="Service Map" />);
+    await flush();
+    await act(async () => {
+      requests[0]!.fail(429, "Too many topology requests are running.");
+    });
+    expect(text("sm-status")).toBe("error");
+    expect(text("sm-error")).toBe(
+      "The topology service is busy. Try again in a moment.",
+    );
+    expect(text("sm-outdated")).toBe("false");
+    expect(text("sm-entities")).toBe("");
+
+    autoRespond = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(text("sm-error")).toBe("");
+    expect(requests).toHaveLength(2);
+  });
+});
+
+describe("a relative range drifts while a tab waits to be opened", () => {
+  /*
+   * Only Date is faked: promises, timers and Testing Library's polling keep
+   * running for real.
+   */
+  function fakeClock(now: string): void {
+    jest.useFakeTimers({
+      now: new Date(now),
+      doNotFake: [
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "setImmediate",
+        "clearImmediate",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+      ],
+    });
+  }
+
+  test("opening a tab more than 5 minutes after a relative pin re-pins both tabs", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    const view: ReturnType<typeof render> = render(
+      <Probe range={LAST_HOUR} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(requests[0]!.rangeStart).toBe("2026-09-02T11:00:00.000Z");
+
+    jest.setSystemTime(
+      new Date(
+        new Date("2026-09-02T12:00:00.000Z").getTime() +
+          TOPOLOGY_RANGE_REPIN_AFTER_MS +
+          60 * 1000,
+      ),
+    );
+    view.rerender(<Probe range={LAST_HOUR} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("2");
+    expect(lastRequestTo(TopologyApiPath.Infrastructure).rangeStart).toBe(
+      "2026-09-02T11:06:00.000Z",
+    );
+    /* The Service Map was drawn for the old window: it is dropped too. */
+    expect(text("sm-status")).toBe("idle");
+    view.rerender(<Probe range={LAST_HOUR} view="Service Map" />);
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(lastRequestTo(TopologyApiPath.ServiceMap).rangeStart).toBe(
+      "2026-09-02T11:06:00.000Z",
+    );
+    expect(text("generation")).toBe("2");
+  });
+
+  test("within 5 minutes the lazy tab reuses the pinned range", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    const view: ReturnType<typeof render> = render(
+      <Probe range={LAST_HOUR} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    jest.setSystemTime(new Date("2026-09-02T12:04:59.000Z"));
+    view.rerender(<Probe range={LAST_HOUR} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("1");
+    expect(lastRequestTo(TopologyApiPath.Infrastructure).rangeStart).toBe(
+      "2026-09-02T11:00:00.000Z",
+    );
+    expect(text("sm-status")).toBe("ready");
+  });
+
+  test("a custom range never drifts", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    const view: ReturnType<typeof render> = render(
+      <Probe range={FIRST_RANGE} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    jest.setSystemTime(new Date("2026-09-02T15:00:00.000Z"));
+    view.rerender(<Probe range={FIRST_RANGE} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("1");
+    expect(text("sm-status")).toBe("ready");
+  });
+
+  test("a drifted lazy tab after a refresh re-pins as an ordinary load", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    const view: ReturnType<typeof render> = render(
+      <Probe range={LAST_HOUR} view="Service Map" />,
+    );
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reload topology" }));
+    await waitFor(() => {
+      expect(text("sm-entities")).toBe("service map #2");
+    });
+    jest.setSystemTime(new Date("2026-09-02T12:10:00.000Z"));
+    view.rerender(<Probe range={LAST_HOUR} view="Infrastructure" />);
+    await waitFor(() => {
+      expect(text("infra-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("3");
+    expect(freshness(requests)).toEqual(["cached", "fresh", "cached"]);
+  });
+
+  test("a drifted retry re-pins instead of loading the old window", async () => {
+    fakeClock("2026-09-02T12:00:00.000Z");
+    autoRespond = false;
+    render(<Probe range={LAST_HOUR} view="Service Map" />);
+    await flush();
+    await act(async () => {
+      requests[0]!.fail(500, "Please retry");
+    });
+    expect(text("sm-status")).toBe("error");
+    autoRespond = true;
+    jest.setSystemTime(new Date("2026-09-02T12:10:00.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Retry service map" }));
+    await waitFor(() => {
+      expect(text("sm-status")).toBe("ready");
+    });
+    expect(text("generation")).toBe("2");
+    expect(requests[1]!.rangeStart).toBe("2026-09-02T11:10:00.000Z");
   });
 });

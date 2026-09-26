@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  RenderResult,
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -41,6 +48,25 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
+/*
+ * The drawer resolves its links from the full row the entity endpoint
+ * returns; the fake answers with the node under test.
+ */
+const fetchEntityDetailMock: MockFunction = getJestMockFunction();
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailApi",
+  () => {
+    return {
+      __esModule: true,
+      ...(jest.requireActual(
+        "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailApi",
+      ) as Record<string, unknown>),
+      fetchEntityDetail: (...args: Array<any>) => {
+        return fetchEntityDetailMock(...args);
+      },
+    };
+  },
+);
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
     __esModule: true,
@@ -77,8 +103,12 @@ import {
   resolveTypedRowLink,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/ResolveTypedRowLink";
 import EntityDetailPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel";
+import {
+  EntityDetail,
+  EntityDetailData,
+  emptyConnectionSection,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailApi";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -1002,22 +1032,77 @@ describe("resolveDatabaseServerLink", () => {
 });
 
 describe("the Service Map detail drawer", () => {
-  function renderPanel(entity: InventoryItem): void {
-    render(
+  const RANGE_START: Date = new Date("2026-09-26T10:00:00.000Z");
+
+  function detailOf(
+    node: InventoryItem,
+    id: string = "1a1a0000-0000-4000-8000-000000000001",
+  ): EntityDetail {
+    const detail: EntityDetail = {
+      id: id,
+      entityKey: node.entityKey!,
+      entityType: node.entityType!,
+    };
+    if (node.displayName) {
+      detail.displayName = node.displayName;
+    }
+    if (node.identifyingAttributes) {
+      detail.identifyingAttributes = node.identifyingAttributes;
+    }
+    if (node.descriptiveAttributes) {
+      detail.descriptiveAttributes = node.descriptiveAttributes;
+    }
+    return detail;
+  }
+
+  function answerWith(node: InventoryItem, id?: string): EntityDetailData {
+    return {
+      rangeStart: RANGE_START,
+      entity: detailOf(node, id),
+      sections: {
+        calls: emptyConnectionSection(),
+        calledBy: emptyConnectionSection(),
+        runsOn: emptyConnectionSection(),
+        related: emptyConnectionSection(),
+      },
+      isScanLimited: false,
+    };
+  }
+
+  function endpointLookups(): Array<GetListArgs> {
+    return calls().filter((args: GetListArgs): boolean => {
+      return args.modelType.name === "DatabaseServerEndpoint";
+    });
+  }
+
+  function panelFor(node: InventoryItem, rangeStart: Date): React.ReactElement {
+    /* A map hands over what it drew: key, type and name — no attributes. */
+    return (
       <EntityDetailPanel
-        entity={entity}
-        relationships={[] as Array<InventoryItemRelationship>}
-        entityByKey={new Map<string, InventoryItem>([["db-node", entity]])}
+        entity={{
+          entityKey: node.entityKey!,
+          entityType: node.entityType,
+          displayName: node.displayName,
+        }}
+        rangeStart={rangeStart}
         metricsWindowSeconds={60}
         onClose={() => {
           return undefined;
         }}
-        onFocus={() => {
-          return undefined;
-        }}
-      />,
+      />
     );
   }
+
+  function renderPanel(node: InventoryItem): RenderResult {
+    fetchEntityDetailMock.mockImplementation(async () => {
+      return answerWith(node);
+    });
+    return render(panelFor(node, RANGE_START));
+  }
+
+  beforeEach(() => {
+    fetchEntityDetailMock.mockReset();
+  });
 
   test("offers 'Open database' for a database node a DatabaseServer owns", async () => {
     useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
@@ -1074,12 +1159,113 @@ describe("the Service Map detail drawer", () => {
       entityType: EntityType.Container,
     } as InventoryItem);
 
+    await screen.findByText("Inventory details");
     expect(screen.queryByText("Open database")).not.toBeInTheDocument();
-    const endpointLookups: Array<GetListArgs> = calls().filter(
-      (args: GetListArgs): boolean => {
-        return args.modelType.name === "DatabaseServerEndpoint";
+    expect(endpointLookups()).toHaveLength(0);
+  });
+
+  test("resolves from the full row: the preview alone names no endpoint", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
+    const node: InventoryItem = databaseNode({
+      "db.system.name": "postgresql",
+      "server.address": "db.prod.example.com",
+    });
+    let answer: (value: EntityDetailData) => void = () => {
+      return undefined;
+    };
+    fetchEntityDetailMock.mockImplementation(() => {
+      return new Promise<EntityDetailData>(
+        (resolve: (value: EntityDetailData) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    render(panelFor(node, RANGE_START));
+    /* Only the preview so far: a database type, but no address to resolve. */
+    expect(endpointLookups()).toHaveLength(0);
+
+    await act(async () => {
+      answer(answerWith(node));
+    });
+
+    expect(await screen.findByText("Open database")).toBeInTheDocument();
+    expect(endpointLookups()[0]!.query["endpoint"]).toBe(
+      "db.prod.example.com:5432",
+    );
+  });
+
+  test("looks the database up once per row, not once per range", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
+    const node: InventoryItem = databaseNode({
+      "db.system.name": "postgresql",
+      "server.address": "db.prod.example.com",
+    });
+
+    const view: RenderResult = renderPanel(node);
+    await screen.findByText("Open database");
+    const lookups: number = endpointLookups().length;
+    expect(lookups).toBeGreaterThan(0);
+
+    view.rerender(panelFor(node, new Date("2026-09-26T11:00:00.000Z")));
+    await waitFor(() => {
+      expect(fetchEntityDetailMock).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText("Open database")).toBeInTheDocument();
+
+    expect(endpointLookups()).toHaveLength(lookups);
+  });
+
+  test("moving the open drawer to another database never shows the first one's link", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
+    const orders: InventoryItem = databaseNode({
+      "db.system.name": "postgresql",
+      "server.address": "db.prod.example.com",
+    });
+    /* Another database on the map, which no DatabaseServer owns. */
+    const reports: InventoryItem = {
+      ...databaseNode({
+        "db.system.name": "postgresql",
+        "server.address": "reports.example.com",
+      }),
+      entityKey: "reports-node",
+      displayName: "reports",
+    } as unknown as InventoryItem;
+    let answerReports: (value: EntityDetailData) => void = () => {
+      return undefined;
+    };
+    fetchEntityDetailMock.mockImplementation(
+      (target: { entityKey: string }) => {
+        if (target.entityKey !== "reports-node") {
+          return Promise.resolve(answerWith(orders));
+        }
+        return new Promise<EntityDetailData>(
+          (resolve: (value: EntityDetailData) => void) => {
+            answerReports = resolve;
+          },
+        );
       },
     );
-    expect(endpointLookups).toHaveLength(0);
+
+    const view: RenderResult = render(panelFor(orders, RANGE_START));
+    expect(
+      (await screen.findByText("Open database")).closest("a"),
+    ).toHaveAttribute("href", databasePage(DATABASE_ID));
+
+    /* The same drawer, now for the other database: no remount. */
+    view.rerender(panelFor(reports, RANGE_START));
+    expect(screen.queryByText("Open database")).not.toBeInTheDocument();
+
+    const lookupsBefore: number = endpointLookups().length;
+    await act(async () => {
+      answerReports(
+        answerWith(reports, "1a1a0000-0000-4000-8000-000000000002"),
+      );
+    });
+    await waitFor(() => {
+      expect(endpointLookups().length).toBeGreaterThan(lookupsBefore);
+    });
+    await screen.findByText("Inventory details");
+    expect(screen.queryByText("Open database")).not.toBeInTheDocument();
   });
 });

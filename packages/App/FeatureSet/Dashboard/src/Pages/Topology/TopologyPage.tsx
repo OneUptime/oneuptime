@@ -1,29 +1,35 @@
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
 import InfrastructureExplorer from "../../Components/Topology/InfrastructureExplorer";
-import useTopologyData from "../../Components/Topology/UseTopologyData";
+import useTopologyData, {
+  TopologyData,
+  TopologyLoadError,
+  TopologyTabState,
+  TopologyTabStatus,
+  TopologyView,
+} from "../../Components/Topology/UseTopologyData";
+import {
+  InfrastructureData,
+  ServiceMapData,
+  TopologyTruncation,
+} from "../../Components/Topology/TopologyData";
 import NetworkTopologyExplorer from "../../Components/Topology/NetworkTopologyExplorer";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import CompactLoader from "Common/UI/Components/ComponentLoader/CompactLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * Service Map and Infrastructure share one snapshot: the non-archived
- * inventory plus the connections last observed since the selected range's
- * start. Both views draw only what reported inside that range (see
+ * Service Map and Infrastructure each load their own view-shaped payload
+ * from the Topology API (see UseTopologyData), computed over the whole
+ * inventory, the first time the tab is opened. Both are pinned to the same
+ * range start and draw only what reported inside the range (see
  * TopologyActivity) unless "Show inactive" is on — Inventory keeps a silent
  * resource for weeks, a map of what is running should not. Network discovery
  * uses its own live data source.
@@ -35,6 +41,33 @@ import React, {
  */
 const METRICS_WINDOW_SECONDS: number = 15 * 60;
 
+/*
+ * The Network tab is a live LLDP view (also surfaced under Network
+ * Devices) — the telemetry time range does not apply to it, so the picker
+ * hides while it is active.
+ */
+const TAB_NAMES: Array<TopologyView> = [
+  "Service Map",
+  "Infrastructure",
+  "Network",
+];
+
+type TelemetryView = Exclude<TopologyView, "Network">;
+
+const LOADING_LABELS: Record<TelemetryView, string> = {
+  "Service Map": "Loading service map…",
+  Infrastructure: "Loading infrastructure…",
+};
+
+function readInitialTab(): TopologyView {
+  const fromUrl: string | null = Navigation.getQueryStringByName("tab");
+  return (
+    TAB_NAMES.find((name: TopologyView): boolean => {
+      return name === fromUrl;
+    }) || "Service Map"
+  );
+}
+
 const TopologyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -43,17 +76,6 @@ const TopologyPage: FunctionComponent<
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_DAY,
   });
-
-  const {
-    entities,
-    relationships,
-    isLoading,
-    error,
-    isTruncated,
-    reload,
-    lastUpdatedAt,
-    rangeStart,
-  } = useTopologyData(timeRange);
 
   const [includeInactive, setIncludeInactive] = useState<boolean>(
     Navigation.getQueryStringByName("inactive") === "show",
@@ -65,45 +87,98 @@ const TopologyPage: FunctionComponent<
    */
   const [viewGeneration, setViewGeneration] = useState<number>(0);
 
-  /*
-   * The Network tab is a live LLDP view (also surfaced under Network
-   * Devices) — the telemetry time range does not apply to it, so the
-   * picker hides while it is active.
-   */
-  const TAB_NAMES: Array<string> = ["Service Map", "Infrastructure", "Network"];
-  const initialTabName: string = (() => {
-    const fromUrl: string | null = Navigation.getQueryStringByName("tab");
-    return fromUrl && TAB_NAMES.includes(fromUrl) ? fromUrl : "Service Map";
-  })();
-  const [activeTabName, setActiveTabName] = useState<string>(initialTabName);
+  const [activeTabName, setActiveTabName] =
+    useState<TopologyView>(readInitialTab);
   const isNetworkTab: boolean = activeTabName === "Network";
 
+  const topology: TopologyData = useTopologyData(timeRange, activeTabName);
+  const activeTab:
+    | TopologyTabState<ServiceMapData>
+    | TopologyTabState<InfrastructureData>
+    | null =
+    activeTabName === "Service Map"
+      ? topology.serviceMap
+      : activeTabName === "Infrastructure"
+        ? topology.infrastructure
+        : null;
+  const isActiveTabLoading: boolean =
+    activeTab !== null &&
+    (activeTab.status === "idle" || activeTab.status === "loading");
   /*
-   * Loading/error live INSIDE the telemetry tabs: the Network tab has an
-   * independent data source and must stay reachable when the telemetry
-   * entity fetch fails.
+   * The safety caps the payload on screen hit (never in practice). The
+   * Service Map can hit two at once: its resources and its connections.
    */
-  const wrapTelemetryTab: (graph: ReactElement) => ReactElement = (
-    graph: ReactElement,
+  let activeTruncations: Array<TopologyTruncation> = [];
+  if (
+    activeTabName === "Service Map" &&
+    topology.serviceMap.status === "ready"
+  ) {
+    activeTruncations = topology.serviceMap.data?.truncations || [];
+  } else if (
+    activeTabName === "Infrastructure" &&
+    topology.infrastructure.status === "ready" &&
+    topology.infrastructure.data?.truncation
+  ) {
+    activeTruncations = [topology.infrastructure.data.truncation];
+  }
+
+  /*
+   * Loading/error live INSIDE each telemetry tab: the tabs load
+   * independently, and the Network tab has its own data source and must
+   * stay reachable when a telemetry fetch fails.
+   */
+  const renderUnreadyTab: (
+    view: TelemetryView,
+    status: TopologyTabStatus,
+    error: TopologyLoadError | null,
+  ) => ReactElement = (
+    view: TelemetryView,
+    status: TopologyTabStatus,
+    error: TopologyLoadError | null,
   ): ReactElement => {
-    if (isLoading) {
-      return <ComponentLoader />;
-    }
-    if (error) {
+    if (status === "error" && error) {
       return (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <ErrorMessage message={error} />
-          <button
-            type="button"
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            onClick={reload}
-          >
-            {translateString("Try again") || "Try again"}
-          </button>
+        <div
+          role="alert"
+          className="rounded-xl border border-gray-200 bg-white p-6"
+        >
+          <ErrorMessage message={error.message} />
+          {error.isOutdated ? (
+            <button
+              type="button"
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              onClick={() => {
+                Navigation.reload();
+              }}
+            >
+              {translateString("Reload page") || "Reload page"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              onClick={() => {
+                topology.retry(view);
+              }}
+            >
+              {translateString("Try again") || "Try again"}
+            </button>
+          )}
         </div>
       );
     }
-    return graph;
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="my-16 flex flex-col items-center"
+      >
+        <CompactLoader />
+        <p className="text-sm text-gray-500">
+          {translateString(LOADING_LABELS[view]) || LOADING_LABELS[view]}
+        </p>
+      </div>
+    );
   };
 
   const openInfrastructure: (resourceKey: string) => void = (
@@ -134,56 +209,56 @@ const TopologyPage: FunctionComponent<
     setActiveTabName("Service Map");
   };
 
-  const tabs: Array<Tab> = useMemo(() => {
-    return [
-      {
-        name: "Service Map",
-        children: wrapTelemetryTab(
-          <ServiceMapGraph
-            key={`service-map-${viewGeneration}`}
-            entities={entities}
-            relationships={relationships}
-            metricsWindowSeconds={METRICS_WINDOW_SECONDS}
-            timeRange={timeRange}
-            rangeStart={rangeStart}
-            includeInactive={includeInactive}
-            onOpenInfrastructure={openInfrastructure}
-          />,
-        ),
-      },
-      {
-        name: "Infrastructure",
-        children: wrapTelemetryTab(
-          <InfrastructureExplorer
-            key={`infrastructure-${viewGeneration}`}
-            entities={entities}
-            relationships={relationships}
-            metricsWindowSeconds={METRICS_WINDOW_SECONDS}
-            rangeStart={rangeStart}
-            includeInactive={includeInactive}
-            onOpenServiceMap={openServiceMap}
-          />,
-        ),
-      },
-      {
-        name: "Network",
-        children: <NetworkTopologyExplorer />,
-      },
-    ];
-  }, [
-    entities,
-    relationships,
-    timeRange,
-    isLoading,
-    error,
-    reload,
-    rangeStart,
-    includeInactive,
-    viewGeneration,
-  ]);
+  /*
+   * Views judge activity against `data.rangeStart` — the range start the
+   * server echoed — so a resource counts as active on exactly the same terms
+   * in the browser as in the server's own counts.
+   */
+  const renderPanel: () => ReactElement = (): ReactElement => {
+    if (activeTabName === "Network") {
+      return <NetworkTopologyExplorer />;
+    }
+    if (activeTabName === "Service Map") {
+      const tab: TopologyTabState<ServiceMapData> = topology.serviceMap;
+      if (tab.status !== "ready" || !tab.data) {
+        return renderUnreadyTab("Service Map", tab.status, tab.error);
+      }
+      return (
+        <ServiceMapGraph
+          key={`service-map-${viewGeneration}`}
+          entities={tab.data.entities}
+          relationships={tab.data.relationships}
+          runsOnCounts={tab.data.runsOnCounts}
+          metricsWindowSeconds={METRICS_WINDOW_SECONDS}
+          timeRange={timeRange}
+          rangeStart={tab.data.rangeStart}
+          includeInactive={includeInactive}
+          onOpenInfrastructure={openInfrastructure}
+        />
+      );
+    }
+    const tab: TopologyTabState<InfrastructureData> = topology.infrastructure;
+    if (tab.status !== "ready" || !tab.data) {
+      return renderUnreadyTab("Infrastructure", tab.status, tab.error);
+    }
+    return (
+      <InfrastructureExplorer
+        key={`infrastructure-${viewGeneration}`}
+        entities={tab.data.entities}
+        relationships={tab.data.relationships}
+        collections={tab.data.collections}
+        totals={tab.data.totals}
+        truncation={tab.data.truncation}
+        metricsWindowSeconds={METRICS_WINDOW_SECONDS}
+        rangeStart={tab.data.rangeStart}
+        includeInactive={includeInactive}
+        onOpenServiceMap={openServiceMap}
+      />
+    );
+  };
 
   const viewDescriptions: Record<
-    string,
+    TopologyView,
     { icon: IconProp; description: string }
   > = {
     "Service Map": {
@@ -199,7 +274,9 @@ const TopologyPage: FunctionComponent<
       description: "How are your network devices connected?",
     },
   };
-  const selectTab: (name: string) => void = (name: string): void => {
+  const selectTab: (name: TopologyView) => void = (
+    name: TopologyView,
+  ): void => {
     setActiveTabName(name);
     Navigation.setQueryString({ tab: name === "Service Map" ? null : name });
   };
@@ -234,22 +311,22 @@ const TopologyPage: FunctionComponent<
         aria-label={translateString("Topology views") || "Topology views"}
         className="grid gap-3 sm:grid-cols-3"
       >
-        {tabs.map((tab: Tab, index: number): ReactElement => {
-          const selected: boolean = activeTabName === tab.name;
+        {TAB_NAMES.map((tabName: TopologyView, index: number): ReactElement => {
+          const selected: boolean = activeTabName === tabName;
           const info: { icon: IconProp; description: string } =
-            viewDescriptions[tab.name]!;
+            viewDescriptions[tabName];
           return (
             <button
               type="button"
-              key={tab.name}
+              key={tabName}
               id={`topology-view-${index}`}
               role="tab"
-              aria-label={translateString(tab.name) || tab.name}
+              aria-label={translateString(tabName) || tabName}
               aria-selected={selected}
               aria-controls="topology-view-panel"
               tabIndex={selected ? 0 : -1}
               onClick={() => {
-                selectTab(tab.name);
+                selectTab(tabName);
               }}
               onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
                 handleTabKey(event, index);
@@ -265,7 +342,7 @@ const TopologyPage: FunctionComponent<
                 <span
                   className={`block text-sm font-semibold ${selected ? "text-indigo-900" : "text-gray-800"}`}
                 >
-                  {translateString(tab.name)}
+                  {translateString(tabName)}
                 </span>
                 <span
                   aria-hidden={true}
@@ -330,30 +407,54 @@ const TopologyPage: FunctionComponent<
                 translateString("Refresh topology") || "Refresh topology"
               }
               title={
-                lastUpdatedAt
-                  ? `${translateString("Last refreshed")}: ${lastUpdatedAt.toLocaleTimeString()}`
+                activeTab?.loadedAt
+                  ? `${translateString("Last refreshed")}: ${activeTab.loadedAt.toLocaleTimeString()}`
                   : undefined
               }
-              disabled={isLoading}
+              disabled={isActiveTabLoading}
               className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
-              onClick={reload}
+              onClick={topology.reload}
             >
               <Icon icon={IconProp.Refresh} className="h-4 w-4" />
             </button>
           </div>
         )}
       </div>
-      {isTruncated && !isNetworkTab && !isLoading && !error && (
+      {activeTruncations.length > 0 && (
         <div
           role="status"
+          data-testid="topology-truncation"
           className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
-          <span className="font-semibold">
-            {translateString("Partial inventory loaded.")}
-          </span>{" "}
-          {translateString(
-            "This project exceeds the map loading limit. Counts, search results, and connections cover the loaded resources only.",
+          {activeTruncations.map(
+            (truncation: TopologyTruncation): ReactElement => {
+              const isConnections: boolean = truncation.kind === "connections";
+              return (
+                <React.Fragment
+                  key={isConnections ? "connections" : "resources"}
+                >
+                  <span className="font-semibold">
+                    {`${truncation.shown.toLocaleString()} ${translateString("of")} ${truncation.total.toLocaleString()} ${
+                      isConnections
+                        ? translateString("connections shown.")
+                        : translateString("resources shown.")
+                    }`}
+                  </span>{" "}
+                </React.Fragment>
+              );
+            },
           )}
+          {/*
+           * Infrastructure's summary switches to the server's exact totals
+           * when capped; the Service Map's counts come from what was shipped.
+           */}
+          {activeTabName === "Infrastructure"
+            ? translateString(
+                "Counts are exact; the map and search cover the resources shown.",
+              )
+            : translateString(
+                "The map, counts and search cover what is shown.",
+              )}
         </div>
       )}
       <div
@@ -361,11 +462,7 @@ const TopologyPage: FunctionComponent<
         role="tabpanel"
         aria-labelledby={`topology-view-${TAB_NAMES.indexOf(activeTabName)}`}
       >
-        {
-          tabs.find((tab: Tab): boolean => {
-            return tab.name === activeTabName;
-          })?.children
-        }
+        {renderPanel()}
       </div>
     </div>
   );

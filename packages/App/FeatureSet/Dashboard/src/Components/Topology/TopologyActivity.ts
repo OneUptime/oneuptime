@@ -16,8 +16,17 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
  * for them an old timestamp means nothing and they always count as active.
  */
 
+export interface ActivityFields {
+  source?: string | undefined;
+  lastSeenAt?: Date | undefined;
+}
+
+/*
+ * The server mirrors this predicate in SQL (see TopologyQueries) so it can
+ * pick each resource's active container; change them together.
+ */
 export function isEntityActive(
-  entity: Pick<InventoryItem, "source" | "lastSeenAt">,
+  entity: ActivityFields,
   rangeStart: Date,
 ): boolean {
   if (entity.source && entity.source !== EntitySource.Discovered) {

@@ -12,6 +12,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -125,6 +126,24 @@ const UPDATE_PERMS: Array<Permission> = [
  * the tenant column rather than being scanned per row.
  */
 @Index(["projectId", "isArchived"])
+/*
+ * Lookup by entity key alone. Relationships name their ends by key, never by
+ * type, so every "what is at the other end" join (the Topology API's callee,
+ * placement and drawer lookups) resolves keys without knowing the type. The
+ * unique index above can only serve that as one probe per type in the
+ * project; this serves it in one.
+ *
+ * Created by migration 1795200000000-AddInventoryItemProjectEntityKeyIndex,
+ * which carries the timeouts and the CONCURRENTLY runbook for large installs
+ * that a generated migration cannot. `synchronize: false` keeps the schema
+ * builder from dropping it or generating a second copy (see
+ * UnsynchronizedIndex).
+ */
+@Index(
+  "IDX_INVENTORY_ITEM_PROJECT_ENTITY_KEY",
+  ["projectId", "entityKey"],
+  UNSYNCHRONIZED_INDEX,
+)
 export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
