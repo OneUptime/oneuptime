@@ -1,19 +1,47 @@
 import Entities from "../../../Models/DatabaseModels/Index";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
+import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
+import AlertMeasurementValueService from "../../../Server/Services/AlertMeasurementValueService";
 import AlertService from "../../../Server/Services/AlertService";
+import AlertStateTimelineService from "../../../Server/Services/AlertStateTimelineService";
+import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
+import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentAlertService, {
+  AcknowledgeDeclaredAlertsResult,
   LinkAlertsToIncidentResult,
 } from "../../../Server/Services/IncidentAlertService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
+import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
+import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
+import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
+import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
+import IncidentOwnerUserService from "../../../Server/Services/IncidentOwnerUserService";
+import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
+import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
+import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
+import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { INCIDENT_ALERT_ALREADY_LINKED_MESSAGE } from "../../../Types/Incident/IncidentAlertLink";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+  INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+} from "../../../Types/Incident/IncidentAlertLink";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
+  UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -898,6 +926,1110 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
         "The alert to link does not exist in this project, or you do not have access to it.",
       );
       expect(await linkCount()).toBe(0);
+    });
+  });
+
+  /*
+   * Declaring an incident from alerts and asking, in the same request, for
+   * the alerts to be acknowledged (miscDataProps.acknowledgeAlertsToLink):
+   * the real IncidentService.create, the real links, and the real
+   * acknowledgement - AlertService.changeAlertState writing an
+   * AlertStateTimeline row and moving the alert's current state - against
+   * the clones. This block adds clones of the tables that path reads and
+   * writes: the alert and incident states, the incident severities, the
+   * alert state timeline, and the label / monitor / SLO relations the new
+   * incident is re-read with (and the alerts' labels, which the permission
+   * check reads). They live in the same schema and are dropped with it.
+   *
+   * Stubbed, beyond the stubs above: the Redis locks (there is no Redis
+   * here), and what surrounds the declaration without being about the
+   * alerts' state - the un-awaited onCreateSuccess chain (workspace
+   * channels, feeds, rules, SLA, reminders, AI), metrics, custom field
+   * mappings, auto-ownership, workflows and realtime.
+   */
+  describe("declaring an incident from alerts and acknowledging them, through IncidentService", () => {
+    const DECLARE_TABLES: Array<string> = [
+      "AlertState",
+      "AlertStateTimeline",
+      "IncidentState",
+      "IncidentSeverity",
+      "Label",
+      "AlertLabel",
+      "IncidentLabel",
+      "Monitor",
+      "IncidentMonitor",
+      "ServiceLevelObjective",
+      "IncidentServiceLevelObjective",
+    ];
+
+    // The create does not wait for the acknowledgement: how long a test does.
+    const ACKNOWLEDGEMENT_TIMEOUT_MS: number = 15000;
+
+    const NO_ACKNOWLEDGED_STATE_MESSAGE: string =
+      "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.";
+
+    const NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE: string =
+      "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
+
+    const PRIVATE_INCIDENT_CAUSE: string =
+      "Acknowledged because a private incident was declared from this alert.";
+
+    type AcknowledgeArguments = Parameters<
+      typeof IncidentAlertService.acknowledgeAlertsDeclaredWithIncident
+    >[0];
+
+    type SyncArguments = Parameters<
+      typeof IncidentAlertService.syncAlertWithLinkedIncidentState
+    >[0];
+
+    type AlertFeedItem = Parameters<
+      typeof AlertFeedService.createAlertFeedItem
+    >[0];
+
+    type StateFlag =
+      | "isCreatedState"
+      | "isAcknowledgedState"
+      | "isResolvedState";
+
+    interface ProjectStates {
+      created: ObjectID;
+      acknowledged: ObjectID;
+      resolved: ObjectID;
+    }
+
+    interface TimelineRow {
+      alertStateId: string;
+      createdByUserId: string | null;
+      rootCause: string | null;
+      isOwnerNotified: boolean;
+      startsAt: Date;
+      endsAt: Date | null;
+    }
+
+    interface IncidentRow {
+      _id: string;
+      incidentNumber: number | null;
+      currentIncidentStateId: string;
+      isPrivate: boolean;
+    }
+
+    const ownSpies: Array<jest.SpyInstance> = [];
+
+    let alertFeed: jest.SpyInstance;
+    let acknowledge: jest.SpyInstance;
+    let linksWhenAcknowledging: Array<number> = [];
+
+    let alertStates: ProjectStates;
+    let incidentStates: ProjectStates;
+    let incidentSeverityId: ObjectID;
+
+    beforeAll(async () => {
+      for (const table of DECLARE_TABLES) {
+        await database.query(
+          `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+        );
+      }
+
+      const own: (spy: jest.SpyInstance) => void = (
+        spy: jest.SpyInstance,
+      ): void => {
+        ownSpies.push(spy);
+      };
+
+      // No Redis here, and one request at a time.
+      own(
+        jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex),
+      );
+      own(jest.spyOn(Semaphore, "release").mockResolvedValue(undefined));
+
+      own(
+        jest
+          .spyOn(ProductAnalytics, "captureForUser")
+          .mockImplementation((): void => {
+            // No analytics in tests.
+          }),
+      );
+      own(
+        jest
+          .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(CustomFieldMappingService, "applyMappingsToUpdate")
+          .mockResolvedValue(undefined),
+      );
+
+      // Workflows and realtime of every model the declaration writes.
+      own(
+        jest
+          .spyOn(IncidentService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(IncidentService, "onTriggerRealtime")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AlertService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AlertService, "onTriggerRealtime")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AlertStateTimelineService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AlertStateTimelineService, "onTriggerRealtime")
+          .mockResolvedValue(undefined),
+      );
+
+      // The un-awaited onCreateSuccess chain: none of it moves an alert.
+      const incidentInternals: Record<string, () => Promise<void>> =
+        IncidentService as unknown as Record<string, () => Promise<void>>;
+      for (const method of [
+        "handleIncidentWorkspaceOperationsAsync",
+        "createIncidentFeedAsync",
+        "handleIncidentStateChangeAsync",
+        "disableActiveMonitoringIfManualIncident",
+        "refreshReminderSchedule",
+      ]) {
+        own(jest.spyOn(incidentInternals, method).mockResolvedValue(undefined));
+      }
+      own(
+        jest
+          .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(false),
+      );
+      own(
+        jest
+          .spyOn(IncidentOwnerRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(IncidentLabelRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(IncidentOnCallRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(RunbookRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(IncidentGroupingEngineService, "processIncident")
+          .mockResolvedValue({ grouped: false }),
+      );
+      own(
+        jest
+          .spyOn(IncidentSlaService, "createSlaForIncident")
+          .mockResolvedValue(null),
+      );
+      own(
+        jest
+          .spyOn(AIIncidentInvestigationRunner, "investigateNewIncident")
+          .mockResolvedValue(false),
+      );
+      own(
+        jest
+          .spyOn(IncidentAlertService, "createDeclaredFromAlertsFeedItem")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(IncidentAlertService, "copyAlertOwnersToIncident")
+          .mockResolvedValue({ userIds: [], teamIds: [] }),
+      );
+      // A member who declares becomes its owner: owner tables are not cloned.
+      own(
+        jest
+          .spyOn(IncidentOwnerUserService, "create")
+          .mockResolvedValue(undefined as never),
+      );
+
+      // What an alert state change sets off besides the change itself.
+      own(
+        jest
+          .spyOn(AlertService, "refreshAlertMetrics")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(AlertMeasurementValueService, "recomputeForAlert")
+          .mockResolvedValue(undefined),
+      );
+      own(
+        jest
+          .spyOn(WorkspaceNotificationRuleService, "archiveWorkspaceChannels")
+          .mockResolvedValue(undefined),
+      );
+
+      // The stub set up for the whole suite: the alerts' feed entries.
+      alertFeed = jest.spyOn(AlertFeedService, "createAlertFeedItem");
+
+      /*
+       * The real acknowledgement, recording how many links the table held
+       * when it started. Its promise is kept by the spy (mock.results), so a
+       * test can wait for the un-awaited work to finish.
+       */
+      const acknowledgeForReal: (
+        data: AcknowledgeArguments,
+      ) => Promise<AcknowledgeDeclaredAlertsResult> =
+        IncidentAlertService.acknowledgeAlertsDeclaredWithIncident.bind(
+          IncidentAlertService,
+        );
+      acknowledge = jest
+        .spyOn(IncidentAlertService, "acknowledgeAlertsDeclaredWithIncident")
+        .mockImplementation(
+          async (
+            data: AcknowledgeArguments,
+          ): Promise<AcknowledgeDeclaredAlertsResult> => {
+            linksWhenAcknowledging.push(await linkCount());
+            return acknowledgeForReal(data);
+          },
+        );
+      own(acknowledge);
+    });
+
+    beforeEach(async () => {
+      await database.query(
+        DECLARE_TABLES.map((table: string): string => {
+          return `DELETE FROM "${schema}"."${table}"`;
+        }).join("; "),
+      );
+
+      alertFeed.mockClear();
+      acknowledge.mockClear();
+      linksWhenAcknowledging = [];
+
+      alertStates = {
+        created: await seedAlertState("Created", 1, "isCreatedState"),
+        acknowledged: await seedAlertState(
+          "Acknowledged",
+          2,
+          "isAcknowledgedState",
+        ),
+        resolved: await seedAlertState("Resolved", 3, "isResolvedState"),
+      };
+
+      incidentStates = {
+        created: await seedIncidentState("Identified", 1, "isCreatedState"),
+        acknowledged: await seedIncidentState(
+          "Acknowledged",
+          2,
+          "isAcknowledgedState",
+        ),
+        resolved: await seedIncidentState("Resolved", 3, "isResolvedState"),
+      };
+
+      incidentSeverityId = await seedIncidentSeverity();
+    });
+
+    afterAll(() => {
+      for (const spy of ownSpies) {
+        spy.mockRestore();
+      }
+    });
+
+    async function seedAlertState(
+      name: string,
+      order: number,
+      flag: StateFlag,
+    ): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."AlertState"
+         ("_id", "projectId", "name", "color", "order", "isCreatedState", "isAcknowledgedState", "isResolvedState", "version")
+         VALUES ($1, $2, $3, '#6b7280', $4, $5, $6, $7, 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          name,
+          order,
+          flag === "isCreatedState",
+          flag === "isAcknowledgedState",
+          flag === "isResolvedState",
+        ],
+      );
+      return id;
+    }
+
+    async function seedIncidentState(
+      name: string,
+      order: number,
+      flag: StateFlag,
+    ): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentState"
+         ("_id", "projectId", "name", "slug", "color", "order", "isCreatedState", "isAcknowledgedState", "isResolvedState", "version")
+         VALUES ($1, $2, $3, $4, '#6b7280', $5, $6, $7, $8, 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          name,
+          `${name.toLowerCase()}-${id.toString()}`,
+          order,
+          flag === "isCreatedState",
+          flag === "isAcknowledgedState",
+          flag === "isResolvedState",
+        ],
+      );
+      return id;
+    }
+
+    async function seedIncidentSeverity(): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentSeverity"
+         ("_id", "projectId", "name", "slug", "color", "order", "version")
+         VALUES ($1, $2, 'Critical', $3, '#dc2626', 1, 1)`,
+        [id.toString(), projectId.toString(), `critical-${id.toString()}`],
+      );
+      return id;
+    }
+
+    /*
+     * An alert that went through the given states, the last one current:
+     * ten minutes apart, the last one starting ten minutes ago, each row
+     * ending where the next begins - as AlertStateTimelineService writes
+     * them.
+     */
+    async function seedAlertThrough(
+      states: Array<ObjectID>,
+      options: { project?: ObjectID; isPrivate?: boolean } = {},
+    ): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      const alertProjectId: ObjectID = options.project || projectId;
+
+      await database.query(
+        `INSERT INTO "${schema}"."Alert"
+         ("_id", "projectId", "title", "currentAlertStateId", "alertSeverityId", "isPrivate", "version")
+         VALUES ($1, $2, 'Checkout p95 latency is high', $3, $4, $5, 1)`,
+        [
+          id.toString(),
+          alertProjectId.toString(),
+          states[states.length - 1]!.toString(),
+          ObjectID.generate().toString(),
+          Boolean(options.isPrivate),
+        ],
+      );
+
+      const tenMinutes: number = 10 * 60 * 1000;
+      const now: number = Date.now();
+
+      for (let index: number = 0; index < states.length; index++) {
+        const startsAt: Date = new Date(
+          now - (states.length - index) * tenMinutes,
+        );
+        const endsAt: Date | null =
+          index < states.length - 1
+            ? new Date(startsAt.getTime() + tenMinutes)
+            : null;
+
+        await database.query(
+          `INSERT INTO "${schema}"."AlertStateTimeline"
+           ("_id", "projectId", "alertId", "alertStateId", "startsAt", "endsAt", "isOwnerNotified", "version")
+           VALUES ($1, $2, $3, $4, $5, $6, true, 1)`,
+          [
+            ObjectID.generate().toString(),
+            alertProjectId.toString(),
+            id.toString(),
+            states[index]!.toString(),
+            startsAt,
+            endsAt,
+          ],
+        );
+      }
+
+      return id;
+    }
+
+    async function currentAlertStateOf(alertId: ObjectID): Promise<string> {
+      const rows: Array<{ currentAlertStateId: string }> = await database.query(
+        `SELECT "currentAlertStateId" FROM "${schema}"."Alert" WHERE "_id" = $1`,
+        [alertId.toString()],
+      );
+      return rows[0]!.currentAlertStateId;
+    }
+
+    async function timelineOf(alertId: ObjectID): Promise<Array<TimelineRow>> {
+      return database.query(
+        `SELECT "alertStateId", "createdByUserId", "rootCause", "isOwnerNotified", "startsAt", "endsAt"
+           FROM "${schema}"."AlertStateTimeline"
+          WHERE "alertId" = $1
+          ORDER BY "startsAt"`,
+        [alertId.toString()],
+      );
+    }
+
+    async function incidentRows(): Promise<Array<IncidentRow>> {
+      return database.query(
+        `SELECT "_id", "incidentNumber", "currentIncidentStateId", "isPrivate"
+           FROM "${schema}"."Incident"
+          ORDER BY "incidentNumber"`,
+      );
+    }
+
+    async function incidentCounter(): Promise<number> {
+      const rows: Array<{ incidentCounter: number | string }> =
+        await database.query(
+          `SELECT "incidentCounter" FROM "${schema}"."Project" WHERE "_id" = $1`,
+          [projectId.toString()],
+        );
+      return Number(rows[0]!.incidentCounter);
+    }
+
+    // Polls, because the create does not wait for the acknowledgement.
+    async function waitForAlertState(
+      alertId: ObjectID,
+      stateId: ObjectID,
+    ): Promise<void> {
+      const deadline: number = Date.now() + ACKNOWLEDGEMENT_TIMEOUT_MS;
+      let current: string = await currentAlertStateOf(alertId);
+
+      while (current !== stateId.toString()) {
+        if (Date.now() > deadline) {
+          throw new Error(
+            `alert ${alertId.toString()} is in state ${current}, not ${stateId.toString()}, ${ACKNOWLEDGEMENT_TIMEOUT_MS}ms after the incident was declared`,
+          );
+        }
+
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 50);
+        });
+
+        current = await currentAlertStateOf(alertId);
+      }
+    }
+
+    // The one acknowledgement the declaration started, once it has finished.
+    async function acknowledgement(): Promise<AcknowledgeDeclaredAlertsResult> {
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+      return (await acknowledge.mock.results[0]!
+        .value) as AcknowledgeDeclaredAlertsResult;
+    }
+
+    function acknowledgementArguments(): AcknowledgeArguments {
+      return acknowledge.mock.calls[0]![0] as AcknowledgeArguments;
+    }
+
+    function ids(values: Array<ObjectID>): Array<string> {
+      return values.map((value: ObjectID): string => {
+        return value.toString();
+      });
+    }
+
+    // The alert feed entries of state changes (links write their own).
+    function stateChangeFeedItems(): Array<AlertFeedItem> {
+      return alertFeed.mock.calls
+        .map((call: Array<unknown>): AlertFeedItem => {
+          return call[0] as AlertFeedItem;
+        })
+        .filter((item: AlertFeedItem): boolean => {
+          return (
+            item.alertFeedEventType === AlertFeedEventType.AlertStateChanged
+          );
+        });
+    }
+
+    function newIncident(
+      options: {
+        createdByUserId?: ObjectID;
+        isPrivate?: boolean;
+        currentIncidentStateId?: ObjectID;
+      } = {},
+    ): Incident {
+      const incident: Incident = new Incident();
+      incident.projectId = projectId;
+      incident.title = "Checkout is failing";
+      incident.incidentSeverityId = incidentSeverityId;
+
+      if (options.createdByUserId) {
+        incident.createdByUserId = options.createdByUserId;
+      }
+
+      if (options.isPrivate) {
+        incident.isPrivate = true;
+      }
+
+      if (options.currentIncidentStateId) {
+        incident.currentIncidentStateId = options.currentIncidentStateId;
+      }
+
+      return incident;
+    }
+
+    // miscDataProps of a declaration from these alerts.
+    function declaredFrom(
+      alertIds: Array<ObjectID>,
+      acknowledgeAlerts?: boolean,
+    ): JSONObject {
+      const miscDataProps: JSONObject = {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: ids(alertIds),
+      };
+
+      if (acknowledgeAlerts !== undefined) {
+        miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] =
+          acknowledgeAlerts;
+      }
+
+      return miscDataProps;
+    }
+
+    // A user of the test project holding exactly these permissions.
+    function userProps(
+      userId: ObjectID,
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      const tenantPermission: UserTenantAccessPermission = {
+        projectId: projectId,
+        _type: "UserTenantAccessPermission",
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          },
+        ),
+      };
+
+      return {
+        tenantId: projectId,
+        userId: userId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [projectId.toString()]: tenantPermission,
+        },
+      };
+    }
+
+    test("root declares with acknowledgeAlertsToLink: once linked, the alert is acknowledged as the declaring user", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      const incident: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId }),
+        miscDataProps: declaredFrom([alertId], true),
+        props: { isRoot: true },
+      });
+
+      expect(incident.incidentNumber).toBe(1);
+      expect(incident.incidentNumberWithPrefix).toBe("#1");
+
+      await waitForAlertState(alertId, alertStates.acknowledged);
+
+      const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+      expect(ids(result.acknowledgedAlertIds)).toEqual([alertId.toString()]);
+      expect(result.alreadyAcknowledgedAlertIds).toEqual([]);
+      expect(result.leftToLinkedAlertSyncAlertIds).toEqual([]);
+      expect(result.failed).toEqual([]);
+
+      const args: AcknowledgeArguments = acknowledgementArguments();
+      expect(args.projectId.toString()).toBe(projectId.toString());
+      expect(args.incidentId.toString()).toBe(incident.id!.toString());
+      expect(ids(args.alertIds)).toEqual([alertId.toString()]);
+      expect(ids(args.linkedAlertIds)).toEqual([alertId.toString()]);
+      expect(String(args.acknowledgedByUserId)).toBe(userId.toString());
+
+      // It started once the link was in the table, which names the user too.
+      expect(linksWhenAcknowledging).toEqual([1]);
+      expect(await linkRows()).toEqual([
+        { _id: expect.any(String), createdByUserId: userId.toString() },
+      ]);
+
+      const timeline: Array<TimelineRow> = await timelineOf(alertId);
+
+      expect(
+        timeline.map((row: TimelineRow): string => {
+          return row.alertStateId;
+        }),
+      ).toEqual([
+        alertStates.created.toString(),
+        alertStates.acknowledged.toString(),
+      ]);
+      expect(timeline[1]).toMatchObject({
+        createdByUserId: userId.toString(),
+        rootCause:
+          "Acknowledged because Incident #1 was declared from this alert.",
+        // The owners are told, as when Acknowledge is pressed on the alert.
+        isOwnerNotified: false,
+        endsAt: null,
+      });
+      // The Created row now ends where the acknowledgement begins.
+      expect(timeline[0]!.endsAt?.getTime()).toBe(
+        timeline[1]!.startsAt.getTime(),
+      );
+
+      // The alert's feed says who and why.
+      const feedItems: Array<AlertFeedItem> = stateChangeFeedItems();
+      expect(feedItems).toHaveLength(1);
+      expect(feedItems[0]!.alertId.toString()).toBe(alertId.toString());
+      expect(String(feedItems[0]!.userId)).toBe(userId.toString());
+      expect(String(feedItems[0]!.workspaceNotification?.notifyUserId)).toBe(
+        userId.toString(),
+      );
+      expect(feedItems[0]!.moreInformationInMarkdown).toContain(
+        "Acknowledged because Incident #1 was declared from this alert.",
+      );
+
+      // The incident itself is left in the state it was declared in.
+      expect(await incidentRows()).toEqual([
+        {
+          _id: incident.id!.toString(),
+          incidentNumber: 1,
+          currentIncidentStateId: incidentStates.created.toString(),
+          isPrivate: false,
+        },
+      ]);
+    });
+
+    test("alerts already acknowledged or resolved are left as they are: only the one still open is acknowledged", async () => {
+      await database.query(
+        `UPDATE "${schema}"."Project" SET "incidentNumberPrefix" = 'INC-' WHERE "_id" = $1`,
+        [projectId.toString()],
+      );
+
+      const userId: ObjectID = await seedUser();
+      const openAlertId: ObjectID = await seedAlertThrough([
+        alertStates.created,
+      ]);
+      const acknowledgedAlertId: ObjectID = await seedAlertThrough([
+        alertStates.created,
+        alertStates.acknowledged,
+      ]);
+      const resolvedAlertId: ObjectID = await seedAlertThrough([
+        alertStates.created,
+        alertStates.resolved,
+      ]);
+
+      const acknowledgedTimeline: Array<TimelineRow> =
+        await timelineOf(acknowledgedAlertId);
+      const resolvedTimeline: Array<TimelineRow> =
+        await timelineOf(resolvedAlertId);
+
+      const incident: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId }),
+        miscDataProps: declaredFrom(
+          [acknowledgedAlertId, openAlertId, resolvedAlertId],
+          true,
+        ),
+        props: { isRoot: true },
+      });
+
+      expect(incident.incidentNumberWithPrefix).toBe("INC-1");
+
+      await waitForAlertState(openAlertId, alertStates.acknowledged);
+
+      const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+      expect(ids(result.acknowledgedAlertIds)).toEqual([
+        openAlertId.toString(),
+      ]);
+      expect(ids(result.alreadyAcknowledgedAlertIds)).toEqual([
+        acknowledgedAlertId.toString(),
+        resolvedAlertId.toString(),
+      ]);
+      expect(result.leftToLinkedAlertSyncAlertIds).toEqual([]);
+      expect(result.failed).toEqual([]);
+
+      // All three are linked; nothing is moved backwards, or written twice.
+      expect(await linkCount()).toBe(3);
+      expect(await currentAlertStateOf(acknowledgedAlertId)).toBe(
+        alertStates.acknowledged.toString(),
+      );
+      expect(await currentAlertStateOf(resolvedAlertId)).toBe(
+        alertStates.resolved.toString(),
+      );
+      expect(await timelineOf(acknowledgedAlertId)).toEqual(
+        acknowledgedTimeline,
+      );
+      expect(await timelineOf(resolvedAlertId)).toEqual(resolvedTimeline);
+
+      const openTimeline: Array<TimelineRow> = await timelineOf(openAlertId);
+      expect(openTimeline).toHaveLength(2);
+      expect(openTimeline[1]).toMatchObject({
+        alertStateId: alertStates.acknowledged.toString(),
+        createdByUserId: userId.toString(),
+        rootCause:
+          "Acknowledged because Incident INC-1 was declared from this alert.",
+      });
+
+      const feedItems: Array<AlertFeedItem> = stateChangeFeedItems();
+      expect(
+        feedItems.map((item: AlertFeedItem): string => {
+          return item.alertId.toString();
+        }),
+      ).toEqual([openAlertId.toString()]);
+    });
+
+    test("without acknowledgeAlertsToLink (absent or false) the alerts are linked and left in their state", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      const first: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId }),
+        miscDataProps: declaredFrom([alertId]),
+        props: { isRoot: true },
+      });
+
+      const second: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId }),
+        miscDataProps: declaredFrom([alertId], false),
+        props: { isRoot: true },
+      });
+
+      expect(first.incidentNumber).toBe(1);
+      expect(second.incidentNumber).toBe(2);
+
+      /*
+       * The acknowledgement is started before create() returns (only its
+       * result is not waited for), so not having started by now is final.
+       */
+      expect(acknowledge).not.toHaveBeenCalled();
+      expect(await linkCount()).toBe(2);
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+      expect(await timelineOf(alertId)).toHaveLength(1);
+      expect(stateChangeFeedItems()).toEqual([]);
+    });
+
+    test("a project without an Acknowledged alert state: the declaration is refused before the incident, its number or its links exist", async () => {
+      await database.query(
+        `DELETE FROM "${schema}"."AlertState" WHERE "_id" = $1`,
+        [alertStates.acknowledged.toString()],
+      );
+
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      const refusal: unknown = await failureOf(() => {
+        return IncidentService.create({
+          data: newIncident({ createdByUserId: userId }),
+          miscDataProps: declaredFrom([alertId], true),
+          props: { isRoot: true },
+        });
+      });
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(NO_ACKNOWLEDGED_STATE_MESSAGE);
+
+      expect(await incidentRows()).toEqual([]);
+      expect(await incidentCounter()).toBe(0);
+      expect(await linkCount()).toBe(0);
+      expect(acknowledge).not.toHaveBeenCalled();
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+
+      // Declared without asking, it goes through - and takes number 1.
+      const incident: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId }),
+        miscDataProps: declaredFrom([alertId]),
+        props: { isRoot: true },
+      });
+
+      expect(incident.incidentNumber).toBe(1);
+      expect(await linkCount()).toBe(1);
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+    });
+
+    test("a private incident is not named in the acknowledgement's cause", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      const incident: Incident = await IncidentService.create({
+        data: newIncident({ createdByUserId: userId, isPrivate: true }),
+        miscDataProps: declaredFrom([alertId], true),
+        props: { isRoot: true },
+      });
+
+      expect(incident.incidentNumberWithPrefix).toBe("#1");
+
+      await waitForAlertState(alertId, alertStates.acknowledged);
+
+      const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+      expect(ids(result.acknowledgedAlertIds)).toEqual([alertId.toString()]);
+
+      expect((await incidentRows())[0]!.isPrivate).toBe(true);
+
+      const timeline: Array<TimelineRow> = await timelineOf(alertId);
+      expect(timeline).toHaveLength(2);
+      expect(timeline[1]).toMatchObject({
+        alertStateId: alertStates.acknowledged.toString(),
+        createdByUserId: userId.toString(),
+        rootCause: PRIVATE_INCIDENT_CAUSE,
+      });
+
+      // The feed entry goes to the alert's channels: no incident number.
+      const feedItems: Array<AlertFeedItem> = stateChangeFeedItems();
+      expect(feedItems).toHaveLength(1);
+      expect(feedItems[0]!.moreInformationInMarkdown).toContain(
+        PRIVATE_INCIDENT_CAUSE,
+      );
+      expect(feedItems[0]!.moreInformationInMarkdown).not.toContain("#1");
+    });
+
+    test("a member who may acknowledge alerts declares, and the acknowledgement is credited to them", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      const incident: Incident = await IncidentService.create({
+        data: newIncident(),
+        miscDataProps: declaredFrom([alertId], true),
+        props: userProps(userId, [
+          Permission.IncidentMember,
+          Permission.AlertMember,
+        ]),
+      });
+
+      expect(incident.incidentNumber).toBe(1);
+
+      await waitForAlertState(alertId, alertStates.acknowledged);
+
+      const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+      expect(ids(result.acknowledgedAlertIds)).toEqual([alertId.toString()]);
+      expect(result.failed).toEqual([]);
+
+      expect(String(acknowledgementArguments().acknowledgedByUserId)).toBe(
+        userId.toString(),
+      );
+
+      const timeline: Array<TimelineRow> = await timelineOf(alertId);
+      expect(timeline).toHaveLength(2);
+      expect(timeline[1]).toMatchObject({
+        alertStateId: alertStates.acknowledged.toString(),
+        createdByUserId: userId.toString(),
+        rootCause:
+          "Acknowledged because Incident #1 was declared from this alert.",
+      });
+      expect(await linkRows()).toEqual([
+        { _id: expect.any(String), createdByUserId: userId.toString() },
+      ]);
+    });
+
+    test("a member who may not change alert states is refused before the incident exists", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      // May declare incidents and link alerts, and only read alerts.
+      const viewer: DatabaseCommonInteractionProps = userProps(userId, [
+        Permission.IncidentMember,
+        Permission.AlertViewer,
+      ]);
+
+      const refusal: unknown = await failureOf(() => {
+        return IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertId], true),
+          props: viewer,
+        });
+      });
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+      );
+
+      expect(await incidentRows()).toEqual([]);
+      expect(await incidentCounter()).toBe(0);
+      expect(await linkCount()).toBe(0);
+      expect(acknowledge).not.toHaveBeenCalled();
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+      expect(await timelineOf(alertId)).toHaveLength(1);
+
+      // The same declaration without asking to acknowledge is theirs to make.
+      const incident: Incident = await IncidentService.create({
+        data: newIncident(),
+        miscDataProps: declaredFrom([alertId]),
+        props: viewer,
+      });
+
+      expect(incident.incidentNumber).toBe(1);
+      expect(await linkRows()).toEqual([
+        { _id: expect.any(String), createdByUserId: userId.toString() },
+      ]);
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+    });
+
+    test("the permission check runs on the real tables: a member's update scope leaves out a private alert they do not own, and another project's alert", async () => {
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+      const privateAlertId: ObjectID = await seedAlertThrough(
+        [alertStates.created],
+        { isPrivate: true },
+      );
+      const foreignAlertId: ObjectID = await seedAlertThrough(
+        [alertStates.created],
+        { project: otherProjectId },
+      );
+
+      const member: DatabaseCommonInteractionProps = userProps(userId, [
+        Permission.IncidentMember,
+        Permission.AlertMember,
+      ]);
+
+      function validate(
+        alertIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps,
+      ): Promise<ObjectID | null> {
+        return IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
+          projectId: projectId,
+          acknowledgeAlerts: true,
+          alertIds: alertIds,
+          props: props,
+        });
+      }
+
+      expect((await validate([alertId], member))?.toString()).toBe(
+        alertStates.acknowledged.toString(),
+      );
+
+      await expect(validate([alertId, privateAlertId], member)).rejects.toThrow(
+        NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+      );
+      await expect(validate([alertId, foreignAlertId], member)).rejects.toThrow(
+        NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+      );
+
+      // Root is not asked: the ids were validated before this, as root.
+      expect(
+        (
+          await validate([alertId, privateAlertId], { isRoot: true })
+        )?.toString(),
+      ).toBe(alertStates.acknowledged.toString());
+
+      // Checking writes nothing.
+      expect(await timelineOf(privateAlertId)).toHaveLength(1);
+      expect(await currentAlertStateOf(alertId)).toBe(
+        alertStates.created.toString(),
+      );
+    });
+
+    test("an incident declared straight into Acknowledged with the project's switch on: the linked-alert sync acknowledges the alert, and the declaration leaves it to the sync", async () => {
+      await database.query(
+        `UPDATE "${schema}"."Project" SET "acknowledgeLinkedAlertsWhenIncidentAcknowledged" = true WHERE "_id" = $1`,
+        [projectId.toString()],
+      );
+
+      const userId: ObjectID = await seedUser();
+      const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+
+      /*
+       * The suite stubs the sync; this test runs the real one, held until
+       * the declaration's own acknowledgement has decided, so the order the
+       * two would race in is fixed: the sync always moves the alert last.
+       */
+      const sync: jest.SpyInstance = jest.spyOn(
+        IncidentAlertService,
+        "syncAlertWithLinkedIncidentState",
+      );
+      const syncForReal: (data: SyncArguments) => Promise<void> =
+        Object.getPrototypeOf(
+          IncidentAlertService,
+        ).syncAlertWithLinkedIncidentState.bind(IncidentAlertService);
+
+      // Assigned by the executor, which runs straight away.
+      let releaseSync: () => void = (): void => {
+        // Replaced below.
+      };
+      const syncReleased: Promise<void> = new Promise<void>(
+        (resolve: () => void) => {
+          releaseSync = resolve;
+        },
+      );
+
+      sync.mockClear();
+      sync.mockImplementation(async (data: SyncArguments): Promise<void> => {
+        await syncReleased;
+        return syncForReal(data);
+      });
+
+      try {
+        const incident: Incident = await IncidentService.create({
+          data: newIncident({
+            createdByUserId: userId,
+            currentIncidentStateId: incidentStates.acknowledged,
+          }),
+          miscDataProps: declaredFrom([alertId], true),
+          props: { isRoot: true },
+        });
+
+        expect(incident.currentIncidentStateId?.toString()).toBe(
+          incidentStates.acknowledged.toString(),
+        );
+
+        const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+        expect(ids(result.leftToLinkedAlertSyncAlertIds)).toEqual([
+          alertId.toString(),
+        ]);
+        expect(result.acknowledgedAlertIds).toEqual([]);
+        expect(result.alreadyAcknowledgedAlertIds).toEqual([]);
+        expect(result.failed).toEqual([]);
+
+        // The declaration wrote nothing on the alert.
+        expect(await timelineOf(alertId)).toHaveLength(1);
+        expect(await currentAlertStateOf(alertId)).toBe(
+          alertStates.created.toString(),
+        );
+
+        expect(sync).toHaveBeenCalledTimes(1);
+        releaseSync();
+        await sync.mock.results[0]!.value;
+
+        // The sync moved it, once.
+        expect(await currentAlertStateOf(alertId)).toBe(
+          alertStates.acknowledged.toString(),
+        );
+
+        const timeline: Array<TimelineRow> = await timelineOf(alertId);
+        expect(
+          timeline.map((row: TimelineRow): string => {
+            return row.alertStateId;
+          }),
+        ).toEqual([
+          alertStates.created.toString(),
+          alertStates.acknowledged.toString(),
+        ]);
+        expect(timeline[1]!.rootCause).toBe(
+          "Acknowledged because linked Incident #1 was acknowledged.",
+        );
+        expect(stateChangeFeedItems()).toHaveLength(1);
+      } finally {
+        releaseSync();
+        sync.mockResolvedValue(undefined);
+      }
     });
   });
 });

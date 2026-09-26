@@ -75,6 +75,18 @@ const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
 // The investigation's guarantee, shown whether or not its details are open.
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
+/*
+ * "Declare Incident" in an alert's header, after the state actions
+ * (Components/Alert/DeclareIncidentFromAlert.ts). It opens the create-incident
+ * page prefilled from the alert.
+ */
+const DECLARE_INCIDENT: string = "Declare Incident";
+const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
+const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
+// Its disabled reason for someone who may not create incidents (PermissionGate).
+const DECLARE_INCIDENT_DENIED: string =
+  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+
 interface RecordedApiRequest {
   method: string;
   url: string;
@@ -683,6 +695,11 @@ function hero(page: Page): Locator {
   return page
     .getByRole("group", { name: "Event actions" })
     .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+}
+
+// The hero's action row: state buttons, other actions, then "More actions".
+function heroActions(page: Page): Locator {
+  return page.getByRole("group", { name: "Event actions" });
 }
 
 function summarySection(page: Page): Locator {
@@ -2992,10 +3009,24 @@ test.describe("incident and alert overview", () => {
       await openReady(page, eventPage);
       await expect(sideMenu(page)).toBeVisible();
       await expectHero(page, eventPage);
-      // Resolved: no forward actions left.
-      await expect(
-        page.getByRole("group", { name: "Event actions" }).getByRole("button"),
-      ).toHaveCount(0);
+      /*
+       * Resolved: no forward state actions left. An alert still offers to
+       * declare an incident from it; an incident has nothing.
+       */
+      const actions: Locator = heroActions(page);
+      if (eventPage === ALERT_PAGE) {
+        await expect(actions.getByRole("button")).toHaveText([
+          DECLARE_INCIDENT,
+        ]);
+      } else {
+        await expect(actions.getByRole("button")).toHaveCount(0);
+        await expect(
+          hero(page).getByRole("button", { name: DECLARE_INCIDENT }),
+        ).toHaveCount(0);
+        await expect(
+          page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`),
+        ).toHaveCount(0);
+      }
       // The step rail under the pills.
       await expectRenderedText(hero(page), "Created Acknowledged Resolved");
       await expectNoErrorStates(page);
@@ -3149,6 +3180,7 @@ test.describe("incident and alert overview", () => {
     await expect(actions.getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",
+      DECLARE_INCIDENT,
     ]);
     expect(await statCells(page, ALERT_PAGE.statBar)).toEqual([
       { label: "Acknowledged in", value: "Not yet acknowledged" },
@@ -3168,7 +3200,11 @@ test.describe("incident and alert overview", () => {
       .click();
     await expect(dialog).toHaveCount(0);
 
-    await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
+    // Declare Incident stays after the remaining state action.
+    await expect(actions.getByRole("button")).toHaveText([
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
     await expectRenderedText(
       hero(page),
       "Acknowledged High Ongoing for 14 minutes",
@@ -3214,6 +3250,545 @@ test.describe("incident and alert overview", () => {
     });
     await expect(hero(page)).toContainText(INCIDENT_PAGE.title);
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Declare an incident from the alert header
+ * ---------------------------------------------------------------------------
+ */
+
+// The hero actions' Tailwind colours (EventStatusPanel).
+const PRIMARY_ACTION_BACKGROUND: string = "rgb(79, 70, 229)"; // indigo-600
+const NEUTRAL_ACTION_BACKGROUND: string = "rgb(255, 255, 255)"; // white
+const NEUTRAL_ACTION_BORDER: string = "rgb(209, 213, 219)"; // gray-300
+const NEUTRAL_ACTION_TEXT: string = "rgb(55, 65, 81)"; // gray-700
+// focus-visible:ring-indigo-500, drawn as a box-shadow.
+const FOCUS_RING: RegExp = /rgb\(99, 102, 241\) 0px 0px 0px 4px/;
+
+interface AlertHeroState {
+  // Test title and screenshot name.
+  name: string;
+  // The fixture's ?state= for alert #311 ("" is the default, resolved).
+  query: string;
+  // The state buttons, in order, before Declare Incident.
+  stateActions: ReadonlyArray<string>;
+  // The one indigo (primary) state action, when there is one.
+  primaryAction?: string | undefined;
+}
+
+const CREATED_ALERT: AlertHeroState = {
+  name: "created",
+  query: "state=created",
+  stateActions: ["Acknowledge", "Resolve"],
+  primaryAction: "Acknowledge",
+};
+
+const ACKNOWLEDGED_ALERT: AlertHeroState = {
+  name: "acknowledged",
+  query: "state=ongoing",
+  stateActions: ["Resolve"],
+  primaryAction: "Resolve",
+};
+
+const RESOLVED_ALERT: AlertHeroState = {
+  name: "resolved",
+  query: "",
+  stateActions: [],
+};
+
+const ALERT_HERO_STATES: ReadonlyArray<AlertHeroState> = [
+  CREATED_ALERT,
+  ACKNOWLEDGED_ALERT,
+  RESOLVED_ALERT,
+];
+
+// Phone, tablet beside the side menu, small laptop, laptop.
+const HERO_WIDTHS: ReadonlyArray<number> = [390, 768, 1024, 1280];
+
+function declareIncidentButton(page: Page): Locator {
+  return heroActions(page).locator(`#${DECLARE_INCIDENT_BUTTON_ID}`);
+}
+
+function declareIncidentWrapper(page: Page): Locator {
+  return heroActions(page).getByTestId(
+    `${DECLARE_INCIDENT_BUTTON_ID}-disabled-wrapper`,
+  );
+}
+
+function heroActionButton(page: Page, label: string): Locator {
+  return heroActions(page).getByRole("button", { name: label, exact: true });
+}
+
+interface ActionPosition {
+  label: string;
+  top: number;
+  left: number;
+}
+
+// The hero's buttons, grouped into the rows they wrap onto, top to bottom.
+async function heroActionRows(page: Page): Promise<Array<Array<string>>> {
+  const positions: Array<ActionPosition> = await heroActions(page)
+    .getByRole("button")
+    .evaluateAll((buttons: Array<Element>): Array<ActionPosition> => {
+      return buttons.map((button: Element): ActionPosition => {
+        const rect: DOMRect = button.getBoundingClientRect();
+        return {
+          label: (button.textContent || "").trim(),
+          top: rect.top,
+          left: rect.left,
+        };
+      });
+    });
+  const rows: Array<Array<ActionPosition>> = [];
+  for (const position of [...positions].sort(
+    (a: ActionPosition, b: ActionPosition): number => {
+      return a.top - b.top || a.left - b.left;
+    },
+  )) {
+    const row: Array<ActionPosition> | undefined = rows.find(
+      (candidate: Array<ActionPosition>): boolean => {
+        return Math.abs(candidate[0]!.top - position.top) <= 2;
+      },
+    );
+    if (row) {
+      row.push(position);
+    } else {
+      rows.push([position]);
+    }
+  }
+  return rows.map((row: Array<ActionPosition>): Array<string> => {
+    return row.map((position: ActionPosition): string => {
+      return position.label;
+    });
+  });
+}
+
+/*
+ * Records whether a dialog is ever mounted, so a test can prove an action
+ * went straight to its page without opening the state-change modal on the
+ * way. Client-side navigation keeps the window, so this survives it.
+ */
+async function watchForDialog(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    const target: { __dialogSeen?: boolean } = window as unknown as {
+      __dialogSeen?: boolean;
+    };
+    target.__dialogSeen = Boolean(document.querySelector("[role='dialog']"));
+    new MutationObserver((): void => {
+      if (document.querySelector("[role='dialog']")) {
+        target.__dialogSeen = true;
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+async function dialogWasSeen(page: Page): Promise<boolean> {
+  return page.evaluate((): boolean => {
+    return Boolean(
+      (window as unknown as { __dialogSeen?: boolean }).__dialogSeen,
+    );
+  });
+}
+
+// The create-incident page for alert #311, and nothing written on the way.
+async function expectDeclaringFromAlert(page: Page): Promise<void> {
+  await expect(page.getByTestId("stub-page")).toHaveAttribute(
+    "data-page",
+    "INCIDENT_CREATE",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Create Incident",
+  );
+  expect(page.url()).toBe(
+    `http://127.0.0.1:${PORT}${DECLARE_INCIDENT_FROM_ALERT_PATH}`,
+  );
+  const url: URL = new URL(page.url());
+  expect(url.pathname).toBe(`${DASHBOARD}/incidents/create`);
+  // Only this alert, and none of the alert page's own ?state= scenario.
+  expect(url.search).toBe(`?alertIds=${ALERT_ID}`);
+  expect(url.searchParams.getAll("alertIds")).toEqual([ALERT_ID]);
+
+  expect(await dialogWasSeen(page), "a dialog opened on the way").toBe(false);
+  const state: FixtureState = await fixture(page);
+  expect(state.creates, "records created").toEqual([]);
+  expect(state.updates, "records updated").toEqual([]);
+  expect(state.deletes, "records deleted").toEqual([]);
+}
+
+test.describe("declare an incident from the alert hero", () => {
+  for (const alertState of ALERT_HERO_STATES) {
+    test(`${alertState.name} alert: Declare Incident follows the state actions as an outline button and opens the create page`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, ALERT_PAGE, alertState.query);
+
+      const actions: Locator = heroActions(page);
+      await expect(actions.getByRole("button")).toHaveText([
+        ...alertState.stateActions,
+        DECLARE_INCIDENT,
+      ]);
+      // Declaring is not a state, so it never adds a "More actions" menu.
+      await expect(
+        actions.getByRole("button", { name: "More actions" }),
+      ).toHaveCount(0);
+
+      const declare: Locator = declareIncidentButton(page);
+      await expect(declare).toBeVisible();
+      await expect(declare).toBeEnabled();
+      await expect(declare).toHaveAttribute("type", "button");
+      await expect(declare).toHaveAttribute("title", DECLARE_INCIDENT);
+      await expect(declare).toHaveAccessibleName(DECLARE_INCIDENT);
+      await expect(declare.locator("svg")).toHaveCount(1);
+      // Allowed: a plain button, with no disabled-reason wrapper around it.
+      await expect(declareIncidentWrapper(page)).toHaveCount(0);
+
+      // Neutral outline, the same size as the state actions.
+      await expect(declare).toHaveCSS(
+        "background-color",
+        NEUTRAL_ACTION_BACKGROUND,
+      );
+      await expect(declare).toHaveCSS(
+        "border-top-color",
+        NEUTRAL_ACTION_BORDER,
+      );
+      await expect(declare).toHaveCSS("color", NEUTRAL_ACTION_TEXT);
+      await expect(declare).toHaveCSS("height", "36px");
+
+      // The state action stays the only primary (indigo) button.
+      const backgrounds: Array<string> = await actions
+        .getByRole("button")
+        .evaluateAll((buttons: Array<Element>): Array<string> => {
+          return buttons.map((button: Element): string => {
+            return window.getComputedStyle(button).backgroundColor;
+          });
+        });
+      expect(
+        backgrounds.filter((color: string): boolean => {
+          return color === PRIMARY_ACTION_BACKGROUND;
+        }),
+      ).toHaveLength(alertState.primaryAction ? 1 : 0);
+      if (alertState.primaryAction) {
+        await expect(
+          heroActionButton(page, alertState.primaryAction),
+        ).toHaveCSS("background-color", PRIMARY_ACTION_BACKGROUND);
+      }
+
+      // Last in the row, on the same line as the state actions.
+      const declareBox: Box = await documentBox(declare);
+      for (const label of alertState.stateActions) {
+        const box: Box = await documentBox(heroActionButton(page, label));
+        expect(
+          Math.abs(box.y - declareBox.y),
+          `${label} shares the row`,
+        ).toBeLessThanOrEqual(1);
+        expect(declareBox.x, `after ${label}`).toBeGreaterThanOrEqual(
+          box.x + box.width,
+        );
+        await expect(heroActionButton(page, label)).toHaveCSS("height", "36px");
+      }
+
+      // Offering the action is a permission check: nothing is fetched for it.
+      const readModels: Array<string> = (await fixture(page)).listRequests.map(
+        (request: RecordedModelRequest): string => {
+          return request.modelName;
+        },
+      );
+      expect(readModels).not.toContain("IncidentAlert");
+
+      await watchForDialog(page);
+      await declare.click();
+      await expectDeclaringFromAlert(page);
+    });
+  }
+
+  test("the create page is a new history entry: Back returns to the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    await watchForDialog(page);
+    await declareIncidentButton(page).click();
+    await expectDeclaringFromAlert(page);
+
+    await page.goBack();
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      ALERT_PAGE.pageTitle,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+  });
+
+  test("keyboard: Tab reaches Declare Incident after Resolve and Enter opens the create page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    const acknowledge: Locator = heroActionButton(page, "Acknowledge");
+    const resolve: Locator = heroActionButton(page, "Resolve");
+    const declare: Locator = declareIncidentButton(page);
+
+    await acknowledge.focus();
+    await page.keyboard.press("Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+    // Keyboard focus draws the indigo ring.
+    await expect(declare).toHaveCSS("box-shadow", FOCUS_RING);
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+
+    await watchForDialog(page);
+    await page.keyboard.press("Enter");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("keyboard: Space on Declare Incident opens the create page from a resolved alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+    const declare: Locator = declareIncidentButton(page);
+    await declare.focus();
+    await expect(declare).toBeFocused();
+    await watchForDialog(page);
+    await page.keyboard.press("Space");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("?role=alert-member: Declare Incident is disabled and says which permission is missing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      ALERT_PAGE,
+      `${CREATED_ALERT.query}&role=alert-member`,
+    );
+
+    // An alert member may still acknowledge and resolve.
+    const actions: Locator = heroActions(page);
+    await expect(actions.getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+    await expect(heroActionButton(page, "Acknowledge")).toBeEnabled();
+    await expect(heroActionButton(page, "Resolve")).toBeEnabled();
+
+    const declare: Locator = declareIncidentButton(page);
+    const wrapper: Locator = declareIncidentWrapper(page);
+    await expect(declare).toBeDisabled();
+    await expect(declare).toHaveAttribute("aria-disabled", "true");
+    expect(await declare.getAttribute("title")).toBeNull();
+    await expect(declare).toHaveCSS("opacity", "0.5");
+    await expect(declare).toHaveCSS(
+      "background-color",
+      NEUTRAL_ACTION_BACKGROUND,
+    );
+    await expect(wrapper).toHaveAttribute("tabindex", "0");
+    await expect(wrapper.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(
+      1,
+    );
+
+    // Pointing at it says why, and the wrapper is described by that reason.
+    await wrapper.hover();
+    const tooltip: Locator = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveText(DECLARE_INCIDENT_DENIED);
+    await expect(wrapper).toHaveAccessibleDescription(DECLARE_INCIDENT_DENIED);
+
+    // Clicking it goes nowhere and writes nothing.
+    await watchForDialog(page);
+    await wrapper.click();
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+
+    // The keyboard reaches it too and hears why; Enter or Space does nothing.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await heroActionButton(page, "Resolve").focus();
+    await page.keyboard.press("Tab");
+    await expect(wrapper).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText(DECLARE_INCIDENT_DENIED);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    expect(await dialogWasSeen(page), "a dialog opened").toBe(false);
+    const state: FixtureState = await fixture(page);
+    expect(state.creates).toEqual([]);
+    expect(state.updates).toEqual([]);
+  });
+
+  test("?role=loading: Declare Incident is hidden until the permission snapshot arrives", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Without permissions the details card has nothing it may show.
+    await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
+      "Investigation complete",
+    ]);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+    await expect(declareIncidentWrapper(page)).toHaveCount(0);
+  });
+
+  // Resolved and ongoing incidents are covered in "incident and alert overview".
+  test("a created incident's hero keeps only its state actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+  });
+
+  /*
+   * The header row at each width: the actions stay whole and inside the
+   * card, keep their order when they wrap, and line up on the right.
+   *
+   * - 390px (phone): the actions sit under the title and grow to fill their
+   *   rows. Acknowledge and Resolve share the first row and Declare Incident
+   *   takes the whole second one.
+   * - 768px (tablet, beside the side menu): the title and the actions share
+   *   a row, and the title squeezes the actions column until no two buttons
+   *   fit side by side, so the three actions stack one per row. That layout
+   *   is not pinned; only the limits above are.
+   * - 1024px: at most two rows.
+   * - 1280px: one row.
+   */
+  for (const alertState of [CREATED_ALERT, RESOLVED_ALERT]) {
+    for (const width of HERO_WIDTHS) {
+      test(`${alertState.name} alert hero at ${width}px keeps its actions inside the header`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, ALERT_PAGE, alertState.query);
+
+        const header: Locator = hero(page);
+        const actions: Locator = heroActions(page);
+        const labels: Array<string> = [
+          ...alertState.stateActions,
+          DECLARE_INCIDENT,
+        ];
+        await expect(actions.getByRole("button")).toHaveText(labels);
+
+        const headerBox: Box = await documentBox(header);
+        const groupBox: Box = await documentBox(actions);
+        for (const label of labels) {
+          const button: Locator = heroActionButton(page, label);
+          await expect(button).toBeVisible();
+          const box: Box = await documentBox(button);
+          expect(
+            box.x,
+            `${label} starts inside the header`,
+          ).toBeGreaterThanOrEqual(headerBox.x);
+          expect(
+            box.x + box.width,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.x + headerBox.width);
+          expect(
+            box.y + box.height,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.y + headerBox.height);
+          /*
+           * On a phone Acknowledge and Resolve split a 292px row, 142px each,
+           * 3px short of what "Acknowledge" needs, so it is truncated there.
+           * That predates Declare Incident, which always gets a row of its
+           * own on a phone and is never cut off.
+           */
+          if (!(width < 640 && label === "Acknowledge")) {
+            expect(
+              await isOverflowing(button.locator("span.truncate")),
+              `${label} is cut off`,
+            ).toBe(false);
+          }
+        }
+
+        const rows: Array<Array<string>> = await heroActionRows(page);
+        // Wrapping keeps the reading order: state actions, then Declare Incident.
+        expect(
+          rows.reduce(
+            (all: Array<string>, row: Array<string>): Array<string> => {
+              return all.concat(row);
+            },
+            [],
+          ),
+        ).toEqual(labels);
+        // Every row ends at the right edge of the action group.
+        for (const row of rows) {
+          const last: Box = await documentBox(
+            heroActionButton(page, row[row.length - 1]!),
+          );
+          expect(
+            Math.abs(last.x + last.width - (groupBox.x + groupBox.width)),
+            `row "${row.join(", ")}" is right-aligned`,
+          ).toBeLessThanOrEqual(1);
+        }
+
+        if (labels.length === 1) {
+          expect(rows).toEqual([[DECLARE_INCIDENT]]);
+        } else if (width === 390) {
+          expect(rows).toEqual([
+            ["Acknowledge", "Resolve"],
+            [DECLARE_INCIDENT],
+          ]);
+        } else if (width === 1280) {
+          expect(rows).toEqual([labels]);
+        } else if (width === 1024) {
+          expect(rows.length, "rows at 1024px").toBeLessThanOrEqual(2);
+        }
+
+        if (width === 390) {
+          // On a phone Declare Incident fills its row.
+          const declareBox: Box = await documentBox(
+            declareIncidentButton(page),
+          );
+          expect(Math.abs(declareBox.x - groupBox.x)).toBeLessThanOrEqual(1);
+          expect(
+            Math.abs(declareBox.width - groupBox.width),
+          ).toBeLessThanOrEqual(1);
+        }
+
+        // The title keeps room beside (or above) the actions.
+        const title: Box = await documentBox(
+          header.getByRole("heading", { level: 2 }),
+        );
+        expect(title.width, "title width").toBeGreaterThan(120);
+        await expectNoHorizontalOverflow(page);
+
+        await page.mouse.move(0, 0);
+        await screenshotElement(
+          header,
+          `alert-hero-${alertState.name}-${width}`,
+        );
+      });
+    }
+  }
 });
 
 /*

@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import IncidentFromAlerts, {
+  AlertForAcknowledgement,
   AlertForIncidentPrefill,
+  AlertsToAcknowledge,
+  AlertStateForAcknowledgement,
   INCIDENT_PREFILL_RESOURCE_KEYS,
   IncidentPrefillFromAlerts,
   NamedResource,
@@ -692,5 +695,304 @@ describe("IncidentFromAlerts", () => {
 
       expect(merged["onCallDutyPolicies"]).toBeUndefined();
     });
+  });
+});
+
+/*
+ * Which alerts the create page offers to acknowledge as the incident is
+ * declared. States are compared by order, as the server does: anything at or
+ * after the project's Acknowledged state (Resolved, or a custom state in
+ * between) has been acknowledged already. An alert whose state cannot be
+ * placed is offered - the server skips it if it turns out to be acknowledged.
+ */
+describe("IncidentFromAlerts.getAlertsToAcknowledge", () => {
+  const CREATED: AlertStateForAcknowledgement = {
+    id: "state-created",
+    order: 1,
+    isAcknowledgedState: false,
+  };
+  const ACKNOWLEDGED: AlertStateForAcknowledgement = {
+    id: "state-acknowledged",
+    order: 2,
+    isAcknowledgedState: true,
+  };
+  const RESOLVED: AlertStateForAcknowledgement = {
+    id: "state-resolved",
+    order: 3,
+    isAcknowledgedState: false,
+  };
+
+  const DEFAULT_ALERT_STATES: Array<AlertStateForAcknowledgement> = [
+    CREATED,
+    ACKNOWLEDGED,
+    RESOLVED,
+  ];
+
+  type AlertInStateFunction = (
+    id: string,
+    currentAlertStateId?: string | undefined,
+  ) => AlertForAcknowledgement;
+
+  const alertIn: AlertInStateFunction = (
+    id: string,
+    currentAlertStateId?: string | undefined,
+  ): AlertForAcknowledgement => {
+    return { id: id, currentAlertStateId: currentAlertStateId };
+  };
+
+  type GetFunction = (
+    alerts: Array<AlertForAcknowledgement>,
+    alertStates?: Array<AlertStateForAcknowledgement>,
+  ) => AlertsToAcknowledge | null;
+
+  const get: GetFunction = (
+    alerts: Array<AlertForAcknowledgement>,
+    alertStates?: Array<AlertStateForAcknowledgement>,
+  ): AlertsToAcknowledge | null => {
+    return IncidentFromAlerts.getAlertsToAcknowledge({
+      alerts: alerts,
+      alertStates: alertStates || DEFAULT_ALERT_STATES,
+    });
+  };
+
+  describe("when nothing could be acknowledged", () => {
+    test("is null when the project has no alert states at all", () => {
+      expect(get([alertIn("a1", CREATED.id)], [])).toBeNull();
+    });
+
+    test("is null when no state is the Acknowledged state", () => {
+      expect(
+        get(
+          [alertIn("a1", CREATED.id)],
+          [CREATED, { ...ACKNOWLEDGED, isAcknowledgedState: false }, RESOLVED],
+        ),
+      ).toBeNull();
+    });
+
+    test("is null when the Acknowledged flag is missing rather than false", () => {
+      expect(
+        get(
+          [alertIn("a1", CREATED.id)],
+          [
+            CREATED,
+            { id: ACKNOWLEDGED.id, order: ACKNOWLEDGED.order },
+            RESOLVED,
+          ],
+        ),
+      ).toBeNull();
+    });
+
+    test("is null when the Acknowledged state has no order to compare by", () => {
+      expect(
+        get(
+          [alertIn("a1", CREATED.id)],
+          [CREATED, { ...ACKNOWLEDGED, order: undefined }, RESOLVED],
+        ),
+      ).toBeNull();
+    });
+
+    test("is null without an Acknowledged state even when there are no alerts", () => {
+      expect(get([], [CREATED, RESOLVED])).toBeNull();
+    });
+  });
+
+  describe("comparing by order", () => {
+    test("offers an alert whose state comes before Acknowledged", () => {
+      expect(get([alertIn("a1", CREATED.id)])).toEqual({
+        alertIds: ["a1"],
+        alreadyAcknowledgedCount: 0,
+      });
+    });
+
+    test("leaves out an alert that is in the Acknowledged state itself", () => {
+      expect(get([alertIn("a1", ACKNOWLEDGED.id)])).toEqual({
+        alertIds: [],
+        alreadyAcknowledgedCount: 1,
+      });
+    });
+
+    test("leaves out an alert that is resolved", () => {
+      expect(get([alertIn("a1", RESOLVED.id)])).toEqual({
+        alertIds: [],
+        alreadyAcknowledgedCount: 1,
+      });
+    });
+
+    test("treats a custom state between Acknowledged and Resolved as acknowledged already", () => {
+      const investigating: AlertStateForAcknowledgement = {
+        id: "state-investigating",
+        order: 3,
+      };
+      const resolved: AlertStateForAcknowledgement = {
+        id: "state-resolved",
+        order: 4,
+      };
+
+      expect(
+        get(
+          [alertIn("a1", investigating.id), alertIn("a2", resolved.id)],
+          [CREATED, ACKNOWLEDGED, investigating, resolved],
+        ),
+      ).toEqual({ alertIds: [], alreadyAcknowledgedCount: 2 });
+    });
+
+    test("offers an alert in a custom state before Acknowledged", () => {
+      const triaged: AlertStateForAcknowledgement = {
+        id: "state-triaged",
+        order: 2,
+      };
+      const acknowledged: AlertStateForAcknowledgement = {
+        id: "state-acknowledged",
+        order: 3,
+        isAcknowledgedState: true,
+      };
+
+      expect(
+        get(
+          [alertIn("a1", triaged.id), alertIn("a2", CREATED.id)],
+          [CREATED, triaged, acknowledged, { ...RESOLVED, order: 4 }],
+        ),
+      ).toEqual({ alertIds: ["a1", "a2"], alreadyAcknowledgedCount: 0 });
+    });
+
+    test("compares by order, not by where the state sits in the list", () => {
+      // Listed newest-first: the list position must not decide anything.
+      const reversed: Array<AlertStateForAcknowledgement> = [
+        RESOLVED,
+        ACKNOWLEDGED,
+        CREATED,
+      ];
+
+      expect(
+        get(
+          [
+            alertIn("a1", RESOLVED.id),
+            alertIn("a2", CREATED.id),
+            alertIn("a3", ACKNOWLEDGED.id),
+          ],
+          reversed,
+        ),
+      ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 2 });
+    });
+
+    test("an Acknowledged order of 0 is still an order", () => {
+      const acknowledgedAtZero: AlertStateForAcknowledgement = {
+        id: "state-acknowledged",
+        order: 0,
+        isAcknowledgedState: true,
+      };
+      const before: AlertStateForAcknowledgement = {
+        id: "state-before",
+        order: -1,
+      };
+
+      expect(
+        get(
+          [
+            alertIn("a1", acknowledgedAtZero.id),
+            alertIn("a2", before.id),
+            alertIn("a3", RESOLVED.id),
+          ],
+          [before, acknowledgedAtZero, RESOLVED],
+        ),
+      ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 2 });
+    });
+  });
+
+  describe("alerts whose state cannot be placed", () => {
+    test("offers an alert whose current state is not one of the project's states", () => {
+      expect(get([alertIn("a1", "state-from-another-project")])).toEqual({
+        alertIds: ["a1"],
+        alreadyAcknowledgedCount: 0,
+      });
+    });
+
+    test("offers an alert with no current state id", () => {
+      expect(get([alertIn("a1", undefined), alertIn("a2", "")])).toEqual({
+        alertIds: ["a1", "a2"],
+        alreadyAcknowledgedCount: 0,
+      });
+    });
+
+    test("offers an alert whose current state has no order", () => {
+      const unordered: AlertStateForAcknowledgement = {
+        id: "state-unordered",
+      };
+
+      expect(
+        get(
+          [alertIn("a1", unordered.id)],
+          [CREATED, ACKNOWLEDGED, RESOLVED, unordered],
+        ),
+      ).toEqual({ alertIds: ["a1"], alreadyAcknowledgedCount: 0 });
+    });
+  });
+
+  test("matches state ids case-insensitively and ignoring surrounding spaces", () => {
+    const upperAcknowledged: AlertStateForAcknowledgement = {
+      id: "AAAAAAAA-AAAA-4AAA-8AAA-000000000002",
+      order: 2,
+      isAcknowledgedState: true,
+    };
+    const upperCreated: AlertStateForAcknowledgement = {
+      id: "AAAAAAAA-AAAA-4AAA-8AAA-000000000001",
+      order: 1,
+    };
+
+    expect(
+      get(
+        [
+          alertIn("a1", " aaaaaaaa-aaaa-4aaa-8aaa-000000000002 "),
+          alertIn("a2", "aaaaaaaa-aaaa-4aaa-8aaa-000000000001"),
+        ],
+        [upperCreated, upperAcknowledged],
+      ),
+    ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 1 });
+  });
+
+  test("keeps the alerts in the order they were given and counts the rest", () => {
+    const result: AlertsToAcknowledge | null = get([
+      alertIn("a5", CREATED.id),
+      alertIn("a1", ACKNOWLEDGED.id),
+      alertIn("a4", undefined),
+      alertIn("a2", RESOLVED.id),
+      alertIn("a3", CREATED.id),
+      alertIn("a6", RESOLVED.id),
+    ]);
+
+    expect(result).toEqual({
+      alertIds: ["a5", "a4", "a3"],
+      alreadyAcknowledgedCount: 3,
+    });
+  });
+
+  test("returns the alert ids exactly as given", () => {
+    expect(get([alertIn("ALERT-One", CREATED.id)])!.alertIds).toEqual([
+      "ALERT-One",
+    ]);
+  });
+
+  test("is empty, not null, when there are no alerts", () => {
+    expect(get([])).toEqual({ alertIds: [], alreadyAcknowledgedCount: 0 });
+  });
+
+  test("does not change its input", () => {
+    const alerts: Array<AlertForAcknowledgement> = [
+      alertIn("a1", CREATED.id),
+      alertIn("a2", ACKNOWLEDGED.id),
+    ];
+    const alertStates: Array<AlertStateForAcknowledgement> = [
+      RESOLVED,
+      CREATED,
+      ACKNOWLEDGED,
+    ];
+
+    get(alerts, alertStates);
+
+    expect(alerts).toEqual([
+      { id: "a1", currentAlertStateId: CREATED.id },
+      { id: "a2", currentAlertStateId: ACKNOWLEDGED.id },
+    ]);
+    expect(alertStates).toEqual([RESOLVED, CREATED, ACKNOWLEDGED]);
   });
 });

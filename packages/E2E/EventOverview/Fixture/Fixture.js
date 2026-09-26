@@ -42,6 +42,14 @@
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?role=   owner (default) | alert-member | loading
+ *            Who is signed in. "owner" is a master admin who is also the
+ *            Project Owner, so every permission gate is open. "alert-member"
+ *            is not a master admin and holds only Alert Member: it may
+ *            acknowledge and resolve alerts but not create an incident, so
+ *            gated actions show disabled with the reason. "loading" is the
+ *            moment before the permission snapshot arrives (no permissions
+ *            yet), when gated actions are hidden rather than refused.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -185,6 +193,9 @@ const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
+const roleMode = ["alert-member", "loading"].includes(params.get("role"))
+  ? params.get("role")
+  : "owner";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -267,6 +278,7 @@ const fixture = {
     verdict: presetVerdict,
     sm: smMode,
     fail: Array.from(failures),
+    role: roleMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -2752,11 +2764,19 @@ function evidenceRows(body) {
  * Identity and data-layer stubs
  * ---------------------------------------------------------------------------
  */
-UserUtil.isMasterAdmin = () => true;
+UserUtil.isMasterAdmin = () => roleMode === "owner";
 UserUtil.getUserId = () => people.maya.id;
 UserUtil.getName = () => people.maya.name;
 UserUtil.getEmail = () => people.maya.email;
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+PermissionUtil.getAllPermissions = () => {
+  if (roleMode === "alert-member") {
+    return [Permission.AlertMember];
+  }
+  if (roleMode === "loading") {
+    return [];
+  }
+  return [Permission.ProjectOwner];
+};
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
@@ -3183,6 +3203,8 @@ const STUB_PAGES = [
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS, "Episode Roles"],
   [PageMap.ALERT_EPISODE_VIEW_ALERTS, "Episode Member Alerts"],
   [PageMap.INCIDENTS, "Incidents"],
+  // Where "Declare Incident" in an alert's header leads (?alertIds=<alert>).
+  [PageMap.INCIDENT_CREATE, "Create Incident"],
   [PageMap.INCIDENT_EPISODES, "Incident Episodes"],
   [PageMap.ALERTS, "Alerts"],
   [PageMap.ALERT_EPISODES, "Alert Episodes"],
