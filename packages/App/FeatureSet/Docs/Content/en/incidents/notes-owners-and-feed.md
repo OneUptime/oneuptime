@@ -37,6 +37,8 @@ Open **Notes → Public Notes** in the incident side menu and create a note. The
 
 **Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created; making an episode private does not affect it.
 
+**See who the note will reach.** While **Notify Status Page Subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+
 **Posted At is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, set **Posted At** to when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
 The list shows who wrote each note, its **Posted At**, the rendered Markdown with its attachments, and a **Subscriber Notification Status** column. You can filter by **Created By**, **Note**, and **Created At**.
@@ -95,7 +97,7 @@ Creating a public note with **Notify Status Page Subscribers** on does not by it
 2. The note must belong to an incident that still exists.
 3. The incident must have at least one monitor attached — with no monitors there is no status page resource to route the note to.
 4. The incident's **Visible on Status Page** flag (`isVisibleOnStatusPage`) must be true.
-5. Each status page the incident reaches must have **Show Incidents** (`showIncidentsOnStatusPage`) turned on.
+5. Each status page the incident reaches must have **Show Incidents** (`showIncidentsOnStatusPage`) turned on. The pages it reaches are the ones that list its monitors, narrowed to the pages the incident is limited to, if any. An incident that is not limited to any page skips the pages that only show incidents limited to them. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 6. Each subscriber must pass their own preferences — not unsubscribed, and subscribed to this resource and to the `Incident` event type where the page lets subscribers choose.
 
 **Notifications are not instant.** The job that sends them runs once a minute, so expect up to about a minute between saving the note and mail leaving. That is what the **Sending Soon** label means.
@@ -120,7 +122,7 @@ The actual message subscribers get is templated per status page and per channel 
 
 The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
 
-Some items carry extra detail — an owner notification lists everyone who was mailed, for example. Those show a **More Information** button that opens a **More Information** panel.
+Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages queued on each channel and the subject its email went out with. Those show a **More Information** button that opens a **More Information** panel.
 
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
@@ -137,7 +139,7 @@ Next to it, **Refresh** re-fetches the feed.
 
 Feed items are written by the incident service itself, by both note services, by the state timeline, by owner and member changes, by linking and unlinking alerts, by the rule engines, by on-call execution, by the AI investigation and postmortem runners, and by the notification cron jobs. The event types cover:
 
-- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`.
+- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry also records the status pages added to or removed from the incident's scope.
 - **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`.
 - **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
@@ -207,4 +209,5 @@ Each notification is built for email, SMS, voice call, push and WhatsApp and han
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state machine that drives half the feed.
 - [Incident Settings & Automation](/docs/incidents/settings) — owner rules, note templates, and the rest of the automation.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — where public notes end up and who receives them.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — which status pages an incident's notes reach.
 - [Status Pages Overview](/docs/status-pages/index) — the customer-facing side of an incident.

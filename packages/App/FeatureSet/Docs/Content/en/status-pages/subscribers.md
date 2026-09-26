@@ -100,6 +100,8 @@ Events created from a template take **Event Created: Notify Status Page Subscrib
 
 `Incident` is the third event type. What makes an incident reach a status page in the first place — which resources it touches and which states keep it visible — is covered in [Incident States & Severities](/docs/incidents/states-and-severities). Public notes on an incident declared without notifying subscribers start with **Notify Status Page Subscribers** off; see [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed#posting-a-public-note).
 
+An incident's messages — created, state changed, public note and postmortem — go to the subscribers of every status page that lists one of its monitors. Two settings narrow that. **Limit to these status pages** on the incident keeps it to the pages you pick among those, and **Only Show Incidents Scoped to This Page** on a status page keeps away every incident that is not limited to it. For an incident limited to specific pages, an email address or phone number subscribed on several of them gets one email or text message per send, not one per page; webhook, Slack and Microsoft Teams messages are never merged. The declare form and the **Public Notes** page show who will be notified before anything is sent. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+
 The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
 
 ### Incident episodes
@@ -210,6 +212,7 @@ If a webhook subscription is rejected at signup, an internal or malformed URL is
 
 - [Status Pages Overview](/docs/status-pages/index) — what a status page is and how it is put together.
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — the monitors and groups subscribers can choose between.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to the status pages whose subscribers should hear about it.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — custom domains, logos and the look of the page your emails link to.
 - [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what puts an incident on a status page and what takes it off.

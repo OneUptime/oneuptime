@@ -143,6 +143,7 @@ Notification is requested per timeline row by **Notify Status Page Subscribers**
 - **The incident has no monitors attached.** With no resources, there is no status page to map the incident onto.
 - **The incident is not visible on the status page** (`isVisibleOnStatusPage` is off).
 - **The status page has incidents turned off** (`showIncidentsOnStatusPage` is off). This one is per status page — other pages showing the same monitor still get notified.
+- **The status page is outside the incident's scope.** An incident limited to some status pages with **Limit to these status pages** notifies only those pages among the ones that list its monitors, and a page with **Only Show Incidents Scoped to This Page** on is never notified about an incident that is not limited to it. This is per status page too. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **One more thing that changes the outcome.** If you type a **Public Note** into the state-change modal, the timeline row is marked as already notified rather than queued. The note itself is what reaches subscribers, so they get one message instead of two. The event type behind the plain state-change message is `Subscriber Incident State Changed`.
 
@@ -150,10 +151,11 @@ For who receives these and how the templates are chosen, see [Subscribers & Anno
 
 ## Keeping an incident off the status page
 
-Three separate things decide whether an incident is on the public page at all, and all three must be true:
+Four separate things decide whether an incident is on a public page at all, and all four must be true:
 
 - **Show Incidents** (`showIncidentsOnStatusPage`) on the status page itself.
-- **Visible on Status Page** (`isVisibleOnStatusPage`) on the incident — a toggle on the incident's **Settings** page. It defaults to true and is not on the declare wizard; a monitor criterion can set it with **Show Incident on Status Page**.
+- **Visible on Status Page** (`isVisibleOnStatusPage`) on the incident — a toggle on the incident's **Settings** page. It defaults to true and is not on the declare wizard; a monitor criterion can set it with **Show Incident on Status Page**. An incident declared hidden tells no subscriber when it is created; when you turn this toggle on later, the edit form offers **Notify subscribers that this incident was created**. See [Declaring an Incident](/docs/incidents/declaring-incidents).
+- **The page is in the incident's reach.** The page lists one of the incident's monitors and, if the incident is limited to some status pages, is one of them. A page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **The current state is not the resolved state.** This is what removes an incident from the active section: the status page query fetches incidents whose current state is any unresolved state. You do not archive or close anything — you resolve it, and it moves into history.
 
 **Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners.
@@ -167,5 +169,6 @@ How much resolved history the page keeps is a status page setting, not an incide
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public notes, private notes, and the activity feed.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, rules, and workflow triggers.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets the emails a state change sends.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to some of the status pages that list its monitors.
 - [Status Pages Overview](/docs/status-pages/index) — what a status page shows and to whom.
 - [Workflows Overview](/docs/workflows/index) — reacting to state changes with automation.

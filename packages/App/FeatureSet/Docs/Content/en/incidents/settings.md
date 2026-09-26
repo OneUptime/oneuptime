@@ -34,7 +34,7 @@ Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}
 
 - **Template Info** — **Template Name** and **Template Description**. These name the template itself; they never appear on the incident.
 - **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state.
-- **Resources Affected** — the monitors, hosts, clusters and services the incident should be attached to, plus **Change Monitor Status to**.
+- **Resources Affected** — the monitors, hosts, clusters and services the incident should be attached to, plus **Limit to these status pages** and **Change Monitor Status to**. **Limit to these status pages** limits incidents declared from the template to some of the status pages that list their monitors — a `Region East outage` template can carry the East site pages. An existing template shows it on a **Status Page Scope** card, with **Edit Status Page Scope**. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
 - **Owners** — **Owner - Teams** and **Owner - Users**.
 - **Labels** — **Labels**.
@@ -52,7 +52,7 @@ There are two paths, and they behave the same way.
 - **From the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users.
 - **From the API** — pass `createdIncidentTemplateId` on `POST /api/incident` and the server fills the incident from the template.
 
-The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies and labels are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins.
+The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies, labels and status pages are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins.
 
 **The empty-state dialog points at the wrong place.** If you have no templates yet, the **Create from Template** button shows a **No Incident Templates** dialog. Its text points at Project Settings, but the button routes to **Incidents → Settings → Incident Templates** — that is the real location.
 
@@ -268,5 +268,6 @@ For building the rest of the workflow, see [Authoring a Workflow](/docs/workflow
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — where note templates get used.
 - [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents and what the linked alert switches do.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who hears about an incident outside your team.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting incidents to some of the status pages that list their monitors.
 - [Workflows Overview](/docs/workflows/index) — automating on top of incident triggers.
 - [Runbooks Overview](/docs/runbooks/index) — the procedures runbook rules attach.

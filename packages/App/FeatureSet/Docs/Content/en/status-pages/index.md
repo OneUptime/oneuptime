@@ -105,6 +105,7 @@ Most of the display switches live in one place: **Status Pages → your page →
 - **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Turning it off also removes the **Incidents** nav item.
 - **Show Incident History (in days)** (`showIncidentHistoryInDays`) — how far back the incident list reaches. Defaults to 14.
 - **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — off by default.
+- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **Episode Settings** — the same three switches for incident episodes: **Show Episodes** (`showEpisodesOnStatusPage`, on by default), **Show Episode History (in days)** (default 14), and **Show Episode Labels** (off by default). Episodes are their own model with their own endpoints, not a view of incidents.
 
@@ -180,6 +181,7 @@ If you'd rather pull the data yourself, the status page is backed by public read
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — putting monitors on the page and organizing them into sections.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — logo, favicon, footer, custom code, and pointing your own domain at the page.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — the five subscriber channels, double opt-in, and posting announcements.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — a status page per client, site or region, and deciding per incident which of them hear about it.
 - [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
 - [Incidents Overview](/docs/incidents/index) — the events that show up on the page.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what makes an incident appear on a status page and what takes it off.

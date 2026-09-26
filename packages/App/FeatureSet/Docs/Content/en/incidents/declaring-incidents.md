@@ -38,9 +38,10 @@ Only the first step has required fields. If you are in a hurry, fill in **Incide
 ### Step 2 — Resources Affected
 
 - **Resources Affected** — a single search box that attaches monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. Under the hood these are separate relations on the incident (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
-- **Change Monitor Status to** — optional. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two.
+- **Limit to these status pages** — optional. Left empty, the incident shows on, and notifies the subscribers of, every status page that lists its monitors. Pick pages here and only the picked pages among those are used; the **Labels** tab adds every page with a label at once. The form warns you when a picked page lists none of the incident's monitors. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Change Monitor Status to** — optional. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. A monitor's status is shared by every status page that lists it, so with status pages picked above, the form reminds you that the change also shows on the pages you did not pick.
 
-**Attach monitors even when it feels redundant.** The link between an incident and a status page runs through the incident's monitors: a status page shows an incident when one of its resources is one of the incident's monitors. A state-change notification to subscribers is skipped outright when the incident has no monitors attached. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups).
+**Attach monitors even when it feels redundant.** The link between an incident and a status page runs through the incident's monitors: a status page shows an incident, and notifies its subscribers about it, when one of its resources is one of the incident's monitors. **Limit to these status pages** can only narrow that list, never add to it, and a status page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. An incident with no monitors attached notifies no status page subscriber at all. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups).
 
 ### Step 3 — Incident Roles
 
@@ -57,10 +58,12 @@ This is the only place an on-call policy is attached to an incident directly. Se
 ### Step 5 — More
 
 - **Labels** — optional and an advanced feature: team members with access to these labels are the ones who can access the incident.
-- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
-- **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, project admins and project owners — and it is hidden from every status page, regardless of any other setting. The incidents list marks these with a red **Private** pill.
+- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under it, and again on the summary before you submit, **Will notify** lists the status pages that will be told, with an "up to" subscriber count per channel, and the pages that will not be told and why. Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
+- **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, project admins and project owners — and it is hidden from every status page, regardless of any other setting, including the status pages it is limited to. The incidents list marks these with a red **Private** pill.
 
 The **Should be visible on status page?** flag (`isVisibleOnStatusPage`) is not on the wizard; it defaults to true. Change it afterwards from **Settings** in the incident side menu, where it is labeled **Visible on Status Page**.
+
+**Declaring hidden and publishing later.** An incident that is hidden from status pages when it is created tells no subscriber, and its notification status reads **Skipped: hidden from status pages**. When you later turn **Visible on Status Page** on, the edit form offers **Notify subscribers that this incident was created**, so the routine of declaring hidden, working out who is affected and then publishing still tells them. It starts ticked while the incident is unresolved and unticked once it is resolved, so publishing an old incident for the record does not announce it as new. It is only offered when the incident was declared with **Notify Status Page Subscribers** on and is not private. Through the API, send `"miscDataProps": {"notifySubscribersOfIncidentCreatedOnPublish": true}` with the update that sets `isVisibleOnStatusPage` to `true`, or set `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself.
 
 ## Declaring from a template
 
@@ -70,20 +73,21 @@ Click **Create from Template** (the outline button next to **Declare Incident**)
 
 Templates are built with their own six-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call**, **Owners**, **Labels** — with these fields:
 
-| Field                        | Purpose                                                |
-| ---------------------------- | ------------------------------------------------------ |
-| **Template Name**            | How the template is identified in the picker.          |
-| **Template Description**     | A note to your future self about when to reach for it. |
-| **Title**                    | The title pre-filled onto the incident.                |
-| **Description**              | Markdown description pre-filled onto the incident.     |
-| **Incident Severity**        | Severity pre-filled onto the incident.                 |
-| **Initial Incident State**   | The state incidents from this template start in.       |
-| **Resources Affected**       | Monitors, hosts, clusters and services to attach.      |
-| **Change Monitor Status to** | Monitor status to apply to the attached monitors.      |
-| **On-Call Policy**           | Policies to execute when the incident is created.      |
-| **Owner - Teams**            | Teams that own incidents created from this template.   |
-| **Owner - Users**            | Users that own incidents created from this template.   |
-| **Labels**                   | Labels applied to the incident.                        |
+| Field                           | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| **Template Name**               | How the template is identified in the picker.          |
+| **Template Description**        | A note to your future self about when to reach for it. |
+| **Title**                       | The title pre-filled onto the incident.                |
+| **Description**                 | Markdown description pre-filled onto the incident.     |
+| **Incident Severity**           | Severity pre-filled onto the incident.                 |
+| **Initial Incident State**      | The state incidents from this template start in.       |
+| **Resources Affected**          | Monitors, hosts, clusters and services to attach.      |
+| **Limit to these status pages** | Status pages the incident is limited to.               |
+| **Change Monitor Status to**    | Monitor status to apply to the attached monitors.      |
+| **On-Call Policy**              | Policies to execute when the incident is created.      |
+| **Owner - Teams**               | Teams that own incidents created from this template.   |
+| **Owner - Users**               | Users that own incidents created from this template.   |
+| **Labels**                      | Labels applied to the incident.                        |
 
 A few quick rules:
 
@@ -130,6 +134,7 @@ Useful fields on the request body:
 - `title` — the only field you really have to supply.
 - `declaredAt` — optional here even though the form requires it. Omit it and the server uses the current time.
 - `incidentSeverityId` and `currentIncidentStateId` — the server checks that both belong to the same project as the API key, and rejects the request if they do not. The same check applies to the monitor status behind **Change Monitor Status to**.
+- `statusPages` — the ids of the status pages to limit the incident to, all from the same project. Leave it out to reach every status page that lists the incident's monitors. `isScopedToStatusPages` is worked out from it, and a value you send for that is ignored. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - `createdIncidentTemplateId` — apply a saved template. Any field you leave out is filled from the template; any field you send is kept as-is.
 
 Related endpoints are `/api/incident-state`, `/api/incident-severity` and `/api/incident-state-timeline`. The generated [API reference](/reference) has the exact request and response shapes for each, including how relation fields such as monitors are expressed.
@@ -154,10 +159,10 @@ The create call does more than write a row. In order:
 6. **On-call rules run.** Every enabled rule at **Incidents → Rules → On-Call Rules** whose criteria match adds its policies to the incident. There is no priority order and no short-circuit — all matching rules fire and the policies are deduplicated.
 7. **Runbook rules run**, attaching and starting matching runbooks. See [Runbooks](/docs/runbooks/index).
 8. **On-call policies execute.** Every policy on the incident — picked in the wizard, inherited from a template, or added by a rule — is executed in parallel with the event type `IncidentCreated`. One policy failing does not stop the others.
-9. **Subscribers are queued**, if **Notify Status Page Subscribers** was left on and the incident is visible on the status page. Delivery is handled by a background job, not inline with your request.
+9. **Subscribers are queued**, if **Notify Status Page Subscribers** was left on and the incident is visible on the status page. Delivery is handled by a background job, not inline with your request, and goes to the status pages the incident reaches: the ones that list its monitors, narrowed by **Limit to these status pages**, and without the pages that only show incidents limited to them when it is not limited.
 10. **Workflows fire.** The **On Create Incident** trigger starts any workflow built on it. See [Workflows Overview](/docs/workflows/index).
 
-From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state not flagged `isResolvedState` counts as active), it appears on the status pages that carry one of its monitors, and its **State Timeline** starts recording.
+From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state not flagged `isResolvedState` counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording.
 
 ## Where to read next
 
@@ -166,4 +171,5 @@ From there the incident is live: it counts toward the **Active Incidents** badge
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public notes, private notes, owners and the activity feed.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, roles, rules and workflow triggers.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who hears about the incident you just declared.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to some of the status pages that list its monitors.
 - [Incident & Alert Templating](/docs/monitor/incident-alert-templating) — the variables available to auto-declared incidents.
