@@ -32,7 +32,9 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -440,6 +442,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
        * the memoized ones computed once per public note above. Every channel
        * then adds the subscriber's unsubscribeUrl, so no channel can miss a
        * variable the others have.
+       *
+       * The base values are plain text on every channel: the email body
+       * escapes them (compileEmailBodyTemplate), and only the values wrapped
+       * in SafeHtml go into it as HTML. The HTML resource list (escaped
+       * names, "<br/>" between groups) is for email bodies alone; every text
+       * channel gets the plain-text one.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
@@ -451,11 +459,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         postedAt: notePostedAt,
       };
 
-      const emailBodyTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedString,
-        note: noteHtml,
-      };
+      const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+        {
+          ...templateVariables,
+          resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedString),
+          note: SafeHtml.fromTrustedHtml(noteHtml),
+        };
 
       const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
@@ -516,10 +525,11 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-          ...emailBodyTemplateVariables,
-          unsubscribeUrl: unsubscribeUrl,
-        };
+        const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
         const subscriberPlainTextTemplateVariables: Dictionary<string> = {
           ...plainTextTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
@@ -618,7 +628,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           if (emailTemplate?.templateBody && statuspage.smtpConfig) {
             // Use custom template with BlankTemplate only when custom SMTP is configured
             const compiledBody: string =
-              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                 emailTemplate.templateBody,
                 subscriberEmailBodyTemplateVariables,
               );
@@ -690,7 +700,6 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   resourcesAffected: resourcesAffectedString,
                   incidentSeverity: incident.incidentSeverity?.name || " - ",
                   incidentTitle: incident.title || "",
-                  incidentDescription: incident.description || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     StatusPageServiceType.getSubscriberEmailFooterText(
@@ -749,7 +758,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
 **Note:**
@@ -806,7 +815,7 @@ ${incidentPublicNote.note || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
 **Note:**

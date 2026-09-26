@@ -7,9 +7,9 @@
 {{> InfoBlock info="The status of an incident affecting services you're subscribed to has been updated."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" text=incidentTitle }}
-{{> DetailBoxField title="Current State" text=incidentState  }}
-{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Incident" plainText=incidentTitle }}
+{{> DetailBoxField title="Current State" plainText=incidentState  }}
+{{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{> DetailBoxEnd this }}
 

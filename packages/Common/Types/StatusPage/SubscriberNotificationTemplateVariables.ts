@@ -4,6 +4,14 @@ import StatusPageSubscriberNotificationEventType from "./StatusPageSubscriberNot
 export interface SubscriberNotificationTemplateVariable {
   name: string;
   description: string;
+  /*
+   * In the body of an EMAIL template this variable is HTML already (rendered
+   * Markdown, or the resource list built from escaped names) and goes in as
+   * it is. Every other variable is plain text there, and is HTML-escaped (see
+   * SubscriberNotificationTemplateCompiler). A subject, SMS, Slack and Teams
+   * get every variable as text, never as HTML.
+   */
+  isHtmlInEmailBody?: boolean;
 }
 
 /*
@@ -38,7 +46,11 @@ export default class SubscriberNotificationTemplateVariables {
 
     const commonVariables: Array<SubscriberNotificationTemplateVariable> = [
       ...statusPageVariables,
-      { name: "resourcesAffected", description: "List of affected resources" },
+      {
+        name: "resourcesAffected",
+        description: "List of affected resources",
+        isHtmlInEmailBody: true,
+      },
     ];
 
     switch (eventType) {
@@ -72,6 +84,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "incidentDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "incidentSeverity", description: "Severity of the incident" },
           { name: "detailsUrl", description: "URL to view incident details" },
@@ -84,6 +97,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "incidentDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "incidentSeverity", description: "Severity of the incident" },
           {
@@ -104,7 +118,11 @@ export default class SubscriberNotificationTemplateVariables {
             description: "Current state of the incident",
           },
           { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
@@ -116,6 +134,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "postmortemNote",
             description: "Content of the postmortem note",
+            isHtmlInEmailBody: true,
           },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
@@ -131,6 +150,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "announcementDescription",
             description: "Description of the announcement",
+            isHtmlInEmailBody: true,
           },
           {
             name: "detailsUrl",
@@ -148,6 +168,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledStartTime",
@@ -173,6 +194,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledMaintenanceState",
@@ -195,13 +217,18 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "scheduledMaintenanceDescription",
             description: "Description of the scheduled maintenance",
+            isHtmlInEmailBody: true,
           },
           {
             name: "scheduledMaintenanceState",
             description: "Current state of the scheduled maintenance",
           },
           { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           {
             name: "detailsUrl",
             description: "URL to view scheduled maintenance details",
@@ -215,6 +242,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "episodeDescription",
             description: "Description of the incident",
+            isHtmlInEmailBody: true,
           },
           { name: "episodeSeverity", description: "Severity of the incident" },
           { name: "detailsUrl", description: "URL to view incident details" },
@@ -238,7 +266,11 @@ export default class SubscriberNotificationTemplateVariables {
           ...commonVariables,
           { name: "episodeTitle", description: "Title of the incident" },
           { name: "episodeSeverity", description: "Severity of the incident" },
-          { name: "note", description: "Content of the note" },
+          {
+            name: "note",
+            description: "Content of the note",
+            isHtmlInEmailBody: true,
+          },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
@@ -317,6 +349,19 @@ export default class SubscriberNotificationTemplateVariables {
       default:
         throw new BadDataException(`Unknown event type: ${eventType}`);
     }
+  }
+
+  // The variables that are HTML, not plain text, in an email template's body.
+  public static getEmailBodyHtmlVariableNamesForEventType(
+    eventType: StatusPageSubscriberNotificationEventType,
+  ): Array<string> {
+    return this.getAvailableVariablesForEventType(eventType)
+      .filter((variable: SubscriberNotificationTemplateVariable): boolean => {
+        return variable.isHtmlInEmailBody === true;
+      })
+      .map((variable: SubscriberNotificationTemplateVariable): string => {
+        return variable.name;
+      });
   }
 
   public static getVariableNamesForEventType(

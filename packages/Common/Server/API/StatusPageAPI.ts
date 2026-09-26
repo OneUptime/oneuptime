@@ -3196,8 +3196,9 @@ export default class StatusPageAPI extends BaseAPI<
             statusPage.id?.toString() || statusPage._id?.toString() || null;
 
           if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
+            // The body is HTML, so the (plain-text) values are escaped into it.
             const compiledBody: string =
-              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                 manageEmailTemplate.templateBody,
                 manageTemplateVariables,
               );

@@ -5,13 +5,18 @@
 
     `text` is RAW HTML and is rendered unescaped. Only pass it a value that
     was produced by Markdown.convertToHTML (which escapes the raw-HTML tokens
-    a user typed) or by
+    a user typed and keeps only http, https and mailto links), by
     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones (which emits
-    <br/> of its own).
+    <br/> of its own), or - in the status page subscriber emails - the
+    `resourcesAffected` list from
+    StatusPageResourceUtil.getResourcesGroupedByGroupName, which escapes
+    every resource and group name and adds only the <br/> between groups.
+    Literal text written into a template goes on `plainText` too.
 
     `plainText` is escaped by Handlebars at render time. Everything else
-    belongs here: alert titles, monitor names, series labels, severity and
-    state names, user names. Those are composed from Kubernetes resource
+    belongs here: alert, incident, episode, maintenance and announcement
+    titles, monitor names, series labels, severity and state names, user
+    names. Those are composed from Kubernetes resource
     attributes and from free text a project member typed, and a value
     containing markup in `text` puts an attacker-authored <a href> into an
     email the recipient trusts.

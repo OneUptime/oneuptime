@@ -405,15 +405,45 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
   type CompileCallsFunction = () => Array<CompileCall>;
 
+  /*
+   * Every compile, in the order it was made: the email body through
+   * compileEmailBodyTemplate (it is HTML, so its values are escaped), and
+   * the subject, SMS, Slack and Teams through compileTemplate.
+   */
   const compileCalls: CompileCallsFunction = (): Array<CompileCall> => {
-    return mockOf(
+    const recorded: Array<{ order: number; call: CompileCall }> = [];
+
+    for (const compile of [
       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-    ).mock.calls.map((call: Array<unknown>): CompileCall => {
-      return {
-        template: call[0] as string,
-        variables: call[1] as Record<string, string>,
-      };
-    });
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    ]) {
+      const calls: jest.MockContext<unknown, Array<unknown>> = mockOf(
+        compile,
+      ).mock;
+
+      calls.calls.forEach((call: Array<unknown>, index: number): void => {
+        recorded.push({
+          order: calls.invocationCallOrder[index]!,
+          call: {
+            template: call[0] as string,
+            variables: call[1] as Record<string, string>,
+          },
+        });
+      });
+    }
+
+    return recorded
+      .sort(
+        (
+          a: { order: number; call: CompileCall },
+          b: { order: number; call: CompileCall },
+        ): number => {
+          return a.order - b.order;
+        },
+      )
+      .map((entry: { order: number; call: CompileCall }): CompileCall => {
+        return entry.call;
+      });
   };
 
   type SentMailFunction = () => Array<JSONObject>;
@@ -592,6 +622,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
     jest.spyOn(
       StatusPageSubscriberNotificationTemplateServiceClass,
       "compileTemplate",
+    );
+    jest.spyOn(
+      StatusPageSubscriberNotificationTemplateServiceClass,
+      "compileEmailBodyTemplate",
     );
 
     jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined as never);
@@ -863,6 +897,42 @@ describe("StatusPageAPI manage-subscription templates", () => {
           expect(sentMail()[0]!["subject"]).toBe(
             `Manage ${PAGE_TITLE} at ${MANAGE_URL}`,
           );
+        }
+      },
+    );
+
+    /*
+     * The email body is HTML, so the page's title - which a project member
+     * typed - is escaped into it and cannot add markup. SMS, Slack and Teams
+     * show text as written, and the subject is plain text, so they get it
+     * unchanged.
+     */
+    it.each(CHANNELS)(
+      "$name: a page title holding markup is escaped only in the email body",
+      async (channel: ChannelCase) => {
+        const hostileTitle: string =
+          '<a href="https://evil.example/login">Acme</a> & "Co"';
+        useCustomTemplatesOnEveryChannel();
+        pageToSend = statusPageFixture({
+          withCustomSmtpAndSms: true,
+          pageTitle: hostileTitle,
+        });
+
+        await callManageSubscription(channel.requestData);
+
+        const message: string = renderedMessage(channel);
+
+        if (channel.method === StatusPageSubscriberNotificationMethod.Email) {
+          expect(message).toContain(
+            "statusPageName=[&lt;a href=&quot;https://evil.example/login&quot;&gt;Acme&lt;/a&gt; &amp; &quot;Co&quot;]",
+          );
+          expect(message).not.toContain("<a href");
+          expect(sentMail()[0]!["subject"]).toBe(
+            `Manage ${hostileTitle} at ${MANAGE_URL}`,
+          );
+        } else {
+          expect(message).toContain(`statusPageName=[${hostileTitle}]`);
+          expect(message).not.toMatch(/&(?:amp|lt|gt|quot|#39);/);
         }
       },
     );

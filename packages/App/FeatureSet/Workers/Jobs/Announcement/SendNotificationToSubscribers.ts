@@ -37,7 +37,9 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -347,6 +349,10 @@ const notifySubscribersOfAnnouncement: (data: {
          * both as HTML. SMS and the email subject are plain text. Slack and
          * Teams render the description's Markdown as written, and show
          * "<br/>" literally, so they get the plain-text resource list.
+         *
+         * The shared values are plain text: the email body escapes them
+         * (compileEmailBodyTemplate), and only the values wrapped in SafeHtml
+         * go into it as HTML.
          */
         const resourcesAffectedHtml: string =
           StatusPageResourceUtil.getResourcesGroupedByGroupName(
@@ -364,11 +370,14 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementTitle: announcement.title || "",
         };
 
-        const emailBodyTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedHtml,
-          announcementDescription: announcementDescriptionHtml,
-        };
+        const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...templateVariables,
+            resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedHtml),
+            announcementDescription: SafeHtml.fromTrustedHtml(
+              announcementDescriptionHtml,
+            ),
+          };
 
         const plainTextTemplateVariables: Record<string, string> = {
           ...templateVariables,
@@ -420,10 +429,11 @@ const notifySubscribersOfAnnouncement: (data: {
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
 
-            const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-              ...emailBodyTemplateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+              {
+                ...emailBodyTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
             const subscriberPlainTextTemplateVariables: Dictionary<string> = {
               ...plainTextTemplateVariables,
               unsubscribeUrl: unsubscribeUrl,
@@ -585,7 +595,7 @@ const notifySubscribersOfAnnouncement: (data: {
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const customEmailBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );

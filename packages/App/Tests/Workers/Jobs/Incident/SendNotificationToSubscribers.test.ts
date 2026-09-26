@@ -116,6 +116,27 @@ jest.mock(
       default: { getTemplateForStatusPage: jest.fn() },
       // The real substitution, recorded so tests can read the variables.
       Service: {
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
         compileTemplate: jest.fn(
           (template: string, variables: Record<string, string>): string => {
             let compiled: string = template;
@@ -225,6 +246,19 @@ import {
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -386,16 +420,33 @@ function useCustomTemplatesOnEveryChannel(): void {
   });
 }
 
-// The variables the job handed to compileTemplate for this template.
-function variablesCompiledInto(template: string): Record<string, string> {
-  const calls: Array<Array<unknown>> = mock(
+/*
+ * Every compile the job made, text and email body alike. An email body's
+ * SafeHtml values are shown as their HTML, so the variables compare with the
+ * other channels'; `emailBody` says which compile it was.
+ */
+function compileCalls(): Array<RecordedCompile> {
+  return recordedCompiles(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.filter((call: Array<unknown>): boolean => {
-    return call[0] === template;
-  });
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  );
+}
+
+// The compile the job made of this template, once.
+function compileOf(template: string): RecordedCompile {
+  const calls: Array<RecordedCompile> = compileCalls().filter(
+    (call: RecordedCompile): boolean => {
+      return call.template === template;
+    },
+  );
 
   expect(calls).toHaveLength(1);
-  return calls[0]![1] as Record<string, string>;
+  return calls[0]!;
+}
+
+// The variables the job handed to the compile of this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  return compileOf(template).variables;
 }
 
 function subscriber(): StatusPageSubscriber {
@@ -648,6 +699,17 @@ describe("Incident:SendNotificationToSubscribers, with custom templates and grou
 
   test("hands each channel's template the same variables, in that channel's format", async () => {
     await runJob();
+
+    // Only the email body is compiled as HTML.
+    expect(compileOf(CUSTOM_EMAIL_BODY).emailBody).toBe(true);
+    for (const template of [
+      CUSTOM_EMAIL_SUBJECT,
+      CUSTOM_SMS_BODY,
+      CUSTOM_SLACK_BODY,
+      CUSTOM_TEAMS_BODY,
+    ]) {
+      expect(compileOf(template).emailBody).toBe(false);
+    }
 
     const shared: Record<string, string> = {
       statusPageName: "Acme Status",
@@ -1585,6 +1647,187 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
 
     expect(sentMail()).toHaveLength(0);
     expect(sitesLookedUp()).toEqual([]);
+  });
+});
+
+/*
+ * Escaping. An incident title, its severity, the status page's name and the
+ * names of its resources and groups are plain text a project member typed.
+ * In an email they must read as those characters: unescaped, a title such as
+ * `<a href="...">Reset your password</a>` is a live link in an email the
+ * subscriber trusts. Text channels (a subject, SMS, Slack, Teams, webhooks)
+ * show text as written, so they must get no HTML entities at all.
+ */
+describe("Incident:SendNotificationToSubscribers escapes plain values in email", () => {
+  const HOSTILE_SEVERITY: string = "P1 <urgent> & loud";
+
+  const ESCAPING_EMAIL_BODY: string =
+    '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentSeverity}}</p><div>{{resourcesAffected}}</div><div>{{incidentDescription}}</div><a href="{{detailsUrl}}">Details</a> <a href="{{unsubscribeUrl}}">Unsubscribe</a>';
+  const ESCAPING_TEXT: string =
+    "{{incidentTitle}} on {{statusPageName}} ({{incidentSeverity}}): {{resourcesAffected}}";
+
+  function hostileIncident(): Incident {
+    const row: Incident = incident();
+    row.title = HOSTILE_TITLE;
+    row.incidentSeverity!.name = HOSTILE_SEVERITY;
+    return row;
+  }
+
+  function hostilePage(withCustomProviders: boolean): StatusPage {
+    const page: StatusPage = statusPage();
+    page.pageTitle = HOSTILE_PAGE_NAME;
+    if (withCustomProviders) {
+      (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+      (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+    }
+    return page;
+  }
+
+  beforeEach(() => {
+    pendingIncidents = [hostileIncident()];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      hostileResources(STATUS_PAGE_ID) as never,
+    );
+  });
+
+  describe("with custom templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([hostilePage(true)] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return {
+          templateBody:
+            method === StatusPageSubscriberNotificationMethod.Email
+              ? ESCAPING_EMAIL_BODY
+              : `${method}: ${ESCAPING_TEXT}`,
+          emailSubject:
+            method === StatusPageSubscriberNotificationMethod.Email
+              ? ESCAPING_TEXT
+              : undefined,
+        };
+      });
+    });
+
+    test("the email body escapes the title, the severity, the page name and every resource and group name", async () => {
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      const body: string = (sentMail()[0]!["vars"] as JSONObject)[
+        "body"
+      ] as string;
+
+      expect(body).toBe(
+        `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / P1 &lt;urgent&gt; &amp; loud</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${DESCRIPTION_HTML}</div><a href="${DETAILS_URL}">Details</a> <a href="${UNSUBSCRIBE_URL}">Unsubscribe</a>`,
+      );
+      expect(body).not.toContain("<script");
+      expect(body).not.toContain('<a href="https://evil.example');
+      expect(body).not.toContain("<img");
+    });
+
+    test("only the description and the resource list reach the email body as HTML", async () => {
+      await runJob();
+
+      expectOnlyTheListedHtmlVariables(
+        compileOf(ESCAPING_EMAIL_BODY).rawVariables,
+        StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+      );
+    });
+
+    test("the subject, SMS, Slack and Teams get every value as written", async () => {
+      await runJob();
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+
+      expect(sentMail()[0]!["subject"]).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+      ]);
+
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+    });
+
+    test("webhooks get the title, the page name and the resource list as written", async () => {
+      await runJob();
+
+      expect(sentWebhooks()).toHaveLength(1);
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({
+          incidentTitle: HOSTILE_TITLE,
+          incidentSeverity: HOSTILE_SEVERITY,
+          resourcesAffected: HOSTILE_RESOURCES_TEXT,
+        }),
+      );
+    });
+  });
+
+  describe("with the default templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([hostilePage(false)] as never);
+    });
+
+    /*
+     * The default template escapes the title, severity and page name itself
+     * (DetailBoxField plainText=); the resource list goes in its raw-HTML
+     * slot, so the job hands it over with every name already escaped.
+     */
+    test("the email gets the resource list with every name escaped, and the plain values as written for the template to escape", async () => {
+      await runJob();
+
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.SubscriberIncidentCreated,
+      );
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: HOSTILE_RESOURCES_HTML,
+          incidentTitle: HOSTILE_TITLE,
+          incidentSeverity: HOSTILE_SEVERITY,
+          statusPageName: HOSTILE_PAGE_NAME,
+          incidentDescription: DESCRIPTION_HTML,
+        }),
+      );
+      expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${HOSTILE_TITLE}`);
+    });
+
+    test("SMS, Slack and Teams list the resources as written, never as HTML", async () => {
+      await runJob();
+
+      expect(sentSms()).toEqual([
+        `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      ]);
+      expect(sentSlack()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+      expect(sentTeams()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+        expect(message).not.toContain("<br/>");
+      }
+    });
   });
 });
 

@@ -90,6 +90,8 @@ import ProjectService from "./ProjectService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageResourceUtil from "../Utils/StatusPageResource";
+import SafeHtml from "../../Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -208,12 +210,20 @@ export class Service extends DatabaseService<Model> {
 
         // Send email to Email subscribers.
 
+        /*
+         * The resources are read without their groups, so both forms are the
+         * names joined by commas. The HTML one, for email bodies, has every
+         * name escaped; SMS, Slack, subjects and webhooks get the names as
+         * written.
+         */
         const resourcesAffected: string =
-          statusPageToResources[statuspage._id!]
-            ?.map((r: StatusPageResource) => {
-              return r.displayName;
-            })
-            .join(", ") || "";
+          StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+            statusPageToResources[statuspage._id!] || [],
+          );
+        const resourcesAffectedHtml: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupName(
+            statusPageToResources[statuspage._id!] || [],
+          );
 
         // Fetch custom templates for each notification method
         const [
@@ -408,7 +418,20 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             const statusPageIdString: string | null =
               statuspage.id?.toString() || statuspage._id?.toString() || null;
 
-            // Prepare email variables
+            const scheduledAtHtml: string =
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: event.startsAt!,
+                timezones: statuspage.subscriberTimezones || [],
+                use12HourFormat: true,
+              });
+
+            /*
+             * The default template's variables. resourcesAffected,
+             * scheduledAt and eventDescription are HTML (the template puts
+             * them in its raw-HTML slot); the footer is HTML the status
+             * page's admins wrote, as they write the template. Everything
+             * else is plain text, which the template escapes.
+             */
             const emailVars: Record<string, string> = {
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
@@ -425,13 +448,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                 : "false",
               subscriberEmailNotificationFooterText:
                 statuspage.subscriberEmailNotificationFooterText || "",
-              resourcesAffected: resourcesAffected,
-              scheduledAt:
-                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                  date: event.startsAt!,
-                  timezones: statuspage.subscriberTimezones || [],
-                  use12HourFormat: true,
-                }),
+              resourcesAffected: resourcesAffectedHtml,
+              scheduledAt: scheduledAtHtml,
               eventTitle: event.title || "",
               eventDescription: eventDescriptionHtml,
               unsubscribeUrl: unsubscribeUrl,
@@ -448,14 +466,29 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                * is configured. The body is HTML, so the description is too.
                * The subject is plain text, including the email-only
                * variables that are HTML in the body.
+               *
+               * In the body, the plain values are escaped
+               * (compileEmailBodyTemplate) and only the ones wrapped in
+               * SafeHtml below go in as HTML.
                */
               const customEmailBody: string =
-                StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                   emailTemplate.templateBody,
                   {
                     ...templateVariables,
                     ...emailVars,
-                    scheduledMaintenanceDescription: eventDescriptionHtml,
+                    resourcesAffected: SafeHtml.fromTrustedHtml(
+                      resourcesAffectedHtml,
+                    ),
+                    scheduledAt: SafeHtml.fromTrustedHtml(scheduledAtHtml),
+                    eventDescription:
+                      SafeHtml.fromTrustedHtml(eventDescriptionHtml),
+                    scheduledMaintenanceDescription:
+                      SafeHtml.fromTrustedHtml(eventDescriptionHtml),
+                    subscriberEmailNotificationFooterText:
+                      SafeHtml.fromTrustedHtml(
+                        emailVars["subscriberEmailNotificationFooterText"],
+                      ),
                   },
                 );
               const customEmailSubject: string = emailTemplate.emailSubject

@@ -19,7 +19,9 @@ import StatusPageService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -369,8 +371,11 @@ RunCron(
               },
             );
 
-            // Send email to Email subscribers.
-
+            /*
+             * Send email to Email subscribers. The HTML list (escaped names,
+             * "<br/>" between groups) is only for email bodies; SMS, Slack,
+             * Teams, subjects and webhooks get the plain-text list.
+             */
             const resourcesAffectedString: string =
               StatusPageResourceUtil.getResourcesGroupedByGroupName(
                 statusPageToResources[statuspage._id!] || [],
@@ -381,7 +386,7 @@ RunCron(
               );
 
             logger.debug(
-              `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedString}`,
+              `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedPlainText}`,
               {
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
@@ -459,20 +464,30 @@ RunCron(
 
                   /*
                    * The custom email body is HTML (it is wrapped only by
-                   * BlankTemplate); the subject is plain text.
+                   * BlankTemplate); the subject is plain text. The shared
+                   * values are plain text: the body escapes them
+                   * (compileEmailBodyTemplate), and only the values wrapped
+                   * in SafeHtml go into it as HTML.
                    */
-                  const templateVars: Dictionary<string> = {
+                  const plainEmailTemplateVars: Dictionary<string> = {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
                     incidentSeverity: incident.incidentSeverity?.name || " - ",
                     incidentTitle: incident.title || "",
-                    postmortemNote: postmortemNoteHtml,
                     unsubscribeUrl: unsubscribeUrl,
                   };
+                  const templateVars: SubscriberNotificationEmailBodyTemplateVariables =
+                    {
+                      ...plainEmailTemplateVars,
+                      resourcesAffected: SafeHtml.fromTrustedHtml(
+                        resourcesAffectedString,
+                      ),
+                      postmortemNote:
+                        SafeHtml.fromTrustedHtml(postmortemNoteHtml),
+                    };
                   const subjectTemplateVars: Dictionary<string> = {
-                    ...templateVars,
+                    ...plainEmailTemplateVars,
                     resourcesAffected: resourcesAffectedPlainText,
                     postmortemNote: postmortemNotePlainText,
                   };
@@ -480,7 +495,7 @@ RunCron(
                   // Use custom template if available and custom SMTP is configured, otherwise use default
                   if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                     const compiledBody: string =
-                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                         emailTemplate.templateBody,
                         templateVars,
                       );
@@ -635,7 +650,7 @@ RunCron(
                         smsTemplateVars,
                       );
                   } else {
-                    smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                    smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
                   }
 
                   const sms: SMS = {
@@ -707,7 +722,7 @@ RunCron(
 
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
 **Postmortem:** ${incident.postmortemNote || ""}
 
@@ -773,7 +788,7 @@ RunCron(
                   } else {
                     teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 **Postmortem:** ${incident.postmortemNote || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                   }

@@ -23,7 +23,9 @@ import StatusPageService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -388,7 +390,12 @@ RunCron(
             ),
           ]);
 
-          const resourcesAffected: string =
+          /*
+           * The HTML list (escaped names, "<br/>" between groups) is only for
+           * email bodies; every other channel, and the email heading, which
+           * the template escapes, gets the plain-text list.
+           */
+          const resourcesAffectedHtml: string =
             StatusPageResourceUtil.getResourcesGroupedByGroupName(
               statusPageToResources[statuspage._id!] || [],
               "", // Use empty string as default for backward compatibility
@@ -415,12 +422,21 @@ RunCron(
             incidentState: incidentStateTimeline.incidentState.name,
           };
 
-          // The custom email body is HTML: nothing converts it after compiling.
-          const emailBodyTemplateVariables: Record<string, string> = {
-            ...templateVariables,
-            resourcesAffected: resourcesAffected || "None",
-            incidentDescription: incidentDescriptionHtml,
-          };
+          /*
+           * The custom email body is HTML: nothing converts it after
+           * compiling. compileEmailBodyTemplate escapes the plain values
+           * above; only the SafeHtml ones go in as HTML.
+           */
+          const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+            {
+              ...templateVariables,
+              resourcesAffected: SafeHtml.fromTrustedHtml(
+                resourcesAffectedHtml || "None",
+              ),
+              incidentDescription: SafeHtml.fromTrustedHtml(
+                incidentDescriptionHtml,
+              ),
+            };
 
           // SMS and the email subject render neither HTML nor Markdown.
           const plainTextTemplateVariables: Record<string, string> = {
@@ -479,7 +495,7 @@ RunCron(
               ).toString();
 
             // Add unsubscribeUrl to template variables
-            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
               {
                 ...emailBodyTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
@@ -567,8 +583,8 @@ RunCron(
 
             let emailTitle: string = `Incident `;
 
-            if (resourcesAffected) {
-              emailTitle += `on ${resourcesAffected} `;
+            if (resourcesAffectedPlainText) {
+              emailTitle += `on ${resourcesAffectedPlainText} `;
             }
 
             emailTitle += `is ${incidentStateTimeline.incidentState.name}`;
@@ -592,7 +608,7 @@ RunCron(
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const compiledBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );
@@ -666,7 +682,7 @@ RunCron(
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",
-                      resourcesAffected: resourcesAffected || "None",
+                      resourcesAffected: resourcesAffectedHtml || "None",
                       incidentSeverity:
                         incident.incidentSeverity?.name || " - ",
                       incidentTitle: incident.title || "",
@@ -714,9 +730,9 @@ RunCron(
 
 `;
 
-                if (resourcesAffected) {
+                if (resourcesAffectedPlainText) {
                   slackTitle += `
-**Resources Affected:** ${resourcesAffected}`;
+**Resources Affected:** ${resourcesAffectedPlainText}`;
                 }
 
                 slackTitle += `
@@ -765,9 +781,9 @@ RunCron(
 
 `;
 
-                if (resourcesAffected) {
+                if (resourcesAffectedPlainText) {
                   teamsTitle += `
-**Resources Affected:** ${resourcesAffected}`;
+**Resources Affected:** ${resourcesAffectedPlainText}`;
                 }
 
                 teamsTitle += `

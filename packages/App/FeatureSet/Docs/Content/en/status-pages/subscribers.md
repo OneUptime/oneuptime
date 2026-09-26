@@ -170,6 +170,10 @@ The **Notification Templates** card on **Subscriber Settings** lists the templat
 
 Project-wide templates live one level up, at **Status Pages → Settings → Subscriber Templates**, next to **Announcement Templates**.
 
+The body of an **Email** template is sent as HTML, so the values OneUptime puts into it are escaped: a title, a name, a severity or state and a URL read as the characters they hold, and markup in them (an incident titled `<a href="...">`, say) shows as text rather than becoming a link. Descriptions, notes, the postmortem and `{{resourcesAffected}}` are already HTML and go in as they are. The template's own HTML is sent as you wrote it. A subject, SMS, Slack and Microsoft Teams show text as written, so they get every value unchanged.
+
+Links and images in Markdown that reaches an email (descriptions, notes, announcements) are kept only for `http`, `https` and `mailto` addresses (`http` and `https` for images); any other link shows as its text.
+
 ## Email footer, custom SMTP and Twilio
 
 Three more cards on **Subscriber Settings** control how subscriber messages leave your project:

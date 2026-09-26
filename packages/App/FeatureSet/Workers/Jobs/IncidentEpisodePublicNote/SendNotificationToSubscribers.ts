@@ -32,7 +32,9 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -446,6 +448,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
        * text for SMS and the email subject, and Markdown for Slack and Teams.
        * The note conversions are the memoized ones computed once per public
        * note above.
+       *
+       * The base values are plain text on every channel: the email body
+       * escapes them (compileEmailBodyTemplate), and only the values wrapped
+       * in SafeHtml go into it as HTML. The HTML resource list (escaped
+       * names, "<br/>" between groups) is for email bodies alone; every text
+       * channel gets the plain-text one.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
@@ -455,11 +463,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
         episodeTitle: episode.title || "",
       };
 
-      const emailBodyTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedString,
-        note: noteHtml,
-      };
+      const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+        {
+          ...templateVariables,
+          resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedString),
+          note: SafeHtml.fromTrustedHtml(noteHtml),
+        };
 
       const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
@@ -520,10 +529,11 @@ const notifySubscribersOfEpisodePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-          ...emailBodyTemplateVariables,
-          unsubscribeUrl: unsubscribeUrl,
-        };
+        const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
         const subscriberPlainTextTemplateVariables: Dictionary<string> = {
           ...plainTextTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
@@ -622,7 +632,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           if (emailTemplate?.templateBody && statuspage.smtpConfig) {
             // Use custom template with BlankTemplate only when custom SMTP is configured
             const compiledBody: string =
-              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                 emailTemplate.templateBody,
                 subscriberEmailBodyTemplateVariables,
               );
@@ -693,7 +703,6 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   resourcesAffected: resourcesAffectedString,
                   episodeSeverity: episode.incidentSeverity?.name || " - ",
                   episodeTitle: episode.title || "",
-                  episodeDescription: episode.description || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     StatusPageServiceType.getSubscriberEmailFooterText(
@@ -751,7 +760,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${episode.incidentSeverity?.name || " - "}
 
 **Note:**
@@ -808,7 +817,7 @@ ${episodePublicNote.note || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${episode.incidentSeverity?.name || " - "}
 
 **Note:**

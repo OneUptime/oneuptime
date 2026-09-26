@@ -24,7 +24,9 @@ import StatusPageService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -282,6 +284,11 @@ RunCron(
                   .toString()
               : statusPageURL;
 
+          /*
+           * The HTML list (escaped names, "<br/>" between groups) is only for
+           * email bodies; SMS, Slack, Teams, subjects and webhooks get the
+           * plain-text list.
+           */
           const resourcesAffectedString: string =
             StatusPageResourceUtil.getResourcesGroupedByGroupName(
               statusPageToResources[statuspage._id!] || [],
@@ -367,12 +374,20 @@ RunCron(
            * BlankTemplate), plain text for SMS and the email subject, and
            * the Markdown as written for Slack and Teams. Only the email body
            * gets the "<br/>"-joined resource list.
+           *
+           * The shared values above are plain text: the email body escapes
+           * them (compileEmailBodyTemplate), and only the values wrapped in
+           * SafeHtml go into it as HTML.
            */
-          const emailBodyTemplateVariables: Record<string, string> = {
-            ...templateVariables,
-            resourcesAffected: resourcesAffectedString,
-            scheduledMaintenanceDescription: descriptionHtml,
-          };
+          const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+            {
+              ...templateVariables,
+              resourcesAffected: SafeHtml.fromTrustedHtml(
+                resourcesAffectedString,
+              ),
+              scheduledMaintenanceDescription:
+                SafeHtml.fromTrustedHtml(descriptionHtml),
+            };
 
           const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
@@ -415,7 +430,7 @@ RunCron(
               ).toString();
 
             // Add unsubscribeUrl to template variables for this subscriber
-            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
               {
                 ...emailBodyTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
@@ -488,7 +503,7 @@ RunCron(
 
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
               }
@@ -516,7 +531,7 @@ RunCron(
                 markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
 **Event:** ${event.title || ""}
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
               }
 
@@ -561,7 +576,7 @@ RunCron(
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const compiledBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );

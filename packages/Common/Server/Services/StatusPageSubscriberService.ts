@@ -1345,8 +1345,9 @@ Stay informed about service availability! 🚀`;
          * pattern used elsewhere — without custom SMTP we keep the styled
          * OneUptime default so emails still look right out-of-the-box).
          */
+        // The body is HTML, so the (plain-text) values are escaped into it.
         const compiledBody: string =
-          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+          StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
             customTemplate.templateBody,
             templateVariables,
           );
@@ -1566,8 +1567,9 @@ Stay informed about service availability! 🚀`;
       };
 
       if (customTemplate?.templateBody && statusPage.smtpConfig) {
+        // The body is HTML, so the (plain-text) values are escaped into it.
         const compiledBody: string =
-          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+          StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
             customTemplate.templateBody,
             templateVariables,
           );

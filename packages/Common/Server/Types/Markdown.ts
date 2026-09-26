@@ -1,6 +1,7 @@
 import { Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
+import SafeHtml from "../../Types/SafeHtml";
 
 export type MarkdownRenderer = Renderer;
 
@@ -49,6 +50,26 @@ const HTML_ENTITIES: Record<string, string> = {
   "#39": "'",
   nbsp: " ",
 };
+
+// The named references getEmailUrl decodes in a link destination.
+const URL_NAMED_CHARACTER_REFERENCES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+};
+
+/*
+ * The schemes an email may link to, and load an image from. A destination
+ * with no scheme is also allowed (see Markdown.getEmailUrl).
+ */
+export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
+  "http",
+  "https",
+  "mailto",
+];
+export const EMAIL_IMAGE_SCHEMES: ReadonlyArray<string> = ["http", "https"];
 
 type HoldFunction = (value: string) => string;
 
@@ -603,12 +624,93 @@ export default class Markdown {
    * a second implementation is a second thing to get wrong.
    */
   public static escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+    return SafeHtml.escape(text);
+  }
+
+  /**
+   * The URL a link or image in an EMAIL may point at, ready to go between
+   * the double quotes of an href or src attribute - or null when it may not
+   * be emitted at all.
+   *
+   * An email's Markdown comes from people outside the recipient's control: a
+   * public note, an incident description, a root cause built from telemetry.
+   * marked emits any destination it is given, so `[Details](javascript:...)`
+   * or `(data:text/html;base64,...)` became a live link in a status update
+   * the subscriber trusts. Only the schemes listed are kept; a destination
+   * with no scheme (a relative link or "#anchor") is kept too, as it was
+   * before, and cannot run anything.
+   *
+   * The scheme is judged on exactly the URL the recipient's mail client will
+   * see:
+   * - The character references marked leaves in a destination
+   *   ("&#x6A;avascript:") are decoded first, and the result is percent-
+   *   encoded the way marked does it (encodeURI), which also encodes every
+   *   space and control character a browser would strip out of a scheme.
+   * - The URL is then HTML-escaped into the attribute, so the client's own
+   *   decoding of the attribute gives back exactly the string that was
+   *   checked. A character reference this does not decode ("&colon;")
+   *   therefore reaches the client as literal text, never as a ":".
+   */
+  public static getEmailUrl(
+    href: string | null | undefined,
+    allowedSchemes: ReadonlyArray<string>,
+  ): string | null {
+    if (!href) {
+      return null;
+    }
+
+    let url: string;
+
+    try {
+      url = encodeURI(Markdown.decodeUrlCharacterReferences(href)).replace(
+        /%25/g,
+        "%",
+      );
+    } catch {
+      // A lone surrogate, which encodeURI refuses: no usable URL.
+      return null;
+    }
+
+    const scheme: RegExpMatchArray | null = url.match(
+      /^([a-zA-Z][a-zA-Z0-9+.-]*):/,
+    );
+
+    if (scheme && !allowedSchemes.includes(scheme[1]!.toLowerCase())) {
+      return null;
+    }
+
+    return Markdown.escapeHtml(url);
+  }
+
+  /*
+   * Numeric character references, and the named ones for the characters
+   * escapeHtml writes. Anything else is left as written, and getEmailUrl's
+   * escaping makes it inert.
+   */
+  private static decodeUrlCharacterReferences(text: string): string {
+    return text.replace(
+      /&(#[xX][0-9a-fA-F]+|#[0-9]+|amp|lt|gt|quot|apos);/g,
+      (match: string, reference: string): string => {
+        if (reference.startsWith("#")) {
+          const codePoint: number =
+            reference[1] === "x" || reference[1] === "X"
+              ? parseInt(reference.slice(2), 16)
+              : parseInt(reference.slice(1), 10);
+
+          if (
+            !Number.isFinite(codePoint) ||
+            codePoint <= 0 ||
+            codePoint > 0x10ffff
+          ) {
+            return match;
+          }
+
+          return String.fromCodePoint(codePoint);
+        }
+
+        return URL_NAMED_CHARACTER_REFERENCES[reference] ?? match;
+      },
+    );
   }
 
   /*
@@ -741,6 +843,51 @@ export default class Markdown {
         `font-family:'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;` +
         `font-size:12px;">${code}</code>`
       );
+    };
+
+    /*
+     * Links and images keep only http, https and mailto destinations (http
+     * and https for an image), plus relative ones: see getEmailUrl. Any
+     * other link renders as its text alone, and any other image as its alt
+     * text, so the words the author wrote still read in place.
+     *
+     * The markup is marked's own. `text` is the link's rendered inline
+     * content, and `title` and an image's alt text arrive already escaped by
+     * marked's tokenizer, so escaping them again would show "&amp;".
+     */
+    renderer.link = function (
+      href: string,
+      title: string | null | undefined,
+      text: string,
+    ): string {
+      const url: string | null = Markdown.getEmailUrl(href, EMAIL_LINK_SCHEMES);
+
+      if (url === null) {
+        return text;
+      }
+
+      const titleAttribute: string = title ? ` title="${title}"` : "";
+
+      return `<a href="${url}"${titleAttribute}>${text}</a>`;
+    };
+
+    renderer.image = function (
+      href: string,
+      title: string | null,
+      text: string,
+    ): string {
+      const url: string | null = Markdown.getEmailUrl(
+        href,
+        EMAIL_IMAGE_SCHEMES,
+      );
+
+      if (url === null) {
+        return text;
+      }
+
+      const titleAttribute: string = title ? ` title="${title}"` : "";
+
+      return `<img src="${url}" alt="${text}"${titleAttribute}>`;
     };
 
     this.emailRenderer = renderer;

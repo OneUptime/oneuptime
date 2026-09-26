@@ -23,7 +23,9 @@ import StatusPageService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -457,13 +459,19 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
        * text for SMS and the email subject, and Markdown for Slack and Teams.
        * The conversions are the memoized ones computed once per public note
        * above.
+       *
+       * The shared values above are plain text: the email body escapes them
+       * (compileEmailBodyTemplate), and only the values wrapped in SafeHtml
+       * go into it as HTML.
        */
-      const emailBodyTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedString,
-        scheduledMaintenanceDescription: descriptionHtml,
-        note: noteHtml,
-      };
+      const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+        {
+          ...templateVariables,
+          resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedString),
+          scheduledMaintenanceDescription:
+            SafeHtml.fromTrustedHtml(descriptionHtml),
+          note: SafeHtml.fromTrustedHtml(noteHtml),
+        };
 
       const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
@@ -515,10 +523,11 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-          ...emailBodyTemplateVariables,
-          unsubscribeUrl: unsubscribeUrl,
-        };
+        const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
         const subscriberPlainTextTemplateVariables: Dictionary<string> = {
           ...plainTextTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
@@ -676,7 +685,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           if (emailTemplate?.templateBody && statuspage.smtpConfig) {
             // Use custom template with BlankTemplate only when custom SMTP is configured
             const compiledBody: string =
-              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                 emailTemplate.templateBody,
                 subscriberEmailBodyTemplateVariables,
               );
@@ -732,7 +741,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   resourcesAffected: resourcesAffectedString,
                   scheduledAt: scheduledAtString,
                   eventTitle: event.title || "",
-                  eventDescription: event.description || "",
+                  /*
+                   * The template shows this in DetailBoxField's raw-HTML
+                   * slot, so it is the rendered Markdown. It used to be the
+                   * Markdown as written, which put any HTML the author typed
+                   * into the email live.
+                   */
+                  eventDescription: descriptionHtml,
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     StatusPageServiceType.getSubscriberEmailFooterText(

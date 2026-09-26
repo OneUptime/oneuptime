@@ -208,6 +208,91 @@ describe("SubscriberNotificationTemplateVariables", () => {
     },
   );
 
+  /*
+   * In the body of an email template, a variable is either HTML already
+   * (rendered Markdown, or the resource list built from escaped names) or
+   * plain text, which the body escapes. The workers' tests hold each worker
+   * to this split, so it has to be exactly the HTML ones: a title marked as
+   * HTML would go into the email unescaped.
+   */
+  test.each([
+    [
+      Event.SubscriberIncidentCreated,
+      ["resourcesAffected", "incidentDescription"],
+    ],
+    [
+      Event.SubscriberIncidentStateChanged,
+      ["resourcesAffected", "incidentDescription"],
+    ],
+    [Event.SubscriberIncidentNoteCreated, ["resourcesAffected", "note"]],
+    [Event.SubscriberIncidentNoteUpdated, ["resourcesAffected", "note"]],
+    [
+      Event.SubscriberIncidentPostmortemPublished,
+      ["resourcesAffected", "postmortemNote"],
+    ],
+    [
+      Event.SubscriberAnnouncementCreated,
+      ["resourcesAffected", "announcementDescription"],
+    ],
+    [
+      Event.SubscriberAnnouncementUpdated,
+      ["resourcesAffected", "announcementDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceCreated,
+      ["resourcesAffected", "scheduledMaintenanceDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceStateChanged,
+      ["resourcesAffected", "scheduledMaintenanceDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceNoteCreated,
+      ["resourcesAffected", "scheduledMaintenanceDescription", "note"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceNoteUpdated,
+      ["resourcesAffected", "scheduledMaintenanceDescription", "note"],
+    ],
+    [
+      Event.SubscriberEpisodeCreated,
+      ["resourcesAffected", "episodeDescription"],
+    ],
+    [Event.SubscriberEpisodeStateChanged, ["resourcesAffected"]],
+    [Event.SubscriberEpisodeNoteCreated, ["resourcesAffected", "note"]],
+    [Event.SubscriberEpisodeNoteUpdated, ["resourcesAffected", "note"]],
+    [Event.SubscriberSubscriptionConfirmation, []],
+    [Event.SubscriberSubscribed, []],
+    [Event.SubscriberManageSubscription, []],
+  ] as Array<[StatusPageSubscriberNotificationEventType, Array<string>]>)(
+    "%s marks exactly its HTML variables as HTML in an email body",
+    (
+      event: StatusPageSubscriberNotificationEventType,
+      htmlVariables: Array<string>,
+    ) => {
+      expect(
+        [
+          ...SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+            event,
+          ),
+        ].sort(),
+      ).toEqual([...htmlVariables].sort());
+    },
+  );
+
+  test.each(ALL_EVENTS)(
+    "%s never marks a title, name, severity, state, time or URL as HTML",
+    (event: StatusPageSubscriberNotificationEventType) => {
+      for (const name of SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+        event,
+      )) {
+        expect(name).not.toMatch(
+          /Title$|Name$|Severity$|State$|Url$|At$|Time$/,
+        );
+      }
+    },
+  );
+
   test("the report documents its structured fields rather than flat values", () => {
     const report: Array<string> = names(Event.SubscriberReport);
 

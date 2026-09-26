@@ -10,6 +10,15 @@ import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusP
 import SubscriberNotificationTemplateVariables, {
   SubscriberNotificationTemplateVariable,
 } from "../../Types/StatusPage/SubscriberNotificationTemplateVariables";
+import SubscriberNotificationTemplateCompiler, {
+  SubscriberNotificationEmailBodyTemplateVariables,
+  SubscriberNotificationTextTemplateVariables,
+} from "../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
+
+export type {
+  SubscriberNotificationEmailBodyTemplateVariables,
+  SubscriberNotificationTextTemplateVariables,
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -141,31 +150,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Compile a template with the given variables.
-   * Replaces {{variableName}} with the actual values.
+   * Compile a template for a channel that does not render HTML - an email
+   * subject, SMS, Slack or Microsoft Teams - replacing {{variableName}} with
+   * each value exactly as written.
    *
-   * One pass over the template, with a replacer function:
-   * - A replacement string would give "$&", "$$", "$`" and "$'" special
-   *   meaning, so a note mentioning "$$5" or a resource named "Store $&" was
-   *   rewritten on its way to subscribers.
-   * - Replacing one variable at a time also expanded placeholders that
-   *   appeared inside an earlier value, so a note containing
-   *   "{{unsubscribeUrl}}" came out as a link.
-   * A placeholder with no variable is left as written.
+   * Never use it for the body of an email template, which is HTML: use
+   * compileEmailBodyTemplate. See SubscriberNotificationTemplateCompiler.
    */
   public static compileTemplate(
     template: string,
-    variables: Record<string, string>,
+    variables: SubscriberNotificationTextTemplateVariables,
   ): string {
-    return template.replace(
-      /{{\s*([\w.]+)\s*}}/g,
-      (placeholder: string, name: string): string => {
-        if (!Object.prototype.hasOwnProperty.call(variables, name)) {
-          return placeholder;
-        }
+    return SubscriberNotificationTemplateCompiler.compileTemplate(
+      template,
+      variables,
+    );
+  }
 
-        return variables[name] || "";
-      },
+  /**
+   * Compile the body of an EMAIL template, which is sent as HTML. Plain
+   * values are HTML-escaped; only a SafeHtml value (rendered Markdown, the
+   * date helper's HTML, the escaped resource list) is inserted as it is. See
+   * SubscriberNotificationTemplateCompiler.
+   */
+  public static compileEmailBodyTemplate(
+    template: string,
+    variables: SubscriberNotificationEmailBodyTemplateVariables,
+  ): string {
+    return SubscriberNotificationTemplateCompiler.compileEmailBodyTemplate(
+      template,
+      variables,
     );
   }
 }
