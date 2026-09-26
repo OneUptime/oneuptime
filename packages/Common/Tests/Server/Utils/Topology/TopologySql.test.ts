@@ -471,13 +471,13 @@ describe("TopologySql statements", () => {
       const sql: string = normalize(statement.sql);
       expect(statement.params).toContainEqual(["svc-a", HOSTILE]);
       expect(statement.params).toContainEqual(["svc-b", HOSTILE]);
-      const callees: string = `$${statement.params.findIndex(
-        (param: unknown): boolean => {
+      const callees: string = `$${
+        statement.params.findIndex((param: unknown): boolean => {
           return (
             Array.isArray(param) && (param as Array<string>)[0] === "svc-b"
           );
-        },
-      ) + 1}`;
+        }) + 1
+      }`;
       expect(sql).toContain(`r."toEntityKey" = ANY(${callees}::text[])`);
       expect(sql).toContain(`r."fromEntityKey" <> r."toEntityKey"`);
       expect(sql).toContain(

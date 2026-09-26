@@ -930,11 +930,16 @@ describe("TopologyQueries", () => {
         ]);
       }
 
-      function callStatements(database: FakeDatabase): Array<RecordedStatement> {
+      function callStatements(
+        database: FakeDatabase,
+      ): Array<RecordedStatement> {
         return dataStatements(database).filter(
           (statement: RecordedStatement): boolean => {
-            return statement.sql.includes('FROM "InventoryItemRelationship" r WHERE') &&
-              statement.sql.includes('r."toEntityKey" = ANY(');
+            return (
+              statement.sql.includes(
+                'FROM "InventoryItemRelationship" r WHERE',
+              ) && statement.sql.includes('r."toEntityKey" = ANY(')
+            );
           },
         );
       }
@@ -956,7 +961,13 @@ describe("TopologyQueries", () => {
         expect(statement!.params[3]).toEqual(["svc-a", "svc-c"]);
         expect(statement!.params[4]).toEqual(["svc-a", "svc-c"]);
         expect(response.dependencies).toEqual([
-          { from: 0, to: 2, callCount: 3, errorCount: null, avgDurationMs: null },
+          {
+            from: 0,
+            to: 2,
+            callCount: 3,
+            errorCount: null,
+            avgDurationMs: null,
+          },
         ]);
       });
 
@@ -1028,7 +1039,10 @@ describe("TopologyQueries", () => {
               avgDurationMs: null,
             },
           ]);
-          expect(response.dependencyTruncation).toEqual({ shown: 1, total: 17 });
+          expect(response.dependencyTruncation).toEqual({
+            shown: 1,
+            total: 17,
+          });
           const counted: RecordedStatement = dataStatements(database).find(
             (statement: RecordedStatement): boolean => {
               return statement.sql.startsWith(

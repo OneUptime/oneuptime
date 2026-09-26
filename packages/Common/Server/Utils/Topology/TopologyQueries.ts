@@ -724,11 +724,9 @@ export default class TopologyQueries {
   ): Promise<void> {
     const placedServiceIndexes: Array<number> = Array.from(
       new Set<number>(
-        data.response.placements.map(
-          (placement: [number, number]): number => {
-            return placement[0];
-          },
-        ),
+        data.response.placements.map((placement: [number, number]): number => {
+          return placement[0];
+        }),
       ),
     ).sort((left: number, right: number): number => {
       return left - right;

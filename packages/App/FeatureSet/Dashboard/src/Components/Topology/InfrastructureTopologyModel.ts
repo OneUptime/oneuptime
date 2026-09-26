@@ -649,7 +649,9 @@ export function buildInfrastructureTopologyModel(
   }
   serviceCalls.sort(
     (left: InfrastructureServiceCall, right: InfrastructureServiceCall) => {
-      return compareKeys(left.from, right.from) || compareKeys(left.to, right.to);
+      return (
+        compareKeys(left.from, right.from) || compareKeys(left.to, right.to)
+      );
     },
   );
 

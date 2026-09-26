@@ -133,7 +133,11 @@ function aksEntities(): Array<TopologyEntity> {
       EntityType.KubernetesPod,
       "wb-ims-backend-76c6f6c8d9-x2k9p",
     ),
-    entity("pod-blob", EntityType.KubernetesPod, "wb-ims-blob-56d969fb98-q8zwm"),
+    entity(
+      "pod-blob",
+      EntityType.KubernetesPod,
+      "wb-ims-blob-56d969fb98-q8zwm",
+    ),
     entity(
       "pod-edh",
       EntityType.KubernetesPod,
@@ -294,7 +298,13 @@ describe("the calls a model keeps", () => {
         errors: 30,
         avgDurationMs: 120,
       },
-      { from: "svc-edh", to: "svc-blob", calls: 60, errors: 0, avgDurationMs: 20 },
+      {
+        from: "svc-edh",
+        to: "svc-blob",
+        calls: 60,
+        errors: 0,
+        avgDurationMs: 20,
+      },
       {
         from: "svc-mcp",
         to: "svc-backend",
@@ -310,7 +320,12 @@ describe("the calls a model keeps", () => {
       [
         ...aksEntities(),
         entity("svc-cron", EntityType.Service, "nightly-cron"),
-        entity("pod-old", EntityType.KubernetesPod, "old-6b7c8d9f5-zz2wq", LONG_AGO),
+        entity(
+          "pod-old",
+          EntityType.KubernetesPod,
+          "old-6b7c8d9f5-zz2wq",
+          LONG_AGO,
+        ),
         entity("svc-old", EntityType.Service, "old"),
       ],
       [
@@ -414,10 +429,9 @@ describe("the calls a model keeps", () => {
 describe("traffic between the cards of a map", () => {
   test("a call between services on one card stays inside it", () => {
     const model: InfrastructureTopologyModel = aksModel();
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["node-k"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "node-k",
+    ]);
     expect(traffic.links).toEqual([]);
   });
 
@@ -427,10 +441,10 @@ describe("traffic between the cards of a map", () => {
       call("svc-blob", "svc-edh", 40, 0, 5),
       call("svc-edh", "svc-blob", 60, 0, 20),
     ]);
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["pod-blob", "pod-edh"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "pod-blob",
+      "pod-edh",
+    ]);
     expect(lines(traffic)).toEqual([
       "pod-blob -> pod-edh",
       "pod-edh -> pod-blob",
@@ -441,10 +455,11 @@ describe("traffic between the cards of a map", () => {
 
   test("a call whose services run on several cards is drawn on every line between them", () => {
     const model: InfrastructureTopologyModel = aksModel();
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["pod-backend", "pod-backend-2", "pod-blob"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "pod-backend",
+      "pod-backend-2",
+      "pod-blob",
+    ]);
     /*
      * Traffic is measured per service pair, so neither replica can be told
      * apart: each line carries the whole call.
@@ -506,10 +521,10 @@ describe("traffic between the cards of a map", () => {
       ],
       { rangeStart: RANGE_START },
     );
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["left", "right"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "left",
+      "right",
+    ]);
     expect(lines(traffic)).toEqual(["left -> right"]);
     const link: InfrastructureTrafficLink = traffic.links[0]!;
     expect(link.calls).toBe(500);
@@ -533,10 +548,10 @@ describe("traffic between the cards of a map", () => {
       ...aksPlacement(),
       call("svc-backend", "svc-blob"),
     ]);
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["pod-backend", "pod-blob"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "pod-backend",
+      "pod-blob",
+    ]);
     expect(traffic.links).toHaveLength(1);
     expect(traffic.links[0]).toMatchObject({
       calls: 0,
@@ -569,10 +584,12 @@ describe("traffic between the cards of a map", () => {
       ],
       { rangeStart: RANGE_START },
     );
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["h-caller", "h-ok", "h-wobbly", "h-broken"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "h-caller",
+      "h-ok",
+      "h-wobbly",
+      "h-broken",
+    ]);
     expect(linkBetween(traffic, "h-caller", "h-ok").health).toBe("healthy");
     expect(linkBetween(traffic, "h-caller", "h-wobbly").health).toBe(
       "degraded",
@@ -584,10 +601,12 @@ describe("traffic between the cards of a map", () => {
 
   test("only the cards asked for take part, each once", () => {
     const model: InfrastructureTopologyModel = aksModel();
-    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(
-      model,
-      ["pod-backend", "pod-blob", "pod-blob", "not-a-node"],
-    );
+    const traffic: InfrastructureTraffic = computeInfrastructureTraffic(model, [
+      "pod-backend",
+      "pod-blob",
+      "pod-blob",
+      "not-a-node",
+    ]);
     expect(lines(traffic)).toEqual(["pod-backend -> pod-blob"]);
     expect(linkBetween(traffic, "pod-backend", "pod-blob").calls).toBe(1200);
   });
