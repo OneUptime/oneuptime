@@ -42,6 +42,15 @@ interface TestResult {
   readonly value: string;
 }
 
+interface ExitingWorkerConfig {
+  readonly reply: "success" | "failure" | "none";
+}
+
+interface ChannelHandle {
+  readStart: () => number;
+  readStop: () => number;
+}
+
 type SendCallback = (error: Error | null) => void;
 
 const SYSTEM_TEMP_DIRECTORY: string = os.tmpdir();
@@ -119,6 +128,7 @@ class FakeChildProcess extends EventEmitter {
   public readonly sentMessages: unknown[] = [];
   public onSend: ((message: unknown) => void) | undefined;
   public sendError: Error | undefined;
+  public connected: boolean = true;
 
   public readonly send: jest.Mock<
     boolean,
@@ -142,6 +152,41 @@ class FakeChildProcess extends EventEmitter {
 
 function asChildProcess(child: FakeChildProcess): ChildProcess {
   return child as unknown as ChildProcess;
+}
+
+/*
+ * Stops the parent reading a real child's IPC channel until it has handled the
+ * child's exit, then reads on. A busy probe sees that order now and then --
+ * 'exit' first, the reply still unread -- and this makes it certain. Node
+ * keeps the pipe under an unexported symbol; should that change, the test
+ * fails here rather than passing without holding anything back.
+ */
+function readChannelOnlyAfterExit(child: ChildProcess): void {
+  const key: symbol | undefined = Object.getOwnPropertySymbols(child).find(
+    (candidate: symbol) => {
+      return candidate.description === "kChannelHandle";
+    },
+  );
+  const channelHandle: Partial<ChannelHandle> | undefined = key
+    ? (child as unknown as Record<symbol, Partial<ChannelHandle> | undefined>)[
+        key
+      ]
+    : undefined;
+
+  if (
+    typeof channelHandle?.readStart !== "function" ||
+    typeof channelHandle.readStop !== "function"
+  ) {
+    throw new Error("The child's IPC channel handle could not be found.");
+  }
+
+  const handle: ChannelHandle = channelHandle as ChannelHandle;
+  handle.readStop();
+  child.once("exit", () => {
+    global.setImmediate(() => {
+      handle.readStart();
+    });
+  });
 }
 
 function getForkMock(): jest.Mock {
@@ -235,10 +280,23 @@ async function captureRunFailure(
     );
 }
 
+function emitDisconnect(child: FakeChildProcess): void {
+  if (!child.connected) {
+    return;
+  }
+  child.connected = false;
+  child.emit("disconnect");
+}
+
+/*
+ * A real worker's IPC channel closes as it exits. The runner concludes that a
+ * worker returned nothing only once it has seen both.
+ */
 function emitExit(
   child: FakeChildProcess,
   signal: NodeJS.Signals | null,
 ): void {
+  emitDisconnect(child);
   child.emit("exit", signal ? null : 0, signal);
   child.stdout.end();
   child.stderr.end();
@@ -2196,6 +2254,147 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(runner.activeCount).toBe(0);
   });
 
+  test("returns a reply that is read after the worker's exit", async () => {
+    /*
+     * Node can emit a worker's 'exit' before the last 'message' on its IPC
+     * channel. A worker that replied and exited at once then failed with
+     * "exited before returning a result" despite having returned one.
+     */
+    const child: FakeChildProcess = new FakeChildProcess(46_101);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        child.emit("exit", 0, null);
+        emitSuccess(child, { value: "read-after-exit" });
+        emitDisconnect(child);
+      });
+    };
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const result: ProcessRunResult<TestResult> = await runner.run<
+      TestConfig,
+      TestResult
+    >({
+      payload: { monitorId: "monitor-1" },
+      timeoutInMs: 1000,
+      validateResult: isTestResult,
+    });
+
+    expect(result.result).toEqual({ value: "read-after-exit" });
+    expect(runner.activeCount).toBe(0);
+  });
+
+  test("keeps a worker's own error when its reply is read after its exit", async () => {
+    /*
+     * A worker that fails before launching its browser has nothing to close,
+     * so it exits the moment it has replied. Its error is the one the monitor
+     * has to show, not a generic note that it exited.
+     */
+    const child: FakeChildProcess = new FakeChildProcess(46_102);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        child.emit("exit", 0, null);
+        emitFailure(
+          child,
+          new Error("Synthetic worker run directory is unavailable."),
+        );
+        emitDisconnect(child);
+      });
+    };
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error.message).toContain(
+      "Synthetic worker run directory is unavailable.",
+    );
+    expect(error.message).not.toContain("exited before returning a result");
+    expect(runner.activeCount).toBe(0);
+  });
+
+  test("concludes that a worker returned nothing only once its channel has closed", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(46_103);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    let hasSettled: boolean = false;
+    const run: Promise<ProcessRunResult<TestResult>> = runner.run<
+      TestConfig,
+      TestResult
+    >({
+      payload: { monitorId: "monitor-1" },
+      timeoutInMs: 5000,
+      validateResult: isTestResult,
+    });
+    run.then(
+      (): void => {
+        hasSettled = true;
+      },
+      (): void => {
+        hasSettled = true;
+      },
+    );
+
+    await waitFor(() => {
+      return child.sentMessages.length === 1;
+    }, "the start envelope");
+    child.emit("exit", 0, null);
+    await new Promise<void>((resolve: () => void) => {
+      global.setTimeout(resolve, 50);
+    });
+
+    // A reply could still be waiting in the channel.
+    expect(hasSettled).toBe(false);
+
+    emitDisconnect(child);
+
+    await expect(run).rejects.toMatchObject({
+      name: "SyntheticProcessRunnerError",
+      message:
+        "Synthetic worker exited before returning a result (code: 0, signal: none).",
+    });
+    expect(runner.activeCount).toBe(0);
+  });
+
+  test("reports how a worker ended when its channel closes before its exit", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(46_104);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitExit(child, "SIGKILL");
+      });
+    };
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await captureRunFailure(runner);
+
+    expect(error.message).toBe(
+      "Synthetic worker exited before returning a result (code: null, signal: SIGKILL).",
+    );
+    expect(runner.activeCount).toBe(0);
+  });
+
   test("uses a bounded queue and rejects excess executions", async () => {
     jest.spyOn(process, "getuid").mockReturnValue(501);
     const firstChild: FakeChildProcess = new FakeChildProcess(47_001);
@@ -3008,6 +3207,110 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(result.stdout).toContain("real-worker-started");
     expect(runner.activeCount).toBe(0);
   }, 15_000);
+
+  describe("a real worker that replies and exits at once", () => {
+    const actualChildProcess: typeof import("child_process") =
+      jest.requireActual("child_process");
+
+    beforeEach(() => {
+      (process.kill as unknown as jest.Mock).mockRestore();
+      getExecFileSyncMock().mockImplementation(actualChildProcess.execFileSync);
+    });
+
+    /*
+     * Forks the real fixture and records the order in which the parent sees
+     * the worker's exit and its reply.
+     */
+    function forkExitingWorker(data: {
+      readonly readOnlyAfterExit: boolean;
+    }): string[] {
+      const events: string[] = [];
+      getForkMock().mockImplementation(
+        (
+          modulePath: string,
+          args: ReadonlyArray<string>,
+          options: ForkOptions,
+        ): ChildProcess => {
+          const child: ChildProcess = actualChildProcess.fork(
+            modulePath,
+            args,
+            options,
+          );
+          if (data.readOnlyAfterExit) {
+            readChannelOnlyAfterExit(child);
+          }
+          child.once("exit", () => {
+            events.push("exit");
+          });
+          child.on("message", () => {
+            events.push("message");
+          });
+          return child;
+        },
+      );
+      return events;
+    }
+
+    function runExitingWorker(
+      reply: ExitingWorkerConfig["reply"],
+    ): Promise<ProcessRunResult<TestResult>> {
+      const runner: ProcessRunner = new ProcessRunner({
+        workerEntryPath: path.join(
+          __dirname,
+          "Fixtures",
+          "ProcessRunnerExitingWorker.cjs",
+        ),
+        concurrencyLimit: 1,
+        terminationGraceInMs: 200,
+        killWaitInMs: 200,
+      });
+      return runner.run<ExitingWorkerConfig, TestResult>({
+        payload: { reply },
+        timeoutInMs: 5000,
+        validateResult: isTestResult,
+      });
+    }
+
+    test("returns a reply the parent reads only after the worker's exit", async () => {
+      if (process.platform === "win32") {
+        return;
+      }
+      const events: string[] = forkExitingWorker({ readOnlyAfterExit: true });
+
+      const result: ProcessRunResult<TestResult> =
+        await runExitingWorker("success");
+
+      expect(result.result).toEqual({ value: "replied-then-exited" });
+      expect(events).toEqual(["exit", "message"]);
+    }, 15_000);
+
+    test("keeps the worker's own error when the parent reads it only after the worker's exit", async () => {
+      if (process.platform === "win32") {
+        return;
+      }
+      const events: string[] = forkExitingWorker({ readOnlyAfterExit: true });
+
+      await expect(runExitingWorker("failure")).rejects.toMatchObject({
+        name: "SyntheticProcessRunnerError",
+        message: "Synthetic worker run directory is unavailable.",
+      });
+      expect(events).toEqual(["exit", "message"]);
+    }, 15_000);
+
+    test("still reports a worker that exits without replying", async () => {
+      if (process.platform === "win32") {
+        return;
+      }
+      const events: string[] = forkExitingWorker({ readOnlyAfterExit: false });
+
+      await expect(runExitingWorker("none")).rejects.toMatchObject({
+        name: "SyntheticProcessRunnerError",
+        message:
+          "Synthetic worker exited before returning a result (code: 3, signal: none).",
+      });
+      expect(events).toEqual(["exit"]);
+    }, 15_000);
+  });
 
   describe("process-tree memory limit on Linux", () => {
     const LIMIT_BYTES: number = 1_610_612_736;
