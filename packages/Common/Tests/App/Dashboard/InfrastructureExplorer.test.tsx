@@ -17,20 +17,36 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "../../../Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
 import ObjectID from "../../../Types/ObjectID";
 import InfrastructureExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
+import type {
+  CollectionPage,
+  CollectionPageRequest,
+  CollectionSearchRequest,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureCollectionApi";
+import {
+  EntityDetailTarget,
+  InfrastructureCollection,
+  InfrastructureTotals,
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyTruncation,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The Infrastructure explorer: a tree of things that contain things, a table
  * of what is inside the selected scope, a map of one level, and search. The
  * estate used here is the one that motivated the redesign — application pods
- * that reported themselves as hosts, most of them long gone.
+ * that reported themselves as hosts, most of them long gone — plus, where it
+ * matters, a collection too large to ship row by row and a tree too large to
+ * open fully.
+ *
+ * The map, the details drawer and the collection transport are the
+ * boundaries replaced here; each has its own tests.
  */
 
 jest.mock("react-i18next", () => {
@@ -98,32 +114,98 @@ jest.mock(
     };
   },
 );
+
+/*
+ * The drawer fetches its own details; here it only shows what it was handed
+ * (the preview target) and exposes its callbacks. Every mount is recorded so
+ * a test can see what the page asked it to show.
+ */
+interface DrawerProps {
+  entity: EntityDetailTarget;
+  rangeStart: Date | null | undefined;
+  metricsWindowSeconds: number;
+  onClose: () => void;
+  onFocus?: ((key: string) => void) | undefined;
+  focusButtonLabel?: string | undefined;
+  onSelectEntity?: ((target: EntityDetailTarget) => void) | undefined;
+  onOpenInfrastructure?: ((key: string) => void) | undefined;
+}
+const mockDrawerMounts: Array<DrawerProps> = [];
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel",
   () => {
-    return {
-      __esModule: true,
-      default: (props: {
-        entity: InventoryItem;
-        onClose: () => void;
-        onFocus: (key: string) => void;
-        focusButtonLabel?: string;
-      }): React.ReactElement => {
-        return (
-          <div role="dialog" aria-label={props.entity.displayName}>
-            <button type="button" onClick={props.onClose}>
-              Close resource details
-            </button>
+    const MockDrawer: (props: DrawerProps) => React.ReactElement = (
+      props: DrawerProps,
+    ): React.ReactElement => {
+      React.useEffect(() => {
+        mockDrawerMounts.push(props);
+      }, []);
+      return (
+        <div
+          role="dialog"
+          aria-label={props.entity.displayName || props.entity.entityKey}
+          data-entity-type={props.entity.entityType || ""}
+          data-range-start={props.rangeStart?.toISOString() || ""}
+          data-metrics-window={props.metricsWindowSeconds}
+          data-opens-infrastructure={String(
+            Boolean(props.onOpenInfrastructure),
+          )}
+        >
+          <button type="button" onClick={props.onClose}>
+            Close resource details
+          </button>
+          {props.onFocus && (
             <button
               type="button"
               onClick={() => {
-                props.onFocus(props.entity.entityKey!);
+                props.onFocus?.(props.entity.entityKey);
               }}
             >
               {props.focusButtonLabel}
             </button>
-          </div>
-        );
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              props.onSelectEntity?.({
+                entityKey: "api",
+                entityType: EntityType.Service,
+                displayName: "api",
+              });
+            }}
+          >
+            Select the api service
+          </button>
+        </div>
+      );
+    };
+    return { __esModule: true, default: MockDrawer };
+  },
+);
+
+const mockFetchCollectionPage: MockFunction = getJestMockFunction();
+const mockFetchCollectionSearchCounts: MockFunction = getJestMockFunction();
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureCollectionApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchCollectionPage: (...args: Array<unknown>): unknown => {
+        return mockFetchCollectionPage(...args);
+      },
+      fetchCollectionSearchCounts: (...args: Array<unknown>): unknown => {
+        return mockFetchCollectionSearchCounts(...args);
+      },
+      isCollectionSearchable: (terms: Array<string>): boolean => {
+        return terms.length <= 10;
+      },
+      describeCollectionError: (
+        error: unknown,
+      ): { isOutdated: boolean; detail: string } => {
+        return {
+          isOutdated: false,
+          detail: error instanceof Error ? error.message : "",
+        };
       },
     };
   },
@@ -138,29 +220,38 @@ function entity(
   type: EntityType,
   name: string = key,
   lastSeenAt: Date = NOW,
-): InventoryItem {
-  const item: InventoryItem = new InventoryItem();
-  item.entityKey = key;
-  item.entityType = type;
-  item.displayName = name;
-  item.lastSeenAt = lastSeenAt;
-  item.source = EntitySource.Discovered;
-  return item;
+): TopologyEntity {
+  return {
+    entityKey: key,
+    entityType: type,
+    displayName: name,
+    lastSeenAt,
+    source: EntitySource.Discovered,
+  };
 }
-function hostedOn(from: string, to: string): InventoryItemRelationship {
-  const item: InventoryItemRelationship = new InventoryItemRelationship();
-  item.fromEntityKey = from;
-  item.toEntityKey = to;
-  item.relationshipType = EntityRelationshipType.HostedOn;
-  return item;
+function relationship(
+  from: string,
+  to: string,
+  type: EntityRelationshipType,
+): TopologyRelationship {
+  return { fromEntityKey: from, toEntityKey: to, relationshipType: type };
+}
+function hostedOn(from: string, to: string): TopologyRelationship {
+  return relationship(from, to, EntityRelationshipType.HostedOn);
 }
 
 const APP_GROUP: string = "group:category:compute:host|oneuptime-app";
+const IOT: string = "collection:iot.device";
 
-function fixtures(): {
-  entities: Array<InventoryItem>;
-  relationships: Array<InventoryItemRelationship>;
-} {
+interface Fixture {
+  entities: Array<TopologyEntity>;
+  relationships: Array<TopologyRelationship>;
+  collections?: Array<InfrastructureCollection>;
+  totals?: InfrastructureTotals;
+  truncation?: TopologyTruncation | null;
+}
+
+function fixtures(): Fixture {
   return {
     entities: [
       entity("api", EntityType.Service),
@@ -189,17 +280,89 @@ function fixtures(): {
   };
 }
 
+/* The same estate plus 5,000 IoT devices the server summarized. */
+function withCollection(): Fixture {
+  const base: Fixture = fixtures();
+  return {
+    ...base,
+    entities: [
+      ...base.entities,
+      entity("switch", EntityType.NetworkDevice, "core-switch"),
+    ],
+    collections: [
+      {
+        entityType: EntityType.IoTDevice,
+        total: 5000,
+        active: 4200,
+        lastSeenAt: NOW,
+        activeLastSeenAt: NOW,
+      },
+    ],
+  };
+}
+
+/*
+ * More than 200 containers: 250 hosts that each hold a container, plus one
+ * Kubernetes cluster → namespace → deployment → pods. Too many to open the
+ * whole tree by default.
+ */
+function largeFixture(): Fixture {
+  const entities: Array<TopologyEntity> = [
+    entity("cluster", EntityType.KubernetesCluster, "prod"),
+    entity("ns", EntityType.KubernetesNamespace, "shop"),
+    entity("deploy", EntityType.KubernetesDeployment, "checkout"),
+    entity("pod-1", EntityType.KubernetesPod, "checkout-6d4f8b9c7d-x2k9p"),
+    entity("pod-2", EntityType.KubernetesPod, "checkout-6d4f8b9c7d-q8zwm"),
+  ];
+  const relationships: Array<TopologyRelationship> = [
+    relationship("ns", "cluster", EntityRelationshipType.MemberOf),
+    relationship("deploy", "ns", EntityRelationshipType.MemberOf),
+    relationship("pod-1", "deploy", EntityRelationshipType.PartOf),
+    relationship("pod-2", "deploy", EntityRelationshipType.PartOf),
+  ];
+  for (let index: number = 0; index < 250; index++) {
+    const host: string = `host-${String(index).padStart(3, "0")}`;
+    entities.push(entity(host, EntityType.Host, `${host}.internal`));
+    entities.push(
+      entity(`${host}/c`, EntityType.Container, `${host}-container`),
+    );
+    relationships.push(
+      relationship(`${host}/c`, host, EntityRelationshipType.PartOf),
+    );
+  }
+  return { entities, relationships };
+}
+
+function page(
+  items: Array<TopologyEntity>,
+  total: number,
+  nextCursor: { name: string; key: string } | null,
+): CollectionPage {
+  return {
+    rangeStart: RANGE_START,
+    entityType: EntityType.IoTDevice,
+    total,
+    items,
+    nextCursor,
+  };
+}
+
 function renderExplorer(
   options: {
-    data?: ReturnType<typeof fixtures>;
+    data?: Fixture;
     includeInactive?: boolean;
     onOpenServiceMap?: (key: string) => void;
   } = {},
 ): void {
+  const data: Fixture = options.data || fixtures();
   render(
     <MemoryRouter>
       <InfrastructureExplorer
-        {...(options.data || fixtures())}
+        entities={data.entities}
+        relationships={data.relationships}
+        collections={data.collections}
+        totals={data.totals}
+        truncation={data.truncation}
         metricsWindowSeconds={900}
         rangeStart={RANGE_START}
         includeInactive={options.includeInactive}
@@ -220,12 +383,39 @@ function rows(): Array<HTMLElement> {
   return screen.queryAllByTestId("infrastructure-row");
 }
 
+/*
+ * The large fixture's tree is queried by label rather than by role: jsdom
+ * computes styles for every candidate of a role query, which made those
+ * tests take seconds each.
+ */
+function tree(): HTMLElement {
+  const aside: HTMLElement | null = document.querySelector(
+    'aside[aria-label="Infrastructure tree"]',
+  );
+  if (!aside) {
+    throw new Error("the tree is not on the page");
+  }
+  return aside;
+}
+
+function lastDrawer(): DrawerProps {
+  const props: DrawerProps | undefined =
+    mockDrawerMounts[mockDrawerMounts.length - 1];
+  if (!props) {
+    throw new Error("the drawer never opened");
+  }
+  return props;
+}
+
 beforeEach(() => {
   window.history.replaceState(
     {},
     "",
     "/dashboard/project/topology/overview?tab=Infrastructure",
   );
+  mockDrawerMounts.length = 0;
+  mockFetchCollectionPage.mockReset();
+  mockFetchCollectionSearchCounts.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -252,6 +442,32 @@ describe("overview", () => {
     expect(cards).toHaveTextContent("Workloads2");
     expect(cards).toHaveTextContent("Services placed2");
     expect(cards).toHaveTextContent("Inactive not shown1");
+  });
+
+  test("when a safety cap was hit the summary reports the server's exact totals", () => {
+    renderExplorer({
+      data: {
+        ...fixtures(),
+        totals: { resources: 250000, activeResources: 180000 },
+        truncation: { shown: 200000, total: 250000 },
+      },
+    });
+    const cards: HTMLElement = screen.getByTestId("infrastructure-explorer");
+    expect(cards).toHaveTextContent("Resources180,000");
+    expect(cards).toHaveTextContent("Inactive not shown70,000");
+  });
+
+  test("without a cap the totals do not replace what the map counted", () => {
+    renderExplorer({
+      data: {
+        ...fixtures(),
+        totals: { resources: 9, activeResources: 8 },
+        truncation: null,
+      },
+    });
+    expect(screen.getByTestId("infrastructure-explorer")).toHaveTextContent(
+      "Resources6",
+    );
   });
 
   test("show inactive includes quiet resources, marked as inactive", () => {
@@ -309,28 +525,27 @@ describe("navigation", () => {
 
   test("the tree holds only containers and can be collapsed", () => {
     renderExplorer();
-    const tree: HTMLElement = screen.getByRole("complementary", {
-      name: "Infrastructure tree",
-    });
     expect(
-      within(tree).getByTestId(`infrastructure-tree-${APP_GROUP}`),
+      within(tree()).getByTestId(`infrastructure-tree-${APP_GROUP}`),
     ).toBeInTheDocument();
-    expect(within(tree).queryByText("build-server")).not.toBeInTheDocument();
+    expect(within(tree()).queryByText("build-server")).not.toBeInTheDocument();
     fireEvent.click(
-      within(tree).getByRole("button", { name: "Collapse Hosts & containers" }),
+      within(tree()).getByRole("button", {
+        name: "Collapse Hosts & containers",
+      }),
     );
     expect(
-      within(tree).queryByTestId(`infrastructure-tree-${APP_GROUP}`),
+      within(tree()).queryByTestId(`infrastructure-tree-${APP_GROUP}`),
     ).not.toBeInTheDocument();
     fireEvent.click(
-      within(tree).getByRole("button", { name: "Expand Hosts & containers" }),
+      within(tree()).getByRole("button", { name: "Expand Hosts & containers" }),
     );
     expect(
-      within(tree).getByTestId(`infrastructure-tree-${APP_GROUP}`),
+      within(tree()).getByTestId(`infrastructure-tree-${APP_GROUP}`),
     ).toBeInTheDocument();
   });
 
-  test("a plain resource opens its details", () => {
+  test("a plain resource opens its details from the preview it already has", () => {
     renderExplorer();
     fireEvent.click(
       screen.getByRole("button", { name: "View details for build-server" }),
@@ -338,11 +553,61 @@ describe("navigation", () => {
     expect(
       screen.getByRole("dialog", { name: "build-server" }),
     ).toBeInTheDocument();
+    expect(lastDrawer().entity).toEqual({
+      entityKey: "builder",
+      entityType: EntityType.Host,
+      displayName: "build-server",
+    });
+    // The drawer judges activity against the range the server used.
+    const drawer: HTMLElement = screen.getByRole("dialog");
+    expect(drawer).toHaveAttribute(
+      "data-range-start",
+      RANGE_START.toISOString(),
+    );
+    expect(drawer).toHaveAttribute("data-metrics-window", "900");
+    // Its connections stay in the drawer: this page is Infrastructure already.
+    expect(drawer).toHaveAttribute("data-opens-infrastructure", "false");
     fireEvent.click(screen.getByRole("button", { name: "Show where it is" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
       "Hosts & containers",
     );
+  });
+
+  test("choosing a connection in the drawer shows that entity instead", () => {
+    const onOpenServiceMap: MockFunction = getJestMockFunction();
+    renderExplorer({ onOpenServiceMap });
+    fireEvent.click(
+      screen.getByRole("button", { name: "View details for build-server" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select the api service" }),
+    );
+    expect(screen.getByRole("dialog", { name: "api" })).toHaveAttribute(
+      "data-entity-type",
+      EntityType.Service,
+    );
+    // A new entity is a new drawer, never the old one re-labelled.
+    expect(mockDrawerMounts).toHaveLength(2);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show on the service map" }),
+    );
+    expect(onOpenServiceMap).toHaveBeenCalledWith("api");
+  });
+
+  test("a service has nowhere to be shown without the Service Map", () => {
+    renderExplorer();
+    fireEvent.click(
+      screen.getByRole("button", { name: "View details for build-server" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select the api service" }),
+    );
+    expect(screen.getByRole("dialog", { name: "api" })).toBeInTheDocument();
+    expect(lastDrawer().onFocus).toBeUndefined();
+    expect(
+      screen.queryByRole("button", { name: "Show on the service map" }),
+    ).not.toBeInTheDocument();
   });
 
   test("a shared link to a resource opens its scope and its details", async () => {
@@ -358,12 +623,33 @@ describe("navigation", () => {
     ).toBeInTheDocument();
   });
 
-  test("a stale shared link falls back to the overview", () => {
+  test("a link to a resource the tree does not hold opens the drawer for that key", async () => {
     window.history.replaceState({}, "", "?infraFocus=missing");
     renderExplorer();
     expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
       "All infrastructure",
     );
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "missing" }),
+      ).toBeInTheDocument();
+    });
+    expect(lastDrawer().entity).toEqual({ entityKey: "missing" });
+    // Nothing on this page to show it on.
+    expect(lastDrawer().onFocus).toBeUndefined();
+  });
+
+  test("a stale link to a group falls back to the overview without a drawer", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "?infraFocus=group:category:compute:host|renamed",
+    );
+    renderExplorer();
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "All infrastructure",
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   test("service chips open the service on the Service Map", () => {
@@ -379,6 +665,84 @@ describe("navigation", () => {
     expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
       "All infrastructure",
     );
+  });
+});
+
+describe("a large tree", () => {
+  test("a small tree opens fully by default", () => {
+    renderExplorer({
+      data: {
+        entities: largeFixture().entities.slice(0, 5),
+        relationships: largeFixture().relationships.slice(0, 4),
+      },
+    });
+    // cluster → namespace → deployment, all listed without a click.
+    expect(
+      within(tree()).getByTestId("infrastructure-tree-deploy"),
+    ).toBeInTheDocument();
+  });
+
+  test("more than 200 containers open only the categories", () => {
+    renderExplorer({ data: largeFixture() });
+    expect(
+      within(tree()).getByTestId("infrastructure-tree-cluster"),
+    ).toBeInTheDocument();
+    expect(
+      within(tree()).queryByTestId("infrastructure-tree-ns"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(tree()).getByLabelText("Expand prod"));
+    expect(
+      within(tree()).getByTestId("infrastructure-tree-ns"),
+    ).toBeInTheDocument();
+  });
+
+  test("a level with hundreds of containers lists the first ones and offers the rest", () => {
+    renderExplorer({ data: largeFixture() });
+    expect(
+      within(tree()).getByTestId("infrastructure-tree-host-099"),
+    ).toBeInTheDocument();
+    expect(
+      within(tree()).queryByTestId("infrastructure-tree-host-100"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(tree()).getByLabelText("Show all 250 in Hosts & containers"),
+    );
+    expect(
+      within(tree()).getByTestId("infrastructure-tree-host-249"),
+    ).toBeInTheDocument();
+  });
+
+  test("a deep link opens every ancestor and marks where it landed", async () => {
+    window.history.replaceState({}, "", "?infraFocus=pod-2");
+    renderExplorer({ data: largeFixture() });
+    await waitFor(() => {
+      expect(
+        within(tree()).getByTestId("infrastructure-tree-deploy"),
+      ).toHaveAttribute("aria-current", "true");
+    });
+    for (const name of ["prod", "shop"]) {
+      expect(within(tree()).getByLabelText(`Collapse ${name}`)).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    }
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "checkout",
+    );
+    expect(lastDrawer().entity.entityKey).toBe("pod-2");
+  });
+
+  test("a deep link past the listed ones still shows the way to it", async () => {
+    window.history.replaceState({}, "", "?infraFocus=host-230/c");
+    renderExplorer({ data: largeFixture() });
+    await waitFor(() => {
+      expect(
+        within(tree()).getByTestId("infrastructure-tree-host-230"),
+      ).toHaveAttribute("aria-current", "true");
+    });
+    expect(
+      within(tree()).queryByTestId("infrastructure-tree-host-229"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -412,6 +776,347 @@ describe("search", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(rows()).toHaveLength(3);
   });
+
+  test("without collections the server is never asked", async () => {
+    renderExplorer();
+    search("home");
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 400);
+    });
+    expect(mockFetchCollectionSearchCounts).not.toHaveBeenCalled();
+  });
+});
+
+describe("collections", () => {
+  test("a collection is one row with its exact count, listed before plain resources", () => {
+    renderExplorer({ data: withCollection() });
+    const network: HTMLElement = screen.getByRole("region", {
+      name: "Network & devices",
+    });
+    const collectionRow: HTMLElement =
+      within(network).getAllByTestId("infrastructure-row")[0]!;
+    expect(collectionRow).toHaveTextContent("IoT Devices");
+    expect(collectionRow).toHaveTextContent("Collection");
+    expect(collectionRow).toHaveTextContent("4,200 IoT devices");
+    expect(screen.getByTestId("infrastructure-explorer")).toHaveTextContent(
+      "Resources4,207",
+    );
+    // 800 silent IoT devices and one silent host.
+    expect(screen.getByTestId("infrastructure-explorer")).toHaveTextContent(
+      "Inactive not shown801",
+    );
+    expect(
+      within(tree()).getByTestId(`infrastructure-tree-${IOT}`),
+    ).toBeInTheDocument();
+  });
+
+  test("opening a collection pages its items from the server", async () => {
+    mockFetchCollectionPage
+      .mockResolvedValueOnce(
+        page(
+          [
+            entity("iot-1", EntityType.IoTDevice, "sensor-001"),
+            entity("iot-2", EntityType.IoTDevice, "sensor-002", LONG_AGO),
+          ],
+          4200,
+          { name: "sensor-002", key: "iot-2" },
+        ),
+      )
+      .mockResolvedValueOnce(
+        page([entity("iot-3", EntityType.IoTDevice, "sensor-003")], 4200, {
+          name: "sensor-003",
+          key: "iot-3",
+        }),
+      )
+      .mockResolvedValueOnce(
+        page([entity("iot-1", EntityType.IoTDevice, "sensor-001")], 4200, {
+          name: "sensor-001",
+          key: "iot-1",
+        }),
+      );
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByRole("button", { name: "Open IoT Devices" }));
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "IoT Devices",
+    );
+    expect(window.location.search).toContain(
+      `infraFocus=${encodeURIComponent(IOT)}`,
+    );
+    expect(screen.getByText("Loading IoT Devices…")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("infrastructure-collection-row"),
+      ).toHaveLength(2);
+    });
+    const [rangeStart, request, options] = mockFetchCollectionPage.mock
+      .calls[0] as [Date, CollectionPageRequest, { signal: AbortSignal }];
+    expect(rangeStart).toBe(RANGE_START);
+    expect(request).toEqual({
+      entityType: EntityType.IoTDevice,
+      includeInactive: false,
+      nameTerms: [],
+      cursor: null,
+      limit: 50,
+    });
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(screen.getByText("Page 1 of 84 · 4,200 IoT devices")).toBeVisible();
+    // An item that went quiet says so.
+    expect(
+      screen.getAllByTestId("infrastructure-collection-row")[1],
+    ).toHaveTextContent("Inactive");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Page 2 of 84 · 4,200 IoT devices"),
+      ).toBeVisible();
+    });
+    expect(
+      (mockFetchCollectionPage.mock.calls[1]![1] as CollectionPageRequest)
+        .cursor,
+    ).toEqual({ name: "sensor-002", key: "iot-2" });
+    expect(
+      screen.getByRole("button", { name: "View details for sensor-003" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Page 1 of 84 · 4,200 IoT devices"),
+      ).toBeVisible();
+    });
+    expect(
+      (mockFetchCollectionPage.mock.calls[2]![1] as CollectionPageRequest)
+        .cursor,
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View details for sensor-001" }),
+    );
+    expect(lastDrawer().entity).toEqual({
+      entityKey: "iot-1",
+      entityType: EntityType.IoTDevice,
+      displayName: "sensor-001",
+    });
+    // Not a node of the tree: nothing to show it on.
+    expect(lastDrawer().onFocus).toBeUndefined();
+  });
+
+  test("the last page has no Next", async () => {
+    mockFetchCollectionPage.mockResolvedValue(
+      page([entity("iot-1", EntityType.IoTDevice, "sensor-001")], 1, null),
+    );
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
+    await waitFor(() => {
+      expect(screen.getByText("Page 1 of 1 · 1 IoT device")).toBeVisible();
+    });
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  });
+
+  test("with inactive shown the whole collection is listed", async () => {
+    mockFetchCollectionPage.mockResolvedValue(page([], 0, null));
+    renderExplorer({ data: withCollection(), includeInactive: true });
+    fireEvent.click(screen.getByRole("button", { name: "Open IoT Devices" }));
+    await waitFor(() => {
+      expect(mockFetchCollectionPage).toHaveBeenCalled();
+    });
+    expect(
+      (mockFetchCollectionPage.mock.calls[0]![1] as CollectionPageRequest)
+        .includeInactive,
+    ).toBe(true);
+  });
+
+  test("a failed page says why and can be retried", async () => {
+    mockFetchCollectionPage
+      .mockRejectedValueOnce(new Error("Server Error. Please try again"))
+      .mockResolvedValueOnce(
+        page([entity("iot-1", EntityType.IoTDevice, "sensor-001")], 1, null),
+      );
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByRole("button", { name: "Open IoT Devices" }));
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Server Error. Please try again");
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("infrastructure-collection-row"),
+      ).toHaveLength(1);
+    });
+    expect(mockFetchCollectionPage).toHaveBeenCalledTimes(2);
+  });
+
+  test("the map view of a collection is its list", async () => {
+    mockFetchCollectionPage.mockResolvedValue(
+      page([entity("iot-1", EntityType.IoTDevice, "sensor-001")], 1, null),
+    );
+    window.history.replaceState({}, "", `?infraView=map&infraFocus=${IOT}`);
+    renderExplorer({ data: withCollection() });
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("infrastructure-collection-row"),
+      ).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("infrastructure-map-stub"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the overview map draws a collection as a card that opens it", () => {
+    mockFetchCollectionPage.mockReturnValue(new Promise(() => {}));
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(screen.getByTestId(`map-card-${IOT}`));
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "IoT Devices",
+    );
+  });
+
+  test("search asks the server how many items of each collection match", async () => {
+    mockFetchCollectionSearchCounts.mockResolvedValue(
+      new Map<string, number>([[EntityType.IoTDevice, 1234]]),
+    );
+    mockFetchCollectionPage.mockResolvedValue(
+      page([entity("iot-7", EntityType.IoTDevice, "sensor-007")], 1234, {
+        name: "sensor-007",
+        key: "iot-7",
+      }),
+    );
+    renderExplorer({ data: withCollection() });
+    search("Sensor");
+    expect(screen.getByText("Searching large collections…")).toBeVisible();
+    const match: HTMLElement = await screen.findByTestId(
+      "infrastructure-collection-match",
+    );
+    expect(match).toHaveTextContent("1,234 matching IoT devices");
+    expect(match).toHaveTextContent("in IoT Devices");
+    // Nothing in the tree matches, but the collection does: not a miss.
+    expect(
+      screen.queryByText("No resources match your search"),
+    ).not.toBeInTheDocument();
+    expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(1);
+    const [rangeStart, request] = mockFetchCollectionSearchCounts.mock
+      .calls[0] as [Date, CollectionSearchRequest];
+    expect(rangeStart).toBe(RANGE_START);
+    expect(request).toEqual({
+      includeInactive: false,
+      types: [{ entityType: EntityType.IoTDevice, nameTerms: ["sensor"] }],
+    });
+
+    fireEvent.click(match);
+    expect(screen.getByTestId("infrastructure-scope-title")).toHaveTextContent(
+      "IoT Devices",
+    );
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("infrastructure-collection-row"),
+      ).toHaveLength(1);
+    });
+    expect(
+      (mockFetchCollectionPage.mock.calls[0]![1] as CollectionPageRequest)
+        .nameTerms,
+    ).toEqual(["sensor"]);
+    expect(screen.getByText("Names containing “sensor”")).toBeVisible();
+
+    // Clearing the filter lists the whole collection again.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show all IoT devices" }),
+    );
+    await waitFor(() => {
+      expect(mockFetchCollectionPage).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      (mockFetchCollectionPage.mock.calls[1]![1] as CollectionPageRequest)
+        .nameTerms,
+    ).toEqual([]);
+  });
+
+  test("typing is debounced into one count request", async () => {
+    mockFetchCollectionSearchCounts.mockResolvedValue(
+      new Map<string, number>([[EntityType.IoTDevice, 3]]),
+    );
+    renderExplorer({ data: withCollection() });
+    search("s");
+    search("se");
+    search("sen");
+    await screen.findByTestId("infrastructure-collection-match");
+    expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        mockFetchCollectionSearchCounts.mock
+          .calls[0]![1] as CollectionSearchRequest
+      ).types[0]!.nameTerms,
+    ).toEqual(["sen"]);
+  });
+
+  test("a query the type label answers counts every item without asking", () => {
+    renderExplorer({ data: withCollection() });
+    search("iot");
+    const match: HTMLElement = screen.getByTestId(
+      "infrastructure-collection-match",
+    );
+    expect(match).toHaveTextContent("4,200 matching IoT devices");
+    expect(mockFetchCollectionSearchCounts).not.toHaveBeenCalled();
+  });
+
+  test("label terms are left out of the name terms the server matches", async () => {
+    mockFetchCollectionSearchCounts.mockResolvedValue(
+      new Map<string, number>(),
+    );
+    renderExplorer({ data: withCollection() });
+    search("iot sensor");
+    await waitFor(() => {
+      expect(mockFetchCollectionSearchCounts).toHaveBeenCalled();
+    });
+    expect(
+      (
+        mockFetchCollectionSearchCounts.mock
+          .calls[0]![1] as CollectionSearchRequest
+      ).types,
+    ).toEqual([{ entityType: EntityType.IoTDevice, nameTerms: ["sensor"] }]);
+    await waitFor(() => {
+      expect(
+        screen.getByText("No resources match your search"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("infrastructure-collection-match"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failed count says so and can be retried", async () => {
+    mockFetchCollectionSearchCounts
+      .mockRejectedValueOnce(new Error("Server Error. Please try again"))
+      .mockResolvedValueOnce(
+        new Map<string, number>([[EntityType.IoTDevice, 9]]),
+      );
+    renderExplorer({ data: withCollection() });
+    search("sensor");
+    const alert: HTMLElement = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Could not search large collections.");
+    expect(
+      screen.queryByText("No resources match your search"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByTestId("infrastructure-collection-match"),
+    ).toHaveTextContent("9 matching IoT devices");
+  });
+
+  test("resources and collection matches are counted together", async () => {
+    mockFetchCollectionSearchCounts.mockResolvedValue(
+      new Map<string, number>([[EntityType.IoTDevice, 20]]),
+    );
+    renderExplorer({ data: withCollection() });
+    search("core");
+    await screen.findByTestId("infrastructure-collection-match");
+    expect(rows()).toHaveLength(1);
+    expect(screen.getByText("21 matches")).toBeVisible();
+  });
 });
 
 describe("map", () => {
@@ -433,6 +1138,17 @@ describe("map", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Map service api" }));
     expect(onOpenServiceMap).toHaveBeenCalledWith("api");
+  });
+
+  test("a service card opens its details when there is no Service Map", () => {
+    renderExplorer();
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(screen.getByRole("button", { name: "Map service api" }));
+    expect(lastDrawer().entity).toEqual({
+      entityKey: "api",
+      entityType: EntityType.Service,
+      displayName: "api",
+    });
   });
 
   test("the overflow card switches to the complete list", () => {

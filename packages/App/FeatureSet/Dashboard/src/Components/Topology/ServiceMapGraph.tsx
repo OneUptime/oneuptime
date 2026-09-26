@@ -17,8 +17,6 @@ import ReactFlow, {
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
@@ -26,6 +24,7 @@ import Link from "Common/UI/Components/Link/Link";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import { isTopologyInfrastructureType } from "Common/Types/Topology/TopologyTypeRules";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -56,6 +55,12 @@ import {
   summarizeRunsOn,
 } from "./ServiceMapViewModel";
 import {
+  EntityDetailTarget,
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyRunsOnCounts,
+} from "./TopologyData";
+import {
   HEALTH_COLORS,
   SERVICE_MAP_TOLERATED_ERROR_RATE,
   edgeWidthForCalls,
@@ -85,13 +90,24 @@ const ROWS_PER_PAGE: number = 40;
 export const MAX_NODES_FOR_DEFAULT_MAP: number = 60;
 
 export interface ComponentProps {
-  entities: Array<InventoryItem>;
-  relationships: Array<InventoryItemRelationship>;
+  /** Every service, plus everything a service calls. */
+  entities: Array<TopologyEntity>;
+  /** The `depends-on` rows between them. */
+  relationships: Array<TopologyRelationship>;
+  /*
+   * What each service runs on, counted by the server. Without it the
+   * "Runs on" summaries come from runs-on / hosted-on rows in
+   * `relationships`.
+   */
+  runsOnCounts?: TopologyRunsOnCounts | undefined;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
   /** The page's picked range — drives the edge drill-down history query. */
   timeRange: RangeStartAndEndDateTime;
-  /** Start of the loaded range; services silent since then are inactive. */
+  /*
+   * Start of the loaded range (the server's echo); services silent since
+   * then are inactive, and the drawer reads connections from it.
+   */
   rangeStart?: Date | null | undefined;
   includeInactive?: boolean | undefined;
   /** Show where a service runs in the Infrastructure view. */
@@ -241,8 +257,15 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const [connectionMetric, setConnectionMetric] =
     useState<ConnectionMetric>("none");
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  /*
+   * What the drawer is open on: usually a node of the map, but the drawer
+   * can also open on something the map does not draw — an inactive service
+   * or anything else a connection row points at.
+   */
+  const [selectedTarget, setSelectedTarget] =
+    useState<EntityDetailTarget | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const selectedKey: string | null = selectedTarget?.entityKey || null;
   const [focusKey, setFocusKeyState] = useState<string | null>(
     Navigation.getQueryStringByName("focus"),
   );
@@ -287,9 +310,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const modelOptions: {
     rangeStart: Date | undefined;
     includeInactive: boolean;
+    runsOnCounts: TopologyRunsOnCounts | undefined;
   } = {
     rangeStart: props.rangeStart || undefined,
     includeInactive: Boolean(props.includeInactive),
+    runsOnCounts: props.runsOnCounts,
   };
   const baseModel: ServiceMapModel = useMemo(() => {
     return buildServiceMapModel(props.entities, props.relationships, {
@@ -298,6 +323,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   }, [
     props.entities,
     props.relationships,
+    props.runsOnCounts,
     props.rangeStart,
     props.includeInactive,
   ]);
@@ -309,6 +335,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   }, [
     props.entities,
     props.relationships,
+    props.runsOnCounts,
     props.rangeStart,
     props.includeInactive,
     operationalStatuses,
@@ -352,16 +379,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       cancelled = true;
     };
   }, [serviceNames]);
-
-  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    for (const entity of props.entities) {
-      if (entity.entityKey) {
-        map.set(entity.entityKey, entity);
-      }
-    }
-    return map;
-  }, [props.entities]);
 
   const visibility: ServiceMapVisibility = useMemo(() => {
     return resolveServiceMapVisibility({
@@ -422,7 +439,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     setAttentionOnly(false);
   };
   const focusOn: (key: string) => void = (key: string): void => {
-    setSelectedKey(null);
+    setSelectedTarget(null);
     setSelectedEdgeId(null);
     setSearchText("");
     setAttentionOnly(false);
@@ -430,9 +447,50 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     changeView("map");
   };
   const selectNode: (key: string) => void = (key: string): void => {
+    const entry: ServiceMapEntry | undefined = model.entryByKey.get(key);
     setSelectedEdgeId(null);
-    setSelectedKey(key);
+    setSelectedTarget(
+      entry
+        ? {
+            entityKey: entry.key,
+            entityType: entry.entity.entityType,
+            displayName: entry.entity.displayName,
+          }
+        : { entityKey: key },
+    );
   };
+  /*
+   * Where a connection row in the drawer leads: a node of this map is
+   * selected on it, infrastructure opens in its own view, and anything else
+   * (an inactive service, an unknown type) opens in this drawer.
+   */
+  const selectFromDrawer: (target: EntityDetailTarget) => void = (
+    target: EntityDetailTarget,
+  ): void => {
+    if (model.entryByKey.has(target.entityKey)) {
+      selectNode(target.entityKey);
+      return;
+    }
+    if (
+      props.onOpenInfrastructure &&
+      isTopologyInfrastructureType(target.entityType)
+    ) {
+      setSelectedTarget(null);
+      props.onOpenInfrastructure(target.entityKey);
+      return;
+    }
+    setSelectedEdgeId(null);
+    setSelectedTarget(target);
+  };
+  /* "Runs on" rows: the drawer closes as the Infrastructure view opens. */
+  const openInfrastructureFromDrawer:
+    | ((entityKey: string) => void)
+    | undefined = props.onOpenInfrastructure
+    ? (entityKey: string): void => {
+        setSelectedTarget(null);
+        props.onOpenInfrastructure?.(entityKey);
+      }
+    : undefined;
 
   // The table never draws, so a large catalog never pays for a layout.
   const layout: ServiceMapLayout = useMemo(() => {
@@ -463,7 +521,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       if (!entry) {
         continue;
       }
-      const runsOn: string | null = summarizeRunsOn(entry.runsOn, entityByKey);
+      const runsOn: string | null = summarizeRunsOn(entry.runsOn);
       builtNodes.push({
         id: key,
         type: "serviceMapNode",
@@ -559,7 +617,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     selectedEdgeId,
     props.metricsWindowSeconds,
     view,
-    entityByKey,
   ]);
 
   /*
@@ -721,10 +778,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         </h4>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {unconnectedEntries.map((entry: ServiceMapEntry): ReactElement => {
-            const runsOn: string | null = summarizeRunsOn(
-              entry.runsOn,
-              entityByKey,
-            );
+            const runsOn: string | null = summarizeRunsOn(entry.runsOn);
             return (
               <button
                 key={entry.key}
@@ -809,10 +863,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             <tbody className="divide-y divide-gray-100">
               {pageEntries.map((entry: ServiceMapEntry): ReactElement => {
                 const color: string = statusColorForEntry(entry);
-                const runsOn: string | null = summarizeRunsOn(
-                  entry.runsOn,
-                  entityByKey,
-                );
+                const runsOn: string | null = summarizeRunsOn(entry.runsOn);
                 return (
                   <tr
                     key={entry.key}
@@ -1026,7 +1077,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                   selectNode(node.id);
                 }}
                 onEdgeClick={(_event: React.MouseEvent, edge: Edge) => {
-                  setSelectedKey(null);
+                  setSelectedTarget(null);
                   setSelectedEdgeId(edge.id);
                 }}
                 onEdgeMouseEnter={(_event: React.MouseEvent, edge: Edge) => {
@@ -1340,35 +1391,33 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      {selectedEntry && (
+      {selectedTarget && (
         <EntityDetailPanel
-          entity={selectedEntry.entity}
-          relationships={props.relationships}
-          entityByKey={entityByKey}
-          traffic={trafficFor(selectedEntry)}
+          key={selectedTarget.entityKey}
+          entity={selectedTarget}
+          rangeStart={props.rangeStart}
+          traffic={selectedEntry ? trafficFor(selectedEntry) : undefined}
           incidentStatus={
-            selectedEntry.kind === "service"
+            selectedEntry && selectedEntry.kind === "service"
               ? operationalStatuses.get(selectedEntry.label.toLowerCase()) ||
                 null
               : null
           }
           metricsWindowSeconds={props.metricsWindowSeconds}
-          onSelectEntity={(entityKey: string) => {
-            if (model.entryByKey.has(entityKey)) {
-              selectNode(entityKey);
-            } else if (props.onOpenInfrastructure) {
-              setSelectedKey(null);
-              props.onOpenInfrastructure(entityKey);
-            }
-          }}
+          onSelectEntity={selectFromDrawer}
           onClose={() => {
-            setSelectedKey(null);
+            setSelectedTarget(null);
           }}
-          onFocus={(entityKey: string) => {
-            focusOn(entityKey);
-          }}
+          onFocus={
+            /* Only a node of the map can be focused on it. */
+            selectedEntry
+              ? (entityKey: string) => {
+                  focusOn(entityKey);
+                }
+              : undefined
+          }
           focusButtonLabel="Show its connections"
-          onOpenInfrastructure={props.onOpenInfrastructure}
+          onOpenInfrastructure={openInfrastructureFromDrawer}
         />
       )}
 

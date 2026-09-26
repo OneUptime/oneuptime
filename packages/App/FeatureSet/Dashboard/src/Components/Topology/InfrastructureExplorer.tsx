@@ -1,17 +1,18 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
+import EntityType from "Common/Types/Telemetry/EntityType";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -20,37 +21,78 @@ import { getInventoryTypeIcon } from "../Inventory/InventoryTypeCatalog";
 import InfrastructureGraph from "./InfrastructureGraph";
 import EntityDetailPanel from "./EntityDetailPanel";
 import {
+  CollectionCursor,
+  CollectionPage,
+  describeCollectionError,
+  fetchCollectionPage,
+  fetchCollectionSearchCounts,
+  isCollectionSearchable,
+} from "./InfrastructureCollectionApi";
+import {
   InfrastructureNode,
+  InfrastructureSearchIndex,
   InfrastructureTopologyModel,
+  buildInfrastructureSearchIndex,
   buildInfrastructureTopologyModel,
   collectMapCards,
+  collectionNameTerms,
+  compareNames,
   describeInfrastructureNode,
   getInfrastructurePath,
+  infrastructureSearchTerms,
+  isContainerNode,
   searchInfrastructure,
   summarizeCounts,
 } from "./InfrastructureTopologyModel";
-import { formatLastSeen } from "./TopologyActivity";
+import { formatLastSeen, isEntityActive } from "./TopologyActivity";
+import {
+  EntityDetailTarget,
+  InfrastructureCollection,
+  InfrastructureTotals,
+  TopologyEntity,
+  TopologyRelationship,
+  TopologyTruncation,
+} from "./TopologyData";
 import { metaForEntityType } from "./TopologyMeta";
+import { nounForType } from "./ServiceMapViewModel";
 
 /*
  * Infrastructure: "what runs where", walked top-down.
  *
  * A tree on the left holds only things that contain other things — categories,
- * clusters, namespaces, deployments, groups of replicas — so it stays short
- * even for a large estate. The right side shows what is inside the selected
- * scope, as a table (every row says what it contains and which services run
- * there) or as a map of that one level. Fleets are grouped by workload, and
- * resources that did not report in the selected range are left out unless the
- * page asks for them.
+ * clusters, namespaces, deployments, groups of replicas, collections — so it
+ * stays short even for a large estate. The right side shows what is inside the
+ * selected scope, as a table (every row says what it contains and which
+ * services run there) or as a map of that one level. Fleets are grouped by
+ * workload, and resources that did not report in the selected range are left
+ * out unless the page asks for them.
+ *
+ * A collection (a flat type with too many items to ship, like 40,000 IoT
+ * devices) is one node with exact counts; opening it pages its items from the
+ * server, and search asks the server how many of its items match. Details of
+ * anything are fetched by the drawer itself, so nothing here needs more than
+ * the lean rows the map is built from.
  */
 
 const PAGE_SIZE: number = 50;
 const ROOT_ID: string = "__all__";
+/* Up to this many containers the tree opens fully; beyond it, only categories. */
+const TREE_EXPAND_ALL_LIMIT: number = 200;
+/* Containers listed under one tree node before "Show all". */
+const TREE_CHILD_LIMIT: number = 100;
+const COLLECTION_SEARCH_DEBOUNCE_MS: number = 300;
+const SYNTHETIC_ID_PATTERN: RegExp = /^(category|group|collection):/;
 
 export interface ComponentProps {
-  entities: Array<InventoryItem>;
-  relationships: Array<InventoryItemRelationship>;
+  entities: Array<TopologyEntity>;
+  relationships: Array<TopologyRelationship>;
+  /* Flat types summarized by the server; their items are paged on demand. */
+  collections?: Array<InfrastructureCollection> | undefined;
+  /* Exact inventory totals, used for the summary when a safety cap was hit. */
+  totals?: InfrastructureTotals | undefined;
+  truncation?: TopologyTruncation | null | undefined;
   metricsWindowSeconds: number;
+  /** The range start the server used; activity is judged against it. */
   rangeStart?: Date | null | undefined;
   includeInactive?: boolean | undefined;
   /** Focus a service on the Service Map. */
@@ -58,6 +100,37 @@ export interface ComponentProps {
 }
 
 type InfrastructureView = "list" | "map";
+
+type RequestStatus = "loading" | "ready" | "error";
+
+interface CollectionPageState {
+  key: string;
+  status: RequestStatus;
+  page: CollectionPage | null;
+  error: string;
+}
+
+interface CollectionSearchState {
+  key: string;
+  status: RequestStatus;
+  counts: Map<string, number>;
+  error: string;
+}
+
+interface CollectionMatch {
+  node: InfrastructureNode;
+  nameTerms: Array<string>;
+  count: number;
+}
+
+interface ExplorerSummary {
+  workloadCount: number;
+  servicesPlaced: number;
+  containerCount: number;
+  /* Container id → its children that are containers too (the tree's rows). */
+  containerChildren: Map<string, Array<string>>;
+  collections: Array<InfrastructureNode>;
+}
 
 const BUTTON: string =
   "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
@@ -78,12 +151,84 @@ function colorForNode(node: InfrastructureNode): string {
     : metaForEntityType(node.entityType || undefined).color;
 }
 
+function targetForEntity(entity: TopologyEntity): EntityDetailTarget | null {
+  if (!entity.entityKey) {
+    return null;
+  }
+  return {
+    entityKey: entity.entityKey,
+    entityType: entity.entityType,
+    displayName: entity.displayName,
+  };
+}
+
+function summarize(model: InfrastructureTopologyModel): ExplorerSummary {
+  let workloadCount: number = 0;
+  let containerCount: number = 0;
+  const containerChildren: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  const collections: Array<InfrastructureNode> = [];
+  for (const node of model.nodes.values()) {
+    if (
+      node.kind === "group" ||
+      node.entityType === EntityType.KubernetesDeployment ||
+      node.entityType === EntityType.DockerSwarmService
+    ) {
+      workloadCount++;
+    }
+    if (node.kind === "collection") {
+      collections.push(node);
+    }
+    if (!isContainerNode(node)) {
+      continue;
+    }
+    containerCount++;
+    containerChildren.set(
+      node.id,
+      node.childIds.filter((childId: string): boolean => {
+        const child: InfrastructureNode | undefined = model.nodes.get(childId);
+        return Boolean(child && isContainerNode(child));
+      }),
+    );
+  }
+  // Collection matches list in a stable order, whatever order they came in.
+  collections.sort((a: InfrastructureNode, b: InfrastructureNode): number => {
+    return compareNames(a.name, b.name);
+  });
+  const services: Set<string> = new Set<string>();
+  for (const rootId of model.rootIds) {
+    for (const key of model.nodes.get(rootId)?.serviceKeys || []) {
+      services.add(key);
+    }
+  }
+  return {
+    workloadCount,
+    servicesPlaced: services.size,
+    containerCount,
+    containerChildren,
+    collections,
+  };
+}
+
 const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
+  };
+
+  const describeError: (error: unknown) => string = (
+    error: unknown,
+  ): string => {
+    const described: { isOutdated: boolean; detail: string } =
+      describeCollectionError(error);
+    if (described.isOutdated) {
+      return t("Topology was updated. Reload the page.");
+    }
+    return described.detail || t("Something went wrong. Please try again.");
   };
 
   const model: InfrastructureTopologyModel = useMemo(() => {
@@ -93,61 +238,169 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       {
         rangeStart: props.rangeStart || undefined,
         includeInactive: props.includeInactive,
+        collections: props.collections,
       },
     );
   }, [
     props.entities,
     props.relationships,
+    props.collections,
     props.rangeStart,
     props.includeInactive,
   ]);
 
-  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    for (const entity of props.entities) {
-      if (entity.entityKey) {
-        map.set(entity.entityKey, entity);
-      }
-    }
-    return map;
-  }, [props.entities]);
+  const summary: ExplorerSummary = useMemo(() => {
+    return summarize(model);
+  }, [model]);
 
   /*
-   * A focus from the URL may name a container (open it) or a single resource
-   * (open its parent and its details) — the Service Map links to both.
+   * Search text is built lazily: most visits never search, and a large
+   * estate's index is worth building once, not on every model rebuild.
+   */
+  const searchIndexCache: React.MutableRefObject<{
+    model: InfrastructureTopologyModel;
+    index: InfrastructureSearchIndex;
+  } | null> = useRef<{
+    model: InfrastructureTopologyModel;
+    index: InfrastructureSearchIndex;
+  } | null>(null);
+  const searchIndexFor: () => InfrastructureSearchIndex =
+    (): InfrastructureSearchIndex => {
+      if (searchIndexCache.current?.model !== model) {
+        searchIndexCache.current = {
+          model,
+          index: buildInfrastructureSearchIndex(model),
+        };
+      }
+      return searchIndexCache.current.index;
+    };
+
+  /*
+   * A focus from the URL may name a container (open it), a single resource
+   * (open its parent and its details) or a resource the tree does not hold
+   * (a collection's item, or one that is hidden) — the drawer shows that
+   * one by itself. The Service Map and Inventory link to all of them.
    */
   const initialFocus: string | null =
     Navigation.getQueryStringByName("infraFocus");
   const [scopeId, setScopeId] = useState<string>(ROOT_ID);
-  const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<EntityDetailTarget | null>(
+    null,
+  );
   const [search, setSearch] = useState<string>(
     Navigation.getQueryStringByName("infraSearch") || "",
   );
   const [view, setView] = useState<InfrastructureView>(
     Navigation.getQueryStringByName("infraView") === "map" ? "map" : "list",
   );
-  const [page, setPage] = useState<number>(0);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set<string>());
+  const [pages, setPages] = useState<Map<string, number>>(
+    new Map<string, number>(),
+  );
+  /*
+   * Tree expansion: an explicit choice per node (the user's toggle, or a
+   * node on the path to something opened) over a default that depends on
+   * the size of the tree — everything open when it is small, only the
+   * categories when it is not.
+   */
+  const [expansion, setExpansion] = useState<Map<string, boolean>>(
+    new Map<string, boolean>(),
+  );
+  const [treeShowAll, setTreeShowAll] = useState<Set<string>>(
+    new Set<string>(),
+  );
   const [appliedFocus, setAppliedFocus] = useState<string | null>(null);
+  /* Name terms the open collection is filtered by (from a search match). */
+  const [collectionFilter, setCollectionFilter] = useState<Array<string>>([]);
+  const [collectionPaging, setCollectionPaging] = useState<{
+    baseKey: string;
+    cursors: Array<CollectionCursor | null>;
+  }>({ baseKey: "", cursors: [null] });
+  const [collectionPageState, setCollectionPageState] =
+    useState<CollectionPageState | null>(null);
+  const [collectionRetry, setCollectionRetry] = useState<number>(0);
+  const [collectionSearch, setCollectionSearch] =
+    useState<CollectionSearchState | null>(null);
+  const [collectionSearchRetry, setCollectionSearchRetry] = useState<number>(0);
+  const treeListRef: React.RefObject<HTMLUListElement> =
+    useRef<HTMLUListElement>(null);
+
+  const expandAllByDefault: boolean =
+    summary.containerCount <= TREE_EXPAND_ALL_LIMIT;
+  const isExpanded: (node: InfrastructureNode) => boolean = (
+    node: InfrastructureNode,
+  ): boolean => {
+    const choice: boolean | undefined = expansion.get(node.id);
+    if (choice !== undefined) {
+      return choice;
+    }
+    return expandAllByDefault || node.kind === "category";
+  };
+  const expandPath: (id: string) => void = (id: string): void => {
+    const path: Array<InfrastructureNode> = getInfrastructurePath(model, id);
+    setExpansion((previous: Map<string, boolean>) => {
+      const next: Map<string, boolean> = new Map<string, boolean>(previous);
+      for (const node of path) {
+        next.set(node.id, true);
+      }
+      return next;
+    });
+  };
+
+  const targetForNode: (
+    node: InfrastructureNode,
+  ) => EntityDetailTarget | null = (
+    node: InfrastructureNode,
+  ): EntityDetailTarget | null => {
+    return node.entity ? targetForEntity(node.entity) : null;
+  };
 
   useEffect(() => {
     if (!initialFocus || appliedFocus === initialFocus) {
       return;
     }
+    setAppliedFocus(initialFocus);
     const node: InfrastructureNode | undefined = model.nodes.get(initialFocus);
     if (!node) {
+      /*
+       * Not in the tree: the drawer looks the key up itself (and says so if
+       * it is gone). A stale link to a group or category just falls back to
+       * the overview.
+       */
+      if (!SYNTHETIC_ID_PATTERN.test(initialFocus)) {
+        setDetailTarget({ entityKey: initialFocus });
+      }
       return;
     }
-    setAppliedFocus(initialFocus);
-    if (node.childIds.length > 0) {
+    if (isContainerNode(node)) {
       setScopeId(node.id);
+      expandPath(node.id);
     } else {
       setScopeId(node.parentId || ROOT_ID);
-      if (node.entity) {
-        setDetailKey(node.id);
+      if (node.parentId) {
+        expandPath(node.parentId);
       }
+      setDetailTarget(targetForNode(node));
     }
   }, [model, initialFocus]);
+
+  /*
+   * Bring the opened scope into view in the tree (a deep link can land far
+   * down a long list). Only the tree scrolls, and only when the row is out
+   * of its view — never the page.
+   */
+  useEffect(() => {
+    const list: HTMLUListElement | null = treeListRef.current;
+    const current: HTMLElement | null | undefined =
+      list?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!list || !current) {
+      return;
+    }
+    const top: number = current.offsetTop;
+    const bottom: number = top + current.offsetHeight;
+    if (top < list.scrollTop || bottom > list.scrollTop + list.clientHeight) {
+      list.scrollTop = Math.max(0, top - list.clientHeight / 2);
+    }
+  }, [appliedFocus]);
 
   useEffect(() => {
     const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -158,44 +411,76 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     };
   }, [search]);
 
+  /*
+   * Typing stays responsive on a large estate: the input updates at once and
+   * the results follow as soon as React has time for them.
+   */
+  const deferredSearch: string = useDeferredValue(search);
+  const searchTerms: Array<string> = useMemo(() => {
+    return infrastructureSearchTerms(deferredSearch);
+  }, [deferredSearch]);
+  const searching: boolean = searchTerms.length > 0;
+
   useEffect(() => {
-    setPage(0);
-  }, [scopeId, search]);
+    setPages(new Map<string, number>());
+  }, [scopeId, deferredSearch]);
 
   const scope: InfrastructureNode | null =
     scopeId === ROOT_ID ? null : model.nodes.get(scopeId) || null;
   const effectiveScopeId: string = scope ? scope.id : ROOT_ID;
-  const path: Array<InfrastructureNode> = getInfrastructurePath(
-    model,
-    scope?.id || null,
-  );
+  const path: Array<InfrastructureNode> = useMemo(() => {
+    return getInfrastructurePath(model, scope?.id || null);
+  }, [model, scope]);
+  const pathIds: Set<string> = useMemo(() => {
+    return new Set<string>(
+      path.map((node: InfrastructureNode): string => {
+        return node.id;
+      }),
+    );
+  }, [path]);
 
-  const openScope: (id: string) => void = (id: string): void => {
+  const openScope: (id: string, nameTerms?: Array<string>) => void = (
+    id: string,
+    nameTerms: Array<string> = [],
+  ): void => {
     setScopeId(id);
     setSearch("");
+    setCollectionFilter(nameTerms);
     Navigation.setQueryString({
       infraFocus: id === ROOT_ID ? null : id,
       infraSearch: null,
     });
     // Opening something always reveals it in the tree.
-    setCollapsed((previous: Set<string>) => {
-      const next: Set<string> = new Set<string>(previous);
-      for (const node of getInfrastructurePath(model, id)) {
-        next.delete(node.id);
-      }
-      return next;
-    });
+    if (id !== ROOT_ID) {
+      expandPath(id);
+    }
   };
   const openNode: (id: string) => void = (id: string): void => {
     const node: InfrastructureNode | undefined = model.nodes.get(id);
     if (!node) {
       return;
     }
-    if (node.childIds.length > 0) {
+    if (isContainerNode(node)) {
       openScope(id);
-    } else if (node.entity) {
-      setDetailKey(id);
+    } else {
+      const target: EntityDetailTarget | null = targetForNode(node);
+      if (target) {
+        setDetailTarget(target);
+      }
     }
+  };
+  const openService: (serviceKey: string) => void = (
+    serviceKey: string,
+  ): void => {
+    if (props.onOpenServiceMap) {
+      props.onOpenServiceMap(serviceKey);
+      return;
+    }
+    setDetailTarget({
+      entityKey: serviceKey,
+      entityType: EntityType.Service,
+      displayName: model.serviceByKey.get(serviceKey)?.displayName,
+    });
   };
   const changeView: (value: InfrastructureView) => void = (
     value: InfrastructureView,
@@ -204,10 +489,190 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     Navigation.setQueryString({ infraView: value === "map" ? "map" : null });
   };
 
-  const searching: boolean = search.trim().length > 0;
   const results: Array<InfrastructureNode> = useMemo(() => {
-    return searchInfrastructure(model, search);
-  }, [model, search]);
+    if (!searching) {
+      return [];
+    }
+    return searchInfrastructure(model, deferredSearch, searchIndexFor());
+  }, [model, deferredSearch, searching]);
+
+  /*
+   * Collections are searched by the server, one count per collection. Terms
+   * that match the collection's type label are satisfied by every item (as
+   * they are for a resource in the tree), so a collection whose label
+   * matches the whole query counts all of its items without asking.
+   */
+  const collectionQueries: Array<{
+    node: InfrastructureNode;
+    nameTerms: Array<string>;
+  }> = useMemo(() => {
+    if (!searching || !isCollectionSearchable(searchTerms)) {
+      return [];
+    }
+    return summary.collections.map((node: InfrastructureNode) => {
+      return {
+        node,
+        nameTerms: collectionNameTerms(node.entityType || "", searchTerms),
+      };
+    });
+  }, [summary, searching, searchTerms]);
+  const serverSearchTypes: Array<{
+    entityType: string;
+    nameTerms: Array<string>;
+  }> = collectionQueries
+    .filter((query: { nameTerms: Array<string> }): boolean => {
+      return query.nameTerms.length > 0;
+    })
+    .map((query: { node: InfrastructureNode; nameTerms: Array<string> }) => {
+      return {
+        entityType: query.node.entityType || "",
+        nameTerms: query.nameTerms,
+      };
+    });
+  const collectionSearchKey: string =
+    serverSearchTypes.length > 0 && props.rangeStart
+      ? JSON.stringify([
+          props.rangeStart.toISOString(),
+          Boolean(props.includeInactive),
+          serverSearchTypes,
+        ])
+      : "";
+
+  useEffect(() => {
+    if (!collectionSearchKey || !props.rangeStart) {
+      return;
+    }
+    const rangeStart: Date = props.rangeStart;
+    const key: string = collectionSearchKey;
+    const types: Array<{ entityType: string; nameTerms: Array<string> }> =
+      serverSearchTypes;
+    const controller: AbortController = new AbortController();
+    setCollectionSearch({
+      key,
+      status: "loading",
+      counts: new Map<string, number>(),
+      error: "",
+    });
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      fetchCollectionSearchCounts(
+        rangeStart,
+        { includeInactive: Boolean(props.includeInactive), types },
+        { signal: controller.signal },
+      )
+        .then((counts: Map<string, number>) => {
+          if (!controller.signal.aborted) {
+            setCollectionSearch({ key, status: "ready", counts, error: "" });
+          }
+        })
+        .catch((error: unknown) => {
+          if (!controller.signal.aborted) {
+            setCollectionSearch({
+              key,
+              status: "error",
+              counts: new Map<string, number>(),
+              error: describeError(error),
+            });
+          }
+        });
+    }, COLLECTION_SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [collectionSearchKey, collectionSearchRetry]);
+
+  const currentCollectionSearch: CollectionSearchState | null =
+    collectionSearch && collectionSearch.key === collectionSearchKey
+      ? collectionSearch
+      : null;
+  const collectionSearchPending: boolean = Boolean(
+    collectionSearchKey &&
+      (!currentCollectionSearch ||
+        currentCollectionSearch.status === "loading"),
+  );
+  const collectionMatches: Array<CollectionMatch> = collectionQueries
+    .map(
+      (query: {
+        node: InfrastructureNode;
+        nameTerms: Array<string>;
+      }): CollectionMatch => {
+        const count: number =
+          query.nameTerms.length === 0
+            ? query.node.resourceCount
+            : currentCollectionSearch?.status === "ready"
+              ? currentCollectionSearch.counts.get(
+                  query.node.entityType || "",
+                ) || 0
+              : 0;
+        return { node: query.node, nameTerms: query.nameTerms, count };
+      },
+    )
+    .filter((match: CollectionMatch): boolean => {
+      return match.count > 0;
+    });
+  let collectionMatchCount: number = 0;
+  for (const match of collectionMatches) {
+    collectionMatchCount += match.count;
+  }
+
+  // The open collection's items, a page at a time.
+  const collectionScope: InfrastructureNode | null =
+    scope && scope.kind === "collection" && !searching ? scope : null;
+  const collectionBaseKey: string = collectionScope
+    ? JSON.stringify([
+        collectionScope.entityType,
+        props.rangeStart ? props.rangeStart.toISOString() : "",
+        Boolean(props.includeInactive),
+        collectionFilter,
+      ])
+    : "";
+  const collectionCursors: Array<CollectionCursor | null> =
+    collectionPaging.baseKey === collectionBaseKey
+      ? collectionPaging.cursors
+      : [null];
+  const collectionCursor: CollectionCursor | null =
+    collectionCursors[collectionCursors.length - 1] || null;
+  const collectionPageKey: string = collectionScope
+    ? JSON.stringify([collectionBaseKey, collectionCursor])
+    : "";
+
+  useEffect(() => {
+    if (!collectionScope || !props.rangeStart) {
+      return;
+    }
+    const key: string = collectionPageKey;
+    const controller: AbortController = new AbortController();
+    setCollectionPageState({ key, status: "loading", page: null, error: "" });
+    fetchCollectionPage(
+      props.rangeStart,
+      {
+        entityType: collectionScope.entityType || "",
+        includeInactive: Boolean(props.includeInactive),
+        nameTerms: collectionFilter,
+        cursor: collectionCursor,
+        limit: PAGE_SIZE,
+      },
+      { signal: controller.signal },
+    )
+      .then((page: CollectionPage) => {
+        if (!controller.signal.aborted) {
+          setCollectionPageState({ key, status: "ready", page, error: "" });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setCollectionPageState({
+            key,
+            status: "error",
+            page: null,
+            error: describeError(error),
+          });
+        }
+      });
+    return () => {
+      controller.abort();
+    };
+  }, [collectionPageKey, collectionRetry]);
 
   const mapCards: Array<string> = useMemo(() => {
     return collectMapCards(model, scope?.id || null);
@@ -220,21 +685,22 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       ? scope.childIds
       : [];
 
-  const workloadCount: number = Array.from(model.nodes.values()).filter(
-    (node: InfrastructureNode): boolean => {
-      return (
-        node.kind === "group" ||
-        node.entityType === "k8s.deployment" ||
-        node.entityType === "docker.swarm.service"
-      );
-    },
-  ).length;
-
-  const servicesPlaced: number = new Set<string>(
-    model.rootIds.flatMap((rootId: string): Array<string> => {
-      return model.nodes.get(rootId)?.serviceKeys || [];
-    }),
-  ).size;
+  /*
+   * With a safety cap hit, the model holds only part of the estate; the
+   * summary still reports the exact totals the server counted.
+   */
+  const capped: InfrastructureTotals | null =
+    props.truncation && props.totals ? props.totals : null;
+  const resourcesShown: number = capped
+    ? props.includeInactive
+      ? capped.resources
+      : capped.activeResources
+    : model.resourceCount;
+  const inactiveHidden: number = props.includeInactive
+    ? 0
+    : capped
+      ? Math.max(0, capped.resources - capped.activeResources)
+      : model.inactiveCount;
 
   if (model.resourceCount === 0 && model.inactiveCount === 0) {
     return (
@@ -267,13 +733,20 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     if (!node) {
       return null;
     }
-    const containers: Array<string> = node.childIds.filter(
-      (childId: string): boolean => {
-        return (model.nodes.get(childId)?.childIds.length || 0) > 0;
-      },
-    );
-    const isCollapsed: boolean = collapsed.has(id);
+    const containers: Array<string> = summary.containerChildren.get(id) || [];
+    const expanded: boolean = isExpanded(node);
     const selected: boolean = effectiveScopeId === id;
+    /*
+     * A level with thousands of containers lists the first ones and offers
+     * the rest; whatever is on the way to the open scope is always listed.
+     */
+    const limited: boolean =
+      containers.length > TREE_CHILD_LIMIT && !treeShowAll.has(id);
+    const visible: Array<string> = limited
+      ? containers.filter((childId: string, index: number): boolean => {
+          return index < TREE_CHILD_LIMIT || pathIds.has(childId);
+        })
+      : containers;
     return (
       <li key={id}>
         <div
@@ -283,25 +756,21 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           {containers.length > 0 ? (
             <button
               type="button"
-              aria-label={`${t(isCollapsed ? "Expand" : "Collapse")} ${node.name}`}
-              aria-expanded={!isCollapsed}
+              aria-label={`${t(expanded ? "Collapse" : "Expand")} ${node.kind === "category" ? t(node.name) : node.name}`}
+              aria-expanded={expanded}
               className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-700"
               onClick={() => {
-                setCollapsed((previous: Set<string>) => {
-                  const next: Set<string> = new Set<string>(previous);
-                  if (next.has(id)) {
-                    next.delete(id);
-                  } else {
-                    next.add(id);
-                  }
+                setExpansion((previous: Map<string, boolean>) => {
+                  const next: Map<string, boolean> = new Map<string, boolean>(
+                    previous,
+                  );
+                  next.set(id, !expanded);
                   return next;
                 });
               }}
             >
               <Icon
-                icon={
-                  isCollapsed ? IconProp.ChevronRight : IconProp.ChevronDown
-                }
+                icon={expanded ? IconProp.ChevronDown : IconProp.ChevronRight}
                 className="h-3.5 w-3.5"
               />
             </button>
@@ -328,19 +797,37 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               {node.kind === "category" ? t(node.name) : node.name}
             </span>
             <span className="flex-shrink-0 rounded bg-white/70 px-1.5 text-xs text-gray-500">
-              {node.kind === "resource"
+              {(node.kind === "resource"
                 ? node.resourceCount - 1
                 : node.kind === "group"
                   ? node.childIds.length
-                  : node.resourceCount}
+                  : node.resourceCount
+              ).toLocaleString()}
             </span>
           </button>
         </div>
-        {containers.length > 0 && !isCollapsed && (
+        {containers.length > 0 && expanded && (
           <ul>
-            {containers.map((childId: string): ReactElement | null => {
+            {visible.map((childId: string): ReactElement | null => {
               return renderTree(childId, depth + 1);
             })}
+            {limited && (
+              <li>
+                <button
+                  type="button"
+                  className="my-1 rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+                  style={{ marginLeft: 4 + (depth + 1) * 14 + 28 }}
+                  aria-label={`${t("Show all")} ${containers.length.toLocaleString()} ${t("in")} ${node.kind === "category" ? t(node.name) : node.name}`}
+                  onClick={() => {
+                    setTreeShowAll((previous: Set<string>) => {
+                      return new Set<string>([...previous, id]);
+                    });
+                  }}
+                >
+                  {t("Show all")} {containers.length.toLocaleString()}
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </li>
@@ -396,10 +883,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     if (!node) {
       return null;
     }
-    const container: boolean = node.childIds.length > 0;
+    const container: boolean = isContainerNode(node);
     const parent: InfrastructureNode | undefined = node.parentId
       ? model.nodes.get(node.parentId)
       : undefined;
+    const typeLabel: string = metaForEntityType(
+      node.entityType || undefined,
+    ).label;
     return (
       <tr
         key={id}
@@ -435,10 +925,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               </button>
               <span className="mt-0.5 block text-xs text-gray-500">
                 {node.kind === "group"
-                  ? t(
-                      `${metaForEntityType(node.entityType || undefined).label} replicas`,
-                    )
-                  : t(metaForEntityType(node.entityType || undefined).label)}
+                  ? t(`${typeLabel} replicas`)
+                  : node.kind === "collection"
+                    ? t("Collection")
+                    : t(typeLabel)}
                 {searching && parent && parent.kind !== "category"
                   ? ` · ${t("in")} ${parent.name}`
                   : ""}
@@ -448,7 +938,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         </td>
         <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">
           {container
-            ? node.kind === "group"
+            ? node.kind === "group" || node.kind === "collection"
               ? describeInfrastructureNode(node)
               : summarizeCounts(node.countsByType) || "—"
             : "—"}
@@ -473,11 +963,58 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderTable: (ids: Array<string>) => ReactElement = (
+  const renderPager: (data: {
+    label: string;
+    canGoBack: boolean;
+    canGoForward: boolean;
+    onBack: () => void;
+    onForward: () => void;
+  }) => ReactElement = (data: {
+    label: string;
+    canGoBack: boolean;
+    canGoForward: boolean;
+    onBack: () => void;
+    onForward: () => void;
+  }): ReactElement => {
+    return (
+      <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+        <span className="text-xs text-gray-500">{data.label}</span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={!data.canGoBack}
+            className={`${BUTTON} text-gray-600 disabled:opacity-40`}
+            onClick={data.onBack}
+          >
+            {t("Previous")}
+          </button>
+          <button
+            type="button"
+            disabled={!data.canGoForward}
+            className={`${BUTTON} text-gray-600 disabled:opacity-40`}
+            onClick={data.onForward}
+          >
+            {t("Next")}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTable: (tableId: string, ids: Array<string>) => ReactElement = (
+    tableId: string,
     ids: Array<string>,
   ): ReactElement => {
     const pageCount: number = Math.max(1, Math.ceil(ids.length / PAGE_SIZE));
-    const currentPage: number = Math.min(page, pageCount - 1);
+    const currentPage: number = Math.min(
+      pages.get(tableId) || 0,
+      pageCount - 1,
+    );
+    const setPage: (page: number) => void = (page: number): void => {
+      setPages((previous: Map<string, number>) => {
+        return new Map<string, number>(previous).set(tableId, page);
+      });
+    };
     return (
       <div className="overflow-hidden rounded-xl border border-gray-200">
         {/*
@@ -521,38 +1058,300 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             </tbody>
           </table>
         </div>
-        {pageCount > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <span className="text-xs text-gray-500">
-              {t("Page")} {currentPage + 1} / {pageCount}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={currentPage === 0}
-                className={`${BUTTON} text-gray-600 disabled:opacity-40`}
-                onClick={() => {
-                  setPage(currentPage - 1);
-                }}
+        {pageCount > 1 &&
+          renderPager({
+            label: `${t("Page")} ${(currentPage + 1).toLocaleString()} / ${pageCount.toLocaleString()}`,
+            canGoBack: currentPage > 0,
+            canGoForward: currentPage + 1 < pageCount,
+            onBack: () => {
+              setPage(currentPage - 1);
+            },
+            onForward: () => {
+              setPage(currentPage + 1);
+            },
+          })}
+      </div>
+    );
+  };
+
+  const renderCollectionTable: (
+    collection: InfrastructureNode,
+  ) => ReactElement = (collection: InfrastructureNode): ReactElement => {
+    const state: CollectionPageState | null =
+      collectionPageState && collectionPageState.key === collectionPageKey
+        ? collectionPageState
+        : null;
+    const noun: (count: number) => string = (count: number): string => {
+      return nounForType(collection.entityType || "", count);
+    };
+    const filterNote: ReactElement | null =
+      collectionFilter.length > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+          <span>
+            {t("Names containing")}{" "}
+            {collectionFilter
+              .map((term: string): string => {
+                return `“${term}”`;
+              })
+              .join(" + ")}
+          </span>
+          <button
+            type="button"
+            className="rounded text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500"
+            onClick={() => {
+              setCollectionFilter([]);
+            }}
+          >
+            {t("Show all")} {noun(2)}
+          </button>
+        </div>
+      ) : null;
+
+    if (!props.rangeStart) {
+      return (
+        <p className="rounded-xl border border-dashed border-gray-200 px-6 py-10 text-center text-sm text-gray-500">
+          {t("Pick a time range to list these resources.")}
+        </p>
+      );
+    }
+    if (!state || state.status === "loading") {
+      return (
+        <div>
+          {filterNote}
+          <div
+            role="status"
+            aria-busy="true"
+            className="rounded-xl border border-gray-200 px-6 py-10 text-center text-sm text-gray-500"
+          >
+            {t("Loading")} {collection.name}…
+          </div>
+        </div>
+      );
+    }
+    if (state.status === "error" || !state.page) {
+      return (
+        <div>
+          {filterNote}
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-6 py-6 text-center text-sm text-red-700"
+          >
+            <p>{state.error}</p>
+            <button
+              type="button"
+              className={`${BUTTON} mt-3 bg-white text-gray-700 shadow-sm hover:bg-gray-50`}
+              onClick={() => {
+                setCollectionRetry((value: number): number => {
+                  return value + 1;
+                });
+              }}
+            >
+              {t("Try again")}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    const page: CollectionPage = state.page;
+    const pageIndex: number = collectionCursors.length - 1;
+    const pageCount: number = Math.max(1, Math.ceil(page.total / PAGE_SIZE));
+    return (
+      <div>
+        {filterNote}
+        {page.items.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-gray-200 px-6 py-10 text-center text-sm text-gray-500">
+            {collectionFilter.length > 0
+              ? t("No items match this filter.")
+              : t("Nothing inside this resource.")}
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <div
+              className="relative overflow-x-auto"
+              role="region"
+              aria-label={collection.name}
+              tabIndex={0}
+            >
+              <table
+                className="w-full text-left text-sm"
+                data-testid="infrastructure-collection-table"
               >
-                {t("Previous")}
-              </button>
-              <button
-                type="button"
-                disabled={currentPage + 1 >= pageCount}
-                className={`${BUTTON} text-gray-600 disabled:opacity-40`}
-                onClick={() => {
-                  setPage(currentPage + 1);
-                }}
-              >
-                {t("Next")}
-              </button>
+                <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
+                  <tr>
+                    <th scope="col" className="px-4 py-2.5 font-medium">
+                      {t("Name")}
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 font-medium">
+                      {t("Last seen")}
+                    </th>
+                    <th scope="col" className="px-3 py-2.5">
+                      <span className="sr-only">{t("Open")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {page.items.map((item: TopologyEntity): ReactElement => {
+                    const target: EntityDetailTarget | null =
+                      targetForEntity(item);
+                    const name: string =
+                      item.displayName || t("Unnamed resource");
+                    const active: boolean =
+                      !props.rangeStart ||
+                      isEntityActive(item, props.rangeStart);
+                    const open: () => void = (): void => {
+                      if (target) {
+                        setDetailTarget(target);
+                      }
+                    };
+                    return (
+                      <tr
+                        key={item.entityKey}
+                        data-testid="infrastructure-collection-row"
+                        className={`cursor-pointer hover:bg-gray-50 ${active ? "" : "text-gray-400"}`}
+                        onClick={open}
+                      >
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                            aria-label={`${t("View details for")} ${name}`}
+                            onClick={(event: React.MouseEvent) => {
+                              event.stopPropagation();
+                              open();
+                            }}
+                          >
+                            {name}
+                          </button>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-gray-300"}`}
+                              aria-hidden={true}
+                            />
+                            <span
+                              className={
+                                active ? "text-gray-600" : "text-gray-400"
+                              }
+                            >
+                              {t(active ? "Active" : "Inactive")} ·{" "}
+                              {formatLastSeen(item.lastSeenAt)}
+                            </span>
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-right text-gray-400">
+                          <Icon
+                            icon={IconProp.ChevronRight}
+                            className="ml-auto h-4 w-4"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+            {renderPager({
+              label: `${t("Page")} ${(pageIndex + 1).toLocaleString()} ${t("of")} ${pageCount.toLocaleString()} · ${page.total.toLocaleString()} ${noun(page.total)}`,
+              canGoBack: pageIndex > 0,
+              canGoForward: Boolean(page.nextCursor),
+              onBack: () => {
+                setCollectionPaging({
+                  baseKey: collectionBaseKey,
+                  cursors: collectionCursors.slice(0, -1),
+                });
+              },
+              onForward: () => {
+                setCollectionPaging({
+                  baseKey: collectionBaseKey,
+                  cursors: [...collectionCursors, page.nextCursor],
+                });
+              },
+            })}
           </div>
         )}
       </div>
     );
   };
+
+  const renderCollectionMatches: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (
+        collectionMatches.length === 0 &&
+        !collectionSearchPending &&
+        currentCollectionSearch?.status !== "error"
+      ) {
+        return null;
+      }
+      return (
+        <div className="mb-4 space-y-2">
+          {collectionMatches.map((match: CollectionMatch): ReactElement => {
+            const label: string = `${match.count.toLocaleString()} ${t("matching")} ${nounForType(match.node.entityType || "", match.count)}`;
+            return (
+              <button
+                key={match.node.id}
+                type="button"
+                data-testid="infrastructure-collection-match"
+                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onClick={() => {
+                  openScope(match.node.id, match.nameTerms);
+                }}
+              >
+                <span
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+                  style={{
+                    color: colorForNode(match.node),
+                    background: `${colorForNode(match.node)}14`,
+                  }}
+                  aria-hidden={true}
+                >
+                  <Icon icon={iconForNode(match.node)} className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-gray-900">
+                    {label}
+                  </span>
+                  <span className="block text-xs text-gray-500">
+                    {t("in")} {match.node.name}
+                  </span>
+                </span>
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-4 w-4 text-gray-400"
+                />
+              </button>
+            );
+          })}
+          {collectionSearchPending && (
+            <p role="status" className="px-1 text-xs text-gray-500">
+              {t("Searching large collections…")}
+            </p>
+          )}
+          {currentCollectionSearch?.status === "error" && (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-2 px-1 text-xs text-red-700"
+            >
+              <span>
+                {t("Could not search large collections.")}{" "}
+                {currentCollectionSearch.error}
+              </span>
+              <button
+                type="button"
+                className="rounded font-medium text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500"
+                onClick={() => {
+                  setCollectionSearchRetry((value: number): number => {
+                    return value + 1;
+                  });
+                }}
+              >
+                {t("Try again")}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
 
   const renderOverview: () => ReactElement = (): ReactElement => {
     return (
@@ -573,7 +1372,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   {summarizeCounts(category.countsByType)}
                 </span>
               </div>
-              {renderTable(category.childIds)}
+              {renderTable(rootId, category.childIds)}
             </section>
           );
         })}
@@ -581,9 +1380,31 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const detailNode: InfrastructureNode | undefined = detailKey
-    ? model.nodes.get(detailKey)
+  /*
+   * "Show where it is" for what the drawer shows: a resource in the tree
+   * opens (or opens its parent), a service opens on the Service Map.
+   * Anything else has no place on this page to show.
+   */
+  const detailNode: InfrastructureNode | undefined = detailTarget
+    ? model.nodes.get(detailTarget.entityKey)
     : undefined;
+  const detailIsService: boolean = Boolean(
+    detailTarget &&
+      !detailNode &&
+      (detailTarget.entityType === EntityType.Service ||
+        (!detailTarget.entityType &&
+          model.serviceByKey.has(detailTarget.entityKey))),
+  );
+  const canFocusDetail: boolean = Boolean(
+    detailNode || (detailIsService && props.onOpenServiceMap),
+  );
+
+  const searchedNothing: boolean =
+    searching &&
+    results.length === 0 &&
+    collectionMatches.length === 0 &&
+    !collectionSearchPending &&
+    currentCollectionSearch?.status !== "error";
 
   return (
     <div data-testid="infrastructure-explorer" className="space-y-4">
@@ -591,25 +1412,25 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         {[
           {
             label: "Resources",
-            count: model.resourceCount,
+            count: resourcesShown,
             hint: "Reporting in this time range",
             icon: IconProp.Cube,
           },
           {
             label: "Workloads",
-            count: workloadCount,
+            count: summary.workloadCount,
             hint: "Deployments and groups of replicas",
             icon: IconProp.Squares,
           },
           {
             label: "Services placed",
-            count: servicesPlaced,
+            count: summary.servicesPlaced,
             hint: "Services with a known location",
             icon: IconProp.SquareStack,
           },
           {
             label: "Inactive not shown",
-            count: props.includeInactive ? 0 : model.inactiveCount,
+            count: inactiveHidden,
             hint: props.includeInactive
               ? "Inactive resources are included"
               : "Silent in this time range",
@@ -704,7 +1525,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               {t("Nothing reported in this time range")}
             </h3>
             <p className="mt-2 text-sm text-gray-500">
-              {model.inactiveCount}{" "}
+              {inactiveHidden.toLocaleString()}{" "}
               {t(
                 "resources are known but have been silent. Pick a longer time range or show inactive resources.",
               )}
@@ -728,10 +1549,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <Icon icon={IconProp.Layers} className="h-4 w-4" />
                 <span className="flex-1">{t("All infrastructure")}</span>
                 <span className="text-xs font-normal text-gray-500">
-                  {model.resourceCount}
+                  {model.resourceCount.toLocaleString()}
                 </span>
               </button>
-              <ul className="max-h-[60vh] overflow-y-auto">
+              <ul
+                ref={treeListRef}
+                className="relative max-h-[60vh] overflow-y-auto"
+              >
                 {model.rootIds.map((rootId: string): ReactElement | null => {
                   return renderTree(rootId, 0);
                 })}
@@ -807,10 +1631,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </h3>
                     <p role="status" className="mt-0.5 text-xs text-gray-500">
                       {searching
-                        ? `${results.length} ${t(results.length === 1 ? "match" : "matches")}`
+                        ? `${(results.length + collectionMatchCount).toLocaleString()} ${t(results.length + collectionMatchCount === 1 ? "match" : "matches")}`
                         : scope
                           ? `${scope.kind === "resource" ? `${t(metaForEntityType(scope.entityType || undefined).label)} · ` : ""}${summarizeCounts(scope.countsByType, 4) || t("Empty")}`
-                          : `${model.resourceCount} ${t("resources")}`}
+                          : `${model.resourceCount.toLocaleString()} ${t("resources")}`}
                     </p>
                     {!searching && scope && scope.serviceKeys.length > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -824,7 +1648,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     type="button"
                     className={`${BUTTON} flex-shrink-0 border border-gray-200 text-gray-600 hover:bg-gray-50`}
                     onClick={() => {
-                      setDetailKey(scope.id);
+                      setDetailTarget(targetForNode(scope));
                     }}
                   >
                     {t("View details")}
@@ -852,7 +1676,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 />
               </div>
 
-              {searching && results.length === 0 ? (
+              {searching && renderCollectionMatches()}
+
+              {searchedNothing ? (
                 <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
                   <Icon
                     icon={IconProp.Search}
@@ -871,7 +1697,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     {t("Clear search")}
                   </button>
                 </div>
-              ) : view === "map" && !searching ? (
+              ) : searching ? (
+                results.length > 0 ? (
+                  renderTable("search", listedIds)
+                ) : null
+              ) : collectionScope ? (
+                renderCollectionTable(collectionScope)
+              ) : view === "map" ? (
                 <div className="overflow-hidden rounded-xl border border-gray-200">
                   <p className="border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs text-gray-500">
                     {t(
@@ -883,21 +1715,15 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     model={model}
                     nodeIds={mapCards}
                     onOpenNode={openNode}
-                    onOpenService={(serviceKey: string) => {
-                      if (props.onOpenServiceMap) {
-                        props.onOpenServiceMap(serviceKey);
-                      } else {
-                        setDetailKey(serviceKey);
-                      }
-                    }}
+                    onOpenService={openService}
                     onShowAll={() => {
                       changeView("list");
                     }}
                   />
                 </div>
-              ) : searching || scope ? (
+              ) : scope ? (
                 listedIds.length > 0 ? (
-                  renderTable(listedIds)
+                  renderTable(scope.id, listedIds)
                 ) : (
                   <p className="rounded-xl border border-dashed border-gray-200 px-6 py-10 text-center text-sm text-gray-500">
                     {t("Nothing inside this resource.")}
@@ -911,35 +1737,36 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      {detailKey && (detailNode?.entity || entityByKey.get(detailKey)) && (
+      {detailTarget && (
         <EntityDetailPanel
-          entity={(detailNode?.entity || entityByKey.get(detailKey))!}
-          relationships={props.relationships}
-          entityByKey={entityByKey}
+          key={detailTarget.entityKey}
+          entity={detailTarget}
+          rangeStart={props.rangeStart}
           metricsWindowSeconds={props.metricsWindowSeconds}
           onClose={() => {
-            setDetailKey(null);
+            setDetailTarget(null);
           }}
-          onFocus={(key: string) => {
-            setDetailKey(null);
-            const node: InfrastructureNode | undefined = model.nodes.get(key);
-            if (node && node.childIds.length > 0) {
-              openScope(key);
-            } else if (node?.parentId) {
-              openScope(node.parentId);
-            } else if (props.onOpenServiceMap && model.serviceByKey.has(key)) {
-              props.onOpenServiceMap(key);
-            }
-          }}
-          focusButtonLabel={
-            model.serviceByKey.has(detailKey)
-              ? "Show on the service map"
-              : "Show where it is"
+          onFocus={
+            canFocusDetail
+              ? (key: string) => {
+                  setDetailTarget(null);
+                  const node: InfrastructureNode | undefined =
+                    model.nodes.get(key);
+                  if (node && isContainerNode(node)) {
+                    openScope(key);
+                  } else if (node?.parentId) {
+                    openScope(node.parentId);
+                  } else if (!node) {
+                    props.onOpenServiceMap?.(key);
+                  }
+                }
+              : undefined
           }
-          onSelectEntity={(key: string) => {
-            if (model.nodes.has(key) || entityByKey.has(key)) {
-              setDetailKey(key);
-            }
+          focusButtonLabel={
+            detailNode ? "Show where it is" : "Show on the service map"
+          }
+          onSelectEntity={(target: EntityDetailTarget) => {
+            setDetailTarget(target);
           }}
         />
       )}
