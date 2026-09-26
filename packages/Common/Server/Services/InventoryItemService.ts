@@ -10,11 +10,18 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
+import { AggregateColumn, AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
 import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
+import {
+  InventoryLiveness,
+  getInventoryLivenessSql,
+} from "../../Types/Telemetry/InventoryLiveness";
 import { MANUAL_ENTITY_TYPES } from "../../Types/Telemetry/EntityTypeGroups";
 import {
   canonicalizeEntityValue,
@@ -35,6 +42,106 @@ import {
 const PORT_REGEX: RegExp = /^\d{1,5}$/;
 // A bare IPv6 address - bracketed before a port.
 const IPV6_LITERAL_REGEX: RegExp = /^[0-9a-f:.]+$/i;
+
+/*
+ * The Inventory Overview's numbers: the five summary tiles and the per-type
+ * breakdown.
+ *
+ * These used to be folded in the browser from one list read capped at
+ * LIMIT_PER_PROJECT, so a project past ten thousand items saw tiles and a
+ * breakdown describing whichever ten thousand had been seen most recently,
+ * with nothing on the page saying so. They are counted in Postgres instead,
+ * in ONE grouped statement: the tiles are sums over the same per-type groups
+ * the breakdown lists, so the two are views of one snapshot and cannot
+ * disagree.
+ *
+ * Every tile drills into the Items list, and each filter below is the exact
+ * narrowing that tile's list applies — the source facet, or the source facet
+ * plus the Stale status facet, whose SQL is the same getInventoryLivenessSql
+ * the `inventoryStatus` virtual column is built from.
+ *
+ * Exported so the Postgres test can run the same columns against a real
+ * database.
+ */
+export const INVENTORY_OVERVIEW_GROUP_BY: Array<AggregateColumn> = [
+  { expression: `"InventoryItem"."entityType"`, alias: "entityType" },
+];
+
+export const INVENTORY_OVERVIEW_SELECT: Array<AggregateColumn> = [
+  { expression: `COUNT(*)`, alias: "itemCount" },
+  {
+    expression: `COUNT(*) FILTER (WHERE "InventoryItem"."source" = '${EntitySource.Discovered}')`,
+    alias: "discoveredCount",
+  },
+  {
+    expression: `COUNT(*) FILTER (WHERE "InventoryItem"."source" = '${EntitySource.Inventory}')`,
+    alias: "mirroredCount",
+  },
+  {
+    expression: `COUNT(*) FILTER (WHERE "InventoryItem"."source" = '${EntitySource.Manual}')`,
+    alias: "manualCount",
+  },
+  {
+    // Only discovered rows can be stale; the shared rule says NotTracked for the rest.
+    expression: `COUNT(*) FILTER (WHERE (${getInventoryLivenessSql(`"InventoryItem"`)}) = '${InventoryLiveness.Stale}')`,
+    alias: "staleCount",
+  },
+];
+
+export interface InventoryOverviewCounts {
+  total: number;
+  discovered: number;
+  mirrored: number;
+  manual: number;
+  stale: number;
+  // Items per entity type, for the category breakdown. Types that counted zero are absent.
+  countsByType: Dictionary<number>;
+}
+
+/**
+ * Sum the per-type groups into the tile counts, and key the groups by type
+ * for the breakdown.
+ *
+ * `total` counts every row, including rows whose source this build does not
+ * recognise — they land in none of the three source buckets, which is why
+ * those are not expected to sum to the total. A group with no type still
+ * counts towards every tile; it is only left out of the breakdown, which has
+ * no row to put it in.
+ */
+export function readInventoryOverviewGroups(
+  rows: Array<AggregateRow>,
+): InventoryOverviewCounts {
+  const counts: InventoryOverviewCounts = {
+    total: 0,
+    discovered: 0,
+    mirrored: 0,
+    manual: 0,
+    stale: 0,
+    countsByType: {},
+  };
+
+  for (const row of rows) {
+    const itemCount: number = AggregateResultUtil.toNumber(row, "itemCount");
+
+    counts.total += itemCount;
+    counts.discovered += AggregateResultUtil.toNumber(row, "discoveredCount");
+    counts.mirrored += AggregateResultUtil.toNumber(row, "mirroredCount");
+    counts.manual += AggregateResultUtil.toNumber(row, "manualCount");
+    counts.stale += AggregateResultUtil.toNumber(row, "staleCount");
+
+    const entityType: string | null = AggregateResultUtil.toStringOrNull(
+      row,
+      "entityType",
+    );
+
+    if (entityType && itemCount > 0) {
+      counts.countsByType[entityType] =
+        (counts.countsByType[entityType] || 0) + itemCount;
+    }
+  }
+
+  return counts;
+}
 
 export class InventoryItemService extends DatabaseService<Model> {
   public constructor() {
@@ -145,6 +252,36 @@ export class InventoryItemService extends DatabaseService<Model> {
     data.lastSeenAt = data.lastSeenAt || now;
 
     return { createBy, carryForward: null };
+  }
+
+  /**
+   * The Inventory Overview's tiles and per-type breakdown, counted over the
+   * project's whole unarchived estate. See INVENTORY_OVERVIEW_SELECT.
+   *
+   * Archived rows are excluded because every tile drills into the live Items
+   * list, which excludes them too.
+   *
+   * The GROUP BY carries no limit: capping it would cap the totals summed
+   * from it. The number of groups is bounded by the entity-type vocabulary —
+   * ingest maps to a fixed set of types, manual creates are confined to
+   * MANUAL_ENTITY_TYPES, and the column is not updatable.
+   */
+  @CaptureSpan()
+  public async getOverviewCounts(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<InventoryOverviewCounts> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: INVENTORY_OVERVIEW_GROUP_BY,
+      select: INVENTORY_OVERVIEW_SELECT,
+      props: data.props,
+    });
+
+    return readInventoryOverviewGroups(rows);
   }
 
   /**

@@ -20,8 +20,7 @@ import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
 import {
   InventoryLiveness,
-  INVENTORY_LIVE_WINDOW_MINUTES,
-  INVENTORY_STALE_AFTER_MINUTES,
+  getInventoryLivenessSql,
 } from "../../Types/Telemetry/InventoryLiveness";
 import {
   Column,
@@ -385,9 +384,8 @@ export default class InventoryItem extends DatabaseBaseModel {
    * status without persisting a value that becomes stale as time passes.
    * A virtual column needs no schema migration and is never written.
    *
-   * The badge floors elapsed minutes before applying inclusive thresholds:
-   * 30m59s is still Live, and 24h00m59s is still Recent. Strict comparisons
-   * against the following minute preserve those exact boundaries.
+   * The SQL is shared with the Inventory Overview's "Gone Quiet" count — see
+   * getInventoryLivenessSql for the boundary rules.
    */
   @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
   @TableColumn({
@@ -400,13 +398,7 @@ export default class InventoryItem extends DatabaseBaseModel {
   @VirtualColumn({
     type: ColumnType.ShortText,
     query: (alias: string): string => {
-      return `CASE
-        WHEN ${alias}."source" IS DISTINCT FROM '${EntitySource.Discovered}' THEN '${InventoryLiveness.NotTracked}'
-        WHEN ${alias}."lastSeenAt" IS NULL THEN '${InventoryLiveness.Never}'
-        WHEN ${alias}."lastSeenAt" > CURRENT_TIMESTAMP - INTERVAL '${INVENTORY_LIVE_WINDOW_MINUTES + 1} minutes' THEN '${InventoryLiveness.Live}'
-        WHEN ${alias}."lastSeenAt" > CURRENT_TIMESTAMP - INTERVAL '${INVENTORY_STALE_AFTER_MINUTES + 1} minutes' THEN '${InventoryLiveness.Recent}'
-        ELSE '${InventoryLiveness.Stale}'
-      END`;
+      return getInventoryLivenessSql(alias);
     },
   })
   public inventoryStatus?: InventoryLiveness = undefined;
