@@ -176,6 +176,8 @@ describePublicNotesTab({
   resolveArgument: "incident",
   helperCall: "shouldNotifyForIncident",
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
+  audienceSummary:
+    '( <SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-public-note-audience" />',
 });
 
 describeSharedPublicNoteWiring();

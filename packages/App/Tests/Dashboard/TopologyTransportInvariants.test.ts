@@ -290,6 +290,8 @@ const ROUTE_OWNERS: Record<keyof typeof TopologyApiPath, string> = {
   InfrastructureCollectionSearch: "InfrastructureCollectionApi.ts",
   Entity: "EntityDetailApi.ts",
   EntityConnections: "EntityDetailApi.ts",
+  EntityAllTime: "EntityDetailApi.ts",
+  EntityAllTimeConnections: "EntityDetailApi.ts",
 };
 
 const CLIENT_MODULES: Array<string> = [
