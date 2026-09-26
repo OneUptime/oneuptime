@@ -12,6 +12,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentInternalNoteService from "Common/Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "Common/Server/Services/IncidentPublicNoteService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -19,7 +20,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -122,9 +122,6 @@ RunCron(
           incidentSeverity: {
             name: true,
           },
-          monitors: {
-            name: true,
-          },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
         },
@@ -168,12 +165,15 @@ RunCron(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+        // Every resource the incident's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForIncident({
+            service: IncidentService,
+            projectId: incident.projectId!,
+            incidentId: incident.id!,
+          }),
+          fallback: "None",
+        }),
         incidentSeverity: incident.incidentSeverity!.name!,
         incidentViewLink: (
           await IncidentService.getIncidentLinkInDashboard(

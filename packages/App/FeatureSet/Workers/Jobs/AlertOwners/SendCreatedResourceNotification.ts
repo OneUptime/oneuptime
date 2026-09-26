@@ -11,6 +11,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
@@ -173,13 +174,23 @@ RunCron(
        * the two agree. Monitors without group-by have no series labels and
        * keep the previous monitor-name fallback, which for them is the
        * correct answer.
+       *
+       * The rest of what the alert's Affected Resources card lists - hosts,
+       * clusters, services, SLOs - follows, so an alert with no monitor at
+       * all (an SLO burn-rate alert) still names what it is about.
        */
-      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
-        alert.seriesLabels,
-      );
+      const resourceNames: Array<string> = LinkedAffectedResources.getNames({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: projectId,
+          alertId: alertId,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+      });
 
-      const resourcesAffected: string =
-        seriesSummary || alert.monitor?.name || "None";
+      const resourcesAffected: string = resourceNames.join(", ") || "None";
 
       /*
        * These values do not vary per owner, so convert them once per alert
@@ -303,12 +314,13 @@ RunCron(
       /*
        * Named separately from the affected resource, because they are
        * different things - except for an ungrouped monitor, where
-       * resourcesAffected already IS the monitor name and a Monitor row would
+       * resourcesAffected already names the monitor and a Monitor row would
        * print it twice.
        */
       const monitorNameRaw: string = alert.monitor?.name || "";
-      const monitorName: string =
-        monitorNameRaw === resourcesAffected ? "" : monitorNameRaw;
+      const monitorName: string = resourceNames.includes(monitorNameRaw.trim())
+        ? ""
+        : monitorNameRaw;
 
       /*
        * THE INBOX PREVIEW LINE.

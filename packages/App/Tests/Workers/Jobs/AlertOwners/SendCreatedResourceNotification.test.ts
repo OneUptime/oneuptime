@@ -1,7 +1,9 @@
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Host from "Common/Models/DatabaseModels/Host";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
@@ -215,6 +217,8 @@ function makeAlert(data: {
   seriesFingerprint?: string | undefined;
   createdCriteriaId?: string | undefined;
   severityColor?: Color | undefined;
+  hosts?: Array<Host> | undefined;
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
 }): Alert {
   const alert: Alert = new Alert(ALERT_ID);
   alert.projectId = PROJECT_ID;
@@ -265,13 +269,43 @@ function makeAlert(data: {
 
   alert.alertSeverity = severity;
 
-  const monitor: Monitor = new Monitor();
+  /*
+   * With its id and project: the job reads the alert's affected resources
+   * back through AlertService.findAllBy (mocked below to return these rows),
+   * and a resource of no known project is not named.
+   */
+  const monitor: Monitor = new Monitor(MONITOR_ID);
   monitor.name = "API Monitor";
+  monitor.projectId = PROJECT_ID;
   alert.monitor = monitor;
+
+  if (data.hosts !== undefined) {
+    alert.hosts = data.hosts;
+  }
+
+  if (data.serviceLevelObjectives !== undefined) {
+    alert.serviceLevelObjectives = data.serviceLevelObjectives;
+  }
 
   alert.alertNumber = 7;
 
   return alert;
+}
+
+function makeHost(id: string, name: string): Host {
+  const host: Host = new Host(new ObjectID(id));
+  host.name = name;
+  host.projectId = PROJECT_ID;
+  return host;
+}
+
+function makeSlo(id: string, name: string): ServiceLevelObjective {
+  const slo: ServiceLevelObjective = new ServiceLevelObjective(
+    new ObjectID(id),
+  );
+  slo.name = name;
+  slo.projectId = PROJECT_ID;
+  return slo;
 }
 
 function makeOwner(id: string, timezone?: Timezone | undefined): User {
@@ -483,6 +517,85 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       await runWorkerTick();
 
       expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("the rest of the alert's Affected Resources card follows the monitor", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          hosts: [makeHost("host-1", "web-01")],
+          serviceLevelObjectives: [makeSlo("slo-1", "Checkout availability")],
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe(
+        "API Monitor, web-01, Checkout availability",
+      );
+      // The monitor is already named, so no separate Monitor row.
+      expect(sentVars()[0]!["monitorName"]).toBe("");
+    });
+
+    test("a grouped alert names the pod, then the rest, and keeps the Monitor row", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          seriesLabels: {
+            "resource.k8s.pod.name": "checkout-7d9f-2xk",
+            "resource.k8s.namespace.name": "shop",
+          },
+          hosts: [makeHost("host-1", "web-01")],
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe(
+        "Pod: checkout-7d9f-2xk | Namespace: shop, web-01",
+      );
+      expect(sentVars()[0]!["monitorName"]).toBe("API Monitor");
+    });
+
+    test("another project's host, linked before the write guard, is not named", async () => {
+      const foreignHost: Host = makeHost("host-9", "db-of-another-project");
+      foreignHost.projectId = new ObjectID("project-9");
+
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({ hosts: [foreignHost] }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("the resources are read as root, inside the alert's project", async () => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      // The first read is the job's own query; the rest are the relation reads.
+      const relationReads: Array<{
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      }> = alertService.findAllBy.mock.calls
+        .slice(1)
+        .map((args: Array<unknown>) => {
+          return args[0] as {
+            query: Record<string, unknown>;
+            props: Record<string, unknown>;
+          };
+        });
+
+      expect(relationReads.length).toBeGreaterThan(0);
+
+      for (const read of relationReads) {
+        expect(read.props).toEqual({ isRoot: true });
+        expect(read.query["projectId"]).toBe(PROJECT_ID);
+      }
     });
 
     test("the worker selects seriesLabels, or the column comes back undefined", async () => {

@@ -11,6 +11,7 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import IncidentReminderRuleService from "Common/Server/Services/IncidentReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
@@ -20,7 +21,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -64,9 +64,6 @@ RunCron(
           _id: true,
         },
         currentIncidentState: {
-          name: true,
-        },
-        monitors: {
           name: true,
         },
         incidentNumber: true,
@@ -197,12 +194,15 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       ),
     );
 
-  const resourcesAffected: string =
-    incident
-      .monitors!.map((monitor: Monitor) => {
-        return monitor.name!;
-      })
-      .join(", ") || "";
+  // Every resource the incident's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForIncident({
+      service: IncidentService,
+      projectId: projectId,
+      incidentId: incidentId,
+    }),
+    fallback: "",
+  });
 
   const incidentNumberStr: string =
     incident.incidentNumberWithPrefix ||

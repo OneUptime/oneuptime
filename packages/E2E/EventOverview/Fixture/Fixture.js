@@ -27,6 +27,10 @@
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
  *            enough to wrap and clamp in the event header.
+ *   ?title=  default | long
+ *            "long" gives Alert #311 a 67-character title, wider than the
+ *            room its header leaves beside the actions from 1280px, so the
+ *            title row has to give way somewhere.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -42,6 +46,14 @@
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?role=   owner (default) | alert-member | loading
+ *            Who is signed in. "owner" is a master admin who is also the
+ *            Project Owner, so every permission gate is open. "alert-member"
+ *            is not a master admin and holds only Alert Member: it may
+ *            acknowledge and resolve alerts but not create an incident, so
+ *            gated actions show disabled with the reason. "loading" is the
+ *            moment before the permission snapshot arrives (no permissions
+ *            yet), when gated actions are hidden rather than refused.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -175,6 +187,7 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
   : "resolved";
 const aiMode = params.get("ai") || "report";
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
+const titleMode = params.get("title") === "long" ? "long" : "default";
 const presetVerdict =
   params.get("verdict") === "confirmed"
     ? "Confirmed"
@@ -185,6 +198,9 @@ const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
+const roleMode = ["alert-member", "loading"].includes(params.get("role"))
+  ? params.get("role")
+  : "owner";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -264,9 +280,11 @@ const fixture = {
     state: stateMode,
     ai: aiMode,
     tldr: tldrMode,
+    title: titleMode,
     verdict: presetVerdict,
     sm: smMode,
     fail: Array.from(failures),
+    role: roleMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -1136,9 +1154,13 @@ for (const [number, title, severity, createdAt] of ALERT_MEMBERS) {
 }
 
 const ALERT_NUMBER = 311;
+const ALERT_TITLE =
+  titleMode === "long"
+    ? "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster"
+    : "Payment webhook 5xx rate above 5%";
 const mainAlert = defineAlert({
   number: ALERT_NUMBER,
-  title: "Payment webhook 5xx rate above 5%",
+  title: ALERT_TITLE,
   description:
     "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
   severity: alertSeverities.high,
@@ -1606,7 +1628,7 @@ const alertEpisodeFeed = [
     [307, "Payment webhook 5xx rate above 2%", "17:52"],
     [309, "Refund callback queue backlog above 500", "18:01"],
     [310, "Payment provider callback retries above 50/min", "18:03"],
-    [311, "Payment webhook 5xx rate above 5%", "18:06"],
+    [ALERT_NUMBER, ALERT_TITLE, "18:06"],
   ].map(([number, title, when]) => {
     return [
       AlertEpisodeFeedEventType.AlertAdded,
@@ -2752,11 +2774,19 @@ function evidenceRows(body) {
  * Identity and data-layer stubs
  * ---------------------------------------------------------------------------
  */
-UserUtil.isMasterAdmin = () => true;
+UserUtil.isMasterAdmin = () => roleMode === "owner";
 UserUtil.getUserId = () => people.maya.id;
 UserUtil.getName = () => people.maya.name;
 UserUtil.getEmail = () => people.maya.email;
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+PermissionUtil.getAllPermissions = () => {
+  if (roleMode === "alert-member") {
+    return [Permission.AlertMember];
+  }
+  if (roleMode === "loading") {
+    return [];
+  }
+  return [Permission.ProjectOwner];
+};
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
@@ -3183,6 +3213,8 @@ const STUB_PAGES = [
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS, "Episode Roles"],
   [PageMap.ALERT_EPISODE_VIEW_ALERTS, "Episode Member Alerts"],
   [PageMap.INCIDENTS, "Incidents"],
+  // Where "Declare Incident" in an alert's header leads (?alertIds=<alert>).
+  [PageMap.INCIDENT_CREATE, "Create Incident"],
   [PageMap.INCIDENT_EPISODES, "Incident Episodes"],
   [PageMap.ALERTS, "Alerts"],
   [PageMap.ALERT_EPISODES, "Alert Episodes"],

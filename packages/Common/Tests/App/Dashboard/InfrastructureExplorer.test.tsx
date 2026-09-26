@@ -25,6 +25,8 @@ import EntitySource from "../../../Types/Telemetry/EntitySource";
 import ObjectID from "../../../Types/ObjectID";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Navigation from "../../../UI/Utils/Navigation";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
 import InfrastructureExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
 import type {
   CollectionPage,
@@ -81,13 +83,46 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: {
+        model: unknown;
         nodeIds: Array<string>;
         onOpenNode: (id: string) => void;
         onOpenService?: (key: string) => void;
+        onOpenTraffic?: (link: { from: string; to: string }) => void;
         onShowAll?: () => void;
+        metricsWindowSeconds?: number;
       }): React.ReactElement => {
+        /* The real traffic between the cards the page asked for. */
+        const { computeInfrastructureTraffic } = jest.requireActual(
+          "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureTopologyModel",
+        ) as {
+          computeInfrastructureTraffic: (
+            model: unknown,
+            cardIds: Array<string>,
+          ) => { links: Array<{ from: string; to: string }> };
+        };
+        const links: Array<{ from: string; to: string }> =
+          computeInfrastructureTraffic(props.model, props.nodeIds).links;
         return (
-          <div data-testid="infrastructure-map-stub">
+          <div
+            data-testid="infrastructure-map-stub"
+            data-metrics-window={props.metricsWindowSeconds}
+          >
+            {props.onOpenTraffic &&
+              links.map(
+                (link: { from: string; to: string }): React.ReactElement => {
+                  return (
+                    <button
+                      type="button"
+                      key={`${link.from}->${link.to}`}
+                      onClick={() => {
+                        props.onOpenTraffic?.(link);
+                      }}
+                    >
+                      {`Map traffic ${link.from} -> ${link.to}`}
+                    </button>
+                  );
+                },
+              )}
             {props.nodeIds.map((id: string): React.ReactElement => {
               return (
                 <button
@@ -188,6 +223,41 @@ jest.mock(
       );
     };
     return { __esModule: true, default: MockDrawer };
+  },
+);
+
+/*
+ * A traffic line's history panel fetches its own charts; here it shows the
+ * call it was asked about and exposes its close button.
+ */
+interface EdgePanelProps {
+  fromEntity: TopologyEntity;
+  toEntity: TopologyEntity;
+  relationship: TopologyRelationship;
+  timeRange: RangeStartAndEndDateTime;
+  metricsWindowSeconds: number;
+  onClose: () => void;
+}
+const mockEdgePanelRenders: Array<EdgePanelProps> = [];
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EdgeDetailPanel",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: EdgePanelProps): React.ReactElement => {
+        mockEdgePanelRenders.push(props);
+        return (
+          <div
+            role="dialog"
+            aria-label={`${props.fromEntity.displayName} calls ${props.toEntity.displayName}`}
+          >
+            <button type="button" onClick={props.onClose}>
+              Close call history
+            </button>
+          </div>
+        );
+      },
+    };
   },
 );
 
@@ -357,6 +427,7 @@ interface ExplorerOptions {
   data?: Fixture;
   includeInactive?: boolean;
   onOpenServiceMap?: (key: string) => void;
+  timeRange?: RangeStartAndEndDateTime;
 }
 
 function explorer(options: ExplorerOptions = {}): React.ReactElement {
@@ -370,6 +441,7 @@ function explorer(options: ExplorerOptions = {}): React.ReactElement {
         totals={data.totals}
         truncation={data.truncation}
         metricsWindowSeconds={900}
+        timeRange={options.timeRange}
         rangeStart={RANGE_START}
         includeInactive={options.includeInactive}
         onOpenServiceMap={options.onOpenServiceMap}
@@ -1212,6 +1284,15 @@ describe("map", () => {
     });
   });
 
+  test("the map is handed the page's rate window", () => {
+    renderExplorer();
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    expect(screen.getByTestId("infrastructure-map-stub")).toHaveAttribute(
+      "data-metrics-window",
+      "900",
+    );
+  });
+
   test("the overflow card switches to the complete list", () => {
     window.history.replaceState({}, "", "?infraView=map");
     renderExplorer();
@@ -1221,6 +1302,126 @@ describe("map", () => {
       "true",
     );
     expect(rows()).toHaveLength(3);
+  });
+});
+
+/*
+ * Issue #3972: the map joins the cards whose services call each other, and a
+ * line opens the history of the call it stands for — the Service Map's own
+ * drill-down, since traffic is measured per service pair.
+ */
+describe("traffic on the map", () => {
+  const HOME_GROUP: string = "group:category:compute:host|oneuptime-home";
+  const TIME_RANGE: RangeStartAndEndDateTime = {
+    range: TimeRange.PAST_ONE_DAY,
+  };
+
+  function tracedFixture(): Fixture {
+    const base: Fixture = fixtures();
+    return {
+      ...base,
+      relationships: [
+        ...base.relationships,
+        {
+          ...relationship("api", "home", EntityRelationshipType.DependsOn),
+          callCount: 120,
+          errorCount: 1,
+          avgDurationMs: 30,
+        },
+        {
+          ...relationship("home", "api", EntityRelationshipType.DependsOn),
+          callCount: 12,
+        },
+      ],
+    };
+  }
+
+  beforeEach(() => {
+    mockEdgePanelRenders.length = 0;
+  });
+
+  test("a line opens the history of the busiest call it stands for", () => {
+    renderExplorer({ data: tracedFixture(), timeRange: TIME_RANGE });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Map traffic ${APP_GROUP} -> ${HOME_GROUP}`,
+      }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "api calls home" }),
+    ).toBeInTheDocument();
+    const panel: EdgePanelProps =
+      mockEdgePanelRenders[mockEdgePanelRenders.length - 1]!;
+    expect(panel.fromEntity).toMatchObject({
+      entityKey: "api",
+      entityType: EntityType.Service,
+      displayName: "api",
+    });
+    expect(panel.toEntity).toMatchObject({
+      entityKey: "home",
+      entityType: EntityType.Service,
+    });
+    expect(panel.relationship).toEqual({
+      fromEntityKey: "api",
+      toEntityKey: "home",
+      relationshipType: EntityRelationshipType.DependsOn,
+      callCount: 120,
+      errorCount: 1,
+      avgDurationMs: 30,
+    });
+    expect(panel.timeRange).toBe(TIME_RANGE);
+    expect(panel.metricsWindowSeconds).toBe(900);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close call history" }));
+    expect(
+      screen.queryByRole("dialog", { name: "api calls home" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the other direction is its own line, with its own call", () => {
+    renderExplorer({ data: tracedFixture(), timeRange: TIME_RANGE });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Map traffic ${HOME_GROUP} -> ${APP_GROUP}`,
+      }),
+    );
+    const panel: EdgePanelProps =
+      mockEdgePanelRenders[mockEdgePanelRenders.length - 1]!;
+    expect(panel.relationship).toEqual({
+      fromEntityKey: "home",
+      toEntityKey: "api",
+      relationshipType: EntityRelationshipType.DependsOn,
+      callCount: 12,
+      errorCount: 0,
+    });
+  });
+
+  test("one drawer at a time: opening a resource closes the call's history", () => {
+    renderExplorer({ data: tracedFixture(), timeRange: TIME_RANGE });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Map traffic ${APP_GROUP} -> ${HOME_GROUP}`,
+      }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "api calls home" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Map service api" }));
+    expect(
+      screen.queryByRole("dialog", { name: "api calls home" }),
+    ).not.toBeInTheDocument();
+    expect(lastDrawer().entity.entityKey).toBe("api");
+  });
+
+  test("without the page's time range there is no history to open", () => {
+    renderExplorer({ data: tracedFixture() });
+    fireEvent.click(screen.getByTestId("infrastructure-view-map"));
+    expect(
+      screen.queryByRole("button", { name: /^Map traffic/ }),
+    ).not.toBeInTheDocument();
   });
 });
 

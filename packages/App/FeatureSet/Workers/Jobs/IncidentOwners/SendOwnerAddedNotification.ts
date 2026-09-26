@@ -11,6 +11,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
 import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -19,7 +20,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
@@ -151,9 +151,6 @@ RunCron(
           incidentSeverity: {
             name: true,
           },
-          monitors: {
-            name: true,
-          },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
         },
@@ -192,12 +189,15 @@ RunCron(
           incident.description! || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+        // Every resource the incident's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForIncident({
+            service: IncidentService,
+            projectId: incident.projectId!,
+            incidentId: incident.id!,
+          }),
+          fallback: "None",
+        }),
         incidentSeverity: incident.incidentSeverity!.name!,
         incidentViewLink: (
           await IncidentService.getIncidentLinkInDashboard(

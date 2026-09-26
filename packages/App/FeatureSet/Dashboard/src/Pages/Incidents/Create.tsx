@@ -25,6 +25,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
+  AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -47,7 +48,6 @@ import FetchLabels from "../../Components/Label/FetchLabels";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
-import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
 import FetchIncidentState from "../../Components/IncidentState/FetchIncidentState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -57,6 +57,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IncidentRoleFormField, {
   RoleAssignment,
 } from "../../Components/Incident/IncidentRoleFormField";
+import FetchIncidentRoleAssignments from "../../Components/IncidentRole/FetchIncidentRoleAssignments";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
@@ -67,12 +68,15 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import AlertBanner, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import AlertElement from "../../Components/Alert/Alert";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
 import IncidentFromAlerts, {
   AlertForIncidentPrefill,
+  AlertsToAcknowledge,
+  AlertStateForAcknowledgement,
   IncidentPrefillFromAlerts,
   NamedResource,
   ParsedAlertIds,
@@ -96,6 +100,18 @@ import {
 import useStatusPagePickerAccess, {
   StatusPagePickerAccess,
 } from "../../Components/Incident/useStatusPagePickerAccess";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import {
+  ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
+  getAcknowledgeAlertsDescription,
+  getAcknowledgeAlertsGate,
+  getAcknowledgeAlertsTitle,
+  getAlertsKeepEscalatingNote,
+} from "../../Components/Incident/AcknowledgeAlertsOnDeclare";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
+import Link from "Common/UI/Components/Link/Link";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -208,6 +224,68 @@ const getAudienceSummary: GetAudienceSummaryFunction = (
   );
 };
 
+/*
+ * Every resource type the "Resources Affected" step offers. The editor and
+ * the review step's read-only picker both take this list, so the summary
+ * names every type the editor lets the user pick.
+ */
+const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
+  "Monitor",
+  "Host",
+  "KubernetesCluster",
+  "DockerHost",
+  "PodmanHost",
+  "DatabaseServer",
+  "Service",
+];
+
+type GetAlreadyLinkedNoteFunction = (
+  alerts: Array<Alert>,
+  incidentsLinkedToAlerts: Map<string, Array<Incident>>,
+) => string;
+
+/*
+ * When every alert already has an incident there is nothing left to link,
+ * so the useful step is that incident; when only some do, the others can
+ * still be linked to it instead of declaring another one.
+ */
+const getAlreadyLinkedNote: GetAlreadyLinkedNoteFunction = (
+  alerts: Array<Alert>,
+  incidentsLinkedToAlerts: Map<string, Array<Incident>>,
+): string => {
+  const isEveryAlertLinked: boolean = alerts.every((alert: Alert): boolean => {
+    return (
+      (incidentsLinkedToAlerts.get(alert._id?.toString() || "") || []).length >
+      0
+    );
+  });
+
+  if (isEveryAlertLinked) {
+    return alerts.length === 1
+      ? "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one."
+      : "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.";
+  }
+
+  return "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.";
+};
+
+type GetIncidentReferenceFunction = (incident: Incident) => string;
+
+// "Incident INC-42" / "Incident #42", as the link pages list incidents.
+const getIncidentReference: GetIncidentReferenceFunction = (
+  incident: Incident,
+): string => {
+  if (incident.incidentNumberWithPrefix) {
+    return `Incident ${incident.incidentNumberWithPrefix}`;
+  }
+
+  if (typeof incident.incidentNumber === "number") {
+    return `Incident #${incident.incidentNumber}`;
+  }
+
+  return "Incident";
+};
+
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -249,6 +327,27 @@ const IncidentCreate: FunctionComponent<
    */
   const [isPrivateFromAlerts, setIsPrivateFromAlerts] =
     useState<boolean>(false);
+  /*
+   * Declaring the incident does not, on its own, stop the alerts escalating:
+   * only acknowledging an alert does. So the page offers to acknowledge the
+   * alerts that are not acknowledged yet as the incident is declared, ticked
+   * by default - whoever declares an incident from an alert is responding to
+   * it. Null when that is not on offer (every alert is acknowledged already,
+   * or the alert states could not be read).
+   */
+  const [alertsToAcknowledge, setAlertsToAcknowledge] =
+    useState<AlertsToAcknowledge | null>(null);
+  const [shouldAcknowledgeAlerts, setShouldAcknowledgeAlerts] =
+    useState<boolean>(true);
+  /*
+   * Incidents the alerts are already linked to, by alert id. Declaring is a
+   * click away on an alert's page, and several responders can land on the
+   * same alert in an outage, so the banner says when an alert already has an
+   * incident - a hint, never a block.
+   */
+  const [incidentsLinkedToAlerts, setIncidentsLinkedToAlerts] = useState<
+    Map<string, Array<Incident>>
+  >(new Map());
 
   useEffect(() => {
     const incidentTemplateId: string | null =
@@ -368,14 +467,24 @@ const IncidentCreate: FunctionComponent<
         }
       }
 
-      const [alerts, alertSeverities, incidentSeverities]: [
+      const [
+        alerts,
+        alertSeverities,
+        incidentSeverities,
+        alertStates,
+        existingLinks,
+      ]: [
         Array<Alert>,
         Array<SeverityForMapping>,
         Array<SeverityForMapping>,
+        Array<AlertStateForAcknowledgement> | null,
+        Map<string, Array<Incident>>,
       ] = await Promise.all([
         fetchAlertsToLink(parsedAlertIds.alertIds),
         fetchAlertSeverities(),
         fetchIncidentSeverities(),
+        fetchAlertStates(),
+        fetchIncidentsLinkedToAlerts(parsedAlertIds.alertIds),
       ]);
 
       const prefill: IncidentPrefillFromAlerts =
@@ -385,7 +494,25 @@ const IncidentCreate: FunctionComponent<
           incidentSeverities: incidentSeverities,
         });
 
+      const toAcknowledge: AlertsToAcknowledge | null = alertStates
+        ? IncidentFromAlerts.getAlertsToAcknowledge({
+            alerts: alerts.map((alert: Alert) => {
+              return {
+                id: alert._id?.toString() || "",
+                currentAlertStateId: alert.currentAlertStateId?.toString(),
+              };
+            }),
+            alertStates: alertStates,
+          })
+        : null;
+
       setAlertsToLink(alerts);
+      setIncidentsLinkedToAlerts(existingLinks);
+      setAlertsToAcknowledge(
+        toAcknowledge && toAcknowledge.alertIds.length > 0
+          ? toAcknowledge
+          : null,
+      );
       setMissingAlertCount(parsedAlertIds.alertIds.length - alerts.length);
       setWereAlertIdsTruncated(parsedAlertIds.wasTruncated);
       setIsPrivateFromAlerts(prefill.isPrivate);
@@ -418,6 +545,7 @@ const IncidentCreate: FunctionComponent<
         alertNumber: true,
         alertNumberWithPrefix: true,
         alertSeverityId: true,
+        currentAlertStateId: true,
         isPrivate: true,
         monitor: { _id: true, name: true },
         hosts: { _id: true, name: true },
@@ -465,6 +593,89 @@ const IncidentCreate: FunctionComponent<
       return [];
     }
   };
+
+  /*
+   * Only a hint on the banner, so a failed read (or no permission to read
+   * links) leaves it out rather than block the page. A private incident's
+   * links are not returned to somebody who cannot see it.
+   */
+  const fetchIncidentsLinkedToAlerts: (
+    alertIds: Array<string>,
+  ) => Promise<Map<string, Array<Incident>>> = async (
+    alertIds: Array<string>,
+  ): Promise<Map<string, Array<Incident>>> => {
+    const byAlertId: Map<string, Array<Incident>> = new Map();
+
+    try {
+      const result: ListResult<IncidentAlert> =
+        await ModelAPI.getList<IncidentAlert>({
+          modelType: IncidentAlert,
+          query: {
+            alertId: new Includes(alertIds),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            alertId: true,
+            incident: {
+              _id: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+            },
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+        });
+
+      for (const link of result.data) {
+        const alertId: string = link.alertId?.toString() || "";
+
+        if (!alertId || !link.incident?._id) {
+          continue;
+        }
+
+        const incidents: Array<Incident> = byAlertId.get(alertId) || [];
+        incidents.push(link.incident);
+        byAlertId.set(alertId, incidents);
+      }
+    } catch {
+      return new Map();
+    }
+
+    return byAlertId;
+  };
+
+  /*
+   * The alert states only decide whether to offer acknowledging the alerts.
+   * A failed read leaves that offer out (null) rather than block the page.
+   */
+  const fetchAlertStates: () => Promise<Array<AlertStateForAcknowledgement> | null> =
+    async (): Promise<Array<AlertStateForAcknowledgement> | null> => {
+      try {
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { _id: true, order: true, isAcknowledgedState: true },
+            sort: { order: SortOrder.Ascending },
+          });
+
+        return result.data.map(
+          (state: AlertState): AlertStateForAcknowledgement => {
+            return {
+              id: state._id?.toString() || "",
+              order: state.order,
+              isAcknowledgedState: state.isAcknowledgedState,
+            };
+          },
+        );
+      } catch {
+        return null;
+      }
+    };
 
   const fetchIncidentSeverities: () => Promise<
     Array<SeverityForMapping>
@@ -653,6 +864,22 @@ const IncidentCreate: FunctionComponent<
     return null;
   };
 
+  /*
+   * A missing permission is shown - the box locked, saying why - and an
+   * unknown answer (the permission snapshot has not loaded) leaves the box
+   * out, like every other gate. The server checks again, per alert.
+   */
+  const acknowledgeGate: PermissionGateResult = getAcknowledgeAlertsGate();
+
+  const isAcknowledgeOffered: boolean =
+    alertsToAcknowledge !== null &&
+    (acknowledgeGate.isAllowed || Boolean(acknowledgeGate.disabledReason));
+
+  const willAcknowledgeAlerts: boolean =
+    alertsToAcknowledge !== null &&
+    acknowledgeGate.isAllowed &&
+    shouldAcknowledgeAlerts;
+
   return (
     <Fragment>
       <Card
@@ -681,6 +908,11 @@ const IncidentCreate: FunctionComponent<
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {alertsToLink.map((alert: Alert): ReactElement => {
+                      const linkedIncidents: Array<Incident> =
+                        incidentsLinkedToAlerts.get(
+                          alert._id?.toString() || "",
+                        ) || [];
+
                       return (
                         <li key={alert._id?.toString()}>
                           <span className="mr-1 font-medium">
@@ -690,10 +922,66 @@ const IncidentCreate: FunctionComponent<
                             :
                           </span>
                           <AlertElement alert={alert} />
+                          {linkedIncidents.length > 0 && (
+                            <span
+                              className="ml-1"
+                              data-testid="incident-create-alert-already-linked"
+                            >
+                              (already linked to{" "}
+                              {linkedIncidents.map(
+                                (
+                                  incident: Incident,
+                                  index: number,
+                                ): ReactElement => {
+                                  return (
+                                    <Fragment key={incident._id?.toString()}>
+                                      {index > 0 ? ", " : ""}
+                                      <Link
+                                        className="font-medium underline"
+                                        openInNewTab={true}
+                                        to={RouteUtil.populateRouteParams(
+                                          RouteMap[
+                                            PageMap.INCIDENT_VIEW
+                                          ] as Route,
+                                          {
+                                            modelId: new ObjectID(
+                                              incident._id!.toString(),
+                                            ),
+                                          },
+                                        )}
+                                      >
+                                        {getIncidentReference(incident)}
+                                      </Link>
+                                    </Fragment>
+                                  );
+                                },
+                              )}
+                              )
+                            </span>
+                          )}
                         </li>
                       );
                     })}
                   </ul>
+                  {alertsToLink.some((alert: Alert): boolean => {
+                    return (
+                      (
+                        incidentsLinkedToAlerts.get(
+                          alert._id?.toString() || "",
+                        ) || []
+                      ).length > 0
+                    );
+                  }) && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-alerts-already-linked-note"
+                    >
+                      {getAlreadyLinkedNote(
+                        alertsToLink,
+                        incidentsLinkedToAlerts,
+                      )}
+                    </p>
+                  )}
                   {isPrivateFromAlerts && (
                     <p
                       className="mt-2"
@@ -718,6 +1006,41 @@ const IncidentCreate: FunctionComponent<
                       Some alerts could not be found, so they are not linked.
                       They may have been deleted, or you may not have access to
                       them.
+                    </p>
+                  )}
+                  {isAcknowledgeOffered && alertsToAcknowledge && (
+                    <div
+                      className="mt-3"
+                      data-testid="incident-create-acknowledge-alerts"
+                    >
+                      <CheckboxElement
+                        dataTestId="incident-create-acknowledge-alerts-checkbox"
+                        title={getAcknowledgeAlertsTitle(
+                          alertsToAcknowledge,
+                          alertsToLink.length,
+                        )}
+                        description={getAcknowledgeAlertsDescription(
+                          alertsToAcknowledge,
+                          acknowledgeGate.disabledReason,
+                        )}
+                        value={willAcknowledgeAlerts}
+                        disabled={!acknowledgeGate.isAllowed}
+                        hoverText={acknowledgeGate.disabledReason}
+                        onChange={(value: boolean) => {
+                          setShouldAcknowledgeAlerts(value);
+                        }}
+                      />
+                    </div>
+                  )}
+                  {alertsToAcknowledge && !willAcknowledgeAlerts && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-alerts-keep-escalating"
+                    >
+                      {getAlertsKeepEscalatingNote(
+                        alertsToAcknowledge,
+                        alertsToLink.length,
+                      )}
                     </p>
                   )}
                 </div>
@@ -756,6 +1079,17 @@ const IncidentCreate: FunctionComponent<
                     alertsToLink.map((alert: Alert): string => {
                       return alert._id?.toString() || "";
                     });
+
+                  /*
+                   * Only sent when the box is on screen, allowed and
+                   * ticked: the server then acknowledges the alerts (the
+                   * ones not acknowledged yet) as this user once they are
+                   * linked.
+                   */
+                  if (willAcknowledgeAlerts) {
+                    miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] =
+                      true;
+                  }
                 }
 
                 return item;
@@ -928,15 +1262,7 @@ const IncidentCreate: FunctionComponent<
                           values.databaseServers as Array<DatabaseServer>
                         }
                         services={values.services as Array<Service>}
-                        resourceTypes={[
-                          "Monitor",
-                          "Host",
-                          "KubernetesCluster",
-                          "DockerHost",
-                          "PodmanHost",
-                          "DatabaseServer",
-                          "Service",
-                        ]}
+                        resourceTypes={AFFECTED_RESOURCE_TYPES}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);
                         }}
@@ -968,112 +1294,48 @@ const IncidentCreate: FunctionComponent<
                       });
                     }
                   },
+                  /*
+                   * The form holds bare IDs once the picker has written to
+                   * it, or {_id, name} objects from a template or alert
+                   * prefill the user has not touched. The read-only picker
+                   * takes both and looks up any name it lacks, so the review
+                   * step names every resource the user picked instead of
+                   * counting them.
+                   */
                   getSummaryElement: (item: FormValues<Incident>) => {
-                    const monitorIds: Array<ObjectID> = [];
-                    if (Array.isArray(item.monitors)) {
-                      for (const monitor of item.monitors) {
-                        if (typeof monitor === "string") {
-                          monitorIds.push(new ObjectID(monitor));
-                          continue;
-                        }
-                        if (monitor instanceof ObjectID) {
-                          monitorIds.push(monitor);
-                          continue;
-                        }
-                        if (monitor instanceof Monitor) {
-                          monitorIds.push(
-                            new ObjectID(monitor._id?.toString() || ""),
-                          );
-                          continue;
-                        }
-                        const anyMonitor: { _id?: unknown } = monitor as {
-                          _id?: unknown;
-                        };
-                        if (anyMonitor._id) {
-                          monitorIds.push(new ObjectID(String(anyMonitor._id)));
-                        }
-                      }
-                    }
-                    const hostsCount: number = Array.isArray(item.hosts)
-                      ? item.hosts.length
-                      : 0;
-                    const clustersCount: number = Array.isArray(
+                    const hasResources: boolean = [
+                      item.monitors,
+                      item.hosts,
                       item.kubernetesClusters,
-                    )
-                      ? item.kubernetesClusters.length
-                      : 0;
-                    const dockerCount: number = Array.isArray(item.dockerHosts)
-                      ? item.dockerHosts.length
-                      : 0;
-                    const podmanCount: number = Array.isArray(item.podmanHosts)
-                      ? item.podmanHosts.length
-                      : 0;
-                    const databasesCount: number = Array.isArray(
+                      item.dockerHosts,
+                      item.podmanHosts,
                       item.databaseServers,
-                    )
-                      ? item.databaseServers.length
-                      : 0;
-                    const servicesCount: number = Array.isArray(item.services)
-                      ? item.services.length
-                      : 0;
-                    const totalCount: number =
-                      monitorIds.length +
-                      hostsCount +
-                      clustersCount +
-                      dockerCount +
-                      podmanCount +
-                      databasesCount +
-                      servicesCount;
-                    if (totalCount === 0) {
+                      item.services,
+                    ].some((resources: unknown): boolean => {
+                      return Array.isArray(resources) && resources.length > 0;
+                    });
+                    if (!hasResources) {
                       return <p>No resources affected by this incident.</p>;
                     }
-                    const otherCounts: Array<string> = [];
-                    if (hostsCount > 0) {
-                      otherCounts.push(
-                        `${hostsCount} host${hostsCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (clustersCount > 0) {
-                      otherCounts.push(
-                        `${clustersCount} Kubernetes cluster${clustersCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (dockerCount > 0) {
-                      otherCounts.push(
-                        `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (podmanCount > 0) {
-                      otherCounts.push(
-                        `${podmanCount} Podman host${podmanCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (databasesCount > 0) {
-                      otherCounts.push(
-                        `${databasesCount} database${databasesCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (servicesCount > 0) {
-                      otherCounts.push(
-                        `${servicesCount} service${servicesCount === 1 ? "" : "s"}`,
-                      );
-                    }
                     return (
-                      <div className="space-y-2">
-                        {monitorIds.length > 0 && (
-                          <div>
-                            <div className="text-xs uppercase tracking-wide text-gray-500">
-                              Monitors
-                            </div>
-                            <FetchMonitors monitorIds={monitorIds} />
-                          </div>
-                        )}
-                        {otherCounts.length > 0 && (
-                          <div className="text-sm text-gray-600">
-                            {otherCounts.join(", ")}
-                          </div>
-                        )}
-                      </div>
+                      <AffectedResourcesPicker
+                        readOnly={true}
+                        monitors={item.monitors as Array<Monitor>}
+                        hosts={item.hosts as Array<Host>}
+                        kubernetesClusters={
+                          item.kubernetesClusters as Array<KubernetesCluster>
+                        }
+                        dockerHosts={item.dockerHosts as Array<DockerHost>}
+                        podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                        databaseServers={
+                          item.databaseServers as Array<DatabaseServer>
+                        }
+                        services={item.services as Array<Service>}
+                        resourceTypes={AFFECTED_RESOURCE_TYPES}
+                        onChange={() => {
+                          // Read-only: nothing to change.
+                        }}
+                      />
                     );
                   },
                 },
@@ -1244,20 +1506,10 @@ const IncidentCreate: FunctionComponent<
                     if (roleAssignmentsRef.current.length === 0) {
                       return <p>No incident roles assigned.</p>;
                     }
-                    const totalAssignments: number =
-                      roleAssignmentsRef.current.reduce(
-                        (acc: number, assignment: RoleAssignment) => {
-                          return acc + assignment.userIds.length;
-                        },
-                        0,
-                      );
                     return (
-                      <p>
-                        {totalAssignments} user
-                        {totalAssignments !== 1 ? "s" : ""} assigned to{" "}
-                        {roleAssignmentsRef.current.length} role
-                        {roleAssignmentsRef.current.length !== 1 ? "s" : ""}.
-                      </p>
+                      <FetchIncidentRoleAssignments
+                        assignments={roleAssignmentsRef.current}
+                      />
                     );
                   },
                 },
@@ -1280,12 +1532,16 @@ const IncidentCreate: FunctionComponent<
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (
                       !item.onCallDutyPolicies ||
-                      !Array.isArray(item.onCallDutyPolicies)
+                      !Array.isArray(item.onCallDutyPolicies) ||
+                      item.onCallDutyPolicies.length === 0
                     ) {
                       return (
                         <p>
                           No on-call policies will be executed when this
                           incident is created.
+                          {willAcknowledgeAlerts
+                            ? ` ${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}`
+                            : ""}
                         </p>
                       );
                     }

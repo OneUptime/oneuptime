@@ -296,6 +296,19 @@ export interface TopologyInfrastructureCollectionJSON {
   activeLastSeenAt: number | null;
 }
 
+/*
+ * An in-range `depends-on` relationship between two placed services (see
+ * `placements`), by index into `services`. The map draws it as traffic
+ * between the resources those services run on.
+ */
+export interface TopologyInfrastructureDependencyJSON {
+  from: number;
+  to: number;
+  callCount: number | null;
+  errorCount: number | null;
+  avgDurationMs: number | null;
+}
+
 export interface TopologyInfrastructureResponseJSON
   extends TopologyResponseEnvelopeJSON {
   /* Ordered by (type, key). */
@@ -304,6 +317,14 @@ export interface TopologyInfrastructureResponseJSON
   services: Array<TopologyInfrastructureServiceJSON>;
   /* Distinct [index into services, index into nodes] from in-range runs-on / hosted-on. */
   placements: Array<[number, number]>;
+  /*
+   * In-range calls between services that both run on a shipped node,
+   * ordered by (from, to). The browser reads a payload without them as "no
+   * traffic known", so the field needs no format version of its own.
+   */
+  dependencies: Array<TopologyInfrastructureDependencyJSON>;
+  /* The dependency cap (MaxServiceMapDependencies), when it was hit. */
+  dependencyTruncation: TopologyTruncationJSON | null;
   collections: Array<TopologyInfrastructureCollectionJSON>;
   /* Every non-archived infrastructure item, collections included. */
   totals: { resources: number; activeResources: number };

@@ -10,6 +10,8 @@ import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
+import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -983,15 +985,10 @@ export class Service extends DatabaseService<Model> {
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           /*
-           * AcknowledgeIncident.hbs asks for a Resources Affected row and
-           * the generator had nothing to build it from, so the row was
-           * silently dropped — the same `{{#if}}` swallow that hid the
-           * alert's Root Cause.
+           * No relations here: AcknowledgeIncident.hbs's Resources Affected
+           * row is built from every resource the incident is linked to,
+           * which generateEmailTemplateForIncidentCreated reads itself.
            */
-          monitors: {
-            _id: true,
-            name: true,
-          },
         },
       });
     }
@@ -1031,11 +1028,13 @@ export class Service extends DatabaseService<Model> {
            * select it.
            */
           rootCause: true,
-          // Same story for the template's Resources Affected row.
-          monitor: {
-            _id: true,
-            name: true,
-          },
+          /*
+           * The series a grouped monitor raised this alert for (the pod or
+           * container), which the Resources Affected row names in place of
+           * the monitor - as the alert owner emails do. The linked resources
+           * themselves are read by generateEmailTemplateForAlertCreated.
+           */
+          seriesLabels: true,
         },
       });
     }
@@ -4613,7 +4612,22 @@ export class Service extends DatabaseService<Model> {
         MarkdownContentType.Email,
       ),
       alertSeverity: alert.alertSeverity!.name!,
-      resourcesAffected: alert.monitor?.name || "No resources identified",
+      /*
+       * Every resource the alert's Affected Resources card lists. An SLO
+       * burn-rate alert has no monitor, and this used to read "No resources
+       * identified" beside a card naming its SLO.
+       */
+      resourcesAffected: LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+        fallback: "No resources identified",
+      }),
       rootCause: await Markdown.convertToHTML(
         alert.rootCause || "No root cause identified for this alert",
         MarkdownContentType.Email,
@@ -4664,15 +4678,15 @@ export class Service extends DatabaseService<Model> {
         MarkdownContentType.Email,
       ),
       incidentSeverity: incident.incidentSeverity!.name!,
-      resourcesAffected:
-        (incident.monitors || [])
-          .map((monitor: Monitor): string => {
-            return monitor.name || "";
-          })
-          .filter((name: string): boolean => {
-            return name.length > 0;
-          })
-          .join(", ") || "No resources identified",
+      // Every resource the incident's Affected Resources card lists.
+      resourcesAffected: LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        }),
+        fallback: "No resources identified",
+      }),
       rootCause: await Markdown.convertToHTML(
         incident.rootCause || "No root cause identified for this incident",
         MarkdownContentType.Email,
@@ -4762,18 +4776,15 @@ export class Service extends DatabaseService<Model> {
           })
         : [];
 
-    // Get unique monitors (resources affected)
-    const monitorNames: Set<string> = new Set();
-    for (const alert of alerts) {
-      if (alert.monitor?.name) {
-        monitorNames.add(alert.monitor.name);
-      }
-    }
-
-    const resourcesAffected: string =
-      monitorNames.size > 0
-        ? Array.from(monitorNames).join(", ")
-        : "No resources identified";
+    // Every resource any alert in the episode is linked to, each named once.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForAlerts({
+        service: AlertService,
+        projectId: alertEpisode.projectId!,
+        alertIds: alertIds,
+      }),
+      fallback: "No resources identified",
+    });
 
     // Build alerts list HTML with proper email styling
     let alertsListHtml: string = "";
@@ -4933,24 +4944,15 @@ export class Service extends DatabaseService<Model> {
           })
         : [];
 
-    /*
-     * Unique monitors across every incident in the episode. An incident carries
-     * a list of monitors (unlike an alert, which has exactly one), so this
-     * flattens rather than reading a single relation.
-     */
-    const monitorNames: Set<string> = new Set();
-    for (const incident of incidents) {
-      for (const monitor of incident.monitors || []) {
-        if (monitor.name) {
-          monitorNames.add(monitor.name);
-        }
-      }
-    }
-
-    const resourcesAffected: string =
-      monitorNames.size > 0
-        ? Array.from(monitorNames).join(", ")
-        : "No resources identified";
+    // Every resource any incident in the episode is linked to, each named once.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForIncidents({
+        service: IncidentService,
+        projectId: incidentEpisode.projectId!,
+        incidentIds: incidentIds,
+      }),
+      fallback: "No resources identified",
+    });
 
     // Build incidents list HTML with proper email styling
     let incidentsListHtml: string = "";

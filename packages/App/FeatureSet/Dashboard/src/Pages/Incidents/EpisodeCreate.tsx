@@ -38,6 +38,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IncidentEpisodeRoleFormField, {
   RoleAssignment,
 } from "../../Components/IncidentEpisode/IncidentEpisodeRoleFormField";
+import FetchIncidentRoleAssignments from "../../Components/IncidentRole/FetchIncidentRoleAssignments";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
@@ -279,20 +280,10 @@ const EpisodeCreate: FunctionComponent<
                     if (roleAssignmentsRef.current.length === 0) {
                       return <p>No episode roles assigned.</p>;
                     }
-                    const totalAssignments: number =
-                      roleAssignmentsRef.current.reduce(
-                        (acc: number, assignment: RoleAssignment) => {
-                          return acc + assignment.userIds.length;
-                        },
-                        0,
-                      );
                     return (
-                      <p>
-                        {totalAssignments} user
-                        {totalAssignments !== 1 ? "s" : ""} assigned to{" "}
-                        {roleAssignmentsRef.current.length} role
-                        {roleAssignmentsRef.current.length !== 1 ? "s" : ""}.
-                      </p>
+                      <FetchIncidentRoleAssignments
+                        assignments={roleAssignmentsRef.current}
+                      />
                     );
                   },
                 },

@@ -10,6 +10,7 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentMemberService from "Common/Server/Services/IncidentMemberService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -18,7 +19,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
@@ -143,9 +143,6 @@ RunCron(
           incidentSeverity: {
             name: true,
           },
-          monitors: {
-            name: true,
-          },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
         },
@@ -158,6 +155,16 @@ RunCron(
       const incidentNumber: string =
         incident.incidentNumberWithPrefix ||
         (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+
+      // Every resource the incident's Affected Resources card lists.
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        }),
+        fallback: "None",
+      });
 
       for (const member of members) {
         const user: User = member.user;
@@ -173,12 +180,7 @@ RunCron(
             incident.description! || "",
             MarkdownContentType.Email,
           ),
-          resourcesAffected:
-            incident
-              .monitors!.map((monitor: Monitor) => {
-                return monitor.name!;
-              })
-              .join(", ") || "None",
+          resourcesAffected: resourcesAffected,
           incidentSeverity: incident.incidentSeverity!.name!,
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(

@@ -10,6 +10,7 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import Text from "Common/Types/Text";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
@@ -91,9 +92,6 @@ RunCron(
           title: true,
           projectId: true,
           description: true,
-          monitor: {
-            name: true,
-          },
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
@@ -212,17 +210,22 @@ RunCron(
       );
 
       /*
-       * Same formatter the created-alert email uses, so a firing and its
-       * resolution name the same thing. A monitor without group-by has no
-       * series labels and keeps the monitor-name fallback, which for it is
-       * the correct answer.
+       * Same list the created-alert email uses, so a firing and its
+       * resolution name the same thing: the series in the monitor's place
+       * (a monitor without group-by has no series labels and keeps its own
+       * name), then everything else the Affected Resources card lists.
        */
-      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
-        alert.seriesLabels,
-      );
-
-      const resourcesAffected: string =
-        seriesSummary || alert.monitor?.name || "";
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        }),
+        seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+          alert.seriesLabels,
+        ),
+        fallback: "",
+      });
 
       /*
        * Assigned unconditionally, "" when the timeline row carries no root

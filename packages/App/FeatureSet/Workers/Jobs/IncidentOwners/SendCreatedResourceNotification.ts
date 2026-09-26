@@ -9,6 +9,7 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -18,7 +19,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -56,9 +56,6 @@ RunCron(
           name: true,
         },
         rootCause: true,
-        monitors: {
-          name: true,
-        },
         createdByProbe: {
           name: true,
         },
@@ -167,6 +164,16 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
         continue;
       }
 
+      // Every resource the incident's Affected Resources card lists.
+      const resourcesAffected: string = LinkedAffectedResources.getText({
+        resources: await LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: projectId,
+          incidentId: incidentId,
+        }),
+        fallback: "None",
+      });
+
       for (const user of owners) {
         try {
           const vars: Dictionary<string> = {
@@ -175,12 +182,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
             incidentDescription: incidentDescriptionHtml,
-            resourcesAffected:
-              incident
-                .monitors!.map((monitor: Monitor) => {
-                  return monitor.name!;
-                })
-                .join(", ") || "None",
+            resourcesAffected: resourcesAffected,
             incidentSeverity: incident.incidentSeverity!.name!,
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {

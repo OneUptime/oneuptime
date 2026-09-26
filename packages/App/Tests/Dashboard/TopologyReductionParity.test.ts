@@ -83,8 +83,12 @@ jest.mock("Common/UI/Utils/API/API", () => {
 
 import {
   InfrastructureNode,
+  InfrastructureServiceCall,
   InfrastructureTopologyModel,
+  InfrastructureTrafficLink,
   buildInfrastructureTopologyModel,
+  collectMapCards,
+  computeInfrastructureTraffic,
   collectionName,
   collectionNodeId,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/InfrastructureTopologyModel";
@@ -230,6 +234,44 @@ interface InfrastructureProjection {
   resourceCount: number;
   inactiveCount: number;
   groupCount: number;
+  serviceCalls: Array<JSONObject>;
+  /* The traffic the overview map draws between its cards. */
+  traffic: Array<JSONObject>;
+}
+
+function projectCall(call: InfrastructureServiceCall): JSONObject {
+  return {
+    from: call.from,
+    to: call.to,
+    calls: call.calls,
+    errors: call.errors,
+    avgDurationMs: round(call.avgDurationMs),
+  };
+}
+
+/*
+ * Only cards that run a service can carry traffic, and a collection never
+ * does, so the overview's lines are comparable even where the original map
+ * drew a collection's items one by one.
+ */
+function projectTraffic(model: InfrastructureTopologyModel): Array<JSONObject> {
+  return computeInfrastructureTraffic(model, collectMapCards(model, null))
+    .links.map((link: InfrastructureTrafficLink): JSONObject => {
+      return {
+        from: link.from,
+        to: link.to,
+        calls: link.calls,
+        errors: link.errors,
+        avgDurationMs: round(link.avgDurationMs),
+        health: link.health,
+        serviceCalls: link.serviceCalls.map(projectCall),
+      };
+    })
+    .sort((left: JSONObject, right: JSONObject): number => {
+      const a: string = `${left["from"]}\u0000${left["to"]}`;
+      const b: string = `${right["from"]}\u0000${right["to"]}`;
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
 }
 
 function sortedCounts(counts: Map<string, number>): Array<[string, number]> {
@@ -337,6 +379,8 @@ function projectInfrastructure(
     resourceCount: model.resourceCount,
     inactiveCount: model.inactiveCount,
     groupCount: model.groupCount,
+    serviceCalls: model.serviceCalls.map(projectCall),
+    traffic: projectTraffic(model),
   };
 }
 
@@ -397,6 +441,8 @@ interface ParityCoverage {
   hiddenResources: number;
   collections: number;
   silentCollections: number;
+  serviceCalls: number;
+  trafficLinks: number;
 }
 
 function emptyCoverage(): ParityCoverage {
@@ -414,6 +460,8 @@ function emptyCoverage(): ParityCoverage {
     hiddenResources: 0,
     collections: 0,
     silentCollections: 0,
+    serviceCalls: 0,
+    trafficLinks: 0,
   };
 }
 
@@ -577,6 +625,8 @@ function checkParity(
     }
     coverage.groups += reducedInfrastructureModel.groupCount;
     coverage.hiddenResources += reducedInfrastructureModel.inactiveCount;
+    coverage.serviceCalls += reducedInfrastructureModel.serviceCalls.length;
+    coverage.trafficLinks += actualInfrastructure.traffic.length;
   }
 }
 
@@ -610,6 +660,8 @@ describe("Topology reduction parity: reduced payloads draw the maps the whole in
     expect(coverage.groups).toBeGreaterThan(50);
     expect(coverage.hiddenResources).toBeGreaterThan(1000);
     expect(coverage.collections).toBe(0);
+    expect(coverage.serviceCalls).toBeGreaterThan(300);
+    expect(coverage.trafficLinks).toBeGreaterThan(750);
   });
 
   test("estates with a flat type above the inline budget: equal once its items are folded into the collection", () => {

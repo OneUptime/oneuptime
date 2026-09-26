@@ -11,6 +11,8 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
@@ -64,9 +66,11 @@ RunCron(
         currentAlertState: {
           name: true,
         },
-        monitor: {
-          name: true,
-        },
+        /*
+         * The series a grouped monitor raised this alert for, named in the
+         * monitor's place under Resources Affected, as the created email does.
+         */
+        seriesLabels: true,
         alertNumber: true,
         alertNumberWithPrefix: true,
         enableReminders: true,
@@ -202,6 +206,17 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     await AlertService.getAlertLinkInDashboard(projectId, alertId)
   ).toString();
 
+  // Every resource the alert's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForAlert({
+      service: AlertService,
+      projectId: projectId,
+      alertId: alertId,
+    }),
+    seriesSummary: SeriesLabelDisplay.buildInlineSummary(alert.seriesLabels),
+    fallback: "None",
+  });
+
   let moreAlertFeedInformationInMarkdown: string = "";
 
   for (const user of owners) {
@@ -219,7 +234,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
         alert.description! || "",
         MarkdownContentType.Email,
       ),
-      resourcesAffected: alert.monitor?.name || "None",
+      resourcesAffected: resourcesAffected,
       alertSeverity: alert.alertSeverity?.name || "",
       alertViewLink: alertViewLink,
     };

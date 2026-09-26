@@ -102,6 +102,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
     },
@@ -178,6 +179,7 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotificat
 
 interface AlertServiceMock {
   findOneById: jest.Mock;
+  findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
 }
@@ -279,8 +281,10 @@ function makeAlert(data: {
   alert.alertNumber = 42;
   alert.alertNumberWithPrefix = "AL-42";
 
-  const monitor: Monitor = new Monitor();
+  // With its id and project, or the affected-resource read leaves it out.
+  const monitor: Monitor = new Monitor(new ObjectID("monitor-1"));
   monitor.name = "web-server-1";
+  monitor.projectId = PROJECT_ID;
   alert.monitor = monitor;
 
   if (data.severityName) {
@@ -303,6 +307,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
   return user;
 }
 
+/*
+ * The job reads the alert's affected resources back through
+ * AlertService.findAllBy, right after its own findOneById for the row; answer
+ * those reads with the alert that findOneById just returned.
+ */
+function answerRelationReadsWithFetchedAlert(): void {
+  alertService.findAllBy.mockImplementation(async () => {
+    const results: Array<{ value: unknown }> =
+      alertService.findOneById.mock.results;
+    const alert: unknown =
+      results.length > 0 ? await results[results.length - 1]!.value : null;
+
+    return alert ? [alert] : [];
+  });
+}
+
 function stubAlerts(alerts: Array<Alert>): void {
   const alertsById: Record<string, Alert> = {};
 
@@ -313,6 +333,8 @@ function stubAlerts(alerts: Array<Alert>): void {
   alertService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(alertsById[args.id.toString()] || null);
   });
+
+  answerRelationReadsWithFetchedAlert();
 }
 
 interface FindOneByIdArgs {
@@ -457,10 +479,15 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
       title: true,
       projectId: true,
       description: true,
-      monitor: { name: true },
       alertNumber: true,
       alertNumberWithPrefix: true,
     });
+
+    /*
+     * The monitor is no longer joined here: the affected resources, monitor
+     * included, are read one relation at a time by LinkedAffectedResources.
+     */
+    expect(fetch.select["monitor"]).toBeUndefined();
 
     // The row still completes end to end off the merged fetch.
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);

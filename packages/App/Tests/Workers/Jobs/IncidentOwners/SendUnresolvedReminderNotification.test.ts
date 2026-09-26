@@ -228,10 +228,17 @@ function makeIncident(description: string | undefined): Incident {
   state.name = "Investigating";
   incident.currentIncidentState = state;
 
-  const monitorA: Monitor = new Monitor();
+  /*
+   * With ids and the project: the job reads the incident's affected
+   * resources back through IncidentService.findAllBy (mocked to return these
+   * rows), and a resource of no known project is not named.
+   */
+  const monitorA: Monitor = new Monitor(new ObjectID("monitor-a"));
   monitorA.name = "API Monitor";
-  const monitorB: Monitor = new Monitor();
+  monitorA.projectId = PROJECT_ID;
+  const monitorB: Monitor = new Monitor(new ObjectID("monitor-b"));
   monitorB.name = "Web Monitor";
+  monitorB.projectId = PROJECT_ID;
   incident.monitors = [monitorA, monitorB];
 
   incident.labels = [];

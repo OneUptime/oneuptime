@@ -91,6 +91,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
     },
@@ -167,6 +168,7 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotificat
 
 const alertService: {
   findOneById: jest.Mock;
+  findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
 } = AlertService as never;
@@ -231,8 +233,10 @@ function makeAlert(data: { seriesLabels?: JSONObject | undefined }): Alert {
     alert.seriesLabels = data.seriesLabels;
   }
 
-  const monitor: Monitor = new Monitor();
+  // With its id and project, or the affected-resource read leaves it out.
+  const monitor: Monitor = new Monitor(new ObjectID("monitor-1"));
   monitor.name = "oneuptime-test - Pod CPU Saturating Container Limit";
+  monitor.projectId = PROJECT_ID;
   alert.monitor = monitor;
 
   const severity: AlertSeverity = new AlertSeverity();
@@ -269,6 +273,22 @@ async function runWorkerTick(): Promise<void> {
   await handler();
 }
 
+/*
+ * The job reads the alert's affected resources back through
+ * AlertService.findAllBy, right after its own findOneById for the row; answer
+ * those reads with the alert that findOneById just returned.
+ */
+function answerRelationReadsWithFetchedAlert(): void {
+  alertService.findAllBy.mockImplementation(async () => {
+    const results: Array<{ value: unknown }> =
+      alertService.findOneById.mock.results;
+    const alert: unknown =
+      results.length > 0 ? await results[results.length - 1]!.value : null;
+
+    return alert ? [alert] : [];
+  });
+}
+
 describe("AlertOwner:SendStateChangeEmail email content", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -282,6 +302,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
     timelineService.findOneBy.mockResolvedValue(null);
     stateService.findOneById.mockResolvedValue(null);
     alertService.findOneById.mockResolvedValue(null);
+    answerRelationReadsWithFetchedAlert();
     alertService.findOwners.mockResolvedValue([makeOwner()]);
     alertService.getAlertLinkInDashboard.mockResolvedValue({
       toString: (): string => {

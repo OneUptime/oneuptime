@@ -75,6 +75,18 @@ const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
 // The investigation's guarantee, shown whether or not its details are open.
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
+/*
+ * "Declare Incident" in an alert's header, after the state actions
+ * (Components/Alert/DeclareIncidentFromAlert.ts). It opens the create-incident
+ * page prefilled from the alert.
+ */
+const DECLARE_INCIDENT: string = "Declare Incident";
+const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
+const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
+// Its disabled reason for someone who may not create incidents (PermissionGate).
+const DECLARE_INCIDENT_DENIED: string =
+  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+
 interface RecordedApiRequest {
   method: string;
   url: string;
@@ -684,6 +696,11 @@ function hero(page: Page): Locator {
   return page
     .getByRole("group", { name: "Event actions" })
     .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+}
+
+// The hero's action row: state buttons, other actions, then "More actions".
+function heroActions(page: Page): Locator {
+  return page.getByRole("group", { name: "Event actions" });
 }
 
 function summarySection(page: Page): Locator {
@@ -2993,10 +3010,24 @@ test.describe("incident and alert overview", () => {
       await openReady(page, eventPage);
       await expect(sideMenu(page)).toBeVisible();
       await expectHero(page, eventPage);
-      // Resolved: no forward actions left.
-      await expect(
-        page.getByRole("group", { name: "Event actions" }).getByRole("button"),
-      ).toHaveCount(0);
+      /*
+       * Resolved: no forward state actions left. An alert still offers to
+       * declare an incident from it; an incident has nothing.
+       */
+      const actions: Locator = heroActions(page);
+      if (eventPage === ALERT_PAGE) {
+        await expect(actions.getByRole("button")).toHaveText([
+          DECLARE_INCIDENT,
+        ]);
+      } else {
+        await expect(actions.getByRole("button")).toHaveCount(0);
+        await expect(
+          hero(page).getByRole("button", { name: DECLARE_INCIDENT }),
+        ).toHaveCount(0);
+        await expect(
+          page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`),
+        ).toHaveCount(0);
+      }
       // The step rail under the pills.
       await expectRenderedText(hero(page), "Created Acknowledged Resolved");
       await expectNoErrorStates(page);
@@ -3150,6 +3181,7 @@ test.describe("incident and alert overview", () => {
     await expect(actions.getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",
+      DECLARE_INCIDENT,
     ]);
     expect(await statCells(page, ALERT_PAGE.statBar)).toEqual([
       { label: "Acknowledged in", value: "Not yet acknowledged" },
@@ -3169,7 +3201,11 @@ test.describe("incident and alert overview", () => {
       .click();
     await expect(dialog).toHaveCount(0);
 
-    await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
+    // Declare Incident stays after the remaining state action.
+    await expect(actions.getByRole("button")).toHaveText([
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
     await expectRenderedText(
       hero(page),
       "Acknowledged High Ongoing for 14 minutes",
@@ -3214,6 +3250,845 @@ test.describe("incident and alert overview", () => {
       id: INCIDENT_ID,
     });
     await expect(hero(page)).toContainText(INCIDENT_PAGE.title);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Declare an incident from the alert header
+ * ---------------------------------------------------------------------------
+ */
+
+// The hero actions' Tailwind colours (EventStatusPanel).
+const PRIMARY_ACTION_BACKGROUND: string = "rgb(79, 70, 229)"; // indigo-600
+const NEUTRAL_ACTION_BACKGROUND: string = "rgb(255, 255, 255)"; // white
+const NEUTRAL_ACTION_BORDER: string = "rgb(209, 213, 219)"; // gray-300
+const NEUTRAL_ACTION_TEXT: string = "rgb(55, 65, 81)"; // gray-700
+// focus-visible:ring-indigo-500, drawn as a box-shadow.
+const FOCUS_RING: RegExp = /rgb\(99, 102, 241\) 0px 0px 0px 4px/;
+
+interface AlertHeroState {
+  // Test title and screenshot name.
+  name: string;
+  // The fixture's ?state= for alert #311 ("" is the default, resolved).
+  query: string;
+  // The state buttons, in order, before Declare Incident.
+  stateActions: ReadonlyArray<string>;
+  // The one indigo (primary) state action, when there is one.
+  primaryAction?: string | undefined;
+}
+
+const CREATED_ALERT: AlertHeroState = {
+  name: "created",
+  query: "state=created",
+  stateActions: ["Acknowledge", "Resolve"],
+  primaryAction: "Acknowledge",
+};
+
+const ACKNOWLEDGED_ALERT: AlertHeroState = {
+  name: "acknowledged",
+  query: "state=ongoing",
+  stateActions: ["Resolve"],
+  primaryAction: "Resolve",
+};
+
+const RESOLVED_ALERT: AlertHeroState = {
+  name: "resolved",
+  query: "",
+  stateActions: [],
+};
+
+const ALERT_HERO_STATES: ReadonlyArray<AlertHeroState> = [
+  CREATED_ALERT,
+  ACKNOWLEDGED_ALERT,
+  RESOLVED_ALERT,
+];
+
+// Phone, tablet beside the side menu, small laptop, laptop.
+const HERO_WIDTHS: ReadonlyArray<number> = [390, 768, 1024, 1280];
+
+function declareIncidentButton(page: Page): Locator {
+  return heroActions(page).locator(`#${DECLARE_INCIDENT_BUTTON_ID}`);
+}
+
+function declareIncidentWrapper(page: Page): Locator {
+  return heroActions(page).getByTestId(
+    `${DECLARE_INCIDENT_BUTTON_ID}-disabled-wrapper`,
+  );
+}
+
+function heroActionButton(page: Page, label: string): Locator {
+  return heroActions(page).getByRole("button", { name: label, exact: true });
+}
+
+interface ActionPosition {
+  label: string;
+  top: number;
+  left: number;
+}
+
+// The hero's buttons, grouped into the rows they wrap onto, top to bottom.
+async function heroActionRows(page: Page): Promise<Array<Array<string>>> {
+  const positions: Array<ActionPosition> = await heroActions(page)
+    .getByRole("button")
+    .evaluateAll((buttons: Array<Element>): Array<ActionPosition> => {
+      return buttons.map((button: Element): ActionPosition => {
+        const rect: DOMRect = button.getBoundingClientRect();
+        return {
+          label: (button.textContent || "").trim(),
+          top: rect.top,
+          left: rect.left,
+        };
+      });
+    });
+  const rows: Array<Array<ActionPosition>> = [];
+  for (const position of [...positions].sort(
+    (a: ActionPosition, b: ActionPosition): number => {
+      return a.top - b.top || a.left - b.left;
+    },
+  )) {
+    const row: Array<ActionPosition> | undefined = rows.find(
+      (candidate: Array<ActionPosition>): boolean => {
+        return Math.abs(candidate[0]!.top - position.top) <= 2;
+      },
+    );
+    if (row) {
+      row.push(position);
+    } else {
+      rows.push([position]);
+    }
+  }
+  return rows.map((row: Array<ActionPosition>): Array<string> => {
+    return row.map((position: ActionPosition): string => {
+      return position.label;
+    });
+  });
+}
+
+/*
+ * Records whether a dialog is ever mounted, so a test can prove an action
+ * went straight to its page without opening the state-change modal on the
+ * way. Client-side navigation keeps the window, so this survives it.
+ */
+async function watchForDialog(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    const target: { __dialogSeen?: boolean } = window as unknown as {
+      __dialogSeen?: boolean;
+    };
+    target.__dialogSeen = Boolean(document.querySelector("[role='dialog']"));
+    new MutationObserver((): void => {
+      if (document.querySelector("[role='dialog']")) {
+        target.__dialogSeen = true;
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+async function dialogWasSeen(page: Page): Promise<boolean> {
+  return page.evaluate((): boolean => {
+    return Boolean(
+      (window as unknown as { __dialogSeen?: boolean }).__dialogSeen,
+    );
+  });
+}
+
+// The create-incident page for alert #311, and nothing written on the way.
+async function expectDeclaringFromAlert(page: Page): Promise<void> {
+  await expect(page.getByTestId("stub-page")).toHaveAttribute(
+    "data-page",
+    "INCIDENT_CREATE",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Create Incident",
+  );
+  expect(page.url()).toBe(
+    `http://127.0.0.1:${PORT}${DECLARE_INCIDENT_FROM_ALERT_PATH}`,
+  );
+  const url: URL = new URL(page.url());
+  expect(url.pathname).toBe(`${DASHBOARD}/incidents/create`);
+  // Only this alert, and none of the alert page's own ?state= scenario.
+  expect(url.search).toBe(`?alertIds=${ALERT_ID}`);
+  expect(url.searchParams.getAll("alertIds")).toEqual([ALERT_ID]);
+
+  expect(await dialogWasSeen(page), "a dialog opened on the way").toBe(false);
+  const state: FixtureState = await fixture(page);
+  expect(state.creates, "records created").toEqual([]);
+  expect(state.updates, "records updated").toEqual([]);
+  expect(state.deletes, "records deleted").toEqual([]);
+}
+
+test.describe("declare an incident from the alert hero", () => {
+  for (const alertState of ALERT_HERO_STATES) {
+    test(`${alertState.name} alert: Declare Incident follows the state actions as an outline button and opens the create page`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, ALERT_PAGE, alertState.query);
+
+      const actions: Locator = heroActions(page);
+      await expect(actions.getByRole("button")).toHaveText([
+        ...alertState.stateActions,
+        DECLARE_INCIDENT,
+      ]);
+      // Declaring is not a state, so it never adds a "More actions" menu.
+      await expect(
+        actions.getByRole("button", { name: "More actions" }),
+      ).toHaveCount(0);
+
+      const declare: Locator = declareIncidentButton(page);
+      await expect(declare).toBeVisible();
+      await expect(declare).toBeEnabled();
+      await expect(declare).toHaveAttribute("type", "button");
+      await expect(declare).toHaveAttribute("title", DECLARE_INCIDENT);
+      await expect(declare).toHaveAccessibleName(DECLARE_INCIDENT);
+      await expect(declare.locator("svg")).toHaveCount(1);
+      // Allowed: a plain button, with no disabled-reason wrapper around it.
+      await expect(declareIncidentWrapper(page)).toHaveCount(0);
+
+      // Neutral outline, the same size as the state actions.
+      await expect(declare).toHaveCSS(
+        "background-color",
+        NEUTRAL_ACTION_BACKGROUND,
+      );
+      await expect(declare).toHaveCSS(
+        "border-top-color",
+        NEUTRAL_ACTION_BORDER,
+      );
+      await expect(declare).toHaveCSS("color", NEUTRAL_ACTION_TEXT);
+      await expect(declare).toHaveCSS("height", "36px");
+
+      // The state action stays the only primary (indigo) button.
+      const backgrounds: Array<string> = await actions
+        .getByRole("button")
+        .evaluateAll((buttons: Array<Element>): Array<string> => {
+          return buttons.map((button: Element): string => {
+            return window.getComputedStyle(button).backgroundColor;
+          });
+        });
+      expect(
+        backgrounds.filter((color: string): boolean => {
+          return color === PRIMARY_ACTION_BACKGROUND;
+        }),
+      ).toHaveLength(alertState.primaryAction ? 1 : 0);
+      if (alertState.primaryAction) {
+        await expect(
+          heroActionButton(page, alertState.primaryAction),
+        ).toHaveCSS("background-color", PRIMARY_ACTION_BACKGROUND);
+      }
+
+      // Last in the row, on the same line as the state actions.
+      const declareBox: Box = await documentBox(declare);
+      for (const label of alertState.stateActions) {
+        const box: Box = await documentBox(heroActionButton(page, label));
+        expect(
+          Math.abs(box.y - declareBox.y),
+          `${label} shares the row`,
+        ).toBeLessThanOrEqual(1);
+        expect(declareBox.x, `after ${label}`).toBeGreaterThanOrEqual(
+          box.x + box.width,
+        );
+        await expect(heroActionButton(page, label)).toHaveCSS("height", "36px");
+      }
+
+      // Offering the action is a permission check: nothing is fetched for it.
+      const readModels: Array<string> = (await fixture(page)).listRequests.map(
+        (request: RecordedModelRequest): string => {
+          return request.modelName;
+        },
+      );
+      expect(readModels).not.toContain("IncidentAlert");
+
+      await watchForDialog(page);
+      await declare.click();
+      await expectDeclaringFromAlert(page);
+    });
+  }
+
+  test("the create page is a new history entry: Back returns to the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    await watchForDialog(page);
+    await declareIncidentButton(page).click();
+    await expectDeclaringFromAlert(page);
+
+    await page.goBack();
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      ALERT_PAGE.pageTitle,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+  });
+
+  test("keyboard: Tab reaches Declare Incident after Resolve and Enter opens the create page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    const acknowledge: Locator = heroActionButton(page, "Acknowledge");
+    const resolve: Locator = heroActionButton(page, "Resolve");
+    const declare: Locator = declareIncidentButton(page);
+
+    await acknowledge.focus();
+    await page.keyboard.press("Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+    // Keyboard focus draws the indigo ring.
+    await expect(declare).toHaveCSS("box-shadow", FOCUS_RING);
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(resolve).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(declare).toBeFocused();
+
+    await watchForDialog(page);
+    await page.keyboard.press("Enter");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("keyboard: Space on Declare Incident opens the create page from a resolved alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+    const declare: Locator = declareIncidentButton(page);
+    await declare.focus();
+    await expect(declare).toBeFocused();
+    await watchForDialog(page);
+    await page.keyboard.press("Space");
+    await expectDeclaringFromAlert(page);
+  });
+
+  test("?role=alert-member: Declare Incident is disabled and says which permission is missing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      ALERT_PAGE,
+      `${CREATED_ALERT.query}&role=alert-member`,
+    );
+
+    // An alert member may still acknowledge and resolve.
+    const actions: Locator = heroActions(page);
+    await expect(actions.getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      DECLARE_INCIDENT,
+    ]);
+    await expect(heroActionButton(page, "Acknowledge")).toBeEnabled();
+    await expect(heroActionButton(page, "Resolve")).toBeEnabled();
+
+    const declare: Locator = declareIncidentButton(page);
+    const wrapper: Locator = declareIncidentWrapper(page);
+    await expect(declare).toBeDisabled();
+    await expect(declare).toHaveAttribute("aria-disabled", "true");
+    expect(await declare.getAttribute("title")).toBeNull();
+    await expect(declare).toHaveCSS("opacity", "0.5");
+    await expect(declare).toHaveCSS(
+      "background-color",
+      NEUTRAL_ACTION_BACKGROUND,
+    );
+    await expect(wrapper).toHaveAttribute("tabindex", "0");
+    await expect(wrapper.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(
+      1,
+    );
+
+    // Pointing at it says why, and the wrapper is described by that reason.
+    await wrapper.hover();
+    const tooltip: Locator = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveText(DECLARE_INCIDENT_DENIED);
+    await expect(wrapper).toHaveAccessibleDescription(DECLARE_INCIDENT_DENIED);
+
+    // Clicking it goes nowhere and writes nothing.
+    await watchForDialog(page);
+    await wrapper.click();
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+
+    // The keyboard reaches it too and hears why; Enter or Space does nothing.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await heroActionButton(page, "Resolve").focus();
+    await page.keyboard.press("Tab");
+    await expect(wrapper).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText(DECLARE_INCIDENT_DENIED);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe(ALERT_PATH);
+    expect(await dialogWasSeen(page), "a dialog opened").toBe(false);
+    const state: FixtureState = await fixture(page);
+    expect(state.creates).toEqual([]);
+    expect(state.updates).toEqual([]);
+  });
+
+  test("?role=loading: Declare Incident is hidden until the permission snapshot arrives", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Without permissions the details card has nothing it may show.
+    await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
+      "Investigation complete",
+    ]);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+    await expect(declareIncidentWrapper(page)).toHaveCount(0);
+  });
+
+  // Resolved and ongoing incidents are covered in "incident and alert overview".
+  test("a created incident's hero keeps only its state actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The hero's title row across widths
+ * ---------------------------------------------------------------------------
+ */
+
+// Tailwind's xl breakpoint: from here the actions sit beside the title.
+const XL: number = 1280;
+// gap-3 between the title and the actions, stacked or side by side.
+const TITLE_ACTIONS_GAP: number = 12;
+
+// The hero's first row: the number and title, then the action group.
+function heroTitleRow(page: Page): Locator {
+  return heroActions(page).locator("xpath=..");
+}
+
+// The number and the title, the first child of the title row.
+function heroTitleBlock(page: Page): Locator {
+  return heroActions(page).locator("xpath=preceding-sibling::div[1]");
+}
+
+function heroTitle(page: Page): Locator {
+  return hero(page).getByRole("heading", { level: 2 });
+}
+
+interface HeroTitleRowBoxes {
+  // The title row spans the header's content box.
+  row: Box;
+  titleBlock: Box;
+  title: Box;
+  actions: Box;
+}
+
+async function heroTitleRowBoxes(page: Page): Promise<HeroTitleRowBoxes> {
+  return {
+    row: await documentBox(heroTitleRow(page)),
+    titleBlock: await documentBox(heroTitleBlock(page)),
+    title: await documentBox(heroTitle(page)),
+    actions: await documentBox(heroActions(page)),
+  };
+}
+
+/*
+ * Below xl: the title has the whole row to itself and the actions take the
+ * full width of their own rows under it.
+ */
+function expectActionsUnderTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.titleBlock.width - boxes.row.width),
+    "the title block spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.title.width - boxes.row.width),
+    "the title spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(
+      boxes.actions.y -
+        (boxes.titleBlock.y + boxes.titleBlock.height) -
+        TITLE_ACTIONS_GAP,
+    ),
+    "the actions start one gap under the title",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.x - boxes.row.x),
+    "the actions start at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.width - boxes.row.width),
+    "the actions span the header",
+  ).toBeLessThanOrEqual(1);
+}
+
+/*
+ * From xl: the title on the left and the actions on the right of one row,
+ * their tops aligned, with at least a gap between them.
+ */
+function expectActionsBesideTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.y - boxes.titleBlock.y),
+    "the actions are level with the top of the title block",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    boxes.actions.x - (boxes.titleBlock.x + boxes.titleBlock.width),
+    "the gap between the title and the actions",
+  ).toBeGreaterThanOrEqual(TITLE_ACTIONS_GAP - 1);
+  expect(
+    Math.abs(
+      boxes.actions.x + boxes.actions.width - (boxes.row.x + boxes.row.width),
+    ),
+    "the actions end at the header's right edge",
+  ).toBeLessThanOrEqual(1);
+}
+
+/*
+ * The actions never squeeze the title: a title that does not show whole has
+ * every pixel the row leaves it - the whole row under the actions below xl,
+ * everything left of the actions (less the gap) from xl. Whether a given
+ * title fits depends on the machine's fonts (CI's are wider than a Mac's),
+ * so this pins the room the title gets, not that it fits.
+ */
+async function expectTitleNotSqueezed(
+  page: Page,
+  boxes: HeroTitleRowBoxes,
+): Promise<void> {
+  if (!(await isOverflowing(heroTitle(page)))) {
+    return;
+  }
+
+  const isBeside: boolean = Math.abs(boxes.actions.y - boxes.titleBlock.y) <= 1;
+  const room: number = isBeside
+    ? boxes.actions.x - boxes.row.x - TITLE_ACTIONS_GAP
+    : boxes.row.width;
+
+  expect(
+    boxes.titleBlock.width,
+    "a truncated title has all the room the actions leave it",
+  ).toBeGreaterThanOrEqual(room - 1);
+}
+
+interface HeroLayoutCase {
+  // Test title.
+  title: string;
+  // Screenshot name, before the width.
+  screenshot: string;
+  eventPage: EventPage;
+  query: string;
+  // The hero's buttons, in order.
+  labels: ReadonlyArray<string>;
+  // The rows they wrap onto at each of HERO_WIDTHS, top to bottom.
+  rows: Readonly<Record<number, ReadonlyArray<ReadonlyArray<string>>>>;
+}
+
+const ALL_CREATED_ALERT_ACTIONS: ReadonlyArray<string> = [
+  ...CREATED_ALERT.stateActions,
+  DECLARE_INCIDENT,
+];
+
+// ?title=long: Alert #311 with a title wider than the room beside its actions.
+const ALERT_LONG_TITLE: string =
+  "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
+const LONG_TITLE_ALERT_PAGE: EventPage = {
+  ...ALERT_PAGE,
+  pageTitle: `Alert - ${ALERT_LONG_TITLE}`,
+  title: ALERT_LONG_TITLE,
+};
+
+/*
+ * Measured with the fixture's side menu (224px from 768px, 256px from
+ * 1024px). The header's content is 292px wide at 390px, 374px at 768px,
+ * 578px at 1024px and 834px at 1280px; the buttons need 145px
+ * (Acknowledge), 112px (Resolve) and 164px (Declare Incident) at sm and up.
+ *
+ * - 390px (phone): the buttons grow to fill their rows. Acknowledge and
+ *   Resolve share the first row and Declare Incident takes the whole second.
+ * - 768px: the three need 437px with their gaps, so Declare Incident wraps
+ *   onto a second row, right-aligned.
+ * - 1024px: one row under the title.
+ * - 1280px (xl): one row beside the title, which fits beside them (the
+ *   long-title tests below cover one that does not).
+ */
+const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
+  {
+    title: "created alert",
+    screenshot: "alert-hero-created",
+    eventPage: ALERT_PAGE,
+    query: CREATED_ALERT.query,
+    labels: ALL_CREATED_ALERT_ACTIONS,
+    rows: {
+      390: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      768: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      1024: [ALL_CREATED_ALERT_ACTIONS],
+      1280: [ALL_CREATED_ALERT_ACTIONS],
+    },
+  },
+  {
+    title: "resolved alert",
+    screenshot: "alert-hero-resolved",
+    eventPage: ALERT_PAGE,
+    query: RESOLVED_ALERT.query,
+    labels: [DECLARE_INCIDENT],
+    rows: {
+      390: [[DECLARE_INCIDENT]],
+      768: [[DECLARE_INCIDENT]],
+      1024: [[DECLARE_INCIDENT]],
+      1280: [[DECLARE_INCIDENT]],
+    },
+  },
+  {
+    title: "created incident",
+    screenshot: "incident-hero-created",
+    eventPage: INCIDENT_PAGE,
+    query: "state=created",
+    labels: ["Acknowledge", "Resolve"],
+    rows: {
+      390: [["Acknowledge", "Resolve"]],
+      768: [["Acknowledge", "Resolve"]],
+      1024: [["Acknowledge", "Resolve"]],
+      1280: [["Acknowledge", "Resolve"]],
+    },
+  },
+];
+
+test.describe("the hero's title row across widths", () => {
+  /*
+   * At each width the actions stay whole and inside the card, keep their
+   * order when they wrap and line up on the right. Below xl the title keeps
+   * the whole row (next to a side menu, sharing it squeezed the title down to
+   * a few characters and stacked the actions one per row); from xl the
+   * actions sit beside it.
+   */
+  for (const layoutCase of HERO_LAYOUT_CASES) {
+    for (const width of HERO_WIDTHS) {
+      const isBeside: boolean = width >= XL;
+      test(`${layoutCase.title} hero at ${width}px: the actions sit ${
+        isBeside ? "beside" : "under"
+      } the title, inside the header`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, layoutCase.eventPage, layoutCase.query);
+
+        const header: Locator = hero(page);
+        const actions: Locator = heroActions(page);
+        const labels: Array<string> = [...layoutCase.labels];
+        await expect(actions.getByRole("button")).toHaveText(labels);
+        await expect(heroTitle(page)).toHaveText(layoutCase.eventPage.title);
+
+        const headerBox: Box = await documentBox(header);
+        for (const label of labels) {
+          const button: Locator = heroActionButton(page, label);
+          await expect(button).toBeVisible();
+          const box: Box = await documentBox(button);
+          expect(
+            box.x,
+            `${label} starts inside the header`,
+          ).toBeGreaterThanOrEqual(headerBox.x);
+          expect(
+            box.x + box.width,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.x + headerBox.width);
+          expect(
+            box.y + box.height,
+            `${label} ends inside the header`,
+          ).toBeLessThanOrEqual(headerBox.y + headerBox.height);
+          await expect(button).toHaveCSS("height", "36px");
+          expect(
+            await isOverflowing(button.locator("span.truncate")),
+            `${label} is cut off`,
+          ).toBe(false);
+        }
+
+        const rows: Array<Array<string>> = await heroActionRows(page);
+        expect(rows, `rows at ${width}px`).toEqual(layoutCase.rows[width]);
+        // Wrapping keeps the reading order: state actions, then Declare Incident.
+        expect(
+          rows.reduce(
+            (all: Array<string>, row: Array<string>): Array<string> => {
+              return all.concat(row);
+            },
+            [],
+          ),
+        ).toEqual(labels);
+
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+        // Every row ends at the right edge of the action group.
+        for (const row of rows) {
+          const last: Box = await documentBox(
+            heroActionButton(page, row[row.length - 1]!),
+          );
+          expect(
+            Math.abs(
+              last.x + last.width - (boxes.actions.x + boxes.actions.width),
+            ),
+            `row "${row.join(", ")}" is right-aligned`,
+          ).toBeLessThanOrEqual(1);
+        }
+
+        if (isBeside) {
+          expectActionsBesideTitle(boxes);
+        } else {
+          expectActionsUnderTitle(boxes);
+        }
+
+        await expectTitleNotSqueezed(page, boxes);
+
+        if (width === 390 && rows[rows.length - 1]!.length === 1) {
+          // On a phone a button alone on its row fills it.
+          const lastBox: Box = await documentBox(
+            heroActionButton(page, rows[rows.length - 1]![0]!),
+          );
+          expect(Math.abs(lastBox.x - boxes.actions.x)).toBeLessThanOrEqual(1);
+          expect(
+            Math.abs(lastBox.width - boxes.actions.width),
+          ).toBeLessThanOrEqual(1);
+        }
+
+        await expectNoHorizontalOverflow(page);
+
+        await page.mouse.move(0, 0);
+        await screenshotElement(header, `${layoutCase.screenshot}-${width}`);
+      });
+    }
+  }
+
+  test("the actions move beside the title at xl (1280px), not a pixel earlier", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: XL - 1, height: 900 });
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+
+    // 1279px: the widest header that still stacks.
+    const stackedBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(stackedBoxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    await expectTitleNotSqueezed(page, stackedBoxes);
+    const stackedHeight: number = (await documentBox(hero(page))).height;
+
+    // One more pixel and the same page lays the row out side by side.
+    await page.setViewportSize({ width: XL, height: 900 });
+    await expect
+      .poll(async (): Promise<number> => {
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+        return Math.round(boxes.actions.y - boxes.titleBlock.y);
+      })
+      .toBe(0);
+    const besideBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(besideBoxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    await expectTitleNotSqueezed(page, besideBoxes);
+    // The actions' own row is gone: the header is 48px shorter.
+    expect(
+      stackedHeight - (await documentBox(hero(page))).height,
+      "height saved beside the title",
+    ).toBeCloseTo(36 + TITLE_ACTIONS_GAP, 0);
+  });
+
+  test("a long alert title below xl keeps its own row, truncated there, and the actions keep theirs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsUnderTitle(boxes);
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    // Wider than the header: cut at its full width, whole in its tooltip.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
+    await heroTitle(page).hover();
+    await expect(page.getByRole("tooltip")).toHaveText(ALERT_LONG_TITLE);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a long alert title at xl is truncated rather than pushing an action onto a second row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Beside the title (xl and up) the action group keeps its width
+     * (xl:shrink-0): a title wider than the room left beside the actions
+     * truncates instead of squeezing the group until an action wraps.
+     */
+    await page.setViewportSize({ width: XL, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+    expect(
+      await heroActionRows(page),
+      "the actions' rows beside a long title",
+    ).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+    expectActionsBesideTitle(boxes);
+    // Cut, but with every pixel left of the actions.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await expectTitleNotSqueezed(page, boxes);
+  });
+
+  test("on a phone an acknowledged alert keeps Declare Incident's whole label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Phone buttons grow from their own width (flex-auto) rather than
+     * splitting the 292px row evenly, which cut "Declare Incident" to 142px
+     * of the 164px it needs.
+     */
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openReady(page, ALERT_PAGE, ACKNOWLEDGED_ALERT.query);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ACKNOWLEDGED_ALERT.stateActions,
+      DECLARE_INCIDENT,
+    ]);
+    expect(
+      await isOverflowing(declareIncidentButton(page).locator("span.truncate")),
+      "Declare Incident is cut off",
+    ).toBe(false);
   });
 });
 

@@ -9,6 +9,10 @@ import DatabaseService from "./DatabaseService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import MonitorService from "./MonitorService";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+  LinkedAffectedResourceRelation,
+} from "../Utils/AffectedResources/LinkedAffectedResources";
 import ScheduledMaintenanceOwnerTeamService from "./ScheduledMaintenanceOwnerTeamService";
 import ScheduledMaintenanceOwnerUserService from "./ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
@@ -1180,10 +1184,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         },
         startsAt: true,
         endsAt: true,
-        monitors: {
-          name: true,
-          _id: true,
-        },
         labels: {
           name: true,
         },
@@ -1448,14 +1448,23 @@ ${scheduledMaintenance.description || "No description provided."}
         feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
       }
 
-      if (
-        scheduledMaintenance.monitors &&
-        scheduledMaintenance.monitors.length > 0
-      ) {
+      // Everything the event's Affected Resources card lists, monitors first.
+      const resources: Array<LinkedAffectedResource> =
+        await LinkedAffectedResources.readForScheduledMaintenance({
+          service: this,
+          projectId: scheduledMaintenance.projectId!,
+          scheduledMaintenanceId: scheduledMaintenance.id!,
+        });
+
+      if (resources.length > 0) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        for (const monitor of scheduledMaintenance.monitors) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(scheduledMaintenance.projectId!, monitor.id!)).toString()})\n`;
+        for (const resourceLine of LinkedAffectedResources.getMarkdownLines({
+          dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+          projectId: scheduledMaintenance.projectId!,
+          resources: resources,
+        })) {
+          feedInfoInMarkdown += `${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -1820,47 +1829,42 @@ ${(
           shouldAddScheduledMaintenanceFeed = true;
         }
 
-        if (
-          onUpdate.updateBy.data.monitors &&
-          onUpdate.updateBy.data.monitors.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.monitors)
-        ) {
-          const monitorIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.monitors as any
-          )
-            .map((monitor: Label) => {
-              if (monitor._id) {
-                return new ObjectID(monitor._id?.toString());
-              }
+        /*
+         * Any affected-resource list in the payload - not only monitors - is
+         * a change to what the event affects. The event is read back rather
+         * than the ids in the payload being looked up: the read is held to
+         * this project, and it names the whole list the card now shows.
+         */
+        const affectedResourcesChanged: boolean =
+          LinkedAffectedResources.getRelations(this.getModel()).some(
+            (relation: LinkedAffectedResourceRelation): boolean => {
+              const value: unknown = (
+                onUpdate.updateBy.data as Record<string, unknown>
+              )[relation.column];
 
-              return null;
-            })
-            .filter((monitorId: ObjectID | null) => {
-              return monitorId !== null;
+              return Array.isArray(value) && value.length > 0;
+            },
+          );
+
+        if (affectedResourcesChanged && onUpdate.updateBy.props.tenantId) {
+          const projectId: ObjectID = onUpdate.updateBy.props
+            .tenantId as ObjectID;
+
+          const resources: Array<LinkedAffectedResource> =
+            await LinkedAffectedResources.readForScheduledMaintenance({
+              service: this,
+              projectId: projectId,
+              scheduledMaintenanceId: scheduledMaintenanceId,
             });
 
-          const monitors: Array<Label> = await MonitorService.findBy({
-            query: {
-              _id: QueryHelper.any(monitorIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (monitors.length > 0) {
+          if (resources.length > 0) {
             feedInfoInMarkdown += `\n\n**Resources Affected**:
 
-${monitors
-  .map((monitor: Monitor) => {
-    return `- ${monitor.name}`;
-  })
-  .join("\n")}
+${LinkedAffectedResources.getMarkdownLines({
+  dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+  projectId: projectId,
+  resources: resources,
+}).join("\n")}
 `;
 
             shouldAddScheduledMaintenanceFeed = true;

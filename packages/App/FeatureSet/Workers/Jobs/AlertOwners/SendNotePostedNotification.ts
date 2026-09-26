@@ -11,6 +11,8 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertInternalNoteService from "Common/Server/Services/AlertInternalNoteService";
 import AlertService from "Common/Server/Services/AlertService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -88,9 +90,11 @@ RunCron(
           alertSeverity: {
             name: true,
           },
-          monitor: {
-            name: true,
-          },
+          /*
+           * The series a grouped monitor raised this alert for, named in the
+           * monitor's place under Resources Affected, as the created email does.
+           */
+          seriesLabels: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
         },
@@ -139,7 +143,18 @@ RunCron(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected: alert.monitor?.name || "None",
+        // Every resource the alert's Affected Resources card lists.
+        resourcesAffected: LinkedAffectedResources.getText({
+          resources: await LinkedAffectedResources.readForAlert({
+            service: AlertService,
+            projectId: alert.projectId!,
+            alertId: alert.id!,
+          }),
+          seriesSummary: SeriesLabelDisplay.buildInlineSummary(
+            alert.seriesLabels,
+          ),
+          fallback: "None",
+        }),
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(

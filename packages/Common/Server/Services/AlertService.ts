@@ -20,7 +20,9 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
 import URL from "../../Types/API/URL";
-import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+} from "../Utils/AffectedResources/LinkedAffectedResources";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -73,7 +75,6 @@ import AlertReminderRule from "../../Models/DatabaseModels/AlertReminderRule";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
-import Monitor from "../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorService from "./MonitorService";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
@@ -1024,19 +1025,6 @@ export class Service extends DatabaseService<Model> {
           labels: {
             name: true,
           },
-          monitor: {
-            name: true,
-            _id: true,
-          },
-          /*
-           * This read runs as root, so projectId comes along and the feed
-           * names only this project's SLOs (getSloAffectedResourceMarkdownLines).
-           */
-          serviceLevelObjectives: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
         },
         props: {
           isRoot: true,
@@ -1067,31 +1055,28 @@ ${alert.description || "No description provided."}
       }
 
       /*
-       * The monitor, then the SLOs this alert is linked to. A burn-rate alert
-       * has no monitor, so its SLO is the only resource there is to name -
-       * and the feed's only way back to the objective that raised it. The SLO
-       * link is built inline: ServiceLevelObjectiveService cannot be imported
-       * here (it reaches this service through the burn-rate rule service).
+       * Everything the alert's Affected Resources card lists: its monitor,
+       * the hosts, clusters and services it is attached to, then its SLOs. A
+       * burn-rate alert has no monitor, so its SLO is the only resource there
+       * is to name - and the feed's only way back to the objective that
+       * raised it.
        */
-      const sloLines: Array<string> =
-        alert.serviceLevelObjectives && alert.serviceLevelObjectives.length > 0
-          ? getSloAffectedResourceMarkdownLines({
-              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
-              projectId: alert.projectId!,
-              serviceLevelObjectives: alert.serviceLevelObjectives,
-            })
-          : [];
+      const resources: Array<LinkedAffectedResource> =
+        await LinkedAffectedResources.readForAlert({
+          service: this,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        });
 
-      if (alert.monitor || sloLines.length > 0) {
+      if (resources.length > 0) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        if (alert.monitor) {
-          const monitor: Monitor = alert.monitor;
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
-        }
-
-        for (const sloLine of sloLines) {
-          feedInfoInMarkdown += `${sloLine}\n`;
+        for (const resourceLine of LinkedAffectedResources.getMarkdownLines({
+          dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+          projectId: alert.projectId!,
+          resources: resources,
+        })) {
+          feedInfoInMarkdown += `${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -1768,6 +1753,12 @@ ${alertSeverity.name}
     notifyOwners: boolean;
     rootCause: string | undefined;
     stateChangeLog: JSONObject | undefined;
+    /*
+     * The user the change is credited to (the alert's feed names them), for
+     * a change a user asked for that is written on their behalf. Unset for
+     * changes the system makes on its own.
+     */
+    createdByUserId?: ObjectID | undefined;
     props: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const {
@@ -1777,6 +1768,7 @@ ${alertSeverity.name}
       notifyOwners,
       rootCause,
       stateChangeLog,
+      createdByUserId,
       props,
     } = data;
 
@@ -1820,6 +1812,10 @@ ${alertSeverity.name}
     }
     if (rootCause) {
       statusTimeline.rootCause = rootCause;
+    }
+
+    if (createdByUserId) {
+      statusTimeline.createdByUserId = createdByUserId;
     }
 
     await AlertStateTimelineService.create({

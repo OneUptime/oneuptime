@@ -21,6 +21,7 @@ import {
   TopologyEntityDetailJSON,
   TopologyEntityJSON,
   TopologyEntityResponseJSON,
+  TopologyInfrastructureDependencyJSON,
   TopologyInfrastructureNodeJSON,
   TopologyInfrastructureResponseJSON,
   TopologyInfrastructureServiceJSON,
@@ -705,9 +706,108 @@ export default class TopologyQueries {
   }
 
   /*
+   * Infrastructure's traffic: the in-range calls between services that both
+   * run on a shipped node, so the map can draw them between the resources
+   * those services run on. A service placed nowhere could never be drawn, so
+   * calls to or from one are not read at all. Capped like the Service Map's
+   * dependencies (the first rows in its order, with the exact total), then
+   * ordered by (from, to) — each pair is at most one row (the unique index).
+   */
+  private static async readInfrastructureDependencies(
+    runner: TopologyStatementRunner,
+    data: {
+      projectId: string;
+      rangeStart: string;
+      response: TopologyInfrastructureResponseJSON;
+      serviceIndexByKey: Map<string, number>;
+    },
+  ): Promise<void> {
+    const placedServiceIndexes: Array<number> = Array.from(
+      new Set<number>(
+        data.response.placements.map((placement: [number, number]): number => {
+          return placement[0];
+        }),
+      ),
+    ).sort((left: number, right: number): number => {
+      return left - right;
+    });
+    /* A call needs two different services at its ends. */
+    if (placedServiceIndexes.length < 2) {
+      return;
+    }
+    const placedServiceKeys: Array<string> = placedServiceIndexes.map(
+      (index: number): string => {
+        return data.response.services[index]!.key;
+      },
+    );
+
+    const dependencies: { rows: Array<JSONObject>; total: number } =
+      await TopologyQueries.readCapped(
+        runner,
+        (limit: number): TopologySqlStatement => {
+          return serviceMapDependenciesStatement({
+            projectId: data.projectId,
+            rangeStart: data.rangeStart,
+            serviceKeys: placedServiceKeys,
+            calleeKeys: placedServiceKeys,
+            mode: "rows",
+            limit,
+          });
+        },
+        (): TopologySqlStatement => {
+          return serviceMapDependenciesStatement({
+            projectId: data.projectId,
+            rangeStart: data.rangeStart,
+            serviceKeys: placedServiceKeys,
+            calleeKeys: placedServiceKeys,
+            mode: "count",
+            limit: 0,
+          });
+        },
+        TopologyApiLimits.MaxServiceMapDependencies,
+      );
+
+    const shipped: Array<TopologyInfrastructureDependencyJSON> = [];
+    for (const row of dependencies.rows) {
+      const from: number | undefined = data.serviceIndexByKey.get(
+        readString(row, "from"),
+      );
+      const to: number | undefined = data.serviceIndexByKey.get(
+        readString(row, "to"),
+      );
+      if (from === undefined || to === undefined || from === to) {
+        continue;
+      }
+      shipped.push({
+        from,
+        to,
+        callCount: readNullableNumber(row, "callCount"),
+        errorCount: readNullableNumber(row, "errorCount"),
+        avgDurationMs: readNullableNumber(row, "avgDurationMs"),
+      });
+    }
+    shipped.sort(
+      (
+        left: TopologyInfrastructureDependencyJSON,
+        right: TopologyInfrastructureDependencyJSON,
+      ): number => {
+        return left.from - right.from || left.to - right.to;
+      },
+    );
+    data.response.dependencies = shipped;
+    if (dependencies.total > dependencies.rows.length) {
+      data.response.dependencyTruncation = {
+        shown: dependencies.rows.length,
+        total: dependencies.total,
+      };
+    }
+  }
+
+  /*
    * Infrastructure: one lean row per resource with its container chosen in
-   * SQL, every live service, where services run, and flat types too large to
-   * ship row by row as collections with exact counts.
+   * SQL, every live service, where services run, the calls between placed
+   * services, and flat types too large to ship row by row as collections
+   * with exact counts.
    */
   @CaptureSpan()
   public static async getInfrastructure(
@@ -726,6 +826,8 @@ export default class TopologyQueries {
           nodes: [],
           services: [],
           placements: [],
+          dependencies: [],
+          dependencyTruncation: null,
           collections: [],
           totals: { resources: 0, activeResources: 0 },
           truncation: null,
@@ -939,6 +1041,13 @@ export default class TopologyQueries {
             },
           );
           response.placements = placements;
+
+          await TopologyQueries.readInfrastructureDependencies(runner, {
+            projectId,
+            rangeStart,
+            response,
+            serviceIndexByKey,
+          });
         }
 
         return response;
