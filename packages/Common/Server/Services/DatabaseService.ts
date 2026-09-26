@@ -1649,78 +1649,118 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     )) as TBaseModel;
 
     try {
+      if (createBy.tx) {
+        /*
+         * Transaction-joined create (see CreateByTx): the insert runs on
+         * the caller's EntityManager so it commits or rolls back with the
+         * owning transaction, and the ENTIRE success phase below is
+         * queued through afterCommit instead of running here. Running the
+         * hooks in-transaction would fire their own global-DataSource
+         * writes before this transaction commits — the mixed-connection
+         * hazard HOM-43 review 5 rejected. Pre-create hooks and every
+         * check above have already run unchanged.
+         */
+        createBy.data = await createBy.tx.manager.save(createBy.data);
+        this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
+        this.setTelemetryContextFromItem(createBy.data);
+
+        const txCreateBy: CreateBy<TBaseModel> = createBy;
+        const txCarryForward: any = carryForward;
+
+        createBy.tx.afterCommit(async (): Promise<void> => {
+          await this.runCreateSuccessPhase(txCreateBy, txCarryForward);
+        });
+
+        return createBy.data;
+      }
+
       createBy.data = await this.getRepository().save(createBy.data);
       this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
 
-      if (!createBy.props.ignoreHooks) {
-        createBy.data = await this.onCreateSuccess(
-          {
-            createBy,
-            carryForward,
-          },
-          createBy.data,
-        );
-      }
-
-      /*
-       * Auto-owner-on-create for @OperationalResource models. Inserts the
-       * creating user into <Model>OwnerUser so the Owned permission scope
-       * covers the newly-created resource on the next request. See
-       * Internal/Docs/PermissionsSimplification.md. Best-effort: failures
-       * are logged but do not roll back the create.
-       */
-      if (!createBy.props.ignoreHooks) {
-        await this.autoOwnerOnCreate(createBy.data, createBy.props);
-      }
-
-      let tenantId: ObjectID | undefined = createBy.props.tenantId;
-
-      if (!tenantId && this.getModel().getTenantColumn()) {
-        tenantId = createBy.data.getValue<ObjectID>(
-          this.getModel().getTenantColumn()!,
-        );
-      }
-
-      // hit workflow.;
-      if (this.getModel().enableWorkflowOn?.create && tenantId) {
-        await this.onTriggerWorkflow(createBy.data.id!, tenantId, "on-create");
-      }
-
-      if (tenantId) {
-        await this.onTriggerRealtime(
-          createBy.data.id!,
-          tenantId,
-          ModelEventType.Create,
-        );
-      }
-
-      if (
-        !createBy.props.ignoreHooks &&
-        this.getModel().enableAuditLogOn?.create
-      ) {
-        /*
-         * Lazy require to avoid circular dependency between DatabaseService and
-         * AuditLogService (which depends on ProjectService/UserService, both of
-         * which extend DatabaseService). A top-level import leaves
-         * DatabaseService undefined at class-extension time for subclasses.
-         */
-        const auditLogService: typeof AuditLogServiceType =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AuditLogService").default;
-        await auditLogService.recordCreate({
-          model: this.getModel(),
-          createdItem: createBy.data,
-          props: createBy.props,
-        });
-      }
+      await this.runCreateSuccessPhase(createBy, carryForward);
 
       return createBy.data;
     } catch (error) {
       await this.onCreateError(error as Exception);
       throw this.getException(error as Exception);
+    }
+  }
+
+  /*
+   * The create success phase: hooks (onCreateSuccess, auto-owner-on-create),
+   * workflow and realtime triggers, and audit logging. Runs inline for a
+   * normal create; for a transaction-joined create (CreateBy.tx) it runs
+   * from the caller's afterCommit queue, after the owning transaction
+   * commits. A throw here leaves the row committed and propagates to the
+   * queue owner — never silently swallowed into success.
+   */
+  private async runCreateSuccessPhase(
+    createBy: CreateBy<TBaseModel>,
+    carryForward: any,
+  ): Promise<void> {
+    if (!createBy.props.ignoreHooks) {
+      createBy.data = await this.onCreateSuccess(
+        {
+          createBy,
+          carryForward,
+        },
+        createBy.data,
+      );
+    }
+
+    /*
+     * Auto-owner-on-create for @OperationalResource models. Inserts the
+     * creating user into <Model>OwnerUser so the Owned permission scope
+     * covers the newly-created resource on the next request. See
+     * Internal/Docs/PermissionsSimplification.md. Best-effort: failures
+     * are logged but do not roll back the create.
+     */
+    if (!createBy.props.ignoreHooks) {
+      await this.autoOwnerOnCreate(createBy.data, createBy.props);
+    }
+
+    let tenantId: ObjectID | undefined = createBy.props.tenantId;
+
+    if (!tenantId && this.getModel().getTenantColumn()) {
+      tenantId = createBy.data.getValue<ObjectID>(
+        this.getModel().getTenantColumn()!,
+      );
+    }
+
+    // hit workflow.;
+    if (this.getModel().enableWorkflowOn?.create && tenantId) {
+      await this.onTriggerWorkflow(createBy.data.id!, tenantId, "on-create");
+    }
+
+    if (tenantId) {
+      await this.onTriggerRealtime(
+        createBy.data.id!,
+        tenantId,
+        ModelEventType.Create,
+      );
+    }
+
+    if (
+      !createBy.props.ignoreHooks &&
+      this.getModel().enableAuditLogOn?.create
+    ) {
+      /*
+       * Lazy require to avoid circular dependency between DatabaseService and
+       * AuditLogService (which depends on ProjectService/UserService, both of
+       * which extend DatabaseService). A top-level import leaves
+       * DatabaseService undefined at class-extension time for subclasses.
+       */
+      const auditLogService: typeof AuditLogServiceType =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./AuditLogService").default;
+      await auditLogService.recordCreate({
+        model: this.getModel(),
+        createdItem: createBy.data,
+        props: createBy.props,
+      });
     }
   }
 

@@ -162,6 +162,9 @@ import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 // Microsoft Teams: save pinned / megaphoned channel messages as notes
 import "./Jobs/MicrosoftTeams/SyncReactionNotes";
 
+// Discord: save pinned / reaction-saved channel messages as notes
+import "./Jobs/Discord/SyncReactionNotes";
+
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 

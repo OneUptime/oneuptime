@@ -1,6 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import CreateByTx from "../Types/Database/CreateByTx";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -25,6 +26,11 @@ export class Service extends DatabaseService<Model> {
     note: string;
     attachmentFileIds?: Array<ObjectID>;
     postedFromSlackMessageId?: string;
+    /*
+     * Server-only: join the note insert to a caller transaction and defer
+     * the create success phase until after commit (see CreateByTx).
+     */
+    tx?: CreateByTx;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
@@ -51,6 +57,7 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+      ...(data.tx ? { tx: data.tx } : {}),
     });
   }
 

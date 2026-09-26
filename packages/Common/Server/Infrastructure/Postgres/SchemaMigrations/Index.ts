@@ -19,6 +19,8 @@ import { AddDiscordResourceThread1795400000000 } from "./1795400000000-AddDiscor
 import { AddDiscordResourceThreadRetiredThreadIds1795400000001 } from "./1795400000001-AddDiscordResourceThreadRetiredThreadIds";
 import { AddDiscordStatusPageSubscribers1795500000000 } from "./1795500000000-AddDiscordStatusPageSubscribers";
 import { AddDiscordInteractionReceipt1795600000000 } from "./1795600000000-AddDiscordInteractionReceipt";
+import { CreateDiscordReactionObservation1795700000000 } from "./1795700000000-CreateDiscordReactionObservation";
+import { AddObservedAtToDiscordReactionObservation1795700000001 } from "./1795700000001-AddObservedAtToDiscordReactionObservation";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1238,4 +1240,6 @@ export default [
   AddDiscordResourceThreadRetiredThreadIds1795400000001,
   AddDiscordStatusPageSubscribers1795500000000,
   AddDiscordInteractionReceipt1795600000000,
+  CreateDiscordReactionObservation1795700000000,
+  AddObservedAtToDiscordReactionObservation1795700000001,
 ];

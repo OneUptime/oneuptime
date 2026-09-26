@@ -280,4 +280,120 @@ export default class DiscordClient {
       });
     }
   }
+
+  /*
+   * One page of the users who reacted with a given emoji. type=0 is the
+   * normal reaction type (not super-reactions), and limit=100 is the API
+   * maximum. Reaction users carry no timestamps, so there is no "after" to
+   * page past a user already seen.
+   */
+  public static async getChannelReactions(data: {
+    authToken: string;
+    channelId: string;
+    messageId: string;
+    emoji: string;
+    after?: string;
+  }): Promise<JSONArray> {
+    const emojiPath: string = this.encodePathSegment(data.emoji);
+    const afterQuery: string = data.after
+      ? `&after=${this.snowflake(data.after)}`
+      : "";
+    return (await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.GET,
+      path: `/channels/${this.snowflake(data.channelId)}/messages/${this.snowflake(
+        data.messageId,
+      )}/reactions/${emojiPath}?limit=100&type=0${afterQuery}`,
+    })) as JSONArray;
+  }
+
+  /*
+   * The most recent channel messages, newest first, with their reaction
+   * summaries. limit=100 is the API maximum; callers bound it further and
+   * may pass `before` to walk pages.
+   */
+  public static async getChannelMessages(data: {
+    authToken: string;
+    channelId: string;
+    limit?: number;
+    before?: string;
+  }): Promise<JSONArray> {
+    const limit: number = data.limit ?? 100;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new BadDataException("Discord message limit must be 1–100.");
+    }
+    const query: string = `?limit=${limit}${
+      data.before ? `&before=${this.snowflake(data.before)}` : ""
+    }`;
+    return (await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.GET,
+      path: `/channels/${this.snowflake(data.channelId)}/messages${query}`,
+    })) as JSONArray;
+  }
+
+  /*
+   * Posts a reply in the message's thread (or the channel itself for a
+   * top-level message). Used for note confirmations and permission replies.
+   */
+  public static async replyToMessage(data: {
+    authToken: string;
+    channelId: string;
+    messageId: string;
+    content: string;
+  }): Promise<string> {
+    const response: JSONObject = (await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.POST,
+      path: `/channels/${this.snowflake(data.channelId)}/messages`,
+      body: {
+        content: data.content,
+        message_reference: { message_id: this.snowflake(data.messageId) },
+        allowed_mentions: { parse: [] },
+      },
+    })) as JSONObject;
+    return this.snowflake(String(response["id"] || ""));
+  }
+
+  /*
+   * One channel message, used to read a pinned message's text. 404s throw
+   * DiscordAPIError with the status code attached.
+   */
+  public static async getChannelMessage(data: {
+    authToken: string;
+    channelId: string;
+    messageId: string;
+  }): Promise<JSONObject> {
+    return (await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.GET,
+      path: `/channels/${this.snowflake(data.channelId)}/messages/${this.snowflake(
+        data.messageId,
+      )}`,
+    })) as JSONObject;
+  }
+
+  /*
+   * The guild audit log, filtered to one action type (MESSAGE_PIN for pin
+   * attribution). Requires VIEW_AUDIT_LOG; a missing permission surfaces as
+   * DiscordAPIError(403), which callers treat as "pin capture disabled".
+   */
+  public static async getGuildAuditLog(data: {
+    authToken: string;
+    guildId: string;
+    actionType: number;
+    limit?: number;
+  }): Promise<JSONObject> {
+    const limit: number = data.limit ?? 100;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new BadDataException("Discord audit log limit must be 1–100.");
+    }
+    return (await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.GET,
+      path: `/guilds/${this.snowflake(
+        data.guildId,
+      )}/audit-logs?action_type=${data.actionType}&limit=${limit}`,
+    })) as JSONObject;
+  }
 }

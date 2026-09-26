@@ -10,6 +10,7 @@ import { Blue500, Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import IncidentService from "./IncidentService";
+import CreateByTx from "../Types/Database/CreateByTx";
 import Incident from "../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -33,6 +34,11 @@ export class Service extends DatabaseService<Model> {
     note: string;
     attachmentFileIds?: Array<ObjectID>;
     postedFromSlackMessageId?: string;
+    /*
+     * Server-only: join the note insert to a caller transaction and defer
+     * the create success phase until after commit (see CreateByTx).
+     */
+    tx?: CreateByTx;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -60,6 +66,7 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+      ...(data.tx ? { tx: data.tx } : {}),
     });
   }
 

@@ -71,6 +71,7 @@ import CloudResourceLabelRule from "./CloudResourceLabelRule";
 import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
 import DatabaseServer from "./DatabaseServer";
 import DiscordResourceThread from "./DiscordResourceThread";
+import DiscordReactionObservation from "./DiscordReactionObservation";
 import DatabaseServerEndpoint from "./DatabaseServerEndpoint";
 import DatabaseServerFeed from "./DatabaseServerFeed";
 import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
@@ -983,6 +984,7 @@ const AllModelTypes: Array<{
   CloudResourceOwnerRule,
   DatabaseServer,
   DiscordResourceThread,
+  DiscordReactionObservation,
   DatabaseServerEndpoint,
   DatabaseServerFeed,
   DatabaseServerOwnerTeam,

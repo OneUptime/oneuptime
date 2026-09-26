@@ -256,6 +256,12 @@ export class Service extends DatabaseService<Model> {
         workspaceProjectId: true,
         miscData: true,
         workspaceType: true,
+        /*
+         * The row version is the installation generation: a reinstall bumps
+         * it, and the Discord reaction sync refuses entries stamped with an
+         * older one (HOM-43).
+         */
+        version: true,
       },
       props: {
         isRoot: true,

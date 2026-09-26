@@ -5,6 +5,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import CreateByTx from "../Types/Database/CreateByTx";
 import Model from "../../Models/DatabaseModels/AlertInternalNote";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import AlertFeedService from "./AlertFeedService";
@@ -75,6 +76,11 @@ export class Service extends DatabaseService<Model> {
     note: string;
     attachmentFileIds?: Array<ObjectID>;
     postedFromSlackMessageId?: string;
+    /*
+     * Server-only: join the note insert to a caller transaction and defer
+     * the create success phase until after commit (see CreateByTx).
+     */
+    tx?: CreateByTx;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
@@ -101,6 +107,7 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+      ...(data.tx ? { tx: data.tx } : {}),
     });
   }
 
