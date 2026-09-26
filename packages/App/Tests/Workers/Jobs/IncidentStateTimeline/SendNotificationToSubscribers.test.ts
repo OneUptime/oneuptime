@@ -1686,3 +1686,122 @@ describe("IncidentStateTimeline skips", () => {
     );
   });
 });
+
+/*
+ * A state change is marked InProgress before anything is sent, and the cron
+ * only ever picks up Pending rows. So an error part-way through must settle
+ * the row as Failed: uncaught, it left the row "being sent" forever, and it
+ * also ended the run before the remaining state changes were looked at.
+ */
+describe("IncidentStateTimeline errors", () => {
+  function writesFor(timelineId: ObjectID): Array<JSONObject> {
+    return mock(IncidentStateTimelineService.updateOneById)
+      .mock.calls.filter((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { id: ObjectID }).id.toString() === timelineId.toString()
+        );
+      })
+      .map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      });
+  }
+
+  test("an error while sending marks the state change Failed with the reason, not InProgress", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Failed,
+        subscriberNotificationStatusMessage: "database unavailable",
+      },
+    ]);
+  });
+
+  test("records a non-Error failure as text", async () => {
+    mock(IncidentService.findOneById).mockRejectedValue(
+      "connection reset" as never,
+    );
+
+    await runJob();
+
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "connection reset",
+    });
+  });
+
+  test("one failing state change does not stop the others in the same run", async () => {
+    pendingTimelines = [
+      stateTimeline(),
+      stateTimeline({ id: SECOND_TIMELINE_ID, incidentId: SECOND_INCIDENT_ID }),
+    ];
+    storeIncidents([
+      incident(),
+      incident({
+        id: SECOND_INCIDENT_ID,
+        description: SECOND_INCIDENT_DESCRIPTION,
+      }),
+    ]);
+    mock(IncidentService.findOneById).mockImplementation(
+      async (args: unknown): Promise<Incident | null> => {
+        const id: ObjectID = (args as { id: ObjectID }).id;
+
+        if (id.toString() === INCIDENT_ID.toString()) {
+          throw new Error("first incident could not be read");
+        }
+
+        return storedIncidents[id.toString()] || null;
+      },
+    );
+
+    await runJob();
+
+    expect(writesFor(TIMELINE_ID)[writesFor(TIMELINE_ID).length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "first incident could not be read",
+    });
+    expect(
+      writesFor(SECOND_TIMELINE_ID)[writesFor(SECOND_TIMELINE_ID).length - 1],
+    ).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessage:
+        "Notifications sent successfully to all subscribers",
+    });
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("a failure to record Failed is logged, not thrown", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+    mock(IncidentStateTimelineService.updateOneById).mockImplementation(
+      async (args: unknown): Promise<number> => {
+        const data: JSONObject = (args as { data: JSONObject }).data;
+
+        if (
+          data["subscriberNotificationStatus"] ===
+          StatusPageSubscriberNotificationStatus.Failed
+        ) {
+          throw new Error("write failed");
+        }
+
+        return 1;
+      },
+    );
+
+    await expect(runJob()).resolves.toBeUndefined();
+  });
+});

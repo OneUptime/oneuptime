@@ -33,6 +33,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -160,6 +161,38 @@ RunCron(
           continue;
         }
 
+        /*
+         * A hidden incident is settled as Skipped, never left InProgress.
+         * The cron only picks up Pending rows, so an InProgress row is never
+         * looked at again: the incident's 'created' notification used to sit
+         * there forever, and publishing the incident later could not send it.
+         * Skipped is what lets the dashboard offer to notify subscribers when
+         * 'Visible on Status Page' is turned on (see IncidentCreatedRenotify),
+         * which puts the row back to Pending; the reason is what the
+         * notification badge shows.
+         */
+        if (!incident.isVisibleOnStatusPage) {
+          logger.debug(
+            `Incident ${incident.id} is not visible on status page; marking subscriber notifications as Skipped.`,
+          );
+
+          await IncidentService.updateOneById({
+            id: incident.id!,
+            data: {
+              subscriberNotificationStatusOnIncidentCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+
+          continue; // Do not send notification to subscribers if incident is not visible on status page.
+        }
+
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {
@@ -174,13 +207,6 @@ RunCron(
         logger.debug(
           `Incident ${incident.id} status set to InProgress for subscriber notifications.`,
         );
-
-        if (!incident.isVisibleOnStatusPage) {
-          logger.debug(
-            `Incident ${incident.id} is not visible on status page; skipping subscriber notifications.`,
-          );
-          continue; // Do not send notification to subscribers if incident is not visible on status page.
-        }
 
         // get status page resources from monitors.
 

@@ -1766,3 +1766,104 @@ describe("IncidentEpisodeStateTimeline email subjects are sent as written", () =
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
   });
 });
+
+/*
+ * A state change is marked InProgress before anything is sent, and the cron
+ * only ever picks up Pending rows. So an error part-way through must settle
+ * the row as Failed: uncaught, it left the row "being sent" forever, and it
+ * also ended the run before the remaining state changes were looked at.
+ */
+describe("IncidentEpisodeStateTimeline errors", () => {
+  const SECOND_TIMELINE_ID: string = "abababab-abab-4bab-8bab-abababababab";
+
+  function writesFor(timelineId: string): Array<JSONObject> {
+    return mock(IncidentEpisodeStateTimelineService.updateOneById)
+      .mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as { id: ObjectID }).id.toString() === timelineId;
+      })
+      .map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      });
+  }
+
+  test("an error while sending marks the state change Failed with the reason, not InProgress", async () => {
+    pendingTimelines = [stateTimeline()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Failed,
+        subscriberNotificationStatusMessage: "database unavailable",
+      },
+    ]);
+  });
+
+  test("one failing state change does not stop the others in the same run", async () => {
+    pendingTimelines = [
+      stateTimeline(),
+      stateTimeline({ id: SECOND_TIMELINE_ID }),
+    ];
+
+    let episodeReads: number = 0;
+    mock(IncidentEpisodeService.findOneById).mockImplementation(async () => {
+      episodeReads += 1;
+
+      if (episodeReads === 1) {
+        throw new Error("episode could not be read");
+      }
+
+      return storedEpisode;
+    });
+
+    await runJob();
+
+    const first: Array<JSONObject> = writesFor(TIMELINE_ID.toString());
+    const second: Array<JSONObject> = writesFor(SECOND_TIMELINE_ID);
+
+    expect(first[first.length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "episode could not be read",
+    });
+    expect(second[second.length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessage:
+        "Notifications sent successfully to all subscribers",
+    });
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("a failure to record Failed is logged, not thrown", async () => {
+    pendingTimelines = [stateTimeline()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+    mock(IncidentEpisodeStateTimelineService.updateOneById).mockImplementation(
+      async (args: unknown): Promise<number> => {
+        const data: JSONObject = (args as { data: JSONObject }).data;
+
+        if (
+          data["subscriberNotificationStatus"] ===
+          StatusPageSubscriberNotificationStatus.Failed
+        ) {
+          throw new Error("write failed");
+        }
+
+        return 1;
+      },
+    );
+
+    await expect(runJob()).resolves.toBeUndefined();
+  });
+});

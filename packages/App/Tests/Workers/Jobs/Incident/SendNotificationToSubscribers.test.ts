@@ -13,6 +13,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 
 /*
  * Incident created subscriber notifications. These tests drive a tick of the
@@ -746,5 +748,175 @@ describe("Incident:SendNotificationToSubscribers email subjects are sent as writ
       "[Incident] Rollout of {{ .Values.image.tag }} stalled",
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+/*
+ * An incident declared hidden from status pages. Its 'created' notification
+ * used to be marked InProgress and then abandoned; the cron only picks up
+ * Pending rows, so it stayed "being sent" forever and publishing the incident
+ * later could never send it. It is now settled as Skipped with a reason,
+ * which is what lets publishing re-queue it (see IncidentCreatedRenotify).
+ */
+describe("Incident:SendNotificationToSubscribers, for an incident hidden from status pages", () => {
+  const SECOND_INCIDENT_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function hiddenIncident(): Incident {
+    const row: Incident = incident();
+    row.isVisibleOnStatusPage = false;
+    return row;
+  }
+
+  function statusWritesFor(incidentId: ObjectID): Array<JSONObject> {
+    return mock(IncidentService.updateOneById)
+      .mock.calls.filter((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { id: ObjectID }).id.toString() === incidentId.toString()
+        );
+      })
+      .map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      });
+  }
+
+  function statusesWritten(incidentId: ObjectID): Array<unknown> {
+    return statusWritesFor(incidentId).map((data: JSONObject): unknown => {
+      return data["subscriberNotificationStatusOnIncidentCreated"];
+    });
+  }
+
+  test("marks the 'created' notification Skipped with the reason, and never InProgress", async () => {
+    pendingIncidents = [hiddenIncident()];
+
+    await runJob();
+
+    expect(statusWritesFor(INCIDENT_ID)).toEqual([
+      {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+      },
+    ]);
+    expect(statusesWritten(INCIDENT_ID)).not.toContain(
+      StatusPageSubscriberNotificationStatus.InProgress,
+    );
+  });
+
+  test("writes the status as root without hooks, like the job's other writes", async () => {
+    pendingIncidents = [hiddenIncident()];
+
+    await runJob();
+
+    expect(
+      (mock(IncidentService.updateOneById).mock.calls[0]![0] as JSONObject)[
+        "props"
+      ],
+    ).toEqual({ isRoot: true, ignoreHooks: true });
+  });
+
+  test("the skip reads as 'hidden from status pages' on the dashboard", async () => {
+    pendingIncidents = [hiddenIncident()];
+
+    await runJob();
+
+    const written: JSONObject = statusWritesFor(INCIDENT_ID)[0]!;
+
+    expect(
+      IncidentCreatedRenotify.isHiddenFromStatusPagesSkip({
+        status: written[
+          "subscriberNotificationStatusOnIncidentCreated"
+        ] as StatusPageSubscriberNotificationStatus,
+        message: written["subscriberNotificationStatusMessage"] as string,
+      }),
+    ).toBe(true);
+  });
+
+  test("sends nothing, looks up no status pages and writes no feed item", async () => {
+    pendingIncidents = [hiddenIncident()];
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
+    expect(sentSms()).toHaveLength(0);
+    expect(sentSlack()).toHaveLength(0);
+    expect(sentTeams()).toHaveLength(0);
+    expect(sentWebhooks()).toHaveLength(0);
+    expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+    expect(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).not.toHaveBeenCalled();
+    expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
+  });
+
+  test("treats an incident with no stored visibility as hidden", async () => {
+    const row: Incident = incident();
+    row.isVisibleOnStatusPage = null as unknown as boolean;
+    pendingIncidents = [row];
+
+    await runJob();
+
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
+    expect(sentMail()).toHaveLength(0);
+  });
+
+  test("a hidden incident without monitors is skipped for having no monitors", async () => {
+    const row: Incident = hiddenIncident();
+    row.monitors = [];
+    pendingIncidents = [row];
+
+    await runJob();
+
+    expect(statusWritesFor(INCIDENT_ID)).toEqual([
+      {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          "No monitors are attached to this incident. Skipping notifications to subscribers.",
+      },
+    ]);
+  });
+
+  test("still notifies for the visible incidents in the same run", async () => {
+    const visible: Incident = incident();
+    visible._id = SECOND_INCIDENT_ID.toString();
+    pendingIncidents = [hiddenIncident(), visible];
+
+    await runJob();
+
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
+    expect(statusesWritten(SECOND_INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Success,
+    ]);
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("once published and re-queued, the same incident is announced", async () => {
+    // First run: hidden, so skipped.
+    pendingIncidents = [hiddenIncident()];
+    await runJob();
+    expect(sentMail()).toHaveLength(0);
+
+    // Publishing with the box ticked puts it back to Pending; now it is visible.
+    jest.clearAllMocks();
+    mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+    pendingIncidents = [incident()];
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentCreated,
+    );
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Success,
+    ]);
   });
 });
