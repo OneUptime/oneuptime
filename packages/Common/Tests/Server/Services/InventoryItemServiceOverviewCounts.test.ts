@@ -19,6 +19,7 @@ import {
   getInventoryLivenessSql,
 } from "../../../Types/Telemetry/InventoryLiveness";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
@@ -57,9 +58,7 @@ describe("getOverviewCounts", () => {
     jest.restoreAllMocks();
   });
 
-  type AggregateBySpy = jest.SpiedFunction<
-    typeof InventoryItemService.aggregateBy
-  >;
+  type AggregateBySpy = SpyInstance<typeof InventoryItemService.aggregateBy>;
 
   function spyOnAggregate(rows: Array<AggregateRow>): AggregateBySpy {
     return jest
