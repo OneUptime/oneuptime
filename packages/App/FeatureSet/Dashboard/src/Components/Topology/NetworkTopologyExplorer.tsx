@@ -23,6 +23,7 @@ import {
 } from "./HierarchyTopologyViewModel";
 import SiteBreadcrumbs from "../NetworkSite/SiteBreadcrumbs";
 import SiteCard from "../NetworkSite/SiteCard";
+import SiteSearchBox from "../NetworkSite/SiteSearchBox";
 import {
   SiteBreadcrumbEntry,
   SiteChildView,
@@ -31,6 +32,7 @@ import {
 } from "../NetworkSite/SiteHierarchyTypes";
 import {
   filterSitesBySearch,
+  isRemoteSearchable,
   normalizeSiteSearchText,
 } from "../NetworkSite/SiteSearchUtil";
 import { childTypeLabelFor } from "../NetworkSite/SiteMapViewModel";
@@ -49,7 +51,6 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { APP_API_URL } from "Common/UI/Config";
@@ -114,6 +115,9 @@ const QUERY_STRING_DEBOUNCE_MS: number = 200;
 const CARD_TITLE: string = "Browse by site";
 const CARD_DESCRIPTION: string =
   "Start with a location to understand its network and find devices that need attention.";
+
+const SEARCH_PLACEHOLDER: string =
+  "Search sites by name — anywhere in your network";
 
 /*
  * How a load ended. "superseded" is not a failure: a newer request (a
@@ -748,18 +752,33 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
 
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="md:w-72">
-              <Input
+            {/*
+             * Issue #3981: one box, two answers. Typing narrows the cards of
+             * THIS level, as it always has; the dropdown under it finds a
+             * site ANYWHERE in the hierarchy, printed with the path to it,
+             * and picking one drills straight there — to a unit's device
+             * topology without opening every level above it first.
+             *
+             * Wider than a level-only filter needed to be: the dropdown is
+             * as wide as the box, and each hit carries its full path.
+             */}
+            <div className="md:w-96">
+              <SiteSearchBox
                 dataTestId="topology-hierarchy-search"
-                ariaLabel={`Search ${childTypeLabelPlural}`}
                 placeholder={
-                  translateString(`Search ${childTypeLabelPlural}`) ||
-                  `Search ${childTypeLabelPlural}`
+                  translateString(SEARCH_PLACEHOLDER) || SEARCH_PLACEHOLDER
                 }
                 value={searchText}
-                onChange={(value: string) => {
-                  setSearchText(value);
-                }}
+                onChange={setSearchText}
+                onSelectSite={changeSite}
+                localMatchCount={searchedSites.length}
+                localTotalCount={allLevelSites.length}
+                childTypeLabel={childTypeLabel}
+                /*
+                 * The "x of y" line to the right already says how far the
+                 * text narrowed this level.
+                 */
+                showLocalCount={false}
               />
             </div>
             <div className="flex flex-wrap items-center gap-3 md:ml-auto">
@@ -897,7 +916,14 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             }
             description={
               normalizedSearch || healthFilterMode !== "all"
-                ? `No ${childTypeLabelPlural} at this level match what you are looking for. Clear the search or the health filter to see the rest.`
+                ? /*
+                   * An empty level is not an empty answer: the site being
+                   * searched for is usually somewhere else in the hierarchy,
+                   * and the search box's dropdown is where that shows up.
+                   */
+                  isRemoteSearchable(normalizedSearch)
+                  ? `No ${childTypeLabelPlural} at this level match what you are looking for. Click the search box to see matching sites from anywhere in your network, or clear the search or the health filter to see the rest of this level.`
+                  : `No ${childTypeLabelPlural} at this level match what you are looking for. Clear the search or the health filter to see the rest.`
                 : `Nothing has been added inside ${
                     currentSite ? currentSite.name : "this project"
                   } yet.`
