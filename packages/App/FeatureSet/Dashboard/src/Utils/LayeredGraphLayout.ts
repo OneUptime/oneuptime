@@ -7,8 +7,10 @@
  * out identically across renders and sessions.
  *
  * Pure and side-effect free. Three classic passes:
- *  1. Layer assignment — longest-path relaxation from sources, cycle-safe
- *     (iteration count and layer values are capped by node count).
+ *  1. Layer assignment — longest path from sources, linear in nodes plus
+ *     edges. Cycles are broken first by dropping the back edges of a
+ *     depth-first walk in id order, so a cyclic graph still lays out
+ *     deterministically.
  *  2. Crossing reduction — a few barycenter ordering sweeps (down, then
  *     up), with node-id tiebreaks so ordering is stable.
  *  3. Coordinates — each layer is centered horizontally; y grows with
@@ -52,56 +54,117 @@ export default function computeLayeredLayout(
     return edge.from !== edge.to && idSet.has(edge.from) && idSet.has(edge.to);
   });
 
+  /*
+   * Adjacency is appended in place — copying a list per edge is quadratic
+   * in a hub's degree (twenty thousand callers of one database). Layering
+   * works on indexes into `ids`: sorting a successor list numerically sorts
+   * it by id, so the walk below never depends on the order edges arrived in.
+   */
   const outgoing: Map<string, Array<string>> = new Map<string, Array<string>>();
   const incoming: Map<string, Array<string>> = new Map<string, Array<string>>();
+  const indexById: Map<string, number> = new Map<string, number>();
+  ids.forEach((id: string, index: number) => {
+    indexById.set(id, index);
+    outgoing.set(id, []);
+    incoming.set(id, []);
+  });
+  const successors: Array<Array<number>> = ids.map(() => {
+    return [];
+  });
+  const inDegree: Array<number> = new Array<number>(ids.length).fill(0);
   for (const edge of cleanEdges) {
-    outgoing.set(edge.from, [...(outgoing.get(edge.from) || []), edge.to]);
-    incoming.set(edge.to, [...(incoming.get(edge.to) || []), edge.from]);
+    outgoing.get(edge.from)!.push(edge.to);
+    incoming.get(edge.to)!.push(edge.from);
+    const toIndex: number = indexById.get(edge.to)!;
+    successors[indexById.get(edge.from)!]!.push(toIndex);
+    inDegree[toIndex] = inDegree[toIndex]! + 1;
+  }
+  for (const children of successors) {
+    children.sort((a: number, b: number) => {
+      return a - b;
+    });
   }
 
   /*
-   * Pass 1 — longest-path layering by relaxation. A DAG stabilizes within
-   * |V| sweeps; a cycle would relax forever, so both the sweep count and
-   * the layer value are capped at |V| and the result stays deterministic.
+   * Pass 1a — break cycles. One depth-first walk with an explicit stack (a
+   * long chain must not overflow the call stack), rooted at the sources
+   * first so a cycle is cut where traffic enters it, then at anything still
+   * unvisited (a cycle nothing points into), each in id order. An edge
+   * whose target finishes after its source points back at an ancestor on
+   * the walk — it closes a cycle — and is ignored for layering. Every other
+   * edge runs from a later finisher to an earlier one, so reverse finishing
+   * order is a topological order of what remains. An acyclic graph has no
+   * back edges, so nothing is ignored.
    */
-  const layerById: Map<string, number> = new Map<string, number>();
-  for (const id of ids) {
-    layerById.set(id, 0);
+  const visited: Array<boolean> = new Array<boolean>(ids.length).fill(false);
+  const nextChild: Array<number> = new Array<number>(ids.length).fill(0);
+  const finishOrder: Array<number> = [];
+  const stack: Array<number> = [];
+  const walkFrom: (root: number) => void = (root: number): void => {
+    if (visited[root]) {
+      return;
+    }
+    visited[root] = true;
+    stack.push(root);
+    while (stack.length > 0) {
+      const node: number = stack[stack.length - 1]!;
+      const children: Array<number> = successors[node]!;
+      const cursor: number = nextChild[node]!;
+      if (cursor < children.length) {
+        nextChild[node] = cursor + 1;
+        const child: number = children[cursor]!;
+        if (!visited[child]) {
+          visited[child] = true;
+          stack.push(child);
+        }
+        continue;
+      }
+      stack.pop();
+      finishOrder.push(node);
+    }
+  };
+  for (let index: number = 0; index < ids.length; index++) {
+    if (inDegree[index] === 0) {
+      walkFrom(index);
+    }
   }
-  const maxLayer: number = ids.length;
-  for (let sweep: number = 0; sweep < ids.length; sweep++) {
-    let changed: boolean = false;
-    for (const edge of cleanEdges) {
-      const fromLayer: number = layerById.get(edge.from)!;
-      const toLayer: number = layerById.get(edge.to)!;
-      const wanted: number = Math.min(maxLayer, fromLayer + 1);
-      if (toLayer < wanted) {
-        layerById.set(edge.to, wanted);
-        changed = true;
+  for (let index: number = 0; index < ids.length; index++) {
+    walkFrom(index);
+  }
+  const finishRank: Array<number> = new Array<number>(ids.length).fill(0);
+  finishOrder.forEach((node: number, rank: number) => {
+    finishRank[node] = rank;
+  });
+
+  /*
+   * Pass 1b — longest-path layering in one topological pass: sources sit on
+   * layer 0 and every other node one layer below its deepest parent, which
+   * is exactly what relaxing the edges to a fixed point gives on a DAG.
+   */
+  const layerOf: Array<number> = new Array<number>(ids.length).fill(0);
+  for (let rank: number = finishOrder.length - 1; rank >= 0; rank--) {
+    const node: number = finishOrder[rank]!;
+    const childLayer: number = layerOf[node]! + 1;
+    for (const child of successors[node]!) {
+      if (finishRank[child]! < rank && layerOf[child]! < childLayer) {
+        layerOf[child] = childLayer;
       }
     }
-    if (!changed) {
-      break;
+  }
+
+  /*
+   * A node below layer 0 sits directly under the parent that placed it, so
+   * layers 0..max are all occupied and need no compacting. Pushing in id
+   * order keeps each layer's starting order sorted.
+   */
+  const layers: Array<Array<string>> = [];
+  ids.forEach((id: string, index: number) => {
+    const layer: number = layerOf[index]!;
+    while (layers.length <= layer) {
+      layers.push([]);
     }
-  }
-
-  // Compact layer indexes (drop empty layers, keep relative order).
-  const usedLayers: Array<number> = Array.from(
-    new Set<number>(Array.from(layerById.values())),
-  ).sort((a: number, b: number) => {
-    return a - b;
+    layers[layer]!.push(id);
   });
-  const compactIndexByLayer: Map<number, number> = new Map<number, number>();
-  usedLayers.forEach((layer: number, index: number) => {
-    compactIndexByLayer.set(layer, index);
-  });
-
-  const layers: Array<Array<string>> = usedLayers.map(() => {
-    return [];
-  });
-  for (const id of ids) {
-    layers[compactIndexByLayer.get(layerById.get(id)!)!]!.push(id);
-  }
 
   /*
    * Pass 2 — barycenter crossing reduction. Order each layer by the mean
