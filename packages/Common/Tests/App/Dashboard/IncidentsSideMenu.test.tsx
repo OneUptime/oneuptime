@@ -133,6 +133,10 @@ describe("Incidents side menu", () => {
             PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
           ),
         },
+        {
+          title: "Discord",
+          href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_DISCORD),
+        },
       ]);
     });
   });

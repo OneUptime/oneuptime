@@ -81,10 +81,7 @@ export interface NotificationFor {
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
 const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
 
-/*
- * Discord snowflake channel ids are numeric and up to 20 digits; Slack ids
- * are shorter, so this accepts both for the shared channel-id validation.
- */
+// Discord channel ids are snowflakes: decimal digits only, at most 20 of them.
 const DISCORD_CHANNEL_ID_REGEX: RegExp = /^[0-9]{1,20}$/;
 
 /*
@@ -769,12 +766,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.chatId) {
-      if (
-        data.workspaceType === WorkspaceType.Slack ||
-        data.workspaceType === WorkspaceType.Discord
-      ) {
+      if (data.workspaceType === WorkspaceType.Slack) {
         throw new BadDataException(
-          "Chats are only supported for Microsoft Teams. Please choose a channel.",
+          "Chats are only supported for Microsoft Teams. Please choose a Slack channel.",
+        );
+      }
+
+      if (data.workspaceType === WorkspaceType.Discord) {
+        throw new BadDataException(
+          "Chats are only supported for Microsoft Teams. Please choose a Discord channel.",
         );
       }
 
@@ -785,16 +785,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return;
     }
 
-    if (
-      data.workspaceType === WorkspaceType.Slack ||
-      data.workspaceType === WorkspaceType.Discord
-    ) {
-      const valid: boolean =
-        data.workspaceType === WorkspaceType.Slack
-          ? SLACK_CHANNEL_ID_REGEX.test(data.channelId)
-          : DISCORD_CHANNEL_ID_REGEX.test(data.channelId);
-      if (!valid) {
-        throw new BadDataException("The channel id is not valid.");
+    if (data.workspaceType === WorkspaceType.Slack) {
+      if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
+        throw new BadDataException("The Slack channel id is not valid.");
+      }
+
+      return;
+    }
+
+    if (data.workspaceType === WorkspaceType.Discord) {
+      if (!DISCORD_CHANNEL_ID_REGEX.test(data.channelId)) {
+        throw new BadDataException("The Discord channel id is not valid.");
       }
 
       return;
