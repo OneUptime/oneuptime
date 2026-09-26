@@ -14,11 +14,18 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   status?: StatusPageSubscriberNotificationStatus | undefined | null;
   subscriberNotificationStatusMessage?: string | undefined | null;
+  /*
+   * Replaces the generic label for the status, so a caller that knows why
+   * notifications were skipped can say so in the badge itself rather than
+   * behind "more details".
+   */
+  statusText?: string | undefined;
   className?: string;
   onResendNotification?: (() => void) | undefined;
 }
@@ -126,9 +133,12 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   const {
     status,
     subscriberNotificationStatusMessage,
+    statusText,
     className = "",
     onResendNotification,
   } = props;
+
+  const { translateString } = useTranslateValue();
 
   const [showModal, setShowModal] = useState<boolean>(false);
 
@@ -175,7 +185,11 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <IconText
-        text={statusInfo.text}
+        text={
+          statusText
+            ? translateString(statusText) || statusText
+            : statusInfo.text
+        }
         icon={statusInfo.icon}
         iconColor={iconColor}
         textColor={iconColor}

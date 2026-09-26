@@ -46,6 +46,7 @@ import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/Dat
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenotify";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -581,6 +582,8 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.queueCreatedNotificationOnPublishIfRequested(updateBy);
+
     /*
      * Re-apply mapped custom field values. Covers the Custom Fields modal
      * saving the whole bag back over a mapped value, and the incident's
@@ -597,6 +600,101 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
       carryForward: carryForward,
     };
+  }
+
+  /*
+   * Publishing a hidden incident can announce it: when the editor turns
+   * 'Visible on Status Page' on and ticks "Notify subscribers that this
+   * incident was created" (see IncidentCreatedRenotify), the incident's
+   * 'created' notification goes back to Pending, and the
+   * Incident:SendNotificationToSubscribers job sends it now that the incident
+   * is visible.
+   *
+   * It only ever re-queues a notification that was Skipped for an incident
+   * that is hidden today, not private, and meant to notify on creation, so a
+   * stray request cannot email subscribers twice or break a deliberate
+   * "don't notify". The status is written into this same update, so it lands
+   * together with the visibility change or not at all. The column (and its
+   * message) are computed, but their update ACL lists the incident roles, so
+   * a non-root edit still passes the column check that runs after this hook.
+   *
+   * An update that sets the status itself - the API route of resetting it to
+   * Pending, or the notify-on-create flag above - is left alone. An update
+   * that matches several incidents queues only when every one of them
+   * qualifies, because the write applies the same data to all of them.
+   */
+  private async queueCreatedNotificationOnPublishIfRequested(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (!IncidentCreatedRenotify.isRequested(updateBy.miscDataProps)) {
+      return;
+    }
+
+    if (updateBy.data.isVisibleOnStatusPage !== true) {
+      return;
+    }
+
+    if (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated !== undefined
+    ) {
+      return;
+    }
+
+    /*
+     * Read as root: the answer only decides whether two columns join this
+     * update, and the update itself is still checked against the caller's
+     * permissions and tenant afterwards. Reading with the caller's props
+     * would fail the whole edit for a role that may edit incidents but not
+     * read these columns.
+     */
+    const incidents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (incidents.length === 0) {
+      return;
+    }
+
+    const everyIncidentQualifies: boolean = incidents.every(
+      (incident: Model): boolean => {
+        return IncidentCreatedRenotify.canRenotifyOnPublish({
+          isVisibleOnStatusPage: incident.isVisibleOnStatusPage,
+          isPrivate:
+            updateBy.data.isPrivate !== undefined &&
+            updateBy.data.isPrivate !== null
+              ? (updateBy.data.isPrivate as boolean)
+              : incident.isPrivate,
+          subscriberNotificationStatusOnIncidentCreated:
+            incident.subscriberNotificationStatusOnIncidentCreated,
+          shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+            incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        });
+      },
+    );
+
+    if (!everyIncidentQualifies) {
+      logger.debug(
+        `Not re-queueing the incident created notification on publish: ${incidents.length} incident(s) matched and not all of them were hidden, skipped and set to notify subscribers.`,
+      );
+      return;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    updateBy.data.subscriberNotificationStatusMessage =
+      IncidentCreatedRenotify.queuedMessage;
   }
 
   /*

@@ -80,6 +80,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -1184,6 +1185,18 @@ const IncidentView: FunctionComponent<
                           }
                           subscriberNotificationStatusMessage={
                             item.subscriberNotificationStatusMessage
+                          }
+                          statusText={
+                            IncidentCreatedRenotify.isHiddenFromStatusPagesSkip(
+                              {
+                                status:
+                                  item.subscriberNotificationStatusOnIncidentCreated,
+                                message:
+                                  item.subscriberNotificationStatusMessage,
+                              },
+                            )
+                              ? IncidentCreatedRenotify.hiddenFromStatusPagesLabel
+                              : undefined
                           }
                           onResendNotification={() => {
                             handleResendNotification().catch((err: Error) => {

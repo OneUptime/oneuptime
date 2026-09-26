@@ -3,18 +3,86 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Label from "Common/Models/DatabaseModels/Label";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Fields from "Common/UI/Components/Forms/Types/Fields";
+import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import NextReminderCountdown, {
   ReminderRuleScope,
 } from "../../../Components/Reminders/NextReminderCountdown";
+import { getIncidentCreatedRenotifyFormField } from "../../../Components/Incident/IncidentCreatedRenotifyFormField";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The incident as the settings card last loaded it. Its 'created'
+   * notification state decides whether turning 'Visible on Status Page' on
+   * can also tell subscribers about the incident (see
+   * IncidentCreatedRenotify); the card reloads it after every save.
+   */
+  const [loadedIncident, setLoadedIncident] = useState<Incident | null>(null);
+
+  const canRenotifyOnPublish: boolean = Boolean(
+    loadedIncident &&
+      IncidentCreatedRenotify.canRenotifyOnPublish({
+        isVisibleOnStatusPage: loadedIncident.isVisibleOnStatusPage,
+        isPrivate: loadedIncident.isPrivate,
+        subscriberNotificationStatusOnIncidentCreated:
+          loadedIncident.subscriberNotificationStatusOnIncidentCreated,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+          loadedIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      }),
+  );
+
+  const isResolved: boolean =
+    loadedIncident?.currentIncidentState?.isResolvedState === true;
+
+  const settingsFormFields: Fields<Incident> = useMemo(() => {
+    const fields: Fields<Incident> = [
+      {
+        field: {
+          isVisibleOnStatusPage: true,
+        },
+        title: "Visible on Status Page",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+      },
+    ];
+
+    if (canRenotifyOnPublish) {
+      fields.push(
+        getIncidentCreatedRenotifyFormField({
+          tickedByDefault: IncidentCreatedRenotify.isTickedByDefault({
+            isResolved: isResolved,
+          }),
+        }),
+      );
+    }
+
+    fields.push({
+      field: {
+        isPrivate: true,
+      },
+      title: "Private Incident",
+      description:
+        "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+    });
+
+    return fields;
+  }, [canRenotifyOnPublish, isResolved]);
 
   return (
     <Fragment>
@@ -26,26 +94,7 @@ const IncidentDelete: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              isVisibleOnStatusPage: true,
-            },
-            title: "Visible on Status Page",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              isPrivate: true,
-            },
-            title: "Private Incident",
-            description:
-              "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
+        formFields={settingsFormFields}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
@@ -68,6 +117,16 @@ const IncidentDelete: FunctionComponent<
               fieldType: FieldType.Boolean,
             },
           ],
+          selectMoreFields: {
+            subscriberNotificationStatusOnIncidentCreated: true,
+            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+            currentIncidentState: {
+              isResolvedState: true,
+            },
+          },
+          onItemLoaded: (item: Incident) => {
+            setLoadedIncident(item);
+          },
           modelId: modelId,
         }}
       />
