@@ -3,6 +3,7 @@ import AlertStateService from "../../../Server/Services/AlertStateService";
 import AlertStateTimelineService from "../../../Server/Services/AlertStateTimelineService";
 import IncidentAlertService, {
   AcknowledgeDeclaredAlertsResult,
+  AlertsToAcknowledgeOnDeclare,
   getDeclaredAlertAcknowledgementCause,
 } from "../../../Server/Services/IncidentAlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -19,6 +20,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Project from "../../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -40,13 +42,17 @@ import { FindOperator } from "typeorm";
  *
  * - validateAcknowledgeAlertsForNewIncident, the check IncidentService's
  *   onBeforeCreate runs before the incident number is taken: what the
- *   miscDataProps flag may be, what it needs, and who may ask for it;
+ *   miscDataProps flag may be, what it needs, which alerts it settles on
+ *   acknowledging (only those not acknowledged yet, in the order given) and
+ *   that the caller is checked for exactly those - never for an alert that
+ *   will be left alone;
  * - acknowledgeAlertsDeclaredWithIncident, the fire-and-forget write after
  *   the links exist: who the change is credited to, what "why" it carries
  *   (never naming a private incident), which alerts it leaves alone (already
- *   acknowledged or later, or owned by the linked-alert sync), how each
- *   outcome is classified by reading the alert back, and that it never
- *   throws;
+ *   acknowledged or later, or owned by the linked-alert sync), that it
+ *   writes at most five alerts at a time, batch after batch, how each
+ *   outcome is classified by reading the alert back with one findOneBy (not
+ *   AlertService.isAlertAcknowledged), and that it never throws;
  * - getDeclaredAlertAcknowledgementCause, the "why" itself;
  * - AlertService.changeAlertState's new createdByUserId.
  */
@@ -71,6 +77,9 @@ const INVESTIGATING_ALERT: string = "0194c3a9-0000-4000-8000-0000000000b5";
 const RESOLVED_ALERT: string = "0194c3a9-0000-4000-8000-0000000000b6";
 // Not in this project: the project-scoped read never returns it.
 const FOREIGN_ALERT: string = "0194c3a9-0000-4000-8000-0000000000b7";
+
+// Writes in flight at once (DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY).
+const BATCH_SIZE: number = 5;
 
 const PERMISSION_MESSAGE: string =
   "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
@@ -321,6 +330,7 @@ let changes: Array<StateChange>;
 
 let changeAlertState: jest.SpyInstance;
 let isAlertAcknowledged: jest.SpyInstance;
+let readBack: jest.SpyInstance;
 let acknowledgedStateLookup: jest.SpyInstance;
 let incidentLookup: jest.SpyInstance;
 let alertLookup: jest.SpyInstance;
@@ -497,33 +507,56 @@ beforeEach(() => {
       await behaviour(change);
     }) as never);
 
-  // Reads the alert back the way AlertService.isAlertAcknowledged does.
-  isAlertAcknowledged = jest
-    .spyOn(AlertService, "isAlertAcknowledged")
+  /*
+   * The read back after each write: the alert as it is now, found only in
+   * its project, with its current state (and so its order) when the state
+   * is one of the project's. Null when the alert is gone, as findOneBy is.
+   * The exact arguments are pinned in their own test.
+   */
+  readBack = jest
+    .spyOn(AlertService, "findOneBy")
     .mockImplementation((async (args: {
-      alertId: ObjectID;
-    }): Promise<boolean> => {
-      const stateId: string | undefined = tables.alerts.get(
-        args.alertId.toString().toLowerCase(),
-      );
+      query: { _id?: unknown; projectId?: unknown };
+    }): Promise<Alert | null> => {
+      if (String(args.query.projectId) !== PROJECT_ID.toString()) {
+        return null;
+      }
+
+      const alertId: string = String(args.query._id).toLowerCase();
+      const stateId: string | undefined = tables.alerts.get(alertId);
 
       if (!stateId) {
-        throw new BadDataException("Alert not found");
+        return null;
       }
 
-      const acknowledgedRow: StateRow | undefined = acknowledgedAlertStateRow();
+      const alert: Alert = new Alert();
+      alert._id = alertId;
+
       const row: StateRow | undefined = stateRowById(stateId);
 
-      if (!acknowledgedRow || !row) {
-        throw new BadDataException("Alert state not found");
+      if (row) {
+        alert.currentAlertState = alertStateModel(row);
       }
 
-      return row.order >= acknowledgedRow.order;
+      return alert;
     }) as never);
+
+  // Not how a declared alert is read back any more: any call is a failure.
+  isAlertAcknowledged = jest
+    .spyOn(AlertService, "isAlertAcknowledged")
+    .mockRejectedValue(
+      new Error("isAlertAcknowledged must not be used here.") as never,
+    );
 });
 
 afterEach(() => {
+  const isAlertAcknowledgedCalls: number =
+    isAlertAcknowledged.mock.calls.length;
+
   jest.restoreAllMocks();
+
+  // Declared alerts are read back with findOneBy, never isAlertAcknowledged.
+  expect(isAlertAcknowledgedCalls).toBe(0);
 });
 
 // Pass null for an API key, which acts for no user.
@@ -581,6 +614,105 @@ function perAlertErrorLogs(): Array<unknown> {
       "IncidentAlertService could not acknowledge alert ",
     );
   });
+}
+
+// More Created alerts in this project (ids ...000000000101 upwards).
+function addCreatedAlerts(count: number): Array<string> {
+  const alertIds: Array<string> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    const alertId: string = `0194c3a9-0000-4000-8000-${(0x101 + index)
+      .toString(16)
+      .padStart(12, "0")}`;
+    tables.alerts.set(alertId, ALERT_CREATED.id);
+    alertIds.push(alertId);
+  }
+
+  return alertIds;
+}
+
+// The alert ids written, lower-cased, in the order the writes started.
+function written(): Array<string> {
+  return changes.map((change: StateChange) => {
+    return change.alertId.toString().toLowerCase();
+  });
+}
+
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (error: Error) => void;
+}
+
+function deferred(): Deferred {
+  let resolve: () => void = (): void => {
+    // replaced below
+  };
+  let reject: (error: Error) => void = (): void => {
+    // replaced below
+  };
+
+  const promise: Promise<void> = new Promise<void>(
+    (onResolve: () => void, onReject: (error: Error) => void) => {
+      resolve = onResolve;
+      reject = onReject;
+    },
+  );
+
+  return { promise, resolve, reject };
+}
+
+// Lets every chain that is not waiting on a held write run as far as it can.
+async function flush(): Promise<void> {
+  for (let round: number = 0; round < 3; round++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+}
+
+/*
+ * Holds the writes of these alerts until the test lets them go: each write
+ * waits on its own gate, then moves the alert (or throws when the gate is
+ * rejected). Counts the writes in flight, and the most at once.
+ */
+interface HeldWrites {
+  gates: Map<string, Deferred>;
+  inFlight: () => number;
+  maxInFlight: () => number;
+}
+
+function holdWrites(alertIds: Array<string>): HeldWrites {
+  const gates: Map<string, Deferred> = new Map();
+  let inFlight: number = 0;
+  let maxInFlight: number = 0;
+
+  for (const alertId of alertIds) {
+    const gate: Deferred = deferred();
+    gates.set(alertId, gate);
+
+    writeBehaviours.set(alertId, async (change: StateChange): Promise<void> => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+
+      try {
+        await gate.promise;
+        await writeThrough(change);
+      } finally {
+        inFlight--;
+      }
+    });
+  }
+
+  return {
+    gates: gates,
+    inFlight: (): number => {
+      return inFlight;
+    },
+    maxInFlight: (): number => {
+      return maxInFlight;
+    },
+  };
 }
 
 describe("getDeclaredAlertAcknowledgementCause", () => {
@@ -651,7 +783,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       alertIds: Array<ObjectID>;
       props: DatabaseCommonInteractionProps;
     }> = {},
-  ): Promise<ObjectID | null> {
+  ): Promise<AlertsToAcknowledgeOnDeclare | null> {
     return IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
       projectId: PROJECT_ID,
       acknowledgeAlerts: true,
@@ -659,6 +791,47 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       props: memberProps(),
       ...overrides,
     });
+  }
+
+  function alertIdsOf(alertIds: Array<string>): Array<ObjectID> {
+    return alertIds.map((alertId: string) => {
+      return new ObjectID(alertId);
+    });
+  }
+
+  /*
+   * The validator settled on acknowledging these alerts (lower-cased, in
+   * order) with the project's Acknowledged state - and nothing else.
+   */
+  function expectToAcknowledge(
+    result: AlertsToAcknowledgeOnDeclare | null,
+    alertIds: Array<string>,
+  ): void {
+    expect(result).not.toBeNull();
+    expect(Object.keys(result!).sort()).toEqual([
+      "acknowledgedAlertStateId",
+      "alertIdsToAcknowledge",
+    ]);
+    expect(result!.acknowledgedAlertStateId).toBeInstanceOf(ObjectID);
+    expect(result!.acknowledgedAlertStateId.toString()).toBe(
+      ALERT_ACKNOWLEDGED.id,
+    );
+    expect(Array.isArray(result!.alertIdsToAcknowledge)).toBe(true);
+
+    for (const alertId of result!.alertIdsToAcknowledge) {
+      expect(alertId).toBeInstanceOf(ObjectID);
+    }
+
+    expect(ids(result!.alertIdsToAcknowledge)).toEqual(alertIds);
+  }
+
+  // The alert ids the caller was checked for, lower-cased, in order.
+  function authorizedAlertIds(): Array<string> {
+    expect(authorization).toHaveBeenCalledTimes(1);
+    return ids(
+      (authorization.mock.calls[0]![0] as { alertIds: Array<ObjectID> })
+        .alertIds,
+    );
   }
 
   async function rejection(promise: Promise<unknown>): Promise<unknown> {
@@ -692,6 +865,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     ).resolves.toBeNull();
 
     expect(acknowledgedStateLookup).not.toHaveBeenCalled();
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
@@ -708,6 +882,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     }
 
     expect(acknowledgedStateLookup).not.toHaveBeenCalled();
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
@@ -732,6 +907,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       INCIDENT_ALERT_IDS_TO_LINK_KEY,
     );
     expect(acknowledgedStateLookup).not.toHaveBeenCalled();
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
@@ -743,10 +919,11 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       "projectId is required to acknowledge alerts.",
     );
     expect(acknowledgedStateLookup).not.toHaveBeenCalled();
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("a project without an Acknowledged alert state is refused, and permissions are not even probed", async () => {
+  test("a project without an Acknowledged alert state is refused, and neither the alerts nor permissions are probed", async () => {
     tables.alertStates = [ALERT_CREATED, ALERT_RESOLVED];
 
     const error: unknown = await rejection(validate());
@@ -758,21 +935,59 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect((error as BadDataException).message).toContain(
       "Declare the incident without acknowledging them",
     );
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
   test("an Acknowledged state row without an id counts as no state", async () => {
-    acknowledgedStateLookup.mockResolvedValueOnce(new AlertState() as never);
+    const idless: AlertState = new AlertState();
+    idless.order = ALERT_ACKNOWLEDGED.order;
+    acknowledgedStateLookup.mockResolvedValueOnce(idless as never);
 
     const error: unknown = await rejection(validate());
 
+    expect(error).toBeInstanceOf(BadDataException);
     expect((error as BadDataException).message).toBe(
       NO_ACKNOWLEDGED_STATE_ON_CREATE_MESSAGE,
     );
+    expect(alertLookup).not.toHaveBeenCalled();
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("the Acknowledged state is read as root, for the project, id only", async () => {
+  test("an Acknowledged state without an order (missing or null) counts as no state: a 400, nothing else read or checked", async () => {
+    for (const order of [undefined, null]) {
+      const orderless: AlertState = new AlertState();
+      orderless._id = ALERT_ACKNOWLEDGED.id;
+
+      if (order === null) {
+        orderless.order = null as unknown as number;
+      }
+
+      acknowledgedStateLookup.mockResolvedValueOnce(orderless as never);
+
+      const error: unknown = await rejection(validate());
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as BadDataException).message).toBe(
+        NO_ACKNOWLEDGED_STATE_ON_CREATE_MESSAGE,
+      );
+    }
+
+    // Even for a root caller, who is never checked for permission.
+    const orderless: AlertState = new AlertState();
+    orderless._id = ALERT_ACKNOWLEDGED.id;
+    acknowledgedStateLookup.mockResolvedValueOnce(orderless as never);
+
+    await expect(validate({ props: { isRoot: true } })).rejects.toThrow(
+      NO_ACKNOWLEDGED_STATE_ON_CREATE_MESSAGE,
+    );
+
+    expect(acknowledgedStateLookup).toHaveBeenCalledTimes(3);
+    expect(alertLookup).not.toHaveBeenCalled();
+    expect(authorization).not.toHaveBeenCalled();
+  });
+
+  test("the Acknowledged state is read as root, for the project, with its id and order", async () => {
     await validate();
 
     expect(acknowledgedStateLookup).toHaveBeenCalledTimes(1);
@@ -783,6 +998,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       },
       select: {
         _id: true,
+        order: true,
       },
       props: {
         isRoot: true,
@@ -790,29 +1006,82 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     });
   });
 
-  test("a root caller gets the state id without a permission check", async () => {
-    const stateId: ObjectID | null = await validate({
+  test("the alerts are read once, as root, in the project, for their current state's order - after the state, before the permission check", async () => {
+    await validate();
+
+    expect(alertLookup).toHaveBeenCalledTimes(1);
+    expect(alertLookup).toHaveBeenCalledWith({
+      query: {
+        _id: expect.any(FindOperator),
+        projectId: PROJECT_ID,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const query: { _id?: unknown; projectId?: unknown } = (
+      alertLookup.mock.calls[0]![0] as {
+        query: { _id?: unknown; projectId?: unknown };
+      }
+    ).query;
+    expect(idsIn(query._id)).toEqual([CREATED_ALERT, SECOND_CREATED_ALERT]);
+    expect(query.projectId).toBe(PROJECT_ID);
+
+    expect(acknowledgedStateLookup.mock.invocationCallOrder[0]!).toBeLessThan(
+      alertLookup.mock.invocationCallOrder[0]!,
+    );
+    expect(alertLookup.mock.invocationCallOrder[0]!).toBeLessThan(
+      authorization.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("returns the project's Acknowledged state and the alerts to acknowledge", async () => {
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate();
+
+    expectToAcknowledge(result, [CREATED_ALERT, SECOND_CREATED_ALERT]);
+  });
+
+  test("a root caller gets the state and the alerts not acknowledged yet, without a permission check", async () => {
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([
+        CREATED_ALERT,
+        RESOLVED_ALERT,
+        SECOND_CREATED_ALERT,
+      ]),
       props: { isRoot: true },
     });
 
-    expect(stateId).toBeInstanceOf(ObjectID);
-    expect(stateId!.toString()).toBe(ALERT_ACKNOWLEDGED.id);
+    expectToAcknowledge(result, [CREATED_ALERT, SECOND_CREATED_ALERT]);
+    // The alerts are still read: the subset is what may be written.
+    expect(alertLookup).toHaveBeenCalledTimes(1);
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("a master admin gets the state id without a permission check", async () => {
-    const stateId: ObjectID | null = await validate({
+  test("a master admin gets the state and the alerts not acknowledged yet, without a permission check", async () => {
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([ACKNOWLEDGED_ALERT, CREATED_ALERT]),
       props: { ...memberProps(), isMasterAdmin: true },
     });
 
-    expect(stateId!.toString()).toBe(ALERT_ACKNOWLEDGED.id);
+    expectToAcknowledge(result, [CREATED_ALERT]);
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("any other caller must be allowed to change the state of every one of the alerts", async () => {
+  test("any other caller must be allowed to change the state of every alert that will be acknowledged", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
 
-    const stateId: ObjectID | null = await validate({ props: props });
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      props: props,
+    });
 
     expect(authorization).toHaveBeenCalledTimes(1);
     expect(authorization).toHaveBeenCalledWith({
@@ -823,8 +1092,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect((authorization.mock.calls[0]![0] as { props: unknown }).props).toBe(
       props,
     );
-    expect(stateId).toBeInstanceOf(ObjectID);
-    expect(stateId!.toString()).toBe(ALERT_ACKNOWLEDGED.id);
+    expectToAcknowledge(result, [CREATED_ALERT, SECOND_CREATED_ALERT]);
   });
 
   test("an API key (no user) is checked too", async () => {
@@ -833,9 +1101,180 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
       userType: UserType.API,
     };
 
-    await validate({ props: props });
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      props: props,
+    });
 
     expect(authorization).toHaveBeenCalledTimes(1);
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT, SECOND_CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT, SECOND_CREATED_ALERT]);
+  });
+
+  test("an unacknowledged alert with resolved and acknowledged ones: only the unacknowledged alert is checked and carried", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps();
+
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([
+        RESOLVED_ALERT,
+        CREATED_ALERT,
+        ACKNOWLEDGED_ALERT,
+        INVESTIGATING_ALERT,
+      ]),
+      props: props,
+    });
+
+    expect(authorization).toHaveBeenCalledTimes(1);
+    expect(authorization).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      alertIds: [new ObjectID(CREATED_ALERT)],
+      props: props,
+    });
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT]);
+  });
+
+  test("an already resolved alert the caller may not change does not refuse the declaration", async () => {
+    // The caller may change CREATED_ALERT, but not RESOLVED_ALERT.
+    authorization.mockImplementation((async (args: {
+      alertIds: Array<ObjectID>;
+    }): Promise<void> => {
+      if (ids(args.alertIds).includes(RESOLVED_ALERT)) {
+        throw new NotAuthorizedException(
+          "You do not have permission to change the state of one or more of these alerts.",
+        );
+      }
+    }) as never);
+
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([CREATED_ALERT, RESOLVED_ALERT]),
+    });
+
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT]);
+  });
+
+  test("an unacknowledged alert the caller may not change still refuses the declaration, whatever else is resolved", async () => {
+    // The caller may change RESOLVED_ALERT, but not CREATED_ALERT.
+    authorization.mockImplementation((async (args: {
+      alertIds: Array<ObjectID>;
+    }): Promise<void> => {
+      if (ids(args.alertIds).includes(CREATED_ALERT)) {
+        throw new NotAuthorizedException(
+          "You do not have permission to change the state of one or more of these alerts.",
+        );
+      }
+    }) as never);
+
+    const error: unknown = await rejection(
+      validate({ alertIds: alertIdsOf([RESOLVED_ALERT, CREATED_ALERT]) }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as BadDataException).message).toBe(PERMISSION_MESSAGE);
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+  });
+
+  test("every alert already acknowledged or later: no permission check, the state with nothing to acknowledge", async () => {
+    // Would refuse anything it was asked about.
+    authorization.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to change the state of one or more of these alerts.",
+      ) as never,
+    );
+
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([
+        ACKNOWLEDGED_ALERT,
+        INVESTIGATING_ALERT,
+        RESOLVED_ALERT,
+      ]),
+      props: memberProps(),
+    });
+
+    expect(authorization).not.toHaveBeenCalled();
+    expectToAcknowledge(result, []);
+    expect(result!.alertIdsToAcknowledge).toEqual([]);
+  });
+
+  test("alerts not found in the project are dropped: never checked, never carried", async () => {
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([FOREIGN_ALERT, CREATED_ALERT]),
+    });
+
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT]);
+  });
+
+  test("no alert found at all: no permission check, nothing to acknowledge", async () => {
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([FOREIGN_ALERT]),
+    });
+
+    expect(authorization).not.toHaveBeenCalled();
+    expectToAcknowledge(result, []);
+  });
+
+  test("the alerts to acknowledge keep the order they were given in, not the order they are read in", async () => {
+    // The read returns them as CREATED, SECOND, THIRD, RESOLVED.
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([
+        THIRD_CREATED_ALERT,
+        RESOLVED_ALERT,
+        CREATED_ALERT,
+        SECOND_CREATED_ALERT,
+      ]),
+    });
+
+    expect(authorizedAlertIds()).toEqual([
+      THIRD_CREATED_ALERT,
+      CREATED_ALERT,
+      SECOND_CREATED_ALERT,
+    ]);
+    expectToAcknowledge(result, [
+      THIRD_CREATED_ALERT,
+      CREATED_ALERT,
+      SECOND_CREATED_ALERT,
+    ]);
+  });
+
+  test("states are compared by order, not by flags: a custom state before Acknowledged is kept, one after is not", async () => {
+    const triage: StateRow = {
+      id: "0194c3a9-0000-4000-8000-0000000000d5",
+      name: "Triage",
+      order: 2,
+    };
+    // Acknowledged sits at order 5 here, after a custom "Triage".
+    tables.alertStates = [
+      ALERT_CREATED,
+      triage,
+      { ...ALERT_ACKNOWLEDGED, order: 5 },
+      { ...ALERT_INVESTIGATING, order: 6 },
+      { ...ALERT_RESOLVED, order: 7 },
+    ];
+    tables.alerts.set(CREATED_ALERT, triage.id);
+
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([
+        INVESTIGATING_ALERT,
+        CREATED_ALERT,
+        ACKNOWLEDGED_ALERT,
+      ]),
+    });
+
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT]);
+  });
+
+  test("an alert whose current state has no order is not assumed acknowledged: it is checked and carried", async () => {
+    // A state the project's state list does not have.
+    tables.alerts.set(CREATED_ALERT, "0194c3a9-0000-4000-8000-0000000000df");
+
+    const result: AlertsToAcknowledgeOnDeclare | null = await validate({
+      alertIds: alertIdsOf([RESOLVED_ALERT, CREATED_ALERT]),
+    });
+
+    expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);
+    expectToAcknowledge(result, [CREATED_ALERT]);
   });
 
   test("a caller who may not change one of the alerts gets a 400 that says what to do", async () => {
@@ -882,6 +1321,15 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
   test("a failing Acknowledged state read is not swallowed", async () => {
     const thrown: Error = new Error("database is down");
     acknowledgedStateLookup.mockRejectedValueOnce(thrown as never);
+
+    await expect(validate()).rejects.toBe(thrown);
+    expect(alertLookup).not.toHaveBeenCalled();
+    expect(authorization).not.toHaveBeenCalled();
+  });
+
+  test("a failing alerts read is not swallowed, and nothing is checked", async () => {
+    const thrown: Error = new Error("too many clients");
+    alertLookup.mockRejectedValueOnce(thrown as never);
 
     await expect(validate()).rejects.toBe(thrown);
     expect(authorization).not.toHaveBeenCalled();
@@ -1080,7 +1528,12 @@ describe("acknowledgeAlertsDeclaredWithIncident: what is written", () => {
       ],
     });
     // Only the alert that was written is read back.
-    expect(isAlertAcknowledged).toHaveBeenCalledTimes(1);
+    expect(readBack).toHaveBeenCalledTimes(1);
+    expect(
+      String(
+        (readBack.mock.calls[0]![0] as { query: { _id: ObjectID } }).query._id,
+      ),
+    ).toBe(CREATED_ALERT);
     expect(tables.alerts.get(RESOLVED_ALERT)).toBe(ALERT_RESOLVED.id);
     expect(tables.alerts.get(INVESTIGATING_ALERT)).toBe(ALERT_INVESTIGATING.id);
   });
@@ -1272,27 +1725,105 @@ describe("acknowledgeAlertsDeclaredWithIncident: classifying by reading the aler
       CREATED_ALERT,
     ]);
 
-    expect(isAlertAcknowledged).toHaveBeenCalledTimes(1);
+    expect(readBack).toHaveBeenCalledTimes(1);
     expect(outcome(result)).toEqual({
       ...emptyOutcome(),
       failed: [[CREATED_ALERT, DID_NOT_CHANGE_MESSAGE]],
     });
   });
 
-  test("the read back is of the alert that was written", async () => {
+  test("a read back that throws after a write that went through is failed as 'did not change', not assumed done", async () => {
+    readBack.mockRejectedValueOnce(new Error("read timed out") as never);
+
+    const result: AcknowledgeDeclaredAlertsResult = await acknowledge([
+      CREATED_ALERT,
+    ]);
+
+    expect(changeAlertState).toHaveBeenCalledTimes(1);
+    expect(readBack).toHaveBeenCalledTimes(1);
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      failed: [[CREATED_ALERT, DID_NOT_CHANGE_MESSAGE]],
+    });
+    expect(errorLog).toHaveBeenCalledWith(
+      `IncidentAlertService could not acknowledge alert ${CREATED_ALERT} for the incident it was declared with: ${DID_NOT_CHANGE_MESSAGE}`,
+      {
+        projectId: PROJECT_ID.toString(),
+        incidentId: INCIDENT_ID.toString(),
+        alertId: CREATED_ALERT,
+      },
+    );
+  });
+
+  test("a read back that throws after a refused write is failed with the write's message", async () => {
+    writeBehaviours.set(CREATED_ALERT, async (): Promise<void> => {
+      throw new Error("Could not acquire the alert's lock.");
+    });
+    readBack.mockRejectedValueOnce(new Error("read timed out") as never);
+
+    const result: AcknowledgeDeclaredAlertsResult = await acknowledge([
+      CREATED_ALERT,
+    ]);
+
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      failed: [[CREATED_ALERT, "Could not acquire the alert's lock."]],
+    });
+    expect(perAlertErrorLogs()).toHaveLength(1);
+  });
+
+  test("a read back that throws for one alert fails only that alert", async () => {
+    readBack.mockImplementationOnce((async (): Promise<Alert | null> => {
+      throw new Error("read timed out");
+    }) as never);
+
+    const result: AcknowledgeDeclaredAlertsResult = await acknowledge([
+      CREATED_ALERT,
+      SECOND_CREATED_ALERT,
+    ]);
+
+    expect(written()).toEqual([CREATED_ALERT, SECOND_CREATED_ALERT]);
+    expect(readBack).toHaveBeenCalledTimes(2);
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      acknowledged: [SECOND_CREATED_ALERT],
+      failed: [[CREATED_ALERT, DID_NOT_CHANGE_MESSAGE]],
+    });
+  });
+
+  test("the read back is one findOneBy of the alert that was written, in its project, as root, for its state's order", async () => {
     await acknowledge([CREATED_ALERT, SECOND_CREATED_ALERT]);
 
-    expect(isAlertAcknowledged).toHaveBeenCalledTimes(2);
-    expect(
-      (isAlertAcknowledged.mock.calls[0]![0] as { alertId: ObjectID }).alertId
-        .toString()
-        .toLowerCase(),
-    ).toBe(CREATED_ALERT);
-    expect(
-      (isAlertAcknowledged.mock.calls[1]![0] as { alertId: ObjectID }).alertId
-        .toString()
-        .toLowerCase(),
-    ).toBe(SECOND_CREATED_ALERT);
+    expect(readBack).toHaveBeenCalledTimes(2);
+
+    const alertIds: Array<string> = [CREATED_ALERT, SECOND_CREATED_ALERT];
+
+    for (let index: number = 0; index < alertIds.length; index++) {
+      expect(readBack).toHaveBeenNthCalledWith(index + 1, {
+        query: {
+          _id: new ObjectID(alertIds[index]!),
+          projectId: PROJECT_ID,
+        },
+        select: {
+          currentAlertState: {
+            order: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+      expect(
+        (readBack.mock.calls[index]![0] as { query: { projectId: unknown } })
+          .query.projectId,
+      ).toBe(PROJECT_ID);
+      // Each alert is read back after its own write.
+      expect(changeAlertState.mock.invocationCallOrder[index]!).toBeLessThan(
+        readBack.mock.invocationCallOrder[index]!,
+      );
+    }
+
+    expect(isAlertAcknowledged).not.toHaveBeenCalled();
   });
 
   test("one failing alert does not stop the others, and each keeps its place", async () => {
@@ -1320,42 +1851,193 @@ describe("acknowledgeAlertsDeclaredWithIncident: classifying by reading the aler
     });
     expect(perAlertErrorLogs()).toHaveLength(1);
   });
+});
 
-  test("the writes are one after another, never two at once", async () => {
-    let inFlight: number = 0;
-    let maxInFlight: number = 0;
-
-    for (const alertId of [
+describe("acknowledgeAlertsDeclaredWithIncident: writing in batches", () => {
+  test("a few alerts are written together, not one after another", async () => {
+    const alertIds: Array<string> = [
       CREATED_ALERT,
       SECOND_CREATED_ALERT,
       THIRD_CREATED_ALERT,
-    ]) {
-      writeBehaviours.set(
-        alertId,
-        async (change: StateChange): Promise<void> => {
-          inFlight++;
-          maxInFlight = Math.max(maxInFlight, inFlight);
-          await new Promise<void>((resolve: () => void) => {
-            setTimeout(resolve, 1);
-          });
-          await writeThrough(change);
-          inFlight--;
-        },
-      );
+    ];
+    const held: HeldWrites = holdWrites(alertIds);
+
+    const pending: Promise<AcknowledgeDeclaredAlertsResult> =
+      acknowledge(alertIds);
+
+    await flush();
+
+    // All three started before any finished.
+    expect(written()).toEqual(alertIds);
+    expect(held.inFlight()).toBe(3);
+
+    // Finishing out of order changes nothing about the result's order.
+    held.gates.get(THIRD_CREATED_ALERT)!.resolve();
+    held.gates.get(CREATED_ALERT)!.resolve();
+    held.gates.get(SECOND_CREATED_ALERT)!.resolve();
+
+    const result: AcknowledgeDeclaredAlertsResult = await pending;
+
+    expect(held.maxInFlight()).toBe(3);
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      acknowledged: alertIds,
+    });
+  });
+
+  test("twelve alerts: at most five writes at once, batch after batch, results in the order given", async () => {
+    const alertIds: Array<string> = addCreatedAlerts(12);
+    const held: HeldWrites = holdWrites(alertIds);
+
+    // An alert left as it is takes no place in a batch.
+    const pending: Promise<AcknowledgeDeclaredAlertsResult> = acknowledge([
+      ...alertIds.slice(0, 3),
+      ACKNOWLEDGED_ALERT,
+      ...alertIds.slice(3),
+    ]);
+
+    await flush();
+
+    // The first batch: the first five to write, in the order given.
+    expect(written()).toEqual(alertIds.slice(0, BATCH_SIZE));
+    expect(held.inFlight()).toBe(BATCH_SIZE);
+
+    // Four of the five finish: the next batch still waits for the fifth.
+    for (const index of [4, 2, 0, 3]) {
+      held.gates.get(alertIds[index]!)!.resolve();
     }
 
-    const result: AcknowledgeDeclaredAlertsResult = await acknowledge([
-      CREATED_ALERT,
-      SECOND_CREATED_ALERT,
-      THIRD_CREATED_ALERT,
+    await flush();
+
+    expect(written()).toEqual(alertIds.slice(0, BATCH_SIZE));
+    expect(held.inFlight()).toBe(1);
+
+    held.gates.get(alertIds[1]!)!.resolve();
+
+    await flush();
+
+    // The second batch starts only once the first is settled.
+    expect(written()).toEqual(alertIds.slice(0, 2 * BATCH_SIZE));
+    expect(held.inFlight()).toBe(BATCH_SIZE);
+
+    // Every write of the first batch was read back before the second began.
+    const firstWriteOfSecondBatch: number =
+      changeAlertState.mock.invocationCallOrder[BATCH_SIZE]!;
+    const readBacksBeforeSecondBatch: Array<number> =
+      readBack.mock.invocationCallOrder.filter((order: number) => {
+        return order < firstWriteOfSecondBatch;
+      });
+    expect(readBacksBeforeSecondBatch).toHaveLength(BATCH_SIZE);
+
+    // The second batch finishes in reverse, and one of its writes fails.
+    held.gates.get(alertIds[7]!)!.reject(new Error("deadlock detected"));
+
+    for (const index of [9, 8, 6, 5]) {
+      held.gates.get(alertIds[index]!)!.resolve();
+    }
+
+    await flush();
+
+    // The last batch: the two left.
+    expect(written()).toEqual(alertIds);
+    expect(held.inFlight()).toBe(2);
+
+    held.gates.get(alertIds[11]!)!.resolve();
+    held.gates.get(alertIds[10]!)!.resolve();
+
+    const result: AcknowledgeDeclaredAlertsResult = await pending;
+
+    expect(held.maxInFlight()).toBe(BATCH_SIZE);
+    expect(held.inFlight()).toBe(0);
+    expect(changeAlertState).toHaveBeenCalledTimes(12);
+    expect(readBack).toHaveBeenCalledTimes(12);
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      acknowledged: [...alertIds.slice(0, 7), ...alertIds.slice(8)],
+      alreadyAcknowledged: [ACKNOWLEDGED_ALERT],
+      failed: [[alertIds[7]!, "deadlock detected"]],
+    });
+    expect(perAlertErrorLogs()).toHaveLength(1);
+
+    // Every alert is written once, as the declaring user, with the same why.
+    for (const change of changes) {
+      expect(change.alertStateId.toString()).toBe(ALERT_ACKNOWLEDGED.id);
+      expect(change.createdByUserId).toBe(USER_ID);
+      expect(change.rootCause).toBe(
+        "Acknowledged because Incident INC-42 was declared from this alert.",
+      );
+      expect(change.props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("exactly five alerts are one batch; a sixth waits for it", async () => {
+    const alertIds: Array<string> = addCreatedAlerts(BATCH_SIZE + 1);
+    const held: HeldWrites = holdWrites(alertIds);
+
+    const pending: Promise<AcknowledgeDeclaredAlertsResult> =
+      acknowledge(alertIds);
+
+    await flush();
+
+    expect(written()).toEqual(alertIds.slice(0, BATCH_SIZE));
+
+    for (const alertId of alertIds.slice(0, BATCH_SIZE)) {
+      held.gates.get(alertId)!.resolve();
+    }
+
+    await flush();
+
+    expect(written()).toEqual(alertIds);
+    expect(held.inFlight()).toBe(1);
+
+    held.gates.get(alertIds[BATCH_SIZE]!)!.resolve();
+
+    const result: AcknowledgeDeclaredAlertsResult = await pending;
+
+    expect(held.maxInFlight()).toBe(BATCH_SIZE);
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      acknowledged: alertIds,
+    });
+  });
+
+  test("results keep the order given within each category, however the batch finishes", async () => {
+    const alertIds: Array<string> = addCreatedAlerts(4);
+    const held: HeldWrites = holdWrites(alertIds);
+
+    // alertIds[1] and alertIds[3] are refused and stay Created.
+    const pending: Promise<AcknowledgeDeclaredAlertsResult> = acknowledge([
+      FOREIGN_ALERT,
+      alertIds[0]!,
+      RESOLVED_ALERT,
+      alertIds[1]!,
+      alertIds[2]!,
+      ACKNOWLEDGED_ALERT,
+      alertIds[3]!,
     ]);
 
-    expect(maxInFlight).toBe(1);
-    expect(outcome(result).acknowledged).toEqual([
-      CREATED_ALERT,
-      SECOND_CREATED_ALERT,
-      THIRD_CREATED_ALERT,
-    ]);
+    await flush();
+
+    // One batch of four; the others are never written.
+    expect(written()).toEqual(alertIds);
+
+    held.gates.get(alertIds[3]!)!.reject(new Error("fourth refused"));
+    held.gates.get(alertIds[2]!)!.resolve();
+    held.gates.get(alertIds[1]!)!.reject(new Error("second refused"));
+    held.gates.get(alertIds[0]!)!.resolve();
+
+    const result: AcknowledgeDeclaredAlertsResult = await pending;
+
+    expect(outcome(result)).toEqual({
+      ...emptyOutcome(),
+      acknowledged: [alertIds[0]!, alertIds[2]!],
+      alreadyAcknowledged: [RESOLVED_ALERT, ACKNOWLEDGED_ALERT],
+      failed: [
+        [FOREIGN_ALERT, NOT_FOUND_MESSAGE],
+        [alertIds[1]!, "second refused"],
+        [alertIds[3]!, "fourth refused"],
+      ],
+    });
   });
 });
 
@@ -1436,9 +2118,10 @@ describe("acknowledgeAlertsDeclaredWithIncident: never throws", () => {
 
   test("a failure part-way keeps what was settled and fails only the rest, each alert once", async () => {
     /*
-     * Nothing inside the loop throws on its own (each write and each read
+     * Nothing in the batches throws on its own (each write and each read
      * back is caught), so a logger that throws stands in for "anything else
-     * going wrong" part-way through.
+     * going wrong" part-way through: here, while the last alert of the first
+     * batch is being reported, before the second batch is written.
      */
     let thrown: boolean = false;
     errorLog.mockImplementation(((message: string): void => {
@@ -1451,31 +2134,39 @@ describe("acknowledgeAlertsDeclaredWithIncident: never throws", () => {
       }
     }) as never);
 
-    writeBehaviours.set(SECOND_CREATED_ALERT, async (): Promise<void> => {
+    const alertIds: Array<string> = addCreatedAlerts(BATCH_SIZE + 2);
+
+    writeBehaviours.set(alertIds[BATCH_SIZE - 1]!, async (): Promise<void> => {
       throw new Error("deadlock detected");
     });
 
     const result: AcknowledgeDeclaredAlertsResult = await acknowledge([
-      CREATED_ALERT,
+      alertIds[0]!,
       ACKNOWLEDGED_ALERT,
-      SECOND_CREATED_ALERT,
-      THIRD_CREATED_ALERT,
+      ...alertIds.slice(1),
     ]);
 
     expect(outcome(result)).toEqual({
       ...emptyOutcome(),
-      acknowledged: [CREATED_ALERT],
+      acknowledged: alertIds.slice(0, BATCH_SIZE - 1),
       alreadyAcknowledged: [ACKNOWLEDGED_ALERT],
       failed: [
-        [SECOND_CREATED_ALERT, "deadlock detected"],
-        [THIRD_CREATED_ALERT, "log sink down"],
+        [alertIds[BATCH_SIZE - 1]!, "deadlock detected"],
+        [alertIds[BATCH_SIZE]!, "log sink down"],
+        [alertIds[BATCH_SIZE + 1]!, "log sink down"],
       ],
     });
-    // Writes were attempted for the first and second alerts only, never the third.
-    expect(moved()).toEqual([
-      [CREATED_ALERT, "Acknowledged"],
-      [SECOND_CREATED_ALERT, "Acknowledged"],
-    ]);
+    // The first batch was written; the second never was.
+    expect(written()).toEqual(alertIds.slice(0, BATCH_SIZE));
+    expect(tables.alerts.get(alertIds[BATCH_SIZE]!)).toBe(ALERT_CREATED.id);
+    expect(tables.alerts.get(alertIds[BATCH_SIZE + 1]!)).toBe(ALERT_CREATED.id);
+    expect(errorLog).toHaveBeenCalledWith(
+      "IncidentAlertService could not acknowledge the alerts an incident was declared from: Error: log sink down",
+      {
+        projectId: PROJECT_ID.toString(),
+        incidentId: INCIDENT_ID.toString(),
+      },
+    );
   });
 });
 

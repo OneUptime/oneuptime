@@ -187,10 +187,34 @@ describe("AcknowledgeAlertsOnDeclare", () => {
     });
   });
 
-  test("the On-Call note says the alerts stop paging and who still pages", () => {
-    expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).toBe(
-      "The alerts it is declared from are acknowledged too, so they stop paging: only an incident on-call rule, if any, pages anyone about it.",
-    );
+  describe("ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE", () => {
+    test("says the alerts' own escalation stops, and what may still page", () => {
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).toBe(
+        "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.",
+      );
+    });
+
+    /*
+     * Acknowledging an alert stops only that alert's escalation: an alert
+     * episode escalates on its own, so the note must not promise that
+     * nothing pages any more.
+     */
+    test("carries the alert episode caveat", () => {
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).toContain(
+        "An alert episode they belong to keeps escalating until the episode is acknowledged",
+      );
+    });
+
+    test("claims only the alerts' own escalation stops, and that an incident on-call rule may still page", () => {
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).toContain(
+        "so their own escalation stops.",
+      );
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).toContain(
+        "an incident on-call rule, if any, may still page.",
+      );
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).not.toContain("stop paging");
+      expect(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE).not.toContain("only an");
+    });
   });
 
   describe("getAcknowledgeAlertsGate", () => {

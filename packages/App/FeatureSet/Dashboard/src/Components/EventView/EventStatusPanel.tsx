@@ -191,8 +191,13 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * On a phone the buttons grow from their own width (flex-auto), so two
+   * that do not both fit wrap onto rows of their own instead of being cut
+   * to an even share of the row and truncating their labels.
+   */
   const actionBaseClassName: string =
-    "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+    "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
   const primaryActionClassName: string =
     "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
   const neutralActionClassName: string =
@@ -279,7 +284,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip key={action.id} text={translatedTooltip}>
         <span
-          className="inline-flex min-w-[7rem] max-w-full flex-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
+          className="inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
           tabIndex={0}
           data-testid={`${action.id}-disabled-wrapper`}
         >
@@ -411,7 +416,8 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
          * Header layout: eyebrow number + prominent title, pills on the row
          * below. The actions sit beside the title only from xl: next to a
          * side menu, a narrower header squeezed the title down to a few
-         * characters and stacked the actions one per row.
+         * characters and stacked the actions one per row. Beside it, the
+         * actions keep their width and a long title truncates instead.
          */
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -430,7 +436,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 </h2>
               </Tooltip>
             </div>
-            {getActionsCluster("xl:w-auto")}
+            {getActionsCluster("xl:w-auto xl:shrink-0")}
           </div>
           {hasMeta && (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">

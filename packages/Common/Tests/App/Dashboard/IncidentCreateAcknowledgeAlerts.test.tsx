@@ -153,7 +153,8 @@ const POLICY_ID: string = "99999999-9999-4999-8999-000000000001";
 
 const CHECKBOX_TEST_ID: string = "incident-create-acknowledge-alerts-checkbox";
 const CHECKBOX_WRAPPER_TEST_ID: string = "incident-create-acknowledge-alerts";
-const KEEP_ESCALATING_TEST_ID: string = "incident-create-alerts-keep-escalating";
+const KEEP_ESCALATING_TEST_ID: string =
+  "incident-create-alerts-keep-escalating";
 const BANNER_TEST_ID: string = "incident-create-alerts-to-link";
 const ALREADY_LINKED_TEST_ID: string = "incident-create-alert-already-linked";
 const ALREADY_LINKED_NOTE_TEST_ID: string =
@@ -171,6 +172,18 @@ const ALERT_UPDATE_REASON: string =
 
 const NO_POLICIES_TEXT: string =
   "No on-call policies will be executed when this incident is created.";
+
+/*
+ * The note under the alerts when some of them already have an incident.
+ * With every alert linked there is nothing left to link, so it points at
+ * that incident; with only some, the others can still be linked to it.
+ */
+const SINGLE_ALERT_ALREADY_LINKED_NOTE: string =
+  "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one.";
+const EVERY_ALERT_ALREADY_LINKED_NOTE: string =
+  "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.";
+const SOME_ALERTS_ALREADY_LINKED_NOTE: string =
+  "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.";
 
 const SINGLE_ALERT_KEEPS_ESCALATING: string =
   "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.";
@@ -236,23 +249,24 @@ const makeAlertState: MakeAlertStateFunction = (data: {
 type DefaultAlertStatesFunction = () => Array<AlertState>;
 
 // The project defaults: Created, Acknowledged, Resolved.
-const defaultAlertStates: DefaultAlertStatesFunction = (): Array<AlertState> => {
-  return [
-    makeAlertState({ id: CREATED_STATE_ID, name: "Created", order: 1 }),
-    makeAlertState({
-      id: ACKNOWLEDGED_STATE_ID,
-      name: "Acknowledged",
-      order: 2,
-      isAcknowledgedState: true,
-    }),
-    makeAlertState({
-      id: RESOLVED_STATE_ID,
-      name: "Resolved",
-      order: 3,
-      isResolvedState: true,
-    }),
-  ];
-};
+const defaultAlertStates: DefaultAlertStatesFunction =
+  (): Array<AlertState> => {
+    return [
+      makeAlertState({ id: CREATED_STATE_ID, name: "Created", order: 1 }),
+      makeAlertState({
+        id: ACKNOWLEDGED_STATE_ID,
+        name: "Acknowledged",
+        order: 2,
+        isAcknowledgedState: true,
+      }),
+      makeAlertState({
+        id: RESOLVED_STATE_ID,
+        name: "Resolved",
+        order: 3,
+        isResolvedState: true,
+      }),
+    ];
+  };
 
 type MakeLinkFunction = (data: {
   alertId: string;
@@ -516,7 +530,9 @@ const onCallSummary: OnCallSummaryFunction = (
 ): RenderedSummary => {
   const field: CapturedField | undefined = latestForm().fields.find(
     (candidate: CapturedField): boolean => {
-      return Boolean(candidate.field && "onCallDutyPolicies" in candidate.field);
+      return Boolean(
+        candidate.field && "onCallDutyPolicies" in candidate.field,
+      );
     },
   );
 
@@ -1094,14 +1110,13 @@ describe("acknowledging the alerts an incident is declared from", () => {
       expect(anchors[0]!.getAttribute("href")).toBe(
         `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_SEVEN_ID}`,
       );
+      expect(anchors[0]!.getAttribute("target")).toBe("_blank");
       expect(anchors[0]!.textContent).toBe("Incident INC-7");
 
       const note: HTMLElement = screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID);
 
       expect(screen.getByTestId(BANNER_TEST_ID)).toContainElement(note);
-      expect(note.textContent).toBe(
-        "This alert is already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alert to it from the alert's Linked Incidents page instead.",
-      );
+      expect(note.textContent).toBe(SINGLE_ALERT_ALREADY_LINKED_NOTE);
 
       // A hint, never a block: the box is still offered and the key sent.
       expect(acknowledgeCheckbox()).toBeEnabled();
@@ -1111,7 +1126,7 @@ describe("acknowledging the alerts an incident is declared from", () => {
       });
     });
 
-    test("hints only on the alert that is linked, with the plural note", async () => {
+    test("hints only on the alert that is linked, with the note for some alerts linked", async () => {
       fixture.links = [
         makeLink({
           alertId: ALERT_TWO_ID,
@@ -1136,8 +1151,250 @@ describe("acknowledging the alerts an incident is declared from", () => {
           ?.textContent,
       ).toBe("(already linked to Incident INC-7)");
       expect(screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID).textContent).toBe(
-        "Some of these alerts are already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alerts to it from the alerts list instead.",
+        SOME_ALERTS_ALREADY_LINKED_NOTE,
       );
+    });
+
+    test("says every alert is linked when several are, each to its own incident", async () => {
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({
+          alertId: ALERT_TWO_ID,
+          incidentId: INCIDENT_EIGHT_ID,
+          incidentNumberWithPrefix: "INC-8",
+        }),
+      ];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID]);
+
+      await openPage();
+
+      const items: Array<HTMLLIElement> = Array.from(
+        screen.getByTestId(BANNER_TEST_ID).querySelectorAll("li"),
+      );
+
+      expect(
+        items.map((item: HTMLLIElement): string => {
+          return item.textContent || "";
+        }),
+      ).toEqual([
+        "Alert #1:Alert 1 title(already linked to Incident INC-7)",
+        "Alert #2:Alert 2 title(already linked to Incident INC-8)",
+      ]);
+
+      const notes: Array<HTMLElement> = screen.getAllByTestId(
+        ALREADY_LINKED_NOTE_TEST_ID,
+      );
+
+      expect(notes).toHaveLength(1);
+      expect(notes[0]!.textContent).toBe(EVERY_ALERT_ALREADY_LINKED_NOTE);
+
+      // Still a hint, never a block.
+      expect(acknowledgeCheckbox()).toBeEnabled();
+      expect(await miscDataSent()).toEqual({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      });
+    });
+
+    test("says every alert is linked when several are linked to the same incident", async () => {
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({
+          alertId: ALERT_TWO_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({
+          alertId: ALERT_THREE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+      ];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID, ALERT_THREE_ID]);
+
+      await openPage();
+
+      expect(screen.getAllByTestId(ALREADY_LINKED_TEST_ID)).toHaveLength(3);
+      expect(screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID).textContent).toBe(
+        EVERY_ALERT_ALREADY_LINKED_NOTE,
+      );
+    });
+
+    test("says only some are linked when most, but not all, of several alerts are", async () => {
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({
+          alertId: ALERT_THREE_ID,
+          incidentId: INCIDENT_EIGHT_ID,
+          incidentNumberWithPrefix: "INC-8",
+        }),
+      ];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID, ALERT_THREE_ID]);
+
+      await openPage();
+
+      const items: Array<HTMLLIElement> = Array.from(
+        screen.getByTestId(BANNER_TEST_ID).querySelectorAll("li"),
+      );
+
+      expect(
+        items.map((item: HTMLLIElement): string | null => {
+          return (
+            item.querySelector(`[data-testid="${ALREADY_LINKED_TEST_ID}"]`)
+              ?.textContent || null
+          );
+        }),
+      ).toEqual([
+        "(already linked to Incident INC-7)",
+        null,
+        "(already linked to Incident INC-8)",
+      ]);
+      expect(screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID).textContent).toBe(
+        SOME_ALERTS_ALREADY_LINKED_NOTE,
+      );
+    });
+
+    // Such a link shows no hint, so the alert is not counted as linked either.
+    test("does not count an alert whose only link has no readable incident as linked", async () => {
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({ alertId: ALERT_TWO_ID }),
+      ];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID]);
+
+      await openPage();
+
+      expect(screen.getAllByTestId(ALREADY_LINKED_TEST_ID)).toHaveLength(1);
+      expect(screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID).textContent).toBe(
+        SOME_ALERTS_ALREADY_LINKED_NOTE,
+      );
+    });
+
+    // The note is about the alerts the banner lists, not the ids asked for.
+    test("words the note for the alerts listed when a declared alert could not be read", async () => {
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+      ];
+      declareFrom([ALERT_ONE_ID, "22222222-2222-4222-8222-000000000099"]);
+
+      await openPage();
+
+      expect(
+        screen.getByTestId(BANNER_TEST_ID).querySelectorAll("li"),
+      ).toHaveLength(1);
+      expect(screen.getByTestId(ALREADY_LINKED_NOTE_TEST_ID).textContent).toBe(
+        SINGLE_ALERT_ALREADY_LINKED_NOTE,
+      );
+    });
+
+    /*
+     * Leaving the create page would lose the form, so the incidents open in
+     * a new tab: the click is left to the browser (target="_blank"), never
+     * routed in this tab.
+     */
+    test("opens every linked incident in a new tab, at the incident's page, without leaving the form", async () => {
+      const navigateSpy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {});
+
+      fixture.links = [
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_SEVEN_ID,
+          incidentNumberWithPrefix: "INC-7",
+        }),
+        makeLink({
+          alertId: ALERT_ONE_ID,
+          incidentId: INCIDENT_EIGHT_ID,
+          incidentNumber: 8,
+        }),
+        makeLink({
+          alertId: ALERT_TWO_ID,
+          incidentId: INCIDENT_NINE_ID,
+        }),
+      ];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID]);
+
+      await openPage();
+
+      const anchors: Array<HTMLAnchorElement> = screen
+        .getAllByTestId(ALREADY_LINKED_TEST_ID)
+        .flatMap((hint: HTMLElement): Array<HTMLAnchorElement> => {
+          return Array.from(hint.querySelectorAll("a"));
+        });
+
+      expect(
+        anchors.map(
+          (
+            anchor: HTMLAnchorElement,
+          ): { href: string | null; target: string | null; text: string } => {
+            return {
+              href: anchor.getAttribute("href"),
+              target: anchor.getAttribute("target"),
+              text: anchor.textContent || "",
+            };
+          },
+        ),
+      ).toEqual([
+        {
+          href: `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_SEVEN_ID}`,
+          target: "_blank",
+          text: "Incident INC-7",
+        },
+        {
+          href: `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_EIGHT_ID}`,
+          target: "_blank",
+          text: "Incident #8",
+        },
+        {
+          href: `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_NINE_ID}`,
+          target: "_blank",
+          text: "Incident",
+        },
+      ]);
+
+      /*
+       * Record whether the page cancelled the click once React has handled
+       * it, then cancel it so JSDOM does not try to navigate.
+       */
+      const defaultPreventedByPage: Array<boolean> = [];
+      const recordAndCancel: (event: Event) => void = (event: Event): void => {
+        defaultPreventedByPage.push(event.defaultPrevented);
+        event.preventDefault();
+      };
+
+      document.addEventListener("click", recordAndCancel);
+
+      try {
+        fireEvent.click(anchors[0]!);
+      } finally {
+        document.removeEventListener("click", recordAndCancel);
+      }
+
+      expect(defaultPreventedByPage).toEqual([false]);
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(screen.getByTestId("model-form")).toBeInTheDocument();
+      expect(screen.getByTestId(BANNER_TEST_ID)).toBeInTheDocument();
     });
 
     test("lists every incident an alert is linked to, oldest link first, however it is numbered", async () => {
@@ -1244,13 +1501,18 @@ describe("acknowledging the alerts an incident is declared from", () => {
   });
 
   describe("the On-Call step's summary", () => {
-    test("says the alerts stop paging when no policy runs and the box is ticked", async () => {
+    test("says the alerts' own escalation stops, and what may still page, when no policy runs and the box is ticked", async () => {
       declareFrom([ALERT_ONE_ID]);
 
       await openPage();
 
-      expect(onCallSummary({}).text).toBe(
+      const text: string = onCallSummary({}).text;
+
+      expect(text).toBe(
         `${NO_POLICIES_TEXT} ${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}`,
+      );
+      expect(text).toBe(
+        `${NO_POLICIES_TEXT} The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.`,
       );
     });
 
@@ -1259,7 +1521,9 @@ describe("acknowledging the alerts an incident is declared from", () => {
 
       await openPage();
 
-      const summary: RenderedSummary = onCallSummary({ onCallDutyPolicies: [] });
+      const summary: RenderedSummary = onCallSummary({
+        onCallDutyPolicies: [],
+      });
 
       expect(summary.element.type).toBe("p");
       expect(summary.text).toBe(
@@ -1311,7 +1575,9 @@ describe("acknowledging the alerts an incident is declared from", () => {
 
       await openPage();
 
-      const summary: RenderedSummary = onCallSummary({ onCallDutyPolicies: [POLICY_ID] });
+      const summary: RenderedSummary = onCallSummary({
+        onCallDutyPolicies: [POLICY_ID],
+      });
 
       const child: React.ReactElement = (
         summary.element.props as { children: React.ReactElement }

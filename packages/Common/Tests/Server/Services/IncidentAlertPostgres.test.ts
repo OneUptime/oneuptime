@@ -14,6 +14,7 @@ import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemed
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentAlertService, {
   AcknowledgeDeclaredAlertsResult,
+  AlertsToAcknowledgeOnDeclare,
   LinkAlertsToIncidentResult,
 } from "../../../Server/Services/IncidentAlertService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
@@ -28,11 +29,14 @@ import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import AlertStateChangeAuthorization from "../../../Server/Utils/Alert/AlertStateChangeAuthorization";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
@@ -974,6 +978,9 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
     const PRIVATE_INCIDENT_CAUSE: string =
       "Acknowledged because a private incident was declared from this alert.";
 
+    const NOT_VISIBLE_ALERTS_MESSAGE: string =
+      "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
+
     type AcknowledgeArguments = Parameters<
       typeof IncidentAlertService.acknowledgeAlertsDeclaredWithIncident
     >[0];
@@ -1011,6 +1018,12 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       incidentNumber: number | null;
       currentIncidentStateId: string;
       isPrivate: boolean;
+    }
+
+    // What validateAcknowledgeAlertsForNewIncident settled, as strings.
+    interface CheckedAcknowledgement {
+      acknowledgedAlertStateId: string;
+      alertIdsToAcknowledge: Array<string>;
     }
 
     const ownSpies: Array<jest.SpyInstance> = [];
@@ -1526,6 +1539,88 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       };
     }
 
+    /*
+     * A responder who can read every alert (Viewer) and declare incidents
+     * and link alerts to them (IncidentMember), but may change only the
+     * alerts carrying one label (AlertMember scoped to that label).
+     */
+    function labelScopedMemberProps(
+      userId: ObjectID,
+      alertLabelId: ObjectID,
+    ): DatabaseCommonInteractionProps {
+      const props: DatabaseCommonInteractionProps = userProps(userId, [
+        Permission.Viewer,
+        Permission.IncidentMember,
+      ]);
+
+      const tenantPermission: UserTenantAccessPermission =
+        props.userTenantAccessPermission![projectId.toString()]!;
+
+      tenantPermission.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.AlertMember,
+        labelIds: [alertLabelId],
+        isBlockPermission: false,
+        scope: PermissionScope.Labels,
+      });
+
+      return props;
+    }
+
+    async function seedLabel(name: string): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."Label" ("_id", "projectId", "name", "slug", "color", "version")
+         VALUES ($1, $2, $3, $4, '#2563eb', 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          name,
+          `${name.toLowerCase()}-${id.toString()}`,
+        ],
+      );
+      return id;
+    }
+
+    async function labelAlert(
+      alertId: ObjectID,
+      labelId: ObjectID,
+    ): Promise<ObjectID> {
+      await database.query(
+        `INSERT INTO "${schema}"."AlertLabel" ("alertId", "labelId") VALUES ($1, $2)`,
+        [alertId.toString(), labelId.toString()],
+      );
+      return alertId;
+    }
+
+    async function validateAcknowledge(
+      alertIds: Array<ObjectID>,
+      props: DatabaseCommonInteractionProps,
+    ): Promise<CheckedAcknowledgement | null> {
+      const checked: AlertsToAcknowledgeOnDeclare | null =
+        await IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
+          projectId: projectId,
+          acknowledgeAlerts: true,
+          alertIds: alertIds,
+          props: props,
+        });
+
+      if (!checked) {
+        return null;
+      }
+
+      return {
+        acknowledgedAlertStateId: checked.acknowledgedAlertStateId.toString(),
+        alertIdsToAcknowledge: ids(checked.alertIdsToAcknowledge),
+      };
+    }
+
+    function timelineStates(timeline: Array<TimelineRow>): Array<string> {
+      return timeline.map((row: TimelineRow): string => {
+        return row.alertStateId;
+      });
+    }
+
     test("root declares with acknowledgeAlertsToLink: once linked, the alert is acknowledged as the declaring user", async () => {
       const userId: ObjectID = await seedUser();
       const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
@@ -1607,7 +1702,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       ]);
     });
 
-    test("alerts already acknowledged or resolved are left as they are: only the one still open is acknowledged", async () => {
+    test("alerts already acknowledged or resolved are left as they are: only the one still open is handed to the acknowledgement, and acknowledged", async () => {
       await database.query(
         `UPDATE "${schema}"."Project" SET "incidentNumberPrefix" = 'INC-' WHERE "_id" = $1`,
         [projectId.toString()],
@@ -1646,13 +1741,23 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
 
       const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
 
+      /*
+       * The two already past Created were settled when the declaration was
+       * checked: only the open alert is handed on to be written, while all
+       * three are passed as linked (the sync decides on those).
+       */
+      const args: AcknowledgeArguments = acknowledgementArguments();
+      expect(ids(args.alertIds)).toEqual([openAlertId.toString()]);
+      expect(ids(args.linkedAlertIds)).toEqual([
+        acknowledgedAlertId.toString(),
+        openAlertId.toString(),
+        resolvedAlertId.toString(),
+      ]);
+
       expect(ids(result.acknowledgedAlertIds)).toEqual([
         openAlertId.toString(),
       ]);
-      expect(ids(result.alreadyAcknowledgedAlertIds)).toEqual([
-        acknowledgedAlertId.toString(),
-        resolvedAlertId.toString(),
-      ]);
+      expect(result.alreadyAcknowledgedAlertIds).toEqual([]);
       expect(result.leftToLinkedAlertSyncAlertIds).toEqual([]);
       expect(result.failed).toEqual([]);
 
@@ -1882,7 +1987,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       );
     });
 
-    test("the permission check runs on the real tables: a member's update scope leaves out a private alert they do not own, and another project's alert", async () => {
+    test("the permission check runs on the real tables: a member's update scope leaves out a private alert they do not own, and another project's alert is never one to acknowledge", async () => {
       const userId: ObjectID = await seedUser();
       const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
       const privateAlertId: ObjectID = await seedAlertThrough(
@@ -1899,38 +2004,53 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
         Permission.AlertMember,
       ]);
 
-      function validate(
-        alertIds: Array<ObjectID>,
-        props: DatabaseCommonInteractionProps,
-      ): Promise<ObjectID | null> {
-        return IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
-          projectId: projectId,
-          acknowledgeAlerts: true,
-          alertIds: alertIds,
-          props: props,
+      expect(await validateAcknowledge([alertId], member)).toEqual({
+        acknowledgedAlertStateId: alertStates.acknowledged.toString(),
+        alertIdsToAcknowledge: [alertId.toString()],
+      });
+
+      await expect(
+        validateAcknowledge([alertId, privateAlertId], member),
+      ).rejects.toThrow(NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE);
+
+      /*
+       * Read for this project only, another project's alert is not found, so
+       * it is not one of the alerts to acknowledge: it can never be written.
+       */
+      expect(
+        await validateAcknowledge([alertId, foreignAlertId], member),
+      ).toEqual({
+        acknowledgedAlertStateId: alertStates.acknowledged.toString(),
+        alertIdsToAcknowledge: [alertId.toString()],
+      });
+
+      // Declaring from it is refused earlier, while the ids are checked.
+      const refusal: unknown = await failureOf(() => {
+        return IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertId, foreignAlertId], true),
+          props: member,
         });
-      }
+      });
 
-      expect((await validate([alertId], member))?.toString()).toBe(
-        alertStates.acknowledged.toString(),
-      );
-
-      await expect(validate([alertId, privateAlertId], member)).rejects.toThrow(
-        NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
-      );
-      await expect(validate([alertId, foreignAlertId], member)).rejects.toThrow(
-        NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
-      );
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(NOT_VISIBLE_ALERTS_MESSAGE);
+      expect(await incidentRows()).toEqual([]);
+      expect(await incidentCounter()).toBe(0);
+      expect(await linkCount()).toBe(0);
+      expect(acknowledge).not.toHaveBeenCalled();
 
       // Root is not asked: the ids were validated before this, as root.
       expect(
-        (
-          await validate([alertId, privateAlertId], { isRoot: true })
-        )?.toString(),
-      ).toBe(alertStates.acknowledged.toString());
+        await validateAcknowledge([alertId, privateAlertId], { isRoot: true }),
+      ).toEqual({
+        acknowledgedAlertStateId: alertStates.acknowledged.toString(),
+        alertIdsToAcknowledge: [alertId.toString(), privateAlertId.toString()],
+      });
 
       // Checking writes nothing.
       expect(await timelineOf(privateAlertId)).toHaveLength(1);
+      expect(await timelineOf(foreignAlertId)).toHaveLength(1);
       expect(await currentAlertStateOf(alertId)).toBe(
         alertStates.created.toString(),
       );
@@ -2029,6 +2149,378 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       } finally {
         releaseSync();
         sync.mockResolvedValue(undefined);
+      }
+    });
+
+    /*
+     * A responder may change only some alerts: a Viewer who is also an
+     * AlertMember for one label. Only the alerts that will be written are
+     * theirs to be allowed to change - one already resolved is left alone,
+     * whatever its label.
+     */
+    describe("a member who may change only one label's alerts", () => {
+      const DECLARED_CAUSE: string =
+        "Acknowledged because Incident #1 was declared from this alert.";
+
+      let userId: ObjectID;
+      let labelA: ObjectID;
+      let labelB: ObjectID;
+      let member: DatabaseCommonInteractionProps;
+
+      beforeEach(async () => {
+        userId = await seedUser();
+        labelA = await seedLabel("Payments");
+        labelB = await seedLabel("Search");
+        member = labelScopedMemberProps(userId, labelA);
+      });
+
+      async function timelineRowCount(): Promise<number> {
+        const rows: Array<{ count: string }> = await database.query(
+          `SELECT count(*)::text AS "count" FROM "${schema}"."AlertStateTimeline"`,
+        );
+        return Number(rows[0]!.count);
+      }
+
+      // The member's own right to change these alerts' states, on its own.
+      function checkMayChange(alertIds: Array<ObjectID>): Promise<void> {
+        return AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+          projectId: projectId,
+          alertIds: alertIds,
+          props: member,
+        });
+      }
+
+      test("declaring from A1 (label A, Created) and B1 (label B, Resolved) with acknowledgeAlertsToLink goes through, and only A1 is acknowledged", async () => {
+        const alertA1: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created]),
+          labelA,
+        );
+        const alertB1: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created, alertStates.resolved]),
+          labelB,
+        );
+
+        const resolvedTimeline: Array<TimelineRow> = await timelineOf(alertB1);
+
+        // The member may change A1, and not B1.
+        await expect(checkMayChange([alertA1])).resolves.toBeUndefined();
+        await expect(checkMayChange([alertB1])).rejects.toThrow(
+          NotAuthorizedException,
+        );
+
+        // B1 is not one to acknowledge, so it is not checked, nor written.
+        expect(await validateAcknowledge([alertA1, alertB1], member)).toEqual({
+          acknowledgedAlertStateId: alertStates.acknowledged.toString(),
+          alertIdsToAcknowledge: [alertA1.toString()],
+        });
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertA1, alertB1], true),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+
+        await waitForAlertState(alertA1, alertStates.acknowledged);
+
+        const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+        expect(ids(result.acknowledgedAlertIds)).toEqual([alertA1.toString()]);
+        expect(result.alreadyAcknowledgedAlertIds).toEqual([]);
+        expect(result.leftToLinkedAlertSyncAlertIds).toEqual([]);
+        expect(result.failed).toEqual([]);
+
+        const args: AcknowledgeArguments = acknowledgementArguments();
+        expect(ids(args.alertIds)).toEqual([alertA1.toString()]);
+        expect(ids(args.linkedAlertIds)).toEqual([
+          alertA1.toString(),
+          alertB1.toString(),
+        ]);
+        expect(String(args.acknowledgedByUserId)).toBe(userId.toString());
+
+        // Both are linked, by the member.
+        expect(await linkRows()).toEqual([
+          { _id: expect.any(String), createdByUserId: userId.toString() },
+          { _id: expect.any(String), createdByUserId: userId.toString() },
+        ]);
+
+        const timeline: Array<TimelineRow> = await timelineOf(alertA1);
+        expect(timelineStates(timeline)).toEqual([
+          alertStates.created.toString(),
+          alertStates.acknowledged.toString(),
+        ]);
+        expect(timeline[1]).toMatchObject({
+          createdByUserId: userId.toString(),
+          rootCause: DECLARED_CAUSE,
+          endsAt: null,
+        });
+
+        // B1 is untouched.
+        expect(await currentAlertStateOf(alertB1)).toBe(
+          alertStates.resolved.toString(),
+        );
+        expect(await timelineOf(alertB1)).toEqual(resolvedTimeline);
+
+        expect(
+          stateChangeFeedItems().map((item: AlertFeedItem): string => {
+            return item.alertId.toString();
+          }),
+        ).toEqual([alertA1.toString()]);
+      });
+
+      test("declaring from A1 and B2 (label B, Created) with acknowledgeAlertsToLink is refused before the incident, its number or its links exist", async () => {
+        const alertA1: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created]),
+          labelA,
+        );
+        const alertB2: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created]),
+          labelB,
+        );
+
+        const refusal: unknown = await failureOf(() => {
+          return IncidentService.create({
+            data: newIncident(),
+            miscDataProps: declaredFrom([alertA1, alertB2], true),
+            props: member,
+          });
+        });
+
+        expect(refusal).toBeInstanceOf(BadDataException);
+        expect((refusal as Error).message).toBe(
+          NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+        );
+
+        expect(await incidentRows()).toEqual([]);
+        expect(await incidentCounter()).toBe(0);
+        expect(await linkCount()).toBe(0);
+        expect(acknowledge).not.toHaveBeenCalled();
+
+        for (const alertId of [alertA1, alertB2]) {
+          expect(await currentAlertStateOf(alertId)).toBe(
+            alertStates.created.toString(),
+          );
+          expect(await timelineOf(alertId)).toHaveLength(1);
+        }
+
+        expect(stateChangeFeedItems()).toEqual([]);
+
+        /*
+         * Not a refusal to link: declared without asking to acknowledge, the
+         * member may declare from both - and it takes number 1.
+         */
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertA1, alertB2]),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        expect(await linkCount()).toBe(2);
+        expect(acknowledge).not.toHaveBeenCalled();
+        expect(await currentAlertStateOf(alertA1)).toBe(
+          alertStates.created.toString(),
+        );
+        expect(await currentAlertStateOf(alertB2)).toBe(
+          alertStates.created.toString(),
+        );
+      });
+
+      test("every alert already acknowledged or resolved: the declaration goes through with nothing to acknowledge, even outside the member's labels, and writes no timeline row", async () => {
+        const acknowledgedA: ObjectID = await labelAlert(
+          await seedAlertThrough([
+            alertStates.created,
+            alertStates.acknowledged,
+          ]),
+          labelA,
+        );
+        const acknowledgedB: ObjectID = await labelAlert(
+          await seedAlertThrough([
+            alertStates.created,
+            alertStates.acknowledged,
+          ]),
+          labelB,
+        );
+        const resolvedB: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created, alertStates.resolved]),
+          labelB,
+        );
+
+        const declaredAlertIds: Array<ObjectID> = [
+          acknowledgedA,
+          acknowledgedB,
+          resolvedB,
+        ];
+
+        const timelinesBefore: Array<Array<TimelineRow>> = [];
+        for (const alertId of declaredAlertIds) {
+          timelinesBefore.push(await timelineOf(alertId));
+        }
+
+        expect(await timelineRowCount()).toBe(6);
+
+        // The member may not change the label-B alerts.
+        await expect(checkMayChange([acknowledgedA])).resolves.toBeUndefined();
+        await expect(checkMayChange([acknowledgedB])).rejects.toThrow(
+          NotAuthorizedException,
+        );
+        await expect(checkMayChange([resolvedB])).rejects.toThrow(
+          NotAuthorizedException,
+        );
+
+        // Nothing to acknowledge, so nothing the member must be allowed.
+        expect(await validateAcknowledge(declaredAlertIds, member)).toEqual({
+          acknowledgedAlertStateId: alertStates.acknowledged.toString(),
+          alertIdsToAcknowledge: [],
+        });
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom(declaredAlertIds, true),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        expect(await linkCount()).toBe(3);
+
+        /*
+         * The acknowledgement is started before create() returns when there
+         * is anything to acknowledge, so not having started by now is final.
+         */
+        expect(acknowledge).not.toHaveBeenCalled();
+
+        expect(await timelineRowCount()).toBe(6);
+
+        for (let index: number = 0; index < declaredAlertIds.length; index++) {
+          expect(await timelineOf(declaredAlertIds[index]!)).toEqual(
+            timelinesBefore[index],
+          );
+        }
+
+        expect(await currentAlertStateOf(acknowledgedA)).toBe(
+          alertStates.acknowledged.toString(),
+        );
+        expect(await currentAlertStateOf(acknowledgedB)).toBe(
+          alertStates.acknowledged.toString(),
+        );
+        expect(await currentAlertStateOf(resolvedB)).toBe(
+          alertStates.resolved.toString(),
+        );
+        expect(stateChangeFeedItems()).toEqual([]);
+      });
+    });
+
+    test("seven alerts declared at once are all acknowledged, five written at a time, each with one new timeline row", async () => {
+      const userId: ObjectID = await seedUser();
+
+      const alertIds: Array<ObjectID> = [];
+      for (let index: number = 0; index < 7; index++) {
+        alertIds.push(await seedAlertThrough([alertStates.created]));
+      }
+
+      type ChangeAlertStateArguments = Parameters<
+        typeof AlertService.changeAlertState
+      >[0];
+
+      // The real state change, recording when each write starts and ends.
+      const changeAlertStateForReal: (
+        data: ChangeAlertStateArguments,
+      ) => Promise<void> = AlertService.changeAlertState.bind(AlertService);
+
+      const events: Array<string> = [];
+      let inFlight: number = 0;
+      let mostInFlight: number = 0;
+
+      const changeAlertState: jest.SpyInstance = jest
+        .spyOn(AlertService, "changeAlertState")
+        .mockImplementation(
+          async (data: ChangeAlertStateArguments): Promise<void> => {
+            events.push(`start ${data.alertId.toString()}`);
+            inFlight++;
+            mostInFlight = Math.max(mostInFlight, inFlight);
+
+            try {
+              return await changeAlertStateForReal(data);
+            } finally {
+              inFlight--;
+              events.push(`end ${data.alertId.toString()}`);
+            }
+          },
+        );
+
+      try {
+        const incident: Incident = await IncidentService.create({
+          data: newIncident({ createdByUserId: userId }),
+          miscDataProps: declaredFrom(alertIds, true),
+          props: { isRoot: true },
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+
+        const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+        // All seven, in the order they were declared from.
+        expect(ids(result.acknowledgedAlertIds)).toEqual(ids(alertIds));
+        expect(result.alreadyAcknowledgedAlertIds).toEqual([]);
+        expect(result.leftToLinkedAlertSyncAlertIds).toEqual([]);
+        expect(result.failed).toEqual([]);
+        expect(ids(acknowledgementArguments().alertIds)).toEqual(ids(alertIds));
+
+        // Five written together, the last two once those five had finished.
+        const firstBatch: Array<string> = ids(alertIds.slice(0, 5));
+        const secondBatch: Array<string> = ids(alertIds.slice(5));
+
+        function eventsFor(kind: string, batch: Array<string>): Array<string> {
+          return batch.map((alertId: string): string => {
+            return `${kind} ${alertId}`;
+          });
+        }
+
+        expect(changeAlertState).toHaveBeenCalledTimes(7);
+        expect(mostInFlight).toBe(5);
+        expect(events).toHaveLength(14);
+        expect(events.slice(0, 5)).toEqual(eventsFor("start", firstBatch));
+        expect([...events.slice(5, 10)].sort()).toEqual(
+          eventsFor("end", firstBatch).sort(),
+        );
+        expect(events.slice(10, 12)).toEqual(eventsFor("start", secondBatch));
+        expect([...events.slice(12)].sort()).toEqual(
+          eventsFor("end", secondBatch).sort(),
+        );
+
+        for (const alertId of alertIds) {
+          expect(await currentAlertStateOf(alertId)).toBe(
+            alertStates.acknowledged.toString(),
+          );
+
+          const timeline: Array<TimelineRow> = await timelineOf(alertId);
+          expect(timelineStates(timeline)).toEqual([
+            alertStates.created.toString(),
+            alertStates.acknowledged.toString(),
+          ]);
+          expect(timeline[1]).toMatchObject({
+            createdByUserId: userId.toString(),
+            rootCause:
+              "Acknowledged because Incident #1 was declared from this alert.",
+            endsAt: null,
+          });
+          expect(timeline[0]!.endsAt?.getTime()).toBe(
+            timeline[1]!.startsAt.getTime(),
+          );
+        }
+
+        // One feed entry per alert, and every alert linked.
+        expect(
+          stateChangeFeedItems()
+            .map((item: AlertFeedItem): string => {
+              return item.alertId.toString();
+            })
+            .sort(),
+        ).toEqual([...ids(alertIds)].sort());
+        expect(await linkCount()).toBe(7);
+      } finally {
+        changeAlertState.mockRestore();
       }
     });
   });

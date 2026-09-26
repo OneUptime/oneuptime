@@ -543,7 +543,7 @@ describe("EventStatusPanel disabled behavior", () => {
 });
 
 describe("EventStatusPanel action-group layout", () => {
-  test("labels one responsive wrapping group for every action control", () => {
+  test("labels one responsive wrapping group for every action control (compact layout)", () => {
     renderPanel();
 
     const group: HTMLElement = getActionGroup();
@@ -608,9 +608,51 @@ describe("EventStatusPanel header layouts", () => {
 
     expect(identifier).toHaveTextContent("INC-42");
     expect(identifier).toHaveClass("bg-gray-100", "uppercase");
-    expect(headerRow).toHaveClass("md:items-start", "md:justify-between");
+    expect(headerRow).toHaveClass("xl:items-start", "xl:justify-between");
     expect(headerRow).toContainElement(group);
     expect(headerRow).not.toContainElement(screen.getByTestId("pill"));
+  });
+
+  /*
+   * Beside a side menu, a header that went side by side from md squeezed the
+   * title to a few characters and stacked the actions one per row, so the
+   * titled header stacks the actions under the title until xl.
+   */
+  test("stacks the actions under the title until xl, and puts them beside it only from xl", () => {
+    renderPanel({ title: "Database connection failures" });
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      level: 2,
+      name: "Database connection failures",
+    });
+    const headerRow: HTMLElement = (heading.parentElement as HTMLElement)
+      .parentElement as HTMLElement;
+
+    expect(headerRow).toHaveClass(
+      "flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between",
+      { exact: true },
+    );
+    expect(headerRow).not.toHaveClass("md:flex-row");
+    expect(headerRow).not.toHaveClass("md:items-start");
+    expect(headerRow).not.toHaveClass("md:justify-between");
+  });
+
+  test("keeps the titled header's action group full width until xl", () => {
+    renderPanel({ title: "Database connection failures" });
+
+    const group: HTMLElement = getActionGroup();
+
+    expect(group).toHaveClass(
+      "flex w-full flex-wrap items-center justify-end gap-2 xl:w-auto xl:shrink-0",
+      { exact: true },
+    );
+    expect(group).not.toHaveClass("md:w-auto");
+    expect(group).toHaveAttribute("aria-label", "Event actions");
+    expect(within(group).getAllByRole("button")).toEqual([
+      screen.getByRole("button", { name: "Acknowledge" }),
+      screen.getByRole("button", { name: "Resolve" }),
+      screen.getByRole("button", { name: "More actions" }),
+    ]);
   });
 
   test("uses the compact inline metadata layout when no title is supplied", () => {
@@ -627,6 +669,25 @@ describe("EventStatusPanel header layouts", () => {
     expect(compactRow).toHaveClass("md:items-center", "md:justify-between");
     expect(compactRow).toContainElement(identifier);
     expect(compactRow).toContainElement(screen.getByTestId("pill"));
+  });
+
+  // Only the titled header moved to xl; the compact layout is as it was.
+  test("keeps the compact layout side by side from md, with its action group full width until md", () => {
+    renderPanel();
+
+    const group: HTMLElement = getActionGroup();
+    const compactRow: HTMLElement = group.parentElement as HTMLElement;
+
+    expect(compactRow).toHaveClass(
+      "flex flex-col gap-3 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between",
+      { exact: true },
+    );
+    expect(compactRow).not.toHaveClass("xl:flex-row");
+    expect(group).toHaveClass(
+      "flex w-full flex-wrap items-center justify-end gap-2 md:w-auto",
+      { exact: true },
+    );
+    expect(group).not.toHaveClass("xl:w-auto");
   });
 
   test("falls back to black when hydrated current-state color is absent", () => {
@@ -1510,7 +1571,7 @@ describe("EventStatusPanel secondary actions", () => {
       "inline-flex",
       "min-w-[7rem]",
       "max-w-full",
-      "flex-1",
+      "flex-auto",
       "rounded-md",
       "sm:max-w-64",
       "sm:flex-none",

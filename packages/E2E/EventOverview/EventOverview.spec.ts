@@ -3664,41 +3664,217 @@ test.describe("declare an incident from the alert hero", () => {
     ]);
     await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
   });
+});
 
+/*
+ * ---------------------------------------------------------------------------
+ * The hero's title row across widths
+ * ---------------------------------------------------------------------------
+ */
+
+// Tailwind's xl breakpoint: from here the actions sit beside the title.
+const XL: number = 1280;
+// gap-3 between the title and the actions, stacked or side by side.
+const TITLE_ACTIONS_GAP: number = 12;
+
+// The hero's first row: the number and title, then the action group.
+function heroTitleRow(page: Page): Locator {
+  return heroActions(page).locator("xpath=..");
+}
+
+// The number and the title, the first child of the title row.
+function heroTitleBlock(page: Page): Locator {
+  return heroActions(page).locator("xpath=preceding-sibling::div[1]");
+}
+
+function heroTitle(page: Page): Locator {
+  return hero(page).getByRole("heading", { level: 2 });
+}
+
+interface HeroTitleRowBoxes {
+  // The title row spans the header's content box.
+  row: Box;
+  titleBlock: Box;
+  title: Box;
+  actions: Box;
+}
+
+async function heroTitleRowBoxes(page: Page): Promise<HeroTitleRowBoxes> {
+  return {
+    row: await documentBox(heroTitleRow(page)),
+    titleBlock: await documentBox(heroTitleBlock(page)),
+    title: await documentBox(heroTitle(page)),
+    actions: await documentBox(heroActions(page)),
+  };
+}
+
+/*
+ * Below xl: the title has the whole row to itself and the actions take the
+ * full width of their own rows under it.
+ */
+function expectActionsUnderTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.titleBlock.width - boxes.row.width),
+    "the title block spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.title.width - boxes.row.width),
+    "the title spans the header",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(
+      boxes.actions.y -
+        (boxes.titleBlock.y + boxes.titleBlock.height) -
+        TITLE_ACTIONS_GAP,
+    ),
+    "the actions start one gap under the title",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.x - boxes.row.x),
+    "the actions start at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.width - boxes.row.width),
+    "the actions span the header",
+  ).toBeLessThanOrEqual(1);
+}
+
+/*
+ * From xl: the title on the left and the actions on the right of one row,
+ * their tops aligned, with at least a gap between them.
+ */
+function expectActionsBesideTitle(boxes: HeroTitleRowBoxes): void {
+  expect(
+    Math.abs(boxes.titleBlock.x - boxes.row.x),
+    "the title starts at the header's left edge",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.y - boxes.titleBlock.y),
+    "the actions are level with the top of the title block",
+  ).toBeLessThanOrEqual(1);
+  expect(
+    boxes.actions.x - (boxes.titleBlock.x + boxes.titleBlock.width),
+    "the gap between the title and the actions",
+  ).toBeGreaterThanOrEqual(TITLE_ACTIONS_GAP - 1);
+  expect(
+    Math.abs(
+      boxes.actions.x + boxes.actions.width - (boxes.row.x + boxes.row.width),
+    ),
+    "the actions end at the header's right edge",
+  ).toBeLessThanOrEqual(1);
+}
+
+interface HeroLayoutCase {
+  // Test title.
+  title: string;
+  // Screenshot name, before the width.
+  screenshot: string;
+  eventPage: EventPage;
+  query: string;
+  // The hero's buttons, in order.
+  labels: ReadonlyArray<string>;
+  // The rows they wrap onto at each of HERO_WIDTHS, top to bottom.
+  rows: Readonly<Record<number, ReadonlyArray<ReadonlyArray<string>>>>;
+}
+
+const ALL_CREATED_ALERT_ACTIONS: ReadonlyArray<string> = [
+  ...CREATED_ALERT.stateActions,
+  DECLARE_INCIDENT,
+];
+
+// ?title=long: Alert #311 with a title wider than the room beside its actions.
+const ALERT_LONG_TITLE: string =
+  "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
+const LONG_TITLE_ALERT_PAGE: EventPage = {
+  ...ALERT_PAGE,
+  pageTitle: `Alert - ${ALERT_LONG_TITLE}`,
+  title: ALERT_LONG_TITLE,
+};
+
+/*
+ * Measured with the fixture's side menu (224px from 768px, 256px from
+ * 1024px). The header's content is 292px wide at 390px, 374px at 768px,
+ * 578px at 1024px and 834px at 1280px; the buttons need 145px
+ * (Acknowledge), 112px (Resolve) and 164px (Declare Incident) at sm and up.
+ *
+ * - 390px (phone): the buttons grow to fill their rows. Acknowledge and
+ *   Resolve share the first row and Declare Incident takes the whole second.
+ * - 768px: the three need 437px with their gaps, so Declare Incident wraps
+ *   onto a second row, right-aligned.
+ * - 1024px: one row under the title.
+ * - 1280px (xl): one row beside the title, which fits beside them (the
+ *   long-title tests below cover one that does not).
+ */
+const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
+  {
+    title: "created alert",
+    screenshot: "alert-hero-created",
+    eventPage: ALERT_PAGE,
+    query: CREATED_ALERT.query,
+    labels: ALL_CREATED_ALERT_ACTIONS,
+    rows: {
+      390: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      768: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
+      1024: [ALL_CREATED_ALERT_ACTIONS],
+      1280: [ALL_CREATED_ALERT_ACTIONS],
+    },
+  },
+  {
+    title: "resolved alert",
+    screenshot: "alert-hero-resolved",
+    eventPage: ALERT_PAGE,
+    query: RESOLVED_ALERT.query,
+    labels: [DECLARE_INCIDENT],
+    rows: {
+      390: [[DECLARE_INCIDENT]],
+      768: [[DECLARE_INCIDENT]],
+      1024: [[DECLARE_INCIDENT]],
+      1280: [[DECLARE_INCIDENT]],
+    },
+  },
+  {
+    title: "created incident",
+    screenshot: "incident-hero-created",
+    eventPage: INCIDENT_PAGE,
+    query: "state=created",
+    labels: ["Acknowledge", "Resolve"],
+    rows: {
+      390: [["Acknowledge", "Resolve"]],
+      768: [["Acknowledge", "Resolve"]],
+      1024: [["Acknowledge", "Resolve"]],
+      1280: [["Acknowledge", "Resolve"]],
+    },
+  },
+];
+
+test.describe("the hero's title row across widths", () => {
   /*
-   * The header row at each width: the actions stay whole and inside the
-   * card, keep their order when they wrap, and line up on the right.
-   *
-   * - 390px (phone): the actions sit under the title and grow to fill their
-   *   rows. Acknowledge and Resolve share the first row and Declare Incident
-   *   takes the whole second one.
-   * - 768px (tablet, beside the side menu): the title and the actions share
-   *   a row, and the title squeezes the actions column until no two buttons
-   *   fit side by side, so the three actions stack one per row. That layout
-   *   is not pinned; only the limits above are.
-   * - 1024px: at most two rows.
-   * - 1280px: one row.
+   * At each width the actions stay whole and inside the card, keep their
+   * order when they wrap and line up on the right. Below xl the title keeps
+   * the whole row (next to a side menu, sharing it squeezed the title down to
+   * a few characters and stacked the actions one per row); from xl the
+   * actions sit beside it.
    */
-  for (const alertState of [CREATED_ALERT, RESOLVED_ALERT]) {
+  for (const layoutCase of HERO_LAYOUT_CASES) {
     for (const width of HERO_WIDTHS) {
-      test(`${alertState.name} alert hero at ${width}px keeps its actions inside the header`, async ({
-        page,
-      }: {
-        page: Page;
-      }) => {
+      const isBeside: boolean = width >= XL;
+      test(`${layoutCase.title} hero at ${width}px: the actions sit ${
+        isBeside ? "beside" : "under"
+      } the title, inside the header`, async ({ page }: { page: Page }) => {
         await page.setViewportSize({ width, height: 900 });
-        await openReady(page, ALERT_PAGE, alertState.query);
+        await openReady(page, layoutCase.eventPage, layoutCase.query);
 
         const header: Locator = hero(page);
         const actions: Locator = heroActions(page);
-        const labels: Array<string> = [
-          ...alertState.stateActions,
-          DECLARE_INCIDENT,
-        ];
+        const labels: Array<string> = [...layoutCase.labels];
         await expect(actions.getByRole("button")).toHaveText(labels);
+        await expect(heroTitle(page)).toHaveText(layoutCase.eventPage.title);
 
         const headerBox: Box = await documentBox(header);
-        const groupBox: Box = await documentBox(actions);
         for (const label of labels) {
           const button: Locator = heroActionButton(page, label);
           await expect(button).toBeVisible();
@@ -3715,21 +3891,15 @@ test.describe("declare an incident from the alert hero", () => {
             box.y + box.height,
             `${label} ends inside the header`,
           ).toBeLessThanOrEqual(headerBox.y + headerBox.height);
-          /*
-           * On a phone Acknowledge and Resolve split a 292px row, 142px each,
-           * 3px short of what "Acknowledge" needs, so it is truncated there.
-           * That predates Declare Incident, which always gets a row of its
-           * own on a phone and is never cut off.
-           */
-          if (!(width < 640 && label === "Acknowledge")) {
-            expect(
-              await isOverflowing(button.locator("span.truncate")),
-              `${label} is cut off`,
-            ).toBe(false);
-          }
+          await expect(button).toHaveCSS("height", "36px");
+          expect(
+            await isOverflowing(button.locator("span.truncate")),
+            `${label} is cut off`,
+          ).toBe(false);
         }
 
         const rows: Array<Array<string>> = await heroActionRows(page);
+        expect(rows, `rows at ${width}px`).toEqual(layoutCase.rows[width]);
         // Wrapping keeps the reading order: state actions, then Declare Incident.
         expect(
           rows.reduce(
@@ -3739,56 +3909,161 @@ test.describe("declare an incident from the alert hero", () => {
             [],
           ),
         ).toEqual(labels);
+
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
         // Every row ends at the right edge of the action group.
         for (const row of rows) {
           const last: Box = await documentBox(
             heroActionButton(page, row[row.length - 1]!),
           );
           expect(
-            Math.abs(last.x + last.width - (groupBox.x + groupBox.width)),
+            Math.abs(
+              last.x + last.width - (boxes.actions.x + boxes.actions.width),
+            ),
             `row "${row.join(", ")}" is right-aligned`,
           ).toBeLessThanOrEqual(1);
         }
 
-        if (labels.length === 1) {
-          expect(rows).toEqual([[DECLARE_INCIDENT]]);
-        } else if (width === 390) {
-          expect(rows).toEqual([
-            ["Acknowledge", "Resolve"],
-            [DECLARE_INCIDENT],
-          ]);
-        } else if (width === 1280) {
-          expect(rows).toEqual([labels]);
-        } else if (width === 1024) {
-          expect(rows.length, "rows at 1024px").toBeLessThanOrEqual(2);
+        if (isBeside) {
+          expectActionsBesideTitle(boxes);
+        } else {
+          expectActionsUnderTitle(boxes);
+        }
+        /*
+         * The title is never squeezed by the actions. Only a phone is too
+         * narrow for these titles (292px of the 297px and 315px they need),
+         * and there the title still has the whole row.
+         */
+        if (width >= 768) {
+          expect(
+            await isOverflowing(heroTitle(page)),
+            "the title is truncated",
+          ).toBe(false);
         }
 
-        if (width === 390) {
-          // On a phone Declare Incident fills its row.
-          const declareBox: Box = await documentBox(
-            declareIncidentButton(page),
+        if (width === 390 && rows[rows.length - 1]!.length === 1) {
+          // On a phone a button alone on its row fills it.
+          const lastBox: Box = await documentBox(
+            heroActionButton(page, rows[rows.length - 1]![0]!),
           );
-          expect(Math.abs(declareBox.x - groupBox.x)).toBeLessThanOrEqual(1);
+          expect(Math.abs(lastBox.x - boxes.actions.x)).toBeLessThanOrEqual(1);
           expect(
-            Math.abs(declareBox.width - groupBox.width),
+            Math.abs(lastBox.width - boxes.actions.width),
           ).toBeLessThanOrEqual(1);
         }
 
-        // The title keeps room beside (or above) the actions.
-        const title: Box = await documentBox(
-          header.getByRole("heading", { level: 2 }),
-        );
-        expect(title.width, "title width").toBeGreaterThan(120);
         await expectNoHorizontalOverflow(page);
 
         await page.mouse.move(0, 0);
-        await screenshotElement(
-          header,
-          `alert-hero-${alertState.name}-${width}`,
-        );
+        await screenshotElement(header, `${layoutCase.screenshot}-${width}`);
       });
     }
   }
+
+  test("the actions move beside the title at xl (1280px), not a pixel earlier", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: XL - 1, height: 900 });
+    await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+
+    // 1279px: the widest header that still stacks.
+    expectActionsUnderTitle(await heroTitleRowBoxes(page));
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(false);
+    const stackedHeight: number = (await documentBox(hero(page))).height;
+
+    // One more pixel and the same page lays the row out side by side.
+    await page.setViewportSize({ width: XL, height: 900 });
+    await expect
+      .poll(async (): Promise<number> => {
+        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
+        return Math.round(boxes.actions.y - boxes.titleBlock.y);
+      })
+      .toBe(0);
+    expectActionsBesideTitle(await heroTitleRowBoxes(page));
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(false);
+    // The actions' own row is gone: the header is 48px shorter.
+    expect(
+      stackedHeight - (await documentBox(hero(page))).height,
+      "height saved beside the title",
+    ).toBeCloseTo(36 + TITLE_ACTIONS_GAP, 0);
+  });
+
+  test("a long alert title below xl keeps its own row, truncated there, and the actions keep theirs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+
+    expectActionsUnderTitle(await heroTitleRowBoxes(page));
+    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    // Wider than the header: cut at its full width, whole in its tooltip.
+    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
+    await heroTitle(page).hover();
+    await expect(page.getByRole("tooltip")).toHaveText(ALERT_LONG_TITLE);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a long alert title at xl is truncated rather than pushing an action onto a second row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Beside the title (xl and up) the action group keeps its width
+     * (xl:shrink-0): a title wider than the room left beside the actions
+     * truncates instead of squeezing the group until an action wraps.
+     */
+    await page.setViewportSize({ width: XL, height: 900 });
+    await openReady(
+      page,
+      LONG_TITLE_ALERT_PAGE,
+      `${CREATED_ALERT.query}&title=long`,
+    );
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ALL_CREATED_ALERT_ACTIONS,
+    ]);
+    expect(
+      await heroActionRows(page),
+      "the actions' rows beside a long title",
+    ).toEqual([ALL_CREATED_ALERT_ACTIONS]);
+    expectActionsBesideTitle(await heroTitleRowBoxes(page));
+  });
+
+  test("on a phone an acknowledged alert keeps Declare Incident's whole label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Phone buttons grow from their own width (flex-auto) rather than
+     * splitting the 292px row evenly, which cut "Declare Incident" to 142px
+     * of the 164px it needs.
+     */
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openReady(page, ALERT_PAGE, ACKNOWLEDGED_ALERT.query);
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      ...ACKNOWLEDGED_ALERT.stateActions,
+      DECLARE_INCIDENT,
+    ]);
+    expect(
+      await isOverflowing(declareIncidentButton(page).locator("span.truncate")),
+      "Declare Incident is cut off",
+    ).toBe(false);
+  });
 });
 
 /*

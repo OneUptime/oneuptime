@@ -28,7 +28,9 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import Label from "../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -39,6 +41,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
+  UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -54,12 +57,17 @@ import { FindOperator } from "typeorm";
  *   acknowledge them (with the validated ids), both BEFORE the incident
  *   number is taken, so an impossible request neither burns a number nor
  *   leaves an incident behind whose alerts keep paging. The project's
- *   Acknowledged alert state is carried forward;
- * - onCreateSuccess acknowledges the alerts once the links have been written,
- *   credited to the declaring user, without waiting for it and without ever
- *   failing the incident because of it.
+ *   Acknowledged alert state is carried forward together with the alerts
+ *   that are not acknowledged yet - the only ones the caller is checked
+ *   for, so an alert that is already acknowledged or resolved never refuses
+ *   the declaration;
+ * - onCreateSuccess acknowledges exactly those alerts once the links have
+ *   been written, credited to the declaring user, without waiting for it and
+ *   without ever failing the incident because of it.
  *
- * Everything around those hooks is stubbed; the acknowledgement itself
+ * Everything around those hooks is stubbed except the two validators (and,
+ * where a test says so, the real AlertStateChangeAuthorization); the
+ * acknowledgement itself
  * (IncidentAlertService.acknowledgeAlertsDeclaredWithIncident) has its own
  * tests.
  */
@@ -73,6 +81,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const ALERT_ID: string = "0194c3a9-0000-4000-8000-0000000000b1";
 const ALERT_ID_2: string = "0194c3a9-0000-4000-8000-0000000000b2";
 const ALERT_ID_3: string = "0194c3a9-0000-4000-8000-0000000000b3";
+const ALERT_ID_4: string = "0194c3a9-0000-4000-8000-0000000000b4";
 const USER_ID: ObjectID = new ObjectID("0194c3a9-0000-4000-8000-0000000000c1");
 const OTHER_USER_ID: ObjectID = new ObjectID(
   "0194c3a9-0000-4000-8000-0000000000c2",
@@ -80,6 +89,12 @@ const OTHER_USER_ID: ObjectID = new ObjectID(
 const CREATED_STATE_ID: string = "0194c3a9-0000-4000-8000-0000000000d1";
 const ACKNOWLEDGED_ALERT_STATE_ID: string =
   "0194c3a9-0000-4000-8000-0000000000f2";
+
+// The project's alert states, by order: what "not acknowledged yet" means.
+const CREATED_ALERT_STATE_ORDER: number = 1;
+const ACKNOWLEDGED_ALERT_STATE_ORDER: number = 2;
+const RESOLVED_ALERT_STATE_ORDER: number = 3;
+
 const SEVERITY_ID: ObjectID = new ObjectID(
   "0194c3a9-0000-4000-8000-0000000000e1",
 );
@@ -94,11 +109,28 @@ const MAY_NOT_ACKNOWLEDGE_MESSAGE: string =
   "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
 const ACKNOWLEDGE_FAILED_LOG_PREFIX: string =
   "Acknowledging the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ";
+const MAY_NOT_CHANGE_STATE_MESSAGE: string =
+  "You do not have permission to change the state of one or more of these alerts.";
 
 // What onBeforeCreate hands to onCreateSuccess when declaring from alerts.
 type CarriedForward = {
   alertIdsToLink: Array<ObjectID>;
   acknowledgedAlertStateId: ObjectID | null;
+  alertIdsToAcknowledge: Array<ObjectID>;
+};
+
+type AuthorizeArgs = {
+  projectId: ObjectID;
+  alertIds: Array<ObjectID>;
+  props: DatabaseCommonInteractionProps;
+};
+
+type FindAlertsArgs = {
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+  limit: number;
+  skip: number;
+  props: DatabaseCommonInteractionProps;
 };
 
 type ValidateAcknowledgeArgs = {
@@ -169,6 +201,59 @@ function apiKeyProps(): DatabaseCommonInteractionProps {
   return props;
 }
 
+/*
+ * A responder who can read every alert (Viewer) but may only change the
+ * alerts that carry one label (AlertMember for that label) - they may link
+ * any alert to an incident, and change the state of only some.
+ */
+function labelScopedProps(label: Label): DatabaseCommonInteractionProps {
+  const tenantPermission: UserTenantAccessPermission = {
+    projectId: PROJECT_ID,
+    _type: "UserTenantAccessPermission",
+    permissions: [
+      {
+        _type: "UserPermission",
+        permission: Permission.Viewer,
+        labelIds: [],
+        isBlockPermission: false,
+      },
+      {
+        _type: "UserPermission",
+        permission: Permission.AlertMember,
+        labelIds: [label.id!],
+        isBlockPermission: false,
+      },
+    ],
+  };
+
+  const globalPermission: UserGlobalAccessPermission = {
+    _type: "UserGlobalAccessPermission",
+    globalPermissions: [
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+    ],
+    projectIds: [PROJECT_ID],
+  };
+
+  return {
+    tenantId: PROJECT_ID,
+    userId: USER_ID,
+    userType: UserType.User,
+    userTeamIds: [],
+    userGlobalAccessPermission: globalPermission,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: tenantPermission,
+    },
+  };
+}
+
+function createLabel(name: string): Label {
+  const label: Label = new Label(ObjectID.generate());
+  label.name = name;
+  return label;
+}
+
 async function settle(): Promise<void> {
   // Let fire-and-forget chains run to completion while the stubs are live.
   for (let i: number = 0; i < 5; i++) {
@@ -218,6 +303,7 @@ function emptyAcknowledgeResult(): AcknowledgeDeclaredAlertsResult {
 function acknowledgedAlertState(): AlertState {
   const state: AlertState = new AlertState();
   state._id = ACKNOWLEDGED_ALERT_STATE_ID;
+  state.order = ACKNOWLEDGED_ALERT_STATE_ORDER;
   return state;
 }
 
@@ -240,6 +326,105 @@ afterEach(async () => {
   await settle();
   jest.restoreAllMocks();
 });
+
+/*
+ * The project's alerts, as the stubbed AlertService.findBy returns them.
+ * Every id asked for exists, in a Created state and without labels, unless a
+ * test stores it otherwise (a null state order: an alert without a current
+ * state). A label filter - a caller's label scope, as the real
+ * AlertStateChangeAuthorization adds it - is applied, so that check can run
+ * against these rows.
+ */
+type StoredAlert = {
+  stateOrder: number | null;
+  labels: Array<Label>;
+};
+
+let storedAlerts: Map<string, StoredAlert> = new Map();
+let findAlerts: jest.SpyInstance;
+
+function storeAlert(
+  alertId: string,
+  alert: { stateOrder?: number | null; labels?: Array<Label> },
+): void {
+  storedAlerts.set(alertId.toLowerCase(), {
+    stateOrder:
+      alert.stateOrder === undefined
+        ? CREATED_ALERT_STATE_ORDER
+        : alert.stateOrder,
+    labels: alert.labels || [],
+  });
+}
+
+// The values bound into a Raw FindOperator such as QueryHelper.any.
+function rawValues(operator: unknown): Array<string> {
+  expect(operator).toBeInstanceOf(FindOperator);
+
+  const values: Array<unknown> = Object.values(
+    (operator as FindOperator<unknown>).objectLiteralParameters || {},
+  )[0] as Array<unknown>;
+
+  return values.map((value: unknown): string => {
+    return String(value);
+  });
+}
+
+function findStoredAlerts(args: FindAlertsArgs): Array<Alert> {
+  const labelScope: { _id?: unknown } | undefined = args.query["labels"] as
+    | { _id?: unknown }
+    | undefined;
+
+  const allowedLabelIds: Set<string> | null = labelScope
+    ? new Set(
+        rawValues(labelScope._id).map((id: string): string => {
+          return id.toLowerCase();
+        }),
+      )
+    : null;
+
+  const alerts: Array<Alert> = [];
+
+  for (const id of rawValues(args.query["_id"])) {
+    const stored: StoredAlert = storedAlerts.get(id.toLowerCase()) || {
+      stateOrder: CREATED_ALERT_STATE_ORDER,
+      labels: [],
+    };
+
+    if (
+      allowedLabelIds &&
+      !stored.labels.some((label: Label): boolean => {
+        return allowedLabelIds.has(label.id!.toString().toLowerCase());
+      })
+    ) {
+      continue;
+    }
+
+    const alert: Alert = new Alert();
+    alert._id = id;
+    alert.labels = stored.labels;
+
+    if (stored.stateOrder !== null) {
+      const state: AlertState = new AlertState();
+      state.order = stored.stateOrder;
+      alert.currentAlertState = state;
+    }
+
+    alerts.push(alert);
+  }
+
+  return alerts;
+}
+
+// The acknowledgement validator's root read of the alerts' current states.
+function alertStateReads(): Array<FindAlertsArgs> {
+  return findAlerts.mock.calls
+    .map((call: Array<unknown>): FindAlertsArgs => {
+      return call[0] as FindAlertsArgs;
+    })
+    .filter((args: FindAlertsArgs): boolean => {
+      return Boolean(args.select["currentAlertState"]);
+    });
+}
 
 // What onBeforeCreate reads besides the alerts, up to the incident number.
 function stubBeforeCreate(): jest.SpyInstance {
@@ -265,19 +450,12 @@ function stubBeforeCreate(): jest.SpyInstance {
     .spyOn(UserService, "getUserMarkdownString")
     .mockResolvedValue("**A responder**" as never);
 
-  // The project's alerts: every id asked for exists.
-  jest.spyOn(AlertService, "findBy").mockImplementation((async (args: {
-    query: { _id: unknown };
-  }): Promise<Array<Alert>> => {
-    const alertIds: Array<string> = Object.values(
-      (args.query._id as FindOperator<unknown>).objectLiteralParameters || {},
-    )[0] as Array<string>;
-
-    return alertIds.map((id: string) => {
-      const alert: Alert = new Alert();
-      alert._id = id;
-      return alert;
-    });
+  // The project's alerts: every id asked for exists (see storeAlert).
+  storedAlerts = new Map();
+  findAlerts = jest.spyOn(AlertService, "findBy").mockImplementation((async (
+    args: FindAlertsArgs,
+  ): Promise<Array<Alert>> => {
+    return findStoredAlerts(args);
   }) as never);
 
   return jest
@@ -412,8 +590,13 @@ function onCreateSuccess(
   );
 }
 
+/*
+ * A carry-forward as onBeforeCreate builds it. By default every alert to
+ * link was not acknowledged yet, so every one is to be acknowledged.
+ */
 function carried(
   alertIds: Array<ObjectID>,
+  alertIdsToAcknowledge: Array<ObjectID> = alertIds,
   acknowledgedAlertStateId: ObjectID | null = new ObjectID(
     ACKNOWLEDGED_ALERT_STATE_ID,
   ),
@@ -421,6 +604,7 @@ function carried(
   return {
     alertIdsToLink: alertIds,
     acknowledgedAlertStateId: acknowledgedAlertStateId,
+    alertIdsToAcknowledge: alertIdsToAcknowledge,
   };
 }
 
@@ -473,11 +657,12 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
 
     expect(result.carryForward).toBeNull();
     expect(findAcknowledgedState).not.toHaveBeenCalled();
+    expect(alertStateReads()).toEqual([]);
     expect(authorize).not.toHaveBeenCalled();
     expect(counter).toHaveBeenCalledTimes(1);
   });
 
-  test("alerts without the key are linked but not acknowledged: acknowledgedAlertStateId is null", async () => {
+  test("alerts without the key are linked but not acknowledged: no state and no alerts to acknowledge", async () => {
     const props: DatabaseCommonInteractionProps = userProps(
       Permission.ProjectMember,
     );
@@ -496,11 +681,18 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     const carriedForward: CarriedForward =
       result.carryForward as CarriedForward;
 
+    expect(Object.keys(carriedForward).sort()).toEqual([
+      "acknowledgedAlertStateId",
+      "alertIdsToAcknowledge",
+      "alertIdsToLink",
+    ]);
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(carriedForward.acknowledgedAlertStateId).toBeNull();
+    expect(carriedForward.alertIdsToAcknowledge).toEqual([]);
 
-    // Not asked to acknowledge: no state lookup and no per-alert check.
+    // Not asked to acknowledge: no state lookups and no per-alert check.
     expect(findAcknowledgedState).not.toHaveBeenCalled();
+    expect(alertStateReads()).toEqual([]);
     expect(authorize).not.toHaveBeenCalled();
     expect(counter).toHaveBeenCalledTimes(1);
     expect(result.createBy.data.incidentNumber).toBe(17);
@@ -524,7 +716,9 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
 
       expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID]);
       expect(carriedForward.acknowledgedAlertStateId).toBeNull();
+      expect(carriedForward.alertIdsToAcknowledge).toEqual([]);
       expect(findAcknowledgedState).not.toHaveBeenCalled();
+      expect(alertStateReads()).toEqual([]);
       expect(authorize).not.toHaveBeenCalled();
       expect(counter).toHaveBeenCalledTimes(1);
     },
@@ -540,7 +734,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(counter).toHaveBeenCalledTimes(1);
   });
 
-  test("true with alerts carries the validated alert ids and the project's Acknowledged alert state", async () => {
+  test("true with open alerts carries the validated alert ids, the project's Acknowledged alert state, and every alert to acknowledge", async () => {
     const props: DatabaseCommonInteractionProps = userProps(
       Permission.ProjectMember,
     );
@@ -562,6 +756,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
 
     expect(Object.keys(carriedForward).sort()).toEqual([
       "acknowledgedAlertStateId",
+      "alertIdsToAcknowledge",
       "alertIdsToLink",
     ]);
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
@@ -569,8 +764,13 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
       ACKNOWLEDGED_ALERT_STATE_ID,
     );
+    // Both alerts are in the Created state: both are to be acknowledged.
+    expect(ids(carriedForward.alertIdsToAcknowledge)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+    ]);
 
-    // The project's Acknowledged state, read as root.
+    // The project's Acknowledged state and its order, read as root.
     expect(findAcknowledgedState).toHaveBeenCalledTimes(1);
     expect(findAcknowledgedState).toHaveBeenCalledWith({
       query: {
@@ -579,20 +779,43 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       },
       select: {
         _id: true,
+        order: true,
       },
       props: {
         isRoot: true,
       },
     });
 
-    // The caller may change the state of every one of the validated alerts.
+    // The alerts' current state orders, read as root, for the validated ids.
+    const stateReads: Array<FindAlertsArgs> = alertStateReads();
+
+    expect(stateReads).toHaveLength(1);
+    expect(stateReads[0]).toEqual({
+      query: {
+        _id: expect.any(FindOperator),
+        projectId: PROJECT_ID,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+    expect(rawValues(stateReads[0]!.query["_id"])).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+    ]);
+
+    // The caller may change the state of every alert that will be acknowledged.
     expect(authorize).toHaveBeenCalledTimes(1);
 
-    const authorizeArgs: {
-      projectId: ObjectID;
-      alertIds: Array<ObjectID>;
-      props: DatabaseCommonInteractionProps;
-    } = authorize.mock.calls[0]![0];
+    const authorizeArgs: AuthorizeArgs = authorize.mock.calls[0]![0];
 
     expect(authorizeArgs.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(ids(authorizeArgs.alertIds)).toEqual([ALERT_ID, ALERT_ID_2]);
@@ -601,6 +824,149 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(counter).toHaveBeenCalledTimes(1);
     expect(result.createBy.data.incidentNumber).toBe(17);
     expect(result.createBy.data.incidentNumberWithPrefix).toBe("INC-17");
+  });
+
+  test("only alerts not acknowledged yet are checked and carried to acknowledge; acknowledged, later and resolved ones are only linked", async () => {
+    const props: DatabaseCommonInteractionProps = userProps(
+      Permission.ProjectMember,
+    );
+
+    storeAlert(ALERT_ID, { stateOrder: ACKNOWLEDGED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_2, { stateOrder: CREATED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_3, { stateOrder: RESOLVED_ALERT_STATE_ORDER });
+    // An alert without a current state is not acknowledged either.
+    storeAlert(ALERT_ID_4, { stateOrder: null });
+
+    const result: OnCreate<Incident> = await onBeforeCreate(
+      {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [
+          ALERT_ID,
+          ALERT_ID_2,
+          ALERT_ID_3,
+          ALERT_ID_4,
+        ],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      },
+      props,
+    );
+
+    const carriedForward: CarriedForward =
+      result.carryForward as CarriedForward;
+
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+      ALERT_ID_3,
+      ALERT_ID_4,
+    ]);
+    expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(ids(carriedForward.alertIdsToAcknowledge)).toEqual([
+      ALERT_ID_2,
+      ALERT_ID_4,
+    ]);
+
+    // The permission check is about the alerts that will be written, only.
+    expect(authorize).toHaveBeenCalledTimes(1);
+    expect(
+      ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+    ).toEqual([ALERT_ID_2, ALERT_ID_4]);
+
+    // States first, then the check on what they leave, then the number.
+    expect(findAcknowledgedState.mock.invocationCallOrder[0]!).toBeLessThan(
+      authorize.mock.invocationCallOrder[0]!,
+    );
+    expect(authorize.mock.invocationCallOrder[0]!).toBeLessThan(
+      counter.mock.invocationCallOrder[0]!,
+    );
+    expect(counter).toHaveBeenCalledTimes(1);
+  });
+
+  test("every alert already acknowledged or resolved: the key is accepted, nothing is left to acknowledge, and no permission check runs", async () => {
+    storeAlert(ALERT_ID, { stateOrder: ACKNOWLEDGED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_2, { stateOrder: RESOLVED_ALERT_STATE_ORDER });
+
+    // Would refuse anybody - it must not be asked.
+    authorize.mockRejectedValue(
+      new NotAuthorizedException(MAY_NOT_CHANGE_STATE_MESSAGE) as never,
+    );
+
+    const result: OnCreate<Incident> = await onBeforeCreate({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+      [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+    });
+
+    const carriedForward: CarriedForward =
+      result.carryForward as CarriedForward;
+
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
+    expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(carriedForward.alertIdsToAcknowledge).toEqual([]);
+
+    expect(findAcknowledgedState).toHaveBeenCalledTimes(1);
+    expect(alertStateReads()).toHaveLength(1);
+    expect(authorize).not.toHaveBeenCalled();
+    expect(counter).toHaveBeenCalledTimes(1);
+  });
+
+  test("a caller who may not change an alert that is already resolved still declares with the key: only the open alert is checked and carried", async () => {
+    // A (open) may be changed by the caller; B (resolved) may not.
+    storeAlert(ALERT_ID, { stateOrder: CREATED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_2, { stateOrder: RESOLVED_ALERT_STATE_ORDER });
+
+    authorize.mockImplementation((async (args: AuthorizeArgs) => {
+      if (ids(args.alertIds).includes(ALERT_ID_2)) {
+        throw new NotAuthorizedException(MAY_NOT_CHANGE_STATE_MESSAGE);
+      }
+    }) as never);
+
+    const result: OnCreate<Incident> = await onBeforeCreate({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+      [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+    });
+
+    const carriedForward: CarriedForward =
+      result.carryForward as CarriedForward;
+
+    // Both are linked; only the open one is acknowledged.
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
+    expect(ids(carriedForward.alertIdsToAcknowledge)).toEqual([ALERT_ID]);
+    expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+
+    expect(authorize).toHaveBeenCalledTimes(1);
+    expect(
+      ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+    ).toEqual([ALERT_ID]);
+    expect(counter).toHaveBeenCalledTimes(1);
+  });
+
+  test("the same caller is refused while the alert they may not change is still open", async () => {
+    storeAlert(ALERT_ID, { stateOrder: CREATED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_2, { stateOrder: CREATED_ALERT_STATE_ORDER });
+
+    authorize.mockImplementation((async (args: AuthorizeArgs) => {
+      if (ids(args.alertIds).includes(ALERT_ID_2)) {
+        throw new NotAuthorizedException(MAY_NOT_CHANGE_STATE_MESSAGE);
+      }
+    }) as never);
+
+    const created: Promise<OnCreate<Incident>> = onBeforeCreate({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+      [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+    });
+
+    await expect(created).rejects.toBeInstanceOf(BadDataException);
+    await expect(created).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+
+    expect(
+      ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+    ).toEqual([ALERT_ID, ALERT_ID_2]);
+    expect(counter).not.toHaveBeenCalled();
   });
 
   test("the alert ids are validated first, then the acknowledgement with the validated ids, then the number is taken", async () => {
@@ -646,18 +1012,42 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     );
   });
 
-  test("the acknowledged state the validator returns is what is carried forward", async () => {
+  test("the acknowledged state and the alerts the validator returns are what is carried forward", async () => {
     const stateId: ObjectID = ObjectID.generate();
-    validateAcknowledge.mockResolvedValue(stateId as never);
+    const alertIdsToAcknowledge: Array<ObjectID> = [new ObjectID(ALERT_ID_2)];
+
+    validateAcknowledge.mockResolvedValue({
+      acknowledgedAlertStateId: stateId,
+      alertIdsToAcknowledge: alertIdsToAcknowledge,
+    } as never);
+
+    const result: OnCreate<Incident> = await onBeforeCreate({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+      [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+    });
+
+    const carriedForward: CarriedForward =
+      result.carryForward as CarriedForward;
+
+    expect(carriedForward.acknowledgedAlertStateId).toBe(stateId);
+    // The validator's subset, not every linked alert.
+    expect(carriedForward.alertIdsToAcknowledge).toBe(alertIdsToAcknowledge);
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
+  });
+
+  test("a validator that is not asked (null) carries no state and no alerts to acknowledge", async () => {
+    validateAcknowledge.mockResolvedValue(null as never);
 
     const result: OnCreate<Incident> = await onBeforeCreate({
       [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
       [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
     });
 
-    expect(
-      (result.carryForward as CarriedForward).acknowledgedAlertStateId,
-    ).toBe(stateId);
+    expect(result.carryForward).toEqual({
+      alertIdsToLink: [new ObjectID(ALERT_ID)],
+      acknowledgedAlertStateId: null,
+      alertIdsToAcknowledge: [],
+    });
   });
 
   test.each([
@@ -710,27 +1100,49 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     },
   );
 
-  test("a project without an Acknowledged alert state is a 400, before an incident number is taken", async () => {
-    findAcknowledgedState.mockResolvedValue(null as never);
+  function acknowledgedStateWithoutOrder(order: null | undefined): AlertState {
+    const state: AlertState = acknowledgedAlertState();
+    state.order = order as unknown as number;
+    return state;
+  }
 
-    const created: Promise<OnCreate<Incident>> = onBeforeCreate({
-      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
-      [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
-    });
+  test.each([
+    ["no Acknowledged alert state", (): AlertState | null => null],
+    [
+      "an Acknowledged alert state without an order",
+      (): AlertState | null => {
+        return acknowledgedStateWithoutOrder(undefined);
+      },
+    ],
+    [
+      "an Acknowledged alert state with a null order",
+      (): AlertState | null => {
+        return acknowledgedStateWithoutOrder(null);
+      },
+    ],
+  ])(
+    "a project with %s is a 400, before the alerts are read or a number is taken",
+    async (_label: string, state: () => AlertState | null) => {
+      findAcknowledgedState.mockResolvedValue(state() as never);
 
-    await expect(created).rejects.toBeInstanceOf(BadDataException);
-    await expect(created).rejects.toThrow(NO_ACKNOWLEDGED_STATE_MESSAGE);
+      const created: Promise<OnCreate<Incident>> = onBeforeCreate({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      });
 
-    expect(findAcknowledgedState).toHaveBeenCalledTimes(1);
-    expect(authorize).not.toHaveBeenCalled();
-    expect(counter).not.toHaveBeenCalled();
-  });
+      await expect(created).rejects.toBeInstanceOf(BadDataException);
+      await expect(created).rejects.toThrow(NO_ACKNOWLEDGED_STATE_MESSAGE);
+
+      expect(findAcknowledgedState).toHaveBeenCalledTimes(1);
+      expect(alertStateReads()).toEqual([]);
+      expect(authorize).not.toHaveBeenCalled();
+      expect(counter).not.toHaveBeenCalled();
+    },
+  );
 
   test("a caller who may not change the alerts' states is a 400, before an incident number is taken", async () => {
     authorize.mockRejectedValue(
-      new NotAuthorizedException(
-        "You do not have permission to change the state of one or more of these alerts.",
-      ) as never,
+      new NotAuthorizedException(MAY_NOT_CHANGE_STATE_MESSAGE) as never,
     );
 
     const created: Promise<OnCreate<Incident>> = onBeforeCreate({
@@ -742,6 +1154,9 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     await expect(created).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
 
     expect(authorize).toHaveBeenCalledTimes(1);
+    expect(
+      ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+    ).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(counter).not.toHaveBeenCalled();
   });
 
@@ -807,32 +1222,69 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(counter).not.toHaveBeenCalled();
   });
 
-  test("with the real permission check, an incident member may link alerts but not acknowledge them", async () => {
+  test("with the real permission check, an incident member may link alerts but not acknowledge one that is not acknowledged yet", async () => {
     // IncidentMember may create an IncidentAlert but not an AlertStateTimeline.
     authorize.mockRestore();
+    // The real check, watched.
+    authorize = jest.spyOn(
+      AlertStateChangeAuthorization,
+      "assertCanChangeStateOfAlerts",
+    );
 
-    await expect(
-      onBeforeCreate(
-        {
-          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
-          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
-        },
-        userProps(Permission.IncidentMember),
-      ),
-    ).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+    const created: Promise<OnCreate<Incident>> = onBeforeCreate(
+      {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      },
+      userProps(Permission.IncidentMember),
+    );
 
+    await expect(created).rejects.toBeInstanceOf(BadDataException);
+    await expect(created).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+
+    expect(authorize).toHaveBeenCalledTimes(1);
+    expect(
+      ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+    ).toEqual([ALERT_ID]);
     expect(counter).not.toHaveBeenCalled();
 
     // The same member declaring without acknowledging is let through.
-    const result: OnCreate<Incident> = await onBeforeCreate(
+    const withoutKey: OnCreate<Incident> = await onBeforeCreate(
       { [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID] },
       userProps(Permission.IncidentMember),
     );
 
-    expect(
-      (result.carryForward as CarriedForward).acknowledgedAlertStateId,
-    ).toBeNull();
+    expect(withoutKey.carryForward).toEqual({
+      alertIdsToLink: [new ObjectID(ALERT_ID)],
+      acknowledgedAlertStateId: null,
+      alertIdsToAcknowledge: [],
+    });
     expect(counter).toHaveBeenCalledTimes(1);
+
+    /*
+     * ...and so is the same member WITH the key once the alert is already
+     * acknowledged: nothing would be written, so nothing is checked.
+     */
+    storeAlert(ALERT_ID, { stateOrder: ACKNOWLEDGED_ALERT_STATE_ORDER });
+
+    const alreadyAcknowledged: OnCreate<Incident> = await onBeforeCreate(
+      {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      },
+      userProps(Permission.IncidentMember),
+    );
+
+    const carriedForward: CarriedForward =
+      alreadyAcknowledged.carryForward as CarriedForward;
+
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID]);
+    expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(carriedForward.alertIdsToAcknowledge).toEqual([]);
+    expect(authorize).toHaveBeenCalledTimes(1);
+    expect(counter).toHaveBeenCalledTimes(2);
   });
 
   test("a root caller gets the Acknowledged state without the per-alert permission check", async () => {
@@ -857,6 +1309,27 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
       ACKNOWLEDGED_ALERT_STATE_ID,
     );
+    // The same "not acknowledged yet" rule, just without the check.
+    expect(ids(carriedForward.alertIdsToAcknowledge)).toEqual([ALERT_ID]);
+  });
+
+  test("a root caller's alerts that are already acknowledged are not carried to acknowledge either", async () => {
+    storeAlert(ALERT_ID, { stateOrder: RESOLVED_ALERT_STATE_ORDER });
+
+    const result: OnCreate<Incident> = await onBeforeCreate(
+      {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      },
+      { isRoot: true },
+    );
+
+    const carriedForward: CarriedForward =
+      result.carryForward as CarriedForward;
+
+    expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
+    expect(ids(carriedForward.alertIdsToAcknowledge)).toEqual([ALERT_ID_2]);
+    expect(authorize).not.toHaveBeenCalled();
   });
 
   test("a root caller without an Acknowledged alert state is still refused before the number is taken", async () => {
@@ -898,10 +1371,11 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
     return acknowledge.mock.calls[0]![0] as AcknowledgeArgs;
   }
 
-  test("acknowledges every declared alert once they are linked, credited to the incident's creator for a root caller", async () => {
+  test("acknowledges the alerts carried forward to acknowledge once they are linked, credited to the incident's creator for a root caller", async () => {
     const incident: Incident = createdIncident(USER_ID);
+    const carryForward: CarriedForward = carried(alertIds);
 
-    await expect(onCreateSuccess(carried(alertIds), incident)).resolves.toBe(
+    await expect(onCreateSuccess(carryForward, incident)).resolves.toBe(
       incident,
     );
 
@@ -914,6 +1388,8 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
       linkedAlertIds: alertIds,
       acknowledgedByUserId: USER_ID,
     });
+    // The carried list itself is what is handed over.
+    expect(acknowledgeArgs().alertIds).toBe(carryForward.alertIdsToAcknowledge);
 
     // Acknowledged after linking, never before.
     expect(link.mock.invocationCallOrder[0]!).toBeLessThan(
@@ -921,16 +1397,37 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
     );
   });
 
-  test("the alert ids acknowledged are exactly the validated ids carried forward", async () => {
-    await onCreateSuccess(carried(alertIds), createdIncident(USER_ID));
+  test("the alert ids acknowledged are the ones carried forward to acknowledge, not every linked alert", async () => {
+    const threeAlerts: Array<ObjectID> = [
+      new ObjectID(ALERT_ID),
+      new ObjectID(ALERT_ID_2),
+      new ObjectID(ALERT_ID_3),
+    ];
+
+    // Only ALERT_ID_2 was not acknowledged yet when it was checked.
+    await onCreateSuccess(
+      carried(threeAlerts, [new ObjectID(ALERT_ID_2)]),
+      createdIncident(USER_ID),
+    );
+
+    // Every alert is linked...
+    expect(ids((link.mock.calls[0]![0] as LinkArgs).alertIds)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+      ALERT_ID_3,
+    ]);
 
     const args: AcknowledgeArgs = acknowledgeArgs();
 
-    expect(ids(args.alertIds)).toEqual([ALERT_ID, ALERT_ID_2]);
-    // ...and the same ids that were linked.
-    expect(ids(args.alertIds)).toEqual(
-      ids((link.mock.calls[0]![0] as LinkArgs).alertIds),
-    );
+    // ...only the one checked for is acknowledged...
+    expect(ids(args.alertIds)).toEqual([ALERT_ID_2]);
+    // ...and the linked ones are still handed over, for the sync check.
+    expect(ids(args.linkedAlertIds)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+      ALERT_ID_3,
+    ]);
+    expect(args.acknowledgedByUserId).toBe(USER_ID);
   });
 
   test("acknowledging waits for the links to be written", async () => {
@@ -982,7 +1479,7 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
 
     const args: AcknowledgeArgs = acknowledgeArgs();
 
-    // Every declared alert is still asked about...
+    // Every alert to acknowledge is still asked about, linked or not...
     expect(ids(args.alertIds)).toEqual([ALERT_ID, ALERT_ID_2, ALERT_ID_3]);
     // ...but only those with a link are handed over as linked.
     expect(ids(args.linkedAlertIds)).toEqual([ALERT_ID, ALERT_ID_3]);
@@ -1202,7 +1699,7 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
       expect(acknowledgementErrorLogs()).toHaveLength(1);
     });
 
-    test("every alert failing is counted against every declared alert", async () => {
+    test("every alert failing is counted against every alert to acknowledge", async () => {
       const threeAlerts: Array<ObjectID> = [
         new ObjectID(ALERT_ID),
         new ObjectID(ALERT_ID_2),
@@ -1229,6 +1726,45 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
       );
     });
 
+    test("failures are counted against the alerts to acknowledge, not every linked alert", async () => {
+      const fourAlerts: Array<ObjectID> = [
+        new ObjectID(ALERT_ID),
+        new ObjectID(ALERT_ID_2),
+        new ObjectID(ALERT_ID_3),
+        new ObjectID(ALERT_ID_4),
+      ];
+
+      // Four linked; two were not acknowledged yet, and one of those failed.
+      acknowledge.mockResolvedValue({
+        ...emptyAcknowledgeResult(),
+        acknowledgedAlertIds: [new ObjectID(ALERT_ID_2)],
+        failed: [
+          {
+            alertId: new ObjectID(ALERT_ID_4),
+            message: "The alert's state did not change to Acknowledged.",
+          },
+        ],
+      } as never);
+
+      await onCreateSuccess(
+        carried(fourAlerts, [
+          new ObjectID(ALERT_ID_2),
+          new ObjectID(ALERT_ID_4),
+        ]),
+        createdIncident(USER_ID),
+      );
+      await settle();
+
+      expect(errorLog).toHaveBeenCalledWith(
+        "1 of 2 alerts could not be acknowledged when the incident was declared from them.",
+        {
+          projectId: PROJECT_ID.toString(),
+          incidentId: INCIDENT_ID.toString(),
+        },
+      );
+      expect(acknowledgementErrorLogs()).toHaveLength(1);
+    });
+
     test("alerts left as they were (already acknowledged, or moved by the linked-alert sync) are not failures", async () => {
       acknowledge.mockResolvedValue({
         acknowledgedAlertIds: [],
@@ -1244,40 +1780,72 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
     });
   });
 
-  describe("nothing is acknowledged unless the declaration asked for it", () => {
+  describe("nothing is acknowledged unless the declaration asked for it, and left something to acknowledge", () => {
     test.each([
-      ["a carry-forward from before the switch existed", false],
-      ["a null acknowledged alert state", true],
+      [
+        "a carry-forward from before the switch existed",
+        (): unknown => {
+          return { alertIdsToLink: alertIds };
+        },
+      ],
+      [
+        "a carry-forward with a state but no alerts to acknowledge (from before they were carried)",
+        (): unknown => {
+          return {
+            alertIdsToLink: alertIds,
+            acknowledgedAlertStateId: new ObjectID(ACKNOWLEDGED_ALERT_STATE_ID),
+          };
+        },
+      ],
+      [
+        "a null acknowledged alert state, even with alerts to acknowledge",
+        (): unknown => {
+          return carried(alertIds, alertIds, null);
+        },
+      ],
+      [
+        "an undefined acknowledged alert state, even with alerts to acknowledge",
+        (): unknown => {
+          return {
+            alertIdsToLink: alertIds,
+            acknowledgedAlertStateId: undefined,
+            alertIdsToAcknowledge: alertIds,
+          };
+        },
+      ],
+      [
+        "an acknowledged alert state and every alert already acknowledged (none to acknowledge)",
+        (): unknown => {
+          return carried(alertIds, []);
+        },
+      ],
     ])(
       "%s links the alerts and acknowledges none",
-      async (_label: string, withNullState: boolean) => {
-        const carryForward: unknown = withNullState
-          ? { alertIdsToLink: alertIds, acknowledgedAlertStateId: null }
-          : { alertIdsToLink: alertIds };
+      async (_label: string, carryForward: () => unknown) => {
+        const incident: Incident = createdIncident(USER_ID);
 
-        await onCreateSuccess(carryForward, createdIncident(USER_ID));
+        await expect(onCreateSuccess(carryForward(), incident)).resolves.toBe(
+          incident,
+        );
         await settle();
 
         expect(link).toHaveBeenCalledTimes(1);
+        expect(ids((link.mock.calls[0]![0] as LinkArgs).alertIds)).toEqual([
+          ALERT_ID,
+          ALERT_ID_2,
+        ]);
         expect(acknowledge).not.toHaveBeenCalled();
+        expect(acknowledgementErrorLogs()).toEqual([]);
       },
     );
-
-    test("an undefined acknowledged alert state acknowledges none", async () => {
-      await onCreateSuccess(
-        { alertIdsToLink: alertIds, acknowledgedAlertStateId: undefined },
-        createdIncident(USER_ID),
-      );
-      await settle();
-
-      expect(link).toHaveBeenCalledTimes(1);
-      expect(acknowledge).not.toHaveBeenCalled();
-    });
 
     test("linking that throws without the request acknowledges none", async () => {
       link.mockRejectedValue(new Error("database unavailable") as never);
 
-      await onCreateSuccess(carried(alertIds, null), createdIncident(USER_ID));
+      await onCreateSuccess(
+        carried(alertIds, alertIds, null),
+        createdIncident(USER_ID),
+      );
       await settle();
 
       expect(acknowledge).not.toHaveBeenCalled();
@@ -1291,6 +1859,15 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
         {
           alertIdsToLink: [],
           acknowledgedAlertStateId: new ObjectID(ACKNOWLEDGED_ALERT_STATE_ID),
+          alertIdsToAcknowledge: [],
+        },
+      ],
+      [
+        "no alerts to link, even with alerts to acknowledge",
+        {
+          alertIdsToLink: [],
+          acknowledgedAlertStateId: new ObjectID(ACKNOWLEDGED_ALERT_STATE_ID),
+          alertIdsToAcknowledge: [new ObjectID(ALERT_ID)],
         },
       ],
     ])(
@@ -1312,6 +1889,7 @@ describe("IncidentService.onCreateSuccess acknowledges the alerts it was declare
 
 describe("declaring and acknowledging in one request, from onBeforeCreate to onCreateSuccess", () => {
   let counter: jest.SpyInstance;
+  let authorize: jest.SpyInstance;
   let link: jest.SpyInstance;
   let acknowledge: jest.SpyInstance;
 
@@ -1322,7 +1900,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
     jest
       .spyOn(AlertStateService, "findOneBy")
       .mockResolvedValue(acknowledgedAlertState() as never);
-    jest
+    authorize = jest
       .spyOn(AlertStateChangeAuthorization, "assertCanChangeStateOfAlerts")
       .mockResolvedValue(undefined as never);
 
@@ -1332,10 +1910,24 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       .mockResolvedValue(emptyAcknowledgeResult() as never);
   });
 
+  // The real AlertStateChangeAuthorization, watched.
+  function useRealPermissionCheck(): void {
+    authorize.mockRestore();
+    authorize = jest.spyOn(
+      AlertStateChangeAuthorization,
+      "assertCanChangeStateOfAlerts",
+    );
+  }
+
+  type Declared = {
+    carriedForward: CarriedForward | null;
+    incident: Incident;
+  };
+
   async function declare(
     miscDataProps: JSONObject,
     props: DatabaseCommonInteractionProps,
-  ): Promise<Incident> {
+  ): Promise<Declared> {
     const before: OnCreate<Incident> = await onBeforeCreate(
       miscDataProps,
       props,
@@ -1345,7 +1937,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
     const created: Incident = before.createBy.data;
     created._id = INCIDENT_ID.toString();
 
-    return callHook<Incident>(
+    const incident: Incident = await callHook<Incident>(
       IncidentService,
       "onCreateSuccess",
       {
@@ -1354,6 +1946,11 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       },
       created,
     );
+
+    return {
+      carriedForward: (before.carryForward as CarriedForward) || null,
+      incident: incident,
+    };
   }
 
   test("a user who ticks the box has the validated alerts linked and then acknowledged as them", async () => {
@@ -1412,5 +2009,176 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
 
     expect(ids(args.alertIds)).toEqual([ALERT_ID]);
     expect(args.acknowledgedByUserId).toBeUndefined();
+  });
+
+  describe("with the real permission check, a responder who may change only the alerts of one label", () => {
+    let teamA: Label;
+    let teamB: Label;
+
+    beforeEach(() => {
+      teamA = createLabel("team-a");
+      teamB = createLabel("team-b");
+      useRealPermissionCheck();
+    });
+
+    test("declares from an open team-a alert and a resolved team-b alert: both linked, only the open one checked and acknowledged", async () => {
+      storeAlert(ALERT_ID, {
+        stateOrder: CREATED_ALERT_STATE_ORDER,
+        labels: [teamA],
+      });
+      storeAlert(ALERT_ID_2, {
+        stateOrder: RESOLVED_ALERT_STATE_ORDER,
+        labels: [teamB],
+      });
+
+      const props: DatabaseCommonInteractionProps = labelScopedProps(teamA);
+
+      // The responder really may not change the resolved team-b alert.
+      const both: Promise<void> =
+        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+          projectId: PROJECT_ID,
+          alertIds: [new ObjectID(ALERT_ID), new ObjectID(ALERT_ID_2)],
+          props: props,
+        });
+
+      await expect(both).rejects.toBeInstanceOf(NotAuthorizedException);
+      await expect(both).rejects.toThrow(
+        "You do not have permission to update this Alert. You need to have one of the following labels: team-b.",
+      );
+
+      authorize.mockClear();
+      findAlerts.mockClear();
+
+      const declared: Declared = await declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        props,
+      );
+
+      expect(counter).toHaveBeenCalledTimes(1);
+
+      // Only the alert that will be written was checked, and it passed.
+      expect(authorize).toHaveBeenCalledTimes(1);
+      expect(
+        ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+      ).toEqual([ALERT_ID]);
+      await expect(authorize.mock.results[0]!.value).resolves.toBeUndefined();
+
+      // ...through the responder's team-a scope, for that alert alone.
+      const scopedReads: Array<FindAlertsArgs> = findAlerts.mock.calls
+        .map((call: Array<unknown>): FindAlertsArgs => {
+          return call[0] as FindAlertsArgs;
+        })
+        .filter((args: FindAlertsArgs): boolean => {
+          return args.query["labels"] !== undefined;
+        });
+
+      expect(scopedReads).toHaveLength(1);
+      expect(
+        rawValues((scopedReads[0]!.query["labels"] as { _id: unknown })._id),
+      ).toEqual([teamA.id!.toString()]);
+      expect(rawValues(scopedReads[0]!.query["_id"])).toEqual([ALERT_ID]);
+
+      expect(ids(declared.carriedForward!.alertIdsToLink)).toEqual([
+        ALERT_ID,
+        ALERT_ID_2,
+      ]);
+      expect(ids(declared.carriedForward!.alertIdsToAcknowledge)).toEqual([
+        ALERT_ID,
+      ]);
+
+      // Both linked, as the responder...
+      expect(link).toHaveBeenCalledTimes(1);
+      expect(ids((link.mock.calls[0]![0] as LinkArgs).alertIds)).toEqual([
+        ALERT_ID,
+        ALERT_ID_2,
+      ]);
+
+      // ...and only the open alert acknowledged, as them.
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+
+      const args: AcknowledgeArgs = acknowledge.mock
+        .calls[0]![0] as AcknowledgeArgs;
+
+      expect(ids(args.alertIds)).toEqual([ALERT_ID]);
+      expect(ids(args.linkedAlertIds)).toEqual([ALERT_ID, ALERT_ID_2]);
+      expect(args.acknowledgedByUserId).toBe(USER_ID);
+      expect(link.mock.invocationCallOrder[0]!).toBeLessThan(
+        acknowledge.mock.invocationCallOrder[0]!,
+      );
+    });
+
+    test("is refused while the team-b alert is still open, before the number is taken and before anything is linked", async () => {
+      storeAlert(ALERT_ID, {
+        stateOrder: CREATED_ALERT_STATE_ORDER,
+        labels: [teamA],
+      });
+      storeAlert(ALERT_ID_2, {
+        stateOrder: CREATED_ALERT_STATE_ORDER,
+        labels: [teamB],
+      });
+
+      const declared: Promise<Declared> = declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        labelScopedProps(teamA),
+      );
+
+      await expect(declared).rejects.toBeInstanceOf(BadDataException);
+      await expect(declared).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+
+      expect(authorize).toHaveBeenCalledTimes(1);
+      expect(
+        ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
+      ).toEqual([ALERT_ID, ALERT_ID_2]);
+      expect(counter).not.toHaveBeenCalled();
+      expect(link).not.toHaveBeenCalled();
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+  });
+
+  test("every alert already acknowledged or resolved: the key is accepted, nothing is checked and nothing is acknowledged", async () => {
+    storeAlert(ALERT_ID, { stateOrder: ACKNOWLEDGED_ALERT_STATE_ORDER });
+    storeAlert(ALERT_ID_2, { stateOrder: RESOLVED_ALERT_STATE_ORDER });
+
+    /*
+     * The real check, for a caller it would refuse (an IncidentMember may
+     * link alerts but not change their states): it must not be asked.
+     */
+    useRealPermissionCheck();
+
+    const declared: Declared = await declare(
+      {
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      },
+      userProps(Permission.IncidentMember),
+    );
+    await settle();
+
+    expect(declared.incident._id).toBe(INCIDENT_ID.toString());
+    expect(counter).toHaveBeenCalledTimes(1);
+    expect(authorize).not.toHaveBeenCalled();
+
+    expect(ids(declared.carriedForward!.alertIdsToLink)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+    ]);
+    expect(declared.carriedForward!.acknowledgedAlertStateId!.toString()).toBe(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(declared.carriedForward!.alertIdsToAcknowledge).toEqual([]);
+
+    expect(link).toHaveBeenCalledTimes(1);
+    expect(ids((link.mock.calls[0]![0] as LinkArgs).alertIds)).toEqual([
+      ALERT_ID,
+      ALERT_ID_2,
+    ]);
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(acknowledgementErrorLogs()).toEqual([]);
   });
 });

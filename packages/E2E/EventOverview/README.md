@@ -2,13 +2,13 @@
 
 An offline harness for the real overview pages of the dashboard's events:
 
-| Page | Route (from `RouteMap`) | Production components |
-|---|---|---|
-| Incident | `INCIDENT_VIEW` `/dashboard/:projectId/incidents/:id` | `Pages/Incidents/View/{Layout,Index}` |
-| Alert | `ALERT_VIEW` `/dashboard/:projectId/alerts/:id` | `Pages/Alerts/View/{Layout,Index}` |
+| Page                  | Route (from `RouteMap`)                                                               | Production components                                  |
+| --------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Incident              | `INCIDENT_VIEW` `/dashboard/:projectId/incidents/:id`                                 | `Pages/Incidents/View/{Layout,Index}`                  |
+| Alert                 | `ALERT_VIEW` `/dashboard/:projectId/alerts/:id`                                       | `Pages/Alerts/View/{Layout,Index}`                     |
 | Scheduled maintenance | `SCHEDULED_MAINTENANCE_VIEW` `/dashboard/:projectId/scheduled-maintenance-events/:id` | `Pages/ScheduledMaintenanceEvents/View/{Layout,Index}` |
-| Incident episode | `INCIDENT_EPISODE_VIEW` `/dashboard/:projectId/incidents/episodes/:id` | `Pages/Incidents/EpisodeView/{Layout,Index}` |
-| Alert episode | `ALERT_EPISODE_VIEW` `/dashboard/:projectId/alerts/episodes/:id` | `Pages/Alerts/EpisodeView/{Layout,Index}` |
+| Incident episode      | `INCIDENT_EPISODE_VIEW` `/dashboard/:projectId/incidents/episodes/:id`                | `Pages/Incidents/EpisodeView/{Layout,Index}`           |
+| Alert episode         | `ALERT_EPISODE_VIEW` `/dashboard/:projectId/alerts/episodes/:id`                      | `Pages/Alerts/EpisodeView/{Layout,Index}`              |
 
 `Fixture/server.js` bundles the production layouts (ModelPage, side menu) and pages with
 esbuild, serves them with the same Tailwind build, `tailwind.config` and `Theme.css`
@@ -43,8 +43,10 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
     answers 400.
   - alert: an `AlertList` (C1), charts, tables, a trace, and an `ExceptionList` (C8).
   - pinned (`isPinnedToInvestigationTime`) and current-data citations are both present.
-  `verdict` and `create-fix-task` record and succeed.
-- **Alert #311** "Payment webhook 5xx rate above 5%" with its monitor and alert episode #7.
+    `verdict` and `create-fix-task` record and succeed.
+- **Alert #311** "Payment webhook 5xx rate above 5%" with its monitor and alert episode #7. Its
+  hero offers Declare Incident after the state actions, which opens the create-incident page
+  with `?alertIds=<alert #311>`.
 - **Scheduled maintenance #58** "Primary database failover drill" with two status pages,
   affected monitors and services, reminders and a feed.
 - **Incident episode #12** "Checkout degradation — Sep 14" with four member incidents, a
@@ -54,26 +56,30 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   one is closed and the event moves to the new state, so a background refresh reads the result.
 
 Navigation targets that are not modelled (AI task, monitor, on-call policy, status page,
-user, team, roles and member lists, list pages, side-menu sub-pages) render a small stub page
-with `data-testid="stub-page"` and `data-page="<PageMap key>"`.
+user, team, roles and member lists, list pages, side-menu sub-pages, and Create Incident -
+`INCIDENT_CREATE` `/dashboard/:projectId/incidents/create`, where an alert's Declare Incident
+leads) render a small stub page with `data-testid="stub-page"`, `data-page="<PageMap key>"`
+and the page name as its `<h1>`.
 
 ## Scenarios
 
 Query parameters, parsed once per page load:
 
-| Parameter | Values |
-|---|---|
-| `?state=` | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it) |
-| `?ai=` | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block) |
-| `?tldr=` | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps) |
-| `?verdict=` | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311) |
-| `?sm=` | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end) |
-| `?fail=` | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused) |
-| `?theme=` | `dark` adds `html.dark` |
+| Parameter   | Values                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?state=`   | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it)                                                                                                                                                                                                                                                                              |
+| `?ai=`      | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block)                                                                                                                                                                                     |
+| `?tldr=`    | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps)                                                                                                                                                                                                                                                                                            |
+| `?title=`   | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
+| `?verdict=` | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
+| `?sm=`      | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
+| `?fail=`    | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                                                                                                                                                            |
+| `?theme=`   | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `?role=`    | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (96 tests):
+`EventOverview.spec.ts` (121 tests):
 
 - **AI investigation report**: the summary section (TL;DR + summary) above the report; the
   report's sub-sections in order with the amber root-cause callout; no brand heading, server
@@ -107,6 +113,20 @@ Query parameters, parsed once per page load:
   links), stat bar cells, the AI card leading the left column, the right column's stacked card
   headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through
   the state modal with an in-place refresh that never shows the skeleton, and `?fail=resend`.
+- **Declare an incident from the alert hero**: in every alert state Declare Incident follows the
+  state actions as a neutral outline button (the state action stays the only primary one, no
+  More actions menu, nothing fetched to offer it) and opens the create-incident stub with
+  `?alertIds=<alert>` and no dialog or write on the way; Back returns to the alert; Tab / Enter
+  and Space reach and press it; `?role=alert-member` disables it with the missing permissions
+  in a tooltip the pointer and the keyboard both reach; `?role=loading` hides it; an incident's
+  hero never offers it.
+- **The hero's title row**: for a created and a resolved alert and a created incident at 390,
+  768, 1024 and 1280px, the exact rows the actions wrap onto, every button inside the header,
+  whole and right-aligned, and the title never squeezed: below xl (1280px) the title spans the
+  header and the actions sit one gap under it at full width; from xl they sit beside it,
+  top-aligned and ending at the header's right edge. The switch happens at exactly 1280px, and
+  a long title (`?title=long`) below xl keeps its own row, truncated with its tooltip, while the
+  actions keep theirs.
 - **Scheduled maintenance**: every phase's state, duration prefix, actions, overdue notice and
   Starts / Ends / Duration cells with the timezone note; details, feed and resources; Mark as
   Ongoing refreshing in place; `?fail=resend`.
@@ -114,6 +134,11 @@ Query parameters, parsed once per page load:
   and severity pills, View all), details field order, roles, Resolve / Acknowledge from the hero.
 - **Responsive**: no horizontal scroll at 390px on all five pages (and with evidence rows
   expanded); right-column card titles wider than 120px at 1280px.
+
+Two tests are marked `test.fail` because they pin known layout bugs and pass (as expected
+failures) until the bugs are fixed, when Playwright reports them so the mark can go: on a
+390px phone an acknowledged alert's Declare Incident is cut off beside Resolve, and at xl a long
+alert title squeezes the action group until Declare Incident wraps onto a second row.
 
 `afterEach` fails a test on an uncaught page error or on any request the fixture does not
 model, and a network fence aborts anything that leaves the fixture server.
@@ -138,7 +163,8 @@ Playwright reuses a server already listening on port 4222 outside CI. If one fro
 checkout might be running, stop it first or run with `CI=1`.
 
 Screenshots land in `output/playwright/event-overview-ui/`, named `*-synthetic.png` because
-every record in them is fabricated.
+every record in them is fabricated. The hero title-row tests add
+`{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`.
 
 ## Poke at it by hand
 
