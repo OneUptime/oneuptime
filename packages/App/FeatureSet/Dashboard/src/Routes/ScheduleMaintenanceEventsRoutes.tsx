@@ -24,6 +24,7 @@ import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenance
 import ScheduledMaintenanceEventViewAuditLogs from "../Pages/ScheduledMaintenanceEvents/View/AuditLogs";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionSlack from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
+import ScheduledMaintenanceWorkspaceConnectionDiscord from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionDiscord";
 
 import ScheduledMaintenanceEventsViewSettings from "../Pages/ScheduledMaintenanceEvents/View/Settings";
 
