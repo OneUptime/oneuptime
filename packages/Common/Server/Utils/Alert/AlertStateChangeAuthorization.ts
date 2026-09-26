@@ -41,7 +41,11 @@ export default class AlertStateChangeAuthorization {
     probe.alertId = data.alertIds[0]!;
     probe.alertStateId = ObjectID.generate();
 
-    ModelPermission.checkCreatePermissions(AlertStateTimeline, probe, data.props);
+    ModelPermission.checkCreatePermissions(
+      AlertStateTimeline,
+      probe,
+      data.props,
+    );
 
     const alertQuery: Query<Alert> = {
       _id: QueryHelper.any(data.alertIds),

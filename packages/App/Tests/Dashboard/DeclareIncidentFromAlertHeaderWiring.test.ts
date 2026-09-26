@@ -2,6 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
+// Where a method's `): Promise<...>` return type ends and its body begins.
+const PROMISE_RETURN_TYPE_PATTERN: RegExp = /\):Promise<[^{]*>\{/;
+const SOURCE_FILE_PATTERN: RegExp = /\.tsx?$/;
+const TEST_FILE_PATTERN: RegExp = /\.test\.tsx?$/;
+
 /*
  * Source wiring of "Declare Incident" in an alert's header, and of
  * acknowledging the alerts an incident is declared from. App has no renderer,
@@ -188,7 +193,7 @@ function methodBody(source: string, signature: string): string {
     throw new Error(`Expected to find ${signature}`);
   }
 
-  const match: RegExpExecArray | null = /\):Promise<[^{]*>\{/.exec(
+  const match: RegExpExecArray | null = PROMISE_RETURN_TYPE_PATTERN.exec(
     source.slice(startsAt),
   );
 
@@ -223,8 +228,8 @@ function sourceFilesUnder(directory: string): Array<string> {
     if (entry.isDirectory()) {
       files.push(...sourceFilesUnder(fullPath));
     } else if (
-      /\.tsx?$/.test(entry.name) &&
-      !/\.test\.tsx?$/.test(entry.name)
+      SOURCE_FILE_PATTERN.test(entry.name) &&
+      !TEST_FILE_PATTERN.test(entry.name)
     ) {
       files.push(fullPath);
     }
@@ -549,9 +554,7 @@ describe("EventStatusPanel layouts", () => {
     expect(source).toContain(
       'className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"',
     );
-    expect(source).toContain(
-      '{getActionsCluster("xl:w-auto xl:shrink-0")}',
-    );
+    expect(source).toContain('{getActionsCluster("xl:w-auto xl:shrink-0")}');
     expect(source).toContain(
       "className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}",
     );
@@ -1239,7 +1242,7 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     );
 
     const timelineAt: number = check.indexOf(
-      "ModelPermission.checkCreatePermissions(AlertStateTimeline,probe,data.props);",
+      "ModelPermission.checkCreatePermissions(AlertStateTimeline,probe,data.props,);",
     );
     const perAlertAt: number = check.indexOf(
       "for(constalertofalerts){awaitModelPermission.checkUpdatePermissionByModel({modelType:Alert,",

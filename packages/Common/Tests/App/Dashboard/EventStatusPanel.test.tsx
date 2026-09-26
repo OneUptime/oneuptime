@@ -20,6 +20,9 @@ import { Black, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 
+// React's warning for list items without a (unique) key.
+const KEY_WARNING_PATTERN: RegExp = /unique "key"|same key/;
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -1172,7 +1175,7 @@ describe("EventStatusPanel secondary actions", () => {
 
     const keyWarnings: Array<unknown> = consoleErrorSpy.mock.calls.filter(
       (call: Array<unknown>): boolean => {
-        return /unique "key"|same key/.test(String(call[0]));
+        return KEY_WARNING_PATTERN.test(String(call[0]));
       },
     );
 

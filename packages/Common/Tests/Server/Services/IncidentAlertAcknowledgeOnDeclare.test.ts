@@ -684,22 +684,24 @@ interface HeldWrites {
 
 function holdWrites(alertIds: Array<string>): HeldWrites {
   const gates: Map<string, Deferred> = new Map();
-  let inFlight: number = 0;
-  let maxInFlight: number = 0;
+  const counts: { inFlight: number; maxInFlight: number } = {
+    inFlight: 0,
+    maxInFlight: 0,
+  };
 
   for (const alertId of alertIds) {
     const gate: Deferred = deferred();
     gates.set(alertId, gate);
 
     writeBehaviours.set(alertId, async (change: StateChange): Promise<void> => {
-      inFlight++;
-      maxInFlight = Math.max(maxInFlight, inFlight);
+      counts.inFlight++;
+      counts.maxInFlight = Math.max(counts.maxInFlight, counts.inFlight);
 
       try {
         await gate.promise;
         await writeThrough(change);
       } finally {
-        inFlight--;
+        counts.inFlight--;
       }
     });
   }
@@ -707,10 +709,10 @@ function holdWrites(alertIds: Array<string>): HeldWrites {
   return {
     gates: gates,
     inFlight: (): number => {
-      return inFlight;
+      return counts.inFlight;
     },
     maxInFlight: (): number => {
-      return maxInFlight;
+      return counts.maxInFlight;
     },
   };
 }

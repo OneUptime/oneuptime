@@ -1107,7 +1107,12 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
   }
 
   test.each([
-    ["no Acknowledged alert state", (): AlertState | null => null],
+    [
+      "no Acknowledged alert state",
+      (): AlertState | null => {
+        return null;
+      },
+    ],
     [
       "an Acknowledged alert state without an order",
       (): AlertState | null => {
