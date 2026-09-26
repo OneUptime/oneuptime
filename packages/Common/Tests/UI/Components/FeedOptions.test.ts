@@ -23,6 +23,7 @@ import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertE
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { CephClusterFeedEventType } from "../../../Models/DatabaseModels/CephClusterFeed";
 import { CloudResourceFeedEventType } from "../../../Models/DatabaseModels/CloudResourceFeed";
+import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
 import { DockerHostFeedEventType } from "../../../Models/DatabaseModels/DockerHostFeed";
 import { DockerSwarmClusterFeedEventType } from "../../../Models/DatabaseModels/DockerSwarmClusterFeed";
 import { HostFeedEventType } from "../../../Models/DatabaseModels/HostFeed";
@@ -85,6 +86,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "CloudResourceFeed",
     enumName: "CloudResourceFeedEventType",
     eventTypes: Object.values(CloudResourceFeedEventType),
+  },
+  {
+    name: "DatabaseServerFeed",
+    enumName: "DatabaseServerFeedEventType",
+    eventTypes: Object.values(DatabaseServerFeedEventType),
   },
   {
     name: "DockerHostFeed",

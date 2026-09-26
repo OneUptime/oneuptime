@@ -138,6 +138,18 @@
     .marquee-container { overflow: hidden; min-height: 60px; }
     .logo-item { min-width: 160px; height: 60px; }
     .logo-item img { max-height: 36px; max-width: 140px; }
+    /*
+     * Desktop-only markup is written `max-md:hidden md:flex`, not
+     * `hidden md:flex`: a browser extension or user stylesheet that declares
+     * `.hidden { display: none !important }` (Bootstrap 3, HTML5 Boilerplate)
+     * would otherwise pin it shut at every width. Mirror Tailwind's max-width
+     * hides here so phones still hide that markup before Tailwind loads.
+     */
+    @media not all and (min-width: 1536px) { .max-2xl\:hidden { display: none; } }
+    @media not all and (min-width: 1280px) { .max-xl\:hidden { display: none; } }
+    @media not all and (min-width: 1024px) { .max-lg\:hidden { display: none; } }
+    @media not all and (min-width: 768px) { .max-md\:hidden { display: none; } }
+    @media not all and (min-width: 640px) { .max-sm\:hidden { display: none; } }
 </style>
 
 <!-- Tailwind CSS (render-critical), served from this install rather than cdn.tailwindcss.com -->

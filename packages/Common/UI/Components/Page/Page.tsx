@@ -113,7 +113,7 @@ const Page: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
                 {props.labels && props.labels.length > 0 && (
-                  <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
+                  <div className="max-sm:hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
                       {translateString("Labels") || "Labels"}
                     </span>

@@ -207,7 +207,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import MonitorCreate, {
+  MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH,
+  MONITOR_DESCRIPTION_QUERY_PARAM,
+  getMetricViewMonitorDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import {
+  DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM,
+  getDatabaseMetricMonitorDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseMetricMonitorLink";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -628,5 +636,128 @@ describe("the monitor create page opened from a network device", () => {
 
       expect(capturedForm).toBeNull();
     });
+  });
+});
+
+/*
+ * The other deep link that pre-seeds a Metrics monitor: "Create monitor" on
+ * a chart. The Database metric chart sends `monitorDescription` ("Created
+ * from database <name>."), which the page used to ignore, so every such
+ * monitor read "Created from the Metric Explorer view for …" — a view the
+ * person never opened.
+ */
+describe("the monitor create page opened from a metric chart", () => {
+  const METRIC_QUERIES: string = JSON.stringify([
+    { metricName: "postgresql.backends" },
+  ]);
+
+  function openWithParams(
+    params: Record<string, string>,
+  ): Promise<CapturedFormProps> {
+    jest
+      .spyOn(Navigation, "getQueryStringByName")
+      .mockImplementation((paramName: string): string | null => {
+        return params[paramName] ?? null;
+      });
+    return openForm();
+  }
+
+  beforeEach(() => {
+    capturedForm = null;
+    probeListResult = (): Promise<Array<Record<string, unknown>>> => {
+      return Promise.resolve([BRANCH_PROBE_ROW, GLOBAL_PROBE_ROW]);
+    };
+    monitorStatusRows = [
+      monitorStatus({
+        id: ONLINE_STATUS_ID,
+        isOperationalState: true,
+        isOfflineState: false,
+      }),
+    ];
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    getJestSpyOn(UiAnalytics, "captureRevenueEvent").mockImplementation(
+      (): void => {},
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("a database chart's link names the database in the description", async () => {
+    const form: CapturedFormProps = await openWithParams({
+      metricQueries: METRIC_QUERIES,
+      [DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM]:
+        getDatabaseMetricMonitorDescription("orders-db"),
+    });
+
+    expect(form.initialValues["monitorType"]).toBe(MonitorType.Metrics);
+    expect(form.initialValues["name"]).toBe("postgresql.backends Monitor");
+    expect(form.initialValues["description"]).toBe(
+      "Created from database orders-db.",
+    );
+  });
+
+  test("a link that asks for no description keeps the Metric Explorer wording", async () => {
+    const form: CapturedFormProps = await openWithParams({
+      metricQueries: METRIC_QUERIES,
+    });
+
+    expect(form.initialValues["description"]).toBe(
+      "Created from the Metric Explorer view for postgresql.backends.",
+    );
+  });
+
+  test("a blank description is no description", async () => {
+    const form: CapturedFormProps = await openWithParams({
+      metricQueries: METRIC_QUERIES,
+      [MONITOR_DESCRIPTION_QUERY_PARAM]: "   \n ",
+    });
+
+    expect(form.initialValues["description"]).toBe(
+      "Created from the Metric Explorer view for postgresql.backends.",
+    );
+  });
+
+  test("the database link sends the parameter the page reads", () => {
+    expect(DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM).toBe(
+      MONITOR_DESCRIPTION_QUERY_PARAM,
+    );
+  });
+
+  test("a requested description is trimmed and capped", () => {
+    expect(
+      getMetricViewMonitorDescription({
+        metricDisplayName: "Connections",
+        requestedDescription: "  Created from database orders-db.  ",
+      }),
+    ).toBe("Created from database orders-db.");
+
+    const capped: string = getMetricViewMonitorDescription({
+      metricDisplayName: "Connections",
+      requestedDescription: `  ${"x".repeat(
+        MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH + 100,
+      )}`,
+    });
+    expect(capped).toBe("x".repeat(MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH));
+
+    // Counted in characters: a character at the cap is never cut in half.
+    const emoji: string = getMetricViewMonitorDescription({
+      metricDisplayName: "Connections",
+      requestedDescription: "\u{1F418}".repeat(
+        MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH + 1,
+      ),
+    });
+    expect(emoji).toBe(
+      "\u{1F418}".repeat(MAX_REQUESTED_MONITOR_DESCRIPTION_LENGTH),
+    );
+
+    expect(
+      getMetricViewMonitorDescription({
+        metricDisplayName: "Connections",
+        requestedDescription: null,
+      }),
+    ).toBe("Created from the Metric Explorer view for Connections.");
   });
 });

@@ -2,6 +2,7 @@ import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
 import CephCluster from "./CephCluster";
+import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
 import PodmanHost from "./PodmanHost";
@@ -1197,6 +1198,60 @@ export default class Alert extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DatabaseServer,
+    title: "Databases",
+    description: "List of databases affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return DatabaseServer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertDatabaseServer",
+    inverseJoinColumn: {
+      name: "databaseServerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public databaseServers?: Array<DatabaseServer> = undefined;
 
   @ColumnAccessControl({
     create: [

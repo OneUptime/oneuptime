@@ -686,10 +686,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 클러스터의 연결 상태는 순전히 도착하는 텔레메트리에 의해 결정됩니다 — 데이터가 도착하지 않으면 약 15분 후에 클러스터가 연결 끊김으로 표시됩니다. 따라서 "연결 끊김"과 "메트릭 없음"은 거의 항상 **동일한** 원인을 갖습니다: 에이전트의 텔레메트리가 수락되지 않는 것입니다.
 
-가장 흔한 이유 — 특히 재설치 후 — 는 **잘못되었거나 취소된 수집 키**입니다. OTLP 수집 엔드포인트는 잘못된 토큰에 대해서도 의도적으로 HTTP `200`을 반환하기 때문에(잘못 구성된 컬렉터가 서버에 재시도 폭주를 일으킬 수 없도록) 이를 놓치기 쉽습니다. 그 결과 컬렉터는 성공을 보고하고, 로그에는 오류가 표시되지 않으며, 데이터는 조용히 폐기됩니다.
+가장 흔한 이유 — 특히 재설치 후 — 는 **잘못되었거나 취소된 수집 키**입니다. OneUptime은 이런 키를 거부합니다. OTLP 수집 엔드포인트는 키가 없거나 알 수 없거나 만료된 경우 HTTP `401`을, 비활성화된 키나 브라우저 키에는 `422`를 반환합니다. 두 상태 모두 재시도되지 않으므로 컬렉터는 각 배치를 폐기하고 배치마다 `Exporting failed. Dropping data.` 오류를 한 줄씩 기록합니다. 파드는 Running 및 Ready 상태를 유지하므로 이 줄은 놓치기 쉽습니다.
 
 1. 에이전트 파드가 실행 중인지 확인하세요: `kubectl get pods -n oneuptime-agent`
-2. metrics-collector 로그를 확인하세요: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (여기에 오류가 없다고 해서 데이터가 도착하고 있다는 의미는 **아닙니다** — 위 내용 참조)
+2. metrics-collector 로그를 확인하세요: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (`HTTP Status Code 401` 또는 `422`가 포함된 `Exporting failed` 줄은 키가 거부되었다는 뜻입니다 — 위 내용 참조)
 3. **수집 키를 검증하세요.** OneUptime에 토큰이 수락되는지 직접 문의하세요(`200` = 유효, `401` = 알 수 없음/취소됨):
 
    ```bash
@@ -716,7 +716,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 메트릭이 나타나지 않음
 
-1. 먼저 거부된 수집 키를 배제하세요 — 가장 흔한 원인이며 에이전트 측에서는 보이지 않습니다. 위의 [에이전트가 "Disconnected"로 표시됨](#에이전트가-disconnected로-표시됨)을 참조하세요(또는 진단 스크립트를 실행하세요).
+1. 먼저 거부된 수집 키를 배제하세요 — 가장 흔한 원인이며 에이전트 측에서는 놓치기 쉽습니다. 위의 [에이전트가 "Disconnected"로 표시됨](#에이전트가-disconnected로-표시됨)을 참조하세요(또는 진단 스크립트를 실행하세요).
 2. 클러스터 식별자가 `clusterName`으로 전달한 값과 일치하는지 확인하세요
 3. RBAC 권한을 검증하세요: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel 컬렉터 로그에서 내보내기 오류를 확인하세요

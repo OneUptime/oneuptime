@@ -51,7 +51,9 @@ import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
-import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
+import MonitorMaintenanceSuppression, {
+  MonitorMaintenanceSuppressionResult,
+} from "./MonitorMaintenanceSuppression";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -1032,23 +1034,35 @@ export default class MonitorResourceUtil {
         }
 
         /*
-         * For grouped metric monitors, work out which breaching series
-         * belong to a resource that is currently inside an ongoing
-         * scheduled maintenance window. Those series are suppressed
-         * below so the monitor keeps alerting on the rest. Computed once
-         * and shared by both the incident and alert paths. Cheap on the
-         * common path: no per-series matches, or no ongoing maintenance,
-         * returns an empty set after at most one query.
+         * Scheduled-maintenance suppression, computed once and shared by
+         * both the incident and alert paths:
+         *
+         *   - per series: for grouped monitors, the breaching series whose
+         *     own resource is inside an ongoing maintenance window. Those
+         *     series are suppressed below so the monitor keeps alerting on
+         *     the rest.
+         *   - whole monitor: a monitor whose own configuration names a
+         *     database under maintenance (and nothing outside the window) —
+         *     every recommended database monitor is ungrouped, so it has no
+         *     series for the first half to match. Creation is skipped in the
+         *     loop below.
+         *
+         * Cheap on the common path: a monitor with no per-series matches
+         * that names no database costs nothing, and no ongoing maintenance
+         * costs one query.
          */
-        const suppressedSeriesFingerprints: Set<string> =
-          await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
-            projectId: monitor.projectId!,
+        const maintenanceSuppression: MonitorMaintenanceSuppressionResult =
+          await MonitorMaintenanceSuppression.getMaintenanceSuppression({
+            monitor: monitor,
             matchesPerSeries: isPerSeriesEvaluation
               ? criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
                   return matched.perSeriesMatches;
                 })
               : undefined,
           });
+
+        const suppressedSeriesFingerprints: Set<string> =
+          maintenanceSuppression.suppressedSeriesFingerprints;
 
         /*
          * Alert-dependency suppression: if any parent monitor this monitor
@@ -1119,6 +1133,7 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceMap,
           });
 
         const openAlerts: Array<Alert> =
@@ -1134,6 +1149,7 @@ export default class MonitorResourceUtil {
               ? breachingSeriesFingerprintsByCriteriaId
               : undefined,
             disableSeriesAbsenceResolution,
+            criteriaInstancesById: criteriaInstanceAlertMap,
           });
 
         /*
@@ -1152,6 +1168,26 @@ export default class MonitorResourceUtil {
             criteriaInstanceMap[matched.criteriaId];
 
           if (!criteriaInstance) {
+            continue;
+          }
+
+          /*
+           * The monitor watches a database that is inside an ongoing
+           * scheduled maintenance window: create nothing for this
+           * criteria. The status timeline was updated above and the
+           * resolve pass has already run, so only creation is silenced —
+           * the same contract as per-series and dependency suppression.
+           */
+          if (
+            MonitorMaintenanceSuppression.isMonitorSuppressed(
+              maintenanceSuppression,
+            )
+          ) {
+            MonitorMaintenanceSuppression.recordMonitorSuppressed({
+              evaluationSummary: evaluationSummary,
+              criteriaInstance: criteriaInstance,
+              suppression: maintenanceSuppression,
+            });
             continue;
           }
 

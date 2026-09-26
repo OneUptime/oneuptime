@@ -687,10 +687,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Ett klusters anslutningsstatus drivs uteslutande av telemetri som anländer — om ingen data landar markeras klustret som frånkopplat efter ~15 minuter. Så "disconnected" och "inga mått" har nästan alltid **samma** orsak: agentens telemetri accepteras inte.
 
-Den vanligaste anledningen — särskilt efter en ominstallation — är en **felaktig eller återkallad ingestnyckel**. Detta är lätt att missa eftersom OTLP-ingestslutpunkterna avsiktligt returnerar HTTP `200` även för en felaktig token (så att en felkonfigurerad insamlare inte kan översvämma servern med återförsök). Resultatet: insamlaren rapporterar framgång, dess loggar visar inga fel, och datan kastas tyst.
+Den vanligaste anledningen — särskilt efter en ominstallation — är en **felaktig eller återkallad ingestnyckel**. OneUptime avvisar en sådan nyckel: OTLP-ingestslutpunkterna svarar HTTP `401` för en saknad, okänd eller utgången nyckel och `422` för en inaktiverad nyckel eller en webbläsarnyckel. Ingen av statuskoderna görs om, så insamlaren kastar varje batch och loggar ett `Exporting failed. Dropping data.`-fel per batch. Poddarna förblir Running och Ready, så den raden är lätt att missa.
 
 1. Kontrollera att agentens poddar körs: `kubectl get pods -n oneuptime-agent`
-2. Kontrollera metrics-collector-loggarna: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (inga fel här betyder **inte** att data landar — se ovan)
+2. Kontrollera metrics-collector-loggarna: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (en `Exporting failed`-rad med `HTTP Status Code 401` eller `422` betyder att nyckeln avvisades — se ovan)
 3. **Validera ingestnyckeln.** Fråga OneUptime direkt om din token accepteras (`200` = giltig, `401` = okänd/återkallad):
 
    ```bash
@@ -717,7 +717,7 @@ Den vanligaste anledningen — särskilt efter en ominstallation — är en **fe
 
 ### Inga mått visas
 
-1. Uteslut först en avvisad ingestnyckel — det är den vanligaste orsaken och är osynlig från agentsidan. Se [Agenten visar "Disconnected"](#agenten-visar-disconnected) ovan (eller kör bara diagnostikskriptet).
+1. Uteslut först en avvisad ingestnyckel — det är den vanligaste orsaken och är lätt att missa från agentsidan. Se [Agenten visar "Disconnected"](#agenten-visar-disconnected) ovan (eller kör bara diagnostikskriptet).
 2. Kontrollera att klusteridentifieraren matchar värdet du skickade som `clusterName`
 3. Verifiera RBAC-behörigheterna: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollera OTel-insamlarens loggar för exportfel

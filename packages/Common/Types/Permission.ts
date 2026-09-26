@@ -709,6 +709,12 @@ enum Permission {
   EditVMwareVCenterOwnerRule = "EditVMwareVCenterOwnerRule",
   ReadVMwareVCenterOwnerRule = "ReadVMwareVCenterOwnerRule",
 
+  // Database Owner Rule Permissions
+  CreateDatabaseServerOwnerRule = "CreateDatabaseServerOwnerRule",
+  DeleteDatabaseServerOwnerRule = "DeleteDatabaseServerOwnerRule",
+  EditDatabaseServerOwnerRule = "EditDatabaseServerOwnerRule",
+  ReadDatabaseServerOwnerRule = "ReadDatabaseServerOwnerRule",
+
   // Ceph Cluster Label Rule Permissions
   CreateCephClusterLabelRule = "CreateCephClusterLabelRule",
   DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
@@ -720,6 +726,12 @@ enum Permission {
   DeleteVMwareVCenterLabelRule = "DeleteVMwareVCenterLabelRule",
   EditVMwareVCenterLabelRule = "EditVMwareVCenterLabelRule",
   ReadVMwareVCenterLabelRule = "ReadVMwareVCenterLabelRule",
+
+  // Database Label Rule Permissions
+  CreateDatabaseServerLabelRule = "CreateDatabaseServerLabelRule",
+  DeleteDatabaseServerLabelRule = "DeleteDatabaseServerLabelRule",
+  EditDatabaseServerLabelRule = "EditDatabaseServerLabelRule",
+  ReadDatabaseServerLabelRule = "ReadDatabaseServerLabelRule",
 
   // Runbook Owner Rule Permissions
   CreateRunbookOwnerRule = "CreateRunbookOwnerRule",
@@ -1090,6 +1102,10 @@ enum Permission {
   CreateVMwareVCenterFeed = "CreateVMwareVCenterFeed",
   EditVMwareVCenterFeed = "EditVMwareVCenterFeed",
   ReadVMwareVCenterFeed = "ReadVMwareVCenterFeed",
+
+  CreateDatabaseServerFeed = "CreateDatabaseServerFeed",
+  EditDatabaseServerFeed = "EditDatabaseServerFeed",
+  ReadDatabaseServerFeed = "ReadDatabaseServerFeed",
 
   CreatePodmanHostFeed = "CreatePodmanHostFeed",
   EditPodmanHostFeed = "EditPodmanHostFeed",
@@ -1533,6 +1549,11 @@ enum Permission {
   EditVMwareVCenter = "EditVMwareVCenter",
   ReadVMwareVCenter = "ReadVMwareVCenter",
 
+  CreateDatabaseServer = "CreateDatabaseServer",
+  DeleteDatabaseServer = "DeleteDatabaseServer",
+  EditDatabaseServer = "EditDatabaseServer",
+  ReadDatabaseServer = "ReadDatabaseServer",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
@@ -1571,6 +1592,11 @@ enum Permission {
   EditVMwareVCenterOwnerTeam = "EditVMwareVCenterOwnerTeam",
   ReadVMwareVCenterOwnerTeam = "ReadVMwareVCenterOwnerTeam",
 
+  CreateDatabaseServerOwnerTeam = "CreateDatabaseServerOwnerTeam",
+  DeleteDatabaseServerOwnerTeam = "DeleteDatabaseServerOwnerTeam",
+  EditDatabaseServerOwnerTeam = "EditDatabaseServerOwnerTeam",
+  ReadDatabaseServerOwnerTeam = "ReadDatabaseServerOwnerTeam",
+
   CreateCephClusterOwnerUser = "CreateCephClusterOwnerUser",
   DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
   EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
@@ -1580,6 +1606,11 @@ enum Permission {
   DeleteVMwareVCenterOwnerUser = "DeleteVMwareVCenterOwnerUser",
   EditVMwareVCenterOwnerUser = "EditVMwareVCenterOwnerUser",
   ReadVMwareVCenterOwnerUser = "ReadVMwareVCenterOwnerUser",
+
+  CreateDatabaseServerOwnerUser = "CreateDatabaseServerOwnerUser",
+  DeleteDatabaseServerOwnerUser = "DeleteDatabaseServerOwnerUser",
+  EditDatabaseServerOwnerUser = "EditDatabaseServerOwnerUser",
+  ReadDatabaseServerOwnerUser = "ReadDatabaseServerOwnerUser",
 
   CreateHost = "CreateHost",
   DeleteHost = "DeleteHost",
@@ -3589,6 +3620,37 @@ export class PermissionHelper {
         title: "Read vCenter Feed",
         description:
           "This permission can read the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDatabaseServerFeed,
+        title: "Create Database Feed",
+        description:
+          "This permission can create the activity feed of a database in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServerFeed,
+        title: "Edit Database Feed",
+        description:
+          "This permission can edit the activity feed of a database in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServerFeed,
+        title: "Read Database Feed",
+        description:
+          "This permission can read the activity feed of a database in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9432,6 +9494,45 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+
+      {
+        permission: Permission.CreateDatabaseServer,
+        title: "Create Database",
+        description: "This permission can create databases in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDatabaseServer,
+        title: "Delete Database",
+        description: "This permission can delete databases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServer,
+        title: "Edit Database",
+        description:
+          "This permission can edit databases of this project, including their endpoints.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServer,
+        title: "Read Database",
+        description:
+          "This permission can read databases of this project, including their endpoints.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
     ];
 
     /*
@@ -10531,6 +10632,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateDatabaseServerOwnerTeam,
+        title: "Create Database Team Owner",
+        description:
+          "This permission can create Database Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDatabaseServerOwnerTeam,
+        title: "Delete Database Team Owner",
+        description:
+          "This permission can delete Database Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServerOwnerTeam,
+        title: "Edit Database Team Owner",
+        description:
+          "This permission can edit Database Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServerOwnerTeam,
+        title: "Read Database Team Owner",
+        description:
+          "This permission can read Database Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateCephClusterOwnerUser,
         title: "Create Ceph Cluster User Owner",
         description:
@@ -10606,6 +10748,47 @@ export class PermissionHelper {
         title: "Read vCenter User Owner",
         description:
           "This permission can read vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDatabaseServerOwnerUser,
+        title: "Create Database User Owner",
+        description:
+          "This permission can create Database User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDatabaseServerOwnerUser,
+        title: "Delete Database User Owner",
+        description:
+          "This permission can delete Database User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServerOwnerUser,
+        title: "Edit Database User Owner",
+        description:
+          "This permission can edit Database User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServerOwnerUser,
+        title: "Read Database User Owner",
+        description:
+          "This permission can read Database User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13291,6 +13474,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // Database Owner Rule Permissions
+      {
+        permission: Permission.CreateDatabaseServerOwnerRule,
+        title: "Create Database Owner Rule",
+        description:
+          "This permission can create Database Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDatabaseServerOwnerRule,
+        title: "Delete Database Owner Rule",
+        description:
+          "This permission can delete Database Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServerOwnerRule,
+        title: "Edit Database Owner Rule",
+        description:
+          "This permission can edit Database Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServerOwnerRule,
+        title: "Read Database Owner Rule",
+        description:
+          "This permission can read Database Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Ceph Cluster Label Rule Permissions
       {
         permission: Permission.CreateCephClusterLabelRule,
@@ -13369,6 +13594,48 @@ export class PermissionHelper {
         title: "Read vCenter Label Rule",
         description:
           "This permission can read vCenter Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Database Label Rule Permissions
+      {
+        permission: Permission.CreateDatabaseServerLabelRule,
+        title: "Create Database Label Rule",
+        description:
+          "This permission can create Database Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDatabaseServerLabelRule,
+        title: "Delete Database Label Rule",
+        description:
+          "This permission can delete Database Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDatabaseServerLabelRule,
+        title: "Edit Database Label Rule",
+        description:
+          "This permission can edit Database Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDatabaseServerLabelRule,
+        title: "Read Database Label Rule",
+        description:
+          "This permission can read Database Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

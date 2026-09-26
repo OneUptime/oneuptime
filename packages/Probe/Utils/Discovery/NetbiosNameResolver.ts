@@ -6,6 +6,7 @@ import {
   toNbstatTransactionId,
 } from "./NetbiosNbstatCodec";
 import CidrMatchUtil from "Common/Utils/NetworkSite/CidrMatchUtil";
+import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
 import crypto from "crypto";
 import dgram from "dgram";
@@ -306,6 +307,39 @@ export interface NetbiosNameResolution {
    * Addresses with no usable name are ABSENT, never mapped to undefined.
    */
   nameByIpAddress: Map<string, string>;
+  /*
+   * Why each distinct address passed in did NOT get a name (OneUptime issue
+   * #3916) — never replied, replied with no usable name, or was never
+   * queried and why. Every distinct input address is in exactly one of
+   * nameByIpAddress and this map, keyed exactly as it was passed in:
+   *
+   *   NoUsableName              answered, with no name the naming rules
+   *                             accept (only groups, say)
+   *   NoReply                   at least one query got out, and nothing
+   *                             answered it before the lookup ended
+   *   SendFailed                every query for it failed to leave the probe
+   *   Skipped                   would have been asked, but the budget ran out
+   *                             or the socket failed first
+   *   SkippedHostCap            eligible, but past maxHosts
+   *   SkippedIneligibleAddress  not a private or CGNAT IPv4 literal
+   *
+   * When more than one could apply, what the host SAID wins: an answer with a
+   * name keeps it out of this map, an answer without one is NoUsableName, and
+   * a host that got even one datagram out is NoReply rather than SendFailed.
+   *
+   * The resolver always fills it, on every return path. It is the one place
+   * that knows which of these happened: before it, the scan's Review dialog
+   * showed the same bare address for a host that was never asked as for one
+   * that was asked twice and stayed silent.
+   *
+   * An entry that is not a string at all is not an address and has no key to
+   * be filed under here; it is counted in skippedCount and nowhere else.
+   *
+   * Optional so a resolution written by hand — every scanner and job test
+   * stubs this seam — still describes a lookup; a reader treats a missing map
+   * or a missing key as "no code".
+   */
+  statusByIpAddress?: Map<string, DiscoveredHostNetbiosStatus> | undefined;
   // Distinct addresses at least one query was handed to the socket for.
   queriedCount: number;
   /*
@@ -375,6 +409,51 @@ interface HostQueryState {
   // A matched, parseable NBSTAT reply arrived, whether or not it held a name.
   hasResponded: boolean;
   hasSendFailed: boolean;
+  /*
+   * Datagrams handed to the socket for this host, and how many of those the
+   * socket reported as failed (OneUptime issue #3916). Counted per send
+   * rather than read off hasSendFailed, because a host can be asked twice:
+   * one whose first query got out and whose RETRY then failed was asked and
+   * did not answer — NoReply — and only a host every one of whose sends
+   * failed was never really asked at all. A send the socket has not yet
+   * reported on either way counts as one that got out.
+   */
+  sendCount: number;
+  failedSendCount: number;
+}
+
+/*
+ * Why a host this lookup set out to ask came away without a name (OneUptime
+ * issue #3916), from what the lookup saw of it. Only called for a host that
+ * is NOT in nameByIpAddress, and in this order because what the host said
+ * outranks what the probe managed to do:
+ *
+ *   - It answered. A reply is only accepted to a query that was sent, so
+ *     whatever else happened, it heard the question and had no usable name.
+ *   - Nothing was ever handed to the socket for it: the budget ran out or
+ *     the socket failed before its turn came.
+ *   - Every datagram for it failed on the way out, so it was never asked.
+ *   - Otherwise at least one query left the probe and nothing came back.
+ *
+ * `state` is undefined only if a result is built before the hosts' states
+ * are — no path does that today — and such a host was certainly never asked.
+ */
+function describeUnnamedTarget(
+  state: HostQueryState | undefined,
+): DiscoveredHostNetbiosStatus {
+  if (state?.hasResponded) {
+    return DiscoveredHostNetbiosStatus.NoUsableName;
+  }
+
+  if (!state || state.sendCount === 0) {
+    return DiscoveredHostNetbiosStatus.Skipped;
+  }
+
+  if (state.failedSendCount >= state.sendCount) {
+    return DiscoveredHostNetbiosStatus.SendFailed;
+  }
+
+  return DiscoveredHostNetbiosStatus.NoReply;
 }
 
 /*
@@ -547,6 +626,13 @@ export default class NetbiosNameResolver {
 
       return {
         nameByIpAddress: nameByIpAddress,
+        statusByIpAddress: this.describeUnnamedAddresses({
+          uniqueAddresses: uniqueAddresses,
+          eligibleAddresses: eligibleAddresses,
+          targetAddresses: targetAddresses,
+          hostStates: run.hostStates,
+          nameByIpAddress: nameByIpAddress,
+        }),
         queriedCount: queriedCount,
         skippedCount: uniqueAddresses.length - queriedCount,
         isTimeBudgetExhausted: extra.isTimeBudgetExhausted,
@@ -581,6 +667,8 @@ export default class NetbiosNameResolver {
         hasQueried: false,
         hasResponded: false,
         hasSendFailed: false,
+        sendCount: 0,
+        failedSendCount: 0,
       });
     }
 
@@ -708,6 +796,70 @@ export default class NetbiosNameResolver {
       // A policy that cannot decide has not allowed anything.
       return false;
     }
+  }
+
+  /*
+   * The status of every distinct address this lookup did not name (OneUptime
+   * issue #3916), built from the same lists and per-host state the counts
+   * above come from, so the map and the counts cannot disagree.
+   *
+   * A SNAPSHOT, built fresh each time a result is: nameByIpAddress is handed
+   * back live, but a status is final the moment the lookup returns, and a
+   * send callback that fires after that must not rewrite what the scan was
+   * told.
+   *
+   * Addresses the lookup set out to ask (targetAddresses) are judged by what
+   * happened to them. The rest were never going to be asked: an eligible one
+   * was left out by the host cap, and anything else — public, loopback,
+   * link-local, IPv6, not canonical, not an address, or refused by a policy
+   * that threw — was refused by the address policy. Only the policy's own
+   * verdict (eligibleAddresses) decides which, so an injected policy is
+   * described as faithfully as the real one.
+   */
+  private describeUnnamedAddresses(data: {
+    uniqueAddresses: Array<unknown>;
+    eligibleAddresses: Array<string>;
+    targetAddresses: Array<string>;
+    hostStates: Map<string, HostQueryState>;
+    nameByIpAddress: Map<string, string>;
+  }): Map<string, DiscoveredHostNetbiosStatus> {
+    const statusByIpAddress: Map<string, DiscoveredHostNetbiosStatus> = new Map<
+      string,
+      DiscoveredHostNetbiosStatus
+    >();
+
+    const targetAddressSet: Set<string> = new Set<string>(data.targetAddresses);
+    const eligibleAddressSet: Set<string> = new Set<string>(
+      data.eligibleAddresses,
+    );
+
+    for (const ipAddress of data.uniqueAddresses) {
+      // Not an address at all, so there is no key to file it under.
+      if (typeof ipAddress !== "string") {
+        continue;
+      }
+
+      if (data.nameByIpAddress.has(ipAddress)) {
+        continue;
+      }
+
+      if (targetAddressSet.has(ipAddress)) {
+        statusByIpAddress.set(
+          ipAddress,
+          describeUnnamedTarget(data.hostStates.get(ipAddress)),
+        );
+        continue;
+      }
+
+      statusByIpAddress.set(
+        ipAddress,
+        eligibleAddressSet.has(ipAddress)
+          ? DiscoveredHostNetbiosStatus.SkippedHostCap
+          : DiscoveredHostNetbiosStatus.SkippedIneligibleAddress,
+      );
+    }
+
+    return statusByIpAddress;
   }
 
   private nextTransactionId(): number {
@@ -891,6 +1043,27 @@ export default class NetbiosNameResolver {
     state: HostQueryState,
   ): void {
     state.hasQueried = true;
+    state.sendCount++;
+
+    /*
+     * The FIRST report on this send is the one that counts, and a failure is
+     * counted once. A real dgram socket reports each send exactly once, but a
+     * socket that called back twice, or threw after calling back, must not
+     * push failedSendCount up to sendCount for a host whose other query got
+     * out — that would file a host that was asked and stayed silent as one
+     * the probe could not reach (#3916).
+     */
+    let isSendSettled: boolean = false;
+
+    const onSendFailure: (error: unknown) => void = (error: unknown): void => {
+      if (isSendSettled) {
+        return;
+      }
+
+      isSendSettled = true;
+      state.failedSendCount++;
+      this.closeOutAfterSendFailure(run, state, error);
+    };
 
     try {
       socket.send(
@@ -899,12 +1072,15 @@ export default class NetbiosNameResolver {
         state.ipAddress,
         (error: Error | null) => {
           if (error) {
-            this.closeOutAfterSendFailure(run, state, error);
+            onSendFailure(error);
+            return;
           }
+
+          isSendSettled = true;
         },
       );
     } catch (err) {
-      this.closeOutAfterSendFailure(run, state, err);
+      onSendFailure(err);
     }
   }
 

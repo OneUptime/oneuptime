@@ -1026,7 +1026,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              * halves of the screen visibly agree about where the operator is.
              */}
             <span
-              className="mt-0.5 hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:flex"
+              className="mt-0.5 max-sm:hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:flex"
               aria-hidden="true"
             >
               <Icon icon={titleIcon} className="h-5 w-5" />
@@ -1326,7 +1326,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              */}
             {props.canEdit && !isGrid && filteredResources.length > 1 ? (
               <span
-                className="hidden text-xs text-gray-400 sm:inline"
+                className="max-sm:hidden text-xs text-gray-400 sm:inline"
                 data-testid="status-page-resource-panel-reorder-hint"
               >
                 Drag a row to change the order visitors see

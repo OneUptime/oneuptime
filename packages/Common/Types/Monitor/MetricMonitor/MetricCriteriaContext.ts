@@ -78,6 +78,13 @@ export interface MetricAnomalyBaseline {
 export default interface MetricCriteriaContext {
   metricName: string;
   alias: string;
+  /**
+   * The legend the user gave the query or formula the criteria targets
+   * ("Node Memory Utilization (%)"), when it is more than the bare alias.
+   * `metricName` is the formula EXPRESSION for a formula criteria, which is
+   * not something to title a list with.
+   */
+  displayName?: string | undefined;
   unit: string | null;
   aggregationType: MetricsAggregationType | null;
   isFormula: boolean;
@@ -114,6 +121,13 @@ export default interface MetricCriteriaContext {
    * breached" without re-querying.
    */
   totalSamplesInWindow?: number | undefined;
+  /**
+   * The smallest and largest sample in the evaluation window, in the same
+   * display unit as `breachingSamples`. Lets a reader of the context name
+   * the series' worst value even when the criteria compared an aggregate
+   * (a Sum over the window can breach while no single sample does).
+   */
+  sampleValueRange?: { min: number; max: number } | undefined;
   /**
    * For formulas: metadata for each variable the formula references,
    * in the order they appear in the expression. Consumers use this to

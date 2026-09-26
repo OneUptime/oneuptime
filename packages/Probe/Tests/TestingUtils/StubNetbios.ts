@@ -25,6 +25,12 @@ import { beforeEach, jest } from "@jest/globals";
  * about NetBIOS naming (Jobs/Discovery/DiscoveryNetbios.test.ts) spy on
  * `resolveNetbiosNames` themselves.
  *
+ * For the same reason it reports no per-address status (OneUptime issue
+ * #3916), although the real resolver does: a status table would put a
+ * `netbiosNameStatus` key on every host a suite's opted-in sweep left
+ * unnamed. Without one, the scanner stamps nothing. The suites about the
+ * codes install doubles that report them.
+ *
  * installReverseDnsStub() (StubReverseDns.ts) installs this too, so every
  * suite that already stubs reverse DNS — and every mid-test
  * `jest.restoreAllMocks()` that is followed by installReverseDnsStub() — are

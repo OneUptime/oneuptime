@@ -307,7 +307,14 @@ html.dark :is(
     [class~="hover:text-gray-900"]
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
-html.dark .group:hover [class*="group-hover"][class*="text-gray-"] {
+html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
+/*
+ * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
+ * `.hidden { display: none !important }` cannot pin it shut (see Common's
+ * NavBar desktop view). It must brighten on hover exactly as the
+ * `hidden group-hover:flex` it replaced did.
+ */
+html.dark .group:hover [class*="group-[:not(:hover)"][class*="text-gray-"] {
   color: var(--ou-text-primary) !important;
 }
 

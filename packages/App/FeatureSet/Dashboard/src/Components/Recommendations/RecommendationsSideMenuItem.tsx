@@ -88,8 +88,14 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
         select: RecommendationResourceRegistry.getSelect(props.resourceType),
       });
 
+      /*
+       * Loaded exactly as the page loads it — including the telemetry
+       * question some resources need answered (have a database's engine
+       * metrics arrived?) — so the badge never counts recommendations the
+       * page behind it no longer offers.
+       */
       const resourceContext: MonitorRecommendationContext =
-        RecommendationResourceRegistry.readContext({
+        await RecommendationResourceRegistry.loadContext({
           resourceType: props.resourceType,
           model: resource,
         });

@@ -235,7 +235,7 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
             {group.schedules.length}
           </span>
           {group.isCurrentUserMember && (
-            <span className="hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
+            <span className="max-sm:hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
               Your team
             </span>
           )}

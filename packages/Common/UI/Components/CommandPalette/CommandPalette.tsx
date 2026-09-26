@@ -616,7 +616,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               <KeyboardShortcut
                 keys={[KeyboardKey.Mod, "K"]}
                 size={KeyboardShortcutSize.Small}
-                className="hidden flex-shrink-0 sm:inline-flex"
+                className="max-sm:hidden flex-shrink-0 sm:inline-flex"
               />
             </div>
 

@@ -1,5 +1,11 @@
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import ProjectSsoSignInConfirmation, {
+  PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
+  PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+  ProjectSsoKind,
+} from "../Utils/ProjectSsoSignInConfirmation";
+import { respondToMobileSsoFailure } from "../Utils/MobileSso";
 import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -483,7 +489,13 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       alreadySavedUser = await UserService.createByEmail({
         email,
         name: fullName || undefined,
-        isEmailVerified: true,
+        /*
+         * On the hosted service this project's IdP is a customer's word for
+         * the address, not proof of it: the account stays unverified until
+         * its owner confirms from the mailbox (below). Self-hosted installs
+         * trust it, as before.
+         */
+        isEmailVerified: !ProjectSsoSignInConfirmation.isRequired(),
         generateRandomPassword: true,
         props: {
           isRoot: true,
@@ -509,11 +521,59 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       );
     }
 
-    /*
-     * If he does not then add him to teams that he should belong and log in.
-     * This should never happen because email is verified before he logs in with SSO.
-     */
-    if (!alreadySavedUser.isEmailVerified && !isNewUser) {
+    const isMobileRequest: boolean =
+      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
+
+    if (ProjectSsoSignInConfirmation.isRequired()) {
+      /*
+       * Hosted service: this project's IdP may sign an account in only once
+       * the account's own mailbox has agreed to it. Until then, no session and
+       * no project membership -- just an email to the address. See
+       * ../Utils/ProjectSsoSignInConfirmation.ts.
+       */
+      const projectIdForConfirmation: ObjectID = new ObjectID(
+        req.params["projectId"] as string,
+      );
+
+      if (
+        !(await ProjectSsoSignInConfirmation.isSignInConfirmed({
+          user: alreadySavedUser,
+          projectId: projectIdForConfirmation,
+        }))
+      ) {
+        await ProjectSsoSignInConfirmation.requestConfirmation({
+          user: alreadySavedUser,
+          projectId: projectIdForConfirmation,
+          kind: ProjectSsoKind.SAML,
+          providerId: new ObjectID(req.params["projectSsoId"] as string),
+        });
+
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
+            errorDescription: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+          })
+        ) {
+          return;
+        }
+
+        return Response.render(
+          req,
+          res,
+          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+          {
+            title: "Check your email.",
+            message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+          },
+        );
+      }
+    } else if (!alreadySavedUser.isEmailVerified && !isNewUser) {
+      /*
+       * If he does not then add him to teams that he should belong and log in.
+       * This should never happen because email is verified before he logs in with SSO.
+       */
       await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
 
       return Response.render(
@@ -575,8 +635,6 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     }
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
-    const isMobileRequest: boolean =
-      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
 
     alreadySavedUser.email = email;
 

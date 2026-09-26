@@ -34,7 +34,9 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
-import OtelIngestBaseService from "./OtelIngestBaseService";
+import OtelIngestBaseService, {
+  DatabaseServerResourceResolution,
+} from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -100,6 +102,45 @@ const INVENTORIED_TYPE_SET: Set<string> = new Set(
     return t.toLowerCase();
   }),
 );
+
+/*
+ * Every SeverityNumber in ProtoFiles/OTel/v1/logs.proto, by the enum name a
+ * protobuf or gRPC body carries (see normalizeSeverityNumber). A Map rather
+ * than an object literal so a name like "constructor" cannot resolve to an
+ * Object.prototype member.
+ */
+const SEVERITY_NUMBER_BY_OTLP_NAME: ReadonlyMap<string, number> = new Map([
+  ["SEVERITY_NUMBER_UNSPECIFIED", 0],
+  ["SEVERITY_NUMBER_TRACE", 1],
+  ["SEVERITY_NUMBER_TRACE2", 2],
+  ["SEVERITY_NUMBER_TRACE3", 3],
+  ["SEVERITY_NUMBER_TRACE4", 4],
+  ["SEVERITY_NUMBER_DEBUG", 5],
+  ["SEVERITY_NUMBER_DEBUG2", 6],
+  ["SEVERITY_NUMBER_DEBUG3", 7],
+  ["SEVERITY_NUMBER_DEBUG4", 8],
+  ["SEVERITY_NUMBER_INFO", 9],
+  ["SEVERITY_NUMBER_INFO2", 10],
+  ["SEVERITY_NUMBER_INFO3", 11],
+  ["SEVERITY_NUMBER_INFO4", 12],
+  ["SEVERITY_NUMBER_WARN", 13],
+  ["SEVERITY_NUMBER_WARN2", 14],
+  ["SEVERITY_NUMBER_WARN3", 15],
+  ["SEVERITY_NUMBER_WARN4", 16],
+  ["SEVERITY_NUMBER_ERROR", 17],
+  ["SEVERITY_NUMBER_ERROR2", 18],
+  ["SEVERITY_NUMBER_ERROR3", 19],
+  ["SEVERITY_NUMBER_ERROR4", 20],
+  ["SEVERITY_NUMBER_FATAL", 21],
+  ["SEVERITY_NUMBER_FATAL2", 22],
+  ["SEVERITY_NUMBER_FATAL3", 23],
+  ["SEVERITY_NUMBER_FATAL4", 24],
+]);
+
+const MAX_OTLP_SEVERITY_NUMBER: number = 24;
+
+// Plain decimal digits only: no sign, fraction, exponent, hex or padding.
+const NUMERIC_SEVERITY_STRING: RegExp = /^[0-9]+$/;
 
 class LogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -376,9 +417,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             );
 
           /*
+           * A collector-contrib DB receiver names itself in its scope
+           * (`.../receiver/postgresqlreceiver`); that engine is the hint
+           * the database gate needs to accept a receiver batch that
+           * carries no explicit `db.system.name`.
+           */
+          const databaseReceiverSystemHint: string | null =
+            this.getDatabaseReceiverSystemHintFromScopes(
+              resourceLog["scopeLogs"] as JSONArray | undefined,
+            );
+
+          /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter and Ceph cluster from resource
-           * attributes. They look at disjoint attributes and don't
+           * cluster, VMware vCenter, Ceph cluster and database server from
+           * resource attributes. They look at disjoint attributes and don't
            * share state, so we issue all Postgres lookups concurrently
            * and only wait once. The cluster id is also what the
            * inventory hook below keys its buffer on. (There is no
@@ -394,7 +446,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             vmwareVCenterId,
             cephClusterId,
             dockerSwarmClusterId,
+            databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -431,7 +485,28 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverDatabaseServer({
+              projectId,
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            }),
           ]);
+
+          /*
+           * The same pure gate autoDiscoverDatabaseServer ran: it names the
+           * rows, and its endpoint keys them when no row claimed the batch
+           * by id — even when no row exists for it (a LOCAL-scope
+           * endpoint). The resolved row's key is added by the resolver.
+           * Logs carry no host metrics, so a database batch is always the
+           * database's.
+           */
+          const databaseServerResource: DatabaseServerResourceResolution | null =
+            this.resolveDatabaseServerResource({
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            });
+          const databaseServerName: string | null =
+            this.getDatabaseServerDisplayName(databaseServerResource);
 
           /*
            * Docker Swarm inventory eligibility — the agent's inventory
@@ -478,6 +553,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             kubernetesClusterId,
+            databaseServerId,
           });
 
           const serverlessFunctionId: ObjectID | null =
@@ -513,6 +589,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              databaseServerId,
+              databaseServerName,
+              stampedDatabaseServerId: databaseServerId,
+              databaseServerEndpoint: this.getDatabaseEndpointForEntityKey({
+                resolution: databaseServerResource,
+                databaseServerId,
+              }),
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
@@ -568,6 +651,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
                   kubernetesClusterId,
                   clusterName: stampClusterName,
+                })
+              : {}),
+            ...(databaseServerId
+              ? TelemetryUtil.getAttributesForDatabaseServerIdAndName({
+                  databaseServerId,
+                  databaseServerName:
+                    databaseServerName || this.DATABASE_SERVER_FALLBACK_NAME,
                 })
               : {}),
             ...TelemetryUtil.getAttributes({
@@ -694,13 +784,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     timeDate = OneUptimeDate.getCurrentDate();
                   }
 
-                  let logSeverityNumber: number =
-                    (log["severityNumber"] as number) || 0;
-
-                  if (typeof logSeverityNumber === "string") {
-                    logSeverityNumber =
-                      this.convertSeverityNumber(logSeverityNumber);
-                  }
+                  const logSeverityNumber: number =
+                    this.normalizeSeverityNumber(log["severityNumber"]);
 
                   const severityText: LogSeverity =
                     this.getSeverityText(logSeverityNumber);
@@ -1541,23 +1626,44 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     });
   }
 
-  private static convertSeverityNumber(severityNumber: string): number {
-    switch (severityNumber) {
-      case "SEVERITY_NUMBER_TRACE":
-        return 1;
-      case "SEVERITY_NUMBER_DEBUG":
-        return 5;
-      case "SEVERITY_NUMBER_INFO":
-        return 9;
-      case "SEVERITY_NUMBER_WARN":
-        return 13;
-      case "SEVERITY_NUMBER_ERROR":
-        return 17;
-      case "SEVERITY_NUMBER_FATAL":
-        return 21;
-      default:
-        return parseInt(severityNumber);
+  /*
+   * OTLP/JSON encodes a log's SeverityNumber as an integer, but protobuf
+   * bodies reach us through protobufjs `.toJSON()`, and gRPC requests through
+   * @grpc/proto-loader (enums: String), as the enum NAME. Any of the 25 can
+   * arrive — the Collector's syslog parser, for one, maps crit to
+   * SEVERITY_NUMBER_ERROR2 and notice to SEVERITY_NUMBER_INFO2 — and only the
+   * six unsuffixed names used to be mapped; the rest were parseInt()'d into
+   * NaN (GH#3978): stored as "Unspecified" with a NaN number, and waved
+   * through the exception extractor's ERROR gate.
+   *
+   * Always returns an integer in 0..24. Anything else — an unknown name, a
+   * value past FATAL4 (decoders pass an unknown enum value on as its number),
+   * a fraction, a negative — is UNSPECIFIED (0), so the stored number never
+   * disagrees with the severityText getSeverityText derives from it.
+   */
+  public static normalizeSeverityNumber(severityNumber: unknown): number {
+    let parsed: number | undefined = undefined;
+
+    if (typeof severityNumber === "number") {
+      parsed = severityNumber;
+    } else if (typeof severityNumber === "string") {
+      parsed =
+        SEVERITY_NUMBER_BY_OTLP_NAME.get(severityNumber) ??
+        (NUMERIC_SEVERITY_STRING.test(severityNumber)
+          ? Number(severityNumber)
+          : undefined);
     }
+
+    if (
+      parsed === undefined ||
+      !Number.isInteger(parsed) ||
+      parsed < 0 ||
+      parsed > MAX_OTLP_SEVERITY_NUMBER
+    ) {
+      return 0;
+    }
+
+    return parsed;
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {

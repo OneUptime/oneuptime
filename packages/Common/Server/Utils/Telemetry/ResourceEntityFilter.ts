@@ -11,6 +11,8 @@ import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import IoTFleetService from "../../Services/IoTFleetService";
+import DatabaseServerService from "../../Services/DatabaseServerService";
+import DatabaseServerEndpointService from "../../Services/DatabaseServerEndpointService";
 import FindBy from "../../Types/Database/FindBy";
 import {
   keyForCephCluster,
@@ -20,12 +22,15 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
+import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
   ResourceEntityFacetSelections,
   isResourceEntityFacetKey,
   parseResourceEntityFacetSelections,
 } from "../../../Types/Telemetry/ResourceEntityFacet";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
@@ -49,7 +54,8 @@ import CaptureSpan from "./CaptureSpan";
  *                     pre-`entityKeys` fallback, mirroring the entityScope
  *                     contract the resource detail pages already use, so
  *                     rows ingested before the column shipped (no backfill
- *                     by decision) keep matching.
+ *                     by decision) keep matching. Absent for resource types
+ *                     that have no single identifying attribute (Database).
  */
 export interface ResourceEntityScope {
   entityIds: Array<string>;
@@ -59,8 +65,12 @@ export interface ResourceEntityScope {
 }
 
 interface ResourceFacetDefinition {
-  /** Signal attribute the identifying value is stamped under. */
-  attributeKey: string;
+  /**
+   * Signal attribute the identifying value is stamped under. Absent for a
+   * type whose selection is its entity keys alone (see `resolveEntityKeys`)
+   * — the scope then has no attribute branch.
+   */
+  attributeKey?: string | undefined;
   /**
    * Read-side entity-key helper, mirroring the ingest-side resolver. Absent
    * for resource types that never reach a signal's `entityKeys` — the scope
@@ -69,10 +79,24 @@ interface ResourceFacetDefinition {
   entityKeyFor?:
     | ((projectId: string, identifier: string) => string)
     | undefined;
-  findIdentifiers: (data: {
-    projectId: ObjectID;
-    ids: Array<ObjectID>;
-  }) => Promise<Array<string>>;
+  findIdentifiers?:
+    | ((data: {
+        projectId: ObjectID;
+        ids: Array<ObjectID>;
+      }) => Promise<Array<string>>)
+    | undefined;
+  /**
+   * The selected rows' complete entity-key set, for a type whose telemetry
+   * is not named by one identifier per row (a Database owns several
+   * endpoints plus the pods / containers it runs as). Takes precedence over
+   * `findIdentifiers`; the scope is then `id OR entity keys`.
+   */
+  resolveEntityKeys?:
+    | ((data: {
+        projectId: ObjectID;
+        ids: Array<ObjectID>;
+      }) => Promise<Array<string>>)
+    | undefined;
 }
 
 /*
@@ -112,6 +136,108 @@ function findIdentifierColumn(
 }
 
 /*
+ * A Database's telemetry is every row carrying one of its entity keys: its
+ * row key (stamped on every batch that resolved to the row — by its
+ * `oneuptime.database.server.id` link or by an endpoint it owns — whether or
+ * not the row is the batch's primary entity), the `database.server` key of
+ * each endpoint it owns (DatabaseServerEndpoint rows — stamped on
+ * application CLIENT spans, `db.client.*` datapoints and receiver batches
+ * that name it) and its member keys (the pods / containers it runs as).
+ * Computed by getDatabaseServerSignalEntityKeys — the same helper, over the
+ * same inputs, the Database page scopes its Logs / Traces / Metrics tabs
+ * with — so the explorer facet and the page select the same rows. Endpoints
+ * are read in the page's order (primary first, then oldest) so the helper's
+ * per-row cap keeps the same keys on both sides.
+ *
+ * The `primaryEntityId` branch the scope always keeps covers the receiver
+ * batches that are primary-keyed on the row itself, including those
+ * ingested before the row key existed.
+ */
+async function resolveDatabaseServerEntityKeys(data: {
+  projectId: ObjectID;
+  ids: Array<ObjectID>;
+}): Promise<Array<string>> {
+  const databaseServerService: IdentifierLookupService = DatabaseServerService;
+  const endpointService: IdentifierLookupService =
+    DatabaseServerEndpointService;
+
+  const rows: Array<Record<string, unknown>> =
+    await databaseServerService.findBy({
+      query: { projectId: data.projectId, _id: new Includes(data.ids) },
+      select: { _id: true, dbSystem: true, memberEntityKeys: true },
+      limit: new PositiveNumber(data.ids.length),
+      skip: new PositiveNumber(0),
+      props: { isRoot: true },
+    });
+
+  const rowIds: Array<string> = rows
+    .map((row: Record<string, unknown>): string => {
+      const id: unknown = row["_id"];
+      return id ? String(id) : "";
+    })
+    .filter((id: string): boolean => {
+      return id.length > 0;
+    });
+
+  if (rowIds.length === 0) {
+    return [];
+  }
+
+  const endpointRows: Array<Record<string, unknown>> =
+    await endpointService.findBy({
+      query: {
+        projectId: data.projectId,
+        databaseServerId: new Includes(rowIds),
+      },
+      select: { databaseServerId: true, endpoint: true },
+      sort: { isPrimary: SortOrder.Descending, createdAt: SortOrder.Ascending },
+      limit: new PositiveNumber(LIMIT_MAX),
+      skip: new PositiveNumber(0),
+      props: { isRoot: true },
+    });
+
+  const endpointsByRow: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+
+  for (const endpointRow of endpointRows) {
+    const owner: unknown = endpointRow["databaseServerId"];
+    const endpoint: unknown = endpointRow["endpoint"];
+    if (!owner || typeof endpoint !== "string" || !endpoint) {
+      continue;
+    }
+    const ownerId: string = String(owner);
+    const endpoints: Array<string> = endpointsByRow.get(ownerId) || [];
+    endpoints.push(endpoint);
+    endpointsByRow.set(ownerId, endpoints);
+  }
+
+  const projectIdString: string = data.projectId.toString();
+  const keys: Set<string> = new Set<string>();
+
+  for (const row of rows) {
+    const rowId: string = row["_id"] ? String(row["_id"]) : "";
+    if (!rowId) {
+      continue;
+    }
+    const dbSystem: unknown = row["dbSystem"];
+
+    for (const key of getDatabaseServerSignalEntityKeys({
+      projectId: projectIdString,
+      databaseServerId: rowId,
+      endpoints: endpointsByRow.get(rowId) || [],
+      dbSystem: typeof dbSystem === "string" ? dbSystem : undefined,
+      memberEntityKeys: row["memberEntityKeys"],
+    })) {
+      keys.add(key);
+    }
+  }
+
+  return Array.from(keys);
+}
+
+/*
  * `Host` / `DockerHost` / `PodmanHost` all key on the canonicalized
  * `host.name` (see `HostService.findOrCreateByHostIdentifier` and its
  * Docker / Podman siblings), which is exactly the Host entity's identity —
@@ -147,6 +273,11 @@ function findIdentifierColumn(
  * `resource.iot.fleet.name` scope their detail pages use. The function
  * identifier is `faas.name` (or `service.name` on a FaaS platform without
  * one, which the attribute branch then simply does not match).
+ *
+ * Databases resolve straight to their entity-key set (see
+ * resolveDatabaseServerEntityKeys above): no attribute branch, because no
+ * single resource attribute names every row a database's telemetry lives
+ * on — its application spans carry the CALLER's resource.
  *
  * Cloud resources and RUM applications intentionally have NO definition,
  * so their selection stays `primaryEntityId IN (...)`:
@@ -232,6 +363,9 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
     iotFleetId: {
       attributeKey: "resource.iot.fleet.name",
       findIdentifiers: findIdentifierColumn(IoTFleetService, "name"),
+    },
+    databaseServerId: {
+      resolveEntityKeys: resolveDatabaseServerEntityKeys,
     },
   };
 
@@ -471,14 +605,41 @@ export default class ResourceEntityFilter {
       return scope;
     }
 
+    const ids: Array<ObjectID> = data.ids.map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
+
+    if (definition.resolveEntityKeys) {
+      try {
+        const entityKeys: Array<string> = await definition.resolveEntityKeys({
+          projectId: data.projectId,
+          ids,
+        });
+        scope.entityKeys = Array.from(
+          new Set(
+            entityKeys.filter((entityKey: string): boolean => {
+              return typeof entityKey === "string" && entityKey.length > 0;
+            }),
+          ),
+        );
+      } catch (err: unknown) {
+        logger.warn(
+          `Could not resolve ${data.facetKey} entity keys for the entity-key filter; falling back to primaryEntityId only: ${err}`,
+        );
+      }
+      return scope;
+    }
+
+    if (!definition.findIdentifiers) {
+      return scope;
+    }
+
     let identifiers: Array<string> = [];
 
     try {
       identifiers = await definition.findIdentifiers({
         projectId: data.projectId,
-        ids: data.ids.map((id: string): ObjectID => {
-          return new ObjectID(id);
-        }),
+        ids,
       });
     } catch (err: unknown) {
       logger.warn(
@@ -514,8 +675,10 @@ export default class ResourceEntityFilter {
       );
     }
 
-    scope.attributeKey = definition.attributeKey;
-    scope.attributeValues = uniqueIdentifiers;
+    if (definition.attributeKey) {
+      scope.attributeKey = definition.attributeKey;
+      scope.attributeValues = uniqueIdentifiers;
+    }
 
     return scope;
   }

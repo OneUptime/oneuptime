@@ -114,6 +114,7 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
     __esModule: true,
     default: {
       findOneBy: jest.fn(),
+      findBy: jest.fn(),
       deleteBy: jest.fn(),
       create: jest.fn(),
     },
@@ -176,10 +177,12 @@ const projectUserService: {
 };
 const teamMemberService: {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   deleteBy: jest.Mock;
   create: jest.Mock;
 } = TeamMemberService as unknown as {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   deleteBy: jest.Mock;
   create: jest.Mock;
 };
@@ -331,7 +334,14 @@ beforeEach(() => {
   membership.userId = USER_ID;
   membership.user = projectUser;
   membership.projectId = PROJECT_ID;
+  membership.hasAcceptedInvitation = true;
   teamMemberService.findOneBy.mockResolvedValue(membership);
+  /*
+   * The account has joined this project and no other, so it is one this
+   * project's SCIM manages (ProjectSCIMAccountPolicy). What SCIM may not do
+   * to any other account is ProjectSCIMCrossTenant.test.ts.
+   */
+  teamMemberService.findBy.mockResolvedValue([membership]);
   teamMemberService.deleteBy.mockResolvedValue(undefined);
   projectUserService.findOneById.mockResolvedValue(projectUser);
   projectUserService.updateOneById.mockResolvedValue(undefined);
@@ -803,7 +813,7 @@ describe("Project SCIM user PATCH", () => {
   });
 
   test.each(emailCases)(
-    "persists and returns the new email for $label",
+    "persists and returns the new email of an account this project manages for $label",
     async ({ method, body }: UpdateCase) => {
       const updatedUser: User = new User(USER_ID);
       updatedUser.email = new Email(UPDATED_EMAIL);

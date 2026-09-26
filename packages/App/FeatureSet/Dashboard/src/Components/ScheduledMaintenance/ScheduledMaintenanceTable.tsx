@@ -659,6 +659,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          databaseServers: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           networkSites: {
             name: true,
             _id: true,
@@ -792,6 +797,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              databaseServers: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               networkSites: {
                 name: true,
                 _id: true,
@@ -821,6 +831,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   cephClusters={item.cephClusters || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
+                  databaseServers={item.databaseServers || []}
                   networkSites={item.networkSites || []}
                   services={item.services || []}
                 />

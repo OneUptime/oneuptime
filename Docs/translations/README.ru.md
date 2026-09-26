@@ -196,6 +196,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — узлы, VM, контейнеры, хранилище, состояние HA, покрытие резервным копированием и здоровье репликации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, хосты ESXi, виртуальные машины, хранилища данных, кластеры, пулы ресурсов и vSAN. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — здоровье кластера, прогнозы по ёмкости и видимость OSD/пулов/PG/мониторов. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Базы данных** — PostgreSQL, MySQL, Redis, MongoDB и другие, автоматически обнаруживаются по трассировкам приложений, Kubernetes и Docker, с метриками движка, примерами запросов и логами от агента-коллектора, состоящего только из конфигурации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

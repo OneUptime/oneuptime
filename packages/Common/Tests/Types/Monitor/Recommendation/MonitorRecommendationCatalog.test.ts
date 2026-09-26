@@ -8,6 +8,8 @@ import {
   buildRecommendationId,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import ObjectID from "../../../../Types/ObjectID";
 
 import { getAllCephAlertTemplates } from "../../../../Types/Monitor/CephAlertTemplates";
 import { getAllDockerAlertTemplates } from "../../../../Types/Monitor/DockerAlertTemplates";
@@ -24,6 +26,22 @@ import {
   getLanguagesWithServiceAlertTemplates,
   getServiceAlertTemplates,
 } from "../../../../Types/Monitor/ServiceAlertTemplates";
+import {
+  DatabaseAlertTemplate,
+  getAllDatabaseAlertTemplates,
+  getDatabaseAlertTemplates,
+  getDatabaseEnginesWithAlertTemplates,
+} from "../../../../Types/Monitor/DatabaseAlertTemplates";
+
+/*
+ * Resource types whose recommendation set is EMPTY without context, on
+ * purpose: a database with no known engine has no template that applies to
+ * it (every database template reads one engine receiver's metrics). Every
+ * other resource type has a non-empty context-free subset, and the tests
+ * below keep holding them to that.
+ */
+const RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET: Array<MonitorRecommendationResourceType> =
+  [MonitorRecommendationResourceType.DatabaseServer];
 
 /*
  * The catalog is the seam between ten independently-maintained alert-template
@@ -69,7 +87,8 @@ interface ModuleExpectation {
     | "hostIdentifier"
     | "fleetIdentifier"
     | "rumApplicationId"
-    | "serviceId";
+    | "serviceId"
+    | "databaseServerId";
 }
 
 const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
@@ -164,6 +183,18 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     contextFreeTemplateCount: getServiceAlertTemplates(null).length,
     identifierFieldName: "serviceId",
   },
+  {
+    resourceType: MonitorRecommendationResourceType.DatabaseServer,
+    monitorTypes: [MonitorType.Metrics],
+    templateCount: getAllDatabaseAlertTemplates().length,
+    /*
+     * Zero, and deliberately so — see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
+     * `getDatabaseAlertTemplates(null)` is the module's own answer to "what
+     * applies to a database whose engine is unknown".
+     */
+    contextFreeTemplateCount: getDatabaseAlertTemplates(null).length,
+    identifierFieldName: "databaseServerId",
+  },
 ];
 
 describe("MonitorRecommendationCatalog", () => {
@@ -215,7 +246,17 @@ describe("MonitorRecommendationCatalog", () => {
           );
 
         expect(expectation.templateCount).toBeGreaterThan(0);
-        expect(expectation.contextFreeTemplateCount).toBeGreaterThan(0);
+
+        if (
+          RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.includes(
+            expectation.resourceType,
+          )
+        ) {
+          expect(expectation.contextFreeTemplateCount).toBe(0);
+        } else {
+          expect(expectation.contextFreeTemplateCount).toBeGreaterThan(0);
+        }
+
         expect(recommendations.length).toBe(
           expectation.contextFreeTemplateCount,
         );
@@ -363,9 +404,22 @@ describe("MonitorRecommendationCatalog", () => {
       }
     });
 
+    /*
+     * Both run over EVERY recommendation a type can produce, not the
+     * context-free subset: a database has no context-free subset at all, and a
+     * service's is missing every runtime template — checking only that would
+     * leave exactly the engine- and runtime-specific half unchecked.
+     */
     it("stamps every recommendation with one of its definition's monitorTypes and its resourceType", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
-        for (const recommendation of definition.getRecommendations()) {
+        const recommendations: Array<MonitorRecommendation> =
+          MonitorRecommendationCatalog.getAllPossibleRecommendations(
+            definition.resourceType,
+          );
+
+        expect(recommendations.length).toBeGreaterThan(0);
+
+        for (const recommendation of recommendations) {
           expect(definition.monitorTypes).toContain(recommendation.monitorType);
           expect(recommendation.resourceType).toBe(definition.resourceType);
         }
@@ -376,11 +430,11 @@ describe("MonitorRecommendationCatalog", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
         const usedTypes: Array<MonitorType> = Array.from(
           new Set(
-            definition
-              .getRecommendations()
-              .map((recommendation: MonitorRecommendation) => {
-                return recommendation.monitorType;
-              }),
+            MonitorRecommendationCatalog.getAllPossibleRecommendations(
+              definition.resourceType,
+            ).map((recommendation: MonitorRecommendation) => {
+              return recommendation.monitorType;
+            }),
           ),
         );
 
@@ -549,7 +603,10 @@ describe("MonitorRecommendationCatalog", () => {
       for (const resourceType of Object.values(
         MonitorRecommendationResourceType,
       )) {
-        if (resourceType === MonitorRecommendationResourceType.Service) {
+        if (
+          resourceType === MonitorRecommendationResourceType.Service ||
+          resourceType === MonitorRecommendationResourceType.DatabaseServer
+        ) {
           continue;
         }
 
@@ -660,6 +717,193 @@ describe("MonitorRecommendationCatalog", () => {
       for (const monitorType of usedMonitorTypes) {
         expect(definition.monitorTypes).toContain(monitorType);
       }
+    });
+  });
+
+  /*
+   * Databases: the second context-dependent resource type, and the first
+   * whose context-free set is empty. The failure modes mirror Service's —
+   * a PostgreSQL monitor offered to a Redis server — plus one of their own:
+   * a monitor offered to a database whose engine metrics never arrive, which
+   * either never fires or (Engine Metrics Stopped) fires the moment it is
+   * created.
+   */
+  describe("database recommendations", () => {
+    function databaseRecommendationIds(
+      context?: MonitorRecommendationContext | undefined,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DatabaseServer,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.recommendationId;
+      });
+    }
+
+    function templateIdsFor(engine: string): Array<string> {
+      return getDatabaseAlertTemplates(engine).map(
+        (template: DatabaseAlertTemplate) => {
+          return buildRecommendationId(
+            MonitorRecommendationResourceType.DatabaseServer,
+            template.id,
+          );
+        },
+      );
+    }
+
+    it("offers nothing when the engine is not known", () => {
+      expect(databaseRecommendationIds()).toEqual([]);
+      expect(databaseRecommendationIds({})).toEqual([]);
+      expect(databaseRecommendationIds({ databaseEngine: null })).toEqual([]);
+      expect(databaseRecommendationIds({ databaseEngine: "" })).toEqual([]);
+      expect(
+        databaseRecommendationIds({ databaseEngineMetricsReported: true }),
+      ).toEqual([]);
+    });
+
+    it("offers exactly the engine's templates, in the module's order", () => {
+      for (const engine of getDatabaseEnginesWithAlertTemplates()) {
+        expect(
+          databaseRecommendationIds({
+            databaseEngine: engine,
+            databaseEngineMetricsReported: true,
+          }),
+        ).toEqual(templateIdsFor(engine));
+      }
+    });
+
+    it("withholds everything from a database whose engine metrics never arrived", () => {
+      for (const engine of getDatabaseEnginesWithAlertTemplates()) {
+        expect(
+          databaseRecommendationIds({
+            databaseEngine: engine,
+            databaseEngineMetricsReported: false,
+          }),
+        ).toEqual([]);
+      }
+    });
+
+    it("treats an unknown metrics state as 'do not withhold'", () => {
+      for (const reported of [null, undefined]) {
+        expect(
+          databaseRecommendationIds({
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: reported,
+          }),
+        ).toEqual(templateIdsFor("postgresql"));
+      }
+    });
+
+    it("never offers one engine's recommendations to another", () => {
+      const forPostgres: Array<string> = databaseRecommendationIds({
+        databaseEngine: "postgresql",
+      });
+      const forRedis: Array<string> = databaseRecommendationIds({
+        databaseEngine: "redis",
+      });
+
+      expect(forPostgres.length).toBeGreaterThan(0);
+      expect(forRedis.length).toBeGreaterThan(0);
+
+      for (const recommendationId of forPostgres) {
+        expect(forRedis).not.toContain(recommendationId);
+      }
+    });
+
+    it("offers a fork its family receiver's recommendations", () => {
+      expect(databaseRecommendationIds({ databaseEngine: "mariadb" })).toEqual(
+        databaseRecommendationIds({ databaseEngine: "mysql" }),
+      );
+      expect(databaseRecommendationIds({ databaseEngine: "valkey" })).toEqual(
+        databaseRecommendationIds({ databaseEngine: "redis" }),
+      );
+    });
+
+    it("offers nothing for an engine no template receiver covers", () => {
+      expect(
+        databaseRecommendationIds({ databaseEngine: "cassandra" }),
+      ).toEqual([]);
+    });
+
+    it("keeps the two context-dependent resource types independent", () => {
+      expect(databaseRecommendationIds({ serviceLanguage: "java" })).toEqual(
+        [],
+      );
+
+      const serviceIds: Array<string> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.Service,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.recommendationId;
+        });
+
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.Service,
+          { databaseEngine: "postgresql" },
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.recommendationId;
+        }),
+      ).toEqual(serviceIds);
+    });
+
+    it("stays exhaustive and resolvable by id with no context", () => {
+      const all: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+        );
+
+      expect(all.length).toBe(getAllDatabaseAlertTemplates().length);
+
+      for (const recommendation of all) {
+        expect(recommendation.monitorType).toBe(MonitorType.Metrics);
+        expect(
+          MonitorRecommendationCatalog.getRecommendationById(
+            recommendation.recommendationId,
+          )?.templateId,
+        ).toBe(recommendation.templateId);
+      }
+    });
+
+    it("threads the database id into every query of every recommendation", () => {
+      const databaseServerId: string = "d0000000-0000-4000-8000-000000000007";
+
+      for (const recommendation of MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        MonitorRecommendationResourceType.DatabaseServer,
+      )) {
+        const step: MonitorStep = recommendation.getMonitorStep({
+          resourceIdentifier: databaseServerId,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "PostgreSQL db.prod:5432",
+        });
+
+        for (const queryConfig of step.data!.metricMonitor!.metricViewConfig
+          .queryConfigs) {
+          expect(
+            (
+              queryConfig.metricQueryData.filterData.attributes as Record<
+                string,
+                unknown
+              >
+            )["oneuptime.database.server.id"],
+          ).toBe(databaseServerId);
+        }
+      }
+    });
+
+    it("lists categories in first-declaration order for an engine", () => {
+      const categories: Array<string> =
+        MonitorRecommendationCatalog.getCategories(
+          MonitorRecommendationResourceType.DatabaseServer,
+          { databaseEngine: "postgresql" },
+        );
+
+      // Availability (Engine Metrics Stopped) always leads.
+      expect(categories[0]).toBe("Availability");
+      expect(new Set(categories).size).toBe(categories.length);
     });
   });
 });

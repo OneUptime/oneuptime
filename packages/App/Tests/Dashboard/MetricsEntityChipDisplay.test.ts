@@ -165,6 +165,7 @@ describe("entity facet key registry", () => {
       cloudResourceId: ServiceType.CloudResource,
       rumApplicationId: ServiceType.RealUserMonitor,
       iotFleetId: ServiceType.IoTDevice,
+      databaseServerId: ServiceType.DatabaseServer,
     });
     expect(getMetricsTypedEntityFacetType("hostId")).toBe(ServiceType.Host);
     expect(getMetricsTypedEntityFacetType("primaryEntityId")).toBeUndefined();
@@ -208,6 +209,7 @@ describe("entity facet key registry", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]) {
       expect(isMetricsEntityFacetKey(key)).toBe(true);
     }

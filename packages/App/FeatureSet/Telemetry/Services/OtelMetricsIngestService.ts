@@ -32,7 +32,12 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
-import OtelIngestBaseService from "./OtelIngestBaseService";
+import OtelIngestBaseService, {
+  DatabaseServerResourceResolution,
+} from "./OtelIngestBaseService";
+import DatabaseCallEntityKeyResolver, {
+  DatabaseCallerSource,
+} from "./DatabaseCallEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -59,6 +64,7 @@ import DockerResourceService, {
 import PodmanResourceService, {
   ParsedPodmanContainer,
 } from "Common/Server/Services/PodmanResourceService";
+import { CONTAINER_CLASSIFIER_LABEL_KEYS } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
 import DockerSwarmResourceService, {
   DockerSwarmResourceLatestMetric,
 } from "Common/Server/Services/DockerSwarmResourceService";
@@ -186,11 +192,15 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
  * Docker snapshot metrics — emitted by the docker_stats receiver
  * with container.id / container.name / container.image.name as
  * resource attributes. Container row inventory is upserted from
- * these in the same pass as the ClickHouse insert.
+ * these in the same pass as the ClickHouse insert. container.uptime
+ * dates the container's current run (its row's resourceCreationTimestamp),
+ * and the Compose / Swarm / Testcontainers labels the agent copies onto
+ * every metric become the row's labels (CONTAINER_CLASSIFIER_LABEL_KEYS).
  */
 const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.cpu.utilization",
   "container.memory.usage.total",
+  "container.uptime",
 ]);
 
 /*
@@ -198,11 +208,13 @@ const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
  * against the Podman socket (Podman exposes a Docker-compatible API)
  * with container.id / container.name / container.image.name as
  * resource attributes. Container row inventory is upserted from
- * these in the same pass as the ClickHouse insert.
+ * these in the same pass as the ClickHouse insert — uptime and labels
+ * exactly as for Docker.
  */
 const PODMAN_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.cpu.utilization",
   "container.memory.usage.total",
+  "container.uptime",
 ]);
 
 /*
@@ -346,6 +358,10 @@ interface DockerContainerMetricBufferEntry {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+  // CONTAINER_CLASSIFIER_LABEL_KEYS found on the metrics; null when none.
+  labels: JSONObject | null;
+  // Metric time − container.uptime, from the newest uptime point.
+  startedAt: Date | null;
 }
 
 interface DockerSwarmTaskMetricBufferEntry {
@@ -363,6 +379,10 @@ interface PodmanContainerMetricBufferEntry {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+  // CONTAINER_CLASSIFIER_LABEL_KEYS found on the metrics; null when none.
+  labels: JSONObject | null;
+  // Metric time − container.uptime, from the newest uptime point.
+  startedAt: Date | null;
 }
 
 /*
@@ -561,6 +581,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
 
+      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
+
+      /*
+       * A database's engine telemetry (collector DB receiver, Database
+       * Agent) carries the host.name / os.type of the machine the collector
+       * runs on, not of anything it describes — the same batches
+       * autoDiscoverHost refuses. One that also carries host metrics is a
+       * host agent and is enriched as usual.
+       */
+      if (this.isDatabaseEngineResourceWithoutHostMetrics(ras, sms)) {
+        continue;
+      }
+
       let entry: HostEnrichmentEntry | undefined = aggregator.get(hostName);
       if (!entry) {
         entry = {
@@ -621,7 +654,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
       }
 
-      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
       const stats: {
         hasInfraSignal: boolean;
         cpuCores?: number;
@@ -751,6 +783,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      /*
+       * `db.client.*` datapoints that name a database server get that
+       * server's endpoint key on their own row. Memoized for this request
+       * only — see DatabaseCallEntityKeys.
+       */
+      const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
+        new DatabaseCallEntityKeyResolver(projectId);
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -941,10 +981,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               resourceMetric["resource"] as JSONObject | undefined,
             );
 
+          const scopeMetricsForScan: JSONArray =
+            (resourceMetric["scopeMetrics"] as JSONArray) || [];
+
+          /*
+           * A collector-contrib DB receiver names itself in its scope
+           * (`.../receiver/postgresqlreceiver`); that engine is the hint
+           * the database gate needs to accept a receiver batch that
+           * carries no explicit `db.system.name`.
+           */
+          const databaseReceiverSystemHint: string | null =
+            this.getDatabaseReceiverSystemHintFromScopes(scopeMetricsForScan);
+
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter and Ceph cluster from resource
-           * attributes. The lookups are independent — they read
+           * cluster, VMware vCenter, Ceph cluster and database server from
+           * resource attributes. The lookups are independent — they read
            * different attributes and don't share state — so issue them
            * concurrently to collapse per-resource latency.
            * autoDiscoverHost still has to wait below because it
@@ -959,7 +1011,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cephClusterId,
             dockerSwarmClusterId,
             iotFleetId,
+            databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1001,7 +1055,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverDatabaseServer({
+              projectId,
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            }),
           ]);
+
+          /*
+           * The same pure gate autoDiscoverDatabaseServer ran: it names the
+           * rows, and its endpoint keys them when no row claimed the batch
+           * by id — even when no row exists for it (a LOCAL-scope
+           * endpoint). The resolved row's key is added by the resolver.
+           */
+          const databaseServerResource: DatabaseServerResourceResolution | null =
+            this.resolveDatabaseServerResource({
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            });
+          const databaseServerName: string | null =
+            this.getDatabaseServerDisplayName(databaseServerResource);
 
           /*
            * VMware identity lives in the RESOURCE attributes (one OTLP
@@ -1021,15 +1094,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * totalMemoryBytes, processCount) — collapses everything
            * into a single Host upsert per resource batch.
            */
-          const scopeMetricsForScan: JSONArray =
-            (resourceMetric["scopeMetrics"] as JSONArray) || [];
-
           const hostInfraStats: {
             hasInfraSignal: boolean;
             cpuCores?: number;
             totalMemoryBytes?: number;
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
+
+          /*
+           * A resource block that ITSELF also carries host metrics
+           * (system.* / process.*) is a host agent's: the Host is still
+           * discovered and stays primary, and the database only gets its
+           * keys and stamp. Otherwise the database IS the resource — the
+           * Host gate refuses and the database routes the rows. Note the
+           * exemption is per block: every collector receiver emits its own
+           * ResourceMetrics, so a DB receiver sharing a pipeline with
+           * hostmetrics is still a block of its own, and the database's.
+           */
+          const primaryDatabaseServerId: ObjectID | null =
+            hostInfraStats.hasInfraSignal ? null : databaseServerId;
 
           const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
@@ -1038,6 +1121,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             kubernetesClusterId,
+            databaseServerId: primaryDatabaseServerId,
             cpuCores: hostInfraStats.cpuCores,
             totalMemoryBytes: hostInfraStats.totalMemoryBytes,
             processCount: hostInfraStats.processCount,
@@ -1076,6 +1160,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              databaseServerId: primaryDatabaseServerId,
+              databaseServerName,
+              stampedDatabaseServerId: databaseServerId,
+              databaseServerEndpoint: this.getDatabaseEndpointForEntityKey({
+                resolution: databaseServerResource,
+                databaseServerId,
+              }),
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
@@ -1125,11 +1216,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   clusterName: stampClusterName,
                 })
               : {}),
+            ...(databaseServerId
+              ? TelemetryUtil.getAttributesForDatabaseServerIdAndName({
+                  databaseServerId,
+                  databaseServerName:
+                    databaseServerName || this.DATABASE_SERVER_FALLBACK_NAME,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };
+
+          /*
+           * The calling application's side of `db.client.*` endpoint
+           * canonicalization (namespace, cluster), built lazily on this
+           * block's first such datapoint.
+           */
+          const databaseCaller: DatabaseCallerSource = new DatabaseCallerSource(
+            resourceAttributes,
+          );
 
           /*
            * Synthetic per-host heartbeat. Lets users alert on "host went
@@ -1139,6 +1246,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * (hostmetrics emits one ResourceMetrics per scraper) — the
            * agent's scrape interval (typically 30-60s) naturally rate-
            * limits subsequent batches.
+           *
+           * Not for a database's engine block: its host.name is the
+           * collector's machine (or, for the sqlserver / oracledb
+           * receivers, the database server's own name), so a heartbeat
+           * would be charted on the database's Metrics tab and keep a
+           * same-named Host looking up after its own agent died. The name
+           * is not marked as heartbeated either, so a hostmetrics block for
+           * the same host later in this payload still emits the Host's.
            */
           const heartbeatHostName: string | null =
             OtelIngestBaseService.getHostNameFromAttributes(
@@ -1146,6 +1261,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             );
           if (
             heartbeatHostName &&
+            !primaryDatabaseServerId &&
             !hostHeartbeatHostNames.has(heartbeatHostName)
           ) {
             hostHeartbeatHostNames.add(heartbeatHostName);
@@ -1320,10 +1436,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as JSONArray | undefined;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
-                    const aggregationTemporality: OtelAggregationTemporality =
-                      metricTypeWrapper?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality;
+                    const aggregationTemporality:
+                      | OtelAggregationTemporality
+                      | undefined = this.normalizeAggregationTemporality(
+                      metricTypeWrapper?.["aggregationTemporality"],
+                    );
 
                     const isMonotonic: boolean | undefined =
                       metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
@@ -1618,6 +1735,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             ? { isMonotonic: isMonotonic }
                             : {}),
                         });
+
+                        /*
+                         * A `db.client.*` datapoint that names a server
+                         * belongs to that database too. Read off the FINAL
+                         * row (after the pipeline rules), and added as a new
+                         * array — the row's entityKeys is the resource's
+                         * shared array until then.
+                         */
+                        databaseCallEntityKeys.appendToDatabaseClientMetricRow(
+                          metricRow,
+                          databaseCaller,
+                        );
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
@@ -2609,7 +2738,62 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         : null,
       memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
       observedAt: ts.date,
+      labels: this.readContainerSnapshotLabels(attrs),
+      startedAt: this.containerStartedAtFromUptime({
+        metricName: data.metricName,
+        metricUnit: data.metricUnit,
+        value: rawValue,
+        observedAt: ts.date,
+      }),
     });
+  }
+
+  /*
+   * The container labels the Docker / Podman agents copy onto every
+   * docker_stats metric as resource attributes (container_labels_to_
+   * metric_labels) — only CONTAINER_CLASSIFIER_LABEL_KEYS, so no other
+   * resource attribute is ever mistaken for a label. Null when none.
+   */
+  private static readContainerSnapshotLabels(
+    attrs: Dictionary<AttributeType | Array<AttributeType>>,
+  ): JSONObject | null {
+    let labels: JSONObject | null = null;
+    for (const key of CONTAINER_CLASSIFIER_LABEL_KEYS) {
+      const value: string = this.readSnapshotAttr(attrs, `resource.${key}`);
+      if (value) {
+        labels = labels || {};
+        labels[key] = value;
+      }
+    }
+    return labels;
+  }
+
+  /*
+   * When the container's current run started, from a container.uptime
+   * point (seconds since start, as docker_stats reports it) and the
+   * point's own time; null for any other metric or an unusable value.
+   */
+  private static containerStartedAtFromUptime(data: {
+    metricName: string;
+    metricUnit: string | undefined;
+    value: number;
+    observedAt: Date;
+  }): Date | null {
+    if (data.metricName !== "container.uptime") {
+      return null;
+    }
+    const unit: string = (data.metricUnit || "s").trim();
+    const scaleMs: number = unit === "ms" ? 1 : unit === "min" ? 60000 : 1000;
+    const uptimeMs: number = data.value * scaleMs;
+    const observedMs: number = data.observedAt.getTime();
+    if (
+      !Number.isFinite(uptimeMs) ||
+      uptimeMs < 0 ||
+      !Number.isFinite(observedMs)
+    ) {
+      return null;
+    }
+    return new Date(Math.round(observedMs - uptimeMs));
   }
 
   private static foldDockerContainerSnapshot(data: {
@@ -2621,6 +2805,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     cpuPercent: number | null;
     memoryBytes: number | null;
     observedAt: Date;
+    labels: JSONObject | null;
+    startedAt: Date | null;
   }): void {
     let perHost: Map<string, DockerContainerMetricBufferEntry> | undefined =
       data.buffer.get(data.hostIdStr);
@@ -2639,6 +2825,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
         observedAt: data.observedAt,
+        labels: data.labels ? { ...data.labels } : null,
+        startedAt: data.startedAt,
       });
       return;
     }
@@ -2647,6 +2835,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    // Uptime points of one batch: the newest start wins (a restart mid-batch).
+    if (
+      data.startedAt &&
+      (!existing.startedAt || data.startedAt > existing.startedAt)
+    ) {
+      existing.startedAt = data.startedAt;
+    }
+    if (data.labels) {
+      existing.labels = { ...(existing.labels || {}), ...data.labels };
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -2686,6 +2884,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cpuPercent: e.cpuPercent,
             memoryBytes: e.memoryBytes,
             observedAt: e.observedAt,
+            labels: e.labels,
+            startedAt: e.startedAt,
           });
         }
         await DockerResourceService.bulkUpsertContainers({
@@ -2762,6 +2962,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         : null,
       memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
       observedAt: ts.date,
+      labels: this.readContainerSnapshotLabels(attrs),
+      startedAt: this.containerStartedAtFromUptime({
+        metricName: data.metricName,
+        metricUnit: data.metricUnit,
+        value: rawValue,
+        observedAt: ts.date,
+      }),
     });
   }
 
@@ -2774,6 +2981,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     cpuPercent: number | null;
     memoryBytes: number | null;
     observedAt: Date;
+    labels: JSONObject | null;
+    startedAt: Date | null;
   }): void {
     let perHost: Map<string, PodmanContainerMetricBufferEntry> | undefined =
       data.buffer.get(data.hostIdStr);
@@ -2792,6 +3001,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         cpuPercent: data.cpuPercent,
         memoryBytes: data.memoryBytes,
         observedAt: data.observedAt,
+        labels: data.labels ? { ...data.labels } : null,
+        startedAt: data.startedAt,
       });
       return;
     }
@@ -2800,6 +3011,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
     if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
       existing.memoryBytes = data.memoryBytes;
+    }
+    // Uptime points of one batch: the newest start wins (a restart mid-batch).
+    if (
+      data.startedAt &&
+      (!existing.startedAt || data.startedAt > existing.startedAt)
+    ) {
+      existing.startedAt = data.startedAt;
+    }
+    if (data.labels) {
+      existing.labels = { ...(existing.labels || {}), ...data.labels };
     }
     if (data.observedAt > existing.observedAt) {
       existing.observedAt = data.observedAt;
@@ -2839,6 +3060,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cpuPercent: e.cpuPercent,
             memoryBytes: e.memoryBytes,
             observedAt: e.observedAt,
+            labels: e.labels,
+            startedAt: e.startedAt,
           });
         }
         await PodmanResourceService.bulkUpsertContainers({
@@ -3513,7 +3736,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     metricPointType: MetricPointType;
-    aggregationTemporality?: OtelAggregationTemporality;
+    aggregationTemporality?: OtelAggregationTemporality | undefined;
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
@@ -3541,8 +3764,45 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const valueFromDouble: number | null = this.toNumberOrNull(
       data.datapoint["asDouble"],
     );
-    const count: number | null = this.toNumberOrNull(data.datapoint["count"]);
-    const sum: number | null = this.toNumberOrNull(data.datapoint["sum"]);
+    /*
+     * A plain (non-`optional`) proto3 scalar has no presence: the Collector,
+     * like every canonical encoder, leaves a 0 off the wire in protobuf and
+     * in OTLP/JSON alike, so the decoded key is simply absent - and the
+     * proto3 JSON mapping reads a `null` field as that same default. For
+     * such a field, absent or null IS 0. A value that is present but not a
+     * finite number (NaN, +/-Inf, a non-numeric string) is unknown: null.
+     */
+    const readProto3Number: (raw: unknown) => number | null = (
+      raw: unknown,
+    ): number | null => {
+      return raw === undefined || raw === null ? 0 : this.toNumberOrNull(raw);
+    };
+
+    /*
+     * `count` is a plain `fixed64` on Histogram, ExponentialHistogram and
+     * Summary points, and a Summary's `sum` a plain `double`. Read with
+     * toNumberOrNull, an idle point (nothing observed: an empty delta
+     * histogram interval, a Prometheus summary with no observations yet)
+     * was stored with count null, and a Summary with sum null - and so
+     * value null, since its row value is its sum. MetricService only treats
+     * a row with a count and a sum as a distribution row, so a Summary whose
+     * observations were all 0 (count written, sum elided) lost them from
+     * Count and Avg (GH#3978). Histogram / ExponentialHistogram `sum`, `min`
+     * and `max` are `optional` (explicit presence): absent there means "not
+     * recorded", and null is right. Gauge and Sum points carry no count or
+     * sum at all.
+     */
+    const hasPlainCount: boolean =
+      data.metricPointType === MetricPointType.Histogram ||
+      data.metricPointType === MetricPointType.ExponentialHistogram ||
+      data.metricPointType === MetricPointType.Summary;
+    const count: number | null = hasPlainCount
+      ? readProto3Number(data.datapoint["count"])
+      : this.toNumberOrNull(data.datapoint["count"]);
+    const sum: number | null =
+      data.metricPointType === MetricPointType.Summary
+        ? readProto3Number(data.datapoint["sum"])
+        : this.toNumberOrNull(data.datapoint["sum"]);
     const min: number | null = this.toNumberOrNull(data.datapoint["min"]);
     const max: number | null = this.toNumberOrNull(data.datapoint["max"]);
 
@@ -3618,9 +3878,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Summary-specific fields. The proto carries
      * `quantile_values: repeated { quantile: double, value: double }`.
      * We split into two parallel Float64 arrays keyed by index, matching the
-     * bucketCounts/explicitBounds convention used by histograms. Any entries
-     * that fail to parse (NaN, +/-Inf, missing) are dropped together so the
-     * two arrays stay length-aligned.
+     * bucketCounts/explicitBounds convention used by histograms.
+     *
+     * Both are plain proto3 doubles, so they go through readProto3Number: an
+     * absent (or JSON null) field IS 0. Skipping such an entry dropped
+     * quantile 0, and any quantile whose value was 0, from every exporter
+     * that elides zeros (found by the GH#3978 wire-format tests). A field
+     * that is present but not a finite number, or an entry that is not an
+     * object, still drops the whole entry so the two arrays stay
+     * length-aligned.
      */
     const quantileEntriesRaw: JSONArray = Array.isArray(
       data.datapoint["quantileValues"],
@@ -3630,9 +3896,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const summaryQuantiles: Array<number> = [];
     const summaryValues: Array<number> = [];
     for (const entryUnknown of quantileEntriesRaw) {
-      const entry: JSONObject = (entryUnknown as JSONObject) || {};
-      const q: number | null = this.toNumberOrNull(entry["quantile"]);
-      const v: number | null = this.toNumberOrNull(entry["value"]);
+      if (!entryUnknown || typeof entryUnknown !== "object") {
+        continue;
+      }
+      const entry: JSONObject = entryUnknown as JSONObject;
+      const q: number | null = readProto3Number(entry["quantile"]);
+      const v: number | null = readProto3Number(entry["value"]);
       if (q === null || v === null) {
         continue;
       }
@@ -3903,6 +4172,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /*
+   * Protobuf bodies (and gRPC) reach us through protobufjs with enums as
+   * their string names, but OTLP/JSON encodes enums as integers per the
+   * spec (1 = DELTA, 2 = CUMULATIVE) — which is what the collector's
+   * `otlphttp` exporter sends with `encoding: json`. Accept both so JSON
+   * metrics don't lose their temporality.
+   */
+  public static normalizeAggregationTemporality(
+    temporality: unknown,
+  ): OtelAggregationTemporality | undefined {
+    switch (temporality) {
+      case OtelAggregationTemporality.Delta:
+      case 1:
+      case "1":
+        return OtelAggregationTemporality.Delta;
+      case OtelAggregationTemporality.Cumulative:
+      case 2:
+      case "2":
+        return OtelAggregationTemporality.Cumulative;
+      default:
+        return undefined;
+    }
   }
 
   private static mapAggregationTemporality(

@@ -196,6 +196,7 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 - **Proxmox** — nodes, VMs, containers, storage, HA state, backup coverage & replication health. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi hosts, virtual machines, datastores, clusters, resource pools & vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — cluster health, capacity forecasts, and OSD/pool/PG/monitor visibility. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Databases** — PostgreSQL, MySQL, Redis, MongoDB and more, auto-detected from application traces, Kubernetes and Docker, with engine metrics, query samples and logs from a config-only collector agent. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

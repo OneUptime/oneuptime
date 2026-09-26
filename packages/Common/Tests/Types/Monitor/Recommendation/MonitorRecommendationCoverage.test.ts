@@ -513,11 +513,13 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      * both a covered and an uncovered answer are exercised for all eight
      * resource types.
      */
-    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(11);
+    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(12);
 
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        definition.getRecommendations();
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          definition.resourceType,
+        );
       const args: MonitorRecommendationArgs = buildArgs();
 
       const createdRecommendations: Array<MonitorRecommendation> =
@@ -623,7 +625,9 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      */
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        definition.getRecommendations();
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          definition.resourceType,
+        );
       const args: MonitorRecommendationArgs = buildArgs();
 
       const first: MonitorRecommendation = recommendations[0]!;
@@ -680,7 +684,9 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
   it("ignores the monitor-status and severity args entirely", () => {
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        definition.getRecommendations();
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          definition.resourceType,
+        );
 
       const realArgs: MonitorRecommendationArgs = buildArgs();
 
@@ -749,7 +755,9 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
         Array<string>
       >();
 
-      for (const recommendation of definition.getRecommendations()) {
+      for (const recommendation of MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        definition.resourceType,
+      )) {
         const fingerprint: string = getSerializedFingerprint(
           recommendation,
           args,

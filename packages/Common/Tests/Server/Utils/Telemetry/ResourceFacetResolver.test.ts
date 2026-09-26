@@ -16,6 +16,7 @@ import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterSer
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
+import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
 import { SERVICE_FACET_KEYS } from "../../../../Types/Telemetry/ResourceEntityFacet";
 import ObjectID from "../../../../Types/ObjectID";
@@ -143,6 +144,16 @@ const SERVICES: Array<{
     facetKeys: ["iotFleetId"],
     identifierField: null,
   },
+  /*
+   * A database's name is a display name ("PostgreSQL db.prod:5432"); its
+   * stable identifier is searched too.
+   */
+  {
+    name: "DatabaseServer",
+    service: DatabaseServerService as any,
+    facetKeys: ["databaseServerId"],
+    identifierField: "databaseIdentifier",
+  },
 ];
 
 const spies: Map<string, FindBySpy> = new Map<string, FindBySpy>();
@@ -194,6 +205,7 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "vmwareVCenterId",
     "cephClusterId",
     "iotFleetId",
+    "databaseServerId",
   ])("%s is a resource facet", (facetKey: string) => {
     expect(ResourceFacetResolver.isResourceFacet(facetKey)).toBe(true);
   });
@@ -210,6 +222,8 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "__proto__",
     "iotDeviceId",
     "statusCode",
+    "databaseId",
+    "databaseServerIdentifier",
   ])("%j is not a resource facet", (facetKey: string) => {
     expect(ResourceFacetResolver.isResourceFacet(facetKey)).toBe(false);
   });
@@ -228,8 +242,8 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     },
   );
 
-  test("the exported key set has exactly the fourteen supported keys, each routed to a service", () => {
-    expect(RESOURCE_FACET_KEYS.size).toBe(14);
+  test("the exported key set has exactly the fifteen supported keys, each routed to a service", () => {
+    expect(RESOURCE_FACET_KEYS.size).toBe(15);
     const routed: Array<string> = SERVICES.flatMap(
       (entry: { facetKeys: Array<string> }) => {
         return entry.facetKeys;
@@ -864,5 +878,86 @@ describe("ResourceFacetResolver.resolve count merge and ordering", () => {
     expect(result["serviceId"]).toEqual([
       { value: id.toString(), count: 3, displayName: "api" },
     ]);
+  });
+});
+
+describe("ResourceFacetResolver databases", () => {
+  test("lists every project database by its display name, busiest first", async () => {
+    const busy: string = ObjectID.generate().toString();
+    const quiet: string = ObjectID.generate().toString();
+    const unnamed: string = ObjectID.generate().toString();
+
+    rowsByService.set("DatabaseServer", [
+      {
+        _id: quiet,
+        name: "Redis cache.prod:6379",
+        databaseIdentifier: "redis:cache.prod:6379",
+      },
+      {
+        _id: busy,
+        name: "PostgreSQL db.prod:5432",
+        databaseIdentifier: "postgresql:db.prod:5432",
+      },
+      { _id: unnamed, name: "", databaseIdentifier: "mysql:orders:3306" },
+    ]);
+
+    const result: Record<
+      string,
+      Array<ResolvedFacetValue>
+    > = await ResourceFacetResolver.resolve(PROJECT_ID, [
+      {
+        facetKey: "databaseServerId",
+        counts: new Map<string, number>([[busy, 12]]),
+      },
+    ]);
+
+    expect(result["databaseServerId"]).toEqual([
+      { value: busy, count: 12, displayName: "PostgreSQL db.prod:5432" },
+      { value: unnamed, count: 0, displayName: "mysql:orders:3306" },
+      { value: quiet, count: 0, displayName: "Redis cache.prod:6379" },
+    ]);
+  });
+
+  test("a search for an endpoint fragment matches the name or the identifier, project-scoped and as root", async () => {
+    await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "databaseServerId", searchText: " db.prod " },
+    ]);
+
+    const args: FindByArgs = lastArgs("DatabaseServer");
+    expect(args.query["projectId"]).toBe(PROJECT_ID);
+    expect(args.query["name"]).toBeInstanceOf(MultiSearch);
+    expect((args.query["name"] as MultiSearch).fields).toEqual([
+      "name",
+      "databaseIdentifier",
+    ]);
+    expect((args.query["name"] as MultiSearch).value).toBe("db.prod");
+    expect(args.select).toEqual({
+      _id: true,
+      name: true,
+      databaseIdentifier: true,
+    });
+    expect(args.props).toEqual({ isRoot: true });
+    expect(args.limit.toNumber()).toBe(500);
+  });
+
+  test("a failing database lookup does not take the host facet down with it", async () => {
+    const hostId: string = ObjectID.generate().toString();
+    rowsByService.set("Host", [{ _id: hostId, name: "web-1" }]);
+    spyFor("DatabaseServer").mockImplementation(async (): Promise<any> => {
+      throw new Error("postgres down");
+    });
+
+    const listed: Record<
+      string,
+      Array<ResourceFacetEntity>
+    > = await ResourceFacetResolver.listEntities(PROJECT_ID, [
+      { facetKey: "databaseServerId" },
+      { facetKey: "hostId" },
+    ]);
+
+    expect(listed).toEqual({
+      databaseServerId: [],
+      hostId: [{ id: hostId, displayName: "web-1" }],
+    });
   });
 });

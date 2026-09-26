@@ -196,6 +196,7 @@ Fügen Sie kopierfertige, **OpenTelemetry-basierte** Agenten ein, um alles zu ü
 - **Proxmox** — Nodes, VMs, Container, Speicher, HA-Status, Backup-Abdeckung und Replikationszustand. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-Hosts, virtuelle Maschinen, Datastores, Cluster, Ressourcenpools und vSAN. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — Cluster-Zustand, Kapazitätsprognosen und Einblick in OSD/Pool/PG/Monitor. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Datenbanken** — PostgreSQL, MySQL, Redis, MongoDB und mehr, automatisch erkannt aus Anwendungs-Traces, Kubernetes und Docker, mit Engine-Metriken, Abfrage-Stichproben und Logs von einem reinen Konfigurations-Collector-Agenten. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

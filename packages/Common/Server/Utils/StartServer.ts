@@ -210,9 +210,33 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
  * Parse protobuf (binary) bodies for non-OTLP routes.
  * OTLP HTTP ingestion bypasses the global body parsers and handles raw/gzip
  * payloads in the telemetry router to avoid conflicts with the merged app stack.
+ *
+ * "application/proto" is the Connect protocol's spelling. Grafana Alloy's
+ * pyroscope.write and pyroscope-dotnet v0.14+ post their push.v1 requests
+ * with it, uncompressed; without it here the body fell through to the JSON
+ * parser, stayed {} and every such push was answered 400.
  */
+export const PROTOBUF_CONTENT_TYPES: Array<string> = [
+  "application/x-protobuf",
+  "application/protobuf",
+  "application/proto",
+];
+
+export const isProtobufContentType: (
+  contentType: string | undefined,
+) => boolean = (contentType: string | undefined): boolean => {
+  if (!contentType) {
+    return false;
+  }
+
+  // Media types are case-insensitive, and may carry parameters.
+  const mediaType: string = contentType.split(";")[0]!.trim().toLowerCase();
+
+  return PROTOBUF_CONTENT_TYPES.includes(mediaType);
+};
+
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
-  type: ["application/x-protobuf", "application/protobuf"],
+  type: PROTOBUF_CONTENT_TYPES,
   limit: "50mb",
 });
 
@@ -249,11 +273,7 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
      * turned 130 KB of anonymous request into 128 MiB of resident Buffer.
      */
     GzipRequestBodyMiddleware.parseBody(req, res, next);
-  } else if (
-    contentType &&
-    (contentType.includes("application/x-protobuf") ||
-      contentType.includes("application/protobuf"))
-  ) {
+  } else if (isProtobufContentType(contentType)) {
     protobufBodyParserMiddleware(req, res, next);
   } else {
     jsonBodyParserMiddleware(req, res, next);

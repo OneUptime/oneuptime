@@ -196,6 +196,7 @@ Inserta agentes de copiar y pegar **basados en OpenTelemetry** para vigilar todo
 - **Proxmox**: nodos, VMs, contenedores, almacenamiento, estado de HA, cobertura de copias de seguridad y salud de la replicación. [Documentación →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware**: vCenter, hosts ESXi, máquinas virtuales, datastores, clústeres, grupos de recursos y vSAN. [Documentación →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph**: salud del clúster, previsiones de capacidad y visibilidad de OSD/pool/PG/monitor. [Documentación →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Bases de datos**: PostgreSQL, MySQL, Redis, MongoDB y más, detectadas automáticamente a partir de trazas de aplicaciones, Kubernetes y Docker, con métricas del motor, muestras de consultas y logs de un agente collector que solo necesita configuración. [Documentación →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

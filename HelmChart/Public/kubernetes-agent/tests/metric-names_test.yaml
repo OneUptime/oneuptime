@@ -1,0 +1,68 @@
+# OneUptime's Kubernetes metric catalog, alert templates and dashboard
+# template name metrics exactly as the upstream receivers emit them —
+# `k8s.deployment.available`, `k8s.deployment.desired`,
+# `k8s.statefulset.ready_pods` — because nothing between the receivers and
+# the exporter renames a metric. They once assumed otherwise
+# (`k8s.deployment.available_replicas`, `...unavailable_replicas`), and every
+# chart and alert built on those names watched a series that never arrived.
+#
+# These assertions keep that premise true: neither collector config runs a
+# processor that changes a metric's NAME. The only metric statements the
+# DaemonSet runs set a resource attribute (service.name). If a rename is ever
+# wanted, add it here deliberately and update
+# packages/Common/Tests/Types/Monitor/Utils/KubernetesAgentEmittedMetrics.ts,
+# which lists the names the Common tests pin to.
+suite: collectors forward receiver metric names unrenamed
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+tests:
+  - it: the cluster collector reads workload metrics from k8s_cluster and renames none
+    templates:
+      - templates/configmap-deployment.yaml
+    # Every optional receiver and pipeline on, so a rename hidden behind a
+    # flag still renders.
+    set:
+      clusterName: prod-us
+      ebpf.enabled: true
+      kubeStateMetrics.enabled: true
+      controlPlane.enabled: true
+      coreDns.enabled: true
+      filters.metrics.exclude: ["k8s.pod.network.errors"]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "metrics:\\s*\\n\\s*receivers:\\s*\\n\\s*- k8s_cluster"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "metricstransform"
+      # transform/severity is logs-only; no metric statement runs here.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "metric_statements"
+      # A `metrics:` override under k8s_cluster could switch these off.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "k8s\\.(deployment|statefulset)\\.[a-z_]+:\\s*\\n\\s*enabled:"
+
+  - it: the node collector's metric statements touch resource attributes only
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: prod-us
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+      filters.metrics.exclude: ["k8s.pod.network.errors"]
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "metricstransform"
+      # OTTL renames a metric with `set(name, ...)` / `set(metric.name, ...)`
+      # in the metric context; the DaemonSet's transform runs in the
+      # resource context only.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "context:\\s*(metric|datapoint)\\b"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "set\\(\\s*(metric\\.)?name\\s*,"

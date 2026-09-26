@@ -882,15 +882,20 @@ func main() {
       };
     case "dotnet":
       return {
-        code: `# Set environment variables before running your .NET application:
+        code: `# Set environment variables before running your .NET application
+# (run from the directory the profiler was extracted into):
 export PYROSCOPE_APPLICATION_NAME=my-service
 export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_PYROSCOPE_URL>
 export PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN>
+# pyroscope-dotnet 1.5 and later ignore PYROSCOPE_AUTH_TOKEN; use instead:
+# export PYROSCOPE_BASIC_AUTH_USER=oneuptime
+# export PYROSCOPE_BASIC_AUTH_PASSWORD=<YOUR_ONEUPTIME_TOKEN>
 export PYROSCOPE_PROFILING_ENABLED=1
 export CORECLR_ENABLE_PROFILING=1
 export CORECLR_PROFILER={BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}
-export CORECLR_PROFILER_PATH=./Pyroscope.Profiler.Native.so
-export LD_PRELOAD=./Pyroscope.Linux.ApiWrapper.x64.so
+export CORECLR_PROFILER_PATH=$PWD/Pyroscope.Profiler.Native.so
+export LD_PRELOAD=$PWD/Pyroscope.Linux.ApiWrapper.x64.so
+export LD_LIBRARY_PATH=$PWD
 
 # Then run your application:
 dotnet run`,

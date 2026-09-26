@@ -167,6 +167,7 @@ const INCIDENT_PAGE_TYPES: Array<AffectedResourceType> = [
   "CephCluster",
   "DockerSwarmCluster",
   "IoTFleet",
+  "DatabaseServer",
   "Service",
 ];
 
@@ -637,6 +638,7 @@ const AFFECTED_RESOURCE_FIELDS: Array<ModelField<Incident>> = [
             cephClusters: payload.cephClusters,
             dockerSwarmClusters: payload.dockerSwarmClusters,
             iotFleets: payload.iotFleets,
+            databaseServers: payload.databaseServers,
             services: payload.services,
           } as FormValues<Incident>);
         });

@@ -471,6 +471,29 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ARCHIVED]: `archived`,
 };
 
+export const DatabaseRoutePath: Dictionary<string> = {
+  [PageMap.DATABASE_SERVER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DATABASE_SERVER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.DATABASE_SERVER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DATABASE_SERVER_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.DATABASE_SERVER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.DATABASE_SERVER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DATABASE_SERVER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
+  [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.DATABASE_DOCUMENTATION]: `documentation`,
+  [PageMap.DATABASE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DATABASE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.DATABASE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.DATABASE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATABASE_ARCHIVED]: `archived`,
+};
+
 export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -4783,6 +4806,135 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  // Databases
+  [PageMap.DATABASE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/*`,
+  ),
+
+  [PageMap.DATABASE_SERVERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DATABASE_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATABASE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_ARCHIVED]
     }`,
   ),
 

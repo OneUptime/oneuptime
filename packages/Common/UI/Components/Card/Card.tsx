@@ -105,7 +105,7 @@ const Card: FunctionComponent<ComponentProps> = (
       {translatedDescription && (
         <p
           data-testid="card-description"
-          className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
+          className="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed"
         >
           {translatedDescription}
         </p>

@@ -39,13 +39,17 @@ import crypto from "crypto";
  * pid reuse would otherwise mint unbounded registry rows. Everything
  * else promotes. `service.instance` is membership-only too: semconv
  * `service.instance.id` is typically a per-restart UUID, so each deploy
- * would mint a fresh registry row per instance.
+ * would mint a fresh registry row per instance. `database.server` is
+ * membership-only by design: its keys are appended to signals so the
+ * Databases product can scope telemetry, and the typed DatabaseServer table
+ * (not the registry) is the row a user sees.
  */
 const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.Container,
   EntityType.Process,
   EntityType.ServiceInstance,
   EntityType.TelemetrySdk,
+  EntityType.DatabaseServer,
 ]);
 
 /*

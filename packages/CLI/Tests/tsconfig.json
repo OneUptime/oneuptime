@@ -1,0 +1,21 @@
+{
+  /*
+   * The project the CLI's tests belong to, for editors and ESLint's typed
+   * linting (projectService in eslint.config.js), which both take a file's
+   * nearest tsconfig.json. ../tsconfig.json excludes Tests from the build, so
+   * without this file the lookup walked on up to the repository-root
+   * tsconfig.json, which has no "include": the tests were linted inside a
+   * program of the whole monorepo.
+   *
+   * Same compiler options as the build. "exclude" is set here so that the
+   * build's "Tests" entry, inherited and resolved against packages/CLI, does
+   * not exclude this directory. jest (jest.config.json) does not read this
+   * file; ts-jest there starts from ../tsconfig.json.
+   */
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

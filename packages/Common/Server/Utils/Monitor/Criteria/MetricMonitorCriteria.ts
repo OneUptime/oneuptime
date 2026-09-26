@@ -1,5 +1,6 @@
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
+import MetricAliasData from "../../../../Types/Metrics/MetricAliasData";
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
@@ -274,6 +275,7 @@ export default class MetricMonitorCriteria {
         seriesFingerprint: input.seriesFingerprint,
         seriesLabels: input.seriesLabels,
         projectId: input.projectId,
+        nativeUnitsByMetricName: input.nativeUnitsByMetricName,
       });
     }
 
@@ -363,6 +365,19 @@ export default class MetricMonitorCriteria {
       },
     );
 
+    const finiteNumbers: Array<number> = numbersInDisplayUnit.filter(
+      (n: number) => {
+        return Number.isFinite(n);
+      },
+    );
+
+    if (finiteNumbers.length > 0) {
+      metricContext.sampleValueRange = {
+        min: Math.min(...finiteNumbers),
+        max: Math.max(...finiteNumbers),
+      };
+    }
+
     const comparisonMessage: string | null =
       CompareCriteria.compareCriteriaNumbers({
         value: numbersInDisplayUnit.length > 0 ? numbersInDisplayUnit : 0,
@@ -438,7 +453,10 @@ export default class MetricMonitorCriteria {
         } = {
           value: convertedValue,
           timestamp: sample.timestamp,
-          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+          attributes: MetricMonitorCriteria.extractLabelAttributes(
+            sample,
+            input.seriesLabels,
+          ),
         };
 
         if (componentValueLookup && metricContext.components) {
@@ -571,7 +589,10 @@ export default class MetricMonitorCriteria {
     }
   }
 
-  private static extractLabelAttributes(sample: AggregateModel): JSONObject {
+  private static extractLabelAttributes(
+    sample: AggregateModel,
+    seriesLabels?: JSONObject | undefined,
+  ): JSONObject {
     /*
      * AggregatedModel has a string index signature that holds group-by
      * attributes alongside `timestamp` and `value`. Strip the known keys
@@ -579,7 +600,7 @@ export default class MetricMonitorCriteria {
      */
     const labels: JSONObject = {};
     for (const key of Object.keys(sample)) {
-      if (key === "timestamp" || key === "value") {
+      if (key === "timestamp" || key === "value" || key === "attributes") {
         continue;
       }
       const v: unknown = (sample as unknown as JSONObject)[key];
@@ -588,6 +609,50 @@ export default class MetricMonitorCriteria {
       }
       labels[key] = v as JSONObject[string];
     }
+
+    /*
+     * Grouped rows carry their labels NESTED under `attributes` — both
+     * MetricService.aggregateBy with groupByAttributeKeys and the
+     * infrastructure monitors' raw-scan path return them that way. The
+     * map used to be copied through as a single `attributes` label, which
+     * the Breaching Samples list rendered as "`attributes`:
+     * `[object Object]`".
+     *
+     * The raw scan nests EVERY datapoint attribute of the bucket's first
+     * row, not just the grouped ones, so when the series labels are known
+     * only those keys are lifted out: they are what identifies the series.
+     * A formula's rows carry no attributes at all, so each key falls back
+     * to the series' own label — every sample of a series belongs to it.
+     */
+    const nested: unknown = (sample as unknown as JSONObject)["attributes"];
+    const nestedAttributes: JSONObject =
+      nested && typeof nested === "object" && !Array.isArray(nested)
+        ? (nested as JSONObject)
+        : {};
+
+    if (nested !== undefined && nested !== null && typeof nested !== "object") {
+      // A flat label that happens to be called `attributes`.
+      labels["attributes"] = nested as JSONObject[string];
+    }
+
+    const labelKeys: Array<string> = Object.keys(seriesLabels || {});
+    const keys: Array<string> =
+      labelKeys.length > 0 ? labelKeys : Object.keys(nestedAttributes);
+
+    for (const key of keys) {
+      if (key in labels) {
+        continue;
+      }
+
+      const v: unknown = nestedAttributes[key] ?? seriesLabels?.[key];
+
+      if (v === undefined || v === null || v === "" || typeof v === "object") {
+        continue;
+      }
+
+      labels[key] = v as JSONObject[string];
+    }
+
     return labels;
   }
 
@@ -659,12 +724,20 @@ export default class MetricMonitorCriteria {
           formulaConfig: f,
           queryConfigs: input.queryConfigs,
           formulaConfigs: input.formulaConfigs,
+          nativeUnitsByMetricName: input.nativeUnitsByMetricName,
         })
       : undefined;
+
+    const displayName: string | undefined =
+      MetricMonitorCriteria.getAliasDisplayName({
+        aliasData: q?.metricAliasData || f?.metricAliasData,
+        metricAlias: input.metricAlias,
+      });
 
     return {
       metricName,
       alias: input.metricAlias,
+      ...(displayName ? { displayName } : {}),
       unit,
       aggregationType,
       isFormula: Boolean(f),
@@ -678,6 +751,36 @@ export default class MetricMonitorCriteria {
   }
 
   /**
+   * The human legend of a query or formula, or undefined when it is empty
+   * or just repeats the alias. The shipped templates title every single
+   * query with its own alias ("container_restarts"), which is not a name
+   * worth promoting over the metric name; the ratio templates give their
+   * formula a real legend ("Node Memory Utilization (%)").
+   */
+  public static getAliasDisplayName(input: {
+    aliasData: MetricAliasData | undefined;
+    metricAlias: string;
+  }): string | undefined {
+    const candidates: Array<string | undefined> = [
+      input.aliasData?.legend,
+      input.aliasData?.title,
+    ];
+
+    for (const candidate of candidates) {
+      const trimmed: string = (candidate || "").trim();
+
+      if (
+        trimmed &&
+        trimmed.toLowerCase() !== input.metricAlias.trim().toLowerCase()
+      ) {
+        return trimmed;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Resolve the variables the formula references to their source
    * query/formula definitions so the root cause can label each
    * component column with its metric name and native unit.
@@ -686,6 +789,7 @@ export default class MetricMonitorCriteria {
     formulaConfig: MetricFormulaConfigData;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Array<MetricComponent> {
     const formula: string =
       input.formulaConfig.metricFormulaData?.metricFormula || "";
@@ -717,10 +821,25 @@ export default class MetricMonitorCriteria {
             | undefined) ||
           queryMatch.metricAliasData?.title ||
           normalizedAlias;
+        /*
+         * A component's values are in its legendUnit when it has one (the
+         * worker converted them), and in the metric's own unit when it
+         * does not — the ratio templates leave both sides unconverted, so
+         * `used_mem` and `alloc_mem` are bytes. Without the fallback those
+         * printed as bare 12-digit numbers under a formula that read
+         * "88.82%".
+         */
+        const rawMetricName: string | undefined =
+          (queryMatch.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined) || undefined;
+        const nativeUnit: string | undefined = rawMetricName
+          ? input.nativeUnitsByMetricName?.[rawMetricName.toLowerCase()]
+          : undefined;
         components.push({
           alias: normalizedAlias,
           name,
-          unit: queryMatch.metricAliasData?.legendUnit || null,
+          unit: queryMatch.metricAliasData?.legendUnit || nativeUnit || null,
           isFormula: false,
         });
         continue;
@@ -774,6 +893,7 @@ export default class MetricMonitorCriteria {
     seriesFingerprint: string | undefined;
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -858,6 +978,19 @@ export default class MetricMonitorCriteria {
       return noBreach();
     }
 
+    /*
+     * The baseline is aggregated from the raw stored values, so it is in
+     * the metric's NATIVE unit — but the samples were already converted
+     * into the query's legendUnit by the worker. Rescale the baseline
+     * into the sample unit before anything compares against it or
+     * renders it; otherwise a "By" baseline read as "MB" puts the mean a
+     * million times too high — AnomalouslyHigh can never fire,
+     * AnomalouslyLow fires on every sample, and the root cause prints
+     * the mean in TB.
+     */
+    const baselineUnit: string | undefined =
+      input.nativeUnitsByMetricName?.[metricContext.metricName.toLowerCase()];
+
     const baselineByHour: Map<number, BaselineSummary> = new Map();
     for (const hour of hoursInWindow) {
       const baseline: BaselineSummary | null =
@@ -869,7 +1002,14 @@ export default class MetricMonitorCriteria {
           minSamples,
         });
       if (baseline && baseline.isReliable) {
-        baselineByHour.set(hour, baseline);
+        baselineByHour.set(
+          hour,
+          MetricMonitorCriteria.convertBaselineToUnit({
+            baseline,
+            fromUnit: baselineUnit,
+            toUnit: metricContext.unit || undefined,
+          }),
+        );
       }
     }
 
@@ -945,7 +1085,10 @@ export default class MetricMonitorCriteria {
         breachingSamples.push({
           value: sample.value,
           timestamp: ts,
-          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+          attributes: MetricMonitorCriteria.extractLabelAttributes(
+            sample,
+            input.seriesLabels,
+          ),
         });
         if (!firstBreach) {
           firstBreach = { sample, baseline, sigma: observedSigma };
@@ -1032,6 +1175,45 @@ export default class MetricMonitorCriteria {
       labels: input.seriesLabels,
       rootCause,
       context: metricContext,
+    };
+  }
+
+  /**
+   * Rescale every quantity in a baseline from one unit into another.
+   * Every supported unit family converts by a pure multiplier (no
+   * offsets), so the spread terms (stddev, MAD) scale by the same
+   * factor as the location terms. When the units match, either is
+   * missing, or they aren't convertible, the baseline is returned
+   * unchanged — the same pass-through the worker applies to samples.
+   */
+  private static convertBaselineToUnit(input: {
+    baseline: BaselineSummary;
+    fromUnit: string | undefined;
+    toUnit: string | undefined;
+  }): BaselineSummary {
+    const { baseline, fromUnit, toUnit } = input;
+
+    if (!fromUnit || !toUnit || fromUnit === toUnit) {
+      return baseline;
+    }
+
+    const convert: (value: number) => number = (value: number): number => {
+      return MetricUnitUtil.convertToMetricUnit({
+        value,
+        fromUnit,
+        metricUnit: toUnit,
+      });
+    };
+
+    return {
+      ...baseline,
+      mean: convert(baseline.mean),
+      stddev: convert(baseline.stddev),
+      median: convert(baseline.median),
+      p95: convert(baseline.p95),
+      minObserved: convert(baseline.minObserved),
+      maxObserved: convert(baseline.maxObserved),
+      ...(baseline.mad !== undefined ? { mad: convert(baseline.mad) } : {}),
     };
   }
 

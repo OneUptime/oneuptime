@@ -110,6 +110,31 @@ const OWNER_MODEL_CASES: Array<[string, OwnerModel]> = OWNER_MODELS.map(
   },
 );
 
+/*
+ * Owner tables created AFTER MakeOwnerRowsUnique1793500000000 shipped. Their
+ * own create-table migration builds the unique index from the start, so there
+ * was never anything for 1793500000000 to repair or re-index - it cannot name
+ * a table that did not exist yet. The registry sweep above still holds them to
+ * both guarantees; only the migration's own sweep skips them.
+ *
+ * Only ever append here, and only for a model whose table is new.
+ */
+const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
+  "DatabaseServerOwnerTeam",
+  "DatabaseServerOwnerUser",
+];
+
+const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(
+  (ownerModel: OwnerModel): boolean => {
+    return !OWNER_TABLES_CREATED_AFTER_MIGRATION.includes(ownerModel.tableName);
+  },
+);
+
+const MIGRATED_OWNER_MODEL_CASES: Array<[string, OwnerModel]> =
+  MIGRATED_OWNER_MODELS.map((ownerModel: OwnerModel): [string, OwnerModel] => {
+    return [ownerModel.className, ownerModel];
+  });
+
 function classIndexes(modelType: ModelType): Array<IndexMetadataArgs> {
   return getMetadataArgsStorage().indices.filter(
     (index: IndexMetadataArgs): boolean => {
@@ -290,6 +315,31 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
     expect(SchemaMigrations).toContain(MakeOwnerRowsUnique1793500000000);
   });
 
+  test("skips only owner tables it could not have known, and they are real", async () => {
+    /*
+     * The exemption list must not rot into a way to skip a table this
+     * migration really does repair: every entry is a registered owner model,
+     * and none of them appears anywhere in the migration's statements.
+     */
+    const statements: Array<string> = await runUp();
+    const registered: Array<string> = OWNER_MODELS.map((m: OwnerModel) => {
+      return m.tableName;
+    });
+
+    for (const tableName of OWNER_TABLES_CREATED_AFTER_MIGRATION) {
+      expect(registered).toContain(tableName);
+      expect(
+        statements.some((s: string) => {
+          return s.includes(`"${tableName}"`);
+        }),
+      ).toBe(false);
+    }
+
+    expect(MIGRATED_OWNER_MODELS.length).toBe(
+      OWNER_MODELS.length - OWNER_TABLES_CREATED_AFTER_MIGRATION.length,
+    );
+  });
+
   test("has a name that matches its class, as TypeORM records it", () => {
     expect(new MakeOwnerRowsUnique1793500000000().name).toBe(
       "MakeOwnerRowsUnique1793500000000",
@@ -302,9 +352,9 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
       return s.startsWith("CREATE UNIQUE INDEX");
     });
 
-    expect(creates).toHaveLength(OWNER_MODELS.length);
+    expect(creates).toHaveLength(MIGRATED_OWNER_MODELS.length);
 
-    for (const ownerModel of OWNER_MODELS) {
+    for (const ownerModel of MIGRATED_OWNER_MODELS) {
       const columns: string = ownerModel.uniqueColumns
         .map((column: string): string => {
           return `"${column}"`;
@@ -327,9 +377,9 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
       return s.includes("DELETE FROM");
     });
 
-    expect(deletes).toHaveLength(OWNER_MODELS.length);
+    expect(deletes).toHaveLength(MIGRATED_OWNER_MODELS.length);
 
-    for (const ownerModel of OWNER_MODELS) {
+    for (const ownerModel of MIGRATED_OWNER_MODELS) {
       expect(dedupeStatementFor(statements, ownerModel.tableName)).toHaveLength(
         1,
       );
@@ -376,7 +426,7 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
     }
   });
 
-  describe.each(OWNER_MODEL_CASES)(
+  describe.each(MIGRATED_OWNER_MODEL_CASES)(
     "repair of %s",
     (_name: string, ownerModel: OwnerModel) => {
       async function repairSql(): Promise<string> {
@@ -436,7 +486,7 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
   test("down() drops every unique index", async () => {
     const statements: Array<string> = await runDown();
 
-    for (const ownerModel of OWNER_MODELS) {
+    for (const ownerModel of MIGRATED_OWNER_MODELS) {
       expect(statements).toContain(
         `DROP INDEX "public"."${expectedIndexName(ownerModel)}"`,
       );
@@ -477,9 +527,11 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
 
     for (const statement of restored) {
       const table: string = statement.match(/ON "(\w+)"/)![1]!;
-      const ownerModel: OwnerModel = OWNER_MODELS.find((m: OwnerModel) => {
-        return m.tableName === table;
-      })!;
+      const ownerModel: OwnerModel = MIGRATED_OWNER_MODELS.find(
+        (m: OwnerModel) => {
+          return m.tableName === table;
+        },
+      )!;
 
       expect(statement).toBe(
         `CREATE INDEX "${expectedIndexName(ownerModel)}" ON "${table}" (${ownerModel.uniqueColumns

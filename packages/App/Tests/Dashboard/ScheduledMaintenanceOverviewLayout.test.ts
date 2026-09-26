@@ -440,6 +440,11 @@ describe("scheduled maintenance overview: affected resources", () => {
       type: "DockerSwarmCluster",
     },
     { relation: "iotFleets", model: "IoTFleet", type: "IoTFleet" },
+    {
+      relation: "databaseServers",
+      model: "DatabaseServer",
+      type: "DatabaseServer",
+    },
     { relation: "networkSites", model: "NetworkSite", type: "NetworkSite" },
     { relation: "services", model: "Service", type: "Service" },
   ];
@@ -479,7 +484,7 @@ describe("scheduled maintenance overview: affected resources", () => {
 
   test("the picker's resource types list every relation, in the incident page's order plus network sites", () => {
     expect(page).toContain(
-      'resourceTypes={[ "Monitor", "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "NetworkSite", "Service", ]}',
+      'resourceTypes={[ "Monitor", "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
     );
   });
 });

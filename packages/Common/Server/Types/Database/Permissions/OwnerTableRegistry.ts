@@ -38,6 +38,8 @@ import DockerSwarmClusterOwnerTeamService from "../../../Services/DockerSwarmClu
 import DockerSwarmClusterOwnerUserService from "../../../Services/DockerSwarmClusterOwnerUserService";
 import VMwareVCenterOwnerTeamService from "../../../Services/VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "../../../Services/VMwareVCenterOwnerUserService";
+import DatabaseServerOwnerTeamService from "../../../Services/DatabaseServerOwnerTeamService";
+import DatabaseServerOwnerUserService from "../../../Services/DatabaseServerOwnerUserService";
 import IoTFleetOwnerTeamService from "../../../Services/IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "../../../Services/IoTFleetOwnerUserService";
 import NetworkDeviceOwnerTeamService from "../../../Services/NetworkDeviceOwnerTeamService";
@@ -65,6 +67,7 @@ import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import CephClusterService from "../../../Services/CephClusterService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import DatabaseServerService from "../../../Services/DatabaseServerService";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 
@@ -304,6 +307,21 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "vmwareVCenterId",
       canOwnTelemetry: true,
       modelService: VMwareVCenterService,
+    },
+  ],
+  [
+    /*
+     * Receiver batches (the collector / Database Agent) stamp the database
+     * server's id as the telemetry row's serviceId (serviceType
+     * DatabaseServer), so owning a database grants its telemetry.
+     */
+    "DatabaseServer",
+    {
+      ownerUserService: DatabaseServerOwnerUserService,
+      ownerTeamService: DatabaseServerOwnerTeamService,
+      fkColumn: "databaseServerId",
+      canOwnTelemetry: true,
+      modelService: DatabaseServerService,
     },
   ],
   [

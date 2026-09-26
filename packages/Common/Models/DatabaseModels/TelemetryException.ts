@@ -29,6 +29,7 @@ import KubernetesCluster from "./KubernetesCluster";
 import ServerlessFunction from "./ServerlessFunction";
 import CloudResource from "./CloudResource";
 import RumApplication from "./RumApplication";
+import DatabaseServer from "./DatabaseServer";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("service")
@@ -87,6 +88,7 @@ import RumApplication from "./RumApplication";
     ServerlessFunction,
     CloudResource,
     RumApplication,
+    DatabaseServer,
   ],
   {
     includeProjectScope: true,

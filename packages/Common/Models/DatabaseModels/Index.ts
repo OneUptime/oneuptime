@@ -69,6 +69,13 @@ import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
 import CloudResourceLabelRule from "./CloudResourceLabelRule";
 import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
+import DatabaseServer from "./DatabaseServer";
+import DatabaseServerEndpoint from "./DatabaseServerEndpoint";
+import DatabaseServerFeed from "./DatabaseServerFeed";
+import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
+import DatabaseServerOwnerUser from "./DatabaseServerOwnerUser";
+import DatabaseServerLabelRule from "./DatabaseServerLabelRule";
+import DatabaseServerOwnerRule from "./DatabaseServerOwnerRule";
 import RumApplication from "./RumApplication";
 import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
@@ -291,6 +298,7 @@ import TeamComplianceSetting from "./TeamComplianceSetting";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
+import UserProjectSsoConsent from "./UserProjectSsoConsent";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -852,6 +860,7 @@ const AllModelTypes: Array<{
   DataSource,
 
   UserSession,
+  UserProjectSsoConsent,
   UserTotpAuth,
   UserTwoFactorBackupCode,
   UserWebAuthn,
@@ -967,6 +976,13 @@ const AllModelTypes: Array<{
   CloudResourceOwnerUser,
   CloudResourceLabelRule,
   CloudResourceOwnerRule,
+  DatabaseServer,
+  DatabaseServerEndpoint,
+  DatabaseServerFeed,
+  DatabaseServerOwnerTeam,
+  DatabaseServerOwnerUser,
+  DatabaseServerLabelRule,
+  DatabaseServerOwnerRule,
   RumApplication,
   RumApplicationOwnerTeam,
   RumApplicationOwnerUser,

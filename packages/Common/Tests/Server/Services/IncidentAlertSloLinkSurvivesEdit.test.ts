@@ -110,6 +110,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
         cephClusters: [],
         dockerSwarmClusters: [],
         iotFleets: [],
+        databaseServers: [],
         services: [idStub()],
       };
     },
@@ -139,6 +140,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
         cephClusters: [],
         dockerSwarmClusters: [],
         iotFleets: [],
+        databaseServers: [],
         services: [idStub()],
       };
     },

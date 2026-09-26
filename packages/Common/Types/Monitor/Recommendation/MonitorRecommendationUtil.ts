@@ -8,6 +8,7 @@ import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
+import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../DatabaseAlertTemplates";
 import MonitorRecommendationSeverityMapper from "./MonitorRecommendationSeverityMapper";
 import {
   MonitorRecommendation,
@@ -23,8 +24,10 @@ import {
  *
  * Infrastructure configs carry a metric view plus a named resource
  * identifier. RUM uses generic metric, trace and exception configs, where the
- * application id lives in `telemetryServiceIds`. The optional fields below are
- * the stable query inputs that distinguish those shapes.
+ * application id lives in `telemetryServiceIds`. Databases use generic metric
+ * configs scoped by an `oneuptime.database.server.id` query filter. The
+ * optional fields below are the stable query inputs that distinguish those
+ * shapes.
  */
 interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
@@ -389,6 +392,7 @@ export default class MonitorRecommendationUtil {
       config.hostIdentifier ||
       config.fleetIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
+      this.getAttributeScopedResourceIdentifier(config) ||
       "";
 
     const metricNames: Array<string> = [];
@@ -490,6 +494,43 @@ export default class MonitorRecommendationUtil {
       })
       .sort()
       .join(",");
+  }
+
+  /*
+   * The resource a metric step is scoped to by an attribute FILTER rather than
+   * by an identifier field or `telemetryServiceIds` — a database's metric
+   * monitors, which filter every query on `oneuptime.database.server.id`.
+   *
+   * The filter is already part of the fingerprint through `queryAttributes`,
+   * so two databases' monitors never collide; this only makes the step's
+   * resource identity explicit, so "which resource does this monitor watch"
+   * has the same answer for a database as for every other resource type.
+   * Values are deduped and sorted so a multi-query template scoped the same
+   * way on every query reads as one resource.
+   */
+  private static getAttributeScopedResourceIdentifier(
+    config: RecommendationMonitorStepConfig,
+  ): string {
+    const values: Set<string> = new Set<string>();
+
+    for (const queryConfig of config.metricViewConfig?.queryConfigs || []) {
+      const attributes: unknown =
+        queryConfig?.metricQueryData?.filterData?.["attributes"];
+
+      if (!attributes || typeof attributes !== "object") {
+        continue;
+      }
+
+      const value: unknown = (attributes as Record<string, unknown>)[
+        DATABASE_SERVER_ID_SCOPE_ATTRIBUTE
+      ];
+
+      if (typeof value === "string" && value.trim()) {
+        values.add(value.trim());
+      }
+    }
+
+    return Array.from(values).sort().join(",");
   }
 
   /*

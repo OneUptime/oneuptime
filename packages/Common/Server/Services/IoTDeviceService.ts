@@ -78,6 +78,123 @@ const UPSERT_COLUMNS: Array<string> = [
   "version",
 ];
 
+/*
+ * One entry per column of the `FROM (VALUES ...) AS v(...)` source in
+ * bulkUpdateLatestMetrics(). The placeholder tuple, the alias list, the
+ * bound params and the SET clause are all generated from this table, so
+ * they cannot drift apart: a hand-written tuple once carried 9
+ * placeholders against 10 aliases and 10 params, and Postgres rejected
+ * every mirror write (GitHub #3998).
+ *
+ * mirrorColumn: the IoTDevice column the value is COALESCEd into, or
+ * null for the join keys and observedAt, which the statement uses
+ * directly.
+ */
+export interface LatestMetricColumn {
+  alias: string;
+  cast: string | null;
+  mirrorColumn: string | null;
+  value: (metric: IoTDeviceLatestMetric) => unknown;
+}
+
+const nullableNumber: (value: number | null | undefined) => number | null = (
+  value: number | null | undefined,
+): number | null => {
+  return value !== null && value !== undefined ? value : null;
+};
+
+// bigint params go over the wire as integer strings: a JS number past 2^53 loses precision.
+const nullableBigInt: (value: number | null | undefined) => string | null = (
+  value: number | null | undefined,
+): string | null => {
+  return value !== null && value !== undefined
+    ? Math.trunc(value).toString()
+    : null;
+};
+
+export const LATEST_METRIC_COLUMNS: ReadonlyArray<LatestMetricColumn> = [
+  {
+    alias: "kind",
+    cast: null,
+    mirrorColumn: null,
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return m.kind;
+    },
+  },
+  {
+    alias: "externalId",
+    cast: null,
+    mirrorColumn: null,
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return m.externalId;
+    },
+  },
+  {
+    alias: "cpu",
+    cast: "numeric",
+    mirrorColumn: "latestCpuPercent",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableNumber(m.cpuPercent);
+    },
+  },
+  {
+    alias: "mem",
+    cast: "bigint",
+    mirrorColumn: "latestMemoryBytes",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableBigInt(m.memoryBytes);
+    },
+  },
+  {
+    alias: "maxMem",
+    cast: "bigint",
+    mirrorColumn: "maxMemoryBytes",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableBigInt(m.maxMemoryBytes);
+    },
+  },
+  {
+    alias: "memPct",
+    cast: "numeric",
+    mirrorColumn: "latestMemoryPercent",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableNumber(m.memoryPercent);
+    },
+  },
+  {
+    alias: "battery",
+    cast: "numeric",
+    mirrorColumn: "latestBatteryPercent",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableNumber(m.batteryPercent);
+    },
+  },
+  {
+    alias: "signal",
+    cast: "numeric",
+    mirrorColumn: "latestSignalStrengthDbm",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableNumber(m.signalStrengthDbm);
+    },
+  },
+  {
+    alias: "temp",
+    cast: "numeric",
+    mirrorColumn: "latestTemperatureCelsius",
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return nullableNumber(m.temperatureCelsius);
+    },
+  },
+  {
+    alias: "observedAt",
+    cast: "timestamptz",
+    mirrorColumn: null,
+    value: (m: IoTDeviceLatestMetric): unknown => {
+      return m.observedAt;
+    },
+  },
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -260,6 +377,22 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    const aliases: string = LATEST_METRIC_COLUMNS.map(
+      (column: LatestMetricColumn) => {
+        return `"${column.alias}"`;
+      },
+    ).join(", ");
+
+    const assignments: string = LATEST_METRIC_COLUMNS.filter(
+      (column: LatestMetricColumn) => {
+        return column.mirrorColumn !== null;
+      },
+    )
+      .map((column: LatestMetricColumn) => {
+        return `"${column.mirrorColumn}" = COALESCE(v."${column.alias}", p."${column.mirrorColumn}"),`;
+      })
+      .join("\n          ");
+
     for (let i: number = 0; i < metrics.length; i += UPSERT_BATCH_SIZE) {
       const chunk: Array<IoTDeviceLatestMetric> = metrics.slice(
         i,
@@ -274,51 +407,26 @@ export class Service extends DatabaseService<Model> {
       let paramIndex: number = 3;
 
       for (const m of chunk) {
-        valueFragments.push(
-          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz)`,
-        );
-        params.push(
-          m.kind,
-          m.externalId,
-          m.cpuPercent !== null && m.cpuPercent !== undefined
-            ? m.cpuPercent
-            : null,
-          m.memoryBytes !== null && m.memoryBytes !== undefined
-            ? Math.trunc(m.memoryBytes).toString()
-            : null,
-          m.maxMemoryBytes !== null && m.maxMemoryBytes !== undefined
-            ? Math.trunc(m.maxMemoryBytes).toString()
-            : null,
-          m.memoryPercent !== null && m.memoryPercent !== undefined
-            ? m.memoryPercent
-            : null,
-          m.batteryPercent !== null && m.batteryPercent !== undefined
-            ? m.batteryPercent
-            : null,
-          m.signalStrengthDbm !== null && m.signalStrengthDbm !== undefined
-            ? m.signalStrengthDbm
-            : null,
-          m.temperatureCelsius !== null && m.temperatureCelsius !== undefined
-            ? m.temperatureCelsius
-            : null,
-          m.observedAt,
-        );
+        const placeholders: Array<string> = [];
+        for (const column of LATEST_METRIC_COLUMNS) {
+          placeholders.push(
+            column.cast
+              ? `$${paramIndex++}::${column.cast}`
+              : `$${paramIndex++}`,
+          );
+          params.push(column.value(m));
+        }
+        valueFragments.push(`(${placeholders.join(", ")})`);
       }
 
       const sql: string = `
         UPDATE "IoTDevice" AS p
         SET
-          "latestCpuPercent" = COALESCE(v."cpu", p."latestCpuPercent"),
-          "latestMemoryBytes" = COALESCE(v."mem", p."latestMemoryBytes"),
-          "maxMemoryBytes" = COALESCE(v."maxMem", p."maxMemoryBytes"),
-          "latestMemoryPercent" = COALESCE(v."memPct", p."latestMemoryPercent"),
-          "latestBatteryPercent" = COALESCE(v."battery", p."latestBatteryPercent"),
-          "latestSignalStrengthDbm" = COALESCE(v."signal", p."latestSignalStrengthDbm"),
-          "latestTemperatureCelsius" = COALESCE(v."temp", p."latestTemperatureCelsius"),
+          ${assignments}
           "metricsUpdatedAt" = v."observedAt",
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
-          AS v("kind", "externalId", "cpu", "mem", "maxMem", "memPct", "battery", "signal", "temp", "observedAt")
+          AS v(${aliases})
         WHERE
           p."projectId" = $1
           AND p."iotFleetId" = $2

@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "14.0.3",
+    "version": "14.0.5",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -42,8 +42,8 @@
         "install-modules": "bash ./Scripts/Dev/install-node-modules.sh",
         "audit": "bash ./Scripts/Security/npm-audit-check.sh",
         "audit-fix": "bash ./Scripts/Security/npm-audit-fix.sh",
-        "lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --cache",
-        "fix-lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --fix --cache --debug",
+        "lint": "export NODE_OPTIONS='--max-old-space-size=12288' && node ./Scripts/Lint/LintByProject.js --cache",
+        "fix-lint": "export NODE_OPTIONS='--max-old-space-size=12288' && node ./Scripts/Lint/LintByProject.js --fix --cache --debug",
         "fix": "npm run fix-lint",
         "i18n:validate": "node ./Scripts/I18n/ValidateLocales.js",
         "docs:check-anchors": "cd Scripts && npx ts-node --transpile-only ./Docs/CheckAnchors.ts",

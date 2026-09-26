@@ -905,7 +905,7 @@ const ExecutionView: FunctionComponent<
                                     ? "Show AI response"
                                     : "Show output / logs"}
                                 </span>
-                                <span className="hidden group-open:inline">
+                                <span className="inline [details:not([open])>summary>&]:hidden">
                                   {stepExec.step.type === RunbookStepType.AI
                                     ? "Hide AI response"
                                     : "Hide output / logs"}

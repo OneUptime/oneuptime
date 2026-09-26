@@ -11,6 +11,7 @@ import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterServic
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
+import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -24,6 +25,7 @@ import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
 import LogDropFilterService from "../../../Server/Services/LogDropFilterService";
 import ObjectID from "../../../Types/ObjectID";
@@ -265,6 +267,22 @@ const CLAMP_CASES: Array<ClampCase> = [
     service: RumApplicationService,
     model: new RumApplication(),
     columns: ["agentVersion", "clientType", "sdkLanguage"],
+  },
+  {
+    /*
+     * The collector heartbeat (agentVersion, dbVersion) and the container
+     * discovery refresh (upsertWorkloadDatabase) both write hook-free.
+     */
+    name: "DatabaseServerService",
+    service: DatabaseServerService,
+    model: new DatabaseServer(),
+    columns: [
+      "agentVersion",
+      "dbVersion",
+      "workloadKind",
+      "workloadName",
+      "kubernetesNamespace",
+    ],
   },
 ];
 

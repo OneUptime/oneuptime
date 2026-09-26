@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
+import SignupUser from "../Utils/SignupUser";
+import UserResponse from "../Utils/UserResponse";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -382,14 +384,20 @@ router.post(
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return Response.sendEntityResponse(req, res, user, User, {
-        miscData: {
-          accessToken: loginResult.accessToken,
-          refreshToken: loginResult.sessionMetadata.refreshToken,
-          refreshTokenExpiresAt:
-            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+      return Response.sendEntityResponse(
+        req,
+        res,
+        UserResponse.toResponseUser(user),
+        User,
+        {
+          miscData: {
+            accessToken: loginResult.accessToken,
+            refreshToken: loginResult.sessionMetadata.refreshToken,
+            refreshTokenExpiresAt:
+              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+          },
         },
-      });
+      );
     } catch (err) {
       return next(err);
     }
@@ -444,14 +452,20 @@ router.post(
           user.email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
-      return Response.sendEntityResponse(req, res, user, User, {
-        miscData: {
-          accessToken: loginResult.accessToken,
-          refreshToken: loginResult.sessionMetadata.refreshToken,
-          refreshTokenExpiresAt:
-            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+      return Response.sendEntityResponse(
+        req,
+        res,
+        UserResponse.toResponseUser(user),
+        User,
+        {
+          miscData: {
+            accessToken: loginResult.accessToken,
+            refreshToken: loginResult.sessionMetadata.refreshToken,
+            refreshTokenExpiresAt:
+              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+          },
         },
-      });
+      );
     } catch (err) {
       return next(err);
     }
@@ -544,11 +558,13 @@ router.post(
         throw new BadDataException(passwordValidationError);
       }
 
-      /* Creating a type that is a partial of the TBaseModel type. */
-      const partialUser: User = BaseModel.fromJSON(
-        data as JSONObject,
-        User,
-      ) as User;
+      /*
+       * Only the columns a signup may set. The create below runs as root,
+       * which skips column create permissions, so anything else in the body --
+       * an `_id` naming somebody else's account above all -- would be written
+       * verbatim. See SignupUser.
+       */
+      const partialUser: User = SignupUser.fromRequestData(data);
       partialUser.password = new HashedString(password as string);
 
       /*
@@ -720,6 +736,32 @@ router.post(
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
       /*
+       * A brand-new account on the hosted service (billing on) starts with an
+       * unverified address, and it gets NO session until the link in the
+       * welcome email is followed. Signing it in here would make the
+       * verification mail a formality: the session this handler mints is a
+       * full-privilege JWT that UserAuthorization validates statelessly, so a
+       * "please verify" gate drawn anywhere after this point is decoration --
+       * the same cookie answers curl. /login already refuses an unverified
+       * address, so the only thing standing between a typed-in address and the
+       * dashboard was this handler.
+       *
+       * Two signups are exempt, because each has already proved the mailbox:
+       * self-hosted installs (billing off), which mark every address verified
+       * because many of them have no working SMTP to prove anything with, and
+       * a claimed invitation, which spent a token that only ever travelled
+       * inside an email.
+       */
+      const isEmailVerificationRequired: boolean =
+        !didClaimInvitedAccount && !partialUser.isEmailVerified;
+
+      /*
+       * The token behind the welcome email's link, kept for the one test-only
+       * seam below.
+       */
+      let welcomeEmailVerificationToken: ObjectID | null = null;
+
+      /*
        * Skipped when this signup claimed an invitation: the registration token
        * it spent was itself an emailed secret, so the address is already
        * verified and a "please verify your email" mail would be asking for a
@@ -727,6 +769,7 @@ router.post(
        */
       if (!didClaimInvitedAccount) {
         const generatedToken: ObjectID = ObjectID.generate();
+        welcomeEmailVerificationToken = generatedToken;
 
         const emailVerificationToken: EmailVerificationToken =
           new EmailVerificationToken();
@@ -760,6 +803,42 @@ router.post(
           },
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        });
+      }
+
+      if (savedUser && isEmailVerificationRequired) {
+        logger.info(
+          "User signed up, awaiting email verification: " +
+            savedUser.email?.toString(),
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+
+        /*
+         * No entity in the body: nobody is signed in, so there is nobody to
+         * describe, and the page already knows the address it just typed.
+         */
+        return Response.sendEntityResponse(req, res, null, User, {
+          miscData: {
+            emailVerificationRequired: true,
+
+            /*
+             * TEST-ONLY seam, OFF unless explicitly switched on -- the same
+             * flag, and the same reasoning, as the one in UserEmailService.
+             * The CI end-to-end stack has no mailbox to read the welcome email
+             * from, so it is handed the token here and follows the link the
+             * way a user would. The flag is unset in every shipped config;
+             * with it absent the token only ever travels inside the email,
+             * which is the entire point of the email.
+             */
+            ...(process.env[
+              "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E"
+            ] === "true" && welcomeEmailVerificationToken
+              ? {
+                  emailVerificationToken:
+                    welcomeEmailVerificationToken.toString(),
+                }
+              : {}),
+          },
         });
       }
 
@@ -800,7 +879,17 @@ router.post(
           });
         }
 
-        return Response.sendEntityResponse(req, res, savedUser, User);
+        /*
+         * Never `savedUser` itself. On a fresh account it is the very model
+         * `create` hashed the password into and minted the salt onto, and it
+         * carries every other column the request body set. See UserResponse.
+         */
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(savedUser),
+          User,
+        );
       }
 
       return Response.sendErrorResponse(
@@ -1113,6 +1202,16 @@ router.post(
           password: user.password!,
           resetPasswordToken: null!,
           resetPasswordExpires: null!,
+          /*
+           * The reset token only ever travelled inside an email to this
+           * account's current address -- changing the address clears it (see
+           * UserService.onBeforeUpdate) -- so spending it proves the mailbox,
+           * exactly as /verify-email does. Without this, somebody who never
+           * found their welcome email would reset their password only to be
+           * told at the next sign-in to go and verify the address they have
+           * just proved they own.
+           */
+          isEmailVerified: true,
         },
         props: {
           isRoot: true,
@@ -1765,18 +1864,6 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (!alreadySavedUser.isEmailVerified) {
-        await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
-
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException(
-            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
-          ),
-        );
-      }
-
       /*
        * Verified once, against this user's own salt, and reused for the
        * final gate below. Re-verifying there would repeat the legacy-hash
@@ -1817,6 +1904,32 @@ const login: LoginFunction = async (options: {
         );
       }
 
+      /*
+       * An unverified address gets no session, on any stage. This is the gate
+       * a hosted signup is held at until its welcome link is followed, and
+       * the way back for somebody who lost that email: signing in mails them a
+       * fresh link.
+       *
+       * After the password, not before it. Ahead of the password this was a
+       * button anyone who knew an address could press -- every press sent the
+       * owner another email, and the reply told the presser the account
+       * existed and had not been verified. Only the password holder learns
+       * that now, and only their attempts send mail. Somebody who does not
+       * have the password recovers through forgot-password instead, whose
+       * reset link proves the mailbox and so verifies the address on the way.
+       */
+      if (!alreadySavedUser.isEmailVerified) {
+        await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
+          ),
+        );
+      }
+
       if (alreadySavedUser.enableTwoFactorAuth && !isSecondStep) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
@@ -1853,22 +1966,25 @@ const login: LoginFunction = async (options: {
             await getOrCreatePendingTotpEnrolment(alreadySavedUser.id!);
 
           // See the note on the successful-login response below.
-          delete (alreadySavedUser as any).password;
-          delete (alreadySavedUser as any).passwordSalt;
-
-          return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-            miscData: {
-              twoFactorEnrolmentRequired: true,
-              twoFactorAuthId: pendingEnrolment.id!.toString(),
-              /*
-               * The URL, never `twoFactorSecret`. They encode the same bytes,
-               * but the URL is what a QR code has to contain, and selecting
-               * the raw column would put a bare secret in a page's network tab
-               * for no additional capability.
-               */
-              twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+          return Response.sendEntityResponse(
+            req,
+            res,
+            UserResponse.toResponseUser(alreadySavedUser),
+            User,
+            {
+              miscData: {
+                twoFactorEnrolmentRequired: true,
+                twoFactorAuthId: pendingEnrolment.id!.toString(),
+                /*
+                 * The URL, never `twoFactorSecret`. They encode the same bytes,
+                 * but the URL is what a QR code has to contain, and selecting
+                 * the raw column would put a bare secret in a page's network tab
+                 * for no additional capability.
+                 */
+                twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+              },
             },
-          });
+          );
         }
 
         /*
@@ -1907,29 +2023,38 @@ const login: LoginFunction = async (options: {
         }
 
         // See the note on the successful-login response below.
-        delete (alreadySavedUser as any).password;
-        delete (alreadySavedUser as any).passwordSalt;
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(alreadySavedUser),
+          User,
+          {
+            miscData: {
+              totpAuthList: UserTotpAuth.toJSONArray(
+                totpAuthList,
+                UserTotpAuth,
+              ),
+              webAuthnList: UserWebAuthn.toJSONArray(
+                webAuthnList,
+                UserWebAuthn,
+              ),
 
-        return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-          miscData: {
-            totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
-            webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
-
-            /*
-             * OMITTED, not zeroed, when the count could not be read. Zero is a
-             * claim -- the sign-in page now says "you have no backup codes,
-             * ask an administrator to reset two factor auth" on the strength
-             * of it -- and that claim is false for a user who has ten codes in
-             * their hand and is hitting a database that briefly cannot count
-             * them. Sending nothing means "unknown", which the page renders as
-             * the code form: a user with codes can still use them, and a user
-             * without gets the same refusal they would have got anyway.
-             */
-            ...(backupCodeCount === null
-              ? {}
-              : { backupCodeCount: backupCodeCount }),
+              /*
+               * OMITTED, not zeroed, when the count could not be read. Zero is a
+               * claim -- the sign-in page now says "you have no backup codes,
+               * ask an administrator to reset two factor auth" on the strength
+               * of it -- and that claim is false for a user who has ten codes in
+               * their hand and is hitting a database that briefly cannot count
+               * them. Sending nothing means "unknown", which the page renders as
+               * the code form: a user with codes can still use them, and a user
+               * without gets the same refusal they would have got anyway.
+               */
+              ...(backupCodeCount === null
+                ? {}
+                : { backupCodeCount: backupCodeCount }),
+            },
           },
-        });
+        );
       }
 
       if (isSecondStep) {
@@ -2334,41 +2459,45 @@ const login: LoginFunction = async (options: {
          * sendEntityResponse serializes whatever is set on the model, with no
          * regard for read permissions, so the credential columns selected for
          * verification would otherwise be echoed back in the login response.
+         * UserResponse copies out only the columns the sign-in pages read.
          */
-        delete (alreadySavedUser as any).password;
-        delete (alreadySavedUser as any).passwordSalt;
+        return Response.sendEntityResponse(
+          req,
+          res,
+          UserResponse.toResponseUser(alreadySavedUser),
+          User,
+          {
+            miscData: {
+              accessToken: loginResult.accessToken,
+              refreshToken: loginResult.sessionMetadata.refreshToken,
+              refreshTokenExpiresAt:
+                loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
 
-        return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
-          miscData: {
-            accessToken: loginResult.accessToken,
-            refreshToken: loginResult.sessionMetadata.refreshToken,
-            refreshTokenExpiresAt:
-              loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+              /*
+               * Present only on a login that just enrolled a first factor and
+               * minted a set behind it. Hyphenated for the page to render as-is,
+               * exactly as the regenerate route does; the verify route
+               * normalizes whatever the user types back.
+               */
+              ...(enrolmentBackupCodes.length > 0
+                ? {
+                    backupCodes: enrolmentBackupCodes.map((code: string) => {
+                      return TwoFactorBackupCode.formatForDisplay(code);
+                    }),
+                  }
+                : {}),
 
-            /*
-             * Present only on a login that just enrolled a first factor and
-             * minted a set behind it. Hyphenated for the page to render as-is,
-             * exactly as the regenerate route does; the verify route
-             * normalizes whatever the user types back.
-             */
-            ...(enrolmentBackupCodes.length > 0
-              ? {
-                  backupCodes: enrolmentBackupCodes.map((code: string) => {
-                    return TwoFactorBackupCode.formatForDisplay(code);
-                  }),
-                }
-              : {}),
-
-            /*
-             * Sent only when it is true, and only by the enrolment path, so
-             * that the sign-in page does not offer to generate a set for
-             * somebody who is already holding one. See the note at the mint.
-             */
-            ...(enrolmentAccountAlreadyHadCodes
-              ? { hasBackupCodes: true }
-              : {}),
+              /*
+               * Sent only when it is true, and only by the enrolment path, so
+               * that the sign-in page does not offer to generate a set for
+               * somebody who is already holding one. See the note at the mint.
+               */
+              ...(enrolmentAccountAlreadyHadCodes
+                ? { hasBackupCodes: true }
+                : {}),
+            },
           },
-        });
+        );
       }
     }
     return Response.sendErrorResponse(

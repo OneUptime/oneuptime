@@ -112,7 +112,13 @@
     "loginLink": "登录。",
     "notifySelfHosted": "通知我有关安全补丁和新版本",
     "checkEmailTitle": "请查看您的电子邮件",
-    "checkEmailMessage": "如果此电子邮件地址有一个等待设置的账户，我们已向其发送了完成注册的链接。请不要忘记检查垃圾邮件。"
+    "checkEmailMessage": "如果此电子邮件地址有一个等待设置的账户，我们已向其发送了完成注册的链接。请不要忘记检查垃圾邮件。",
+    "verifyEmailTitle": "验证您的电子邮件以完成注册",
+    "verifyEmailSentTo": "我们已向 {{email}} 发送了验证链接。",
+    "verifyEmailSent": "我们已向您发送了验证链接。",
+    "verifyEmailInstructions": "打开该邮件中的链接以激活您的账户，然后登录。",
+    "verifyEmailResendHint": "找不到邮件？请检查垃圾邮件文件夹。该链接将在 24 小时后失效，使用您的电子邮件和密码登录时，我们会向您发送新的链接。",
+    "verifyEmailLoginLink": "前往登录"
   },
   "forgotPassword": {
     "title": "忘记密码",
@@ -152,7 +158,8 @@
     "successDescription": "感谢您验证您的电子邮件。您现在可以登录 OneUptime。",
     "errorTitle": "抱歉，出错了！",
     "returnToSignIn": "返回登录？",
-    "loginLink": "登录。"
+    "loginLink": "登录。",
+    "continueToSignIn": "继续登录"
   },
   "errors": {
     "forbidden": {

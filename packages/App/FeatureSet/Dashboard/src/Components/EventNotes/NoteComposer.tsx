@@ -455,7 +455,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
             )}
             <span>{tx(props.submitLabel || props.copy.submitLabel)}</span>
-            <kbd className="hidden rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium text-indigo-50 sm:inline">
+            <kbd className="max-sm:hidden rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium text-indigo-50 sm:inline">
               {submitShortcut}
             </kbd>
           </button>

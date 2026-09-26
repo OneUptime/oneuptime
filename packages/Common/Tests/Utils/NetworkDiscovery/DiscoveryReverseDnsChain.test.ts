@@ -7,6 +7,16 @@ import {
   getDiscoveredHostDisplayName,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import {
+  DiscoveredHostNamingExplanation,
+  REVERSE_DNS_NOT_RECORDED_SENTENCE,
+  explainUnnamedDiscoveredHost,
+} from "../../../Utils/NetworkDiscovery/DiscoveredHostNamingDiagnosis";
+import { DiscoveryScanStatus } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "../../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
@@ -521,6 +531,13 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
      * a root dot is stripped, a padded address is trimmed, a numeric sysName
      * is blanked, and a rejected PTR key is deleted. A payload that was
      * already clean would make this test pass no matter what.
+     *
+     * The last two rows also carry the naming status codes of issue #3916,
+     * one valid and one junk each, so the first pass deletes a code from
+     * each field and keeps one in each. Those keys decide whether a row
+     * reads as "the naming passes ran" in the Review dialog, so a code that
+     * came back as `undefined` on the second pass would be exactly the
+     * split reading this test exists for.
      */
     const payload: Array<unknown> = [
       {
@@ -528,11 +545,18 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
         snmpReachable: false,
         dnsHostname: "hq-router-01.corp.example.net.",
       },
-      { ipAddress: " 10.18.166.53 ", sysName: 42 },
+      {
+        ipAddress: " 10.18.166.53 ",
+        sysName: 42,
+        dnsHostnameStatus: "TIMEOUT",
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+      },
       {
         ipAddress: "10.18.166.54",
         snmpReachable: false,
         dnsHostname: "in-addr.arpa",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.UnusableName,
+        netbiosNameStatus: 7,
       },
     ];
 
@@ -566,6 +590,32 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
     // The rejected PTR key is absent after BOTH passes, not present-and-blank.
     expect(once[2]).not.toHaveProperty("dnsHostname");
     expect(twice[2]).not.toHaveProperty("dnsHostname");
+
+    /*
+     * The exact keys each row ends with, the two naming status codes
+     * included: the junk ones gone, the valid ones kept, and no row gaining
+     * a key it did not arrive with.
+     */
+    expect(
+      once.map((host: DiscoveredNetworkDevice): Array<string> => {
+        return Object.keys(host).sort();
+      }),
+    ).toEqual([
+      ["dnsHostname", "ipAddress", "snmpReachable"],
+      ["ipAddress", "netbiosNameStatus", "sysName"],
+      ["dnsHostnameStatus", "ipAddress", "snmpReachable"],
+    ]);
+
+    for (const pass of [once, twice]) {
+      expect(pass[1]).not.toHaveProperty("dnsHostnameStatus");
+      expect(pass[1]?.netbiosNameStatus).toBe(
+        DiscoveredHostNetbiosStatus.NoReply,
+      );
+      expect(pass[2]?.dnsHostnameStatus).toBe(
+        DiscoveredHostReverseDnsStatus.UnusableName,
+      );
+      expect(pass[2]).not.toHaveProperty("netbiosNameStatus");
+    }
 
     const namesOnce: Array<string> = once.map(
       (host: DiscoveredNetworkDevice): string => {
@@ -1701,5 +1751,290 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
     expect(retry.name).toBe("reg01 (10.18.167.32)");
     expect(retry.hostname).toBe("10.18.167.32");
     expect(retry.dnsName).toBeUndefined();
+  });
+});
+
+/*
+ * OneUptime issue #3916 — why a host is listed by its address.
+ *
+ * The probe now stamps a short code on each host it could not name: what
+ * the reverse-DNS lookup came back with, and what NetBIOS did. The Review
+ * dialog turns those into the sentence beside the address. This block runs
+ * the codes down the same path the names take — payload, jsonb,
+ * normalizeDiscoveredHosts, then the row's name and its explanation — and
+ * pins the joints:
+ *
+ *   - the normaliser and the explanation read the codes the same way, so a
+ *     junk code cannot mean "a code" to one and "no code" to the other;
+ *   - the explanation is shown on exactly the rows whose name is their
+ *     address;
+ *   - the codes never change what a host is called or what device is built.
+ */
+describe("Naming status codes, probe payload to the Review row's explanation", () => {
+  /*
+   * The scan the way the dialog really hands it over: through the model's
+   * serializer and back, so its status and settings are what a stored row
+   * yields.
+   */
+  function scanThroughSerializer(settings: {
+    isSnmpEnabled: boolean;
+    isNetbiosLookupEnabled: boolean;
+  }): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+    scan.status = DiscoveryScanStatus.Completed;
+    scan.isSnmpEnabled = settings.isSnmpEnabled;
+    scan.isNetbiosLookupEnabled = settings.isNetbiosLookupEnabled;
+
+    const wire: JSONObject = JSON.parse(
+      JSON.stringify(
+        DatabaseBaseModel.toJSON(scan, NetworkDeviceDiscoveryScan),
+      ),
+    ) as JSONObject;
+
+    return DatabaseBaseModel.fromJSONObject(wire, NetworkDeviceDiscoveryScan);
+  }
+
+  /*
+   * The reporter's scan: ping only. NetBIOS names on, the wizard's default,
+   * since the issue does not say.
+   */
+  const REPORTERS_SCAN: NetworkDeviceDiscoveryScan = scanThroughSerializer({
+    isSnmpEnabled: false,
+    isNetbiosLookupEnabled: true,
+  });
+
+  /*
+   * The reporter's kitchen displays as a current probe would send them,
+   * plus the rows a probe of another version could leave in the column:
+   *
+   *   .51  named by PTR: a named host carries no codes
+   *   .52  the DNS server answered: no PTR record
+   *   .53  the DNS server did not answer in time
+   *   .54  the DNS server answered SERVFAIL
+   *   .55  a PTR answer that normalised away (an older probe stored the name
+   *        too), so the host is unnamed, with the code that says why
+   *   .56  a code from a newer probe, which this build does not know
+   *   .57  a row from an older probe: no codes at all
+   *   .58  a reverse-DNS code on a host NetBIOS then named
+   */
+  const PAYLOAD: Array<unknown> = [
+    {
+      ipAddress: "10.16.42.51",
+      snmpReachable: false,
+      dnsHostname: "WB0024KDS02.corp.example.com",
+    },
+    {
+      ipAddress: "10.16.42.52",
+      snmpReachable: false,
+      dnsHostnameStatus: "no-record",
+      netbiosNameStatus: "no-reply",
+    },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: false,
+      dnsHostnameStatus: "timeout",
+      netbiosNameStatus: "no-reply",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostnameStatus: "server-failure",
+      netbiosNameStatus: "no-reply",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "55.42.16.10.in-addr.arpa",
+      dnsHostnameStatus: "unusable-name",
+      netbiosNameStatus: "no-usable-name",
+    },
+    {
+      ipAddress: "10.16.42.56",
+      snmpReachable: false,
+      dnsHostnameStatus: "dnssec-bogus",
+      netbiosNameStatus: "no-reply",
+    },
+    { ipAddress: "10.16.42.57", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.58",
+      snmpReachable: false,
+      dnsHostnameStatus: "no-record",
+      netbiosName: "WB0024KDS08",
+    },
+  ];
+
+  function explanationsOf(
+    hosts: Array<DiscoveredNetworkDevice>,
+  ): Array<DiscoveredHostNamingExplanation | undefined> {
+    return hosts.map(
+      (
+        host: DiscoveredNetworkDevice,
+      ): DiscoveredHostNamingExplanation | undefined => {
+        return explainUnnamedDiscoveredHost({
+          host: host,
+          scan: REPORTERS_SCAN,
+          isGlobalProbe: false,
+        });
+      },
+    );
+  }
+
+  it("keeps the scan's settings and status through the serializer", () => {
+    expect(REPORTERS_SCAN.status).toBe(DiscoveryScanStatus.Completed);
+    expect(REPORTERS_SCAN.isSnmpEnabled).toBe(false);
+    expect(REPORTERS_SCAN.isNetbiosLookupEnabled).toBe(true);
+  });
+
+  it("stores every code a current probe sends, and drops the one this build does not know", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): Array<unknown> => {
+        return [host.dnsHostnameStatus, host.netbiosNameStatus];
+      }),
+    ).toEqual([
+      [undefined, undefined],
+      [
+        DiscoveredHostReverseDnsStatus.NoRecord,
+        DiscoveredHostNetbiosStatus.NoReply,
+      ],
+      [
+        DiscoveredHostReverseDnsStatus.Timeout,
+        DiscoveredHostNetbiosStatus.NoReply,
+      ],
+      [
+        DiscoveredHostReverseDnsStatus.ServerFailure,
+        DiscoveredHostNetbiosStatus.NoReply,
+      ],
+      [
+        DiscoveredHostReverseDnsStatus.UnusableName,
+        DiscoveredHostNetbiosStatus.NoUsableName,
+      ],
+      [undefined, DiscoveredHostNetbiosStatus.NoReply],
+      [undefined, undefined],
+      [DiscoveredHostReverseDnsStatus.NoRecord, undefined],
+    ]);
+
+    // Deleted, not left behind holding undefined.
+    expect(hosts[5]).not.toHaveProperty("dnsHostnameStatus");
+    expect(hosts[6]).not.toHaveProperty("dnsHostnameStatus");
+    expect(hosts[6]).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  it("explains each unnamed display by its own lookup, and the named ones not at all", () => {
+    const explanations: Array<DiscoveredHostNamingExplanation | undefined> =
+      explanationsOf(hostsFromPayload(PAYLOAD));
+
+    // Named by PTR, and by NetBIOS: no hint.
+    expect(explanations[0]).toBeUndefined();
+    expect(explanations[7]).toBeUndefined();
+
+    /*
+     * The three the issue could not tell apart. The exact sentences are
+     * pinned in DiscoveredHostNamingDiagnosis.test.ts; this only checks that
+     * each row reached the one for its own code.
+     */
+    expect(explanations[1]?.text).toContain("no PTR record");
+    expect(explanations[2]?.text).toContain("did not answer in time");
+    expect(explanations[3]?.text).toContain("SERVFAIL");
+    expect(explanations[4]?.text).toContain("not a valid hostname");
+
+    for (const index of [1, 2, 3, 4]) {
+      expect(explanations[index]?.text).not.toContain(
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
+      );
+    }
+
+    /*
+     * The unknown code and the older probe's row both say only that no name
+     * was recorded, and say it the same way.
+     */
+    expect(explanations[5]?.text).toContain(REVERSE_DNS_NOT_RECORDED_SENTENCE);
+    expect(explanations[6]?.text).toContain(REVERSE_DNS_NOT_RECORDED_SENTENCE);
+    expect(explanations[5]?.text).not.toContain("PTR");
+    expect(explanations[6]?.text).not.toContain("PTR");
+  });
+
+  it("explains a row the same from the raw stored jsonb as from the normalised row", () => {
+    /*
+     * The explanation reads the codes through the same whitelist the
+     * normaliser applies, so handing it an un-normalised row changes
+     * nothing. If the two whitelists ever drifted, the unknown-code row
+     * would be where it showed.
+     */
+    expect(explanationsOf(storedScanResults(PAYLOAD))).toStrictEqual(
+      explanationsOf(hostsFromPayload(PAYLOAD)),
+    );
+  });
+
+  it("shows the explanation on exactly the rows named by their address", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(PAYLOAD);
+    const explanations: Array<DiscoveredHostNamingExplanation | undefined> =
+      explanationsOf(hosts);
+
+    hosts.forEach((host: DiscoveredNetworkDevice, index: number) => {
+      expect(Boolean(explanations[index])).toBe(
+        buildDeviceName(host, FULL_NAMES) === host.ipAddress,
+      );
+    });
+  });
+
+  it("names and builds the same devices with the codes as without them", () => {
+    /*
+     * The codes explain a name; they must never choose one. The same payload
+     * with every code stripped has to import identically.
+     */
+    const withoutCodes: Array<unknown> = PAYLOAD.map(
+      (entry: unknown): unknown => {
+        const copy: JSONObject = { ...(entry as JSONObject) };
+        delete copy["dnsHostnameStatus"];
+        delete copy["netbiosNameStatus"];
+        return copy;
+      },
+    );
+
+    expect(namesFromPayload(PAYLOAD)).toEqual(namesFromPayload(withoutCodes));
+    expect(namesFromPayload(PAYLOAD)).toEqual([
+      "WB0024KDS02.corp.example.com",
+      "10.16.42.52",
+      "10.16.42.53",
+      "10.16.42.54",
+      "10.16.42.55",
+      "10.16.42.56",
+      "10.16.42.57",
+      "wb0024kds08",
+    ]);
+
+    expect(deviceHostnames(devicesFromPayload(PAYLOAD))).toEqual(
+      deviceHostnames(devicesFromPayload(withoutCodes)),
+    );
+  });
+
+  it("never carries a code into the created device", () => {
+    /*
+     * A code is a note about one scan's lookup, not a property of the
+     * device. Nothing of it may reach the NetworkDevice row an import
+     * creates.
+     */
+    for (const device of devicesFromPayload(PAYLOAD)) {
+      const stored: string = JSON.stringify(
+        DatabaseBaseModel.toJSON(device, NetworkDevice),
+      );
+
+      // The serialised device is real: it carries the address it dials.
+      expect(stored).toContain(`"${device.hostname}"`);
+
+      for (const forbidden of [
+        "dnsHostnameStatus",
+        "netbiosNameStatus",
+        "no-record",
+        "server-failure",
+        "unusable-name",
+        "no-reply",
+        "no-usable-name",
+      ]) {
+        expect(stored).not.toContain(forbidden);
+      }
+    }
   });
 });

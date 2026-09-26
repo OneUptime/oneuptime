@@ -4,6 +4,11 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import ConcurrencyLimiter from "./ConcurrencyLimiter";
+import ProcessTreeMemory, {
+  ProcessMemoryIdentity,
+  ProportionalMemoryReading,
+} from "./ProcessTreeMemory";
+import logger from "Common/Server/Utils/Logger";
 import { SyntheticRuntimeFaultKind } from "./SyntheticRuntimeFault";
 import { SYNTHETIC_RUNTIME_CONTROLLER_HOST } from "./ControllerOrigin";
 import {
@@ -42,6 +47,34 @@ const PROCESS_TABLE_TIMEOUT_IN_MS: number = 1000;
 const MAXIMUM_EXECUTION_TIMEOUT_IN_MS: number = 2_147_483_647;
 const DEFAULT_MAX_PROCESS_TREE_RSS_BYTES: number = 1536 * 1024 * 1024;
 const DEFAULT_RSS_POLL_INTERVAL_IN_MS: number = 250;
+/*
+ * A tree read by PSS is not read again for this long unless its summed VmRSS
+ * grows by more than it then had to spare. Each reading walks the page tables
+ * of every process in the tree, and a heavy but healthy check can sit over the
+ * limit by VmRSS and under it by PSS for its whole run.
+ */
+const PROPORTIONAL_READING_REUSE_IN_MS: number = 1000;
+/*
+ * How long readings may keep failing -- timing out, or coming back short --
+ * before the tree is judged by what could be read, counting every process
+ * whose PSS is missing at its VmRSS. A starved probe can make a reading or
+ * two slow; a tree cannot hold off its own measurement for longer than this.
+ * A failed reading is retried after a pause, not on the next poll, so the
+ * retry does not land in the same stall.
+ */
+const INCOMPLETE_READINGS_GRACE_IN_MS: number = 10 * 1000;
+/*
+ * A reading asks about the processes in the tree when it starts, and the
+ * tree can change before it is done. Processes that appeared meanwhile are
+ * read in a further round, up to this many rounds in all. A tree still
+ * changing after the last one is changing faster than it can be read, and the
+ * reading is incomplete: read again after a pause, and judged -- with the
+ * processes it could not read at their VmRSS -- only once that has gone on
+ * for INCOMPLETE_READINGS_GRACE_IN_MS.
+ */
+const MAX_PROPORTIONAL_READING_ROUNDS: number = 3;
+const INCOMPLETE_READING_RETRY_DELAY_IN_MS: number = 1000;
+const INCOMPLETE_READING_WARNING_INTERVAL_IN_MS: number = 60 * 1000;
 const DEFAULT_MAX_DISK_BYTES: number = 256 * 1024 * 1024;
 const DEFAULT_MAX_DISK_ENTRIES: number = 10_000;
 const DEFAULT_DISK_POLL_INTERVAL_IN_MS: number = 250;
@@ -85,9 +118,30 @@ interface ProcessRecord {
   readonly rssBytes: number | null;
 }
 
+interface MemoryLimitObservation {
+  readonly observedBytes: number;
+  // Set when the tree was read by PSS.
+  readonly processCount?: number | undefined;
+  readonly residentFallbackCount?: number | undefined;
+}
+
+interface ProcessTreeReading {
+  // The tree as it was when the reading finished.
+  readonly snapshot: ProcessTreeSnapshot;
+  readonly observedBytes: number;
+  readonly residentFallbackCount: number;
+  readonly isComplete: boolean;
+  readonly failure: string | null;
+}
+
 interface ProcessTreeSnapshot {
   readonly records: Map<number, ProcessRecord>;
   readonly callerProcessGroupId: number | null;
+  /*
+   * Read from /proc rather than from `ps`. Only then are the pids ones whose
+   * smaps_rollup can be read, and the tree measured by PSS.
+   */
+  readonly isFromProcFileSystem: boolean;
 }
 
 interface RunDirectoryDiskUsage {
@@ -319,6 +373,7 @@ export default class ProcessRunner {
   private readonly maxDiskEntries: number;
   private readonly diskPollIntervalInMs: number;
   private readonly childIdentityAllocator: ChildIdentityAllocator;
+  private lastIncompleteReadingWarningAtInMs: number | null = null;
 
   public constructor(options: ProcessRunnerOptions) {
     if (!options.workerEntryPath.trim()) {
@@ -894,11 +949,12 @@ export default class ProcessRunner {
       ? this.startProcessTreeRssWatchdog({
           rootPid: child.pid,
           trackedTree,
-          onLimitExceeded: (observedRssBytes: number): void => {
+          identity: data.identity
+            ? { uid: data.identity.uid, gid: data.identity.gid }
+            : null,
+          onLimitExceeded: (observation: MemoryLimitObservation): void => {
             completeWithError(
-              new Error(
-                `Synthetic worker process tree exceeded RSS limit of ${this.maxProcessTreeRssBytes} bytes (observed ${observedRssBytes} bytes).`,
-              ),
+              new Error(this.describeMemoryLimitExceeded(observation)),
             );
           },
         })
@@ -1548,6 +1604,7 @@ export default class ProcessRunner {
     return {
       records,
       callerProcessGroupId: callerRecord?.processGroupId ?? null,
+      isFromProcFileSystem: true,
     };
   }
 
@@ -1621,22 +1678,7 @@ export default class ProcessRunner {
   }
 
   private readLinuxRssBytes(pid: number): number | null {
-    try {
-      const status: string = fs.readFileSync(`/proc/${pid}/status`, "utf8");
-      const match: RegExpMatchArray | null = status.match(
-        /^VmRSS:\s+(\d+)\s+kB\s*$/m,
-      );
-      if (!match) {
-        return null;
-      }
-
-      const rssInKilobytes: number = Number(match[1]);
-      const rssBytes: number = rssInKilobytes * 1024;
-      return Number.isSafeInteger(rssBytes) ? rssBytes : null;
-    } catch {
-      // A process can exit between reading its stat and status files.
-      return null;
-    }
+    return ProcessTreeMemory.readResidentBytes(pid);
   }
 
   private getPortableProcessTreeSnapshot(
@@ -1697,6 +1739,7 @@ export default class ProcessRunner {
       return {
         records: new Map<number, ProcessRecord>(),
         callerProcessGroupId: null,
+        isFromProcFileSystem: false,
       };
     }
 
@@ -1735,25 +1778,102 @@ export default class ProcessRunner {
     return {
       records,
       callerProcessGroupId: allRecords.get(process.pid)?.processGroupId ?? null,
+      isFromProcFileSystem: false,
     };
   }
 
+  /*
+   * Polls the memory the worker's process tree holds and reports the first
+   * reading over the limit. See ProcessTreeMemory for what is measured: every
+   * poll sums VmRSS, and a tree over the limit by that sum is read again by
+   * PSS -- asynchronously, through a helper when the tree runs under its own
+   * uid -- and only reported if it is over by that measure too.
+   */
   private startProcessTreeRssWatchdog(data: {
     readonly rootPid: number;
     readonly trackedTree: TrackedProcessTree;
-    readonly onLimitExceeded: (observedRssBytes: number) => void;
+    readonly identity: ProcessMemoryIdentity | null;
+    readonly onLimitExceeded: (observation: MemoryLimitObservation) => void;
   }): () => void {
     let isStopped: boolean = false;
     let pollHandle: ReturnType<typeof setTimeout> | undefined;
+    let proportionalMeasurement: AbortController | null = null;
+    let lastReading: {
+      readonly observedBytes: number;
+      readonly observedRssBytes: number;
+      readonly readAtInMs: number;
+    } | null = null;
+    let firstIncompleteReadingAtInMs: number | null = null;
+
+    const scheduleNextPoll: (delayInMs?: number) => void = (
+      delayInMs?: number,
+    ): void => {
+      pollHandle = global.setTimeout(
+        poll,
+        Math.max(delayInMs ?? 0, this.rssPollIntervalInMs),
+      );
+      pollHandle.unref?.();
+    };
+
+    const reportLimitExceeded: (observation: MemoryLimitObservation) => void = (
+      observation: MemoryLimitObservation,
+    ): void => {
+      isStopped = true;
+      data.onLimitExceeded(observation);
+    };
+
+    const onReading: (reading: ProcessTreeReading) => void = (
+      reading: ProcessTreeReading,
+    ): void => {
+      if (!reading.isComplete) {
+        const nowInMs: number = Date.now();
+        firstIncompleteReadingAtInMs ??= nowInMs;
+        this.warnAboutIncompleteReading(reading.failure);
+
+        if (
+          nowInMs - firstIncompleteReadingAtInMs <
+          INCOMPLETE_READINGS_GRACE_IN_MS
+        ) {
+          scheduleNextPoll(INCOMPLETE_READING_RETRY_DELAY_IN_MS);
+          return;
+        }
+      } else {
+        firstIncompleteReadingAtInMs = null;
+      }
+
+      if (reading.observedBytes > this.maxProcessTreeRssBytes) {
+        reportLimitExceeded({
+          observedBytes: reading.observedBytes,
+          processCount: reading.snapshot.records.size,
+          residentFallbackCount: reading.residentFallbackCount,
+        });
+        return;
+      }
+
+      /*
+       * Reused only when every process was read by PSS: one counted at its
+       * VmRSS may be a process that has since been replaced.
+       */
+      lastReading =
+        reading.isComplete && reading.residentFallbackCount === 0
+          ? {
+              observedBytes: reading.observedBytes,
+              observedRssBytes:
+                this.sumProcessTreeRssBytes(reading.snapshot) ?? 0,
+              readAtInMs: Date.now(),
+            }
+          : null;
+      scheduleNextPoll();
+    };
 
     const poll: () => void = (): void => {
       if (isStopped) {
         return;
       }
 
-      let observedRssBytes: number | null = null;
+      let snapshot: ProcessTreeSnapshot | null = null;
       try {
-        observedRssBytes = this.getProcessTreeRssBytes(
+        snapshot = this.getProcessTreeMemorySnapshot(
           data.rootPid,
           data.trackedTree,
         );
@@ -1763,17 +1883,60 @@ export default class ProcessRunner {
          * transient /proc or process-table read failure.
          */
       }
+
+      const observedRssBytes: number | null = snapshot
+        ? this.sumProcessTreeRssBytes(snapshot)
+        : null;
       if (
-        observedRssBytes !== null &&
-        observedRssBytes > this.maxProcessTreeRssBytes
+        !snapshot ||
+        observedRssBytes === null ||
+        observedRssBytes <= this.maxProcessTreeRssBytes
       ) {
-        isStopped = true;
-        data.onLimitExceeded(observedRssBytes);
+        scheduleNextPoll();
         return;
       }
 
-      pollHandle = global.setTimeout(poll, this.rssPollIntervalInMs);
-      pollHandle.unref?.();
+      // `ps` names no pids whose PSS could be read.
+      if (!snapshot.isFromProcFileSystem) {
+        reportLimitExceeded({ observedBytes: observedRssBytes });
+        return;
+      }
+
+      /*
+       * Within a second of a reading, the tree's PSS can have grown by little
+       * more than its summed VmRSS has, so a tree that has not grown by more
+       * than it had to spare is still under the limit. Little more, not
+       * nothing: a process that frees a page another still maps and fills
+       * the space with new memory raises PSS without raising the sum, which
+       * is why the reading is only reused for a second.
+       */
+      if (
+        lastReading &&
+        Date.now() - lastReading.readAtInMs <
+          PROPORTIONAL_READING_REUSE_IN_MS &&
+        observedRssBytes - lastReading.observedRssBytes <
+          this.maxProcessTreeRssBytes - lastReading.observedBytes
+      ) {
+        scheduleNextPoll();
+        return;
+      }
+
+      const measurement: AbortController = new AbortController();
+      proportionalMeasurement = measurement;
+
+      void this.readProcessTreeProportionally({
+        firstSnapshot: snapshot,
+        rootPid: data.rootPid,
+        trackedTree: data.trackedTree,
+        identity: data.identity,
+        signal: measurement.signal,
+      }).then((reading: ProcessTreeReading): void => {
+        if (isStopped || proportionalMeasurement !== measurement) {
+          return;
+        }
+        proportionalMeasurement = null;
+        onReading(reading);
+      });
     };
 
     poll();
@@ -1787,17 +1950,151 @@ export default class ProcessRunner {
       if (pollHandle) {
         global.clearTimeout(pollHandle);
       }
+      proportionalMeasurement?.abort();
+      proportionalMeasurement = null;
     };
   }
 
-  private getProcessTreeRssBytes(
+  /*
+   * Reads the tree by PSS as it is when the reading finishes, not as it was
+   * when it began: a process that exited meanwhile holds nothing and counts
+   * at nothing, and one that started meanwhile is read in a further round.
+   * Otherwise a tree could hide memory in processes that live shorter than a
+   * reading takes. Never rejects.
+   */
+  private async readProcessTreeProportionally(data: {
+    readonly firstSnapshot: ProcessTreeSnapshot;
+    readonly rootPid: number;
+    readonly trackedTree: TrackedProcessTree;
+    readonly identity: ProcessMemoryIdentity | null;
+    readonly signal: AbortSignal;
+  }): Promise<ProcessTreeReading> {
+    const proportionalBytesByPid: Map<number, number> = new Map<
+      number,
+      number
+    >();
+    const askedPids: Set<number> = new Set<number>();
+    let snapshot: ProcessTreeSnapshot = data.firstSnapshot;
+    let failure: string | null = null;
+
+    for (
+      let round: number = 0;
+      round < MAX_PROPORTIONAL_READING_ROUNDS;
+      round++
+    ) {
+      const pids: number[] = [...snapshot.records.keys()].filter(
+        (pid: number): boolean => {
+          return !askedPids.has(pid);
+        },
+      );
+      if (pids.length === 0) {
+        break;
+      }
+      for (const pid of pids) {
+        askedPids.add(pid);
+      }
+
+      const reading: ProportionalMemoryReading =
+        await ProcessTreeMemory.measureProportionalBytes({
+          pids,
+          identity: data.identity,
+          signal: data.signal,
+        });
+      for (const [pid, proportionalBytes] of reading.proportionalBytesByPid) {
+        proportionalBytesByPid.set(pid, proportionalBytes);
+      }
+
+      if (!reading.isComplete || data.signal.aborted) {
+        failure = reading.failure ?? "the reading was abandoned";
+        break;
+      }
+
+      try {
+        snapshot = this.getProcessTreeMemorySnapshot(
+          data.rootPid,
+          data.trackedTree,
+        );
+      } catch {
+        // Judged as the tree was at the last snapshot.
+        break;
+      }
+    }
+
+    const records: Map<number, ProcessRecord> = snapshot.records;
+    const unreadPidCount: number = [...records.keys()].filter(
+      (pid: number): boolean => {
+        return !askedPids.has(pid);
+      },
+    ).length;
+    if (failure === null && unreadPidCount > 0) {
+      failure = `the process tree changed faster than it could be read: ${unreadPidCount} processes appeared after ${MAX_PROPORTIONAL_READING_ROUNDS} rounds`;
+    }
+
+    const sum: { observedBytes: number; residentFallbackCount: number } =
+      ProcessTreeMemory.sumProportionalBytes({
+        pids: [...records.keys()],
+        proportionalBytesByPid,
+        readResidentBytes: (pid: number): number | null => {
+          return records.get(pid)?.rssBytes ?? null;
+        },
+      });
+
+    return {
+      snapshot,
+      observedBytes: sum.observedBytes,
+      residentFallbackCount: sum.residentFallbackCount,
+      isComplete: failure === null,
+      failure,
+    };
+  }
+
+  private describeMemoryLimitExceeded(
+    observation: MemoryLimitObservation,
+  ): string {
+    const prefix: string = `Synthetic worker process tree exceeded memory limit of ${this.maxProcessTreeRssBytes} bytes (observed ${observation.observedBytes} bytes`;
+
+    if (
+      observation.residentFallbackCount &&
+      observation.residentFallbackCount > 0
+    ) {
+      return `${prefix}, counting ${observation.residentFallbackCount} of ${observation.processCount} processes at their resident size because their proportional size could not be read).`;
+    }
+
+    return `${prefix}).`;
+  }
+
+  /*
+   * Once a minute at most: on a busy probe every check over the limit by
+   * VmRSS can fail a reading, and each failure is retried anyway.
+   */
+  private warnAboutIncompleteReading(failure: string | null): void {
+    const nowInMs: number = Date.now();
+    if (
+      this.lastIncompleteReadingWarningAtInMs !== null &&
+      nowInMs - this.lastIncompleteReadingWarningAtInMs <
+        INCOMPLETE_READING_WARNING_INTERVAL_IN_MS
+    ) {
+      return;
+    }
+    this.lastIncompleteReadingWarningAtInMs = nowInMs;
+
+    logger.warn(
+      `Synthetic worker memory could not be read by proportional set size: ${failure}. The reading is retried; a check whose readings keep failing for ${INCOMPLETE_READINGS_GRACE_IN_MS / 1000} seconds is judged with every process whose proportional size is missing counted at its resident size.`,
+    );
+  }
+
+  private getProcessTreeMemorySnapshot(
     rootPid: number,
     trackedTree: TrackedProcessTree,
-  ): number | null {
+  ): ProcessTreeSnapshot {
     const snapshot: ProcessTreeSnapshot = this.getProcessTreeSnapshot(
       new Set<number>([rootPid, ...trackedTree.descendantPids]),
     );
     this.mergeProcessTreeSnapshot(rootPid, trackedTree, snapshot);
+    return snapshot;
+  }
+
+  private sumProcessTreeRssBytes(snapshot: ProcessTreeSnapshot): number | null {
     let observedRssBytes: number = 0;
     let hasRssMeasurement: boolean = false;
 

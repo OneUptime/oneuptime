@@ -66,6 +66,7 @@ import AffectedResourcesPicker, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -222,6 +223,7 @@ const ALL_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "CephCluster",
   "DockerSwarmCluster",
   "IoTFleet",
+  "DatabaseServer",
   "NetworkSite",
   "Service",
 ];
@@ -426,6 +428,7 @@ describe("toItems", () => {
       cephClusters: [],
       dockerSwarmClusters: [],
       iotFleets: [],
+      databaseServers: [],
       networkSites: [],
       services: [],
     };
@@ -540,6 +543,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       CephCluster: CephCluster,
       DockerSwarmCluster: DockerSwarmCluster,
       IoTFleet: IoTFleet,
+      DatabaseServer: DatabaseServer,
       NetworkSite: NetworkSite,
       Service: Service,
     };
@@ -564,6 +568,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       cephClusters: idFor("CephCluster"),
       dockerSwarmClusters: idFor("DockerSwarmCluster"),
       iotFleets: idFor("IoTFleet"),
+      databaseServers: idFor("DatabaseServer"),
       networkSites: idFor("NetworkSite"),
       services: idFor("Service"),
       resourceTypes: ALL_RESOURCE_TYPES,
@@ -606,6 +611,87 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       }),
     ).toEqual([Monitor]);
     expect(screen.queryByText("web-01")).toBeNull();
+  });
+
+  test("a database chip is named from the DatabaseServer table", async () => {
+    seed(DatabaseServer, [{ _id: id(60), name: "PostgreSQL db.prod:5432" }]);
+
+    renderPicker({
+      databaseServers: asModels<DatabaseServer>([id(60)]),
+      resourceTypes: ["Monitor", "DatabaseServer"],
+    });
+
+    expect(
+      await screen.findByText("PostgreSQL db.prod:5432"),
+    ).toBeInTheDocument();
+    const calls: Array<GetListArgs> = lookupCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.modelType).toBe(DatabaseServer);
+    expect(lookedUpIds(calls[0]!)).toEqual([id(60)]);
+  });
+
+  test("Databases are not in the default set: a saved database is neither looked up nor dropped", async () => {
+    seed(Monitor, [{ _id: MONITOR_ID, name: MONITOR_NAME }]);
+    seed(DatabaseServer, [{ _id: id(61), name: "MySQL orders:3306" }]);
+    const payloads: Array<AffectedResourcesPayload> = [];
+
+    render(
+      <AffectedResourcesPicker
+        monitors={asModels<Monitor>([MONITOR_ID])}
+        databaseServers={asModels<DatabaseServer>([id(61)])}
+        onChange={(payload: AffectedResourcesPayload) => {
+          payloads.push(payload);
+        }}
+      />,
+    );
+
+    await screen.findByText(MONITOR_NAME);
+    expect(screen.queryByText("MySQL orders:3306")).toBeNull();
+    expect(
+      lookupCalls().map((call: GetListArgs) => {
+        return call.modelType;
+      }),
+    ).not.toContain(DatabaseServer);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `Remove ${MONITOR_NAME}` }),
+    );
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]!.monitors).toEqual([]);
+    // Handed back untouched, or saving would detach the database.
+    expect(payloads[0]!.databaseServers).toEqual([id(61)]);
+  });
+
+  test("a page that offers Databases writes the selection back under databaseServers", async () => {
+    seed(DatabaseServer, [
+      { _id: id(62), name: "PostgreSQL db.prod:5432" },
+      { _id: id(63), name: "Redis cache.prod:6379" },
+    ]);
+    const payloads: Array<AffectedResourcesPayload> = [];
+
+    render(
+      <AffectedResourcesPicker
+        databaseServers={asModels<DatabaseServer>([id(62), id(63)])}
+        resourceTypes={["DatabaseServer"]}
+        onChange={(payload: AffectedResourcesPayload) => {
+          payloads.push(payload);
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Remove PostgreSQL db.prod:5432",
+      }),
+    );
+
+    expect(payloads[payloads.length - 1]!.databaseServers).toEqual([id(63)]);
+  });
+
+  test("an unnamed or unreadable database reads as a Database", () => {
+    expect(getUnnamedResourceLabel("DatabaseServer")).toBe("Unnamed Database");
+    expect(getUnknownResourceLabel("DatabaseServer")).toBe("Unknown Database");
   });
 
   test(`splits a large selection into batches of ${NAME_LOOKUP_BATCH_SIZE}`, async () => {

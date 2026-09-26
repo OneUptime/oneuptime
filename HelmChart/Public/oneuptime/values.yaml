@@ -1309,8 +1309,13 @@ probes:
     # Maximum number of isolated browser worker processes started concurrently
     # by this Probe. Additional executions wait in a bounded FIFO queue.
     syntheticMonitorMaxConcurrency: 4
-    # Aggregate resident-memory ceiling for each short-lived synthetic worker
-    # and all of its browser descendants.
+    # Memory ceiling for each short-lived synthetic worker and all of its
+    # browser descendants together. A check is held to the memory its process
+    # tree actually holds, its proportional set size, which counts the pages
+    # the browser's processes share -- its code, and the buffers a renderer
+    # shares with the GPU process -- once rather than once per process. The
+    # probe can run up to syntheticMonitorMaxConcurrency checks at a time, so
+    # size the probe's memory for that many times this, plus the probe itself.
     syntheticMonitorMaxProcessTreeRssBytes: 1610612736
     # Maximum writable disk space for each short-lived synthetic execution,
     # including browser profiles, caches, downloads, IndexedDB, and OPFS.

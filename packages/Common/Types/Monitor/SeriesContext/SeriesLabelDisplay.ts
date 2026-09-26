@@ -150,6 +150,21 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.id": "Device",
   "device.name": "Device",
 
+  /*
+   * --- Databases ---
+   *
+   * Ingest stamps every row of a database's own telemetry with the
+   * DatabaseServer it resolved to, so a monitor that groups by
+   * `oneuptime.database.server.id` alerts once per database. The rest are
+   * the collector receivers' own identities of one part of a database, for
+   * node-, tablespace- and replica-level monitors.
+   */
+  "oneuptime.database.server.name": "Database",
+  "oneuptime.database.server.id": "Database ID",
+  "elasticsearch.node.name": "Elasticsearch Node",
+  tablespace_name: "Tablespace",
+  replication_client: "Replica",
+
   // --- Services / RUM / telemetry ---
   "service.name": "Service",
   "oneuptime.service.name": "Service",
@@ -251,6 +266,17 @@ const LabelPriority: Record<string, number> = {
   "service.instance.id": 22,
   "service.name": 40,
   "oneuptime.service.name": 40,
+  /*
+   * Databases: the part that breached (a node, a tablespace, a replica)
+   * first, then the database it belongs to. The database's id is a UUID,
+   * pushed to the end with the other ids — correct, but not what a human
+   * scans for.
+   */
+  "elasticsearch.node.name": 25,
+  tablespace_name: 30,
+  replication_client: 30,
+  "oneuptime.database.server.name": 40,
+  "oneuptime.database.server.id": 95,
   "k8s.namespace.name": 50,
   "service.namespace": 50,
   "k8s.node.name": 60,

@@ -713,7 +713,7 @@ function EventNotes<TNote extends BaseModel>(
             </span>
           </button>
           <div className="flex items-center gap-1 pl-10 sm:pl-0">
-            <span className="mr-1 hidden xl:inline-flex">
+            <span className="mr-1 max-xl:hidden xl:inline-flex">
               <AudienceBadge visibility={props.visibility} copy={copy} />
             </span>
             {composerActions}

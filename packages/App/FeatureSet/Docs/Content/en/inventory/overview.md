@@ -27,7 +27,7 @@ For a discovered **host**, the *Details* section of its Attributes card is fille
 Hand-created items are restricted to three types:
 
 - `external.service` — a third-party API or SaaS dependency
-- `external.database` — a managed database outside your telemetry
+- `external.database` — a database that is not a server OneUptime can model. A database server — self-hosted or managed, PostgreSQL to Snowflake — belongs under **Databases → Create Database** instead ([Databases](/docs/telemetry/databases)): that row joins the traces, containers and engine metrics that name the same address, where an inventory item never would, and adding the same server both ways leaves two unlinked records
 - `appliance` — hardware or software with no agent
 
 The restriction exists to stop duplicates. A hand-made row of an observable type — a `host`, say — would be keyed on the name you typed, while the discovered row for the same machine is keyed on its semantic attributes. The two could never converge, so you would have the same host in your list twice, forever.

@@ -51,6 +51,7 @@ import TelemetryEntityNameResolver, {
 import { UNKNOWN_SERVICE_NAME } from "../../../../UI/Utils/TelemetryService";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
@@ -314,6 +315,27 @@ describe("TELEMETRY_ENTITY_TYPES registry", () => {
     });
   });
 
+  test("DatabaseServer telemetry resolves against the DatabaseServer table by name", () => {
+    /*
+     * Rows a collector database receiver sends without a service.name carry
+     * the DatabaseServer id as their primary entity. The name is the only
+     * human-readable field: databaseIdentifier is an internal
+     * "<engine>|<endpoint>" key, not something to show in a chip.
+     */
+    expect(TELEMETRY_ENTITY_TYPES[ServiceType.DatabaseServer]).toEqual({
+      label: "Database",
+      modelType: DatabaseServer,
+      nameFields: ["name"],
+    });
+    expect(TELEMETRY_ENTITY_RESOLUTION_ORDER).toContain(
+      ServiceType.DatabaseServer,
+    );
+    // Never ahead of Service - the common case must stay one request.
+    expect(
+      TELEMETRY_ENTITY_RESOLUTION_ORDER.indexOf(ServiceType.DatabaseServer),
+    ).toBeGreaterThan(0);
+  });
+
   test("IoTDevice telemetry resolves against the IoT fleet table", () => {
     expect(TELEMETRY_ENTITY_TYPES[ServiceType.IoTDevice].modelType).toBe(
       IoTFleet,
@@ -392,6 +414,7 @@ describe("getTelemetryEntityTypeLabel", () => {
     [ServiceType.IoTDevice, "IoT Fleet"],
     [ServiceType.ServerlessFunction, "Serverless Function"],
     [ServiceType.CloudResource, "Cloud Resource"],
+    [ServiceType.DatabaseServer, "Database"],
     [ServiceType.NetworkDevice, "Network Device"],
     [ServiceType.Monitor, "Monitor"],
     [ServiceType.Incident, "Incident"],

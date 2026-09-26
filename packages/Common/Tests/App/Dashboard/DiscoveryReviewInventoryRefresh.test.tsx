@@ -254,6 +254,11 @@ describe("Discovery review refreshes registration from current inventory", () =>
         probeId: true,
         isSnmpEnabled: true,
         useShortDeviceNames: true,
+        /*
+         * Read so an unnamed row can say whether NetBIOS was ever asked
+         * (issue #3916) — see DiscoveryReviewUnnamedHostHint.test.tsx.
+         */
+        isNetbiosLookupEnabled: true,
         snmpConfigs: true,
         snmpVersion: true,
         snmpCommunityString: true,

@@ -303,8 +303,15 @@ describe("FeedOptionsButton", () => {
        * that would drop it from the accessibility tree and leave the button
        * with no name at all on phones and tablets. jsdom applies no CSS, so
        * the class is the only place this can be seen.
+       *
+       * `max-xl:sr-only`, not a bare `sr-only` undone by `xl:not-sr-only`:
+       * Bootstrap 3 and HTML5 Boilerplate both ship a `.sr-only` rule, and a
+       * browser extension or user stylesheet that injects one after Tailwind
+       * would otherwise collapse the visible label on a wide screen too.
        */
-      expect(label).toHaveClass("sr-only");
+      expect(label).toHaveClass("max-xl:sr-only");
+      expect(label).toHaveClass("xl:not-sr-only");
+      expect(label).not.toHaveClass("sr-only");
       expect(label).not.toHaveClass("hidden");
     });
 

@@ -351,6 +351,7 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   cloudResourceId: "cloud resource",
   rumApplicationId: "RUM application",
   iotFleetId: "IoT fleet",
+  databaseServerId: "database",
 };
 
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";

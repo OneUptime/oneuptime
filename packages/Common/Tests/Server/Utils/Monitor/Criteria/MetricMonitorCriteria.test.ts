@@ -736,6 +736,47 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
     expect(prod02.context.breachingSamples).toHaveLength(1);
     expect(prod01.context.seriesLabels).toEqual({ "host.name": "prod-01" });
   });
+
+  /*
+   * Grouped rows carry their labels nested under `attributes`. The map
+   * used to be copied through as one label called `attributes`, which the
+   * root cause's Breaching Samples list printed as "`attributes`:
+   * `[object Object]`". The raw-scan path also nests every OTHER datapoint
+   * attribute of the row there, so only the series' own labels come out.
+   */
+  test("breaching samples carry the series labels, not the nested attributes map", async () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "80",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+      buildInputsWithSeriesBreakdown({
+        criteriaFilter,
+        seriesSamples: [{ labels: { "host.name": "prod-01" }, values: [95] }],
+      });
+
+    for (const row of inputs.dataToProcess.seriesBreakdown![0]!
+      .aggregatedResults[0]!.data) {
+      (row as unknown as { attributes: Record<string, string> }).attributes = {
+        "host.name": "prod-01",
+        "host.arch": "amd64",
+      };
+    }
+
+    const results: Awaited<
+      ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries>
+    > = await MetricMonitorCriteria.evaluateAllSeries(inputs);
+
+    expect(results[0]!.context.breachingSamples?.[0]?.attributes).toEqual({
+      "host.name": "prod-01",
+    });
+  });
 });
 
 describe("MetricSeriesFingerprint", () => {

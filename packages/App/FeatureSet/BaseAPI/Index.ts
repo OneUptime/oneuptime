@@ -763,6 +763,24 @@ import CephClusterOwnerTeamService, {
 import CephClusterOwnerUserService, {
   Service as CephClusterOwnerUserServiceType,
 } from "Common/Server/Services/CephClusterOwnerUserService";
+import DatabaseServerService, {
+  Service as DatabaseServerServiceType,
+} from "Common/Server/Services/DatabaseServerService";
+import DatabaseServerEndpointService, {
+  Service as DatabaseServerEndpointServiceType,
+} from "Common/Server/Services/DatabaseServerEndpointService";
+import DatabaseServerOwnerTeamService, {
+  Service as DatabaseServerOwnerTeamServiceType,
+} from "Common/Server/Services/DatabaseServerOwnerTeamService";
+import DatabaseServerOwnerUserService, {
+  Service as DatabaseServerOwnerUserServiceType,
+} from "Common/Server/Services/DatabaseServerOwnerUserService";
+import DatabaseServerLabelRuleService, {
+  Service as DatabaseServerLabelRuleServiceType,
+} from "Common/Server/Services/DatabaseServerLabelRuleService";
+import DatabaseServerOwnerRuleService, {
+  Service as DatabaseServerOwnerRuleServiceType,
+} from "Common/Server/Services/DatabaseServerOwnerRuleService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -1317,6 +1335,12 @@ import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwar
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
+import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
+import DatabaseServerOwnerUser from "Common/Models/DatabaseModels/DatabaseServerOwnerUser";
+import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
+import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -1515,6 +1539,10 @@ import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
 import CephClusterFeedService, {
   Service as CephClusterFeedServiceType,
 } from "Common/Server/Services/CephClusterFeedService";
+import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
+import DatabaseServerFeedService, {
+  Service as DatabaseServerFeedServiceType,
+} from "Common/Server/Services/DatabaseServerFeedService";
 import PodmanHostFeed from "Common/Models/DatabaseModels/PodmanHostFeed";
 import PodmanHostFeedService, {
   Service as PodmanHostFeedServiceType,
@@ -2158,6 +2186,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterFeed, CephClusterFeedServiceType>(
         CephClusterFeed,
         CephClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Database server feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerFeed, DatabaseServerFeedServiceType>(
+        DatabaseServerFeed,
+        DatabaseServerFeedService,
       ).getRouter(),
     );
 
@@ -2866,6 +2903,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterLabelRule, CephClusterLabelRuleServiceType>(
         CephClusterLabelRule,
         CephClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
+        DatabaseServerOwnerRule,
+        DatabaseServerOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerLabelRule, DatabaseServerLabelRuleServiceType>(
+        DatabaseServerLabelRule,
+        DatabaseServerLabelRuleService,
       ).getRouter(),
     );
 
@@ -4563,6 +4616,38 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterOwnerUser, CephClusterOwnerUserServiceType>(
         CephClusterOwnerUser,
         CephClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServer, DatabaseServerServiceType>(
+        DatabaseServer,
+        DatabaseServerService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerEndpoint, DatabaseServerEndpointServiceType>(
+        DatabaseServerEndpoint,
+        DatabaseServerEndpointService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerOwnerTeam, DatabaseServerOwnerTeamServiceType>(
+        DatabaseServerOwnerTeam,
+        DatabaseServerOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DatabaseServerOwnerUser, DatabaseServerOwnerUserServiceType>(
+        DatabaseServerOwnerUser,
+        DatabaseServerOwnerUserService,
       ).getRouter(),
     );
 

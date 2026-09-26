@@ -18,6 +18,7 @@ export enum AIResourceType {
   CloudResource = "CloudResource",
   IoTFleet = "IoTFleet",
   NetworkDevice = "NetworkDevice",
+  DatabaseServer = "DatabaseServer",
 }
 
 export enum AIResourceSubresourceKind {
@@ -81,6 +82,7 @@ const RESOURCE_FACET_KEYS: Record<AIResourceType, string> = {
   [AIResourceType.CloudResource]: "cloudResourceId",
   [AIResourceType.IoTFleet]: "iotFleetId",
   [AIResourceType.NetworkDevice]: "networkDeviceId",
+  [AIResourceType.DatabaseServer]: "databaseServerId",
 };
 
 /*
@@ -186,6 +188,11 @@ export const AI_RESOURCE_SUBRESOURCE_KINDS: Readonly<
   [AIResourceType.ServerlessFunction]: [AIResourceSubresourceKind.Instance],
   [AIResourceType.CloudResource]: [AIResourceSubresourceKind.Instance],
   [AIResourceType.NetworkDevice]: [AIResourceSubresourceKind.Interface],
+  /*
+   * A database's tabs (Endpoints, Metrics, Logs ...) are views of the one
+   * database, never a child with its own identity.
+   */
+  [AIResourceType.DatabaseServer]: [],
 };
 
 export function isAIResourceSubresourceKind(

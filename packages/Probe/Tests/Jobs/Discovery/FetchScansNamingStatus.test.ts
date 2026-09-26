@@ -60,6 +60,10 @@ import {
   DiscoveryNetbiosPolicy,
   runScan,
 } from "../../../Jobs/Discovery/FetchScans";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
@@ -235,6 +239,16 @@ type ReverseDnsVerdict = {
   totalBudgetInMs?: number;
   // The resolver's first infrastructure failure, when it reported one.
   failureReason?: string;
+  /*
+   * Distinct addresses, straight after the named ones, whose lookup FAILED
+   * (OneUptime issue #3916). When set, the double also
+   * reports a per-address status for every address it did not name — timeout
+   * for these, no-record for the rest it reached, and a skip for the ones it
+   * never asked — the way ReverseDnsResolver does. Left unset, the double
+   * reports neither, exactly as it did before the codes existed, so every
+   * older test here still describes the same hosts.
+   */
+  failedCount?: number;
 };
 
 type ReverseDnsPassCall = {
@@ -276,8 +290,10 @@ function mockReverseDnsPass(
           string
         >();
 
+        const namedCount: number = Math.min(verdict.namedCount, lookedUpCount);
+
         distinct
-          .slice(0, Math.min(verdict.namedCount, lookedUpCount))
+          .slice(0, namedCount)
           .forEach((ipAddress: string, index: number) => {
             hostnameByIpAddress.set(
               ipAddress,
@@ -285,7 +301,7 @@ function mockReverseDnsPass(
             );
           });
 
-        return {
+        const resolution: ReverseDnsResolution = {
           hostnameByIpAddress: hostnameByIpAddress,
           isReverseDnsAvailable: verdict.isReverseDnsAvailable ?? true,
           isTimeBudgetExhausted: verdict.isTimeBudgetExhausted ?? false,
@@ -296,6 +312,35 @@ function mockReverseDnsPass(
             getReverseDnsTotalBudgetInMs({ addressCount: distinct.length }),
           failureReason: verdict.failureReason,
         };
+
+        if (verdict.failedCount !== undefined) {
+          const failedCount: number = Math.min(
+            verdict.failedCount,
+            lookedUpCount - namedCount,
+          );
+          const statusByIpAddress: Map<string, DiscoveredHostReverseDnsStatus> =
+            new Map<string, DiscoveredHostReverseDnsStatus>();
+
+          distinct.forEach((ipAddress: string, index: number) => {
+            if (index < namedCount) {
+              return;
+            }
+
+            statusByIpAddress.set(
+              ipAddress,
+              index < namedCount + failedCount
+                ? DiscoveredHostReverseDnsStatus.Timeout
+                : index < lookedUpCount
+                  ? DiscoveredHostReverseDnsStatus.NoRecord
+                  : DiscoveredHostReverseDnsStatus.SkippedTimeBudget,
+            );
+          });
+
+          resolution.statusByIpAddress = statusByIpAddress;
+          resolution.failedAddressCount = failedCount;
+        }
+
+        return resolution;
       },
     );
 
@@ -756,6 +801,29 @@ describe("runScan — a reverse-DNS pass whose resolver never answered", () => {
    * operator to raise the budget would send them to the one knob that cannot
    * help: more time asking a resolver that answers nothing names nothing.
    */
+  /*
+   * #3916: the probe reads its hosts file before DNS, so a pass whose
+   * resolver never answered can still have named the few devices listed
+   * there. The note used to say nothing whenever a pass had named anyone —
+   * which, now, would let one /etc/hosts entry hide a dead resolver from the
+   * operator. It says so, and says where those names came from.
+   */
+  test("still reports a resolver that never answered when the hosts file named a few hosts", async () => {
+    mockReverseDnsPass({
+      namedCount: 2,
+      lookedUpCount: 66,
+      isReverseDnsAvailable: false,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Reverse DNS lookups from this probe got no answers, so only the 2 of 300 hosts listed in the probe's hosts file got a reverse DNS name " +
+        "- check the probe's DNS resolver and the reverse DNS zone for this range.",
+    );
+  });
+
   test("does not advise raising the budget when the time limit was also hit", async () => {
     mockReverseDnsPass({
       namedCount: 0,
@@ -818,6 +886,16 @@ describe("runScan — a healthy naming pass says nothing", () => {
    * scan that finished its pass would be noise on the healthy case and teach
    * operators to skip the sentence on the day it matters, so these pin the
    * message to EXACTLY the sweep summary it was before the note existed.
+   *
+   * "Healthy" is the load-bearing word (OneUptime issue #3916). These used to
+   * stand for every pass that reached every host — including one whose
+   * lookups timed out for some of them, which reported exactly the same
+   * silence as a network with no PTR records. That silence is what the issue
+   * was about. A pass that reached every host and was ANSWERED for every one,
+   * named or not, still says nothing, and the "no PTR records" case below now
+   * reports its per-host codes to prove it was answered; a pass whose lookups
+   * failed is no longer healthy, and says so — see the
+   * describe after this one.
    */
   beforeEach(() => {
     scanSpy.mockResolvedValue(makeSnmpResult(makeHosts(1500, 10)) as never);
@@ -850,6 +928,40 @@ describe("runScan — a healthy naming pass says nothing", () => {
     );
   });
 
+  /*
+   * The same pass as a resolver that reports its per-address codes describes
+   * it (OneUptime issue #3916): every address answered, none with a record,
+   * zero failures. Still silent — the design this whole describe pins — while
+   * every host left unnamed carries "no-record" for its tooltip. That split is
+   * the fix: the fact about each address goes on the address, and the
+   * message is kept for what a rescan could change.
+   */
+  test("a pass that reports 'no PTR record' for every unnamed host, and no failures, still adds no note", async () => {
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 1500, failedCount: 0 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 1500 answered ICMP ping, 10 answered SNMP.",
+    );
+
+    const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+
+    // The ten SNMP hosts are named by sysName and so carry no code.
+    for (const device of devices.slice(0, 10)) {
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+    }
+
+    // Everyone else was answered "no record", and says so.
+    expect(
+      devices.slice(10).every((device: DiscoveredHost) => {
+        return (
+          device.dnsHostnameStatus === DiscoveredHostReverseDnsStatus.NoRecord
+        );
+      }),
+    ).toBe(true);
+  });
+
   test("an opted-in NetBIOS lookup that asked every unnamed host adds no note", async () => {
     mockReverseDnsPass({ namedCount: 0, lookedUpCount: 1500 });
     const netbiosCalls: Array<NetbiosPassCall> = mockNetbiosPass({
@@ -866,6 +978,493 @@ describe("runScan — a healthy naming pass says nothing", () => {
       "Swept 4094 hosts: 1500 answered ICMP ping, 10 answered SNMP.",
     );
     expect(message).not.toContain("NetBIOS");
+  });
+});
+
+describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", () => {
+  /*
+   * The reported scan: twelve kitchen displays answered ping on an ICMP-only
+   * sweep, four came back with PTR names, and the Review dialog listed the
+   * other eight by address under a status message that said nothing but
+   * "12 answered ping". Whether those eight had no PTR record or the probe's
+   * DNS server simply did not answer was unknowable from anything the product
+   * showed.
+   *
+   * The message now says so when lookups FAILED — the case a rescan can fix,
+   * and the one that looked identical to a network with no records. The
+   * per-host reason rides on each host for the Review dialog's tooltip.
+   */
+  const CUSTOMER_HEADLINE: string =
+    "Swept 15 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.";
+
+  test("the reported scan: 4 of 12 named, 2 timed out, 6 with no record — the message names the 2, the hosts carry their codes", async () => {
+    scanSpy.mockResolvedValue(
+      makeIcmpOnlyResult(makeHosts(12), { scannedHostCount: 15 }) as never,
+    );
+    mockReverseDnsPass({ namedCount: 4, lookedUpCount: 12, failedCount: 2 });
+
+    await runScan(makeIcmpOnlyScan());
+
+    const body: JSONObject = finalUpload();
+    expect(body["success"]).toBe(true);
+
+    /*
+     * Exact. Before this fix the message was the headline alone — byte for
+     * byte what the customer's screenshot shows — and the two timeouts were
+     * indistinguishable from the six addresses with no record.
+     */
+    expect(finalStatusMessage()).toBe(
+      `${CUSTOMER_HEADLINE} ` +
+        "Reverse DNS lookups failed for 2 of 12 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+
+    const devices: Array<DiscoveredHost> = uploadedDevices(body);
+    expect(devices).toHaveLength(12);
+
+    // Named: a name, and no code — a named host needs no explanation.
+    for (const device of devices.slice(0, 4)) {
+      expect(device.dnsHostname).toEqual(expect.any(String));
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+    }
+
+    expect(
+      devices.slice(4).map((device: DiscoveredHost) => {
+        return device.dnsHostnameStatus;
+      }),
+    ).toEqual([
+      DiscoveredHostReverseDnsStatus.Timeout,
+      DiscoveredHostReverseDnsStatus.Timeout,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    ]);
+
+    // The note never claims those hosts are listed by address: see the builder.
+    expect(finalStatusMessage()).not.toContain("listed by");
+  });
+
+  test("the same scan with EVERY lookup failed reads 'all 12 hosts', below the 64 failures that would call the resolver unusable", async () => {
+    /*
+     * Twelve straight failures are far short of the resolver's 64-failure
+     * breaker, so the pass still reports itself available and complete. It
+     * used to be the loudest silence of all: no name for anyone, and a
+     * message indistinguishable from a network with no reverse zone.
+     */
+    scanSpy.mockResolvedValue(
+      makeIcmpOnlyResult(makeHosts(12), { scannedHostCount: 15 }) as never,
+    );
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 12, failedCount: 12 });
+
+    await runScan(makeIcmpOnlyScan());
+
+    expect(finalStatusMessage()).toBe(
+      `${CUSTOMER_HEADLINE} ` +
+        "Reverse DNS lookups failed for all 12 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+    expect(
+      uploadedDevices(finalUpload()).every((device: DiscoveredHost) => {
+        return (
+          device.dnsHostnameStatus === DiscoveredHostReverseDnsStatus.Timeout
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("hosts named by SNMP are not counted among the failed lookups, and carry no code", async () => {
+    /*
+     * Reverse DNS asks about every host, sysName or not, so the pass itself
+     * counts eight failures here. But five of them are SNMP-named switches:
+     * the dialog shows them no (i), and a code on them would be a status
+     * nobody reads. The sentence sends the operator to "the (i) beside an
+     * unnamed host", so it counts the three hosts that have one (#3916) —
+     * it used to say 8, and five of those pointed at nothing.
+     */
+    scanSpy.mockResolvedValue(makeSnmpResult(makeHosts(20, 5)) as never);
+    // The double fails the five SNMP hosts first: they lead the address list.
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 20, failedCount: 8 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 20 answered ICMP ping, 5 answered SNMP. " +
+        "Reverse DNS lookups failed for 3 of 20 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+
+    const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+
+    for (const device of devices.slice(0, 5)) {
+      expect(device.sysName).toEqual(expect.any(String));
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+    }
+
+    expect(devices[5]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(devices[7]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(devices[8]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    );
+  });
+
+  /*
+   * The sentence counts the hosts it sends the operator to (#3916): no name
+   * from ANY source — sysName, PTR or NetBIOS — and a code saying the lookup
+   * failed. A failed PTR lookup on a host something else named is still a
+   * failure the pass counts, but the Review dialog shows that host no (i),
+   * and "hover the (i) beside an unnamed host" about it pointed at nothing.
+   * Counted in scanWithDeadline once NetBIOS has run, so these are pinned
+   * through runScan: the builder alone cannot see which hosts ended unnamed.
+   */
+  test("every failing host has a sysName: no sentence, and no host carries a code", async () => {
+    /*
+     * Twelve switches, all named by SNMP, behind a dead PTR path: twelve
+     * failures, below the 64 that would call the resolver unusable. This
+     * used to read "Reverse DNS lookups failed for all 12 hosts; hover the
+     * (i) beside an unnamed host" on a dialog with no unnamed host and not
+     * one (i) — and, the PTR path staying dead, on every scan.
+     */
+    scanSpy.mockResolvedValue(
+      makeSnmpResult(makeHosts(12, 12), { scannedHostCount: 254 }) as never,
+    );
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 12, failedCount: 12 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 254 hosts: 12 answered ICMP ping, 12 answered SNMP.",
+    );
+
+    for (const device of uploadedDevices(finalUpload())) {
+      expect(device.sysName).toEqual(expect.any(String));
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+    }
+  });
+
+  test("a host NetBIOS named after its PTR lookup failed is not counted", async () => {
+    /*
+     * The reported scan with NetBIOS on: the two addresses whose PTR lookup
+     * timed out lead the hosts NetBIOS is handed, so a NetBIOS double naming
+     * one host names one of them, and naming two names both. The one it
+     * names keeps its reverse-DNS code (it is still true) but has a name, so
+     * no (i); the sentence counts only the other, and goes silent when
+     * NetBIOS named both.
+     */
+    for (const [netbiosNamedCount, expectedTail] of [
+      [
+        1,
+        " Reverse DNS lookups failed for 1 of 12 hosts; " +
+          "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+      ],
+      [2, ""],
+    ] as Array<[number, string]>) {
+      fetchSpy.mockClear();
+      scanSpy.mockResolvedValue(
+        makeIcmpOnlyResult(makeHosts(12), { scannedHostCount: 15 }) as never,
+      );
+      mockReverseDnsPass({ namedCount: 4, lookedUpCount: 12, failedCount: 2 });
+      mockNetbiosPass({ namedCount: netbiosNamedCount, queriedCount: 8 });
+
+      await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+      expect(finalStatusMessage()).toBe(`${CUSTOMER_HEADLINE}${expectedTail}`);
+
+      const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+
+      // The premise: NetBIOS named exactly the failed hosts it was meant to.
+      expect(
+        devices
+          .slice(4, 4 + netbiosNamedCount)
+          .map((device: DiscoveredHost) => {
+            return [device.netbiosName, device.dnsHostnameStatus];
+          }),
+      ).toEqual(
+        Array.from(
+          { length: netbiosNamedCount },
+          (_value: unknown, index: number) => {
+            return [`ws${index + 1}`, DiscoveredHostReverseDnsStatus.Timeout];
+          },
+        ),
+      );
+    }
+  });
+
+  test("a mix of SNMP-named, NetBIOS-named and unnamed failures counts exactly the unnamed ones, distinct by address", async () => {
+    /*
+     * Twenty hosts, the first five SNMP-named; the first ten PTR lookups
+     * fail (five of them on the SNMP hosts), the other ten answer "no
+     * record". NetBIOS is handed the fifteen unnamed hosts and names the
+     * first two — both failed PTR lookups. Left: three unnamed hosts whose
+     * lookup failed, and ten unnamed with no record. The sentence says 3,
+     * and the Review dialog has exactly three (i)s that say the lookup failed.
+     *
+     * The sweep also lists one of those three twice. One address is one
+     * lookup and one row to hover, so it is counted once; "of 20" is the
+     * distinct addresses the pass was handed, as it always was.
+     */
+    const hosts: Array<DiscoveredHost> = makeHosts(20, 5);
+
+    hosts.push({ ipAddress: hostAddress(9), snmpReachable: false });
+
+    scanSpy.mockResolvedValue(makeSnmpResult(hosts) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 20, failedCount: 10 });
+    mockNetbiosPass({ namedCount: 2, queriedCount: 15 });
+
+    await runScan(makeScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 21 answered ICMP ping, 5 answered SNMP. " +
+        "Reverse DNS lookups failed for 3 of 20 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+
+    // The three the sentence counts are the three unnamed hosts with a failure code.
+    const unnamedWithFailure: Set<string> = new Set<string>(
+      uploadedDevices(finalUpload())
+        .filter((device: DiscoveredHost) => {
+          return (
+            !device.sysName &&
+            !device.dnsHostname &&
+            !device.netbiosName &&
+            device.dnsHostnameStatus === DiscoveredHostReverseDnsStatus.Timeout
+          );
+        })
+        .map((device: DiscoveredHost) => {
+          return device.ipAddress;
+        }),
+    );
+
+    expect(Array.from(unnamedWithFailure).sort()).toEqual(
+      [hostAddress(7), hostAddress(8), hostAddress(9)].sort(),
+    );
+  });
+
+  test("a sweep whose failures all landed on named hosts, beside hosts with no record, stays silent", async () => {
+    /*
+     * The other shape the old count got wrong: ten SNMP-named hosts whose
+     * PTR lookups failed, and two ping-only hosts the DNS server answered
+     * "no record" for. The message used to say "failed for 10 of 12 hosts;
+     * hover the (i)", and the only two (i)s said the opposite — "no PTR
+     * record". Nothing that failed is unnamed, so nothing is said; the two
+     * (i)s speak for themselves.
+     */
+    scanSpy.mockResolvedValue(makeSnmpResult(makeHosts(12, 10)) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 12, failedCount: 10 });
+
+    await runScan(makeScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts: 12 answered ICMP ping, 10 answered SNMP.",
+    );
+    expect(
+      uploadedDevices(finalUpload())
+        .slice(10)
+        .map((device: DiscoveredHost) => {
+          return device.dnsHostnameStatus;
+        }),
+    ).toEqual([
+      DiscoveredHostReverseDnsStatus.NoRecord,
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    ]);
+  });
+
+  test("a pass that ran out of time AND had lookups fail says both, the time limit first", async () => {
+    /*
+     * Two different reasons for two different sets of hosts, with two
+     * different fixes: 172 were never asked (raise the budget), 40 were asked
+     * and not answered (rescan, or look at the probe's DNS). One sentence
+     * each; the time limit leads because it is the one with a knob.
+     */
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(300)) as never);
+    mockReverseDnsPass({
+      namedCount: 25,
+      lookedUpCount: 128,
+      isTimeBudgetExhausted: true,
+      failedCount: 40,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Reverse DNS named 25 of 300 hosts before its 1m time limit; 172 were never looked up " +
+        "(raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer). " +
+        "Reverse DNS lookups failed for 40 of 300 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
+    );
+
+    // And each unnamed host says which of the three it was.
+    const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+    expect(devices[25]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(devices[65]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    );
+    expect(devices[128]!.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.SkippedTimeBudget,
+    );
+  });
+
+  test("failures beside a NetBIOS cap: reverse DNS first, then NetBIOS", async () => {
+    /*
+     * 180 PTR lookups fail, on the first 180 addresses; NetBIOS then names
+     * the first 150 of the hosts it is handed — which are those same
+     * addresses. The 150 it named have no (i) to hover, so the sentence
+     * counts the 30 it did not (#3916).
+     */
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(2500)) as never);
+    mockReverseDnsPass({
+      namedCount: 0,
+      lookedUpCount: 2500,
+      failedCount: 180,
+    });
+    mockNetbiosPass({
+      namedCount: 150,
+      queriedCount: 2000,
+      isHostCapReached: true,
+      maxHosts: 2000,
+    });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
+        "Reverse DNS lookups failed for 30 of 2,500 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again. " +
+        "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 unnamed hosts were not asked " +
+        "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
+    );
+  });
+
+  test("a resolver judged unusable says only that, whatever failure count it also reports", async () => {
+    /*
+     * "Got no answers" already explains every host, with the resolver's own
+     * reason and where to look. A second sentence counting the same failures
+     * would say the same thing worse.
+     */
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(300)) as never);
+    mockReverseDnsPass({
+      namedCount: 0,
+      lookedUpCount: 64,
+      isReverseDnsAvailable: false,
+      failureReason: "queryPtr ETIMEOUT",
+      failedCount: 64,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    const message: string = finalStatusMessage();
+    expect(message).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Reverse DNS lookups from this probe got no answers (queryPtr ETIMEOUT), so none of the 300 hosts got a reverse DNS name - " +
+        "check the probe's DNS resolver and the reverse DNS zone for this range.",
+    );
+    expect(message).not.toContain("failed for");
+  });
+
+  test("a pass that threw, on a resolution that reported failures, reports the throw alone", async () => {
+    /*
+     * The throw path's verdict is `error` and nothing else — the scanner never
+     * carries a failure count onto it — so the operator gets one explanation
+     * for the unnamed hosts rather than two that disagree.
+     */
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(300)) as never);
+
+    const nameTable: Map<string, string> = new Map<string, string>();
+
+    nameTable.get = (): string | undefined => {
+      throw new Error("name table went away");
+    };
+
+    jest.spyOn(SubnetScanner, "resolveReverseDnsHostnames").mockResolvedValue({
+      hostnameByIpAddress: nameTable,
+      isReverseDnsAvailable: true,
+      isTimeBudgetExhausted: false,
+      lookedUpCount: 300,
+      notLookedUpCount: 0,
+      totalBudgetInMs: 60000,
+      failedAddressCount: 12,
+    });
+
+    await runScan(makeIcmpOnlyScan());
+
+    const message: string = finalStatusMessage();
+    expect(message).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Reverse DNS lookups failed on this probe (name table went away), " +
+        "so none of the 300 hosts got a reverse DNS name.",
+    );
+    expect(message).not.toContain("failed for");
+  });
+
+  /*
+   * The pile-up shape: a multi-credential sweep behind an ICMP filter with a
+   * long quoted SNMP error is already past the column before any note. The
+   * ladder has to keep what it always kept — the headline whole, the compact
+   * note whole at the end, one marked cut in between — with the new sentence
+   * in its compact form, and the tooltip advice (which only the full form
+   * carries) dropped rather than clipped.
+   */
+  test("on a crowded message the failure sentence goes compact, whole, at the end, and the headline survives", async () => {
+    scanSpy.mockResolvedValue(
+      makeSnmpResult(makeHosts(1500, 12), {
+        scannedHostCount: 65534,
+        icmpFilteredFallbackHostCount: 64034,
+        snmpErrorHostCount: 480,
+        mostCommonSnmpError:
+          "Error: Authentication failure (incorrect password, community or key) from agent 10.20.3.7 while reading sysName.0 on udp",
+        responderCountByConfigId: { c1: 5, c2: 4, c3: 3 },
+      }) as never,
+    );
+    mockReverseDnsPass({
+      namedCount: 200,
+      lookedUpCount: 1500,
+      failedCount: 90,
+    });
+
+    await runScan(
+      makeScan({
+        snmpConfigs: [
+          "Headquarters building core distribution switches",
+          "Warehouse and loading dock access layer switches",
+          "Data centre row C top-of-rack switches",
+          "Retail branch offices wireless controllers",
+        ].map((name: string, index: number): JSONObject => {
+          return {
+            id: `c${index + 1}`,
+            name: name,
+            snmpVersion: "V2c",
+            snmpCommunityString: `community-${index + 1}`,
+          };
+        }),
+      }),
+    );
+
+    const message: string = finalStatusMessage();
+    const compactNote: string =
+      "Reverse DNS failed for 90 of 1,500 hosts; rescan to retry.";
+
+    expect(
+      message.indexOf(
+        "Swept 65534 hosts: 1500 answered ICMP ping, 12 answered SNMP. ",
+      ),
+    ).toBe(0);
+    expect(message.endsWith(` ${compactNote}`)).toBe(true);
+    expect(message).not.toContain("hover the (i)");
+    expect(message).not.toContain("lookups failed for");
+    // At most one marked cut, and the column holds.
+    expect(message.split("…").length).toBeLessThanOrEqual(2);
+    expect(message.length).toBeLessThanOrEqual(MAX_STATUS_MESSAGE_LENGTH);
+    // No secret made it onto the message on the way.
+    expect(message).not.toContain("community-1");
   });
 });
 
@@ -1015,11 +1614,18 @@ describe("runScan — a NetBIOS lookup cut short", () => {
 
   /*
    * A global probe never sends NetBIOS queries, whatever the row says. The
-   * double below would report a capped lookup if it were asked, so a note on
-   * this message could only mean the guard was skipped — or that a verdict
+   * double below would report a capped lookup if it were asked, so a CAP note
+   * on this message could only mean the guard was skipped — or that a verdict
    * from a lookup that never ran was invented on the way to the upload.
+   *
+   * This used to pin total silence about NetBIOS here, and that silence was
+   * half of OneUptime issue #3916: the operator ticked "NetBIOS name lookup",
+   * got bare addresses back, and nothing said the lookup had never run — on
+   * the bundled self-hosted probes, which register as global, that is every
+   * scan. The guard stands; the message now says it fired, in one fixed
+   * sentence, and each host the lookup would have asked carries the reason.
    */
-  test("a global probe with the flag on is never asked and uploads no NetBIOS note", async () => {
+  test("a global probe with the flag on is never asked, and says so instead of reporting a lookup it did not run", async () => {
     jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
     scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(2500)) as never);
     mockReverseDnsPass({ namedCount: 0, lookedUpCount: 2500 });
@@ -1035,10 +1641,106 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     expect(netbiosCalls).toEqual([]);
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping.",
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
+        "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.",
     );
-    expect(message).not.toContain("NetBIOS");
-    expect(uploadedDevices(finalUpload())[0]).not.toHaveProperty("netbiosName");
+    // Nothing from the double's verdict leaked through: it was never asked.
+    expect(message).not.toContain("capped");
+    expect(message).not.toContain("2,000");
+    expect(message).not.toContain("PROBE_DISCOVERY_NETBIOS_MAX_HOSTS");
+
+    const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+    expect(devices[0]).not.toHaveProperty("netbiosName");
+    expect(
+      devices.every((device: DiscoveredHost) => {
+        return (
+          device.netbiosNameStatus ===
+          DiscoveredHostNetbiosStatus.SkippedGlobalProbe
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a global probe whose sweep left nobody unnamed says nothing about NetBIOS", async () => {
+    /*
+     * NetBIOS only ever asks hosts SNMP and reverse DNS left unnamed. With
+     * none, a custom probe would have sent nothing either, so "it was not
+     * looked up" would explain a gap that does not exist.
+     */
+    jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(40)) as never);
+    mockReverseDnsPass({ namedCount: 40, lookedUpCount: 40 });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping.",
+    );
+    expect(
+      uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {
+        return "netbiosNameStatus" in device;
+      }),
+    ).toBe(false);
+  });
+
+  test("a global probe on a scan that did not opt in says nothing about NetBIOS and stamps nothing", async () => {
+    /*
+     * The skip sentence is about a lookup the operator ASKED for. A scan with
+     * NetBIOS off is described by its own toggle, on the dashboard; saying
+     * "not looked up" on every such scan would be noise.
+     */
+    jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(40)) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 40 });
+
+    for (const scan of [
+      makeIcmpOnlyScan(),
+      makeIcmpOnlyScan({ isNetbiosLookupEnabled: false }),
+    ]) {
+      fetchSpy.mockClear();
+
+      await runScan(scan);
+
+      expect(finalStatusMessage()).not.toContain("NetBIOS");
+      expect(
+        uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {
+          return "netbiosNameStatus" in device;
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a global probe with failed reverse DNS lookups says both, reverse DNS first", async () => {
+    // The reported scan, on the bundled global probe with NetBIOS ticked.
+    jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
+    scanSpy.mockResolvedValue(
+      makeIcmpOnlyResult(makeHosts(12), { scannedHostCount: 15 }) as never,
+    );
+    mockReverseDnsPass({ namedCount: 4, lookedUpCount: 12, failedCount: 2 });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).toBe(
+      "Swept 15 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping. " +
+        "Reverse DNS lookups failed for 2 of 12 hosts; " +
+        "hover the (i) beside an unnamed host for the reason, and rescan to try again. " +
+        "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.",
+    );
+
+    const devices: Array<DiscoveredHost> = uploadedDevices(finalUpload());
+
+    // The four named hosts carry neither code; the eight unnamed carry both.
+    for (const device of devices.slice(0, 4)) {
+      expect(device).not.toHaveProperty("dnsHostnameStatus");
+      expect(device).not.toHaveProperty("netbiosNameStatus");
+    }
+
+    for (const device of devices.slice(4)) {
+      expect(device.dnsHostnameStatus).toEqual(expect.any(String));
+      expect(device.netbiosNameStatus).toBe(
+        DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+      );
+    }
   });
 
   test("a scan that did not opt in is never asked, and says nothing about NetBIOS", async () => {
@@ -1728,6 +2430,54 @@ describe("runScan — the uploaded message fits the column", () => {
     );
     // The socket's reason still beats the time budget it also reported.
     expect(message).not.toContain("time limit");
+  });
+
+  /*
+   * The pile-up the reverse-DNS failure sentence made reachable (OneUptime
+   * issue #3916): the same essential pair, a reverse-DNS pass that ran out of
+   * time AND had lookups fail, and a capped NetBIOS lookup whose socket then
+   * failed. Four compact sentences no longer fit beside the caveat and the
+   * headline. The upload used to end with the last one cut mid-word —
+   * "NetBIOS socket fa…" — and now leaves it out whole, marking the cut.
+   */
+  test("an ICMP-only sweep that stopped early, beside failed lookups and a capped NetBIOS whose socket failed, drops the last note sentence whole", async () => {
+    scanSpy.mockResolvedValue(
+      makeIcmpOnlyResult(makeHosts(6000), {
+        scannedHostCount: 32768,
+        isIcmpSweepIncomplete: true,
+      }) as never,
+    );
+    mockReverseDnsPass({
+      namedCount: 50,
+      lookedUpCount: 3600,
+      isTimeBudgetExhausted: true,
+      totalBudgetInMs: 600000,
+      failedCount: 1800,
+    });
+    // Names nobody, so all 1,800 failed lookups stay on unnamed hosts.
+    mockNetbiosPass({
+      namedCount: 0,
+      queriedCount: 400,
+      isHostCapReached: true,
+      isTimeBudgetExhausted: true,
+      maxHosts: 2000,
+      failureReason: "send ENOBUFS 10.20.1.3:137",
+    });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    const message: string = finalStatusMessage();
+
+    expect(message).toBe(
+      INCOMPLETE_ICMP_SWEEP_CAVEAT +
+        " Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 6000 answered ping." +
+        " Reverse DNS hit its 10m limit; 2,400 of 6,000 hosts not looked up." +
+        " Reverse DNS failed for 1,800 of 6,000 hosts; rescan to retry." +
+        " NetBIOS skipped 3,950 hosts over its 2,000-host cap." +
+        " …",
+    );
+    expect(message.split("…")).toHaveLength(2);
+    expect(message).not.toContain("NetBIOS socket");
   });
 });
 

@@ -799,13 +799,26 @@ export class Service extends DatabaseService<Model> {
    * `isMasterAdmin` on a self-service signup. It always assigns the column, so
    * an `isMasterAdmin: true` smuggled into the request body is overwritten
    * rather than honoured (signup creates with `isRoot: true`, which bypasses
-   * the column's empty `create: []` access control).
+   * the column's empty `create: []` access control). For the same reason it
+   * refuses a user that already carries an `_id`.
    */
   @CaptureSpan()
   public async createUserOnSignup(data: {
     user: Model;
     props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
+    /*
+     * A signup is always a new row. TypeORM's save() turns an entity carrying
+     * an existing primary key into an UPDATE of that row, and this create runs
+     * as root, which DatabaseService.create exempts from its own supplied-id
+     * check -- so an `_id` reaching here would overwrite the email and password
+     * of whichever user it names instead of creating one. /signup builds its
+     * model from an allow-list that never includes `_id`; this is the backstop.
+     */
+    if (data.user._id) {
+      throw new BadDataException("An id cannot be supplied when signing up.");
+    }
+
     // Never inherited from the caller. Decided below, or not at all.
     data.user.isMasterAdmin = false;
 

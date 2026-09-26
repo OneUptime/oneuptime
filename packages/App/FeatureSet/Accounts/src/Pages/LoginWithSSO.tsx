@@ -55,9 +55,16 @@ const areAllLookupsUnavailable: (
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts, not on every render, where it would repeat the
+   * navigation and abort the one already under way.
+   */
+  useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);

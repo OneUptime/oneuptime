@@ -28,6 +28,8 @@ Azure SQL Database and Azure SQL Managed Instance connect as **Microsoft SQL Ser
 
 PostgreSQL- and MySQL-compatible engines that speak the same wire protocol usually work, but they may expose fewer statistics views, in which case the affected metrics are reported as unavailable rather than collected. Only the three engines above are officially tested.
 
+Every database your applications, clusters and hosts use — these three engines and many more — also gets its own page with its engine metrics, logs and the services calling it: see [Databases](/docs/telemetry/databases). When the host and port a Database Health monitor connects to is one of a database's endpoints, the monitor's alerts and incidents also appear on that database's page (see [Alerts on a database](/docs/telemetry/databases#alerts-on-a-database)).
+
 ## How it works
 
 On every check, a probe:

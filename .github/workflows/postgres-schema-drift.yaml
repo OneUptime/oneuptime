@@ -82,6 +82,53 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
+      # Clones the migrated Databases tables (DatabaseServer, its endpoints,
+      # labels, owners, incident / alert / maintenance links and the
+      # Kubernetes / Docker / Podman parents) into an isolated schema and runs
+      # the product's hand-written SQL against them. The second suite holds
+      # the container command projection Postgres computes to its JavaScript
+      # twin (reduceContainerCommand), which the discovery job classifies by.
+      - name: Test the Databases product's SQL against the migrated schema
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DATABASE_SERVER_SQL_TESTS: "true"
+          DATABASE_SERVER_SQL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DATABASE_SERVER_SQL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DATABASE_SERVER_SQL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DatabaseServerSqlPostgres.test.ts
+          Tests/Types/DatabaseServer/DatabaseContainerCommandPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated Service table and holds a row lock from a second
+      # connection: the SKIP LOCKED heartbeat write must yield AND report it.
+      - name: Test the non-blocking heartbeat write against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_UPDATE_IF_UNLOCKED_TESTS: "true"
+          UPDATE_IF_UNLOCKED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          UPDATE_IF_UNLOCKED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          UPDATE_IF_UNLOCKED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DatabaseServiceUpdateColumnsIfUnlockedPostgres.test.ts --forceExit
+
+      # Clones the migrated IoTDevice and sibling inventory tables into an
+      # isolated schema and executes each service's hand-built
+      # UPDATE ... FROM (VALUES ...) latest-metric mirror write against them.
+      # A VALUES tuple / alias / param mismatch only fails on a real driver.
+      - name: Test the inventory latest-metric mirror writes against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LATEST_METRICS_TESTS: "true"
+          LATEST_METRICS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LATEST_METRICS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LATEST_METRICS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IoTDeviceLatestMetricsPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres
@@ -94,3 +141,47 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentAlertPostgres.test.ts --forceExit
+
+      # Clones the migrated UserProjectSsoConsent table (and its unique index)
+      # into an isolated schema: two racing confirmations must leave one row.
+      - name: Test project SSO consent records on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SSO_CONSENT_TESTS: "true"
+          SSO_CONSENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_CONSENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_CONSENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserProjectSsoConsentPostgres.test.ts --forceExit
+
+      # Clones the migrated User table into an isolated schema: a signup that
+      # names an existing user's id must be refused and leave that row as it
+      # was, because TypeORM's save() would otherwise UPDATE it in place.
+      - name: Test signup cannot overwrite an existing user on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SIGNUP_ID_TESTS: "true"
+          SIGNUP_ID_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SIGNUP_ID_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SIGNUP_ID_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserSignupIdTakeoverPostgres.test.ts --forceExit
+
+      # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
+      # rule tables (with their junctions, the trigger that encodes a
+      # criteria-backed rule's enabled state, and the tables the reminder
+      # refresh reads and writes) into an isolated schema, so it must run
+      # after the registered migrations. The criteria-backed isEnabled filter
+      # is raw SQL only Postgres can judge (#4030).
+      - name: Test reminder rule lookup on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REMINDER_RULE_TESTS: "true"
+          REMINDER_RULE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REMINDER_RULE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REMINDER_RULE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ReminderRuleLookupPostgres.test.ts --forceExit

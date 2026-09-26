@@ -196,6 +196,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **پایگاه‌های داده** — PostgreSQL، MySQL، Redis، MongoDB و موارد دیگر، شناسایی خودکار از ردیابی‌های برنامه، Kubernetes و Docker، همراه با متریک‌های موتور، نمونه‌های پرس‌وجو و لاگ‌ها از یک عامل collector مبتنی بر پیکربندی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

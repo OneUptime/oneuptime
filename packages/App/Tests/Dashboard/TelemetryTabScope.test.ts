@@ -339,6 +339,7 @@ describe("describeUnappliedScopeFilters", () => {
       cloudResourceId: "cloud resource",
       rumApplicationId: "RUM application",
       iotFleetId: "IoT fleet",
+      databaseServerId: "database",
     };
 
     expect(

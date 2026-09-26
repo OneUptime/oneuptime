@@ -56,6 +56,12 @@ jobs:
       - name: Run App's Enterprise boundary guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
+      # Common's foreign `.hidden` guard walks ee/Dashboard and ee/AdminDashboard
+      # too, but the Common Test job deletes ee/ first, so only this run sees
+      # the Enterprise UI. It only reads files.
+      - name: Run Common's foreign .hidden guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts --forceExit
       - name: Install ee
         working-directory: ee
         run: npm ci --ignore-scripts

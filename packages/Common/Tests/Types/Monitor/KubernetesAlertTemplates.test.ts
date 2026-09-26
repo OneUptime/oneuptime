@@ -4,8 +4,13 @@ import {
   getAllKubernetesAlertTemplates,
   getKubernetesAlertTemplateById,
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  KubernetesMetricDefinition,
+  getKubernetesMetricByMetricName,
+} from "../../../Types/Monitor/KubernetesMetricCatalog";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
+import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
 import MonitorStepKubernetesMonitor from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
@@ -951,5 +956,298 @@ describe("KubernetesAlertTemplates - grouped alerts point at the right field", (
         }
       }
     }
+  });
+});
+
+/*
+ * BUG: a k8s-high-memory incident email listed each node with a value of
+ * `257760964608` — bytes of `k8s.node.allocatable_memory`, with no unit.
+ * The "Affected Resources" list takes its unit (and friendly name) from
+ * KubernetesMetricCatalog by metric name, and that metric — like seven
+ * others the templates query — had no catalog entry, so the value went
+ * out bare.
+ *
+ * Enumerated over every template and every query, so a template added or
+ * rewired later against a metric the catalog does not know fails here
+ * rather than in an on-call engineer's inbox.
+ */
+describe("KubernetesAlertTemplates - references only catalog metrics", () => {
+  /*
+   * k8s.node.cpu.usage (the High Node CPU Utilization numerator) is not a
+   * metric the kubeletstats receiver the agent pins (0.96.0) emits — see
+   * Utils/KubernetesAgentEmittedMetrics — so the catalog, which only
+   * offers what the agent sends, deliberately leaves it out. The template
+   * querying it is a separate defect; until it is fixed it is the one
+   * exception here.
+   */
+  const NOT_EMITTED_BY_THE_PINNED_AGENT: ReadonlySet<string> = new Set<string>([
+    "k8s.node.cpu.usage",
+  ]);
+
+  function getMetricNames(template: KubernetesAlertTemplate): Array<string> {
+    return (
+      getKubernetesMonitor(template.getMonitorStep(buildArgs()))
+        .metricViewConfig.queryConfigs as Array<any>
+    ).map((query: any) => {
+      return query.metricQueryData.filterData.metricName as string;
+    });
+  }
+
+  test("every template queries at least one metric (guards the guard)", () => {
+    for (const template of getAllKubernetesAlertTemplates()) {
+      expect(getMetricNames(template).length).toBeGreaterThan(0);
+    }
+  });
+
+  test.each(
+    getAllKubernetesAlertTemplates().map((t: KubernetesAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )("%s references only catalog metrics", (_id: unknown, template: unknown) => {
+    for (const metricName of getMetricNames(
+      template as KubernetesAlertTemplate,
+    )) {
+      if (NOT_EMITTED_BY_THE_PINNED_AGENT.has(metricName)) {
+        continue;
+      }
+
+      const entry: KubernetesMetricDefinition | undefined =
+        getKubernetesMetricByMetricName(metricName);
+
+      expect({ metricName, inCatalog: entry !== undefined }).toEqual({
+        metricName,
+        inCatalog: true,
+      });
+    }
+  });
+
+  test("the metrics that were missing now resolve, with a unit", () => {
+    const expectedUnits: Record<string, string> = {
+      "k8s.node.allocatable_memory": "bytes",
+      "k8s.node.allocatable_cpu": "cores",
+      "k8s.pod.memory_limit_utilization": "ratio",
+      "k8s.pod.cpu_limit_utilization": "ratio",
+      // A 0/1 flag: no dimension to print, deliberately.
+      etcd_server_has_leader: "",
+      apiserver_current_inflight_requests: "count",
+      scheduler_pending_pods: "count",
+    };
+
+    for (const [metricName, unit] of Object.entries(expectedUnits)) {
+      expect(getKubernetesMetricByMetricName(metricName)?.unit).toBe(unit);
+    }
+  });
+});
+
+/*
+ * BUG: k8s-deployment-replica-mismatch queried
+ * `k8s.deployment.unavailable_replicas`. The agent's k8s_cluster receiver
+ * has no such series — it reports a Deployment as `k8s.deployment.desired`
+ * and `k8s.deployment.available` — and the chart renames nothing, so the
+ * query matched zero rows and the monitor could never fire. The shortfall
+ * is now computed per deployment as desired - available.
+ */
+describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
+  const ID: string = "k8s-deployment-replica-mismatch";
+
+  test("queries only metrics the shipped agent emits", () => {
+    const queryConfigs: Array<any> = getQueryConfigs(ID);
+
+    expect(queryConfigs.length).toBeGreaterThan(0);
+
+    for (const query of queryConfigs) {
+      const metricName: string = query.metricQueryData.filterData.metricName;
+
+      expect(
+        `${metricName} emitted: ${AGENT_EMITTED_METRIC_NAMES.has(metricName)}`,
+      ).toBe(`${metricName} emitted: true`);
+    }
+  });
+
+  test("computes desired - available, per namespace + deployment, on both queries", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(ID),
+    );
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    const formulaConfigs: Array<any> = monitor.metricViewConfig
+      .formulaConfigs as Array<any>;
+
+    expect(queryConfigs).toHaveLength(2);
+    expect(formulaConfigs).toHaveLength(1);
+
+    const [desired, available] = queryConfigs;
+
+    expect(desired.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.desired",
+    );
+    expect(desired.metricAliasData.metricVariable).toBe("desired_replicas");
+    expect(available.metricQueryData.filterData.metricName).toBe(
+      "k8s.deployment.available",
+    );
+    expect(available.metricAliasData.metricVariable).toBe("available_replicas");
+
+    expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+      "desired_replicas - available_replicas",
+    );
+    // A pod count. "%" would render a shortfall of 2 replicas as "2%".
+    expect(formulaConfigs[0].metricAliasData.legendUnit).toBe("");
+
+    for (const query of queryConfigs) {
+      /*
+       * Both sides carry exactly this key set, or the formula's
+       * fingerprint join finds nothing and the monitor goes silent.
+       */
+      expect(query.metricQueryData.groupByAttributeKeys).toEqual([
+        "resource.k8s.namespace.name",
+        "resource.k8s.deployment.name",
+      ]);
+      /*
+       * One series per deployment per side, from one scrape: Avg is the
+       * per-minute count. Sum would scale the shortfall by scrape count.
+       */
+      expect(query.metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Avg,
+      );
+      // An attribute filter nothing stamps would match zero rows.
+      expect(query.metricQueryData.filterData.attributes).toEqual({});
+    }
+  });
+
+  test("fires on any shortfall and recovers at or below zero", () => {
+    const [offline, online] = getCriteriaInstances(ID);
+    const offlineFilter: any = offline.data.filters[0];
+    const onlineFilter: any = online.data.filters[0];
+
+    // Both compare the FORMULA, never a raw operand.
+    expect(offlineFilter.metricMonitorOptions.metricAlias).toBe(
+      "replica_shortfall",
+    );
+    expect(onlineFilter.metricMonitorOptions.metricAlias).toBe(
+      "replica_shortfall",
+    );
+
+    expect(offlineFilter.filterType).toBe(FilterType.GreaterThan);
+    expect(offlineFilter.value).toBe(0);
+
+    /*
+     * `<= 0`, not `= 0`: a surge rollout makes available exceed desired,
+     * and a negative shortfall that matched neither criteria would leave
+     * the monitor stuck in whatever status it last had.
+     */
+    expect(onlineFilter.filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(onlineFilter.value).toBe(0);
+
+    expect(offline.data.createIncidents).toBe(true);
+    expect(online.data.createIncidents).toBe(false);
+  });
+
+  test("names no metric the receiver does not have", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(ID);
+    const [offline] = getCriteriaInstances(ID);
+
+    for (const text of [
+      template!.description,
+      offline.data.name as string,
+      offline.data.description as string,
+      offline.data.incidents[0].description as string,
+    ]) {
+      expect(text).not.toContain("unavailable_replicas");
+    }
+
+    expect(template!.description).toContain("k8s.deployment.desired");
+    expect(template!.description).toContain("k8s.deployment.available");
+  });
+
+  /*
+   * The same bug, generalised: any template reading a k8s_cluster or
+   * kubeletstats series must read one the agent actually sends. That
+   * covers node, pod and container metrics too, including the kubeletstats
+   * ones that are off upstream and on only because the chart enables them
+   * (see the high node CPU block below). Undotted names come from the
+   * chart's Prometheus scrapes (control plane, cAdvisor, kube-state-metrics),
+   * which this list does not cover.
+   */
+  test("no template queries a k8s_cluster or kubeletstats metric the agent does not emit", () => {
+    const receiverMetric: RegExp = /^(k8s|container)\./;
+
+    for (const template of getAllKubernetesAlertTemplates()) {
+      for (const query of getQueryConfigs(template.id)) {
+        const metricName: string = query.metricQueryData.filterData.metricName;
+
+        if (!receiverMetric.test(metricName)) {
+          continue;
+        }
+
+        expect(`${template.id}: ${metricName}`).toBe(
+          AGENT_EMITTED_METRIC_NAMES.has(metricName)
+            ? `${template.id}: ${metricName}`
+            : "a metric the agent emits",
+        );
+      }
+    }
+  });
+});
+
+/*
+ * BUG: k8s-high-cpu divides `k8s.node.cpu.usage` by
+ * `k8s.node.allocatable_cpu`. The kubeletstats receiver in the collector the
+ * agent chart ships (0.96.0) defines `k8s.node.cpu.usage` but leaves it
+ * `enabled: false`, and the chart only switched on the
+ * *_limit/_request_utilization family, so the numerator never arrived: the
+ * formula had no operand and the monitor could never fire. The chart now
+ * enables it unconditionally (HelmChart/Public/kubernetes-agent/tests/
+ * kubeletstats-cpu-usage_test.yaml pins that), and these tests pin the
+ * template to the names the agent sends.
+ */
+describe("KubernetesAlertTemplates - high node CPU", () => {
+  const ID: string = "k8s-high-cpu";
+
+  test("queries only metrics the shipped agent emits", () => {
+    const queryConfigs: Array<any> = getQueryConfigs(ID);
+
+    expect(queryConfigs.length).toBeGreaterThan(0);
+
+    for (const query of queryConfigs) {
+      const metricName: string = query.metricQueryData.filterData.metricName;
+
+      expect(
+        `${metricName} emitted: ${AGENT_EMITTED_METRIC_NAMES.has(metricName)}`,
+      ).toBe(`${metricName} emitted: true`);
+    }
+  });
+
+  test("divides node CPU usage by node allocatable CPU, both in cores", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(ID),
+    );
+    const queryConfigs: Array<any> = monitor.metricViewConfig
+      .queryConfigs as Array<any>;
+    const formulaConfigs: Array<any> = monitor.metricViewConfig
+      .formulaConfigs as Array<any>;
+
+    /*
+     * Not `k8s.node.cpu.utilization`, although the receiver sends it by
+     * default with the same value (cores, despite the name). It is
+     * deprecated upstream in favour of `k8s.node.cpu.usage`, and later
+     * collectors switch it off and then drop it, so reading it would put
+     * this monitor back where it started on the next collector bump.
+     */
+    expect(
+      queryConfigs.map((query: any) => {
+        return query.metricQueryData.filterData.metricName;
+      }),
+    ).toEqual(["k8s.node.cpu.usage", "k8s.node.allocatable_cpu"]);
+    expect(
+      queryConfigs.map((query: any) => {
+        return query.metricAliasData.metricVariable;
+      }),
+    ).toEqual(["used_cpu", "alloc_cpu"]);
+
+    expect(formulaConfigs).toHaveLength(1);
+    expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+      "(used_cpu / alloc_cpu) * 100",
+    );
   });
 });

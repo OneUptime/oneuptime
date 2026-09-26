@@ -131,6 +131,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countSetter: "setCount",
     documentationCard: "ResourceDocumentationCard",
   },
+  {
+    label: "databases",
+    relativePath: "Database/Databases.tsx",
+    modelType: "DatabaseServer",
+    countState: "count",
+    countSetter: "setCount",
+    documentationCard: "DatabaseDocumentationCard",
+  },
 ];
 
 function squash(source: string): string {
@@ -198,7 +206,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(12);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(13);
     expect(discoveredPages).toEqual(testedPages);
   });
 

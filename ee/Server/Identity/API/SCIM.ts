@@ -4,6 +4,10 @@ import UserService from "Common/Server/Services/UserService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
 import { createProjectSCIMLog } from "../Utils/SCIMLogger";
+import ProjectSCIMAccountPolicy, {
+  ProjectSCIMEmailChangeRefusedException,
+  ProjectSCIMTeamAddOutcome,
+} from "../Utils/ProjectSCIMAccountPolicy";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import Express, {
   ExpressRequest,
@@ -13,6 +17,7 @@ import Express, {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import StatusCode from "Common/Types/API/StatusCode";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -26,7 +31,6 @@ import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
-import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Query from "Common/Types/BaseDatabase/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -61,17 +65,25 @@ type SCIMMember = {
 
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * Adds an account to, or removes it from, the teams this SCIM configuration
+ * provisions into. Whether an add is an accepted membership or an invitation
+ * is ProjectSCIMAccountPolicy's call; the outcomes say which each one was.
+ */
 const handleUserTeamOperations: (
   operation: "add" | "remove",
   projectId: ObjectID,
   userId: ObjectID,
   scimConfig: ProjectSCIM,
-) => Promise<void> = async (
+  options?: { userWasCreatedByScim?: boolean | undefined },
+) => Promise<Array<ProjectSCIMTeamAddOutcome>> = async (
   operation: "add" | "remove",
   projectId: ObjectID,
   userId: ObjectID,
   scimConfig: ProjectSCIM,
-): Promise<void> => {
+  options?: { userWasCreatedByScim?: boolean | undefined },
+): Promise<Array<ProjectSCIMTeamAddOutcome>> => {
+  const outcomes: Array<ProjectSCIMTeamAddOutcome> = [];
   const teamsIds: Array<ObjectID> =
     scimConfig.teams?.map((team: any) => {
       return team.id;
@@ -81,7 +93,7 @@ const handleUserTeamOperations: (
     logger.debug(`SCIM Team operations - no teams configured for SCIM`, {
       projectId: projectId?.toString(),
     });
-    return;
+    return outcomes;
   }
 
   if (operation === "add") {
@@ -91,44 +103,19 @@ const handleUserTeamOperations: (
     );
 
     for (const team of scimConfig.teams || []) {
-      const existingMember: TeamMember | null =
-        await TeamMemberService.findOneBy({
-          query: {
-            projectId: projectId,
-            userId: userId,
-            teamId: team.id!,
-          },
-          select: { _id: true },
-          props: { isRoot: true },
+      const outcome: ProjectSCIMTeamAddOutcome =
+        await ProjectSCIMAccountPolicy.addUserToTeam({
+          projectId: projectId,
+          userId: userId,
+          teamId: team.id!,
+          userWasCreatedByScim: options?.userWasCreatedByScim,
         });
 
-      if (!existingMember) {
-        logger.debug(`SCIM Team operations - adding user to team: ${team.id}`, {
-          projectId: projectId?.toString(),
-        });
-        const teamMember: TeamMember = new TeamMember();
-        teamMember.projectId = projectId;
-        teamMember.userId = userId;
-        teamMember.teamId = team.id!;
-        teamMember.hasAcceptedInvitation = true;
-        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+      outcomes.push(outcome);
 
-        await TeamMemberService.create({
-          data: teamMember,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        logger.debug(`SCIM Team operations - user added to team: ${team.id}`, {
-          projectId: projectId?.toString(),
-        });
-      } else {
-        logger.debug(
-          `SCIM Team operations - user already member of team: ${team.id}`,
-          { projectId: projectId?.toString() },
-        );
-      }
+      logger.debug(`SCIM Team operations - team ${team.id}: ${outcome}`, {
+        projectId: projectId?.toString(),
+      });
     }
   } else if (operation === "remove") {
     logger.debug(
@@ -147,6 +134,23 @@ const handleUserTeamOperations: (
       props: { isRoot: true },
     });
   }
+
+  return outcomes;
+};
+
+// Says, for the execution log, what adding an account to teams amounted to.
+const describeTeamAddOutcomes: (
+  outcomes: Array<ProjectSCIMTeamAddOutcome>,
+) => string = (outcomes: Array<ProjectSCIMTeamAddOutcome>): string => {
+  const count: (outcome: ProjectSCIMTeamAddOutcome) => number = (
+    outcome: ProjectSCIMTeamAddOutcome,
+  ): number => {
+    return outcomes.filter((item: ProjectSCIMTeamAddOutcome) => {
+      return item === outcome;
+    }).length;
+  };
+
+  return `${count(ProjectSCIMTeamAddOutcome.AddedAsMember)} added as member, ${count(ProjectSCIMTeamAddOutcome.Invited)} invited (pending acceptance), ${count(ProjectSCIMTeamAddOutcome.AlreadyInTeam)} already in team`;
 };
 
 // Constants for special teams
@@ -206,53 +210,28 @@ const getOrCreateUnassignedTeam: (
 const addUserToUnassignedTeam: (
   projectId: ObjectID,
   userId: ObjectID,
-) => Promise<Team> = async (
+  options?: { userWasCreatedByScim?: boolean | undefined },
+) => Promise<{ team: Team; outcome: ProjectSCIMTeamAddOutcome }> = async (
   projectId: ObjectID,
   userId: ObjectID,
-): Promise<Team> => {
+  options?: { userWasCreatedByScim?: boolean | undefined },
+): Promise<{ team: Team; outcome: ProjectSCIMTeamAddOutcome }> => {
   const unassignedTeam: Team = await getOrCreateUnassignedTeam(projectId);
 
-  // Check if user is already a member
-  const existingMember: TeamMember | null = await TeamMemberService.findOneBy({
-    query: {
+  const outcome: ProjectSCIMTeamAddOutcome =
+    await ProjectSCIMAccountPolicy.addUserToTeam({
       projectId: projectId,
       userId: userId,
       teamId: unassignedTeam.id!,
-    },
-    select: { _id: true },
-    props: { isRoot: true },
-  });
-
-  if (!existingMember) {
-    logger.debug(
-      `SCIM - Adding user ${userId.toString()} to "Unassigned" team`,
-      { projectId: projectId?.toString() },
-    );
-
-    const teamMember: TeamMember = new TeamMember();
-    teamMember.projectId = projectId;
-    teamMember.userId = userId;
-    teamMember.teamId = unassignedTeam.id!;
-    teamMember.hasAcceptedInvitation = true;
-    teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-
-    await TeamMemberService.create({
-      data: teamMember,
-      props: { isRoot: true },
+      userWasCreatedByScim: options?.userWasCreatedByScim,
     });
 
-    logger.debug(
-      `SCIM - User added to "Unassigned" team: ${unassignedTeam.id?.toString()}`,
-      { projectId: projectId?.toString() },
-    );
-  } else {
-    logger.debug(
-      `SCIM - User ${userId.toString()} already in "Unassigned" team`,
-      { projectId: projectId?.toString() },
-    );
-  }
+  logger.debug(
+    `SCIM - User ${userId.toString()} and "Unassigned" team ${unassignedTeam.id?.toString()}: ${outcome}`,
+    { projectId: projectId?.toString() },
+  );
 
-  return unassignedTeam;
+  return { team: unassignedTeam, outcome: outcome };
 };
 
 // Helper function to remove user from the "Unassigned" team (when they get assigned to a real group)
@@ -291,6 +270,251 @@ const removeUserFromUnassignedTeam: (
       { projectId: projectId?.toString() },
     );
   }
+};
+
+/*
+ * The same for several users at once. `exceptTeamId` is the team the users
+ * were just confirmed in: when that is the "Unassigned" team itself, their
+ * rows there are the ones to keep.
+ */
+const removeUsersFromUnassignedTeam: (data: {
+  projectId: ObjectID;
+  userIds: Array<ObjectID>;
+  exceptTeamId: ObjectID;
+}) => Promise<void> = async (data: {
+  projectId: ObjectID;
+  userIds: Array<ObjectID>;
+  exceptTeamId: ObjectID;
+}): Promise<void> => {
+  if (data.userIds.length === 0) {
+    return;
+  }
+
+  const unassignedTeam: Team | null = await TeamService.findOneBy({
+    query: {
+      projectId: data.projectId,
+      name: UNASSIGNED_TEAM_NAME,
+    },
+    select: { _id: true },
+    props: { isRoot: true },
+  });
+
+  if (
+    !unassignedTeam ||
+    unassignedTeam.id!.toString().toLowerCase() ===
+      data.exceptTeamId.toString().toLowerCase()
+  ) {
+    return;
+  }
+
+  await TeamMemberService.deleteBy({
+    query: {
+      projectId: data.projectId,
+      teamId: unassignedTeam.id!,
+      userId: QueryHelper.any(data.userIds),
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+};
+
+/*
+ * Adds the accounts a SCIM group request lists to one of the project's teams,
+ * through ProjectSCIMAccountPolicy, and takes each one that lands in the team
+ * out of the "Unassigned" team.
+ */
+const addGroupMembersToTeam: (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}) => Promise<{
+  added: number;
+  invited: number;
+  skipped: number;
+}> = async (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}): Promise<{ added: number; invited: number; skipped: number }> => {
+  const counts: { added: number; invited: number; skipped: number } = {
+    added: 0,
+    invited: 0,
+    skipped: 0,
+  };
+
+  for (const member of data.members) {
+    const memberValue: string | undefined = member?.["value"] as
+      | string
+      | undefined;
+
+    if (!memberValue) {
+      continue;
+    }
+
+    const userId: ObjectID = new ObjectID(memberValue);
+
+    const outcome: ProjectSCIMTeamAddOutcome =
+      await ProjectSCIMAccountPolicy.addUserToTeam({
+        projectId: data.projectId,
+        userId: userId,
+        teamId: data.teamId,
+      });
+
+    if (
+      outcome !== ProjectSCIMTeamAddOutcome.AddedAsMember &&
+      outcome !== ProjectSCIMTeamAddOutcome.Invited
+    ) {
+      counts.skipped++;
+      continue;
+    }
+
+    if (outcome === ProjectSCIMTeamAddOutcome.AddedAsMember) {
+      counts.added++;
+    } else {
+      counts.invited++;
+    }
+
+    // Remove user from "Unassigned" team since they now have a real group
+    await removeUserFromUnassignedTeam(data.projectId, userId);
+  }
+
+  return counts;
+};
+
+/*
+ * Makes the accounts a SCIM group replace (PUT, or PATCH "replace" on
+ * members) lists the team's members, by writing only the difference: the rows
+ * of accounts the list leaves out are deleted, and the accounts the team lacks
+ * are added through addGroupMembersToTeam. An account already in the team
+ * keeps its row, accepted or pending.
+ *
+ * Deleting every row and re-adding the list would put each kept account
+ * through TeamMemberService's leave cleanups whenever this is its only team in
+ * the project -- on-call assignments, incident roles and owner rows, workspace
+ * links and notification settings, all gone -- and IdPs such as Okta send a
+ * replace with every membership change.
+ */
+const replaceGroupMembersOfTeam: (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}) => Promise<{
+  added: number;
+  invited: number;
+  skipped: number;
+  kept: number;
+  removed: number;
+}> = async (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+  members: Array<SCIMMember>;
+}): Promise<{
+  added: number;
+  invited: number;
+  skipped: number;
+  kept: number;
+  removed: number;
+}> => {
+  const currentMembers: Array<TeamMember> = await TeamMemberService.findBy({
+    query: {
+      projectId: data.projectId,
+      teamId: data.teamId,
+    },
+    select: {
+      _id: true,
+      userId: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  // Keyed by lower-cased user id: an IdP may echo an id back in a different case.
+  const currentUserIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const teamMember of currentMembers) {
+    if (teamMember.userId) {
+      currentUserIds.set(
+        teamMember.userId.toString().toLowerCase(),
+        teamMember.userId,
+      );
+    }
+  }
+
+  const listedUserIds: Set<string> = new Set<string>();
+  const keptUserIds: Array<ObjectID> = [];
+  const membersToAdd: Array<SCIMMember> = [];
+
+  for (const member of data.members) {
+    const memberValue: string | undefined = member?.["value"] as
+      | string
+      | undefined;
+
+    if (!memberValue) {
+      continue;
+    }
+
+    const key: string = new ObjectID(memberValue).toString().toLowerCase();
+
+    if (listedUserIds.has(key)) {
+      continue;
+    }
+
+    listedUserIds.add(key);
+
+    const currentUserId: ObjectID | undefined = currentUserIds.get(key);
+
+    if (currentUserId) {
+      keptUserIds.push(currentUserId);
+    } else {
+      membersToAdd.push(member);
+    }
+  }
+
+  const userIdsToRemove: Array<ObjectID> = [];
+
+  for (const [key, userId] of currentUserIds) {
+    if (!listedUserIds.has(key)) {
+      userIdsToRemove.push(userId);
+    }
+  }
+
+  if (userIdsToRemove.length > 0) {
+    await TeamMemberService.deleteBy({
+      query: {
+        projectId: data.projectId,
+        teamId: data.teamId,
+        userId: QueryHelper.any(userIdsToRemove),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  const counts: { added: number; invited: number; skipped: number } =
+    await addGroupMembersToTeam({
+      projectId: data.projectId,
+      teamId: data.teamId,
+      members: membersToAdd,
+    });
+
+  /*
+   * A kept account has a real group too, so it leaves the "Unassigned" team
+   * just as an added one does.
+   */
+  await removeUsersFromUnassignedTeam({
+    projectId: data.projectId,
+    userIds: keptUserIds,
+    exceptTeamId: data.teamId,
+  });
+
+  return {
+    ...counts,
+    kept: keptUserIds.length,
+    removed: userIdsToRemove.length,
+  };
 };
 
 // Helper function to format team as SCIM group
@@ -508,7 +732,6 @@ router.post(
           requestBody: req.body,
           steps: executionSteps,
         });
-        res.status(400);
         return Response.sendJsonObjectResponse(
           req,
           res,
@@ -517,6 +740,7 @@ router.post(
             validation.error!,
             SCIMErrorType.InvalidValue,
           ),
+          { statusCode: new StatusCode(400) },
         );
       }
       executionSteps.push("Bulk request validation passed");
@@ -587,6 +811,7 @@ router.post(
               });
 
               // Create user if doesn't exist
+              let userWasCreated: boolean = false;
               if (!user) {
                 user = await UserService.createByEmail({
                   email: new Email(email),
@@ -595,6 +820,7 @@ router.post(
                   generateRandomPassword: true,
                   props: { isRoot: true },
                 });
+                userWasCreated = true;
               }
 
               // Add user to default teams if configured and push groups is not enabled
@@ -608,6 +834,7 @@ router.post(
                   projectId,
                   user.id!,
                   scimConfig,
+                  { userWasCreatedByScim: userWasCreated },
                 );
               }
 
@@ -666,6 +893,35 @@ router.post(
               const name: string = parseNameFromSCIM(data!);
               const active: boolean = data!["active"] as boolean;
 
+              /*
+               * ProjectSCIMAccountPolicy decides whether this account's
+               * profile is this project's to change. Checked before anything
+               * is written, so a refused email change changes nothing.
+               */
+              const isEmailChanging: boolean =
+                Boolean(email) &&
+                ProjectSCIMAccountPolicy.isEmailChanging({
+                  currentEmail: projectUser.user.email?.toString(),
+                  newEmail: email,
+                });
+
+              if (isEmailChanging) {
+                await ProjectSCIMAccountPolicy.assertMayChangeEmail({
+                  projectId: projectId,
+                  userId: userId,
+                });
+              }
+
+              const isNameChanging: boolean =
+                Boolean(name) && name !== projectUser.user.name?.toString();
+
+              const mayChangeName: boolean =
+                isNameChanging &&
+                (await ProjectSCIMAccountPolicy.mayChangeName({
+                  projectId: projectId,
+                  userId: userId,
+                }));
+
               // Handle user deactivation by removing from teams
               if (active === false && !scimConfig.enablePushGroups) {
                 await handleUserTeamOperations(
@@ -686,12 +942,12 @@ router.post(
                 );
               }
 
-              if (email || name) {
+              if (isEmailChanging || mayChangeName) {
                 const updateData: { email?: Email; name?: Name } = {};
-                if (email) {
+                if (isEmailChanging) {
                   updateData.email = new Email(email);
                 }
-                if (name) {
+                if (mayChangeName) {
                   updateData.name = new Name(name);
                 }
 
@@ -813,52 +1069,11 @@ router.post(
               // Handle members if provided
               const members: Array<SCIMMember> =
                 (data!["members"] as Array<SCIMMember>) || [];
-              for (const member of members) {
-                const userId: string = member["value"] as string;
-                if (userId) {
-                  const userExists: User | null = await UserService.findOneById(
-                    {
-                      id: new ObjectID(userId),
-                      select: { _id: true },
-                      props: { isRoot: true },
-                    },
-                  );
-
-                  if (userExists) {
-                    const existingMember: TeamMember | null =
-                      await TeamMemberService.findOneBy({
-                        query: {
-                          projectId: projectId,
-                          userId: new ObjectID(userId),
-                          teamId: targetTeam.id!,
-                        },
-                        select: { _id: true },
-                        props: { isRoot: true },
-                      });
-
-                    if (!existingMember) {
-                      const newTeamMember: TeamMember = new TeamMember();
-                      newTeamMember.projectId = projectId;
-                      newTeamMember.userId = new ObjectID(userId);
-                      newTeamMember.teamId = targetTeam.id!;
-                      newTeamMember.hasAcceptedInvitation = true;
-                      newTeamMember.invitationAcceptedAt =
-                        OneUptimeDate.getCurrentDate();
-
-                      await TeamMemberService.create({
-                        data: newTeamMember,
-                        props: { isRoot: true },
-                      });
-
-                      // Remove user from Unassigned team since they now have a real group
-                      await removeUserFromUnassignedTeam(
-                        projectId,
-                        new ObjectID(userId),
-                      );
-                    }
-                  }
-                }
-              }
+              await addGroupMembersToTeam({
+                projectId: projectId,
+                teamId: targetTeam.id!,
+                members: members,
+              });
 
               const groupResponse: JSONObject = await formatTeamForSCIM(
                 targetTeam,
@@ -917,51 +1132,11 @@ router.post(
               const members: Array<SCIMMember> =
                 (data!["members"] as Array<SCIMMember>) || [];
 
-              // Remove all existing members
-              await TeamMemberService.deleteBy({
-                query: {
-                  projectId: projectId,
-                  teamId: team.id!,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                props: { isRoot: true },
+              await replaceGroupMembersOfTeam({
+                projectId: projectId,
+                teamId: team.id!,
+                members: members,
               });
-
-              // Add new members
-              for (const member of members) {
-                const userId: string = member["value"] as string;
-                if (userId) {
-                  const userExists: User | null = await UserService.findOneById(
-                    {
-                      id: new ObjectID(userId),
-                      select: { _id: true },
-                      props: { isRoot: true },
-                    },
-                  );
-
-                  if (userExists) {
-                    const newTeamMember: TeamMember = new TeamMember();
-                    newTeamMember.projectId = projectId;
-                    newTeamMember.userId = new ObjectID(userId);
-                    newTeamMember.teamId = team.id!;
-                    newTeamMember.hasAcceptedInvitation = true;
-                    newTeamMember.invitationAcceptedAt =
-                      OneUptimeDate.getCurrentDate();
-
-                    await TeamMemberService.create({
-                      data: newTeamMember,
-                      props: { isRoot: true },
-                    });
-
-                    // Remove user from Unassigned team since they now have a real group
-                    await removeUserFromUnassignedTeam(
-                      projectId,
-                      new ObjectID(userId),
-                    );
-                  }
-                }
-              }
 
               // Fetch updated team
               const updatedTeam: Team | null = await TeamService.findOneById({
@@ -1032,100 +1207,22 @@ router.post(
 
                 if (patchPath === "members") {
                   if (op === "replace") {
-                    // Remove all existing members
-                    await TeamMemberService.deleteBy({
-                      query: {
-                        projectId: projectId,
-                        teamId: team.id!,
-                      },
-                      limit: LIMIT_MAX,
-                      skip: 0,
-                      props: { isRoot: true },
-                    });
-
-                    // Add new members
-                    const membersToAdd: Array<SCIMMember> =
+                    const members: Array<SCIMMember> =
                       (value as SCIMMember[]) || [];
-                    for (const member of membersToAdd) {
-                      const userId: string = member["value"] as string;
-                      if (userId) {
-                        const userExists: User | null =
-                          await UserService.findOneById({
-                            id: new ObjectID(userId),
-                            select: { _id: true },
-                            props: { isRoot: true },
-                          });
 
-                        if (userExists) {
-                          const newTeamMember: TeamMember = new TeamMember();
-                          newTeamMember.projectId = projectId;
-                          newTeamMember.userId = new ObjectID(userId);
-                          newTeamMember.teamId = team.id!;
-                          newTeamMember.hasAcceptedInvitation = true;
-                          newTeamMember.invitationAcceptedAt =
-                            OneUptimeDate.getCurrentDate();
-
-                          await TeamMemberService.create({
-                            data: newTeamMember,
-                            props: { isRoot: true },
-                          });
-
-                          // Remove user from Unassigned team since they now have a real group
-                          await removeUserFromUnassignedTeam(
-                            projectId,
-                            new ObjectID(userId),
-                          );
-                        }
-                      }
-                    }
+                    await replaceGroupMembersOfTeam({
+                      projectId: projectId,
+                      teamId: team.id!,
+                      members: members,
+                    });
                   } else if (op === "add") {
                     const membersToAdd: Array<SCIMMember> =
                       (value as SCIMMember[]) || [];
-                    for (const member of membersToAdd) {
-                      const userId: string = member["value"] as string;
-                      if (userId) {
-                        const existingMember: TeamMember | null =
-                          await TeamMemberService.findOneBy({
-                            query: {
-                              projectId: projectId,
-                              userId: new ObjectID(userId),
-                              teamId: team.id!,
-                            },
-                            select: { _id: true },
-                            props: { isRoot: true },
-                          });
-
-                        if (!existingMember) {
-                          const userExists: User | null =
-                            await UserService.findOneById({
-                              id: new ObjectID(userId),
-                              select: { _id: true },
-                              props: { isRoot: true },
-                            });
-
-                          if (userExists) {
-                            const newTeamMember: TeamMember = new TeamMember();
-                            newTeamMember.projectId = projectId;
-                            newTeamMember.userId = new ObjectID(userId);
-                            newTeamMember.teamId = team.id!;
-                            newTeamMember.hasAcceptedInvitation = true;
-                            newTeamMember.invitationAcceptedAt =
-                              OneUptimeDate.getCurrentDate();
-
-                            await TeamMemberService.create({
-                              data: newTeamMember,
-                              props: { isRoot: true },
-                            });
-
-                            // Remove user from Unassigned team since they now have a real group
-                            await removeUserFromUnassignedTeam(
-                              projectId,
-                              new ObjectID(userId),
-                            );
-                          }
-                        }
-                      }
-                    }
+                    await addGroupMembersToTeam({
+                      projectId: projectId,
+                      teamId: team.id!,
+                      members: membersToAdd,
+                    });
                   } else if (op === "remove") {
                     const membersToRemove: Array<SCIMMember> =
                       (value as SCIMMember[]) || [];
@@ -1255,7 +1352,10 @@ router.post(
           let status: number = 500;
           let scimType: SCIMErrorType | undefined;
 
-          if (error.constructor.name === "BadRequestException") {
+          if (error instanceof ProjectSCIMEmailChangeRefusedException) {
+            status = 400;
+            scimType = SCIMErrorType.Mutability;
+          } else if (error.constructor.name === "BadRequestException") {
             status = 400;
             scimType = SCIMErrorType.InvalidValue;
           } else if (error.constructor.name === "NotFoundException") {
@@ -1515,6 +1615,7 @@ router.get(
                     projectId,
                     newUser.id!,
                     scimConfig,
+                    { userWasCreatedByScim: true },
                   );
                   executionSteps.push("User added to default teams");
                 }
@@ -1928,6 +2029,84 @@ const handleUserUpdate: (
     const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
     let teamOperationPerformed: string | null = null;
 
+    /*
+     * ProjectSCIMAccountPolicy decides whether this account's profile is this
+     * project's to change. Checked before anything is written, so a refused
+     * email change changes nothing at all.
+     */
+    const isEmailChanging: boolean =
+      Boolean(email) &&
+      ProjectSCIMAccountPolicy.isEmailChanging({
+        currentEmail: projectUser.user.email?.toString(),
+        newEmail: email,
+      });
+
+    if (isEmailChanging) {
+      const emailChangeRefusal: string | null =
+        await ProjectSCIMAccountPolicy.getEmailChangeRefusal({
+          projectId: projectId,
+          userId: new ObjectID(userId),
+        });
+
+      if (emailChangeRefusal) {
+        executionSteps.push(`Email change refused: ${emailChangeRefusal}`);
+        logger.debug(
+          `SCIM Update user - email change refused for userId: ${userId}`,
+          getLogAttributesFromRequest(req as any),
+        );
+
+        const errorResponse: JSONObject = generateSCIMErrorResponse(
+          400,
+          emailChangeRefusal,
+          SCIMErrorType.Mutability,
+        );
+
+        void createProjectSCIMLog({
+          projectId: projectId,
+          projectScimId: new ObjectID(req.params["projectScimId"]!),
+          operationType: "UpdateUser",
+          status: SCIMLogStatus.Error,
+          statusMessage: emailChangeRefusal,
+          httpMethod: req.method,
+          requestPath: req.path,
+          httpStatusCode: 400,
+          affectedUserEmail: projectUser.user.email?.toString(),
+          requestBody: scimUser,
+          responseBody: errorResponse,
+          steps: executionSteps,
+          userInfo: {
+            userId: projectUser.user.id?.toString(),
+            email: projectUser.user.email?.toString(),
+            name: projectUser.user.name?.toString(),
+          },
+          additionalContext: {
+            httpMethod: req.method,
+            emailChangeRefused: true,
+          },
+        });
+
+        return Response.sendJsonObjectResponse(req, res, errorResponse, {
+          statusCode: new StatusCode(400),
+        });
+      }
+    }
+
+    const isNameChanging: boolean =
+      Boolean(name) && name !== projectUser.user.name?.toString();
+
+    const mayChangeName: boolean =
+      isNameChanging &&
+      (await ProjectSCIMAccountPolicy.mayChangeName({
+        projectId: projectId,
+        userId: new ObjectID(userId),
+      }));
+
+    if (isNameChanging && !mayChangeName) {
+      executionSteps.push(
+        "Name change skipped: this account has not joined this project, belongs to another project, or is a OneUptime administrator",
+      );
+    }
+
     // Handle user deactivation by removing from teams
     if (active === false && !scimConfig.autoDeprovisionUsers) {
       executionSteps.push(
@@ -1972,26 +2151,29 @@ const handleUserUpdate: (
         getLogAttributesFromRequest(req as any),
       );
       executionSteps.push("User marked as active, adding to configured teams");
-      await handleUserTeamOperations(
-        "add",
-        projectId,
-        new ObjectID(userId),
-        scimConfig,
-      );
+      const addOutcomes: Array<ProjectSCIMTeamAddOutcome> =
+        await handleUserTeamOperations(
+          "add",
+          projectId,
+          new ObjectID(userId),
+          scimConfig,
+        );
       teamOperationPerformed = "added_to_teams";
       logger.debug(
         `SCIM Update user - user successfully added to teams due to activation`,
         getLogAttributesFromRequest(req as any),
       );
-      executionSteps.push("User successfully added to configured teams");
+      executionSteps.push(
+        `Configured teams: ${describeTeamAddOutcomes(addOutcomes)}`,
+      );
     }
 
-    if (email || name) {
+    if (isEmailChanging || mayChangeName) {
       const updateData: any = {};
-      if (email) {
+      if (isEmailChanging) {
         updateData.email = new Email(email);
       }
-      if (name) {
+      if (mayChangeName) {
         updateData.name = new Name(name);
       }
 
@@ -2564,6 +2746,7 @@ router.post(
       const members: Array<SCIMMember> =
         (scimGroup["members"] as Array<SCIMMember>) || [];
       let membersAdded: number = 0;
+      let membersInvited: number = 0;
       let membersSkipped: number = 0;
       if (members.length > 0) {
         logger.debug(
@@ -2573,67 +2756,17 @@ router.post(
         executionSteps.push(
           `Processing ${members.length} members from request`,
         );
-        for (const member of members) {
-          const userId: string = member["value"] as string;
-          if (userId) {
-            // Check if user exists
-            const userExists: User | null = await UserService.findOneById({
-              id: new ObjectID(userId),
-              select: { _id: true },
-              props: { isRoot: true },
-            });
-
-            if (userExists) {
-              // Check if user is already a member of the team
-              const existingMember: TeamMember | null =
-                await TeamMemberService.findOneBy({
-                  query: {
-                    projectId: projectId,
-                    userId: new ObjectID(userId),
-                    teamId: targetTeam.id!,
-                  },
-                  select: { _id: true },
-                  props: { isRoot: true },
-                });
-
-              if (!existingMember) {
-                // Add user to the team
-                const newTeamMember: TeamMember = new TeamMember();
-                newTeamMember.projectId = projectId;
-                newTeamMember.userId = new ObjectID(userId);
-                newTeamMember.teamId = targetTeam.id!;
-                newTeamMember.hasAcceptedInvitation = true;
-                newTeamMember.invitationAcceptedAt =
-                  OneUptimeDate.getCurrentDate();
-
-                await TeamMemberService.create({
-                  data: newTeamMember,
-                  props: {
-                    isRoot: true,
-                  },
-                });
-
-                // Remove user from "Unassigned" team since they now have a real group
-                await removeUserFromUnassignedTeam(
-                  projectId,
-                  new ObjectID(userId),
-                );
-
-                membersAdded++;
-                logger.debug(
-                  `SCIM Create group - added user ${userId} to team ${targetTeam.id}`,
-                  getLogAttributesFromRequest(req as any),
-                );
-              } else {
-                membersSkipped++;
-              }
-            } else {
-              membersSkipped++;
-            }
-          }
-        }
+        const counts: { added: number; invited: number; skipped: number } =
+          await addGroupMembersToTeam({
+            projectId: projectId,
+            teamId: targetTeam.id!,
+            members: members,
+          });
+        membersAdded = counts.added + counts.invited;
+        membersInvited = counts.invited;
+        membersSkipped = counts.skipped;
         executionSteps.push(
-          `Members processed: ${membersAdded} added, ${membersSkipped} skipped (already members or not found)`,
+          `Members processed: ${membersAdded} added (${membersInvited} of them invited, pending acceptance), ${membersSkipped} skipped (already members or not found)`,
         );
       } else {
         executionSteps.push("No members provided in request");
@@ -2673,6 +2806,9 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
 
+      // RFC 7644: 201 for a new group, 200 when an existing team is reused.
+      const httpStatusCode: number = createdNewTeam ? 201 : 200;
+
       // Log the operation
       void createProjectSCIMLog({
         projectId: projectId,
@@ -2681,7 +2817,7 @@ router.post(
         status: SCIMLogStatus.Success,
         httpMethod: "POST",
         requestPath: req.path,
-        httpStatusCode: createdNewTeam ? 201 : 200,
+        httpStatusCode: httpStatusCode,
         affectedGroupName: displayName,
         requestBody: scimGroup,
         responseBody: groupResponse,
@@ -2691,18 +2827,15 @@ router.post(
           displayName: displayName,
           wasNewlyCreated: createdNewTeam,
           membersAdded: membersAdded,
+          membersInvited: membersInvited,
           membersSkipped: membersSkipped,
           totalMembers: finalMemberCount,
         },
       });
 
-      if (createdNewTeam) {
-        res.status(201);
-      } else {
-        res.status(200);
-      }
-
-      return Response.sendJsonObjectResponse(req, res, groupResponse);
+      return Response.sendJsonObjectResponse(req, res, groupResponse, {
+        statusCode: new StatusCode(httpStatusCode),
+      });
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -2838,81 +2971,22 @@ router.put(
         `Replacing all members with ${members.length} members from request`,
       );
 
-      // Remove all existing members
-      executionSteps.push("Removing all existing team members");
-      await TeamMemberService.deleteBy({
-        query: {
-          projectId: projectId,
-          teamId: team.id!,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
+      const counts: {
+        added: number;
+        invited: number;
+        skipped: number;
+        kept: number;
+        removed: number;
+      } = await replaceGroupMembersOfTeam({
+        projectId: projectId,
+        teamId: team.id!,
+        members: members,
       });
-
-      // Add new members
-      let membersAdded: number = 0;
-      let membersSkipped: number = 0;
-      for (const member of members) {
-        const userId: string = member["value"] as string;
-        if (userId) {
-          // Check if user exists
-          const userExists: User | null = await UserService.findOneById({
-            id: new ObjectID(userId),
-            select: { _id: true },
-            props: { isRoot: true },
-          });
-
-          if (userExists) {
-            // Check if user is already a member of the team
-            const existingMember: TeamMember | null =
-              await TeamMemberService.findOneBy({
-                query: {
-                  projectId: projectId,
-                  userId: new ObjectID(userId),
-                  teamId: team.id!,
-                },
-                select: { _id: true },
-                props: { isRoot: true },
-              });
-
-            if (!existingMember) {
-              const newTeamMember: TeamMember = new TeamMember();
-              newTeamMember.projectId = projectId;
-              newTeamMember.userId = new ObjectID(userId);
-              newTeamMember.teamId = team.id!;
-              newTeamMember.hasAcceptedInvitation = true;
-              newTeamMember.invitationAcceptedAt =
-                OneUptimeDate.getCurrentDate();
-
-              await TeamMemberService.create({
-                data: newTeamMember,
-                props: {
-                  isRoot: true,
-                },
-              });
-
-              // Remove user from "Unassigned" team since they now have a real group
-              await removeUserFromUnassignedTeam(
-                projectId,
-                new ObjectID(userId),
-              );
-
-              membersAdded++;
-              logger.debug(
-                `SCIM Update group - added user ${userId} to team`,
-                getLogAttributesFromRequest(req as any),
-              );
-            } else {
-              membersSkipped++;
-            }
-          } else {
-            membersSkipped++;
-          }
-        }
-      }
+      const membersAdded: number = counts.added + counts.invited;
+      const membersInvited: number = counts.invited;
+      const membersSkipped: number = counts.skipped;
       executionSteps.push(
-        `Members added: ${membersAdded}, skipped: ${membersSkipped}`,
+        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${membersAdded} (${membersInvited} of them invited, pending acceptance), skipped: ${membersSkipped}`,
       );
 
       // Fetch updated team
@@ -2960,7 +3034,10 @@ router.put(
             previousName: previousName,
             nameUpdated: nameUpdated,
             membersAdded: membersAdded,
+            membersInvited: membersInvited,
             membersSkipped: membersSkipped,
+            membersKept: counts.kept,
+            membersRemoved: counts.removed,
             totalMembers: finalMemberCount,
           },
         });
@@ -3128,10 +3205,9 @@ router.delete(
         },
       });
 
-      res.status(204);
-      return Response.sendJsonObjectResponse(req, res, {
-        message: "Group deleted",
-      });
+      // RFC 7644 section 3.6: a successful DELETE is 204 No Content, no body.
+      res.status(204).send();
+      return;
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -3177,7 +3253,9 @@ router.patch(
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM PatchGroup request");
     let membersAdded: number = 0;
+    let membersInvited: number = 0;
     let membersRemoved: number = 0;
+    let membersKept: number = 0;
     let membersReplaced: boolean = false;
     let nameUpdated: boolean = false;
 
@@ -3260,80 +3338,31 @@ router.patch(
               `SCIM Patch group - replacing all members`,
               getLogAttributesFromRequest(req as any),
             );
-            executionSteps.push(
-              "Replacing all members - removing existing members",
-            );
             membersReplaced = true;
 
-            // Remove all existing members
-            await TeamMemberService.deleteBy({
-              query: {
-                projectId: projectId,
-                teamId: team.id!,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              props: { isRoot: true },
-            });
-
-            // Add new members
             const members: Array<SCIMMember> = value || [];
             executionSteps.push(
-              `Adding ${members.length} new members after replace`,
+              `Replacing all members with ${members.length} members from request`,
             );
-            for (const member of members) {
-              const userId: string = member["value"] as string;
-              if (userId) {
-                const userExists: User | null = await UserService.findOneById({
-                  id: new ObjectID(userId),
-                  select: { _id: true },
-                  props: { isRoot: true },
-                });
 
-                if (userExists) {
-                  // Check if user is already a member of the team
-                  const existingMember: TeamMember | null =
-                    await TeamMemberService.findOneBy({
-                      query: {
-                        projectId: projectId,
-                        userId: new ObjectID(userId),
-                        teamId: team.id!,
-                      },
-                      select: { _id: true },
-                      props: { isRoot: true },
-                    });
-
-                  if (!existingMember) {
-                    const newTeamMember: TeamMember = new TeamMember();
-                    newTeamMember.projectId = projectId;
-                    newTeamMember.userId = new ObjectID(userId);
-                    newTeamMember.teamId = team.id!;
-                    newTeamMember.hasAcceptedInvitation = true;
-                    newTeamMember.invitationAcceptedAt =
-                      OneUptimeDate.getCurrentDate();
-
-                    await TeamMemberService.create({
-                      data: newTeamMember,
-                      props: {
-                        isRoot: true,
-                      },
-                    });
-
-                    // Remove user from "Unassigned" team since they now have a real group
-                    await removeUserFromUnassignedTeam(
-                      projectId,
-                      new ObjectID(userId),
-                    );
-
-                    membersAdded++;
-                    logger.debug(
-                      `SCIM Patch group - added user ${userId} to team`,
-                      getLogAttributesFromRequest(req as any),
-                    );
-                  }
-                }
-              }
-            }
+            const counts: {
+              added: number;
+              invited: number;
+              skipped: number;
+              kept: number;
+              removed: number;
+            } = await replaceGroupMembersOfTeam({
+              projectId: projectId,
+              teamId: team.id!,
+              members: members,
+            });
+            membersAdded += counts.added + counts.invited;
+            membersInvited += counts.invited;
+            membersRemoved += counts.removed;
+            membersKept += counts.kept;
+            executionSteps.push(
+              `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added + counts.invited} (${counts.invited} of them invited, pending acceptance)`,
+            );
           } else if (op === "add") {
             // Add members
             logger.debug(
@@ -3342,61 +3371,14 @@ router.patch(
             );
             const members: Array<SCIMMember> = value || [];
             executionSteps.push(`Adding ${members.length} members`);
-            for (const member of members) {
-              const userId: string = member["value"] as string;
-              if (userId) {
-                // Check if user is already a member
-                const existingMember: TeamMember | null =
-                  await TeamMemberService.findOneBy({
-                    query: {
-                      projectId: projectId,
-                      userId: new ObjectID(userId),
-                      teamId: team.id!,
-                    },
-                    select: { _id: true },
-                    props: { isRoot: true },
-                  });
-
-                if (!existingMember) {
-                  const userExists: User | null = await UserService.findOneById(
-                    {
-                      id: new ObjectID(userId),
-                      select: { _id: true },
-                      props: { isRoot: true },
-                    },
-                  );
-
-                  if (userExists) {
-                    const newTeamMember: TeamMember = new TeamMember();
-                    newTeamMember.projectId = projectId;
-                    newTeamMember.userId = new ObjectID(userId);
-                    newTeamMember.teamId = team.id!;
-                    newTeamMember.hasAcceptedInvitation = true;
-                    newTeamMember.invitationAcceptedAt =
-                      OneUptimeDate.getCurrentDate();
-
-                    await TeamMemberService.create({
-                      data: newTeamMember,
-                      props: {
-                        isRoot: true,
-                      },
-                    });
-
-                    // Remove user from Unassigned team since they now have a real group
-                    await removeUserFromUnassignedTeam(
-                      projectId,
-                      new ObjectID(userId),
-                    );
-
-                    membersAdded++;
-                    logger.debug(
-                      `SCIM Patch group - added user ${userId} to team`,
-                      getLogAttributesFromRequest(req as any),
-                    );
-                  }
-                }
-              }
-            }
+            const counts: { added: number; invited: number; skipped: number } =
+              await addGroupMembersToTeam({
+                projectId: projectId,
+                teamId: team.id!,
+                members: members,
+              });
+            membersAdded += counts.added + counts.invited;
+            membersInvited += counts.invited;
           } else if (op === "remove") {
             // Remove members
             logger.debug(
@@ -3447,7 +3429,7 @@ router.patch(
         }
       }
       executionSteps.push(
-        `Operations completed: ${membersAdded} added, ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
+        `Operations completed: ${membersAdded} added (${membersInvited} of them invited, pending acceptance), ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
       );
 
       // Fetch updated team
@@ -3495,7 +3477,9 @@ router.patch(
             previousName: previousName,
             nameUpdated: nameUpdated,
             membersAdded: membersAdded,
+            membersInvited: membersInvited,
             membersRemoved: membersRemoved,
+            membersKept: membersKept,
             membersReplaced: membersReplaced,
             totalMembers: finalMemberCount,
             operationsCount: operations.length,
@@ -3649,24 +3633,41 @@ router.post(
           getLogAttributesFromRequest(req as any),
         );
 
-        // Update user's name if provided in SCIM request and user's name is missing or different
-        if (name) {
-          const currentName: string = user.name?.toString() || "";
-          if (!currentName || currentName !== name) {
-            executionSteps.push(
-              `Updating user name from "${currentName || "(empty)"}" to "${name}"`,
-            );
-            await UserService.updateOneById({
-              id: user.id!,
-              data: {
-                name: new Name(name),
-              },
-              props: { isRoot: true },
-            });
-            // Update local user object so response reflects the new name
-            user.name = new Name(name);
-            executionSteps.push(`User name updated successfully`);
-          }
+        /*
+         * Update user's name if provided in SCIM request and user's name is
+         * missing or different -- but only for an account this project already
+         * manages (see ProjectSCIMAccountPolicy). Judged before the account is
+         * added to any team below.
+         */
+        const currentName: string = user.name?.toString() || "";
+        const mayChangeName: boolean =
+          Boolean(name) &&
+          currentName !== name &&
+          (await ProjectSCIMAccountPolicy.mayChangeName({
+            projectId: projectId,
+            userId: user.id!,
+          }));
+
+        if (name && currentName !== name && !mayChangeName) {
+          executionSteps.push(
+            "Name not updated: this account has not joined this project, belongs to another project, or is a OneUptime administrator",
+          );
+        }
+
+        if (mayChangeName) {
+          executionSteps.push(
+            `Updating user name from "${currentName || "(empty)"}" to "${name}"`,
+          );
+          await UserService.updateOneById({
+            id: user.id!,
+            data: {
+              name: new Name(name),
+            },
+            props: { isRoot: true },
+          });
+          // Update local user object so response reflects the new name
+          user.name = new Name(name);
+          executionSteps.push(`User name updated successfully`);
         }
       }
 
@@ -3683,36 +3684,47 @@ router.post(
           `SCIM Create user - adding user to ${scimConfig.teams.length} configured teams`,
           getLogAttributesFromRequest(req as any),
         );
-        await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
+        const addOutcomes: Array<ProjectSCIMTeamAddOutcome> =
+          await handleUserTeamOperations(
+            "add",
+            projectId,
+            user.id!,
+            scimConfig,
+            {
+              userWasCreatedByScim: userWasCreated,
+            },
+          );
         teamsAdded = scimConfig.teams.map((t: Team) => {
           return t.name || t.id?.toString() || "unknown";
         });
-        executionSteps.push(`User added to teams: ${teamsAdded.join(", ")}`);
+        executionSteps.push(
+          `User added to teams: ${teamsAdded.join(", ")} (${describeTeamAddOutcomes(addOutcomes)})`,
+        );
       } else if (scimConfig.enablePushGroups) {
         executionSteps.push(
           "Push groups enabled - adding user to 'Unassigned' team until group assignment",
         );
         // Add user to "Unassigned" team until they get assigned to a real group
-        const unassignedTeam: Team = await addUserToUnassignedTeam(
-          projectId,
-          user.id!,
-        );
+        const unassigned: { team: Team; outcome: ProjectSCIMTeamAddOutcome } =
+          await addUserToUnassignedTeam(projectId, user.id!, {
+            userWasCreatedByScim: userWasCreated,
+          });
         teamsAdded = [UNASSIGNED_TEAM_NAME];
         executionSteps.push(
-          `User added to "Unassigned" team (ID: ${unassignedTeam.id?.toString()})`,
+          `User added to "Unassigned" team (ID: ${unassigned.team.id?.toString()}, ${describeTeamAddOutcomes([unassigned.outcome])})`,
         );
       } else {
         executionSteps.push(
           "No default teams configured - adding user to 'Unassigned' team",
         );
         // Add user to "Unassigned" team when no default teams configured
-        const unassignedTeam: Team = await addUserToUnassignedTeam(
-          projectId,
-          user.id!,
-        );
+        const unassigned: { team: Team; outcome: ProjectSCIMTeamAddOutcome } =
+          await addUserToUnassignedTeam(projectId, user.id!, {
+            userWasCreatedByScim: userWasCreated,
+          });
         teamsAdded = [UNASSIGNED_TEAM_NAME];
         executionSteps.push(
-          `User added to "Unassigned" team (ID: ${unassignedTeam.id?.toString()})`,
+          `User added to "Unassigned" team (ID: ${unassigned.team.id?.toString()}, ${describeTeamAddOutcomes([unassigned.outcome])})`,
         );
       }
 
@@ -3760,8 +3772,9 @@ router.post(
         },
       });
 
-      res.status(201);
-      return Response.sendJsonObjectResponse(req, res, createdUser);
+      return Response.sendJsonObjectResponse(req, res, createdUser, {
+        statusCode: new StatusCode(201),
+      });
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
 
@@ -3904,10 +3917,9 @@ router.delete(
         },
       });
 
-      res.status(204);
-      return Response.sendJsonObjectResponse(req, res, {
-        message: "User deprovisioned",
-      });
+      // RFC 7644 section 3.6: a successful DELETE is 204 No Content, no body.
+      res.status(204).send();
+      return;
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;

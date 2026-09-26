@@ -39,6 +39,19 @@ export interface ParsedDockerContainer {
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
+  /*
+   * The container labels the agent copies onto its metrics (Compose /
+   * Swarm / Testcontainers keys, see CONTAINER_CLASSIFIER_LABEL_KEYS):
+   * MERGED into the row's labels, never replacing what the inventory
+   * snapshot wrote. Null / omitted leaves the labels alone.
+   */
+  labels?: JSONObject | null | undefined;
+  /*
+   * When the container's current run started (metric time − container.uptime).
+   * Fills an empty resourceCreationTimestamp, and moves it forward when
+   * the container was restarted or recreated under the same name.
+   */
+  startedAt?: Date | null | undefined;
 }
 
 export interface ParsedDockerResource {
@@ -141,7 +154,7 @@ export class Service extends DatabaseService<Model> {
 
       for (const c of chunk) {
         valueFragments.push(
-          `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}::numeric, $${p++}::bigint, $${p++}::timestamptz, $${p++}::timestamptz, $${p++})`,
+          `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}::numeric, $${p++}::bigint, $${p++}::timestamptz, $${p++}::timestamptz, $${p++}, $${p++}::jsonb, $${p++}::timestamptz)`,
         );
         params.push(
           data.projectId.toString(),
@@ -160,15 +173,27 @@ export class Service extends DatabaseService<Model> {
           c.observedAt,
           c.observedAt,
           0, // version (BaseModel @VersionColumn)
+          c.labels && Object.keys(c.labels).length > 0
+            ? JSON.stringify(c.labels)
+            : null,
+          c.startedAt || null,
         );
       }
 
+      /*
+       * The same container name with a different id is a recreated
+       * container: its labels and start time replace the old ones. Else
+       * the metric labels are merged into whatever the inventory wrote,
+       * and the start time only moves forward (a restart) — by more than
+       * a minute, so clock jitter between scrapes never rewrites it.
+       */
       const sql: string = `
         INSERT INTO "DockerResource" (
           "projectId", "dockerHostId", "kind", "name",
           "containerId", "imageName", "state",
           "latestCpuPercent", "latestMemoryBytes",
-          "metricsUpdatedAt", "lastSeenAt", "version"
+          "metricsUpdatedAt", "lastSeenAt", "version",
+          "labels", "resourceCreationTimestamp"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "dockerHostId", "kind", "name")
@@ -180,6 +205,22 @@ export class Service extends DatabaseService<Model> {
           "latestMemoryBytes" = COALESCE(EXCLUDED."latestMemoryBytes", "DockerResource"."latestMemoryBytes"),
           "metricsUpdatedAt" = EXCLUDED."metricsUpdatedAt",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
+          "labels" = CASE
+            WHEN EXCLUDED."labels" IS NULL THEN "DockerResource"."labels"
+            WHEN lower(left(EXCLUDED."containerId", 12)) <> lower(left("DockerResource"."containerId", 12))
+              THEN EXCLUDED."labels"
+            WHEN jsonb_typeof("DockerResource"."labels") = 'object'
+              THEN "DockerResource"."labels" || EXCLUDED."labels"
+            ELSE EXCLUDED."labels"
+          END,
+          "resourceCreationTimestamp" = CASE
+            WHEN EXCLUDED."resourceCreationTimestamp" IS NULL THEN "DockerResource"."resourceCreationTimestamp"
+            WHEN "DockerResource"."resourceCreationTimestamp" IS NULL
+              OR lower(left(EXCLUDED."containerId", 12)) <> lower(left("DockerResource"."containerId", 12))
+              OR EXCLUDED."resourceCreationTimestamp" > "DockerResource"."resourceCreationTimestamp" + interval '1 minute'
+              THEN EXCLUDED."resourceCreationTimestamp"
+            ELSE "DockerResource"."resourceCreationTimestamp"
+          END,
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "DockerResource"."lastSeenAt"
       `;

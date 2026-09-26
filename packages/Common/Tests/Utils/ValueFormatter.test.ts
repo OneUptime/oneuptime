@@ -116,6 +116,30 @@ describe("ValueFormatter", () => {
         }),
       ).toBe("0.25");
     });
+
+    /*
+     * Redis' memory fragmentation ratio is resident over allocated memory:
+     * about 1.0 when healthy, 1.5 and up when fragmented. Read as a [0, 1]
+     * share it rendered 1.62 as "162.00%" on every chart and in every alert
+     * a user built on it.
+     */
+    test("a fragmentation ratio renders as the ratio it is, never x100", () => {
+      expect(
+        ValueFormatter.formatValue(1.62, "1", {
+          metricName: "redis.memory.fragmentation_ratio",
+        }),
+      ).toBe("1.62");
+      expect(
+        ValueFormatter.formatValue(1.62, "1", {
+          metricName: "redis_mem_fragmentation_ratio",
+        }),
+      ).toBe("1.62");
+      expect(
+        ValueFormatter.getCompactUnit("1", {
+          metricName: "redis.memory.fragmentation_ratio",
+        }),
+      ).toBe("");
+    });
   });
 
   describe("formatValue - annotation-only units", () => {
@@ -266,6 +290,32 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.isFractionMetric("K8S.Node.CPU.Utilization")).toBe(
         false,
       );
+    });
+
+    test("a memory fragmentation ratio is not a fraction", () => {
+      // The OTel redis receiver, and redis_exporter's Prometheus name.
+      expect(
+        ValueFormatter.isFractionMetric("redis.memory.fragmentation_ratio"),
+      ).toBe(false);
+      expect(
+        ValueFormatter.isFractionMetric("redis_mem_fragmentation_ratio"),
+      ).toBe(false);
+      expect(
+        ValueFormatter.isFractionMetric(" Redis.Memory.Fragmentation_Ratio "),
+      ).toBe(false);
+    });
+
+    test("the fragmentation exclusion leaves every other ratio a fraction", () => {
+      for (const metricName of [
+        "db.client.connection.usage_ratio",
+        "redis.keyspace.hit_ratio",
+        "cache_hit_ratio",
+        "some_ratio",
+        // Anchored at the end: only the fragmentation ratio itself.
+        "redis.memory.fragmentation_ratio.utilization",
+      ]) {
+        expect(ValueFormatter.isFractionMetric(metricName)).toBe(true);
+      }
     });
   });
 

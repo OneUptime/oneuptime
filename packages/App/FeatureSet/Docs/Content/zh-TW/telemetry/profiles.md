@@ -143,13 +143,14 @@ receivers:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    encoding: json
+    # 若沒有這一行，匯出器會傳送到 OneUptime 不接收的 /otlp/v1development/profiles
+    profiles_endpoint: "https://oneuptime.com/otlp/v1/profiles"
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_ONEUPTIME_SERVICE_TOKEN"
 
 service:
   pipelines:
+    # 需要以 --feature-gates=service.profilesSupport 啟動 collector
     profiles:
       receivers: [otlp]
       exporters: [otlphttp]

@@ -392,10 +392,17 @@ const Navbar: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // Desktop view
+  /*
+   * Desktop view. `max-md:hidden md:flex`, never `hidden md:flex`: the bare
+   * `hidden` class is the one name a browser extension, a user stylesheet or
+   * an injected Bootstrap 3 / HTML5 Boilerplate sheet declares as
+   * `.hidden { display: none !important }`, and that rule beats `md:flex` at
+   * every width. A customer lost the whole navigation bar — and with it every
+   * product — to exactly that. The max-width form never carries the class.
+   */
   const className: string =
     props.className ||
-    "bg-white flex text-center items-center lg:py-2 hidden md:flex";
+    "bg-white flex text-center items-center lg:py-2 max-md:hidden md:flex";
 
   // Find active item in more menu items (needed for breadcrumb)
   const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(

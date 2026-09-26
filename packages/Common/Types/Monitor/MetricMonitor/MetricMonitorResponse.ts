@@ -6,6 +6,37 @@ import ObjectID from "../../ObjectID";
 import Dictionary from "../../Dictionary";
 import MetricSeriesResult from "./MetricSeriesResult";
 
+/**
+ * Where a platform resource breakdown came from.
+ *
+ * The worker scans raw datapoints once PER QUERY to name the resources
+ * behind a breach. A monitor step can have several queries — every ratio
+ * template has two (used ÷ allocatable, used ÷ total) and a formula over
+ * them — and the breakdown used to be a single field that each query's
+ * scan overwrote, so the LAST query won. For "High Node Memory
+ * Utilization" that is the denominator, k8s.node.allocatable_memory: the
+ * email listed every node's allocatable bytes under a "> 85%" criteria.
+ *
+ * Tagging each scan with its query lets the evaluator use the one scan
+ * that measured what the matched criteria actually compared, and refuse
+ * to borrow a sibling query's numbers when the criteria targets a formula.
+ */
+export interface PlatformResourceBreakdownSource {
+  /**
+   * `metricAliasData.metricVariable` of the query this scan was taken for
+   * (e.g. "used_mem"). Absent on breakdowns built before it existed.
+   */
+  metricAlias?: string | undefined;
+  /**
+   * The unit the scanned values are in: the platform catalog's unit when
+   * the catalog knows the metric, otherwise the unit the OpenTelemetry
+   * exporter declared for it (MetricType.unit, e.g. "By"). The raw scan
+   * never goes through MetricResultUnitConverter, so this is the metric's
+   * NATIVE unit, never a legendUnit. Absent when neither is known.
+   */
+  metricUnit?: string | undefined;
+}
+
 export interface KubernetesAffectedResource {
   podName?: string | undefined;
   namespace?: string | undefined;
@@ -25,7 +56,8 @@ export interface KubernetesAffectedResource {
   lowestMetricValue?: number | undefined;
 }
 
-export interface KubernetesResourceBreakdown {
+export interface KubernetesResourceBreakdown
+  extends PlatformResourceBreakdownSource {
   clusterName: string;
   metricName: string;
   metricFriendlyName: string;
@@ -45,9 +77,16 @@ export interface ProxmoxAffectedResource {
   /** `node` label — present only on the pve_*_info metadata series. */
   nodeName?: string | undefined;
   metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
 }
 
-export interface ProxmoxResourceBreakdown {
+export interface ProxmoxResourceBreakdown
+  extends PlatformResourceBreakdownSource {
   clusterName: string;
   metricName: string;
   metricFriendlyName: string;
@@ -79,9 +118,16 @@ export interface VMwareAffectedResource {
   /** `resource.vcenter.resource_pool.inventory_path` — the pool's unique path. */
   resourcePoolPath?: string | undefined;
   metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
 }
 
-export interface VMwareResourceBreakdown {
+export interface VMwareResourceBreakdown
+  extends PlatformResourceBreakdownSource {
   /** The `vmware.vcenter.name` the agent stamps — one per vCenter. */
   vcenterName: string;
   metricName: string;
@@ -100,9 +146,15 @@ export interface CephAffectedResource {
   /** `hostname` label — present only on the *_metadata series. */
   hostname?: string | undefined;
   metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
 }
 
-export interface CephResourceBreakdown {
+export interface CephResourceBreakdown extends PlatformResourceBreakdownSource {
   clusterName: string;
   metricName: string;
   metricFriendlyName: string;
@@ -120,9 +172,16 @@ export interface DockerSwarmAffectedResource {
   /** `docker.swarm.service.name` datapoint label, when the agent stamps it. */
   serviceName?: string | undefined;
   metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
 }
 
-export interface DockerSwarmResourceBreakdown {
+export interface DockerSwarmResourceBreakdown
+  extends PlatformResourceBreakdownSource {
   clusterName: string;
   metricName: string;
   metricFriendlyName: string;
@@ -142,6 +201,22 @@ export default interface MetricMonitorResponse {
   vmwareResourceBreakdown?: VMwareResourceBreakdown | undefined;
   cephResourceBreakdown?: CephResourceBreakdown | undefined;
   dockerSwarmResourceBreakdown?: DockerSwarmResourceBreakdown | undefined;
+  /*
+   * One breakdown per query whose raw scan returned rows, in query order,
+   * each tagged with the query it was scanned for. These supersede the
+   * singular fields above, which the worker no longer writes: a single
+   * field could only ever hold one query's scan, and holding the last one
+   * put the denominator of every ratio template into the email. The
+   * evaluator still reads the singular field when the plural one is
+   * absent, so a payload built before this change renders as it did.
+   */
+  kubernetesResourceBreakdowns?: Array<KubernetesResourceBreakdown> | undefined;
+  proxmoxResourceBreakdowns?: Array<ProxmoxResourceBreakdown> | undefined;
+  vmwareResourceBreakdowns?: Array<VMwareResourceBreakdown> | undefined;
+  cephResourceBreakdowns?: Array<CephResourceBreakdown> | undefined;
+  dockerSwarmResourceBreakdowns?:
+    | Array<DockerSwarmResourceBreakdown>
+    | undefined;
   /**
    * Per-series breakdown when any queryConfig sets groupByAttributeKeys.
    * Each entry carries a fingerprint, the label values identifying that
@@ -152,11 +227,19 @@ export default interface MetricMonitorResponse {
    */
   seriesBreakdown?: Array<MetricSeriesResult> | undefined;
   /**
-   * Native units (UCUM / OTel) per referenced metric name, lowercased.
-   * Loaded once when the monitor data is fetched. The criteria
-   * evaluator falls back to this when the query alias has no explicit
-   * `legendUnit` so threshold unit conversion (e.g. % vs the
-   * dimensionless "1" used by ratio metrics) still works.
+   * The unit each referenced metric's stored values are in, keyed by
+   * lowercased metric name. Loaded once when the monitor data is fetched.
+   * The criteria evaluator falls back to this when the query alias has no
+   * explicit `legendUnit`, so threshold unit conversion (e.g. % vs the
+   * dimensionless "1" used by ratio metrics) still works and the numbers
+   * in the notification carry a unit.
+   *
+   * For a generic Metrics monitor this is the OpenTelemetry-declared unit
+   * (MetricType.unit). For a platform monitor (Kubernetes, Docker, Host,
+   * Proxmox, ...) the platform's metric catalog wins over it — see
+   * PlatformMetricUnitUtil — because some receivers declare a unit that
+   * does not describe the values they send (docker_stats reports
+   * container.cpu.utilization as 0–100 under the unit "1").
    */
   nativeUnitsByMetricName?: Dictionary<string> | undefined;
 }

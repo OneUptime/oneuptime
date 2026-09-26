@@ -88,6 +88,12 @@ export interface ComponentProps {
    * position (index % length).
    */
   colors?: Array<ChartColorValue> | undefined;
+  /*
+   * false keeps the y-axis ticks on whole numbers, for a series that counts
+   * things (connections, nodes): otherwise 0-2 ticks as 0 | 0.5 | 1 | 1.5.
+   * Unset, the axis picks decimal ticks as it always has.
+   */
+  allowDecimals?: boolean | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -221,6 +227,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         autoMinValue={autoMinValue}
         {...minValueProp}
         {...maxValueProp}
+        allowDecimals={props.allowDecimals !== false}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedTimeReferenceLines={

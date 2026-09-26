@@ -27,6 +27,7 @@ import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
 import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
 import ProxyConfig from "./Utils/ProxyConfig";
 import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
+import ProcessTreeMemory from "./Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
@@ -75,12 +76,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     logger.info(
-      `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Synthetic concurrency: ${PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY}, Synthetic process-tree RSS limit: ${PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES} bytes, Synthetic per-run disk limit: ${PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES} bytes, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
+      `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Synthetic concurrency: ${PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY}, Synthetic process-tree memory limit: ${PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES} bytes, Synthetic per-run disk limit: ${PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES} bytes, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
     );
     if (!PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED) {
       logger.warn(
         "Synthetic Chromium OS sandbox is disabled. Install a Playwright-compatible seccomp profile and set PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED=true for defense in depth.",
       );
+    }
+    const syntheticMemoryWarning: string | null =
+      ProcessTreeMemory.getStartupWarning();
+    if (syntheticMemoryWarning) {
+      logger.warn(syntheticMemoryWarning);
     }
 
     /*

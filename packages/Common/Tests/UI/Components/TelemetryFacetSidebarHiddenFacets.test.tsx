@@ -211,7 +211,10 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     }
     view.rerender(sidebarElement({ facetData: allEmpty }));
 
-    expect(footer()).toHaveTextContent("12 empty filters hidden");
+    // One per catalog type (thirteen, Databases included).
+    const count: number = RESOURCE_FACET_CATALOG.length;
+    expect(count).toBe(13);
+    expect(footer()).toHaveTextContent(`${count} empty filters hidden`);
   });
 
   test("the count's tooltip names the hidden facets in sidebar order", () => {

@@ -4,7 +4,7 @@
  * the chip-name lookups of all three explorers and the trace table headers.
  *
  * Those tables used to be copied by hand, four keys at a time, while the
- * sidebars were meant to list twelve. This suite walks ResourceFacetCatalog
+ * sidebars were meant to list them all. This suite walks ResourceFacetCatalog
  * and checks each table covers each type the same way, so the next resource
  * type cannot be half-wired: on screen, but compiled as a nonexistent Span
  * column, or shown as "proxmoxClusterId: <uuid>".
@@ -56,8 +56,8 @@ const CATALOG_ROWS: Array<CatalogRow> = RESOURCE_FACET_CATALOG.map(
 );
 
 /*
- * The four types both viewers preload a Postgres list for. The other eight
- * are named by the facet endpoint's displayName instead.
+ * The four types both viewers preload a Postgres list for. The others are
+ * named by the facet endpoint's displayName instead.
  */
 const PRELOADED_KEYS: Array<string> = [
   "hostId",
@@ -67,7 +67,7 @@ const PRELOADED_KEYS: Array<string> = [
 ];
 
 describe("the catalog the explorers are wired from", () => {
-  test("lists all twelve non-Service resource types, each once, in sidebar order", () => {
+  test("lists all thirteen non-Service resource types, each once, in sidebar order", () => {
     expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual([
       "hostId",
       "dockerHostId",
@@ -81,6 +81,7 @@ describe("the catalog the explorers are wired from", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]);
     expect(new Set(RESOURCE_FACET_CATALOG_KEYS).size).toBe(
       RESOURCE_FACET_CATALOG_KEYS.length,

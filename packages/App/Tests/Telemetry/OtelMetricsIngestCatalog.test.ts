@@ -39,6 +39,7 @@ const AUTO_DISCOVERY_METHODS: Array<string> = [
   "autoDiscoverServerless",
   "autoDiscoverCloudResource",
   "autoDiscoverRum",
+  "autoDiscoverDatabaseServer",
 ];
 
 let metadataByName: Map<string, TelemetryServiceMetadata>;
@@ -382,6 +383,44 @@ describe("metric ingest catalog integration", () => {
       OTHER_SERVICE_ID.toString(),
     ]);
   });
+
+  test.each([
+    [2, AggregationTemporality.Cumulative],
+    [1, AggregationTemporality.Delta],
+  ])(
+    "reads OTLP/JSON integer temporality %s (GH#3978)",
+    async (wireValue: number, expected: AggregationTemporality) => {
+      /*
+       * OTLP/JSON encodes enums as integers, which is what the collector's
+       * otlphttp exporter sends with `encoding: json`; only protobuf bodies
+       * arrive with the string names.
+       */
+      await OtelMetricsIngestService.processMetricsFromQueue(
+        request([
+          resource({
+            metrics: [
+              {
+                name: "requests.total",
+                sum: {
+                  aggregationTemporality: wireValue,
+                  isMonotonic: true,
+                  dataPoints: [
+                    { asInt: 10, timeUnixNano: `${Date.now()}000000` },
+                  ],
+                },
+              },
+            ],
+          }),
+        ]),
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!["aggregationTemporality"]).toBe(expected);
+      expect(catalog()["requests.total"]!.aggregationTemporality).toBe(
+        expected,
+      );
+    },
+  );
 
   test("continues to treat a catalog write failure as non-fatal after rows land", async () => {
     indexCatalog.mockRejectedValueOnce(new Error("Catalog unavailable"));

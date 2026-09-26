@@ -35,6 +35,10 @@ import {
   ServiceStatusItem,
 } from "./OperationalOverlay";
 import { TrafficTotals } from "./ServiceMapViewModel";
+import {
+  TypedRowLink,
+  resolveDatabaseServerLink,
+} from "../Inventory/ResolveTypedRowLink";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -161,6 +165,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   const [matchedDevice, setMatchedDevice] = useState<NetworkDevice | null>(
     null,
   );
+  const [databaseLink, setDatabaseLink] = useState<TypedRowLink | null>(null);
 
   /*
    * Service entities: the traces link needs the Service row id. The
@@ -199,6 +204,30 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         };
         void load();
       }
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [entity]);
+
+  /*
+   * Database entities: the Databases product page of the server that owns
+   * the endpoint this node names — its own port when it has one, else the
+   * engine default, else the one database on that host (any port, or a
+   * single-label Kubernetes name in any namespace). See ResolveTypedRowLink.
+   */
+  useEffect(() => {
+    let cancelled: boolean = false;
+    setDatabaseLink(null);
+    if (entity.entityType === EntityType.Database) {
+      const load: () => Promise<void> = async (): Promise<void> => {
+        const link: TypedRowLink | null =
+          await resolveDatabaseServerLink(entity);
+        if (!cancelled) {
+          setDatabaseLink(link);
+        }
+      };
+      void load();
     }
     return () => {
       cancelled = true;
@@ -634,6 +663,16 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
                   {t("Traces for this service")}
+                </Link>
+              </li>
+            )}
+            {databaseLink && (
+              <li>
+                <Link
+                  to={databaseLink.route}
+                  className="font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  {t(databaseLink.label)}
                 </Link>
               </li>
             )}

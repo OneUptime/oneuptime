@@ -20,13 +20,16 @@ import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings";
 import ServerlessSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Settings";
+import DatabaseServerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
 import RumSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SideMenu";
 import CloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SideMenu";
 import ServerlessSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/SideMenu";
+import DatabaseServerSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/SideMenu";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getRumBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/RumBreadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
 import { getServerlessBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ServerlessBreadcrumbs";
+import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -34,6 +37,7 @@ import RouteMap, {
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -76,6 +80,50 @@ jest.mock(
       __esModule: true,
       default: (props: { link: Link }): ReactElement => {
         return <SideMenuItem link={props.link} />;
+      },
+    };
+  },
+);
+
+/*
+ * The Databases menu badges Incidents / Alerts / Scheduled Maintenance with
+ * open counts, which first look up the project's unresolved states. None
+ * here, so the badges settle at zero without reaching for the network.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getUnresolvedIncidentStates: () => {
+          return Promise.resolve([]);
+        },
+      },
+    };
+  },
+);
+
+jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnresolvedAlertStates: () => {
+        return Promise.resolve([]);
+      },
+    },
+  };
+});
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceState",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getActiveScheduledMaintenanceStates: () => {
+          return Promise.resolve([]);
+        },
       },
     };
   },
@@ -143,6 +191,18 @@ const RESOURCES: Array<ResourceSettingsCase> = [
       "Settings",
     ],
   },
+  {
+    name: "Database",
+    Page: DatabaseServerSettings,
+    SideMenu: DatabaseServerSideMenu,
+    modelType: DatabaseServer,
+    singularName: "database",
+    settingsKey: PageMap.DATABASE_SERVER_VIEW_SETTINGS,
+    overviewKey: PageMap.DATABASE_SERVER_VIEW,
+    productPath: "databases",
+    getBreadcrumbs: getDatabaseBreadcrumbs,
+    breadcrumbTitles: ["Project", "Databases", "View Database", "Settings"],
+  },
 ];
 
 function resourceRoute(key: PageMap): string {
@@ -185,6 +245,8 @@ beforeEach(() => {
   const resource: RumApplication = new RumApplication();
   resource.isArchived = false;
   jest.spyOn(ModelAPI, "getItem").mockResolvedValue(resource);
+  // Side-menu badges (the Databases menu counts open incidents and alerts).
+  jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
 });
 
 afterEach(() => {

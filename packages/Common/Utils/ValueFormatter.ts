@@ -731,6 +731,22 @@ export default class ValueFormatter {
       return false;
     }
 
+    /*
+     * A memory fragmentation ratio (the redis receiver's
+     * `redis.memory.fragmentation_ratio`, redis_exporter's
+     * `redis_mem_fragmentation_ratio`) is resident over allocated memory —
+     * about 1.0 when healthy, 1.5 and up when fragmented, below 1 when the
+     * host swaps — not a [0, 1] share, so it is shown as the ratio (1.62,
+     * never "162.00%"). Anchored at the end like the suffix rule below, so
+     * every other `_ratio` still renders as a percent. Also what a Value or
+     * Gauge widget on it compares its thresholds against: the ratio's own
+     * scale.
+     */
+    const memoryFragmentationRatio: RegExp = /fragmentation_ratio$/i;
+    if (memoryFragmentationRatio.test(metricName.trim())) {
+      return false;
+    }
+
     const fractionMetricSuffixRegex: RegExp =
       /[._](utilization|ratio|fraction|percent|percentage)$/i;
     return fractionMetricSuffixRegex.test(metricName);

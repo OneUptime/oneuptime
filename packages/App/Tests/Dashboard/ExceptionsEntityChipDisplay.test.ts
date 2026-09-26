@@ -149,6 +149,7 @@ describe("facet key classification", () => {
       cloudResourceId: ServiceType.CloudResource,
       rumApplicationId: ServiceType.RealUserMonitor,
       iotFleetId: ServiceType.IoTDevice,
+      databaseServerId: ServiceType.DatabaseServer,
     });
   });
 
@@ -192,6 +193,7 @@ describe("facet key classification", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]) {
       expect(isExceptionNamedResourceFacetKey(key)).toBe(true);
     }

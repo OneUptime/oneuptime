@@ -5,9 +5,17 @@ import {
   getAllKubernetesMetrics,
   getKubernetesMetricById,
   getKubernetesMetricByMetricName,
+  getKubernetesMetricCategoryLabel,
   getKubernetesMetricsByCategory,
 } from "../../../Types/Monitor/KubernetesMetricCatalog";
+import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import {
+  AGENT_COLLECTOR_IMAGE_TAG,
+  AGENT_EMITTED_METRIC_NAMES,
+  readAgentChartValues,
+} from "./Utils/KubernetesAgentEmittedMetrics";
 import { describe, expect, test } from "@jest/globals";
 
 describe("KubernetesMetricCatalog", () => {
@@ -301,6 +309,269 @@ describe("KubernetesMetricCatalog", () => {
         expect(metric.friendlyName).not.toMatch(
           /\b(receive|transmit|ingress|egress)\b/i,
         );
+      }
+    });
+  });
+
+  /*
+   * The catalog's `unit` is what an incident email prints next to a value
+   * in its "Affected Resources" list. An entry that carries a physical
+   * quantity without declaring it sends the reader a bare
+   * `257760964608` where "258 GB" was meant. These rules are keyed on the
+   * metric NAME, so an entry added later is held to them automatically.
+   *
+   * The one exception on both rules is a kubeletstats `*_utilization`
+   * (underscore) metric: usage divided by a limit or request, a 0-1 ratio
+   * that renders as a percentage. The dot-spelled `*.cpu.utilization`
+   * gauges are NOT ratios — they are misnamed cores gauges — and are held
+   * to the cores rule like any other CPU metric.
+   */
+  describe("physical quantities carry their unit", () => {
+    const utilizationRatioName: RegExp = /_utilization$/;
+    const byteQuantityName: RegExp = /memory|filesystem|_bytes$/;
+    const cpuQuantityName: RegExp = /cpu/;
+
+    const isUtilizationRatio: (metricName: string) => boolean = (
+      metricName: string,
+    ): boolean => {
+      return utilizationRatioName.test(metricName);
+    };
+
+    const isByteQuantity: (metricName: string) => boolean = (
+      metricName: string,
+    ): boolean => {
+      return byteQuantityName.test(metricName);
+    };
+
+    const isCpuQuantity: (metricName: string) => boolean = (
+      metricName: string,
+    ): boolean => {
+      return cpuQuantityName.test(metricName);
+    };
+
+    test("the rules below match real entries (guards the guard)", () => {
+      const names: Array<string> = allMetrics.map(
+        (m: KubernetesMetricDefinition) => {
+          return m.metricName;
+        },
+      );
+
+      expect(names.filter(isByteQuantity).length).toBeGreaterThanOrEqual(8);
+      expect(names.filter(isCpuQuantity).length).toBeGreaterThanOrEqual(6);
+      expect(names.filter(isUtilizationRatio).length).toBeGreaterThanOrEqual(2);
+    });
+
+    test("every memory / filesystem / *_bytes metric is in bytes", () => {
+      for (const metric of allMetrics) {
+        if (
+          !isByteQuantity(metric.metricName) ||
+          isUtilizationRatio(metric.metricName)
+        ) {
+          continue;
+        }
+
+        expect({ metricName: metric.metricName, unit: metric.unit }).toEqual({
+          metricName: metric.metricName,
+          unit: "bytes",
+        });
+      }
+    });
+
+    test("every CPU usage / allocatable / request / limit metric is in cores", () => {
+      for (const metric of allMetrics) {
+        if (
+          !isCpuQuantity(metric.metricName) ||
+          isUtilizationRatio(metric.metricName)
+        ) {
+          continue;
+        }
+
+        expect({ metricName: metric.metricName, unit: metric.unit }).toEqual({
+          metricName: metric.metricName,
+          unit: "cores",
+        });
+      }
+    });
+
+    test("every *_utilization metric is a ratio, never a percent", () => {
+      for (const metric of allMetrics) {
+        if (!isUtilizationRatio(metric.metricName)) {
+          continue;
+        }
+
+        /*
+         * "ratio" is what MetricValueFormatter turns into a percentage on a
+         * `_utilization` name. "%" would print 0.93 as "0.93%".
+         */
+        expect({ metricName: metric.metricName, unit: metric.unit }).toEqual({
+          metricName: metric.metricName,
+          unit: "ratio",
+        });
+      }
+    });
+  });
+
+  /*
+   * etcd, the API server and the scheduler are scraped as Prometheus
+   * metrics and are one cluster-wide signal each, so they get a category
+   * of their own and the Cluster scope.
+   */
+  describe("control-plane metrics", () => {
+    test("have a category of their own", () => {
+      expect(allCategories).toContain("ControlPlane");
+      expect(
+        getKubernetesMetricsByCategory("ControlPlane")
+          .map((m: KubernetesMetricDefinition) => {
+            return m.metricName;
+          })
+          .sort(),
+      ).toEqual([
+        "apiserver_current_inflight_requests",
+        "etcd_server_has_leader",
+        "scheduler_pending_pods",
+      ]);
+    });
+
+    /*
+     * The category value matches the alert templates' "ControlPlane"; the
+     * metric picker titles its group with the label, not the identifier.
+     */
+    test("are titled 'Control Plane' in a picker, other categories as-is", () => {
+      expect(getKubernetesMetricCategoryLabel("ControlPlane")).toBe(
+        "Control Plane",
+      );
+
+      for (const category of allCategories) {
+        if (category !== "ControlPlane") {
+          expect(getKubernetesMetricCategoryLabel(category)).toBe(category);
+        }
+      }
+    });
+
+    test("are scoped to the whole cluster", () => {
+      for (const metric of getKubernetesMetricsByCategory("ControlPlane")) {
+        expect(metric.defaultResourceScope).toBe(
+          KubernetesResourceScope.Cluster,
+        );
+      }
+    });
+
+    test("etcd leadership is a flag with no unit, watched at its minimum", () => {
+      const hasLeader: KubernetesMetricDefinition | undefined =
+        getKubernetesMetricByMetricName("etcd_server_has_leader");
+
+      expect(hasLeader?.unit).toBe("");
+      expect(hasLeader?.defaultAggregation).toBe(AggregationType.Min);
+    });
+  });
+
+  /*
+   * What the entries the alert templates were missing look like in a
+   * notification, through the same formatter the incident email uses.
+   */
+  describe("the entries the alert templates needed render human-readable", () => {
+    function formatFor(metricName: string, value: number): string {
+      const entry: KubernetesMetricDefinition | undefined =
+        getKubernetesMetricByMetricName(metricName);
+
+      expect(entry).toBeDefined();
+
+      return MetricValueFormatter.format({
+        value: value,
+        unit: entry!.unit,
+        metricName: entry!.metricName,
+      });
+    }
+
+    test("allocatable memory reads in GB, not as twelve digits", () => {
+      expect(formatFor("k8s.node.allocatable_memory", 257760964608)).toBe(
+        "258 GB",
+      );
+      expect(formatFor("k8s.node.allocatable_memory", 8235155456)).toBe(
+        "8.24 GB",
+      );
+    });
+
+    test("allocatable CPU reads in cores", () => {
+      expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe("31.85 cores");
+      expect(formatFor("k8s.node.allocatable_cpu", 4)).toBe("4 cores");
+    });
+
+    test("the pod limit utilizations read as a percentage of the limit", () => {
+      expect(formatFor("k8s.pod.memory_limit_utilization", 0.93)).toBe(
+        "93.00%",
+      );
+      expect(formatFor("k8s.pod.cpu_limit_utilization", 0.5)).toBe("50.00%");
+    });
+
+    test("the control-plane flag and counts stay bare numbers", () => {
+      expect(formatFor("etcd_server_has_leader", 0)).toBe("0");
+      expect(formatFor("etcd_server_has_leader", 1)).toBe("1");
+      expect(formatFor("apiserver_current_inflight_requests", 212)).toBe("212");
+      expect(formatFor("scheduler_pending_pods", 3)).toBe("3");
+    });
+  });
+
+  /*
+   * BUG: the Workload entries were named for the Deployment/StatefulSet
+   * STATUS fields — `k8s.deployment.available_replicas`,
+   * `.desired_replicas`, `.unavailable_replicas`,
+   * `k8s.statefulset.ready_replicas` — but the agent's k8s_cluster receiver
+   * emits `k8s.deployment.available`, `k8s.deployment.desired` and
+   * `k8s.statefulset.ready_pods`, and no "unavailable" series at all. The
+   * chart renames nothing, so every one of those entries charted and
+   * alerted on a metric that never arrives: an empty chart, and a monitor
+   * that is never Met, with no error anywhere.
+   */
+  describe("every entry names a metric the shipped agent emits", () => {
+    test("the agent chart still pins the collector these names were read from", () => {
+      /*
+       * AGENT_EMITTED_METRIC_NAMES is the receivers' metadata.yaml at this
+       * collector version. Bumping the image fails here until that list is
+       * re-read — receivers rename metrics between versions.
+       */
+      const values: Record<string, any> = readAgentChartValues();
+
+      expect(values["image"]["repository"]).toBe(
+        "otel/opentelemetry-collector-contrib",
+      );
+      expect(String(values["image"]["tag"])).toBe(AGENT_COLLECTOR_IMAGE_TAG);
+      // The kubeletstats *_utilization names in the list assume this default.
+      expect(values["kubeletstats"]["utilizationMetrics"]["enabled"]).toBe(
+        true,
+      );
+    });
+
+    test.each(
+      allMetrics.map((m: KubernetesMetricDefinition) => {
+        return [m.id, m.metricName];
+      }),
+    )("%s queries %s, which the agent emits", (_id: string, name: string) => {
+      expect(AGENT_EMITTED_METRIC_NAMES.has(name)).toBe(true);
+    });
+
+    test("deployment replica entries use the receiver's names", () => {
+      expect(getKubernetesMetricById("deployment-available-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.deployment.available" }),
+      );
+      expect(getKubernetesMetricById("deployment-desired-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.deployment.desired" }),
+      );
+    });
+
+    test("the StatefulSet ready entry uses the receiver's name", () => {
+      expect(getKubernetesMetricById("statefulset-ready-replicas")).toEqual(
+        expect.objectContaining({ metricName: "k8s.statefulset.ready_pods" }),
+      );
+    });
+
+    test("no entry offers an unavailable-replicas series the receiver does not have", () => {
+      expect(
+        getKubernetesMetricById("deployment-unavailable-replicas"),
+      ).toBeUndefined();
+
+      for (const metric of allMetrics) {
+        expect(metric.metricName).not.toMatch(/unavailable/);
       }
     });
   });

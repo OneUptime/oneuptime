@@ -532,8 +532,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
        * ("Scheduled Maintenance", "Recommendations" beside a badge) were
        * ellipsised on every page that has them. 16px buys those back without
        * taking a visible bite out of the content column.
+       *
+       * `max-md:hidden`, not `hidden`, for the reason given on the NavBar's
+       * desktop view: a foreign `.hidden` rule must not remove the menu.
        */
-      className={`hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
+      className={`max-md:hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
       aria-label="Main navigation"
     >

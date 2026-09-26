@@ -50,6 +50,13 @@ import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
+import {
+  FetchMetricRowValueOverrides,
+  MetricRowValueOverride,
+  MetricRowValueOverrideMap,
+  getMetricServiceIdsByName,
+  resolveMetricRowValueOverride,
+} from "./Utils/MetricRowScope";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
 import {
   serializeSavedViewTimeRange,
@@ -447,6 +454,71 @@ interface Props {
    * for incident embeds. Standalone explorer pages leave this unset.
    */
   disableUrlSync?: boolean | undefined;
+  /*
+   * Row click behaviour. By default a row opens the metric in the explorer
+   * (METRIC_VIEW), carrying the list's ATTRIBUTE scope. An entity-key scope
+   * cannot travel there — the explorer charts by attribute filters only
+   * (`entityKeys` reaches it just as the event-overlay scope) — so a list
+   * scoped by `entityKeysFilter` alone, like a Database page, would open a
+   * chart of the metric across the whole project.
+   *
+   * `onMetricClick` hands the click to the host instead (e.g. to chart the
+   * metric in place with its own entity-key scope). `disableMetricDrillDown`
+   * makes rows plain, non-interactive entries. `onMetricClick` wins when
+   * both are set.
+   */
+  onMetricClick?: ((metric: MetricType) => void) | undefined;
+  disableMetricDrillDown?: boolean | undefined;
+  /*
+   * Row values the host computes itself for the metric names it knows (see
+   * Utils/MetricRowScope): those rows show the host's points, value, suffix
+   * and caption instead of the per-bucket average of every series, and the
+   * default aggregate is not fetched for them. Must be referentially stable
+   * (useCallback): the sparklines refetch when it changes.
+   */
+  fetchRowValueOverrides?: FetchMetricRowValueOverrides | undefined;
+  /*
+   * The caption under every OTHER row's value (the default per-bucket
+   * average), for a host whose overridden rows would otherwise read as the
+   * same kind of number. Unset: no caption, as before.
+   */
+  defaultRowValueCaption?: string | undefined;
+  /*
+   * The unit a row's value is in, for a host that knows a metric's declared
+   * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
+   * declared in bytes, as a page count). Undefined keeps the metric's own.
+   * Applies to every row, whoever computed its value.
+   */
+  getRowValueUnit?: ((metricName: string) => string | undefined) | undefined;
+}
+
+/*
+ * What a row click does (see Props.onMetricClick / disableMetricDrillDown):
+ * the host's handler, nothing (undefined — the row renders as a plain,
+ * non-interactive entry), or the default explorer navigation.
+ */
+export function getMetricRowClickHandler(data: {
+  metric: MetricType;
+  onMetricClick?: ((metric: MetricType) => void) | undefined;
+  disableMetricDrillDown?: boolean | undefined;
+  navigate: (metric: MetricType) => void;
+}): (() => void) | undefined {
+  const onMetricClick: ((metric: MetricType) => void) | undefined =
+    data.onMetricClick;
+
+  if (onMetricClick) {
+    return (): void => {
+      onMetricClick(data.metric);
+    };
+  }
+
+  if (data.disableMetricDrillDown) {
+    return undefined;
+  }
+
+  return (): void => {
+    data.navigate(data.metric);
+  };
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -605,6 +677,17 @@ const MetricsViewer: FunctionComponent<Props> = (
   // Metric names that match attribute filters (null = no attribute filter active)
   const [attributeMatchedNames, setAttributeMatchedNames] =
     useState<Array<string> | null>(null);
+
+  /*
+   * For a list pinned to entity keys alone: metric name → the services that
+   * reported it under those keys, so a row does not name every service
+   * that ever sent the metric project-wide. Null when the rows keep their
+   * own service scope (serviceIds / serviceIdsToDisplay, or no key scope).
+   */
+  const [entityScopedServiceIds, setEntityScopedServiceIds] = useState<Record<
+    string,
+    Array<string>
+  > | null>(null);
   const [attributeFilterLoading, setAttributeFilterLoading] =
     useState<boolean>(false);
 
@@ -618,6 +701,13 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
   const [sparklineLastValue, setSparklineLastValue] = useState<
     Record<string, number>
+  >({});
+  // Suffix and caption of the rows whose value the host supplied.
+  const [rowValueLabels, setRowValueLabels] = useState<
+    Record<
+      string,
+      { suffix?: string | undefined; caption?: string | undefined }
+    >
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
@@ -862,14 +952,25 @@ const MetricsViewer: FunctionComponent<Props> = (
     const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
     const entityKeys: Array<string> = props.entityKeysFilter || [];
     const entityScope: EntityScopeFilter | undefined = props.entityScope;
+    /*
+     * Pinned to entity keys with no service scope of its own: the same
+     * query also says which services reported each name under the keys
+     * (grouped by primaryEntityId), for the rows' service chips.
+     */
+    const derivesRowServices: boolean =
+      entityKeys.length > 0 &&
+      !(props.serviceIds && props.serviceIds.length > 0) &&
+      !(props.serviceIdsToDisplay && props.serviceIdsToDisplay.length > 0);
     const filterKey: string = JSON.stringify({
       attributes: effectiveAttributes,
       entityKeys,
       entityScope: entityScope || null,
+      derivesRowServices,
     });
 
     if (attributeKeys.length === 0 && entityKeys.length === 0 && !entityScope) {
       setAttributeMatchedNames(null);
+      setEntityScopedServiceIds(null);
       lastAttributeFilterRef.current = "";
       return;
     }
@@ -922,12 +1023,14 @@ const MetricsViewer: FunctionComponent<Props> = (
           await AnalyticsModelAPI.getList<Metric>({
             modelType: Metric,
             query: analyticsQuery,
-            groupBy: { name: true } as GroupBy<Metric>,
+            groupBy: (derivesRowServices
+              ? { name: true, primaryEntityId: true }
+              : { name: true }) as GroupBy<Metric>,
             limit: LIMIT_PER_PROJECT,
             skip: 0,
-            select: {
-              name: true,
-            } as Select<Metric>,
+            select: (derivesRowServices
+              ? { name: true, primaryEntityId: true }
+              : { name: true }) as Select<Metric>,
             sort: { name: SortOrder.Ascending } as Record<string, SortOrder>,
             requestOptions: {},
           });
@@ -940,8 +1043,20 @@ const MetricsViewer: FunctionComponent<Props> = (
           }
         }
         setAttributeMatchedNames(Array.from(uniqueNames));
+        setEntityScopedServiceIds(
+          derivesRowServices
+            ? getMetricServiceIdsByName(
+                result.data as unknown as Array<{
+                  name?: unknown;
+                  primaryEntityId?: unknown;
+                }>,
+              )
+            : null,
+        );
       } catch {
         setAttributeMatchedNames([]);
+        // Unknown: name no service rather than every service in the project.
+        setEntityScopedServiceIds(derivesRowServices ? {} : null);
       } finally {
         setAttributeFilterLoading(false);
       }
@@ -951,6 +1066,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     effectiveAttributes,
     props.entityKeysFilter,
     props.entityScope,
+    props.serviceIds,
+    props.serviceIdsToDisplay,
     timeRange,
   ]);
 
@@ -1142,6 +1259,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     if (visibleNames.length === 0) {
       setSparklineData({});
       setSparklineLastValue({});
+      setRowValueLabels({});
       return;
     }
     const fetchSparklines: () => Promise<void> = async () => {
@@ -1149,6 +1267,39 @@ const MetricsViewer: FunctionComponent<Props> = (
       try {
         const dateRange: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+        /*
+         * The host's own values first; the default aggregate skips those
+         * names. A host's values cover its whole scope, so they step aside
+         * while the user narrows the list by an attribute of their own.
+         */
+        const hasUserAttributeFilters: boolean = Object.keys(
+          effectiveAttributes,
+        ).some((key: string): boolean => {
+          return !(
+            props.attributeFilters &&
+            Object.prototype.hasOwnProperty.call(props.attributeFilters, key)
+          );
+        });
+        let overrides: MetricRowValueOverrideMap = new Map();
+        if (props.fetchRowValueOverrides && !hasUserAttributeFilters) {
+          try {
+            overrides = await props.fetchRowValueOverrides({
+              metricNames: visibleNames,
+              startAndEndDate: new InBetween<Date>(
+                dateRange.startValue,
+                dateRange.endValue,
+              ),
+            });
+          } catch {
+            overrides = new Map();
+          }
+        }
+        const defaultNames: Array<string> = visibleNames.filter(
+          (name: string): boolean => {
+            return !overrides.has(name);
+          },
+        );
 
         /*
          * Backend-aggregated fetch (one parallel call per metric name).
@@ -1162,30 +1313,54 @@ const MetricsViewer: FunctionComponent<Props> = (
         const entityKeys: Array<string> = props.entityKeysFilter || [];
         const isEntityScoped: boolean =
           entityKeys.length > 0 || Boolean(props.entityScope);
-        const aggregates: Map<string, AggregatedResult> = isEntityScoped
-          ? await fetchEntityScopedSparklineAggregates({
-              metricNames: visibleNames,
-              attributes: effectiveAttributes,
-              startAndEndDate: new InBetween<Date>(
-                dateRange.startValue,
-                dateRange.endValue,
-              ),
-              entityKeys,
-              entityScope: props.entityScope,
-            })
-          : await MetricUtil.fetchSparklineAggregates({
-              metricNames: visibleNames,
-              attributes:
-                effectiveAttributes as Dictionary<DictionaryEntryValue>,
-              startAndEndDate: new InBetween<Date>(
-                dateRange.startValue,
-                dateRange.endValue,
-              ),
-            });
+        const aggregates: Map<string, AggregatedResult> =
+          defaultNames.length === 0
+            ? new Map()
+            : isEntityScoped
+              ? await fetchEntityScopedSparklineAggregates({
+                  metricNames: defaultNames,
+                  attributes: effectiveAttributes,
+                  startAndEndDate: new InBetween<Date>(
+                    dateRange.startValue,
+                    dateRange.endValue,
+                  ),
+                  entityKeys,
+                  entityScope: props.entityScope,
+                })
+              : await MetricUtil.fetchSparklineAggregates({
+                  metricNames: defaultNames,
+                  attributes:
+                    effectiveAttributes as Dictionary<DictionaryEntryValue>,
+                  startAndEndDate: new InBetween<Date>(
+                    dateRange.startValue,
+                    dateRange.endValue,
+                  ),
+                });
 
         const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
+        const labels: Record<
+          string,
+          { suffix?: string | undefined; caption?: string | undefined }
+        > = {};
         for (const name of visibleNames) {
+          const override: MetricRowValueOverride | undefined =
+            overrides.get(name);
+          if (override) {
+            const resolved: {
+              points: Array<SparklinePoint>;
+              value: number | undefined;
+            } = resolveMetricRowValueOverride(override);
+            out[name] = resolved.points;
+            if (resolved.value !== undefined) {
+              last[name] = resolved.value;
+            }
+            labels[name] = {
+              suffix: override.valueSuffix,
+              caption: override.caption,
+            };
+            continue;
+          }
           const aggregated: AggregatedResult = aggregates.get(name) || {
             data: [],
           };
@@ -1215,9 +1390,11 @@ const MetricsViewer: FunctionComponent<Props> = (
         }
         setSparklineData(out);
         setSparklineLastValue(last);
+        setRowValueLabels(labels);
       } catch {
         setSparklineData({});
         setSparklineLastValue({});
+        setRowValueLabels({});
       } finally {
         setSparklineLoading(false);
       }
@@ -1229,6 +1406,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     effectiveAttributes,
     props.entityKeysFilter,
     props.entityScope,
+    props.attributeFilters,
+    props.fetchRowValueOverrides,
   ]);
 
   // Facet configs
@@ -1659,10 +1838,27 @@ const MetricsViewer: FunctionComponent<Props> = (
             sparklinePoints={sparklineData[name]}
             sparklineLoading={sparklineLoading}
             lastValue={sparklineLastValue[name]}
+            valueSuffix={rowValueLabels[name]?.suffix}
+            valueUnit={
+              props.getRowValueUnit ? props.getRowValueUnit(name) : undefined
+            }
+            valueCaption={
+              rowValueLabels[name]
+                ? rowValueLabels[name]!.caption
+                : props.defaultRowValueCaption
+            }
             serviceIds={props.serviceIdsToDisplay}
-            onClick={() => {
-              handleRowClick(metric);
-            }}
+            restrictServicesToIds={
+              entityScopedServiceIds
+                ? entityScopedServiceIds[name] || []
+                : undefined
+            }
+            onClick={getMetricRowClickHandler({
+              metric,
+              onMetricClick: props.onMetricClick,
+              disableMetricDrillDown: props.disableMetricDrillDown,
+              navigate: handleRowClick,
+            })}
           />
         );
       }}

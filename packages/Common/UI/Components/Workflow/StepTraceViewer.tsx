@@ -135,7 +135,7 @@ const StepRow: FunctionComponent<StepRowProps> = (
         </span>
 
         {props.step.executedPort && (
-          <span className="text-xs text-gray-500 shrink-0 hidden sm:inline">
+          <span className="text-xs text-gray-500 shrink-0 max-sm:hidden sm:inline">
             → {props.step.executedPort}
           </span>
         )}

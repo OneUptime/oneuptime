@@ -233,15 +233,19 @@ describe("LogsFacetSidebar hides empty resource facets", () => {
 
     render(sidebarElement({ facetData: allEmpty }));
 
+    // One per catalog type (thirteen, Databases included).
+    const count: number = RESOURCE_FACET_CATALOG.length;
+    expect(count).toBe(13);
+
     expect(sectionTitles()).toEqual(["Severity"]);
-    expect(footer()).toHaveTextContent("12 empty filters hidden");
-    expect(screen.getByText("12 empty filters hidden")).toHaveAttribute(
+    expect(footer()).toHaveTextContent(`${count} empty filters hidden`);
+    expect(screen.getByText(`${count} empty filters hidden`)).toHaveAttribute(
       "title",
       CATALOG_LABELS.join(", "),
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Show 12 empty filters" }),
+      screen.getByRole("button", { name: `Show ${count} empty filters` }),
     );
 
     expect(sectionTitles()).toEqual(["Severity", ...CATALOG_LABELS]);

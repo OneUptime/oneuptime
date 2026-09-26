@@ -447,7 +447,7 @@ const AIInsightsPage: FunctionComponent<
    */
   const getListHeader: GetListHeaderFunction = (): ReactElement => {
     return (
-      <div className="hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
+      <div className="max-xl:hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
         <span className="flex-1">Insight</span>
         <span className="w-32 flex-shrink-0">Status</span>
         <span className="w-24 flex-shrink-0 text-right">Detections</span>

@@ -283,7 +283,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <NavBar className="mt-5 hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
+      <NavBar className="mt-5 max-md:hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
         {navItems.map((item: NavItem) => {
           return (
             <NavBarItem

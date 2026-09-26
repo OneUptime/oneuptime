@@ -3,6 +3,7 @@ import PasswordRequirements from "../Components/PasswordRequirements/PasswordReq
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
+import Email from "Common/Types/Email";
 import HashedString from "Common/Types/HashedString";
 import { getSignupPasswordValidationError } from "Common/Types/Password";
 import { JSONObject } from "Common/Types/JSON";
@@ -92,6 +93,18 @@ const RegisterPage: () => JSX.Element = () => {
   const [registrationEmailSent, setRegistrationEmailSent] =
     React.useState<boolean>(false);
 
+  /*
+   * The address a hosted signup has to verify before it can sign in. Set when
+   * the account was created but the API answered `emailVerificationRequired`
+   * instead of a session. Kept from the submitted form rather than the
+   * response, which deliberately describes no account.
+   */
+  const [emailAwaitingVerification, setEmailAwaitingVerification] =
+    React.useState<string | null>(null);
+
+  const submittedEmail: React.MutableRefObject<Email | null> =
+    useRef<Email | null>(null);
+
   const isCaptchaEnabled: boolean =
     CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
 
@@ -105,9 +118,17 @@ const RegisterPage: () => JSX.Element = () => {
     });
   }, []);
 
-  if (UserUtil.isLoggedIn()) {
-    Navigation.navigate(DASHBOARD_URL);
-  }
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts. Not on every render: a signup that signs the account
+   * in navigates to the Dashboard itself (LoginUtil.login), and a re-render
+   * after that would navigate again and abort the first.
+   */
+  React.useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
 
   type FetchResellerFunction = (resellerId: string) => Promise<void>;
 
@@ -385,6 +406,49 @@ const RegisterPage: () => JSX.Element = () => {
     return <PageLoader isVisible={true} />;
   }
 
+  if (emailAwaitingVerification !== null) {
+    return (
+      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto">
+          <img
+            className="mx-auto h-10 w-auto sm:h-12"
+            src={OneUptimeLogo}
+            alt="OneUptime"
+          />
+          <div
+            className="mt-6 rounded-xl border border-gray-200 bg-white px-6 py-8 text-center shadow-sm sm:px-8"
+            data-testid="verify-email-required"
+          >
+            <h2 className="text-xl tracking-tight text-gray-900 sm:text-2xl">
+              {t("register.verifyEmailTitle")}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              {emailAwaitingVerification
+                ? t("register.verifyEmailSentTo", {
+                    email: emailAwaitingVerification,
+                  })
+                : t("register.verifyEmailSent")}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              {t("register.verifyEmailInstructions")}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-500">
+              {t("register.verifyEmailResendHint")}
+            </p>
+          </div>
+          <p className="mt-4 text-center text-sm text-gray-600 sm:mt-5">
+            <Link
+              to={new Route("/accounts/login")}
+              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+            >
+              {t("register.verifyEmailLoginLink")}
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (registrationEmailSent) {
     return (
       <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
@@ -443,6 +507,8 @@ const RegisterPage: () => JSX.Element = () => {
                 );
                 hasCapturedSignupStart.current = true;
               }
+
+              submittedEmail.current = item.email || null;
               if (isCaptchaEnabled) {
                 const captchaToken: string | undefined = (
                   miscDataProps["captchaToken"] as string | undefined
@@ -539,14 +605,35 @@ const RegisterPage: () => JSX.Element = () => {
                 return;
               }
 
-              if (value && value.email && !hasCapturedSignupComplete.current) {
+              /*
+               * The account WAS created, so this is a completed signup for
+               * the funnel. There is just no session yet: the hosted service
+               * holds a new account until its email is verified, and the
+               * response carries no account to read the address from.
+               */
+              const isEmailVerificationRequired: boolean = Boolean(
+                miscData && miscData["emailVerificationRequired"],
+              );
+
+              const signedUpEmail: Email | null =
+                value?.email ||
+                (isEmailVerificationRequired ? submittedEmail.current : null);
+
+              if (signedUpEmail && !hasCapturedSignupComplete.current) {
                 hasCapturedSignupComplete.current = true;
-                UiAnalytics.userAuth(value.email);
+                UiAnalytics.userAuth(signedUpEmail);
                 UiAnalytics.capture("accounts/register");
                 UiAnalytics.captureRevenueEvent(
                   RevenueEventName.SignupCompleted,
                   { funnel_stage: RevenueFunnelStage.Signup },
                 );
+              }
+
+              if (isEmailVerificationRequired) {
+                setEmailAwaitingVerification(
+                  submittedEmail.current?.toString() || "",
+                );
+                return;
               }
 
               LoginUtil.login({

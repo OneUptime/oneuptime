@@ -9,11 +9,14 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -300,7 +303,35 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * The Database discovered on this StatefulSet, if any — by its name,
+       * or the cluster its labels place it in (an operator's, a Helm
+       * chart's, a Percona cluster's). Asked once the object (and so its
+       * namespace and labels) has loaded.
+       */}
+      <DatabaseServerWorkloadBadge
+        resourceLabel="StatefulSet"
+        target={
+          isLoadingObject
+            ? null
+            : {
+                platform: "kubernetes",
+                parentId: modelId,
+                namespace: objectData?.metadata.namespace,
+                ...getKubernetesDatabaseWorkloadCandidates({
+                  kind: "StatefulSet",
+                  name: statefulSetName,
+                  namespace: objectData?.metadata.namespace,
+                  labels: objectData?.metadata.labels,
+                }),
+              }
+        }
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterStatefulSetDetail;

@@ -1,6 +1,6 @@
 {
   "name": "mobileapp",
-  "version": "14.0.3",
+  "version": "14.0.5",
   "license": "Apache-2.0",
   "main": "index.ts",
   "scripts": {

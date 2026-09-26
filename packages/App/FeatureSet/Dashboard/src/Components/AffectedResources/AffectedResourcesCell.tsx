@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -14,6 +15,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
+import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
@@ -55,6 +57,7 @@ type ResourceItem =
   | { _key: string; type: "CephCluster"; model: CephCluster }
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
   | { _key: string; type: "IoTFleet"; model: IoTFleet }
+  | { _key: string; type: "DatabaseServer"; model: DatabaseServer }
   | { _key: string; type: "NetworkSite"; model: NetworkSite }
   | { _key: string; type: "Service"; model: Service }
   | {
@@ -74,6 +77,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
@@ -162,6 +166,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `IoTFleet:${fleet._id ? String(fleet._id) : Math.random()}`,
       type: "IoTFleet",
       model: fleet,
+    });
+  }
+  for (const databaseServer of props.databaseServers || []) {
+    items.push({
+      _key: `DatabaseServer:${
+        databaseServer._id ? String(databaseServer._id) : Math.random()
+      }`,
+      type: "DatabaseServer",
+      model: databaseServer,
     });
   }
   for (const networkSite of props.networkSites || []) {
@@ -283,6 +296,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <IoTFleetElement
               iotFleet={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "DatabaseServer") {
+          return (
+            <DatabaseServerElement
+              databaseServer={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

@@ -196,6 +196,7 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 - **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Databases** — PostgreSQL, MySQL, Redis, MongoDB en meer, automatisch gedetecteerd uit applicatietraces, Kubernetes en Docker, met engine-metrics, querysamples en logs van een collector-agent die alleen uit configuratie bestaat. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

@@ -448,7 +448,7 @@ const FeedOptionsButton: FunctionComponent<ComponentProps> = (
           className={`h-4 w-4 ${isCustomized ? "text-indigo-500" : "text-gray-500"}`}
         />
         <span
-          className="sr-only xl:not-sr-only"
+          className="max-xl:sr-only xl:not-sr-only"
           data-testid="feed-options-label"
         >
           {translate(FEED_OPTIONS_TEXT.triggerLabel)}

@@ -686,10 +686,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 O status de conexão de um cluster é determinado puramente pela chegada de telemetria — se nenhum dado chegar, o cluster é marcado como desconectado após ~15 minutos. Portanto "disconnected" e "no metrics" quase sempre têm a **mesma** causa: a telemetria do agente não está sendo aceita.
 
-A razão mais comum — especialmente após uma reinstalação — é uma **chave de ingestão errada ou revogada**. Isso é fácil de passar despercebido porque os endpoints de ingestão OTLP retornam deliberadamente HTTP `200` mesmo para um token inválido (para que um coletor mal configurado não cause uma tempestade de novas tentativas no servidor). O resultado: o coletor relata sucesso, seus logs não mostram erros, e os dados são descartados silenciosamente.
+A razão mais comum — especialmente após uma reinstalação — é uma **chave de ingestão errada ou revogada**. O OneUptime recusa uma chave assim: os endpoints de ingestão OTLP respondem HTTP `401` para uma chave ausente, desconhecida ou expirada, e `422` para uma chave desativada ou uma chave de navegador. Nenhum dos dois status é retentado, então o coletor descarta cada lote e registra um erro `Exporting failed. Dropping data.` por lote. Os pods continuam Running e Ready, o que faz essa linha passar despercebida com facilidade.
 
 1. Verifique se os pods do agente estão em execução: `kubectl get pods -n oneuptime-agent`
-2. Verifique os logs do coletor de métricas: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (a ausência de erros aqui **não** significa que os dados estão chegando — veja acima)
+2. Verifique os logs do coletor de métricas: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector` (uma linha `Exporting failed` com `HTTP Status Code 401` ou `422` significa que a chave foi recusada — veja acima)
 3. **Valide a chave de ingestão.** Pergunte diretamente ao OneUptime se o seu token é aceito (`200` = válido, `401` = desconhecido/revogado):
 
    ```bash
@@ -716,7 +716,7 @@ A razão mais comum — especialmente após uma reinstalação — é uma **chav
 
 ### Nenhuma métrica aparecendo
 
-1. Primeiro descarte uma chave de ingestão rejeitada — é a causa mais comum e é invisível do lado do agente. Veja [O agente mostra "Disconnected"](#o-agente-mostra-disconnected) acima (ou simplesmente execute o script de diagnóstico).
+1. Primeiro descarte uma chave de ingestão rejeitada — é a causa mais comum e é fácil de passar despercebida do lado do agente. Veja [O agente mostra "Disconnected"](#o-agente-mostra-disconnected) acima (ou simplesmente execute o script de diagnóstico).
 2. Verifique se o identificador do cluster corresponde ao valor que você passou como `clusterName`
 3. Verifique as permissões de RBAC: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Verifique os logs do coletor OTel em busca de erros de exportação

@@ -451,6 +451,22 @@ export default class TelemetryUtil {
     };
   }
 
+  /*
+   * Stamped on rows from a database's own telemetry (collector / Database
+   * Agent receiver batches), like oneuptime.host.id. A metric monitor
+   * series grouped by oneuptime.database.server.id links the incident or
+   * alert it opens to that database (see SeriesResourceLinker).
+   */
+  public static getAttributesForDatabaseServerIdAndName(data: {
+    databaseServerId: ObjectID;
+    databaseServerName: string;
+  }): Dictionary<AttributeType> {
+    return {
+      "oneuptime.database.server.id": data.databaseServerId.toString(),
+      "oneuptime.database.server.name": data.databaseServerName,
+    };
+  }
+
   public static getAttributes(data: {
     prefixKeysWithString: string;
     items: JSONArray;

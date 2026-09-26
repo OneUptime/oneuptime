@@ -1,0 +1,16 @@
+{
+  /*
+   * The project every file in this directory belongs to: exactly
+   * ../tsconfig.tests.json, the program `npm run compile-tests` type-checks.
+   * Its "include" and "exclude" are inherited and resolve against
+   * packages/Common, where they are written.
+   *
+   * It exists because TypeScript picks a file's project by the nearest
+   * tsconfig.json - editors, and ESLint's typed linting (projectService in
+   * eslint.config.js). ../tsconfig.json excludes Tests, so without this file
+   * the lookup walked on up to the repository-root tsconfig.json, which has
+   * no "include": every Common test was linted, and opened in an editor,
+   * inside a program of the whole monorepo.
+   */
+  "extends": "../tsconfig.tests.json"
+}
