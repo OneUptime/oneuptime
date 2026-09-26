@@ -1161,24 +1161,18 @@ describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
   });
 
   /*
-   * The same bug, generalised: any template reading a k8s_cluster or
-   * kubeletstats series must read one the agent actually sends. That
-   * covers node, pod and container metrics too, including the kubeletstats
-   * ones that are off upstream and on only because the chart enables them
-   * (see the high node CPU block below). Undotted names come from the
-   * chart's Prometheus scrapes (control plane, cAdvisor, kube-state-metrics),
-   * which this list does not cover.
+   * The same bug, generalised: every query of every template must read a
+   * series the agent actually sends, whichever receiver or scrape it comes
+   * from. That covers node, pod and container metrics, including the
+   * kubeletstats ones that are off upstream and on only because the chart
+   * enables them (see the high node CPU block below), and the undotted
+   * names from the chart's Prometheus scrapes — control plane, cAdvisor,
+   * kube-state-metrics, cost engine.
    */
-  test("no template queries a k8s_cluster or kubeletstats metric the agent does not emit", () => {
-    const receiverMetric: RegExp = /^(k8s|container)\./;
-
+  test("no template queries a metric the agent does not emit", () => {
     for (const template of getAllKubernetesAlertTemplates()) {
       for (const query of getQueryConfigs(template.id)) {
         const metricName: string = query.metricQueryData.filterData.metricName;
-
-        if (!receiverMetric.test(metricName)) {
-          continue;
-        }
 
         expect(`${template.id}: ${metricName}`).toBe(
           AGENT_EMITTED_METRIC_NAMES.has(metricName)
