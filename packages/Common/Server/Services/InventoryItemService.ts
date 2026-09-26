@@ -10,6 +10,8 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
@@ -22,6 +24,12 @@ import {
   MANUAL_ENTITY_IDENTITY_ATTRIBUTE,
 } from "../../Utils/Telemetry/EntityKey";
 import logger from "../Utils/Logger";
+import {
+  INVENTORY_OVERVIEW_GROUP_BY,
+  INVENTORY_OVERVIEW_SELECT,
+  InventoryOverviewCounts,
+  readInventoryOverviewGroups,
+} from "../Utils/Inventory/InventoryOverviewAggregation";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
 import {
@@ -145,6 +153,36 @@ export class InventoryItemService extends DatabaseService<Model> {
     data.lastSeenAt = data.lastSeenAt || now;
 
     return { createBy, carryForward: null };
+  }
+
+  /**
+   * The Inventory Overview's tiles and per-type breakdown, counted over the
+   * project's whole unarchived estate. See INVENTORY_OVERVIEW_SELECT.
+   *
+   * Archived rows are excluded because every tile drills into the live Items
+   * list, which excludes them too.
+   *
+   * The GROUP BY carries no limit: capping it would cap the totals summed
+   * from it. The number of groups is bounded by the entity-type vocabulary —
+   * ingest maps to a fixed set of types, manual creates are confined to
+   * MANUAL_ENTITY_TYPES, and the column is not updatable.
+   */
+  @CaptureSpan()
+  public async getOverviewCounts(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<InventoryOverviewCounts> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: INVENTORY_OVERVIEW_GROUP_BY,
+      select: INVENTORY_OVERVIEW_SELECT,
+      props: data.props,
+    });
+
+    return readInventoryOverviewGroups(rows);
   }
 
   /**

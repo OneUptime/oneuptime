@@ -116,6 +116,7 @@ import NetworkRuleRunAPI from "./API/NetworkRuleRun";
 import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
+import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
@@ -1927,6 +1928,17 @@ const BaseAPIFeatureSet: FeatureSet = {
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceInstance,
       ).getRouter(),
+    );
+
+    /*
+     * The Inventory Overview's counts and "Recently added" rows. Safe beside
+     * the InventoryItem CRUD router: the only single-segment routes BaseAPI
+     * registers under `/inventory-item` are PUT and DELETE `/:id`, so a POST
+     * to `/overview` is never mistaken for an item id.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new InventoryOverviewAPI().getRouter(),
     );
 
     // Project SCIM

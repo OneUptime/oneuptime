@@ -15,9 +15,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * The number strip at the top of the Inventory Overview.
  *
- * Purely presentational: the Overview does one fetch and folds it, so the
- * tiles and the category breakdown below them are always two views of the
- * same snapshot rather than two requests that can disagree.
+ * Purely presentational: the Overview makes one request, counted in one
+ * grouped query on the server, so the tiles and the category breakdown below
+ * them are always two views of the same snapshot rather than two requests
+ * that can disagree.
  *
  * Every tile navigates rather than toggling — the rows it counted live on the
  * Items page — so none of them passes `isSelected`. An InfoCard given
