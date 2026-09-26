@@ -1,9 +1,30 @@
 import { APIResponse, expect, test, APIRequestContext } from "@playwright/test";
 
 /*
- * Run with a fresh disposable Redis database and this spec alone. The configured
- * setup limit defaults to 600; no production Redis instance may be used.
+ * Needs a disposable Redis database; no production Redis instance may be used.
+ * The configured setup limit defaults to 600 per clock-aligned 60 s window and
+ * is shared by every client of /api/discord/config, so this spec owns one whole
+ * window: it starts on a fresh boundary (earlier specs' hits in the current
+ * window would otherwise be counted against the budget) and does not hand the
+ * worker back until that window has rolled, so the next spec is not refused.
  */
+const WINDOW_MS: number = 60000;
+
+const untilNextWindow: () => number = (): number => {
+  return WINDOW_MS - (Date.now() % WINDOW_MS);
+};
+
+// Resolves just after the next window boundary, whatever the clock says now.
+const waitForFreshWindow: () => Promise<void> = async (): Promise<void> => {
+  await new Promise<void>((resolve: () => void) => {
+    setTimeout(resolve, untilNextWindow() + 100);
+  });
+};
+
+test.afterAll(async (): Promise<void> => {
+  await waitForFreshWindow();
+});
+
 test("Discord setup refuses excess requests without changing provider state", async ({
   request,
 }: {
@@ -11,13 +32,8 @@ test("Discord setup refuses excess requests without changing provider state", as
 }): Promise<void> => {
   const limit: number = Number(process.env["DISCORD_E2E_SETUP_LIMIT"] || "600");
   expect(Number.isSafeInteger(limit) && limit > 0).toBe(true);
-  const remaining: number = 60000 - (Date.now() % 60000);
-  if (remaining < 30000) {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, remaining + 100);
-    });
-  }
-  const window: number = Math.floor(Date.now() / 60000);
+  await waitForFreshWindow();
+  const window: number = Math.floor(Date.now() / WINDOW_MS);
   const statuses: Array<number> = [];
   for (let index: number = 0; index <= limit; index += 20) {
     const batch: Array<number> = await Promise.all(
@@ -29,7 +45,7 @@ test("Discord setup refuses excess requests without changing provider state", as
     statuses.push(...batch);
   }
   expect(
-    Math.floor(Date.now() / 60000),
+    Math.floor(Date.now() / WINDOW_MS),
     "Repeat this test if the fixed window rolled during execution",
   ).toBe(window);
   expect(
