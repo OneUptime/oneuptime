@@ -69,6 +69,29 @@ export interface BuildIncidentPrefillInput {
   incidentSeverities: Array<SeverityForMapping>;
 }
 
+/*
+ * What the create page needs to offer acknowledging the alerts as the
+ * incident is declared: each alert's current state, and the project's alert
+ * states (to find Acknowledged and compare by order).
+ */
+export interface AlertForAcknowledgement {
+  id: string;
+  currentAlertStateId?: string | undefined;
+}
+
+export interface AlertStateForAcknowledgement {
+  id: string;
+  order?: number | undefined;
+  isAcknowledgedState?: boolean | undefined;
+}
+
+export interface AlertsToAcknowledge {
+  // Alerts not acknowledged yet, in the order given.
+  alertIds: Array<string>;
+  // Alerts already acknowledged, resolved or in a later state.
+  alreadyAcknowledgedCount: number;
+}
+
 export interface ParsedAlertIds {
   alertIds: Array<string>;
   /* More ids were asked for than one declaration may link. */
@@ -289,6 +312,61 @@ export default class IncidentFromAlerts {
       ];
 
     return target ? target.id : null;
+  }
+
+  /*
+   * Which of the alerts acknowledging would change. States are compared by
+   * order, like the server does: an alert in a custom state after
+   * Acknowledged, or resolved, has been acknowledged already. An alert whose
+   * state is not among the given states is counted as not acknowledged - the
+   * server skips it if it turns out to be. Null when the project has no
+   * Acknowledged state with an order (nothing could be acknowledged), so the
+   * page does not offer it at all.
+   */
+  public static getAlertsToAcknowledge(data: {
+    alerts: Array<AlertForAcknowledgement>;
+    alertStates: Array<AlertStateForAcknowledgement>;
+  }): AlertsToAcknowledge | null {
+    const acknowledgedState: AlertStateForAcknowledgement | undefined =
+      data.alertStates.find((state: AlertStateForAcknowledgement) => {
+        return state.isAcknowledgedState === true;
+      });
+
+    if (!acknowledgedState || typeof acknowledgedState.order !== "number") {
+      return null;
+    }
+
+    const acknowledgedOrder: number = acknowledgedState.order;
+
+    const result: AlertsToAcknowledge = {
+      alertIds: [],
+      alreadyAcknowledgedCount: 0,
+    };
+
+    for (const alert of data.alerts) {
+      const currentState: AlertStateForAcknowledgement | undefined =
+        alert.currentAlertStateId
+          ? data.alertStates.find((state: AlertStateForAcknowledgement) => {
+              return (
+                state.id.trim().toLowerCase() ===
+                alert.currentAlertStateId!.trim().toLowerCase()
+              );
+            })
+          : undefined;
+
+      if (
+        currentState &&
+        typeof currentState.order === "number" &&
+        currentState.order >= acknowledgedOrder
+      ) {
+        result.alreadyAcknowledgedCount++;
+        continue;
+      }
+
+      result.alertIds.push(alert.id);
+    }
+
+    return result;
   }
 
   /* "Alert #42" / "Alert ALT-42", or "Alert" when the number is unknown. */

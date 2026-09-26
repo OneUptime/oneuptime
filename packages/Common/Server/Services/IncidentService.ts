@@ -112,9 +112,14 @@ import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
 import IncidentAlertService, {
+  AcknowledgeDeclaredAlertsResult,
+  AlertsToAcknowledgeOnDeclare,
   LinkAlertsToIncidentResult,
 } from "./IncidentAlertService";
-import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+} from "../../Types/Incident/IncidentAlertLink";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -131,6 +136,14 @@ type UpdateCarryForward = Dictionary<{
 type IncidentCreateCarryForward = {
   // Validated, deduplicated alert ids to link once the incident exists.
   alertIdsToLink: Array<ObjectID>;
+  /*
+   * Acknowledge alerts once they are linked, as the declaring user
+   * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
+   * When asked to: the project's Acknowledged alert state, and the alerts
+   * not acknowledged yet, which the caller was checked for. Null otherwise.
+   */
+  acknowledgedAlertStateId: ObjectID | null;
+  alertIdsToAcknowledge: Array<ObjectID>;
 } | null;
 
 type IncidentUpdatePayload = {
@@ -809,14 +822,36 @@ export class Service extends DatabaseService<Model> {
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
-    if (alertIdsToLink !== undefined && alertIdsToLink !== null) {
-      carryForward = {
-        alertIdsToLink:
-          await IncidentAlertService.validateAlertIdsForNewIncident({
+    const validatedAlertIds: Array<ObjectID> =
+      alertIdsToLink !== undefined && alertIdsToLink !== null
+        ? await IncidentAlertService.validateAlertIdsForNewIncident({
             projectId: projectId,
             alertIds: alertIdsToLink,
             props: createBy.props,
-          }),
+          })
+        : [];
+
+    /*
+     * Asking to acknowledge the alerts is checked here too, with the alert
+     * ids, so a request that cannot be honoured (no Acknowledged alert state,
+     * or a caller who may not change these alerts' states) is refused before
+     * the incident exists rather than leaving alerts that keep paging.
+     */
+    const alertsToAcknowledge: AlertsToAcknowledgeOnDeclare | null =
+      await IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
+        projectId: projectId,
+        acknowledgeAlerts:
+          createBy.miscDataProps?.[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY],
+        alertIds: validatedAlertIds,
+        props: createBy.props,
+      });
+
+    if (validatedAlertIds.length > 0) {
+      carryForward = {
+        alertIdsToLink: validatedAlertIds,
+        acknowledgedAlertStateId:
+          alertsToAcknowledge?.acknowledgedAlertStateId || null,
+        alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
       };
     }
 
@@ -1745,6 +1780,24 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The alerts the declaration asked to acknowledge that were not
+   * acknowledged yet when it was checked - the only ones the caller was
+   * authorized for, so the only ones that may be written.
+   */
+  private getAlertIdsToAcknowledgeDeclaredWith(
+    onCreate: OnCreate<Model>,
+  ): Array<ObjectID> {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    if (!carryForward?.acknowledgedAlertStateId) {
+      return [];
+    }
+
+    return carryForward.alertIdsToAcknowledge || [];
+  }
+
+  /*
    * Who declared the incident, as "Linked by" on the links and the actor of
    * their feed entries. A user is recorded as themselves and an API key as
    * nobody: Incident.createdByUserId is writable by the create payload, and
@@ -1778,6 +1831,13 @@ export class Service extends DatabaseService<Model> {
    * the incident's title when the incident is private, and a rule can make
    * it private after it was saved. (The alerts' owners are added to a private
    * incident later in the chain, once its workspace channels exist.)
+   *
+   * When the declaration asked for it, the alerts are then acknowledged as
+   * the declaring user, which stops their on-call escalation at the
+   * workers' next run. That is not waited for: each acknowledgement is a
+   * full state change (feed entry, Slack / Microsoft Teams post, owner
+   * notification), up to one per alert, and the page the user lands on does
+   * not show the alerts' states. It never fails the incident.
    */
   @CaptureSpan()
   private async linkAlertsDeclaredWithIncident(
@@ -1793,6 +1853,8 @@ export class Service extends DatabaseService<Model> {
 
     await privacyRulesApplied;
 
+    let linkedAlertIds: Array<ObjectID> = [];
+
     try {
       const result: LinkAlertsToIncidentResult =
         await IncidentAlertService.linkAlertsToIncident({
@@ -1805,6 +1867,11 @@ export class Service extends DatabaseService<Model> {
             isRoot: true,
           },
         });
+
+      linkedAlertIds = [
+        ...result.linkedAlertIds,
+        ...result.alreadyLinkedAlertIds,
+      ];
 
       if (result.failed.length > 0) {
         logger.error(
@@ -1824,6 +1891,44 @@ export class Service extends DatabaseService<Model> {
         } as LogAttributes,
       );
     }
+
+    const alertIdsToAcknowledge: Array<ObjectID> =
+      this.getAlertIdsToAcknowledgeDeclaredWith(onCreate);
+
+    if (alertIdsToAcknowledge.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID = createdItem.projectId;
+    const incidentId: ObjectID = createdItem.id;
+
+    IncidentAlertService.acknowledgeAlertsDeclaredWithIncident({
+      projectId: projectId,
+      incidentId: incidentId,
+      alertIds: alertIdsToAcknowledge,
+      linkedAlertIds: linkedAlertIds,
+      acknowledgedByUserId: this.getDeclaringUserId(onCreate, createdItem),
+    })
+      .then((acknowledged: AcknowledgeDeclaredAlertsResult) => {
+        if (acknowledged.failed.length > 0) {
+          logger.error(
+            `${acknowledged.failed.length} of ${alertIdsToAcknowledge.length} alerts could not be acknowledged when the incident was declared from them.`,
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .catch((error: Error) => {
+        logger.error(
+          `Acknowledging the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+          {
+            projectId: projectId.toString(),
+            incidentId: incidentId.toString(),
+          } as LogAttributes,
+        );
+      });
   }
 
   @CaptureSpan()

@@ -20,6 +20,7 @@ import ProjectService from "./ProjectService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthorization";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -44,6 +45,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
@@ -143,6 +145,54 @@ export interface LinkAlertsToIncidentResult {
   linkedAlertIds: Array<ObjectID>;
   alreadyLinkedAlertIds: Array<ObjectID>;
   failed: Array<{ alertId: ObjectID; message: string }>;
+}
+
+export interface AcknowledgeDeclaredAlertsResult {
+  acknowledgedAlertIds: Array<ObjectID>;
+  // Already acknowledged, resolved or in a later state: left as they were.
+  alreadyAcknowledgedAlertIds: Array<ObjectID>;
+  /*
+   * Linked alerts the project's linked-alert sync moves on its own (the
+   * incident was declared straight into a state its switches act on).
+   */
+  leftToLinkedAlertSyncAlertIds: Array<ObjectID>;
+  failed: Array<{ alertId: ObjectID; message: string }>;
+}
+
+/*
+ * What validateAcknowledgeAlertsForNewIncident settled for a declaration
+ * that asked to acknowledge its alerts: the project's Acknowledged state,
+ * and the alerts not acknowledged yet - the ones the caller was checked for,
+ * and the only ones acknowledgeAlertsDeclaredWithIncident may write.
+ */
+export interface AlertsToAcknowledgeOnDeclare {
+  acknowledgedAlertStateId: ObjectID;
+  alertIdsToAcknowledge: Array<ObjectID>;
+}
+
+/*
+ * Alerts acknowledged at once when an incident is declared from many. Each
+ * acknowledgement is a full state change (and waits on its Slack / Microsoft
+ * Teams post), so one at a time could leave the last of 50 alerts escalating
+ * for minutes. Distinct alerts never share a timeline lock.
+ */
+const DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY: number = 5;
+
+/*
+ * The "why" on an alert acknowledged because an incident was declared from
+ * it. It goes to the alert's feed, the alert's Slack / Microsoft Teams
+ * channels and its owners' notifications - places that must not name a
+ * private incident - so a private incident is not named at all.
+ */
+export function getDeclaredAlertAcknowledgementCause(data: {
+  incidentNumber: string;
+  isIncidentPrivate: boolean;
+}): string {
+  if (data.isIncidentPrivate) {
+    return "Acknowledged because a private incident was declared from this alert.";
+  }
+
+  return `Acknowledged because ${withNumber("Incident", data.incidentNumber)} was declared from this alert.`;
 }
 
 /*
@@ -1258,6 +1308,560 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Reads miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] on an
+   * incident create: whether to acknowledge the alerts the incident is
+   * declared from once they are linked, and which. Null when not asked to
+   * (absent, null or false). Otherwise the project's Acknowledged alert
+   * state and the alerts that are not acknowledged yet - the only ones that
+   * will be written, and so the only ones the caller must be allowed to
+   * change: an alert that is already acknowledged or resolved is left alone,
+   * so being unable to change it must not refuse the declaration.
+   *
+   * Called from IncidentService's onBeforeCreate after the alert ids were
+   * validated - before the incident number is taken - so an impossible
+   * request is refused instead of the incident being declared while its
+   * alerts keep paging: the project has no Acknowledged alert state, or the
+   * caller may not change the state of every alert that would be
+   * acknowledged (see AlertStateChangeAuthorization; the acknowledgements
+   * themselves are written as root, for exactly these alerts).
+   */
+  @CaptureSpan()
+  public async validateAcknowledgeAlertsForNewIncident(data: {
+    projectId: ObjectID | undefined;
+    acknowledgeAlerts: unknown;
+    alertIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<AlertsToAcknowledgeOnDeclare | null> {
+    if (
+      data.acknowledgeAlerts === undefined ||
+      data.acknowledgeAlerts === null ||
+      data.acknowledgeAlerts === false
+    ) {
+      return null;
+    }
+
+    if (data.acknowledgeAlerts !== true) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} must be true or false.`,
+      );
+    }
+
+    if (data.alertIds.length === 0) {
+      throw new BadDataException(
+        `${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+      );
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to acknowledge alerts.",
+      );
+    }
+
+    const projectId: ObjectID = data.projectId;
+
+    const acknowledgedState: AlertState | null =
+      await AlertStateService.findOneBy({
+        query: {
+          projectId: projectId,
+          isAcknowledgedState: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !acknowledgedState ||
+      !acknowledgedState._id ||
+      acknowledgedState.order === undefined ||
+      acknowledgedState.order === null
+    ) {
+      throw new BadDataException(
+        "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.",
+      );
+    }
+
+    const acknowledgedOrder: number = acknowledgedState.order;
+
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(data.alertIds),
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateOrderByAlertId: Map<string, number | undefined> = new Map();
+
+    for (const alert of alerts) {
+      if (alert._id) {
+        stateOrderByAlertId.set(
+          normalizeId(alert._id),
+          alert.currentAlertState?.order ?? undefined,
+        );
+      }
+    }
+
+    // Same rule as acknowledgeAlertsDeclaredWithIncident: by order.
+    const alertIdsToAcknowledge: Array<ObjectID> = data.alertIds.filter(
+      (alertId: ObjectID): boolean => {
+        const key: string = normalizeId(alertId);
+
+        if (!stateOrderByAlertId.has(key)) {
+          return false;
+        }
+
+        const order: number | undefined = stateOrderByAlertId.get(key);
+
+        return order === undefined || order < acknowledgedOrder;
+      },
+    );
+
+    if (
+      alertIdsToAcknowledge.length > 0 &&
+      !data.props.isRoot &&
+      !data.props.isMasterAdmin
+    ) {
+      try {
+        await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+          projectId: projectId,
+          alertIds: alertIdsToAcknowledge,
+          props: data.props,
+        });
+      } catch (error) {
+        // A lapsed session or an unpaid project keeps its own answer.
+        if (
+          error instanceof NotAuthorizedException ||
+          error instanceof BadDataException
+        ) {
+          throw new BadDataException(
+            "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.",
+          );
+        }
+
+        throw error;
+      }
+    }
+
+    return {
+      acknowledgedAlertStateId: new ObjectID(acknowledgedState._id.toString()),
+      alertIdsToAcknowledge: alertIdsToAcknowledge,
+    };
+  }
+
+  /*
+   * Acknowledges the alerts an incident was just declared from, when the
+   * declaration asked for it (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY). An
+   * alert's own on-call escalation and its per-user notifications stop once
+   * the alert is acknowledged (the workers check at their next run), so this
+   * is what makes declaring an incident stop the alerts paging.
+   *
+   * Written as root - the caller's right to change the state of every one of
+   * these alerts was checked before the incident was created - and credited
+   * to the declaring user, as if they had pressed Acknowledge on each alert
+   * themselves: the alert's owners are told, and the alert's feed says who
+   * and why. A private incident is not named in that "why", because the
+   * alert's feed entry is posted to the alert's Slack / Microsoft Teams
+   * channels and its owners' notifications.
+   *
+   * Left as they are:
+   * - alerts already acknowledged, resolved or in any later state - nothing
+   *   is ever moved backwards;
+   * - linked alerts the project's linked-alert sync is about to move anyway
+   *   (the incident was declared straight into an acknowledged or resolved
+   *   state with the project switches on): one writer per alert, so the two
+   *   never race on its timeline.
+   *
+   * IncidentService runs this after the links are written and does not wait
+   * for it. It never throws: one alert failing never stops the others.
+   */
+  @CaptureSpan()
+  public async acknowledgeAlertsDeclaredWithIncident(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertIds: Array<ObjectID>;
+    // The alerts whose link to the incident exists (the sync runs on those).
+    linkedAlertIds: Array<ObjectID>;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<AcknowledgeDeclaredAlertsResult> {
+    const result: AcknowledgeDeclaredAlertsResult = {
+      acknowledgedAlertIds: [],
+      alreadyAcknowledgedAlertIds: [],
+      leftToLinkedAlertSyncAlertIds: [],
+      failed: [],
+    };
+
+    const alertIds: Array<ObjectID> = uniqueIds(data.alertIds);
+
+    if (alertIds.length === 0) {
+      return result;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      incidentId: data.incidentId.toString(),
+    } as LogAttributes;
+
+    try {
+      const acknowledgedState: AlertState | null =
+        await AlertStateService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            isAcknowledgedState: true,
+          },
+          select: {
+            _id: true,
+            order: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (
+        !acknowledgedState ||
+        !acknowledgedState._id ||
+        acknowledgedState.order === undefined ||
+        acknowledgedState.order === null
+      ) {
+        const message: string =
+          "This project has no Acknowledged alert state, so the alerts could not be acknowledged.";
+
+        logger.error(`IncidentAlertService: ${message}`, logAttributes);
+
+        for (const alertId of alertIds) {
+          result.failed.push({ alertId: alertId, message: message });
+        }
+
+        return result;
+      }
+
+      const acknowledgedStateId: ObjectID = new ObjectID(
+        acknowledgedState._id.toString(),
+      );
+      const acknowledgedOrder: number = acknowledgedState.order;
+
+      const incident: Incident | null = await IncidentService.findOneById({
+        id: data.incidentId,
+        select: {
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+          isPrivate: true,
+          currentIncidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rootCause: string = getDeclaredAlertAcknowledgementCause({
+        incidentNumber: formatNumber(
+          incident?.incidentNumberWithPrefix,
+          incident?.incidentNumber,
+        ),
+        isIncidentPrivate: incident?.isPrivate === true,
+      });
+
+      const alerts: Array<Alert> = await AlertService.findBy({
+        query: {
+          _id: QueryHelper.any(alertIds),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          currentAlertStateId: true,
+          currentAlertState: {
+            order: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const alertById: Map<string, Alert> = new Map();
+
+      for (const alert of alerts) {
+        if (alert._id) {
+          alertById.set(normalizeId(alert._id), alert);
+        }
+      }
+
+      const ownedBySync: Set<string> =
+        await this.getLinkedAlertsTheSyncWillMove({
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          incidentStateId: incident?.currentIncidentStateId || undefined,
+          linkedAlerts: uniqueIds(data.linkedAlertIds)
+            .map((alertId: ObjectID): Alert | undefined => {
+              return alertById.get(normalizeId(alertId));
+            })
+            .filter((alert: Alert | undefined): boolean => {
+              return Boolean(alert);
+            }) as Array<Alert>,
+        });
+
+      const alertIdsToWrite: Array<ObjectID> = [];
+
+      for (const alertId of alertIds) {
+        const key: string = normalizeId(alertId);
+        const alert: Alert | undefined = alertById.get(key);
+
+        if (!alert) {
+          result.failed.push({
+            alertId: alertId,
+            message: "The alert could not be found in this project.",
+          });
+          continue;
+        }
+
+        const stateOrder: number | undefined =
+          alert.currentAlertState?.order ?? undefined;
+
+        if (stateOrder !== undefined && stateOrder >= acknowledgedOrder) {
+          result.alreadyAcknowledgedAlertIds.push(alertId);
+          continue;
+        }
+
+        if (ownedBySync.has(key)) {
+          result.leftToLinkedAlertSyncAlertIds.push(alertId);
+          continue;
+        }
+
+        alertIdsToWrite.push(alertId);
+      }
+
+      for (
+        let index: number = 0;
+        index < alertIdsToWrite.length;
+        index += DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY
+      ) {
+        const batch: Array<ObjectID> = alertIdsToWrite.slice(
+          index,
+          index + DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY,
+        );
+
+        const outcomes: Array<string | null> = await Promise.all(
+          batch.map((alertId: ObjectID): Promise<string | null> => {
+            return this.acknowledgeDeclaredAlert({
+              projectId: data.projectId,
+              alertId: alertId,
+              acknowledgedStateId: acknowledgedStateId,
+              acknowledgedOrder: acknowledgedOrder,
+              rootCause: rootCause,
+              acknowledgedByUserId: data.acknowledgedByUserId,
+            });
+          }),
+        );
+
+        batch.forEach((alertId: ObjectID, batchIndex: number) => {
+          const failure: string | null = outcomes[batchIndex] ?? null;
+
+          if (failure === null) {
+            result.acknowledgedAlertIds.push(alertId);
+            return;
+          }
+
+          result.failed.push({ alertId: alertId, message: failure });
+
+          logger.error(
+            `IncidentAlertService could not acknowledge alert ${alertId.toString()} for the incident it was declared with: ${failure}`,
+            {
+              ...logAttributes,
+              alertId: alertId.toString(),
+            } as LogAttributes,
+          );
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `IncidentAlertService could not acknowledge the alerts an incident was declared from: ${error}`,
+        logAttributes,
+      );
+
+      const settled: Set<string> = new Set(
+        [
+          ...result.acknowledgedAlertIds,
+          ...result.alreadyAcknowledgedAlertIds,
+          ...result.leftToLinkedAlertSyncAlertIds,
+          ...result.failed.map((failure: { alertId: ObjectID }) => {
+            return failure.alertId;
+          }),
+        ].map((alertId: ObjectID): string => {
+          return normalizeId(alertId);
+        }),
+      );
+
+      for (const alertId of alertIds) {
+        if (!settled.has(normalizeId(alertId))) {
+          result.failed.push({
+            alertId: alertId,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /*
+   * The linked alerts the project's linked-alert sync (and the incident
+   * state cascade) will move by themselves, because the incident is already
+   * in a state their switches act on: the same plan, the same per-alert
+   * choice. Empty when both switches are off - the default - or the incident
+   * is before Acknowledged, which is the usual declaration.
+   */
+  @CaptureSpan()
+  private async getLinkedAlertsTheSyncWillMove(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentStateId: ObjectID | undefined;
+    linkedAlerts: Array<Alert>;
+  }): Promise<Set<string>> {
+    const willMove: Set<string> = new Set();
+
+    if (!data.incidentStateId || data.linkedAlerts.length === 0) {
+      return willMove;
+    }
+
+    const switches: LinkedAlertSwitches | null =
+      await this.getLinkedAlertSwitches(data.projectId);
+
+    if (!switches) {
+      return willMove;
+    }
+
+    const plan: LinkedAlertStatePlan | null =
+      await this.buildLinkedAlertStatePlan({
+        projectId: data.projectId,
+        incidentStateId: data.incidentStateId,
+        switches: switches,
+      });
+
+    if (!plan) {
+      return willMove;
+    }
+
+    const blockedFromResolve: Set<string> = plan.resolvedAlertState
+      ? await this.getAlertsHeldOpenByAnotherIncident({
+          plan: plan,
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          alerts: data.linkedAlerts,
+        })
+      : new Set();
+
+    for (const alert of data.linkedAlerts) {
+      const alertId: string = alert._id ? normalizeId(alert._id) : "";
+
+      const alertStateOrder: number | undefined = alert.currentAlertStateId
+        ? plan.alertStateOrderById.get(normalizeId(alert.currentAlertStateId))
+        : undefined;
+
+      if (!alertId || alertStateOrder === undefined) {
+        continue;
+      }
+
+      const target: AlertState | null = chooseLinkedAlertTargetState({
+        alertStateOrder: alertStateOrder,
+        acknowledgedAlertState: plan.acknowledgedAlertState,
+        resolvedAlertState: plan.resolvedAlertState,
+        isBlockedFromResolve: blockedFromResolve.has(alertId),
+      });
+
+      if (target) {
+        willMove.add(alertId);
+      }
+    }
+
+    return willMove;
+  }
+
+  /*
+   * Acknowledges one declared alert. Null when the alert ended up
+   * acknowledged (or past it), otherwise why not. Never throws.
+   *
+   * The outcome is read back from the alert rather than taken from the
+   * write: the write may be refused because somebody acknowledged or
+   * resolved the alert in the meantime (the outcome asked for), and a write
+   * that "succeeded" only counts if the alert's current state moved.
+   */
+  @CaptureSpan()
+  private async acknowledgeDeclaredAlert(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    acknowledgedStateId: ObjectID;
+    acknowledgedOrder: number;
+    rootCause: string;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<string | null> {
+    let failure: string = "The alert's state did not change to Acknowledged.";
+
+    try {
+      await AlertService.changeAlertState({
+        projectId: data.projectId,
+        alertId: data.alertId,
+        alertStateId: data.acknowledgedStateId,
+        notifyOwners: true,
+        rootCause: data.rootCause,
+        stateChangeLog: undefined,
+        createdByUserId: data.acknowledgedByUserId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+
+    try {
+      const alert: Alert | null = await AlertService.findOneBy({
+        query: {
+          _id: data.alertId,
+          projectId: data.projectId,
+        },
+        select: {
+          currentAlertState: {
+            order: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const order: number | undefined =
+        alert?.currentAlertState?.order ?? undefined;
+
+      if (order !== undefined && order >= data.acknowledgedOrder) {
+        return null;
+      }
+    } catch {
+      // The alert cannot be read back, so it cannot be counted as done.
+    }
+
+    return failure;
+  }
+
+  /*
    * An incident changed state: bring its linked alerts along, when the
    * project has opted in. Called fire-and-forget from
    * IncidentStateTimelineService.onCreateSuccess for the incident's CURRENT
@@ -1355,8 +1959,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * The link-time half: an alert was just linked to an incident that may
    * already be acknowledged or resolved. Same rules as the cascade, applied to
-   * the one alert. A newly declared incident is in its created state, so
-   * this is a no-op for "declare incident from alerts". Never throws.
+   * the one alert. An incident declared from alerts usually starts in its
+   * created state, which calls for nothing; one declared straight into an
+   * acknowledged or resolved state brings its alerts along here (and
+   * acknowledgeAlertsDeclaredWithIncident leaves those alerts to this).
+   * Never throws.
    */
   @CaptureSpan()
   public async syncAlertWithLinkedIncidentState(data: {
