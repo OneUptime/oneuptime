@@ -4659,7 +4659,9 @@ ${contextBlock}
         .map((f: CriteriaFilter) => {
           return {
             filter: f,
-            threshold: CompareCriteria.convertToNumber(f.value) as number,
+            threshold: CompareCriteria.convertMetricThresholdToNumber(
+              f.value,
+            ) as number,
           };
         })
         .filter((f: { filter: CriteriaFilter; threshold: number | null }) => {

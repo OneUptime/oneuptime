@@ -1355,6 +1355,102 @@ describe("A threshold saved as a string reads like the number", () => {
     expect(rootCause).not.toContain("node/pve1");
     expect(rootCause).not.toContain("node/pve3");
   });
+
+  describe('pve-node-high-cpu with its decimal threshold as "0.9"', () => {
+    /*
+     * The template fires on `> 0.9` and recovers on `<= 0.9` over a 0–1
+     * ratio. Read with parseInt, "0.9" was 0: the monitor went offline on
+     * any CPU at all, and could only recover at exactly 0.
+     */
+    function highCpuStep(): MonitorStep {
+      const monitorStep: MonitorStep = stringifyThresholds(
+        ungroup(proxmoxStep("pve-node-high-cpu")),
+      );
+
+      // Fixture guard: an ungrouped `> "0.9"`.
+      const filter: CriteriaFilter = metricFiltersOf(firingOf(monitorStep))[0]!;
+      expect(filter.filterType).toBe(FilterType.GreaterThan);
+      expect(filter.value).toBe("0.9");
+      expect(filter.metricMonitorOptions?.thresholdUnit).toBeFalsy();
+
+      return monitorStep;
+    }
+
+    function nodeCpuResponse(input: {
+      monitorStep: MonitorStep;
+      windowValue: number;
+      nodes: Dictionary<number>;
+    }): MetricMonitorResponse {
+      return ungroupedResponse({
+        monitorStep: input.monitorStep,
+        fixture: PROXMOX,
+        declaredUnits: { pve_cpu_usage_ratio: "1" },
+        valuesByAlias: { node_cpu: [input.windowValue] },
+        scans: [
+          {
+            alias: "node_cpu",
+            metricUnit: "1",
+            resources: Object.entries(input.nodes).map(
+              ([resourceId, value]: [string, number]) => {
+                return {
+                  resourceId: resourceId,
+                  resourceType: "node",
+                  scope: "node",
+                  metricValue: value,
+                  lowestMetricValue: value,
+                };
+              },
+            ),
+          },
+        ],
+      });
+    }
+
+    test("a cluster at 50% CPU does not fire, and the recovery criteria holds", async () => {
+      const monitorStep: MonitorStep = highCpuStep();
+      const recovery: MonitorCriteriaInstance =
+        monitorStep.data!.monitorCriteria!.data!
+          .monitorCriteriaInstanceArray[1]!;
+
+      const response: ProbeApiIngestResponse = await evaluate({
+        monitorStep: monitorStep,
+        fixture: PROXMOX,
+        response: nodeCpuResponse({
+          monitorStep: monitorStep,
+          windowValue: 0.5,
+          nodes: { "node/pve1": 0.5 },
+        }),
+      });
+
+      expect(rootCauseFor(response, firingOf(monitorStep))).toBe("");
+      expect(response.criteriaMetId?.toString()).toBe(
+        recovery.data!.id!.toString(),
+      );
+    });
+
+    test("only the node past 0.9 is listed", async () => {
+      const monitorStep: MonitorStep = highCpuStep();
+
+      const rootCause: string = await firingRootCause({
+        monitorStep: monitorStep,
+        fixture: PROXMOX,
+        response: nodeCpuResponse({
+          monitorStep: monitorStep,
+          windowValue: 0.95,
+          nodes: { "node/pve2": 0.5, "node/pve1": 0.95 },
+        }),
+      });
+
+      const heads: Array<string> = entryHeads(
+        listSection(rootCause, "Affected Resources"),
+      );
+
+      expect(heads).toHaveLength(1);
+      expect(heads[0]).toContain("`node/pve1`");
+      // The node at 50% is healthy under a "> 0.9" criteria.
+      expect(rootCause).not.toContain("node/pve2");
+    });
+  });
 });
 
 /*

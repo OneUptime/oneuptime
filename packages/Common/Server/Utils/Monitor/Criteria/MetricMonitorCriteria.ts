@@ -180,9 +180,10 @@ export default class MetricMonitorCriteria {
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
-    const rawThreshold: number | null = CompareCriteria.convertToNumber(
-      input.criteriaFilter.value,
-    );
+    const rawThreshold: number | null =
+      CompareCriteria.convertMetricThresholdToNumber(
+        input.criteriaFilter.value,
+      );
 
     const metricAlias: string =
       input.criteriaFilter.metricMonitorOptions?.metricAlias || "";
