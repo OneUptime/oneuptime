@@ -1615,6 +1615,38 @@ describe("Recorder", (): void => {
       expect(JSON.stringify(seen)).not.toContain("secret-value");
       expect(JSON.stringify(seen)).toContain("/magic");
     });
+
+    /*
+     * Issue #3975: INP is measured per SPA view, so every route change
+     * must reach the performance recorder - with the URLs already
+     * scrubbed, since they become the INP event's url.
+     */
+    it("opens a new INP view on every route change, with scrubbed urls", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/landing");
+
+      const noteRouteChange: jest.SpyInstance = jest.spyOn(
+        PerformanceRecorder.prototype,
+        "noteRouteChange",
+      );
+
+      startRecorder({ samplePercentage: 100 });
+
+      await flushUploads();
+
+      window.history.pushState({}, "", "/orders?token=secret-value");
+
+      /*
+       * By content, not count: a recorder an earlier case left running
+       * has history patched too and sees the same navigation.
+       */
+      expect(noteRouteChange).toHaveBeenCalledWith(
+        expect.stringContaining("/landing"),
+        expect.stringContaining("/orders"),
+      );
+      expect(JSON.stringify(noteRouteChange.mock.calls)).not.toContain(
+        "secret-value",
+      );
+    });
   });
 
   describe("terminal flush", (): void => {

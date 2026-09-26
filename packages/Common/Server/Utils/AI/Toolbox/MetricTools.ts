@@ -49,7 +49,7 @@ const METRIC_READ_PERMISSIONS: Array<Permission> = [
 export const QueryMetricsTool: ObservabilityTool = {
   name: "query_metrics",
   description:
-    "Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor's ID as entityId.",
+    "Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P75/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor's ID as entityId.",
   inputSchema: {
     type: "object",
     properties: {
@@ -60,7 +60,18 @@ export const QueryMetricsTool: ObservabilityTool = {
       },
       aggregationType: {
         type: "string",
-        enum: ["Avg", "Max", "Min", "Sum", "Count", "P50", "P90", "P95", "P99"],
+        enum: [
+          "Avg",
+          "Max",
+          "Min",
+          "Sum",
+          "Count",
+          "P50",
+          "P75",
+          "P90",
+          "P95",
+          "P99",
+        ],
         description: "How to aggregate (default Avg).",
       },
       entityId: {

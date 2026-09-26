@@ -39,10 +39,12 @@ import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
+import WebVitalRouteBreakdownCard from "../../../Components/TelemetryResource/WebVitalRouteBreakdownCard";
 import {
   fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   fetchSpanNameStats,
+  fetchWebVitalByRoute,
   fetchWebVitals,
   formatCompact,
   formatDurationMs,
@@ -51,6 +53,7 @@ import {
   SpanMetrics,
   SpanNameStats,
   WebVital,
+  WebVitalByRoute,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { RUM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
 import {
@@ -152,6 +155,8 @@ const RumApplicationOverview: FunctionComponent<
   const [signalsLoading, setSignalsLoading] = useState<boolean>(true);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
+  const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);
+  const [inpByRouteLoading, setInpByRouteLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
@@ -273,6 +278,7 @@ const RumApplicationOverview: FunctionComponent<
       if (showLoading) {
         setMetricsLoading(true);
         setWebVitalsLoading(true);
+        setInpByRouteLoading(true);
         setPageLoadsLoading(true);
         setSignalsLoading(true);
         setSessionReplayCount(null);
@@ -310,12 +316,49 @@ const RumApplicationOverview: FunctionComponent<
           }
           setWebVitals(v);
           setWebVitalsLoading(false);
+
+          /*
+           * INP per route, under the name the card found INP under. No INP
+           * at all means no breakdown to ask for - the card's own empty
+           * state already says how to start.
+           */
+          const inpMetricName: string | null =
+            v.find((vital: WebVital): boolean => {
+              return vital.key === "inp";
+            })?.metricName || null;
+
+          if (!inpMetricName) {
+            setInpByRoute(null);
+            setInpByRouteLoading(false);
+            return;
+          }
+
+          fetchWebVitalByRoute({
+            primaryEntityId,
+            metricName: inpMetricName,
+            start,
+            end,
+          })
+            .then((breakdown: WebVitalByRoute) => {
+              if (!isCurrent()) {
+                return;
+              }
+              setInpByRoute(breakdown);
+              setInpByRouteLoading(false);
+            })
+            .catch(() => {
+              if (!isCurrent()) {
+                return;
+              }
+              setInpByRouteLoading(false);
+            });
         })
         .catch(() => {
           if (!isCurrent()) {
             return;
           }
           setWebVitalsLoading(false);
+          setInpByRouteLoading(false);
         });
 
       /*
@@ -766,6 +809,13 @@ const RumApplicationOverview: FunctionComponent<
    */
   const showRumSdkMissingNotice: boolean = isReplayOnlyInstrumented(a);
 
+  // Shown only once INP has reported; until then the vitals card explains.
+  const inpVital: WebVital | undefined = webVitals.find(
+    (vital: WebVital): boolean => {
+      return vital.key === "inp";
+    },
+  );
+
   return (
     <Fragment>
       {showRumSdkMissingNotice && (
@@ -828,6 +878,15 @@ const RumApplicationOverview: FunctionComponent<
         loading={webVitalsLoading}
         description={RUM_METRIC_DESCRIPTIONS.webVitals}
       />
+
+      {inpVital && inpVital.metricName && (
+        <WebVitalRouteBreakdownCard
+          vital={inpVital}
+          breakdown={inpByRoute}
+          loading={inpByRouteLoading}
+          description={RUM_METRIC_DESCRIPTIONS.inpByRoute}
+        />
+      )}
     </Fragment>
   );
 };

@@ -22,7 +22,8 @@ export type RumMetric =
   | "eventDurationChart"
   | "exceptionsChart"
   | "logsChart"
-  | "webVitals";
+  | "webVitals"
+  | "inpByRoute";
 
 export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
   pageLoads:
@@ -55,6 +56,8 @@ export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
     "Log records your app sent in each interval, with Error and Fatal ones as a second line. Browser apps only send logs once the optional OpenTelemetry logs setup is added.",
   webVitals:
     "Standard measures of how fast and stable your pages feel to real visitors. Each value is an average over the selected range; Google's own report uses the 75th percentile, so its rating can differ.",
+  inpByRoute:
+    "Interaction to Next Paint for each route, averaged over the selected range, slowest first. In a single-page app this is the only place a slow view shows up on its own: the app-wide number mixes every route together. Routes come from the app.route (or url.template) attribute on web_vital.inp.",
 };
 
 /*

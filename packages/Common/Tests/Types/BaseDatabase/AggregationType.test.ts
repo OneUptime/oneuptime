@@ -9,14 +9,16 @@ describe("AggregationType", () => {
   describe("PercentileAggregationLevels", () => {
     test("maps each percentile enum to its quantile fraction", () => {
       expect(PercentileAggregationLevels[AggregationType.P50]).toBe(0.5);
+      expect(PercentileAggregationLevels[AggregationType.P75]).toBe(0.75);
       expect(PercentileAggregationLevels[AggregationType.P90]).toBe(0.9);
       expect(PercentileAggregationLevels[AggregationType.P95]).toBe(0.95);
       expect(PercentileAggregationLevels[AggregationType.P99]).toBe(0.99);
     });
 
-    test("contains exactly the four percentile aggregations", () => {
+    test("contains exactly the five percentile aggregations", () => {
       expect(Object.keys(PercentileAggregationLevels).sort()).toEqual([
         "P50",
+        "P75",
         "P90",
         "P95",
         "P99",
@@ -27,6 +29,7 @@ describe("AggregationType", () => {
   describe("isPercentileAggregation", () => {
     test("returns true for every percentile aggregation", () => {
       expect(isPercentileAggregation(AggregationType.P50)).toBe(true);
+      expect(isPercentileAggregation(AggregationType.P75)).toBe(true);
       expect(isPercentileAggregation(AggregationType.P90)).toBe(true);
       expect(isPercentileAggregation(AggregationType.P95)).toBe(true);
       expect(isPercentileAggregation(AggregationType.P99)).toBe(true);
@@ -44,6 +47,7 @@ describe("AggregationType", () => {
   describe("getPercentileLevel", () => {
     test("returns the quantile fraction for percentile aggregations", () => {
       expect(getPercentileLevel(AggregationType.P50)).toBe(0.5);
+      expect(getPercentileLevel(AggregationType.P75)).toBe(0.75);
       expect(getPercentileLevel(AggregationType.P99)).toBe(0.99);
     });
 

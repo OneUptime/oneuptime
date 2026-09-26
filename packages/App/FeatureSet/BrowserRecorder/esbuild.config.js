@@ -164,9 +164,20 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  * after: recorder.js 311368 bytes raw / 94178 gzip; before the feature
  * 306282 / 92376. The loader is unchanged at 13322 / 4907. The new budget
  * is the measured size plus about 1 KB, rounded up to a whole KB.
+ *
+ * Raised from 93 KB to 95 KB on 2026-09-26 for INP per single-page-app
+ * view (issue #3975, src/PerformanceRecorder.ts): every route change now
+ * closes a view and reports that view's INP - with the p98 outlier skip,
+ * the settle period that charges the navigating click to the page it was
+ * clicked on, and the attribution (interaction type, a structural target
+ * selector that survives the router removing the element, and the input
+ * delay / processing / presentation split). Measured after: recorder.js
+ * 316719 bytes raw / 95550 gzip; before the feature 311368 / 94102. The
+ * loader is unchanged at 13322 / 4930. Same rule as above: the measured
+ * size plus about 1 KB, rounded up to a whole KB.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 93 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 95 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

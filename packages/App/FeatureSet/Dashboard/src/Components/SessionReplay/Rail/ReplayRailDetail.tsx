@@ -711,6 +711,39 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {detail.url}
         </Fact>
       )}
+      {detail.navigationType && (
+        <Fact label="View">
+          {detail.navigationType === "soft"
+            ? "Route change (single-page app)"
+            : "Page load"}
+        </Fact>
+      )}
+      {detail.interactionType && (
+        <Fact label="Input">
+          {detail.interactionType === "keyboard" ? "Keyboard" : "Pointer"}
+        </Fact>
+      )}
+      {detail.interactionTarget && (
+        <Fact label="Element" mono={true}>
+          {detail.interactionTarget}
+        </Fact>
+      )}
+      {/* Where the time went, in the order it was spent. */}
+      {isFiniteNumber(detail.inputDelayMs) && (
+        <Fact label="Input delay">
+          {formatSignalDuration(detail.inputDelayMs)}
+        </Fact>
+      )}
+      {isFiniteNumber(detail.processingDurationMs) && (
+        <Fact label="Processing">
+          {formatSignalDuration(detail.processingDurationMs)}
+        </Fact>
+      )}
+      {isFiniteNumber(detail.presentationDelayMs) && (
+        <Fact label="Presentation">
+          {formatSignalDuration(detail.presentationDelayMs)}
+        </Fact>
+      )}
     </dl>
   );
 };
