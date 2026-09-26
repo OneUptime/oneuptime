@@ -193,7 +193,7 @@ describe("AffectedResourcesDisplay with SLOs", () => {
     ).toBeInTheDocument();
   });
 
-  test("an alert page that hides monitors still shows the SLO", () => {
+  test("a caller that hides monitors still shows the SLO", () => {
     render(
       <AffectedResourcesDisplay
         monitors={[

@@ -231,7 +231,8 @@ const ALERT_PAGE: EventPage = {
     "Investigation complete",
     "Alert #311 Created:",
     "Payments on-call",
-    "1 resource",
+    // Its monitor and its one service.
+    "2 resources",
   ],
   state: "Resolved",
   severity: "High",
@@ -3322,6 +3323,34 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     overdueNotice: "Overrunning",
   },
 ];
+
+test.describe("alert affected resources", () => {
+  /*
+   * An alert names its monitor under Resources Affected in its "created"
+   * feed item. The Affected Resources card used to hide monitors, so an
+   * alert raised on one read "No resources affected." beside that feed item.
+   */
+  test("the card lists the monitor the alert was raised on beside its service", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const resources: Locator = card(page, "Affected Resources");
+    await expect(
+      resources.getByText("Monitors", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      resources.getByText("Payment webhook error rate", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      resources.getByText("payments-webhooks", { exact: true }),
+    ).toBeVisible();
+    await expect(resources.getByText("across 2 categories")).toBeVisible();
+    await expect(resources.getByText("No resources affected.")).toHaveCount(0);
+  });
+});
 
 test.describe("scheduled maintenance overview", () => {
   for (const phase of MAINTENANCE_PHASES) {

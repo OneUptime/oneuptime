@@ -33,6 +33,8 @@ import FetchUsers from "../../Components/User/FetchUsers";
 import User from "Common/Models/DatabaseModels/User";
 import FetchTeam from "../../Components/Team/FetchTeams";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
+import FetchAlertState from "../../Components/AlertState/FetchAlertState";
+import FetchAlertSeverity from "../../Components/AlertSeverity/FetchAlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -158,7 +160,13 @@ const EpisodeCreate: FunctionComponent<
                       return <p>No alert severity selected.</p>;
                     }
 
-                    return <p>Severity will be set to selected value</p>;
+                    return (
+                      <FetchAlertSeverity
+                        alertSeverityId={
+                          new ObjectID(item.alertSeverity.toString())
+                        }
+                      />
+                    );
                   },
                 },
                 {
@@ -224,7 +232,13 @@ const EpisodeCreate: FunctionComponent<
                       return <p>Will use first available state by priority</p>;
                     }
 
-                    return <p>Initial state will be set to selected state</p>;
+                    return (
+                      <FetchAlertState
+                        alertStateId={
+                          new ObjectID(item.currentAlertState.toString())
+                        }
+                      />
+                    );
                   },
                 },
                 {
