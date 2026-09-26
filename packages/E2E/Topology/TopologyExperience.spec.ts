@@ -377,8 +377,139 @@ test("a self-hosted estate after the fix: databases and APIs on the map, workloa
     .first()
     .click();
   await page.getByTestId("infrastructure-view-map").click();
-  await expect(page.locator(".react-flow__node")).toHaveCount(13);
+  /*
+   * Six deployments and three nodes. The probes, the runner and home call
+   * the api on app and worker, so the map draws those calls between the
+   * deployments rather than a column of services.
+   */
+  await expect(
+    page.locator(".react-flow__node:not(.infrastructure-route-slot)"),
+  ).toHaveCount(9);
+  await expect(page.getByTestId("infrastructure-traffic-status")).toContainText(
+    "8 connections",
+  );
+  await expect(
+    page.locator('.react-flow__edge[aria-label*=" → "]'),
+  ).toHaveCount(8);
+  // Eight lines converge on two cards: labels wait for the pointer.
+  await expect(page.getByLabel("Line labels")).toHaveValue("hover");
   await screenshot(page, "discovered-infrastructure-map-synthetic");
+});
+
+/*
+ * Issue #3972: a node's pods were drawn as standalone cards with no lines
+ * between them, though the services on them call each other.
+ */
+test("infrastructure draws the traffic between the pods on a node, with its metrics", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(
+    page,
+    "Infrastructure",
+    "dataset=aksNodeTraffic&infraView=map",
+  );
+  // Across the cluster, the nodes are the cards and the calls cross them.
+  const cards: ReturnType<Page["locator"]> = page.locator(
+    ".react-flow__node:not(.infrastructure-route-slot)",
+  );
+  // With traffic drawn, each card names what it runs: no service column.
+  await expect(cards).toHaveCount(3);
+  await expect(page.getByTestId("infrastructure-traffic-status")).toContainText(
+    "5 connections",
+  );
+  /*
+   * The nodes call each other both ways. Every line is drawn, and no label
+   * hides another: a call against the flow takes a lane above the cards.
+   */
+  const clusterLines: ReturnType<Page["locator"]> = page.locator(
+    '.react-flow__edge[aria-label*=" → "]',
+  );
+  await expect(clusterLines).toHaveCount(5);
+  const labels: Array<{ x: number; y: number; width: number; height: number }> =
+    [];
+  for (const label of await page
+    .locator(".react-flow__edge .react-flow__edge-textwrapper")
+    .all()) {
+    const box: { x: number; y: number; width: number; height: number } | null =
+      await label.boundingBox();
+    expect(box).not.toBeNull();
+    labels.push(box!);
+  }
+  expect(labels).toHaveLength(5);
+  labels.forEach(
+    (a: { x: number; y: number; width: number; height: number }, i: number) => {
+      labels
+        .slice(i + 1)
+        .forEach(
+          (b: { x: number; y: number; width: number; height: number }) => {
+            const overlaps: boolean =
+              a.x < b.x + b.width &&
+              b.x < a.x + a.width &&
+              a.y < b.y + b.height &&
+              b.y < a.y + a.height;
+            expect(overlaps, "two traffic labels overlap").toBe(false);
+          },
+        );
+    },
+  );
+  await screenshot(page, "aks-infrastructure-map-traffic-synthetic");
+
+  // Drill into the node from the tree, as in the issue.
+  await page
+    .getByRole("button", {
+      name: "aks-agentpool-14451756-vmss00001k 4",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "aks-agentpool-14451756-vmss00001k",
+  );
+  // The node's four pods, as in the issue's screenshot.
+  await expect(cards).toHaveCount(4);
+  await expect(page.getByTestId("infrastructure-traffic-status")).toHaveText(
+    "4 connections · Lines are calls between the services on these cards, measured per service.",
+  );
+  const lines: ReturnType<Page["locator"]> = page.locator(
+    '.react-flow__edge[aria-label*=" → "]',
+  );
+  await expect(lines).toHaveCount(4);
+  const backendToBlob: ReturnType<Page["locator"]> = page.locator(
+    '.react-flow__edge[aria-label^="wb-ims-backend → wb-ims-blob:"]',
+  );
+  await expect(backendToBlob).toHaveCount(1);
+  await expect(backendToBlob).toContainText("480/min");
+  /*
+   * The backend calls the blob store past the integration, a layer between
+   * them: the line is routed around that card, not drawn behind it.
+   */
+  await expect(
+    backendToBlob.locator("path.react-flow__edge-path"),
+  ).toHaveAttribute("d", / C /);
+  const integration: { y: number; height: number } | null = await page
+    .locator(".react-flow__node", { hasText: "wb-ims-integration-edh-" })
+    .boundingBox();
+  const blobLabel: { y: number; height: number } | null = await backendToBlob
+    .locator(".react-flow__edge-textwrapper")
+    .boundingBox();
+  expect(integration).not.toBeNull();
+  expect(blobLabel).not.toBeNull();
+  const overlaps: boolean =
+    blobLabel!.y < integration!.y + integration!.height &&
+    integration!.y < blobLabel!.y + blobLabel!.height;
+  expect(overlaps, "the routed line's label sits clear of the card").toBe(
+    false,
+  );
+  await screenshot(page, "aks-node-map-traffic-synthetic");
+
+  await page.getByLabel("Line labels").selectOption("errors");
+  await expect(
+    page.locator(
+      '.react-flow__edge[aria-label^="wb-ims-backend → wb-ims-integration-edh:"]',
+    ),
+  ).toContainText("10.0% errors");
+  await screenshot(page, "aks-node-map-errors-synthetic");
 });
 
 test("a relationship to something no longer in inventory is listed in the drawer, never opened", async ({
