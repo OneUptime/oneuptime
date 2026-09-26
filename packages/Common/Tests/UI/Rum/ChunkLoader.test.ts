@@ -1845,6 +1845,82 @@ describe("ChunkLoader signal extraction", () => {
     expect(longTask?.offsetMs).toBe(9000);
   });
 
+  /*
+   * Issue #3975: an INP is now reported per single-page-app view, with
+   * the view's url and the slow interaction's attribution. Each field is
+   * read on its own, so one a newer or buggier recorder got wrong costs
+   * only that field.
+   */
+  it("carries an INP's view and attribution, dropping only the fields that are malformed", () => {
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(0),
+      [
+        { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+        custom(
+          "oneuptime.performance",
+          {
+            kind: "web-vital",
+            metric: "INP",
+            value: 480,
+            rating: "needs-improvement",
+            url: "https://shop.example.com/products",
+            navigationType: "soft",
+            interactionType: "pointer",
+            interactionTarget: "nav > a.product-link",
+            inputDelayMs: 5,
+            processingDurationMs: 305,
+            presentationDelayMs: 170,
+          },
+          CUSTOM_BASE_TS + 100,
+        ),
+        custom(
+          "oneuptime.performance",
+          {
+            kind: "web-vital",
+            metric: "INP",
+            value: 90,
+            rating: "good",
+            navigationType: "sideways",
+            interactionType: 7,
+            interactionTarget: "",
+            inputDelayMs: -3,
+            processingDurationMs: "12",
+            presentationDelayMs: 40,
+          },
+          CUSTOM_BASE_TS + 200,
+        ),
+      ],
+    );
+
+    const [attributed, malformed] = rows.filter(
+      (row: ReplayTimelineEvent): boolean => {
+        return row.metric === "INP";
+      },
+    );
+
+    expect(attributed).toEqual(
+      expect.objectContaining({
+        value: 480,
+        url: "https://shop.example.com/products",
+        navigationType: "soft",
+        interactionType: "pointer",
+        interactionTarget: "nav > a.product-link",
+        inputDelayMs: 5,
+        processingDurationMs: 305,
+        presentationDelayMs: 170,
+      }),
+    );
+
+    /* The row itself survives; only the bad fields are gone. */
+    expect(malformed?.value).toBe(90);
+    expect(malformed?.presentationDelayMs).toBe(40);
+    expect(malformed?.navigationType).toBeUndefined();
+    expect(malformed?.interactionType).toBeUndefined();
+    expect(malformed?.interactionTarget).toBeUndefined();
+    expect(malformed?.inputDelayMs).toBeUndefined();
+    expect(malformed?.processingDurationMs).toBeUndefined();
+  });
+
   it("turns rrweb Meta events into navigation rows carrying the viewport", () => {
     const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
       makeEntry(0),

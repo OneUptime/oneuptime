@@ -10,6 +10,8 @@ import {
   SessionReplayVisibilityState,
   SessionReplayWebVitalMetric,
   SessionReplayWebVitalRating,
+  SessionReplayInteractionType,
+  SessionReplayNavigationType,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
 import {
@@ -176,6 +178,13 @@ export type ReplayPerformanceSignalDetail = {
   rating: SessionReplayWebVitalRating | null;
   url: string | null;
   atUnixMs: number | null;
+  /* INP only, and only from recorders that attribute it. */
+  navigationType: SessionReplayNavigationType | null;
+  interactionType: SessionReplayInteractionType | null;
+  interactionTarget: string | null;
+  inputDelayMs: number | null;
+  processingDurationMs: number | null;
+  presentationDelayMs: number | null;
 };
 
 export type ReplayCustomSignalDetail = {
@@ -993,6 +1002,12 @@ function performanceSignal(
     rating: event.rating || null,
     url: stringOrNull(event.url),
     atUnixMs: atUnixMs,
+    navigationType: event.navigationType || null,
+    interactionType: event.interactionType || null,
+    interactionTarget: stringOrNull(event.interactionTarget),
+    inputDelayMs: numberOrNull(event.inputDelayMs),
+    processingDurationMs: numberOrNull(event.processingDurationMs),
+    presentationDelayMs: numberOrNull(event.presentationDelayMs),
   };
 
   signal.detail = detail;

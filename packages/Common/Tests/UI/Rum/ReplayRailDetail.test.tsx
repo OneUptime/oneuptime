@@ -983,4 +983,57 @@ describe("ReplayRailDetail performance wording", () => {
     expect(screen.getByText("Long task")).toBeInTheDocument();
     expect(screen.queryByText("long-task")).toBeNull();
   });
+
+  /* Issue #3975: which view, which element, and where the time went. */
+  it("explains a slow INP: the view, the input, the element and the phase split", () => {
+    renderDetail(
+      performanceSignal({
+        kind: "web-vital",
+        durationMs: null,
+        budgetMs: null,
+        isOverBudget: true,
+        metric: "INP",
+        value: 480,
+        rating: "needs-improvement",
+        url: "https://shop.example.com/products",
+        atUnixMs: null,
+        navigationType: "soft",
+        interactionType: "pointer",
+        interactionTarget: "nav > a.product-link",
+        inputDelayMs: 5,
+        processingDurationMs: 305,
+        presentationDelayMs: 170,
+      }),
+    );
+
+    expect(
+      screen.getByText("Route change (single-page app)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Pointer")).toBeInTheDocument();
+    expect(screen.getByText("nav > a.product-link")).toBeInTheDocument();
+    expect(screen.getByText("Input delay")).toBeInTheDocument();
+    expect(screen.getByText("Processing")).toBeInTheDocument();
+    expect(screen.getByText("Presentation")).toBeInTheDocument();
+    expect(screen.getByText("305ms")).toBeInTheDocument();
+  });
+
+  it("shows none of the INP rows for a recording that predates them", () => {
+    renderDetail(
+      performanceSignal({
+        kind: "web-vital",
+        durationMs: null,
+        budgetMs: null,
+        isOverBudget: false,
+        metric: "INP",
+        value: 120,
+        rating: "good",
+        url: null,
+        atUnixMs: null,
+      }),
+    );
+
+    expect(screen.queryByText("View")).toBeNull();
+    expect(screen.queryByText("Element")).toBeNull();
+    expect(screen.queryByText("Input delay")).toBeNull();
+  });
 });

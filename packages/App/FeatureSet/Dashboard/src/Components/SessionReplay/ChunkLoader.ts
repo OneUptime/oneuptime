@@ -1915,6 +1915,41 @@ export default class ChunkLoader {
           if (payload.url) {
             row.url = payload.url;
           }
+
+          /*
+           * INP attribution. Each field is read on its own and a bad one
+           * is dropped alone: the payload crossed a version boundary.
+           */
+          const navigationType: string | undefined =
+            readString("navigationType");
+          const interactionType: string | undefined =
+            readString("interactionType");
+          const interactionTarget: string | undefined =
+            readString("interactionTarget");
+
+          if (navigationType === "hard" || navigationType === "soft") {
+            row.navigationType = navigationType;
+          }
+
+          if (interactionType === "pointer" || interactionType === "keyboard") {
+            row.interactionType = interactionType;
+          }
+
+          if (interactionTarget) {
+            row.interactionTarget = interactionTarget;
+          }
+
+          for (const key of [
+            "inputDelayMs",
+            "processingDurationMs",
+            "presentationDelayMs",
+          ] as const) {
+            const phaseMs: number | undefined = readNumber(key);
+
+            if (phaseMs !== undefined && phaseMs >= 0) {
+              row[key] = phaseMs;
+            }
+          }
         } else if (isSessionReplayPerformanceBudgetPayload(payload)) {
           row.performanceKind = payload.kind;
           row.durationMs = payload.durationMs;
