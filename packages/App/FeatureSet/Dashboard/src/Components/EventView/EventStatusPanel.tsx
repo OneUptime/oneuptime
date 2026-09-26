@@ -243,7 +243,8 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
      * the pointer (and keyboard focus) to a wrapper that carries the tooltip -
      * the same arrangement as the shared Button.
      */
-    const hasReachableTooltip: boolean = isDisabled && Boolean(translatedTooltip);
+    const hasReachableTooltip: boolean =
+      isDisabled && Boolean(translatedTooltip);
 
     const button: ReactElement = (
       <button
@@ -288,50 +289,59 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // The action buttons + "change state" overflow menu, shared by both layouts.
-  const actionsCluster: ReactElement = (
-    <div
-      className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto"
-      role="group"
-      aria-label="Event actions"
-    >
-      {props.actions.map((action: EventStateAction) => {
-        return getActionButton(action);
-      })}
-      {(props.secondaryActions || []).map((action: EventPanelAction) => {
-        return getSecondaryActionButton(action);
-      })}
-      {props.onStateSelect && statesForMenu.length > 0 && (
-        <MoreMenu
-          text="More actions"
-          elementToBeShownInsteadOfButton={
-            <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
-          }
-          triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          isDisabled={props.isDisabled}
-        >
-          {[
-            <MoreMenuSection
-              key="states"
-              title={props.moreMenuTitle || "Change state to"}
-            >
-              {statesForMenu.map((state: EventStateItem) => {
-                return (
-                  <MoreMenuItem
-                    key={state.id}
-                    text={state.name}
-                    onClick={() => {
-                      props.onStateSelect!(state.id);
-                    }}
-                  />
-                );
-              })}
-            </MoreMenuSection>,
-          ]}
-        </MoreMenu>
-      )}
-    </div>
-  );
+  /*
+   * The action buttons + "change state" overflow menu, shared by both
+   * layouts. `widthClassName` is where the cluster stops taking a full row
+   * of its own - the breakpoint at which its layout puts it beside the
+   * title or the pills.
+   */
+  const getActionsCluster: (widthClassName: string) => ReactElement = (
+    widthClassName: string,
+  ): ReactElement => {
+    return (
+      <div
+        className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}
+        role="group"
+        aria-label="Event actions"
+      >
+        {props.actions.map((action: EventStateAction) => {
+          return getActionButton(action);
+        })}
+        {(props.secondaryActions || []).map((action: EventPanelAction) => {
+          return getSecondaryActionButton(action);
+        })}
+        {props.onStateSelect && statesForMenu.length > 0 && (
+          <MoreMenu
+            text="More actions"
+            elementToBeShownInsteadOfButton={
+              <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+            }
+            triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            isDisabled={props.isDisabled}
+          >
+            {[
+              <MoreMenuSection
+                key="states"
+                title={props.moreMenuTitle || "Change state to"}
+              >
+                {statesForMenu.map((state: EventStateItem) => {
+                  return (
+                    <MoreMenuItem
+                      key={state.id}
+                      text={state.name}
+                      onClick={() => {
+                        props.onStateSelect!(state.id);
+                      }}
+                    />
+                  );
+                })}
+              </MoreMenuSection>,
+            ]}
+          </MoreMenu>
+        )}
+      </div>
+    );
+  };
 
   // The state / severity / private / duration pills, shared by both layouts.
   const metaItems: ReactElement = (
@@ -397,9 +407,14 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       {props.title ? (
-        /* Header layout: eyebrow number + prominent title, pills on the row below. */
+        /*
+         * Header layout: eyebrow number + prominent title, pills on the row
+         * below. The actions sit beside the title only from xl: next to a
+         * side menu, a narrower header squeezed the title down to a few
+         * characters and stacked the actions one per row.
+         */
         <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               {props.identifier && (
                 <span
@@ -415,7 +430,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 </h2>
               </Tooltip>
             </div>
-            {actionsCluster}
+            {getActionsCluster("xl:w-auto")}
           </div>
           {hasMeta && (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -468,7 +483,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             )}
             {metaItems}
           </div>
-          {actionsCluster}
+          {getActionsCluster("md:w-auto")}
         </div>
       )}
       {props.states.length > 1 && (

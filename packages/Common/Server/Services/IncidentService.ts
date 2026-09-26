@@ -113,6 +113,7 @@ import IncidentAIContextBuilder, {
 } from "../Utils/AI/IncidentAIContextBuilder";
 import IncidentAlertService, {
   AcknowledgeDeclaredAlertsResult,
+  AlertsToAcknowledgeOnDeclare,
   LinkAlertsToIncidentResult,
 } from "./IncidentAlertService";
 import {
@@ -136,11 +137,13 @@ type IncidentCreateCarryForward = {
   // Validated, deduplicated alert ids to link once the incident exists.
   alertIdsToLink: Array<ObjectID>;
   /*
-   * Acknowledge those alerts once they are linked, as the declaring user
+   * Acknowledge alerts once they are linked, as the declaring user
    * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
-   * The project's Acknowledged alert state when asked to, otherwise null.
+   * When asked to: the project's Acknowledged alert state, and the alerts
+   * not acknowledged yet, which the caller was checked for. Null otherwise.
    */
   acknowledgedAlertStateId: ObjectID | null;
+  alertIdsToAcknowledge: Array<ObjectID>;
 } | null;
 
 type IncidentUpdatePayload = {
@@ -834,7 +837,7 @@ export class Service extends DatabaseService<Model> {
      * or a caller who may not change these alerts' states) is refused before
      * the incident exists rather than leaving alerts that keep paging.
      */
-    const acknowledgedAlertStateId: ObjectID | null =
+    const alertsToAcknowledge: AlertsToAcknowledgeOnDeclare | null =
       await IncidentAlertService.validateAcknowledgeAlertsForNewIncident({
         projectId: projectId,
         acknowledgeAlerts:
@@ -846,7 +849,9 @@ export class Service extends DatabaseService<Model> {
     if (validatedAlertIds.length > 0) {
       carryForward = {
         alertIdsToLink: validatedAlertIds,
-        acknowledgedAlertStateId: acknowledgedAlertStateId,
+        acknowledgedAlertStateId:
+          alertsToAcknowledge?.acknowledgedAlertStateId || null,
+        alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
       };
     }
 
@@ -1774,14 +1779,22 @@ export class Service extends DatabaseService<Model> {
     return carryForward?.alertIdsToLink || [];
   }
 
-  // Whether the declaration asked for its alerts to be acknowledged.
-  private shouldAcknowledgeAlertsDeclaredWith(
+  /*
+   * The alerts the declaration asked to acknowledge that were not
+   * acknowledged yet when it was checked - the only ones the caller was
+   * authorized for, so the only ones that may be written.
+   */
+  private getAlertIdsToAcknowledgeDeclaredWith(
     onCreate: OnCreate<Model>,
-  ): boolean {
+  ): Array<ObjectID> {
     const carryForward: IncidentCreateCarryForward =
       (onCreate.carryForward as IncidentCreateCarryForward) || null;
 
-    return Boolean(carryForward?.acknowledgedAlertStateId);
+    if (!carryForward?.acknowledgedAlertStateId) {
+      return [];
+    }
+
+    return carryForward.alertIdsToAcknowledge || [];
   }
 
   /*
@@ -1879,7 +1892,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    if (!this.shouldAcknowledgeAlertsDeclaredWith(onCreate)) {
+    const alertIdsToAcknowledge: Array<ObjectID> =
+      this.getAlertIdsToAcknowledgeDeclaredWith(onCreate);
+
+    if (alertIdsToAcknowledge.length === 0) {
       return;
     }
 
@@ -1889,14 +1905,14 @@ export class Service extends DatabaseService<Model> {
     IncidentAlertService.acknowledgeAlertsDeclaredWithIncident({
       projectId: projectId,
       incidentId: incidentId,
-      alertIds: alertIds,
+      alertIds: alertIdsToAcknowledge,
       linkedAlertIds: linkedAlertIds,
       acknowledgedByUserId: this.getDeclaringUserId(onCreate, createdItem),
     })
       .then((acknowledged: AcknowledgeDeclaredAlertsResult) => {
         if (acknowledged.failed.length > 0) {
           logger.error(
-            `${acknowledged.failed.length} of ${alertIds.length} alerts could not be acknowledged when the incident was declared from them.`,
+            `${acknowledged.failed.length} of ${alertIdsToAcknowledge.length} alerts could not be acknowledged when the incident was declared from them.`,
             {
               projectId: projectId.toString(),
               incidentId: incidentId.toString(),

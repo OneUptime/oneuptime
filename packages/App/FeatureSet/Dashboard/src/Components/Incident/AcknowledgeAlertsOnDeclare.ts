@@ -137,9 +137,10 @@ export const getAlertsKeepEscalatingNote: (
 
 /*
  * Appended to the On-Call step's summary when the alerts are being
- * acknowledged and the incident runs no on-call policy of its own: the
- * alerts stop paging, and the incident itself pages nobody (unless an
- * incident on-call rule adds a policy on the server).
+ * acknowledged and the incident runs no on-call policy of its own, so
+ * nobody declares an incident believing someone is still being paged for
+ * it. Claims only what acknowledging does: an alert episode escalates on its
+ * own, and an incident on-call rule can still add a policy on the server.
  */
 export const ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE: string =
-  "The alerts it is declared from are acknowledged too, so they stop paging: only an incident on-call rule, if any, pages anyone about it.";
+  "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.";

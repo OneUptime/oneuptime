@@ -18,8 +18,15 @@ export const INCIDENT_ALERT_IDS_TO_LINK_KEY: string = "alertIdsToLink";
  * `miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] = true` along with
  * INCIDENT_ALERT_IDS_TO_LINK_KEY also acknowledges them, as the declaring
  * user, once they are linked - which is what stops their on-call escalation.
- * Alerts already acknowledged (or past it) are left as they are. Off unless
- * asked for, and the caller must be allowed to change alert states.
+ * Alerts already acknowledged (or past it) are left as they are, and the
+ * caller must be allowed to change the state of every alert that is not.
+ * Off unless asked for.
+ *
+ * One exception: when the incident is declared straight into an
+ * acknowledged or resolved state and the project's linked-alert switches
+ * already move linked alerts along with it, those alerts are left to the
+ * switches (one writer per alert) - acknowledged or resolved as the switch
+ * does it, not credited to the declaring user.
  */
 export const INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY: string =
   "acknowledgeAlertsToLink";

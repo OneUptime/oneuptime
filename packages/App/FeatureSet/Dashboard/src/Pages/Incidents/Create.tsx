@@ -155,6 +155,36 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
   };
 };
 
+type GetAlreadyLinkedNoteFunction = (
+  alerts: Array<Alert>,
+  incidentsLinkedToAlerts: Map<string, Array<Incident>>,
+) => string;
+
+/*
+ * When every alert already has an incident there is nothing left to link,
+ * so the useful step is that incident; when only some do, the others can
+ * still be linked to it instead of declaring another one.
+ */
+const getAlreadyLinkedNote: GetAlreadyLinkedNoteFunction = (
+  alerts: Array<Alert>,
+  incidentsLinkedToAlerts: Map<string, Array<Incident>>,
+): string => {
+  const isEveryAlertLinked: boolean = alerts.every((alert: Alert): boolean => {
+    return (
+      (incidentsLinkedToAlerts.get(alert._id?.toString() || "") || []).length >
+      0
+    );
+  });
+
+  if (isEveryAlertLinked) {
+    return alerts.length === 1
+      ? "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one."
+      : "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.";
+  }
+
+  return "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.";
+};
+
 type GetIncidentReferenceFunction = (incident: Incident) => string;
 
 // "Incident INC-42" / "Incident #42", as the link pages list incidents.
@@ -791,6 +821,7 @@ const IncidentCreate: FunctionComponent<
                                       {index > 0 ? ", " : ""}
                                       <Link
                                         className="font-medium underline"
+                                        openInNewTab={true}
                                         to={RouteUtil.populateRouteParams(
                                           RouteMap[
                                             PageMap.INCIDENT_VIEW
@@ -828,9 +859,10 @@ const IncidentCreate: FunctionComponent<
                       className="mt-2"
                       data-testid="incident-create-alerts-already-linked-note"
                     >
-                      {alertsToLink.length === 1
-                        ? "This alert is already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alert to it from the alert's Linked Incidents page instead."
-                        : "Some of these alerts are already linked to an incident. Check that it is not the same problem before you declare another one - you can link the alerts to it from the alerts list instead."}
+                      {getAlreadyLinkedNote(
+                        alertsToLink,
+                        incidentsLinkedToAlerts,
+                      )}
                     </p>
                   )}
                   {isPrivateFromAlerts && (

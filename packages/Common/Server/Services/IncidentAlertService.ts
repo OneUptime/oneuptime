@@ -160,6 +160,25 @@ export interface AcknowledgeDeclaredAlertsResult {
 }
 
 /*
+ * What validateAcknowledgeAlertsForNewIncident settled for a declaration
+ * that asked to acknowledge its alerts: the project's Acknowledged state,
+ * and the alerts not acknowledged yet - the ones the caller was checked for,
+ * and the only ones acknowledgeAlertsDeclaredWithIncident may write.
+ */
+export interface AlertsToAcknowledgeOnDeclare {
+  acknowledgedAlertStateId: ObjectID;
+  alertIdsToAcknowledge: Array<ObjectID>;
+}
+
+/*
+ * Alerts acknowledged at once when an incident is declared from many. Each
+ * acknowledgement is a full state change (and waits on its Slack / Microsoft
+ * Teams post), so one at a time could leave the last of 50 alerts escalating
+ * for minutes. Distinct alerts never share a timeline lock.
+ */
+const DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY: number = 5;
+
+/*
  * The "why" on an alert acknowledged because an incident was declared from
  * it. It goes to the alert's feed, the alert's Slack / Microsoft Teams
  * channels and its owners' notifications - places that must not name a
@@ -1291,17 +1310,20 @@ export class Service extends DatabaseService<Model> {
   /*
    * Reads miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] on an
    * incident create: whether to acknowledge the alerts the incident is
-   * declared from once they are linked. Returns the project's Acknowledged
-   * alert state to acknowledge them with, or null when not asked to (absent,
-   * null or false).
+   * declared from once they are linked, and which. Null when not asked to
+   * (absent, null or false). Otherwise the project's Acknowledged alert
+   * state and the alerts that are not acknowledged yet - the only ones that
+   * will be written, and so the only ones the caller must be allowed to
+   * change: an alert that is already acknowledged or resolved is left alone,
+   * so being unable to change it must not refuse the declaration.
    *
    * Called from IncidentService's onBeforeCreate after the alert ids were
    * validated - before the incident number is taken - so an impossible
    * request is refused instead of the incident being declared while its
    * alerts keep paging: the project has no Acknowledged alert state, or the
-   * caller may not change the state of every one of these alerts (see
-   * AlertStateChangeAuthorization; the acknowledgements themselves are
-   * written as root).
+   * caller may not change the state of every alert that would be
+   * acknowledged (see AlertStateChangeAuthorization; the acknowledgements
+   * themselves are written as root, for exactly these alerts).
    */
   @CaptureSpan()
   public async validateAcknowledgeAlertsForNewIncident(data: {
@@ -1309,7 +1331,7 @@ export class Service extends DatabaseService<Model> {
     acknowledgeAlerts: unknown;
     alertIds: Array<ObjectID>;
     props: DatabaseCommonInteractionProps;
-  }): Promise<ObjectID | null> {
+  }): Promise<AlertsToAcknowledgeOnDeclare | null> {
     if (
       data.acknowledgeAlerts === undefined ||
       data.acknowledgeAlerts === null ||
@@ -1336,31 +1358,89 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const projectId: ObjectID = data.projectId;
+
     const acknowledgedState: AlertState | null =
       await AlertStateService.findOneBy({
         query: {
-          projectId: data.projectId,
+          projectId: projectId,
           isAcknowledgedState: true,
         },
         select: {
           _id: true,
+          order: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (!acknowledgedState || !acknowledgedState._id) {
+    if (
+      !acknowledgedState ||
+      !acknowledgedState._id ||
+      acknowledgedState.order === undefined ||
+      acknowledgedState.order === null
+    ) {
       throw new BadDataException(
         "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.",
       );
     }
 
-    if (!data.props.isRoot && !data.props.isMasterAdmin) {
+    const acknowledgedOrder: number = acknowledgedState.order;
+
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(data.alertIds),
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateOrderByAlertId: Map<string, number | undefined> = new Map();
+
+    for (const alert of alerts) {
+      if (alert._id) {
+        stateOrderByAlertId.set(
+          normalizeId(alert._id),
+          alert.currentAlertState?.order ?? undefined,
+        );
+      }
+    }
+
+    // Same rule as acknowledgeAlertsDeclaredWithIncident: by order.
+    const alertIdsToAcknowledge: Array<ObjectID> = data.alertIds.filter(
+      (alertId: ObjectID): boolean => {
+        const key: string = normalizeId(alertId);
+
+        if (!stateOrderByAlertId.has(key)) {
+          return false;
+        }
+
+        const order: number | undefined = stateOrderByAlertId.get(key);
+
+        return order === undefined || order < acknowledgedOrder;
+      },
+    );
+
+    if (
+      alertIdsToAcknowledge.length > 0 &&
+      !data.props.isRoot &&
+      !data.props.isMasterAdmin
+    ) {
       try {
         await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId: data.projectId,
-          alertIds: data.alertIds,
+          projectId: projectId,
+          alertIds: alertIdsToAcknowledge,
           props: data.props,
         });
       } catch (error) {
@@ -1378,7 +1458,10 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return new ObjectID(acknowledgedState._id.toString());
+    return {
+      acknowledgedAlertStateId: new ObjectID(acknowledgedState._id.toString()),
+      alertIdsToAcknowledge: alertIdsToAcknowledge,
+    };
   }
 
   /*
@@ -1521,8 +1604,8 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      const ownedBySync: Set<string> = await this.getLinkedAlertsTheSyncWillMove(
-        {
+      const ownedBySync: Set<string> =
+        await this.getLinkedAlertsTheSyncWillMove({
           projectId: data.projectId,
           incidentId: data.incidentId,
           incidentStateId: incident?.currentIncidentStateId || undefined,
@@ -1533,8 +1616,9 @@ export class Service extends DatabaseService<Model> {
             .filter((alert: Alert | undefined): boolean => {
               return Boolean(alert);
             }) as Array<Alert>,
-        },
-      );
+        });
+
+      const alertIdsToWrite: Array<ObjectID> = [];
 
       for (const alertId of alertIds) {
         const key: string = normalizeId(alertId);
@@ -1561,46 +1645,50 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        let message: string =
-          "The alert's state did not change to Acknowledged.";
+        alertIdsToWrite.push(alertId);
+      }
 
-        try {
-          await AlertService.changeAlertState({
-            projectId: data.projectId,
-            alertId: alertId,
-            alertStateId: acknowledgedStateId,
-            notifyOwners: true,
-            rootCause: rootCause,
-            stateChangeLog: undefined,
-            createdByUserId: data.acknowledgedByUserId,
-            props: {
-              isRoot: true,
-            },
-          });
-        } catch (error) {
-          message = error instanceof Error ? error.message : String(error);
-        }
-
-        /*
-         * Classified by reading the alert back: the write may have been
-         * refused because somebody acknowledged or resolved the alert in the
-         * meantime (the outcome asked for), and a write that "succeeded" is
-         * only worth reporting if the alert's current state moved.
-         */
-        if (await this.isAlertAtOrPastAcknowledged(alertId)) {
-          result.acknowledgedAlertIds.push(alertId);
-          continue;
-        }
-
-        result.failed.push({ alertId: alertId, message: message });
-
-        logger.error(
-          `IncidentAlertService could not acknowledge alert ${alertId.toString()} for the incident it was declared with: ${message}`,
-          {
-            ...logAttributes,
-            alertId: alertId.toString(),
-          } as LogAttributes,
+      for (
+        let index: number = 0;
+        index < alertIdsToWrite.length;
+        index += DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY
+      ) {
+        const batch: Array<ObjectID> = alertIdsToWrite.slice(
+          index,
+          index + DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY,
         );
+
+        const outcomes: Array<string | null> = await Promise.all(
+          batch.map((alertId: ObjectID): Promise<string | null> => {
+            return this.acknowledgeDeclaredAlert({
+              projectId: data.projectId,
+              alertId: alertId,
+              acknowledgedStateId: acknowledgedStateId,
+              acknowledgedOrder: acknowledgedOrder,
+              rootCause: rootCause,
+              acknowledgedByUserId: data.acknowledgedByUserId,
+            });
+          }),
+        );
+
+        batch.forEach((alertId: ObjectID, batchIndex: number) => {
+          const failure: string | null = outcomes[batchIndex] ?? null;
+
+          if (failure === null) {
+            result.acknowledgedAlertIds.push(alertId);
+            return;
+          }
+
+          result.failed.push({ alertId: alertId, message: failure });
+
+          logger.error(
+            `IncidentAlertService could not acknowledge alert ${alertId.toString()} for the incident it was declared with: ${failure}`,
+            {
+              ...logAttributes,
+              alertId: alertId.toString(),
+            } as LogAttributes,
+          );
+        });
       }
     } catch (error) {
       logger.error(
@@ -1707,16 +1795,70 @@ export class Service extends DatabaseService<Model> {
     return willMove;
   }
 
-  // False when the alert or its state cannot be read.
+  /*
+   * Acknowledges one declared alert. Null when the alert ended up
+   * acknowledged (or past it), otherwise why not. Never throws.
+   *
+   * The outcome is read back from the alert rather than taken from the
+   * write: the write may be refused because somebody acknowledged or
+   * resolved the alert in the meantime (the outcome asked for), and a write
+   * that "succeeded" only counts if the alert's current state moved.
+   */
   @CaptureSpan()
-  private async isAlertAtOrPastAcknowledged(
-    alertId: ObjectID,
-  ): Promise<boolean> {
+  private async acknowledgeDeclaredAlert(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    acknowledgedStateId: ObjectID;
+    acknowledgedOrder: number;
+    rootCause: string;
+    acknowledgedByUserId: ObjectID | undefined;
+  }): Promise<string | null> {
+    let failure: string = "The alert's state did not change to Acknowledged.";
+
     try {
-      return await AlertService.isAlertAcknowledged({ alertId: alertId });
-    } catch {
-      return false;
+      await AlertService.changeAlertState({
+        projectId: data.projectId,
+        alertId: data.alertId,
+        alertStateId: data.acknowledgedStateId,
+        notifyOwners: true,
+        rootCause: data.rootCause,
+        stateChangeLog: undefined,
+        createdByUserId: data.acknowledgedByUserId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
     }
+
+    try {
+      const alert: Alert | null = await AlertService.findOneBy({
+        query: {
+          _id: data.alertId,
+          projectId: data.projectId,
+        },
+        select: {
+          currentAlertState: {
+            order: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const order: number | undefined =
+        alert?.currentAlertState?.order ?? undefined;
+
+      if (order !== undefined && order >= data.acknowledgedOrder) {
+        return null;
+      }
+    } catch {
+      // The alert cannot be read back, so it cannot be counted as done.
+    }
+
+    return failure;
   }
 
   /*
