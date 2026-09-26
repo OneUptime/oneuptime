@@ -1,130 +1,38 @@
 import { describe, expect, test } from "@jest/globals";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import {
+  InventoryLiveness,
+  getInventoryLivenessSql,
+} from "Common/Types/Telemetry/InventoryLiveness";
+import { AggregateColumn } from "Common/Server/Types/Database/AggregateBy";
+import {
+  INVENTORY_OVERVIEW_SELECT,
+  InventoryOverviewCounts,
+  readInventoryOverviewGroups,
+} from "Common/Server/Utils/Inventory/InventoryOverviewAggregation";
+import {
   EMPTY_INVENTORY_SUMMARY_COUNTS,
   INVENTORY_SUMMARY_TILES,
   InventorySummaryCounts,
-  InventorySummaryRow,
   InventorySummaryTile,
   getInventoryTileCount,
-  rowMatchesScope,
-  summarizeInventory,
 } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventorySummaryTiles";
 import {
   InventoryScope,
   buildInventoryScopeQueryString,
   parseInventoryScope,
 } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryScope";
-import { INVENTORY_STALE_AFTER_MINUTES } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryLiveness";
 
 /*
  * The invariant worth protecting here is that a tile's number and the list a
- * click on it opens describe the same rows. Both come from `scope`: the fold
- * produces the number, the Items page turns the same scope into its query. So
- * these tests walk each tile's scope back through `rowMatchesScope` over a
- * fixture estate and check the two agree — rather than comparing the tile
- * against a literal copied out of the module, which would pass even if both
- * were wrong.
+ * click on it opens describe the same rows. The number is counted in Postgres
+ * (InventoryItemService.getOverviewCounts); the list is the Items page's query
+ * for the tile's `scope`. So these tests find, for each tile, the server
+ * column its number is read from, and check that column filters on exactly
+ * what the tile's scope narrows the list by. InventoryOverviewPostgres.test.ts
+ * runs both queries against a real database; this half needs none, so it
+ * runs everywhere.
  */
-
-const NOW: Date = new Date("2026-08-13T12:00:00.000Z");
-
-type MinutesAgoFunction = (minutes: number) => Date;
-
-const minutesAgo: MinutesAgoFunction = (minutes: number): Date => {
-  return new Date(NOW.getTime() - minutes * 60 * 1000);
-};
-
-const FRESH: Date = minutesAgo(5);
-const STALE: Date = minutesAgo(INVENTORY_STALE_AFTER_MINUTES + 60);
-
-/*
- * A deliberately awkward estate: live and stale discovered rows, mirrored and
- * manual rows whose ancient timestamps must not count as stale, a discovered
- * row that has never reported, and a row whose source this build has never
- * heard of.
- */
-const ESTATE: Array<InventorySummaryRow> = [
-  { source: EntitySource.Discovered, lastSeenAt: FRESH },
-  { source: EntitySource.Discovered, lastSeenAt: FRESH },
-  { source: EntitySource.Discovered, lastSeenAt: STALE },
-  { source: EntitySource.Discovered, lastSeenAt: STALE },
-  { source: EntitySource.Discovered, lastSeenAt: STALE },
-  { source: EntitySource.Discovered, lastSeenAt: undefined },
-  { source: EntitySource.Inventory, lastSeenAt: STALE },
-  { source: EntitySource.Inventory, lastSeenAt: undefined },
-  { source: EntitySource.Manual, lastSeenAt: STALE },
-  { source: "some-future-source", lastSeenAt: STALE },
-];
-
-describe("summarizeInventory", () => {
-  test("an empty estate is all zeroes", () => {
-    expect(summarizeInventory([], NOW)).toEqual(EMPTY_INVENTORY_SUMMARY_COUNTS);
-  });
-
-  test("the total counts every row, including unknown sources", () => {
-    /*
-     * The total is what a user reads as "how much do I own". Skipping rows we
-     * cannot categorise would understate it.
-     */
-    expect(summarizeInventory(ESTATE, NOW).total).toBe(ESTATE.length);
-  });
-
-  test("rows are counted into their source bucket", () => {
-    const counts: InventorySummaryCounts = summarizeInventory(ESTATE, NOW);
-
-    expect(counts.discovered).toBe(6);
-    expect(counts.mirrored).toBe(2);
-    expect(counts.manual).toBe(1);
-  });
-
-  test("only discovered rows can be stale", () => {
-    /*
-     * The mirrored and manual rows in the fixture are far older than the
-     * cutoff. Counting them would put every network device in the project
-     * under a red "Gone Quiet" number.
-     */
-    expect(summarizeInventory(ESTATE, NOW).stale).toBe(3);
-  });
-
-  test("a discovered row that never reported is not counted stale", () => {
-    expect(
-      summarizeInventory(
-        [{ source: EntitySource.Discovered, lastSeenAt: undefined }],
-        NOW,
-      ).stale,
-    ).toBe(0);
-  });
-
-  test("a row with an unknown source is never counted stale", () => {
-    expect(
-      summarizeInventory(
-        [{ source: "some-future-source", lastSeenAt: STALE }],
-        NOW,
-      ).stale,
-    ).toBe(0);
-  });
-
-  test("the fold does not mutate the shared empty-counts constant", () => {
-    summarizeInventory(ESTATE, NOW);
-
-    expect(EMPTY_INVENTORY_SUMMARY_COUNTS).toEqual({
-      total: 0,
-      discovered: 0,
-      mirrored: 0,
-      manual: 0,
-      stale: 0,
-    });
-  });
-
-  test("the source buckets never exceed the total", () => {
-    const counts: InventorySummaryCounts = summarizeInventory(ESTATE, NOW);
-
-    expect(
-      counts.discovered + counts.mirrored + counts.manual,
-    ).toBeLessThanOrEqual(counts.total);
-  });
-});
 
 describe("the tile definitions", () => {
   test("there is at least one tile", () => {
@@ -172,21 +80,71 @@ describe("the tile definitions", () => {
   });
 });
 
-describe("each tile's scope selects exactly the rows its count counted", () => {
-  const counts: InventorySummaryCounts = summarizeInventory(ESTATE, NOW);
-
-  test.each(INVENTORY_SUMMARY_TILES)(
-    "the $key tile's number matches its drill-down",
-    (tile: InventorySummaryTile) => {
-      const matching: number = ESTATE.filter(
-        (row: InventorySummaryRow): boolean => {
-          return rowMatchesScope(row, tile.scope, NOW);
-        },
-      ).length;
-
-      expect(matching).toBe(getInventoryTileCount(tile, counts));
+/*
+ * Which server column feeds a counts field, found by feeding the server's own
+ * fold one column at a time — so the mapping under test is the one the
+ * endpoint really uses, not a copy of it written into this file.
+ */
+function columnFeeding(field: keyof InventorySummaryCounts): AggregateColumn {
+  const feeding: Array<AggregateColumn> = INVENTORY_OVERVIEW_SELECT.filter(
+    (column: AggregateColumn): boolean => {
+      const counts: InventoryOverviewCounts = readInventoryOverviewGroups([
+        { entityType: null, [column.alias]: "1" },
+      ]);
+      return counts[field] === 1;
     },
   );
+
+  expect(feeding).toHaveLength(1);
+  return feeding[0]!;
+}
+
+// What the Items list filters on for a scope, as the FILTER a count must apply.
+function expectedCountExpression(scope: InventoryScope): string {
+  if (scope.staleOnly) {
+    /*
+     * The Stale facet filters on the status column, and that column's SQL
+     * says "not tracked" for anything that is not discovered — so the stale
+     * count needs no source clause, and a stale scope is only meaningful on
+     * discovered rows.
+     */
+    expect(scope.source).toBe(EntitySource.Discovered);
+
+    return `COUNT(*) FILTER (WHERE (${getInventoryLivenessSql(`"InventoryItem"`)}) = '${InventoryLiveness.Stale}')`;
+  }
+
+  if (scope.source) {
+    return `COUNT(*) FILTER (WHERE "InventoryItem"."source" = '${scope.source}')`;
+  }
+
+  return "COUNT(*)";
+}
+
+describe("each tile's number is counted with its drill-down's own filter", () => {
+  test.each(INVENTORY_SUMMARY_TILES)(
+    "the $key tile's count filters on exactly its scope",
+    (tile: InventorySummaryTile) => {
+      // No tile narrows by type; the server counts tiles across every type.
+      expect(tile.scope.entityType).toBeUndefined();
+
+      expect(columnFeeding(tile.countField).expression).toBe(
+        expectedCountExpression(tile.scope),
+      );
+    },
+  );
+
+  test("every counts field has a tile, and every server column feeds one", () => {
+    const tileFields: Array<string> = INVENTORY_SUMMARY_TILES.map(
+      (tile: InventorySummaryTile): string => {
+        return tile.countField;
+      },
+    ).sort();
+
+    expect(tileFields).toEqual(
+      Object.keys(EMPTY_INVENTORY_SUMMARY_COUNTS).sort(),
+    );
+    expect(INVENTORY_OVERVIEW_SELECT).toHaveLength(tileFields.length);
+  });
 
   test.each(INVENTORY_SUMMARY_TILES)(
     "the $key tile's scope survives the URL it links through",
@@ -209,66 +167,26 @@ describe("each tile's scope selects exactly the rows its count counted", () => {
       expect(parsed).toEqual(tile.scope);
     },
   );
-
-  test("the stale tile counts strictly fewer rows than the discovered tile", () => {
-    // Sanity on the fixture itself: a degenerate estate would pass vacuously.
-    expect(counts.stale).toBeGreaterThan(0);
-    expect(counts.stale).toBeLessThan(counts.discovered);
-  });
-});
-
-describe("rowMatchesScope", () => {
-  test("the empty scope matches everything", () => {
-    for (const row of ESTATE) {
-      expect(rowMatchesScope(row, {}, NOW)).toBe(true);
-    }
-  });
-
-  test("a source scope excludes other sources", () => {
-    expect(
-      rowMatchesScope(
-        { source: EntitySource.Manual, lastSeenAt: FRESH },
-        { source: EntitySource.Discovered },
-        NOW,
-      ),
-    ).toBe(false);
-  });
-
-  test("staleOnly excludes a live discovered row", () => {
-    expect(
-      rowMatchesScope(
-        { source: EntitySource.Discovered, lastSeenAt: FRESH },
-        { staleOnly: true },
-        NOW,
-      ),
-    ).toBe(false);
-  });
-
-  test("staleOnly excludes an ancient mirrored row", () => {
-    expect(
-      rowMatchesScope(
-        { source: EntitySource.Inventory, lastSeenAt: STALE },
-        { staleOnly: true },
-        NOW,
-      ),
-    ).toBe(false);
-  });
-
-  test("staleOnly includes a stale discovered row", () => {
-    expect(
-      rowMatchesScope(
-        { source: EntitySource.Discovered, lastSeenAt: STALE },
-        { staleOnly: true },
-        NOW,
-      ),
-    ).toBe(true);
-  });
 });
 
 describe("getInventoryTileCount", () => {
   test("reads zero while the counts are still loading", () => {
     for (const tile of INVENTORY_SUMMARY_TILES) {
       expect(getInventoryTileCount(tile, null)).toBe(0);
+    }
+  });
+
+  test("each tile reads its own field", () => {
+    const counts: InventorySummaryCounts = {
+      total: 48213,
+      discovered: 47000,
+      mirrored: 1100,
+      manual: 113,
+      stale: 3210,
+    };
+
+    for (const tile of INVENTORY_SUMMARY_TILES) {
+      expect(getInventoryTileCount(tile, counts)).toBe(counts[tile.countField]);
     }
   });
 });

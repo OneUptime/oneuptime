@@ -1,10 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import InventorySummaryCards from "../../Components/Inventory/InventorySummaryCards";
 import InventoryBreakdown from "../../Components/Inventory/InventoryBreakdown";
-import {
-  InventorySummaryCounts,
-  summarizeInventory,
-} from "../../Components/Inventory/InventorySummaryTiles";
+import { InventorySummaryCounts } from "../../Components/Inventory/InventorySummaryTiles";
 import {
   InventoryCategoryBreakdown,
   buildInventoryBreakdown,
@@ -13,6 +10,11 @@ import {
   InventoryLivenessBadge,
   InventoryTypeBadge,
 } from "../../Components/Inventory/InventoryBadges";
+import {
+  InventoryOverview as InventoryOverviewData,
+  InventoryRecentItem,
+  fetchInventoryOverview,
+} from "../../Components/Inventory/InventoryOverviewApi";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -21,14 +23,9 @@ import AppLink from "../../Components/AppLink/AppLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import React, {
@@ -43,15 +40,12 @@ import React, {
  * The Inventory landing page: how big the estate is, what it is made of, and
  * what showed up most recently.
  *
- * One fetch feeds all three sections. The alternative — a count endpoint per
- * tile plus another for the breakdown — cannot express staleness (which is
- * derived per row from the source and `lastSeenAt`, see InventoryLiveness),
- * and would let the tiles and the breakdown be snapshots of different
- * instants. The read is bounded by LIMIT_PER_PROJECT and selects only the
- * four narrow columns the fold needs.
+ * One request feeds all three sections, and it returns numbers rather than
+ * rows. The tiles and the breakdown are counted in Postgres over the whole
+ * estate, in one grouped statement, so they are views of one snapshot — see
+ * App/FeatureSet/BaseAPI/API/InventoryOverview. Counting them here from a
+ * list read was capped at ten thousand rows and silently wrong past it.
  */
-
-const RECENTLY_ADDED_COUNT: number = 8;
 
 const InventoryOverview: FunctionComponent<
   PageComponentProps
@@ -60,7 +54,7 @@ const InventoryOverview: FunctionComponent<
   const [breakdown, setBreakdown] = useState<Array<InventoryCategoryBreakdown>>(
     [],
   );
-  const [recent, setRecent] = useState<Array<InventoryItem>>([]);
+  const [recent, setRecent] = useState<Array<InventoryRecentItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -69,49 +63,12 @@ const InventoryOverview: FunctionComponent<
     setError("");
 
     try {
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+      // Unarchived only, server-side, matching the list every tile drills into.
+      const overview: InventoryOverviewData = await fetchInventoryOverview();
 
-      const result: ListResult<InventoryItem> =
-        await ModelAPI.getList<InventoryItem>({
-          modelType: InventoryItem,
-          /*
-           * Archived rows are excluded, matching the list every tile drills
-           * into. Counting them here would put a number on a tile that the
-           * list it opens does not contain — "Total Items: 100" landing on 95
-           * rows — which is the exact failure the tile/scope pairing exists to
-           * prevent.
-           */
-          query: { projectId, isArchived: false },
-          select: {
-            _id: true,
-            entityType: true,
-            displayName: true,
-            source: true,
-            firstSeenAt: true,
-            lastSeenAt: true,
-          },
-          sort: { firstSeenAt: SortOrder.Descending },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-        });
-
-      const now: Date = new Date();
-
-      const countsByType: Record<string, number> = {};
-
-      for (const item of result.data) {
-        const entityType: string = item.entityType || "";
-
-        if (!entityType) {
-          continue;
-        }
-
-        countsByType[entityType] = (countsByType[entityType] || 0) + 1;
-      }
-
-      setCounts(summarizeInventory(result.data, now));
-      setBreakdown(buildInventoryBreakdown(countsByType));
-      setRecent(result.data.slice(0, RECENTLY_ADDED_COUNT));
+      setCounts(overview.counts);
+      setBreakdown(buildInventoryBreakdown(overview.countsByType));
+      setRecent(overview.recentlyAdded);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -206,17 +163,17 @@ const InventoryOverview: FunctionComponent<
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {recent.map((item: InventoryItem): ReactElement => {
+            {recent.map((item: InventoryRecentItem): ReactElement => {
               return (
                 <li
-                  key={item._id?.toString()}
+                  key={item.id}
                   className="flex items-center justify-between gap-x-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <AppLink
                       to={RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INVENTORY_VIEW] as Route,
-                        { modelId: new ObjectID(item._id!.toString()) },
+                        { modelId: new ObjectID(item.id) },
                       )}
                       className="truncate text-sm font-medium text-gray-900 hover:text-indigo-700"
                     >
