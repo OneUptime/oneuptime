@@ -9,8 +9,10 @@ import React, {
 import ReactFlow, {
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
   Edge,
+  EdgeProps,
   MarkerType,
   Node,
   NodeProps,
@@ -57,11 +59,12 @@ import {
  *
  * Services sit in a column on the left with an arrow to every card they run
  * on, so the picture reads as "what runs where". When services on one card
- * call services on another, a line joins the two cards, colored by error
- * rate and labeled with the calls' rate, errors or latency, and the cards
- * that talk are laid out left to right in call order so the lines rarely
- * cross a card. A collection (thousands of IoT devices, say) is always a
- * single card with its count.
+ * call services on another, the map is about that traffic instead: a line
+ * joins the two cards, colored by error rate and labeled with the calls'
+ * rate, errors or latency, the cards that talk are laid out left to right in
+ * call order so the lines rarely cross a card, and each card names what it
+ * runs rather than taking an arrow from a service column. A collection
+ * (thousands of IoT devices, say) is always a single card with its count.
  */
 
 export const MAX_MAP_CARDS: number = 48;
@@ -71,13 +74,26 @@ const COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 120;
 const CARD_GAP_X: number = TOPOLOGY_NODE_WIDTH + 28;
 const CARD_GAP_Y: number = TOPOLOGY_NODE_HEIGHT + 24;
 // Room between call layers for a line and its label.
-const TRAFFIC_COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 140;
+const TRAFFIC_COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 100;
+// Height of one lane above the cards, for a line that runs against the flow.
+const LANE_GAP: number = 40;
 const OVERFLOW_ID: string = "__more__";
 const SERVICE_PREFIX: string = "service:";
 export const TRAFFIC_EDGE_PREFIX: string = "traffic:";
+/* The edge type of a line routed through slots of its own (see below). */
+export const TRAFFIC_ROUTE_EDGE_TYPE: string = "trafficRoute";
+/*
+ * Ids of those slots while the layout places them. U+FFFF sorts after
+ * every card id, so the slots take no precedence in the layout's id-ordered
+ * tie-breaks.
+ */
+const WAYPOINT_PREFIX: string = "\uffffwaypoint:";
 
 /* What a traffic line is labeled with: always one metric, or on hover. */
 export type TrafficLabel = "hover" | "calls" | "errors" | "latency";
+
+/* Up to this many lines are labeled from the start (see the component). */
+export const MAX_ALWAYS_LABELED_LINES: number = 6;
 
 export interface ComponentProps {
   model: InfrastructureTopologyModel;
@@ -130,8 +146,27 @@ const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
   );
 };
 
-const NODE_TYPES: Record<string, FunctionComponent<NodeProps<CardData>>> = {
+/*
+ * An invisible marker where a routed line runs through an empty slot or
+ * a lane above the cards. The view is fitted to nodes, so without it a line
+ * where no card sits could fall outside the fitted view. It takes no
+ * pointer events, so hovering or clicking the line there still reaches it.
+ */
+export const ROUTE_SLOT_CLASS: string = "infrastructure-route-slot";
+const ROUTE_SLOT_PREFIX: string = "route-slot:";
+
+const RouteSlot: FunctionComponent<NodeProps> = (): ReactElement => {
+  return (
+    <div
+      aria-hidden="true"
+      style={{ width: TOPOLOGY_NODE_WIDTH, height: 88, pointerEvents: "none" }}
+    />
+  );
+};
+
+const NODE_TYPES: Record<string, FunctionComponent<NodeProps>> = {
   infrastructureCard: InfrastructureCard,
+  infrastructureRouteSlot: RouteSlot,
 };
 
 export function cardForNode(
@@ -199,6 +234,16 @@ export interface InfrastructureMapLayout {
   edges: Array<Edge>;
   /* Traffic between the cards drawn (see trafficEdges for its lines). */
   traffic: InfrastructureTraffic;
+  /*
+   * Link id → the top-left corner of each slot a line that skips a layer is
+   * routed through, one per layer it crosses, left to right.
+   */
+  routes: Map<string, Array<LayoutPoint>>;
+  /*
+   * Link id → the height of the lane above the cards that a line running
+   * against the flow (right to left) takes, one lane per such line.
+   */
+  lanes: Map<string, number>;
 }
 
 /*
@@ -207,21 +252,95 @@ export interface InfrastructureMapLayout {
  * rarely has to cross a card. The rest follow in columns to their right, in
  * the order they came (cards that run something first). Positions are
  * relative to the card area; returns its height in rows.
+ *
+ * A line between cards more than one layer apart would run straight behind
+ * the cards of the layers in between. It gets a slot of its own in each of
+ * those layers instead (the dummy nodes of a layered drawing), so ordering
+ * keeps it clear of the cards there, and it is drawn through its slots.
  */
 function placeTalkingCards(data: {
   slotIds: Array<string>;
   talking: Set<string>;
   links: Array<InfrastructureTrafficLink>;
   positions: Map<string, LayoutPoint>;
+  routes: Map<string, Array<LayoutPoint>>;
 }): number {
   /* The layered layout stacks layers downward; this map reads rightward. */
-  const layered: Map<string, LayoutPoint> = computeLayeredLayout(
-    Array.from(data.talking),
+  const gaps: { xGap: number; yGap: number } = {
+    xGap: CARD_GAP_Y,
+    yGap: TRAFFIC_COLUMN_GAP,
+  };
+  const cardIds: Array<string> = Array.from(data.talking);
+  const direct: Map<string, LayoutPoint> = computeLayeredLayout(
+    cardIds,
     data.links.map((link: InfrastructureTrafficLink) => {
       return { from: link.from, to: link.to };
     }),
-    { xGap: CARD_GAP_Y, yGap: TRAFFIC_COLUMN_GAP },
+    gaps,
   );
+  const layerIn: (layout: Map<string, LayoutPoint>, id: string) => number = (
+    layout: Map<string, LayoutPoint>,
+    id: string,
+  ): number => {
+    return Math.round(layout.get(id)!.y / TRAFFIC_COLUMN_GAP);
+  };
+
+  const ids: Array<string> = [...cardIds];
+  const edges: Array<{ from: string; to: string }> = [];
+  const waypointIds: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  data.links.forEach((link: InfrastructureTrafficLink, index: number) => {
+    const fromLayer: number = layerIn(direct, link.from);
+    const toLayer: number = layerIn(direct, link.to);
+    if (toLayer - fromLayer < 2) {
+      edges.push({ from: link.from, to: link.to });
+      return;
+    }
+    const chain: Array<string> = [];
+    let previous: string = link.from;
+    for (let layer: number = fromLayer + 1; layer < toLayer; layer++) {
+      const id: string = `${WAYPOINT_PREFIX}${index}:${layer}`;
+      chain.push(id);
+      ids.push(id);
+      edges.push({ from: previous, to: id });
+      previous = id;
+    }
+    edges.push({ from: previous, to: link.to });
+    waypointIds.set(link.id, chain);
+  });
+
+  let layered: Map<string, LayoutPoint> = direct;
+  if (waypointIds.size > 0) {
+    const routed: Map<string, LayoutPoint> = computeLayeredLayout(
+      ids,
+      edges,
+      gaps,
+    );
+    /*
+     * Replacing an edge by a chain keeps every layer, except where breaking
+     * a cycle happens to cut the chain; then the lines are drawn directly,
+     * as they would have been without slots.
+     */
+    const keepsLayers: boolean =
+      cardIds.every((id: string): boolean => {
+        return layerIn(routed, id) === layerIn(direct, id);
+      }) &&
+      data.links.every((link: InfrastructureTrafficLink): boolean => {
+        const chain: Array<string> = waypointIds.get(link.id) || [];
+        const first: number = layerIn(direct, link.from) + 1;
+        return chain.every((id: string, step: number): boolean => {
+          return layerIn(routed, id) === first + step;
+        });
+      });
+    if (keepsLayers) {
+      layered = routed;
+    } else {
+      waypointIds.clear();
+    }
+  }
+
   let lastLayerX: number = 0;
   let widestLayerY: number = 0;
   for (const point of layered.values()) {
@@ -238,8 +357,21 @@ function placeTalkingCards(data: {
   const rows: number = Math.max(layeredRows, restRows);
 
   const layeredOffsetY: number = ((rows - layeredRows) / 2) * CARD_GAP_Y;
-  for (const [id, point] of layered) {
-    data.positions.set(id, { x: point.y, y: layeredOffsetY + point.x });
+  const toMap: (point: LayoutPoint) => LayoutPoint = (
+    point: LayoutPoint,
+  ): LayoutPoint => {
+    return { x: point.y, y: layeredOffsetY + point.x };
+  };
+  for (const id of cardIds) {
+    data.positions.set(id, toMap(layered.get(id)!));
+  }
+  for (const [linkId, chain] of waypointIds) {
+    data.routes.set(
+      linkId,
+      chain.map((id: string): LayoutPoint => {
+        return toMap(layered.get(id)!);
+      }),
+    );
   }
   const restStartX: number = lastLayerX + COLUMN_GAP;
   const restOffsetY: number = ((rows - restRows) / 2) * CARD_GAP_Y;
@@ -319,6 +451,10 @@ export function layoutInfrastructureMap(data: {
    * Without services there are no arrows, and a compact grid reads best.
    */
   const positions: Map<string, LayoutPoint> = new Map<string, LayoutPoint>();
+  const slotRoutes: Map<string, Array<LayoutPoint>> = new Map<
+    string,
+    Array<LayoutPoint>
+  >();
   const slotIds: Array<string> = [
     ...shown.map((node: InfrastructureNode): string => {
       return node.id;
@@ -332,6 +468,7 @@ export function layoutInfrastructureMap(data: {
       talking,
       links: traffic.links,
       positions,
+      routes: slotRoutes,
     });
   } else if (running === 0) {
     const columns: number = Math.max(
@@ -367,27 +504,20 @@ export function layoutInfrastructureMap(data: {
 
   /*
    * Services ordered by the first card they run on, to keep arrows
-   * untangled: in tree order, or top to bottom once traffic has placed the
-   * cards.
+   * untangled. Once traffic joins the cards there is no service column: the
+   * lines between cards are what the map is about, every card names what it
+   * runs, and a column of arrows into every card would only cross them.
    */
-  const drawingOrder: Array<InfrastructureNode> =
-    talking.size > 0
-      ? [...shown].sort(
-          (left: InfrastructureNode, right: InfrastructureNode): number => {
-            const a: LayoutPoint = positions.get(left.id)!;
-            const b: LayoutPoint = positions.get(right.id)!;
-            return a.y - b.y || a.x - b.x;
-          },
-        )
-      : shown;
   const firstCardIndex: Map<string, number> = new Map<string, number>();
-  drawingOrder.forEach((node: InfrastructureNode, index: number) => {
-    for (const key of node.serviceKeys) {
-      if (!firstCardIndex.has(key)) {
-        firstCardIndex.set(key, index);
+  (talking.size > 0 ? [] : shown).forEach(
+    (node: InfrastructureNode, index: number) => {
+      for (const key of node.serviceKeys) {
+        if (!firstCardIndex.has(key)) {
+          firstCardIndex.set(key, index);
+        }
       }
-    }
-  });
+    },
+  );
   const serviceKeys: Array<string> = Array.from(firstCardIndex.keys()).sort(
     (a: string, b: string): number => {
       return (
@@ -475,7 +605,7 @@ export function layoutInfrastructureMap(data: {
   }
 
   const edges: Array<Edge> = [];
-  for (const node of shown) {
+  for (const node of serviceKeys.length > 0 ? shown : []) {
     for (const key of node.serviceKeys) {
       edges.push({
         id: `${key}->${node.id}`,
@@ -488,7 +618,53 @@ export function layoutInfrastructureMap(data: {
     }
   }
 
-  return { nodes, edges, traffic };
+  const routes: Map<string, Array<LayoutPoint>> = new Map<
+    string,
+    Array<LayoutPoint>
+  >();
+  for (const [linkId, slots] of slotRoutes) {
+    routes.set(
+      linkId,
+      slots.map((slot: LayoutPoint): LayoutPoint => {
+        return { x: offsetX + slot.x, y: cardOffsetY + slot.y };
+      }),
+    );
+  }
+
+  /*
+   * A call that runs against the flow — the other half of a two-way pair, or
+   * a call back up a chain — would loop behind the cards between its ends,
+   * and its label would sit on the forward line's. It takes a lane of its
+   * own above everything between its ends instead.
+   */
+  const lanes: Map<string, number> = new Map<string, number>();
+  for (const link of traffic.links) {
+    const from: LayoutPoint = positionOf(link.from);
+    const to: LayoutPoint = positionOf(link.to);
+    if (to.x > from.x) {
+      continue;
+    }
+    const within: (x: number) => boolean = (x: number): boolean => {
+      return x >= to.x && x <= from.x;
+    };
+    let top: number = Math.min(from.y, to.y);
+    for (const id of talking) {
+      const at: LayoutPoint = positionOf(id);
+      if (within(at.x)) {
+        top = Math.min(top, at.y);
+      }
+    }
+    for (const slots of routes.values()) {
+      for (const slot of slots) {
+        if (within(slot.x)) {
+          top = Math.min(top, slot.y);
+        }
+      }
+    }
+    lanes.set(link.id, top - LANE_GAP * (lanes.size + 1));
+  }
+
+  return { nodes, edges, traffic, routes, lanes };
 }
 
 /** "12/min", "0.4% errors" or "45ms" for a line: one metric of its traffic. */
@@ -536,7 +712,135 @@ export function describeTrafficLink(
 
 export interface TrafficEdgeData {
   link: InfrastructureTrafficLink;
+  /* The slots a line that skips a layer runs through (top-left corners). */
+  waypoints?: Array<LayoutPoint> | undefined;
+  /* Top of the source card, so the route runs at its handles' height. */
+  sourceTop?: number | undefined;
+  /* The lane a line running against the flow takes (see the layout). */
+  laneY?: number | undefined;
 }
+
+/*
+ * The path of a line running against the flow: out of its source to the
+ * right, up into its lane, back over the cards, and down into its target
+ * from the left, so its arrow still enters the target where every line
+ * does. Its label sits on the lane above the source card's middle: lines
+ * rise and fall beside cards, never above their middle, so nothing crosses
+ * it there.
+ */
+export function trafficLanePath(data: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  laneY: number;
+}): { path: string; labelX: number; labelY: number } {
+  const reach: number = 48;
+  const { sourceX, sourceY, targetX, targetY, laneY } = data;
+  return {
+    path:
+      `M ${sourceX},${sourceY} ` +
+      `C ${sourceX + reach},${sourceY} ${sourceX + reach},${laneY} ${sourceX},${laneY} ` +
+      `L ${targetX},${laneY} ` +
+      `C ${targetX - reach},${laneY} ${targetX - reach},${targetY} ${targetX},${targetY}`,
+    labelX: sourceX - TOPOLOGY_NODE_WIDTH / 2,
+    labelY: laneY,
+  };
+}
+
+/*
+ * The path of a line routed through its slots: straight across each slot,
+ * where no card sits, and an S-curve between them. `handleOffset` is how far
+ * below a card's top its handles sit, so the line runs at the height it
+ * leaves and enters the cards. Its label sits in the first slot.
+ */
+export function trafficRoutePath(data: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  waypoints: Array<LayoutPoint>;
+  handleOffset: number;
+}): { path: string; labelX: number; labelY: number } {
+  const points: Array<LayoutPoint> = [{ x: data.sourceX, y: data.sourceY }];
+  for (const slot of data.waypoints) {
+    points.push({ x: slot.x, y: slot.y + data.handleOffset });
+    points.push({
+      x: slot.x + TOPOLOGY_NODE_WIDTH,
+      y: slot.y + data.handleOffset,
+    });
+  }
+  points.push({ x: data.targetX, y: data.targetY });
+  let path: string = `M ${points[0]!.x},${points[0]!.y}`;
+  for (let index: number = 1; index < points.length; index++) {
+    const from: LayoutPoint = points[index - 1]!;
+    const to: LayoutPoint = points[index]!;
+    if (from.y === to.y) {
+      path += ` L ${to.x},${to.y}`;
+      continue;
+    }
+    const middle: number = (from.x + to.x) / 2;
+    path += ` C ${middle},${from.y} ${middle},${to.y} ${to.x},${to.y}`;
+  }
+  const first: LayoutPoint | undefined = data.waypoints[0];
+  return {
+    path,
+    labelX: first
+      ? first.x + TOPOLOGY_NODE_WIDTH / 2
+      : (data.sourceX + data.targetX) / 2,
+    labelY: first
+      ? first.y + data.handleOffset
+      : (data.sourceY + data.targetY) / 2,
+  };
+}
+
+const TrafficRouteEdge: FunctionComponent<EdgeProps<TrafficEdgeData>> = (
+  props: EdgeProps<TrafficEdgeData>,
+): ReactElement => {
+  const route: { path: string; labelX: number; labelY: number } =
+    props.data?.laneY !== undefined
+      ? trafficLanePath({
+          sourceX: props.sourceX,
+          sourceY: props.sourceY,
+          targetX: props.targetX,
+          targetY: props.targetY,
+          laneY: props.data.laneY,
+        })
+      : trafficRoutePath({
+          sourceX: props.sourceX,
+          sourceY: props.sourceY,
+          targetX: props.targetX,
+          targetY: props.targetY,
+          waypoints: props.data?.waypoints || [],
+          handleOffset:
+            props.data?.sourceTop === undefined
+              ? TOPOLOGY_NODE_HEIGHT / 2
+              : props.sourceY - props.data.sourceTop,
+        });
+  return (
+    <BaseEdge
+      path={route.path}
+      labelX={route.labelX}
+      labelY={route.labelY}
+      label={props.label}
+      labelStyle={props.labelStyle || {}}
+      labelShowBg={props.labelShowBg ?? true}
+      labelBgStyle={props.labelBgStyle || {}}
+      labelBgPadding={props.labelBgPadding || [6, 3]}
+      labelBgBorderRadius={props.labelBgBorderRadius ?? 6}
+      style={props.style || {}}
+      {...(props.markerEnd ? { markerEnd: props.markerEnd } : {})}
+      interactionWidth={props.interactionWidth ?? 20}
+    />
+  );
+};
+
+const EDGE_TYPES: Record<
+  string,
+  FunctionComponent<EdgeProps<TrafficEdgeData>>
+> = {
+  [TRAFFIC_ROUTE_EDGE_TYPE]: TrafficRouteEdge,
+};
 
 /*
  * The traffic lines, drawn like the Service Map's connections: colored by
@@ -550,6 +854,11 @@ export function trafficEdges(data: {
   label: TrafficLabel;
   hoveredId?: string | null | undefined;
   metricsWindowSeconds: number;
+  /* Lines that skip a layer, and where their cards are (see the layout). */
+  routes?: Map<string, Array<LayoutPoint>> | undefined;
+  cardTops?: Map<string, number> | undefined;
+  /* Lines that run against the flow, and their lanes (see the layout). */
+  lanes?: Map<string, number> | undefined;
 }): Array<Edge<TrafficEdgeData>> {
   return data.links.map(
     (link: InfrastructureTrafficLink, index: number): Edge<TrafficEdgeData> => {
@@ -562,11 +871,18 @@ export function trafficEdges(data: {
           : data.hoveredId === id
             ? "calls"
             : null;
+      const waypoints: Array<LayoutPoint> | undefined = data.routes?.get(
+        link.id,
+      );
+      const laneY: number | undefined = data.lanes?.get(link.id);
       return {
         id,
         source: link.from,
         target: link.to,
-        type: "default",
+        type:
+          waypoints || laneY !== undefined
+            ? TRAFFIC_ROUTE_EDGE_TYPE
+            : "default",
         label:
           metric && link.calls > 0
             ? trafficMetricLabel(link, metric, data.metricsWindowSeconds)
@@ -597,7 +913,12 @@ export function trafficEdges(data: {
           strokeWidth:
             edgeWidthForCalls(link.calls) + (data.hoveredId === id ? 1 : 0),
         },
-        data: { link },
+        data:
+          laneY !== undefined
+            ? { link, laneY }
+            : waypoints
+              ? { link, waypoints, sourceTop: data.cardTops?.get(link.from) }
+              : { link },
       };
     },
   );
@@ -615,7 +936,10 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   };
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
-  const [trafficLabel, setTrafficLabel] = useState<TrafficLabel>("calls");
+  /* Null until the user picks one: then the default below applies. */
+  const [chosenTrafficLabel, setTrafficLabel] = useState<TrafficLabel | null>(
+    null,
+  );
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const metricsWindowSeconds: number =
     props.metricsWindowSeconds || DEFAULT_METRICS_WINDOW_SECONDS;
@@ -628,6 +952,16 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     });
   }, [props.model, props.nodeIds, props.now]);
 
+  /*
+   * A few lines read best labeled; past that, labels crowd each other where
+   * lines converge, so they appear on hover until the user asks otherwise.
+   */
+  const trafficLabel: TrafficLabel =
+    chosenTrafficLabel ||
+    (layout.traffic.links.length <= MAX_ALWAYS_LABELED_LINES
+      ? "calls"
+      : "hover");
+
   const edges: Array<Edge> = useMemo(() => {
     return [
       ...layout.edges,
@@ -637,9 +971,54 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         label: trafficLabel,
         hoveredId: hoveredEdgeId,
         metricsWindowSeconds,
+        routes: layout.routes,
+        lanes: layout.lanes,
+        cardTops: new Map<string, number>(
+          layout.nodes.map((node: Node<CardData>): [string, number] => {
+            return [node.id, node.position.y];
+          }),
+        ),
       }),
     ];
   }, [layout, props.model, trafficLabel, hoveredEdgeId, metricsWindowSeconds]);
+
+  const flowNodes: Array<Node> = useMemo(() => {
+    const slots: Array<Node> = [];
+    const markers: Array<LayoutPoint> = [];
+    for (const route of layout.routes.values()) {
+      markers.push(...route);
+    }
+    /* A lane runs above the cards: mark it too, clear of its label. */
+    for (const [linkId, laneY] of layout.lanes) {
+      const link: InfrastructureTrafficLink | undefined =
+        layout.traffic.links.find((item: InfrastructureTrafficLink) => {
+          return item.id === linkId;
+        });
+      const target: Node<CardData> | undefined = layout.nodes.find(
+        (node: Node<CardData>) => {
+          return node.id === link?.to;
+        },
+      );
+      if (target) {
+        markers.push({ x: target.position.x, y: laneY - LANE_GAP / 2 });
+      }
+    }
+    for (const marker of markers) {
+      slots.push({
+        id: `${ROUTE_SLOT_PREFIX}${slots.length}`,
+        type: "infrastructureRouteSlot",
+        position: marker,
+        data: {},
+        className: ROUTE_SLOT_CLASS,
+        style: { pointerEvents: "none" },
+        selectable: false,
+        focusable: false,
+        draggable: false,
+        connectable: false,
+      });
+    }
+    return [...layout.nodes, ...slots];
+  }, [layout]);
 
   const hoveredLink: InfrastructureTrafficLink | null =
     (hoveredEdgeId &&
@@ -685,7 +1064,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   }
 
   let drawingHeight: number = 0;
-  for (const node of layout.nodes) {
+  for (const node of flowNodes) {
     drawingHeight = Math.max(
       drawingHeight,
       node.position.y + TOPOLOGY_NODE_HEIGHT,
@@ -770,9 +1149,10 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         data-testid="infrastructure-map"
       >
         <ReactFlow
-          nodes={layout.nodes}
+          nodes={flowNodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
           fitView={true}
           fitViewOptions={{ padding: 0.16, maxZoom: 1 }}
           minZoom={0.1}
@@ -785,6 +1165,9 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
             flowInstance.current = instance;
           }}
           onNodeClick={(_event: React.MouseEvent, node: Node) => {
+            if (node.id.startsWith(ROUTE_SLOT_PREFIX)) {
+              return;
+            }
             if (node.id === OVERFLOW_ID) {
               props.onShowAll?.();
               return;

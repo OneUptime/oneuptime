@@ -11,12 +11,15 @@ import InfrastructureGraph, {
   InfrastructureMapLayout,
   MAX_MAP_CARDS,
   TRAFFIC_EDGE_PREFIX,
+  TRAFFIC_ROUTE_EDGE_TYPE,
   TrafficEdgeData,
   cardForNode,
   describeTrafficLink,
   layoutInfrastructureMap,
   trafficEdges,
+  trafficLanePath,
   trafficMetricLabel,
+  trafficRoutePath,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureGraph";
 import {
   InfrastructureTopologyModel,
@@ -640,6 +643,30 @@ function linkFor(
   })!;
 }
 
+/* One service per host, "a" on h-a and so on, with the given calls. */
+function hostsModel(
+  calls: Array<[string, string, number]>,
+): InfrastructureTopologyModel {
+  const names: Set<string> = new Set<string>();
+  for (const [from, to] of calls) {
+    names.add(from);
+    names.add(to);
+  }
+  const entities: Array<TopologyEntity> = [];
+  const relationships: Array<TopologyRelationship> = [];
+  for (const name of names) {
+    entities.push(entity(name, EntityType.Service, name));
+    entities.push(entity(`h-${name}`, EntityType.Host, `${name}-box`));
+    relationships.push(
+      edge(name, `h-${name}`, EntityRelationshipType.HostedOn),
+    );
+  }
+  for (const [from, to, count] of calls) {
+    relationships.push(call(from, to, count, 0, 10));
+  }
+  return buildInfrastructureTopologyModel(entities, relationships);
+}
+
 describe("traffic between the cards (issue #3972)", () => {
   test("a node's pods are joined by the calls between the services they run", () => {
     const model: InfrastructureTopologyModel = aksNodeModel();
@@ -660,20 +687,21 @@ describe("traffic between the cards (issue #3972)", () => {
       "pod-edh->pod-blob",
       "pod-mcp->pod-backend",
     ]);
-    // The placement arrows are drawn exactly as before.
+    /*
+     * The traffic is what this map is about now: no service column and no
+     * arrows into every card — each card names what it runs.
+     */
+    expect(layout.edges).toEqual([]);
     expect(
-      layout.edges.map((item: Edge): string => {
-        return `${item.source}->${item.target}`;
+      layout.nodes.filter((node: Node): boolean => {
+        return node.id.startsWith("service:");
       }),
-    ).toEqual(
-      expect.arrayContaining([
-        "service:svc-backend->pod-backend",
-        "service:svc-blob->pod-blob",
-        "service:svc-edh->pod-edh",
-        "service:svc-mcp->pod-mcp",
-      ]),
-    );
-    expect(layout.edges).toHaveLength(4);
+    ).toEqual([]);
+    expect(
+      layout.nodes.find((node: Node): boolean => {
+        return node.id === "pod-backend";
+      })!.data.footer,
+    ).toBe("Runs wb-ims-backend");
   });
 
   test("cards that talk are laid out in call order, callers first", () => {
@@ -689,8 +717,8 @@ describe("traffic between the cards (issue #3972)", () => {
     expect(x("pod-mcp")).toBeLessThan(x("pod-backend"));
     expect(x("pod-backend")).toBeLessThan(x("pod-edh"));
     expect(x("pod-edh")).toBeLessThan(x("pod-blob"));
-    // The service column stays on the left of everything.
-    expect(x("service:svc-mcp")).toBeLessThan(x("pod-mcp"));
+    // The first callers start the drawing.
+    expect(x("pod-mcp")).toBe(0);
     // A card nothing talks to follows the ones that do.
     expect(x("pod-quiet")).toBeGreaterThan(x("pod-blob"));
   });
@@ -721,24 +749,199 @@ describe("traffic between the cards (issue #3972)", () => {
     expect(callees.size).toBe(1);
   });
 
-  test("services line up with the first card they run on, top to bottom", () => {
+  test("a line that skips a layer is routed through a slot of its own, clear of the cards", () => {
     const model: InfrastructureTopologyModel = aksNodeModel();
     const layout: InfrastructureMapLayout = layoutInfrastructureMap({
       model,
       nodeIds: collectMapCards(model, "node-k"),
       now: NOW,
     });
-    const services: Array<Node> = layout.nodes.filter((node: Node) => {
-      return node.id.startsWith("service:");
+    /*
+     * backend -> blob crosses the integration's layer; the other three
+     * lines join neighbouring layers and need no route.
+     */
+    const backendToBlob: InfrastructureTrafficLink = linkFor(
+      layout,
+      "pod-backend",
+      "pod-blob",
+    );
+    expect(Array.from(layout.routes.keys())).toEqual([backendToBlob.id]);
+    const [slot] = layout.routes.get(backendToBlob.id)!;
+    // In the integration's layer, but not where the integration's card is.
+    expect(slot!.x).toBe(positionOf(layout, "pod-edh").x);
+    expect(slot!.y).not.toBe(positionOf(layout, "pod-edh").y);
+    for (const node of layout.nodes) {
+      expect(`${node.position.x},${node.position.y}`).not.toBe(
+        `${slot!.x},${slot!.y}`,
+      );
+    }
+
+    const edges: Array<Edge<TrafficEdgeData>> = trafficEdges({
+      model,
+      links: layout.traffic.links,
+      label: "calls",
+      metricsWindowSeconds: WINDOW_SECONDS,
+      routes: layout.routes,
+      cardTops: new Map<string, number>([["pod-backend", 40]]),
     });
-    const cardY: Array<number> = services.map((node: Node): number => {
-      return positionOf(layout, node.id.replace("service:svc-", "pod-")).y;
+    const routed: Array<Edge<TrafficEdgeData>> = edges.filter(
+      (item: Edge<TrafficEdgeData>): boolean => {
+        return item.type === TRAFFIC_ROUTE_EDGE_TYPE;
+      },
+    );
+    expect(routed).toHaveLength(1);
+    expect(routed[0]!.data).toEqual({
+      link: backendToBlob,
+      waypoints: [slot],
+      sourceTop: 40,
     });
     expect(
-      [...cardY].sort((a: number, b: number) => {
-        return a - b;
+      edges
+        .filter((item: Edge<TrafficEdgeData>): boolean => {
+          return item.type === "default";
+        })
+        .map((item: Edge<TrafficEdgeData>): string => {
+          return `${item.source}->${item.target}`;
+        })
+        .sort(),
+    ).toEqual([
+      "pod-backend->pod-edh",
+      "pod-edh->pod-blob",
+      "pod-mcp->pod-backend",
+    ]);
+  });
+
+  test("a routed line runs straight through each slot and curves between them", () => {
+    const route: { path: string; labelX: number; labelY: number } =
+      trafficRoutePath({
+        sourceX: 256,
+        sourceY: 50,
+        targetX: 1000,
+        targetY: 50,
+        waypoints: [
+          { x: 356, y: 152 },
+          { x: 712, y: 152 },
+        ],
+        handleOffset: 50,
+      });
+    expect(route.path).toBe(
+      "M 256,50 C 306,50 306,202 356,202 L 612,202 L 712,202 L 968,202 C 984,202 984,50 1000,50",
+    );
+    // The label sits in the first slot, where no card is.
+    expect(route.labelX).toBe(356 + 128);
+    expect(route.labelY).toBe(202);
+  });
+
+  test("a chain of calls routes a long line through every layer it crosses", () => {
+    const model: InfrastructureTopologyModel = aksNodeModel([
+      call("svc-mcp", "svc-backend", 90, 0, 15),
+      call("svc-backend", "svc-edh", 300, 0, 120),
+      call("svc-edh", "svc-blob", 60, 0, 20),
+      call("svc-mcp", "svc-blob", 10, 0, 5),
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: collectMapCards(model, "node-k"),
+      now: NOW,
+    });
+    const long: InfrastructureTrafficLink = linkFor(
+      layout,
+      "pod-mcp",
+      "pod-blob",
+    );
+    const slots: Array<{ x: number; y: number }> = layout.routes.get(long.id)!;
+    expect(
+      slots.map((slot: { x: number; y: number }): number => {
+        return slot.x;
       }),
-    ).toEqual(cardY);
+    ).toEqual([
+      positionOf(layout, "pod-backend").x,
+      positionOf(layout, "pod-edh").x,
+    ]);
+  });
+
+  test("a call against the flow takes a lane above the cards, the forward call stays direct", () => {
+    const model: InfrastructureTopologyModel = hostsModel([
+      ["a", "b", 100],
+      ["b", "a", 10],
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: ["h-a", "h-b"],
+      now: NOW,
+    });
+    const back: InfrastructureTrafficLink = linkFor(layout, "h-b", "h-a");
+    expect(Array.from(layout.lanes.keys())).toEqual([back.id]);
+    const laneY: number = layout.lanes.get(back.id)!;
+    expect(laneY).toBeLessThan(
+      Math.min(positionOf(layout, "h-a").y, positionOf(layout, "h-b").y),
+    );
+    const edges: Array<Edge<TrafficEdgeData>> = trafficEdges({
+      model,
+      links: layout.traffic.links,
+      label: "calls",
+      metricsWindowSeconds: WINDOW_SECONDS,
+      routes: layout.routes,
+      lanes: layout.lanes,
+    });
+    const byLink: (link: InfrastructureTrafficLink) => Edge<TrafficEdgeData> = (
+      link: InfrastructureTrafficLink,
+    ): Edge<TrafficEdgeData> => {
+      return edges.find((item: Edge<TrafficEdgeData>) => {
+        return item.data!.link === link;
+      })!;
+    };
+    expect(byLink(back).type).toBe(TRAFFIC_ROUTE_EDGE_TYPE);
+    expect(byLink(back).data).toEqual({ link: back, laneY });
+    expect(byLink(linkFor(layout, "h-a", "h-b")).type).toBe("default");
+  });
+
+  test("each line against the flow has a lane of its own", () => {
+    const model: InfrastructureTopologyModel = hostsModel([
+      ["a", "b", 100],
+      ["b", "c", 100],
+      ["c", "b", 10],
+      ["b", "a", 10],
+      ["c", "a", 10],
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: ["h-a", "h-b", "h-c"],
+      now: NOW,
+    });
+    expect(layout.lanes.size).toBe(3);
+    expect(new Set<number>(layout.lanes.values()).size).toBe(3);
+  });
+
+  test("a line against the flow leaves right, runs over the cards and enters its target from the left", () => {
+    const route: { path: string; labelX: number; labelY: number } =
+      trafficLanePath({
+        sourceX: 868,
+        sourceY: 50,
+        targetX: 256,
+        targetY: 60,
+        laneY: -40,
+      });
+    expect(route.path).toBe(
+      "M 868,50 C 916,50 916,-40 868,-40 L 256,-40 C 208,-40 208,60 256,60",
+    );
+    // Its label sits above the middle of the source card.
+    expect(route.labelX).toBe(868 - 128);
+    expect(route.labelY).toBe(-40);
+  });
+
+  test("calls running both ways between two cards need no route", () => {
+    const model: InfrastructureTopologyModel = aksNodeModel([
+      call("svc-blob", "svc-edh", 40, 0, 5),
+      call("svc-edh", "svc-blob", 60, 0, 20),
+    ]);
+    const layout: InfrastructureMapLayout = layoutInfrastructureMap({
+      model,
+      nodeIds: collectMapCards(model, "node-k"),
+      now: NOW,
+    });
+    expect(layout.traffic.links).toHaveLength(2);
+    expect(layout.routes.size).toBe(0);
   });
 
   test("with no calls the map is laid out exactly as before", () => {
@@ -749,6 +952,9 @@ describe("traffic between the cards (issue #3972)", () => {
       now: NOW,
     });
     expect(layout.traffic).toEqual({ links: [], isPartial: false });
+    expect(layout.routes.size).toBe(0);
+    // Without traffic, the service column and its arrows are back.
+    expect(layout.edges).toHaveLength(4);
     // Cards that run something share the column next to the services.
     const runningX: Set<number> = new Set<number>(
       ["pod-backend", "pod-blob", "pod-edh", "pod-mcp"].map(
@@ -977,8 +1183,8 @@ describe("InfrastructureGraph traffic", () => {
     ).toHaveTextContent(
       "4 connections · Lines are calls between the services on these cards, measured per service.",
     );
-    // Placement arrows plus traffic lines.
-    expect(screen.getByTestId("edge-count")).toHaveTextContent("8");
+    // Only the traffic: no placement arrows beside it.
+    expect(screen.getByTestId("edge-count")).toHaveTextContent("4");
     expect(
       screen.getByRole("button", {
         name: "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45ms avg",
@@ -1028,7 +1234,7 @@ describe("InfrastructureGraph traffic", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("clicking a line opens it; placement arrows open nothing", () => {
+  test("clicking a line opens it; clicking a card opens the card", () => {
     const onOpenTraffic: MockFunction = getJestMockFunction();
     renderNode(aksNodeModel(), onOpenTraffic);
     fireEvent.click(
@@ -1042,8 +1248,64 @@ describe("InfrastructureGraph traffic", () => {
     expect(link.from).toBe("pod-backend");
     expect(link.to).toBe("pod-blob");
     expect(link.serviceCalls[0]!.from).toBe("svc-backend");
-    fireEvent.click(screen.getByTestId("edge-svc-blob->pod-blob"));
+    fireEvent.click(screen.getByTestId("node-pod-blob"));
     expect(onOpenTraffic).toHaveBeenCalledTimes(1);
+  });
+
+  test("the invisible slots a routed line runs through open nothing", () => {
+    const onOpenTraffic: MockFunction = getJestMockFunction();
+    const onOpenNode: MockFunction = getJestMockFunction();
+    const model: InfrastructureTopologyModel = aksNodeModel();
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={collectMapCards(model, "node-k")}
+        onOpenNode={onOpenNode}
+        onOpenTraffic={onOpenTraffic}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    const slots: Array<HTMLElement> =
+      screen.getAllByTestId(/^node-route-slot:/);
+    expect(slots).toHaveLength(1);
+    fireEvent.click(slots[0]!);
+    expect(onOpenNode).not.toHaveBeenCalled();
+    expect(onOpenTraffic).not.toHaveBeenCalled();
+  });
+
+  test("past a few lines, labels wait for the pointer until the user picks a metric", () => {
+    const calls: Array<[string, string, number]> = [];
+    for (const caller of ["a", "b", "c", "d"]) {
+      for (const callee of ["x", "y"]) {
+        calls.push([caller, callee, 900]);
+      }
+    }
+    const model: InfrastructureTopologyModel = hostsModel(calls);
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={collectMapCards(model, null)}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    expect(trafficButtons()).toHaveLength(8);
+    expect(screen.getByLabelText("Line labels")).toHaveValue("hover");
+    expect(
+      trafficButtons().every((button: HTMLElement): boolean => {
+        return button.textContent === "";
+      }),
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText("Line labels"), {
+      target: { value: "calls" },
+    });
+    expect(
+      trafficButtons().every((button: HTMLElement): boolean => {
+        return button.textContent === "60/min";
+      }),
+    ).toBe(true);
   });
 
   test("services that never called each other say so instead of drawing nothing silently", () => {
