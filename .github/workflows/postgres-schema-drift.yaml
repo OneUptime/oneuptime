@@ -190,7 +190,9 @@ jobs:
       # (with their indexes, the new entity-key one included) into an isolated
       # schema and runs the Topology API's SQL against fixtures: nesting
       # choice, activity, winners among duplicate keys, collections, keyset
-      # paging, search escaping and the drawer's sections.
+      # paging, search escaping and the drawer's sections. The differential
+      # suite then checks the same SQL against a reference implementation of
+      # the spec on seeded random estates.
       - name: Test the Topology API's SQL against the migrated schema
         working-directory: packages/Common
         env:
@@ -200,4 +202,6 @@ jobs:
           TOPOLOGY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/Topology/TopologyQueriesPostgres.test.ts --forceExit
+          Tests/Server/Utils/Topology/TopologyQueriesPostgres.test.ts
+          Tests/Server/Utils/Topology/TopologyQueriesDifferentialPostgres.test.ts
+          --forceExit
