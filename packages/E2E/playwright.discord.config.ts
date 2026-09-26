@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./Discord",
   testMatch: "**/*.spec.ts",
+  // Burns the first-signup Master Admin seat; see Discord/Fixture/global-setup.ts.
+  globalSetup: "./Discord/Fixture/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,
