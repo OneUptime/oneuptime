@@ -849,6 +849,8 @@ export default class ProcessRunner {
     child.stderr?.on("data", onStderr);
 
     let hasExited: boolean = false;
+    let childExit: ChildExit | undefined;
+    let hasChannelClosed: boolean = false;
     let resolveExit: (exit: ChildExit) => void = (): void => {};
     const exitPromise: Promise<ChildExit> = new Promise<ChildExit>(
       (resolve: (exit: ChildExit) => void) => {
@@ -919,27 +921,47 @@ export default class ProcessRunner {
       completeWithError(error);
     };
 
+    /*
+     * 'exit' is no proof that a worker returned nothing. Node can emit it
+     * before the last 'message' on the IPC channel, so a worker that replies
+     * and exits at once -- as one that fails before launching its browser
+     * does -- could lose its reply to this error. 'disconnect' comes only
+     * after every message read from the channel, so a worker has returned
+     * nothing once it has both exited and closed its channel.
+     */
+    const failIfExitedWithoutResult: () => void = (): void => {
+      if (!childExit || !hasChannelClosed) {
+        return;
+      }
+
+      completeWithError(
+        new Error(
+          `Synthetic worker exited before returning a result (code: ${
+            childExit.code === null ? "null" : childExit.code
+          }, signal: ${childExit.signal || "none"}).`,
+        ),
+      );
+    };
+
     const onExit: (
       code: number | null,
       signal: NodeJS.Signals | null,
     ) => void = (code: number | null, signal: NodeJS.Signals | null): void => {
       hasExited = true;
-      resolveExit({ code, signal });
+      childExit = { code, signal };
+      resolveExit(childExit);
+      failIfExitedWithoutResult();
+    };
 
-      if (!hasCompleted) {
-        completeWithError(
-          new Error(
-            `Synthetic worker exited before returning a result (code: ${
-              code === null ? "null" : code
-            }, signal: ${signal || "none"}).`,
-          ),
-        );
-      }
+    const onDisconnect: () => void = (): void => {
+      hasChannelClosed = true;
+      failIfExitedWithoutResult();
     };
 
     child.on("message", onMessage);
     child.once("error", onError);
     child.once("exit", onExit);
+    child.once("disconnect", onDisconnect);
 
     const trackedTree: TrackedProcessTree = this.createTrackedProcessTree(
       child.pid,
@@ -1113,6 +1135,7 @@ export default class ProcessRunner {
       child.removeListener("message", onMessage);
       child.removeListener("error", onError);
       child.removeListener("exit", onExit);
+      child.removeListener("disconnect", onDisconnect);
       child.stdout?.removeListener("data", onStdout);
       child.stderr?.removeListener("data", onStderr);
     }
