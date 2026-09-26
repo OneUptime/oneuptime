@@ -1800,3 +1800,311 @@ describe("combobox semantics", () => {
     expect(searchInput()).toHaveAttribute("aria-label", DEFAULT_PLACEHOLDER);
   });
 });
+
+/*
+ * Regressions for what review of the #3981 change turned up. Each one is a
+ * way the box could commit, show or hide the wrong thing while the reader is
+ * doing something ordinary: tabbing past the results, clicking back into the
+ * box, typing faster than the server answers, or arrowing past the fifth row.
+ */
+describe("review regressions", () => {
+  /*
+   * The Clear button sits inside the box's wrapper. Keys pressed on it used
+   * to bubble into the combobox handler: an arrow reopened the panel while
+   * focus was on the button (where no blur could ever close it again), and
+   * Enter then drilled to a site instead of clearing the text.
+   */
+  test("arrow keys on the Clear button do not reopen the panel", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    await searchFor("kansas", THREE_ROWS);
+    fireEvent.blur(searchInput());
+    expect(panel()).not.toBeInTheDocument();
+
+    const clear: HTMLElement = screen.getByTestId(`${DEFAULT_PREFIX}-clear`);
+    expect(fireEvent.keyDown(clear, { key: "ArrowDown" })).toBe(true);
+    expect(fireEvent.keyDown(clear, { key: "ArrowUp" })).toBe(true);
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(selectedOptionIds()).toEqual([]);
+    expect(searchInput()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("Enter on the Clear button never drills, even after an arrow key", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    await searchFor("kansas", THREE_ROWS);
+    fireEvent.blur(searchInput());
+
+    const clear: HTMLElement = screen.getByTestId(`${DEFAULT_PREFIX}-clear`);
+    fireEvent.keyDown(clear, { key: "ArrowDown" });
+
+    // Not default-prevented, so the button's own click still happens.
+    expect(fireEvent.keyDown(clear, { key: "Enter" })).toBe(true);
+    expect(onSelectSiteMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Escape closes the panel but leaves focus in the box, and clicking a box
+   * that already has focus fires no focus event. The explorer's empty state
+   * tells the reader to click the box to see matches from elsewhere, so a
+   * click has to reopen it by itself.
+   */
+  test("clicking the box after Escape reopens the results without searching again", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    await searchFor("kansas", THREE_ROWS);
+    press("Escape");
+    expect(panel()).not.toBeInTheDocument();
+
+    fireEvent.click(searchInput());
+
+    expect(panel()).toBeInTheDocument();
+    expect(searchInput()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("option")).toHaveLength(THREE_ROWS.length);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("clicking the box below the threshold still opens nothing", () => {
+    renderBox();
+    typeText("k");
+
+    fireEvent.click(searchInput());
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(searchInput()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  /*
+   * A highlight is an index into the list it was made in. While the next
+   * text's request is out, the previous list stays on screen and the arrows
+   * move through it; when the new list lands, the same index names another
+   * site. Enter must not commit a row the reader never moved onto.
+   */
+  test("a fresh answer drops a highlight made in the previous list", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    await searchFor("ka", THREE_ROWS);
+
+    typeText("kan");
+    press("ArrowDown");
+    press("ArrowDown");
+    expect(selectedOptionIds()).toEqual([
+      `${DEFAULT_PREFIX}-option-site-unit-104822`,
+    ]);
+
+    advance(SEARCH_DEBOUNCE_MS);
+    await answer(1, searchBody([CENTRAL, KANSAS_CITY]));
+
+    expect(selectedOptionIds()).toEqual([]);
+    expect(searchInput()).not.toHaveAttribute("aria-activedescendant");
+    expect(press("Enter")).toBe(true);
+    expect(onSelectSiteMock).not.toHaveBeenCalled();
+  });
+
+  test("after a fresh answer, the next arrow key starts from the top of the new list", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    await searchFor("ka", THREE_ROWS);
+    typeText("kan");
+    press("ArrowDown");
+    advance(SEARCH_DEBOUNCE_MS);
+    await answer(1, searchBody([CENTRAL, KANSAS_CITY]));
+
+    press("ArrowDown");
+    press("Enter");
+
+    expect(onSelectSiteMock).toHaveBeenCalledWith("site-central");
+  });
+
+  /*
+   * Cancel-stale used to bump its sequence only when the debounced request
+   * fired, so for up to 250 ms after a keystroke the PREVIOUS text's
+   * response still counted as current. Landing in that window, it painted
+   * its rows and switched "Searching…" off for the whole next round trip.
+   */
+  test("an answer for the previous text that lands during the debounce does not paint", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    typeText("ka");
+    advance(SEARCH_DEBOUNCE_MS);
+    expect(pendingSearches).toHaveLength(1);
+
+    typeText("kan");
+    await answer(0, searchBody([UNIT_104822]));
+
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(
+      screen.getByTestId(`${DEFAULT_PREFIX}-searching`),
+    ).toBeInTheDocument();
+
+    advance(SEARCH_DEBOUNCE_MS);
+    expect(pendingSearches).toHaveLength(2);
+    expect(
+      screen.getByTestId(`${DEFAULT_PREFIX}-searching`),
+    ).toBeInTheDocument();
+
+    await answer(1, searchBody([KANSAS_CITY]));
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(option("site-kc")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`${DEFAULT_PREFIX}-searching`),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an empty answer for the previous text does not claim the current text has no matches", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    typeText("ka");
+    advance(SEARCH_DEBOUNCE_MS);
+
+    typeText("kan");
+    await answer(0, searchBody([]));
+
+    expect(
+      screen.queryByTestId(`${DEFAULT_PREFIX}-no-results`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`${DEFAULT_PREFIX}-searching`),
+    ).toBeInTheDocument();
+  });
+
+  test("a failure for the previous text that lands during the debounce shows no error", async () => {
+    renderBox();
+    fireEvent.focus(searchInput());
+    typeText("ka");
+    advance(SEARCH_DEBOUNCE_MS);
+
+    typeText("kan");
+    await rejectWith(0, new Error("Gateway timed out"));
+
+    expect(
+      screen.queryByTestId(`${DEFAULT_PREFIX}-error`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`${DEFAULT_PREFIX}-searching`),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * The panel shows about five rows of up to fifty and focus never leaves
+   * the input, so the browser will not scroll the highlight into view on its
+   * own. jsdom has no scrollIntoView, so the test installs a recorder.
+   */
+  describe("keeping the highlight in view", () => {
+    interface ScrollCall {
+      element: HTMLElement;
+      options: unknown;
+    }
+
+    let scrollCalls: Array<ScrollCall> = [];
+    let hadOwnScrollIntoView: boolean = false;
+    let originalScrollIntoView: unknown = undefined;
+
+    beforeEach(() => {
+      scrollCalls = [];
+      hadOwnScrollIntoView = Object.prototype.hasOwnProperty.call(
+        HTMLElement.prototype,
+        "scrollIntoView",
+      );
+      originalScrollIntoView = (
+        HTMLElement.prototype as unknown as Dictionary<unknown>
+      )["scrollIntoView"];
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        writable: true,
+        value: function (this: HTMLElement, options: unknown): void {
+          scrollCalls.push({ element: this, options: options });
+        },
+      });
+    });
+
+    afterEach(() => {
+      if (hadOwnScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+          configurable: true,
+          writable: true,
+          value: originalScrollIntoView,
+        });
+      } else {
+        delete (HTMLElement.prototype as unknown as Dictionary<unknown>)[
+          "scrollIntoView"
+        ];
+      }
+    });
+
+    test("ArrowUp from nothing scrolls the last row into view", async () => {
+      renderBox();
+      fireEvent.focus(searchInput());
+      await searchFor("ce", THREE_ROWS);
+
+      press("ArrowUp");
+
+      expect(scrollCalls).toHaveLength(1);
+      expect(scrollCalls[0]?.element).toBe(option("site-central"));
+      expect(scrollCalls[0]?.options).toEqual({ block: "nearest" });
+    });
+
+    test("every arrow move scrolls the row it lands on", async () => {
+      renderBox();
+      fireEvent.focus(searchInput());
+      await searchFor("ce", THREE_ROWS);
+
+      press("ArrowDown");
+      press("ArrowDown");
+
+      expect(
+        scrollCalls.map((call: ScrollCall): HTMLElement => {
+          return call.element;
+        }),
+      ).toEqual([option("site-kc"), option("site-unit-104822")]);
+    });
+
+    test("hovering a row highlights it without scrolling the list under the pointer", async () => {
+      renderBox();
+      fireEvent.focus(searchInput());
+      await searchFor("ce", THREE_ROWS);
+
+      fireEvent.mouseEnter(option("site-central"));
+
+      expect(selectedOptionIds()).toEqual([
+        `${DEFAULT_PREFIX}-option-site-central`,
+      ]);
+      expect(scrollCalls).toHaveLength(0);
+    });
+
+    test("a missing scrollIntoView (older engines, jsdom) is not an error", async () => {
+      delete (HTMLElement.prototype as unknown as Dictionary<unknown>)[
+        "scrollIntoView"
+      ];
+      renderBox();
+      fireEvent.focus(searchInput());
+      await searchFor("ce", THREE_ROWS);
+
+      expect(() => {
+        press("ArrowDown");
+      }).not.toThrow();
+      expect(selectedOptionIds()).toEqual([`${DEFAULT_PREFIX}-option-site-kc`]);
+    });
+  });
+
+  /*
+   * The Clear button only exists while there is text, so clearing unmounts
+   * it under the keyboard focus it holds. Focus goes back to the box rather
+   * than falling to the page body.
+   */
+  test("Clear hands keyboard focus back to the box", () => {
+    renderBox();
+    searchInput().focus();
+    typeText("kansas");
+    const clear: HTMLElement = screen.getByTestId(`${DEFAULT_PREFIX}-clear`);
+    clear.focus();
+    expect(document.activeElement).toBe(clear);
+
+    fireEvent.click(clear);
+
+    expect(document.activeElement).toBe(searchInput());
+    expect(searchInput().value).toBe("");
+    expect(panel()).not.toBeInTheDocument();
+  });
+});

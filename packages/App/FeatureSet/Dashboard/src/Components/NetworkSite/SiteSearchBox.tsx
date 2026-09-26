@@ -118,6 +118,21 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   const normalized: string = normalizeSiteSearchText(props.value);
   const canSearchRemotely: boolean = isRemoteSearchable(normalized);
 
+  const testId: string = props.dataTestId || DEFAULT_TEST_ID;
+  const placeholder: string = props.placeholder || DEFAULT_PLACEHOLDER;
+  const listboxId: string = `${testId}-listbox`;
+  const optionId: (result: SiteSearchResultView) => string = (
+    result: SiteSearchResultView,
+  ): string => {
+    return `${testId}-option-${result.id}`;
+  };
+
+  const containerRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  // Set by an arrow key, consumed by the effect that scrolls the row in.
+  const scrollToActive: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   /*
    * Cancel-stale: every request takes a sequence number and only the latest
    * may write state, so a slow response for "kan" can never land on top of
@@ -171,6 +186,12 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
       if (isMounted.current && seq === requestSeq.current) {
         setIsSearching(false);
         setAnsweredText(searchText);
+        /*
+         * A highlight is a position in the list it was made in. Carried
+         * over to a fresh list, the same index names a different site, and
+         * Enter would then commit a row the reader never moved onto.
+         */
+        setActiveIndex(-1);
       }
     },
     [],
@@ -179,13 +200,16 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setActiveIndex(-1);
 
+    /*
+     * The text changed, so nothing already in flight answers it any more.
+     * Bumping here rather than when the debounced request fires is what
+     * stops the previous text's response from landing during the debounce
+     * and passing itself off as the answer to this one.
+     */
+    requestSeq.current++;
+
     if (!canSearchRemotely) {
-      /*
-       * Below the threshold there is nothing to show — and the sequence
-       * number is bumped so a request already in flight for a longer string
-       * cannot arrive and repopulate the list after it was cleared.
-       */
-      requestSeq.current++;
+      // Below the threshold there is nothing to show.
       setResults([]);
       setIsTruncated(false);
       setIsSearching(false);
@@ -220,8 +244,14 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     props.onSelectSite(result.id);
   };
 
-  const onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
-    event: React.KeyboardEvent<HTMLDivElement>,
+  /*
+   * Handed to the input itself, not the wrapper: keys pressed on the Clear
+   * button would otherwise bubble up here, reopen the panel while focus is
+   * somewhere its blur-to-close can never fire, and turn Enter on "Clear"
+   * into a drill.
+   */
+  const onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void = (
+    event: React.KeyboardEvent<HTMLInputElement>,
   ): void => {
     if (event.key === "Escape") {
       /*
@@ -238,6 +268,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setIsFocused(true);
+      scrollToActive.current = true;
       setActiveIndex((previous: number): number => {
         return previous + 1 >= results.length ? 0 : previous + 1;
       });
@@ -246,6 +277,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setIsFocused(true);
+      scrollToActive.current = true;
       setActiveIndex((previous: number): number => {
         return previous <= 0 ? results.length - 1 : previous - 1;
       });
@@ -265,15 +297,6 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const testId: string = props.dataTestId || DEFAULT_TEST_ID;
-  const placeholder: string = props.placeholder || DEFAULT_PLACEHOLDER;
-  const listboxId: string = `${testId}-listbox`;
-  const optionId: (result: SiteSearchResultView) => string = (
-    result: SiteSearchResultView,
-  ): string => {
-    return `${testId}-option-${result.id}`;
-  };
-
   const isNarrowed: boolean =
     props.showLocalCount !== false &&
     Boolean(normalized) &&
@@ -285,8 +308,27 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
     ? results[activeIndex]
     : undefined;
 
+  /*
+   * The panel shows about five hits of up to fifty, and focus never leaves
+   * the input, so nothing scrolls a highlighted row into view on its own.
+   * Only a keyboard move scrolls: the mouse is already on the row it
+   * highlights, and scrolling under it would make the list jump.
+   */
+  useEffect(() => {
+    if (!scrollToActive.current || !activeResult) {
+      return;
+    }
+    scrollToActive.current = false;
+    const element: HTMLElement | null = document.getElementById(
+      optionId(activeResult),
+    );
+    if (element && typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeResult]);
+
   return (
-    <div className="relative w-full" onKeyDown={onKeyDown}>
+    <div className="relative w-full" ref={containerRef}>
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
           <Icon className="h-4 w-4 text-gray-400" icon={IconProp.Search} />
@@ -317,7 +359,17 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
             setIsFocused(true);
             props.onChange(value);
           }}
+          onKeyDown={onKeyDown}
           onFocus={() => {
+            setIsFocused(true);
+          }}
+          /*
+           * Escape closes the panel but leaves focus in the box, and a click
+           * on a box that already has focus fires no focus event. Without
+           * this, clicking the box — the obvious way back to the results —
+           * would do nothing.
+           */
+          onClick={() => {
             setIsFocused(true);
           }}
           /*
@@ -337,6 +389,12 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
             className="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-indigo-600"
             onClick={() => {
               props.onChange("");
+              /*
+               * The button only exists while there is text, so clearing
+               * unmounts it under the keyboard focus it holds. Hand focus
+               * back to the box rather than dropping it on the page body.
+               */
+              containerRef.current?.querySelector("input")?.focus();
             }}
           >
             <Icon className="h-4 w-4" icon={IconProp.Close} />
