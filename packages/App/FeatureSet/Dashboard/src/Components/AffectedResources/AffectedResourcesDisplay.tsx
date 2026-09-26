@@ -52,8 +52,10 @@ export interface ComponentProps {
    */
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   /*
-   * Caller can hide categories that don't apply (e.g. Alert lists its monitor
-   * separately via a singular relation).
+   * Caller can hide categories that don't apply. Hiding one whose items the
+   * page elsewhere calls affected leaves this card contradicting it: the
+   * alert page once hid its monitor and read "No resources affected" beside
+   * a feed that named the monitor.
    */
   hideMonitors?: boolean | undefined;
   hideHosts?: boolean | undefined;

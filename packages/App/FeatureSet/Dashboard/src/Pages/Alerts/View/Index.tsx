@@ -1146,7 +1146,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             cardProps={{
               title: "Affected Resources",
               description:
-                "Services, infrastructure and SLOs this alert affects.",
+                "Monitors, services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
             }}
             isEditable={true}
@@ -1158,7 +1158,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               {
                 /*
                  * Alert.monitor is singular and set at creation; this picker
-                 * edits only the ManyToMany affected resources.
+                 * edits only the ManyToMany affected resources. The monitor is
+                 * shown below but never loaded into this form, so saving here
+                 * cannot change it.
                  */
                 field: { hosts: true },
                 title: "",
@@ -1341,6 +1343,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fields: [
                 {
                   field: {
+                    /*
+                     * Shown, never edited, like the SLOs below. The alert's
+                     * "created" feed item names its monitor under Resources
+                     * Affected; left out here, a monitor's alert read "No
+                     * resources affected" right beside that feed item.
+                     */
+                    monitor: {
+                      name: true,
+                      _id: true,
+                    },
                     hosts: {
                       name: true,
                       _id: true,
@@ -1402,6 +1414,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   getElement: (item: Alert): ReactElement => {
                     return (
                       <AffectedResourcesDisplay
+                        monitors={item.monitor ? [item.monitor] : []}
                         hosts={item.hosts || []}
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
@@ -1416,7 +1429,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         serviceLevelObjectives={
                           item.serviceLevelObjectives || []
                         }
-                        hideMonitors={true}
                         columns={1}
                       />
                     );

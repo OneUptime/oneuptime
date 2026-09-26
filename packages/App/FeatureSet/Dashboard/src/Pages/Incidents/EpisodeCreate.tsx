@@ -29,6 +29,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
+import FetchIncidentState from "../../Components/IncidentState/FetchIncidentState";
+import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -164,7 +166,13 @@ const EpisodeCreate: FunctionComponent<
                       return <p>No incident severity selected.</p>;
                     }
 
-                    return <p>Severity will be set to selected value</p>;
+                    return (
+                      <FetchIncidentSeverities
+                        incidentSeverityIds={[
+                          new ObjectID(item.incidentSeverity.toString()),
+                        ]}
+                      />
+                    );
                   },
                 },
                 {
@@ -230,7 +238,13 @@ const EpisodeCreate: FunctionComponent<
                       return <p>Will use first available state by priority</p>;
                     }
 
-                    return <p>Initial state will be set to selected state</p>;
+                    return (
+                      <FetchIncidentState
+                        incidentStateId={
+                          new ObjectID(item.currentIncidentState.toString())
+                        }
+                      />
+                    );
                   },
                 },
                 {
