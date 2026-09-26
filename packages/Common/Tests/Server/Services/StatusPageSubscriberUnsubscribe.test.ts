@@ -32,14 +32,7 @@ import StatusPageSubscriberUnsubscribe, {
 } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import crypto from "crypto";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Unsubscribing from a status page without signing in: the token every
@@ -429,7 +422,7 @@ describe("StatusPageSubscriberService.getUnsubscribeLink", () => {
   });
 
   test("a subscriber without a token still gets a link - to the out-of-date page - and it is logged", () => {
-    const error: jest.SpiedFunction<typeof logger.error> = jest
+    const error: jest.SpyInstance = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {});
 
@@ -458,9 +451,7 @@ describe("StatusPageSubscriberService.getUnsubscribeLink", () => {
 
 describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
   test("reads each subscriber's token and creator, for the links and the team notice", async () => {
-    const findBy: jest.SpiedFunction<
-      typeof StatusPageSubscriberService.findBy
-    > = jest
+    const findBy: jest.SpyInstance = jest
       .spyOn(StatusPageSubscriberService, "findBy")
       .mockResolvedValue([subscriberRow()] as never);
 
@@ -609,8 +600,10 @@ describe("opening an unsubscribe link (GET) changes nothing", () => {
   });
 
   test("the token is compared in constant time, even when there is no subscriber", async () => {
-    const timingSafeEqual: jest.SpiedFunction<typeof crypto.timingSafeEqual> =
-      jest.spyOn(crypto, "timingSafeEqual");
+    const timingSafeEqual: jest.SpyInstance = jest.spyOn(
+      crypto,
+      "timingSafeEqual",
+    );
 
     await StatusPageSubscriberService.getUnsubscribeLinkDetails(
       linkData(WRONG_TOKEN),
@@ -668,9 +661,10 @@ describe("confirming an unsubscribe link (POST)", () => {
   });
 
   test("works whatever the status page's visibility - it never asks for read access", async () => {
-    const hasReadAccess: jest.SpiedFunction<
-      typeof StatusPageService.hasReadAccess
-    > = jest.spyOn(StatusPageService, "hasReadAccess");
+    const hasReadAccess: jest.SpyInstance = jest.spyOn(
+      StatusPageService,
+      "hasReadAccess",
+    );
 
     await StatusPageSubscriberService.unsubscribeWithLink(linkData());
 
@@ -928,9 +922,7 @@ describe("Unsubscribed At follows Is Unsubscribed on every other write", () => {
   }
 
   test("a teammate cancelling subscriptions dates only the ones that were live", async () => {
-    const findBy: jest.SpiedFunction<
-      typeof StatusPageSubscriberService.findBy
-    > = jest
+    const findBy: jest.SpyInstance = jest
       .spyOn(StatusPageSubscriberService, "findBy")
       .mockResolvedValue(matchedRows() as never);
 
@@ -971,9 +963,10 @@ describe("Unsubscribed At follows Is Unsubscribed on every other write", () => {
   });
 
   test("subscribing again clears the date", async () => {
-    const findBy: jest.SpiedFunction<
-      typeof StatusPageSubscriberService.findBy
-    > = jest.spyOn(StatusPageSubscriberService, "findBy");
+    const findBy: jest.SpyInstance = jest.spyOn(
+      StatusPageSubscriberService,
+      "findBy",
+    );
 
     const onUpdate: OnUpdate<StatusPageSubscriber> = await hooks.onBeforeUpdate(
       updateBy({ isUnsubscribed: false }),
@@ -992,9 +985,10 @@ describe("Unsubscribed At follows Is Unsubscribed on every other write", () => {
   });
 
   test("a write that does not touch Is Unsubscribed leaves the date alone", async () => {
-    const findBy: jest.SpiedFunction<
-      typeof StatusPageSubscriberService.findBy
-    > = jest.spyOn(StatusPageSubscriberService, "findBy");
+    const findBy: jest.SpyInstance = jest.spyOn(
+      StatusPageSubscriberService,
+      "findBy",
+    );
 
     const onUpdate: OnUpdate<StatusPageSubscriber> = await hooks.onBeforeUpdate(
       updateBy({ internalNote: "Site 03's list" }),

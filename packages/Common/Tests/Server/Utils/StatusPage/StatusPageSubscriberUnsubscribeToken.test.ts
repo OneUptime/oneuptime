@@ -1,7 +1,7 @@
 import StatusPageSubscriberUnsubscribeToken from "../../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeToken";
 import StatusPageSubscriberUnsubscribe from "../../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import crypto from "crypto";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The secret in a subscriber's unsubscribe link. Holding it is the whole
@@ -19,8 +19,7 @@ afterEach(() => {
 
 describe("StatusPageSubscriberUnsubscribeToken.generate", () => {
   test("mints 32 random bytes from the CSPRNG, as 64 hex characters", () => {
-    const randomBytes: jest.SpiedFunction<typeof crypto.randomBytes> =
-      jest.spyOn(crypto, "randomBytes");
+    const randomBytes: jest.SpyInstance = jest.spyOn(crypto, "randomBytes");
 
     const token: string = StatusPageSubscriberUnsubscribeToken.generate();
 
@@ -104,8 +103,10 @@ describe("StatusPageSubscriberUnsubscribeToken.matches", () => {
   );
 
   test("compares in constant time, on full-length buffers, whatever it is given", () => {
-    const timingSafeEqual: jest.SpiedFunction<typeof crypto.timingSafeEqual> =
-      jest.spyOn(crypto, "timingSafeEqual");
+    const timingSafeEqual: jest.SpyInstance = jest.spyOn(
+      crypto,
+      "timingSafeEqual",
+    );
 
     const cases: Array<{
       stored: string | null;
