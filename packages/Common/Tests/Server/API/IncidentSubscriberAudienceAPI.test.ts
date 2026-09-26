@@ -296,7 +296,7 @@ async function post(body: unknown): Promise<RouteCall> {
   } as unknown as ExpressRequest;
 
   const res: ExpressResponse = {} as ExpressResponse;
-  const next: jest.Mock = jest.fn();
+  const next: MockFunction = getJestMockFunction();
 
   await mockRouter
     .match("post", ROUTE)

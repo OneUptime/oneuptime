@@ -82,8 +82,10 @@ export interface IncidentSubscriberAudienceResult {
   statusPages: Array<IncidentSubscriberAudienceStatusPage>;
   /*
    * How many more status pages will be notified that the caller cannot see.
-   * Status pages are label-scoped, and a page the caller may not read is
-   * never named, nor are its subscribers counted.
+   * Status pages are label-scoped, and a page the caller may not read is not
+   * named in this answer, nor are its subscribers counted. (The names of the
+   * pages an incident is limited to are part of the incident itself, and
+   * readable by anyone who can read it.)
    */
   hiddenStatusPageCount: number;
   /*

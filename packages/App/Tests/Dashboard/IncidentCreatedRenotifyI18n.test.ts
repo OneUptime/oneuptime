@@ -52,6 +52,7 @@ const OTHER_LOCALES: Array<string> = [
 const STRINGS: Array<string> = [
   IncidentCreatedRenotify.formFieldTitle,
   IncidentCreatedRenotify.formFieldDescription,
+  IncidentCreatedRenotify.untoldStatusPagesFormFieldDescription,
   IncidentCreatedRenotify.hiddenFromStatusPagesLabel,
 ];
 
@@ -76,8 +77,9 @@ describe("IncidentCreatedRenotify strings in the dashboard", () => {
     );
 
     expect(source).toContain("title: IncidentCreatedRenotify.formFieldTitle,");
+    // The page's description for the case, else the skipped one.
     expect(source).toContain(
-      "description: IncidentCreatedRenotify.formFieldDescription,",
+      "description: data.description || IncidentCreatedRenotify.formFieldDescription,",
     );
   });
 
@@ -92,6 +94,11 @@ describe("IncidentCreatedRenotify strings in the dashboard", () => {
     expect(source).toContain("getIncidentCreatedRenotifyFormField(");
     expect(source).toContain("IncidentCreatedRenotify.canRenotifyOnPublish(");
     expect(source).toContain("IncidentCreatedRenotify.isTickedByDefault(");
+    // The skipped and the untold-pages cases each explain themselves.
+    expect(source).toContain(
+      "IncidentCreatedRenotify.getFormFieldDescription(",
+    );
+    expect(source).toContain("description: renotifyDescription,");
   });
 
   test("the overview badge takes its label from the shared constant", () => {

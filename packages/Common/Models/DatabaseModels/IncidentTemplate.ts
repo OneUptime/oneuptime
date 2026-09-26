@@ -961,6 +961,69 @@ export default class IncidentTemplate extends BaseModel {
   })
   public statusPages?: Array<StatusPage> = undefined;
 
+  /*
+   * Whether this template limits the incidents declared from it to status
+   * pages - kept apart from statusPages for the same reason as
+   * Incident.isScopedToStatusPages. Deleting a status page cascades its row
+   * in IncidentTemplateStatusPage away, and a template whose every page was
+   * deleted would otherwise look unscoped, so its incidents would reach
+   * every status page that lists their monitors - exactly the audience the
+   * template was set up to avoid. With the flag, IncidentService declares
+   * such an incident scoped to nothing (hidden from every status page), and
+   * the dashboard warns about the template.
+   *
+   * IncidentTemplateService derives it from writes to statusPages and ignores
+   * any value a client sends; it is never recomputed when join rows
+   * disappear. Computed, so a client cannot set it on create; its update
+   * access control matches statusPages because the service writes it into
+   * the caller's own update.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Scoped To Status Pages",
+    description:
+      "Whether incidents declared from this template are limited to the status pages in Status Pages. Derived from Status Pages; any value sent for it is ignored.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isScopedToStatusPages?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

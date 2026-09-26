@@ -1007,7 +1007,7 @@ async function invokeRoute(data: {
     setHeader: jest.fn(),
     status: jest.fn().mockReturnThis(),
   } as unknown as ExpressResponse;
-  const next: jest.Mock = jest.fn();
+  const next: jest.Mock = jest.fn() as unknown as jest.Mock;
   const responseMock: jest.Mock =
     Response.sendJsonObjectResponse as unknown as jest.Mock;
   const previousResponseCount: number = responseMock.mock.calls.length;
@@ -1808,7 +1808,7 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
     }
 
     it.each(
-      labelled(
+      labelled<[string, Array<string>]>(
         [
           [
             SITE_A,

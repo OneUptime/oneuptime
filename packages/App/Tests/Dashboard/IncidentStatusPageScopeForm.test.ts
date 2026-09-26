@@ -1,5 +1,5 @@
 import {
-  canNotifyAddedStatusPages,
+  AddedPagesNotificationIncident,
   getAddedStatusPageIds,
   getIdsFromFormValue,
   getNamedStatusPages,
@@ -8,8 +8,10 @@ import {
   isScopedToDeletedStatusPages,
   joinStatusPageNames,
   NamedStatusPage,
+  wouldQueueAddedPagesNotification,
 } from "../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeForm";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
@@ -213,54 +215,163 @@ describe("isScopedToDeletedStatusPages", () => {
   });
 });
 
-describe("canNotifyAddedStatusPages", () => {
-  test("set to notify, visible and not private", () => {
+/*
+ * The added-pages checkbox is offered exactly when ticking it would send
+ * something: the edit adds a page the incident has no record of telling, and
+ * the server would queue the notification for it.
+ */
+describe("wouldQueueAddedPagesNotification", () => {
+  // Scoped to Site 03, which was told; visible, set to notify.
+  function toldIncident(
+    overrides: Partial<AddedPagesNotificationIncident> = {},
+  ): AddedPagesNotificationIncident {
+    return {
+      statusPages: [page(SITE_03, "Site 03")],
+      statusPagesNotifiedOnCreation: [SITE_03],
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      isVisibleOnStatusPage: true,
+      isPrivate: false,
+      ...overrides,
+    };
+  }
+
+  test("adding a page that was not told: offered", () => {
     expect(
-      canNotifyAddedStatusPages({
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-        isVisibleOnStatusPage: true,
-        isPrivate: false,
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident(),
+        formValue: [SITE_03, SITE_07],
+      }),
+    ).toBe(true);
+  });
+
+  test("no page added: not offered", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident(),
+        formValue: [SITE_03],
+      }),
+    ).toBe(false);
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident(),
+        formValue: [],
+      }),
+    ).toBe(false);
+  });
+
+  test("narrowing an unscoped incident to pages it told: not offered, it would send nothing", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident({
+          statusPages: [],
+          statusPagesNotifiedOnCreation: [SITE_03, SITE_05, SITE_07],
+        }),
+        formValue: [SITE_03, SITE_07],
+      }),
+    ).toBe(false);
+  });
+
+  test("adding back a page that was told before: not offered", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident({
+          statusPagesNotifiedOnCreation: [SITE_03, SITE_07],
+        }),
+        formValue: [SITE_03, SITE_07],
+      }),
+    ).toBe(false);
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Failed,
+  ])(
+    "an incident told (%s) before the record existed: not offered",
+    (status: StatusPageSubscriberNotificationStatus) => {
+      expect(
+        wouldQueueAddedPagesNotification({
+          incident: toldIncident({
+            statusPages: [],
+            statusPagesNotifiedOnCreation: null,
+            subscriberNotificationStatusOnIncidentCreated: status,
+          }),
+          formValue: [SITE_03, SITE_07],
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("an incident that was never announced (Skipped, no record): offered for the pages added", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident({
+          statusPagesNotifiedOnCreation: null,
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        }),
+        formValue: [SITE_03, SITE_07],
       }),
     ).toBe(true);
   });
 
   test.each([
-    [
-      "declared with notifications off",
-      {
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
-        isVisibleOnStatusPage: true,
-      },
-    ],
-    [
-      "hidden from status pages",
-      {
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-        isVisibleOnStatusPage: false,
-      },
-    ],
-    [
-      "private",
-      {
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-        isVisibleOnStatusPage: true,
-        isPrivate: true,
-      },
-    ],
-    ["not loaded", {}],
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.InProgress,
   ])(
-    "not when %s",
-    (
-      _name: string,
-      incident: {
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated?: boolean;
-        isVisibleOnStatusPage?: boolean;
-        isPrivate?: boolean;
-      },
-    ) => {
-      expect(canNotifyAddedStatusPages(incident)).toBe(false);
+    "while the notification is %s: not offered, it reaches the added pages anyway",
+    (status: StatusPageSubscriberNotificationStatus) => {
+      expect(
+        wouldQueueAddedPagesNotification({
+          incident: toldIncident({
+            subscriberNotificationStatusOnIncidentCreated: status,
+          }),
+          formValue: [SITE_03, SITE_07],
+        }),
+      ).toBe(false);
     },
   );
+
+  test.each([
+    [
+      "declared with notifications off",
+      { shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false },
+    ],
+    ["hidden from status pages", { isVisibleOnStatusPage: false }],
+    ["private", { isPrivate: true }],
+  ])(
+    "not when %s",
+    (_name: string, overrides: Partial<AddedPagesNotificationIncident>) => {
+      expect(
+        wouldQueueAddedPagesNotification({
+          incident: toldIncident(overrides),
+          formValue: [SITE_03, SITE_07],
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("not for an incident that was not loaded", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: {},
+        formValue: [SITE_03],
+      }),
+    ).toBe(false);
+  });
+
+  test("reads the form value in any shape the picker holds it", () => {
+    expect(
+      wouldQueueAddedPagesNotification({
+        incident: toldIncident(),
+        formValue: [
+          { value: SITE_03, label: "Site 03" },
+          { value: SITE_07.toUpperCase(), label: "Site 07" },
+        ],
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("joinStatusPageNames", () => {

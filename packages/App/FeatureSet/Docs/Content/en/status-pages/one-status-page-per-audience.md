@@ -63,7 +63,7 @@ The form warns you:
 - when you also set **Change Monitor Status to**. See [Monitor status is shared](#monitor-status-is-shared);
 - when you also tick **Private Incident** on the **More** step. Private incidents are hidden from all status pages, including the ones you picked.
 
-**Create from Template** fills the field from the template. A template's pages are set on its **Resources Affected** step when you create it, and on its **Status Page Scope** card afterwards (**Incidents → Settings → Incident Templates**). As with the other template fields, a list you set yourself wins.
+**Create from Template** fills the field from the template. A template's pages are set on its **Resources Affected** step when you create it, and on its **Status Page Scope** card afterwards (**Incidents → Settings → Incident Templates**). As with the other template fields, a list you set yourself wins. A template's pages are filled in even for a responder who cannot read status pages: whoever set up the template chose them for everyone who declares from it.
 
 ### Who will be notified
 
@@ -88,7 +88,7 @@ On **Incidents → All Incidents**, the **Status Page** filter finds the inciden
 
 ### Through the API
 
-`statusPages` is a list of status page ids, on `POST /api/incident` and on updates to an incident, and on incident templates. Every page must belong to the incident's project; a page from another project is refused. Two more columns follow from it, and neither is yours to set:
+`statusPages` is a list of status page ids, on `POST /api/incident` and on updates to an incident, and on incident templates. Every page must belong to the incident's project; a page from another project is refused. Every page you add must also be one you can read, as in the picker, or the request is refused. Pages the incident or template already holds are kept whether or not you can read them, and a page of an incident template you can read may be picked when you declare an incident. Two more columns follow from it, and neither is yours to set:
 
 - `isScopedToStatusPages` is worked out from `statusPages`. Anything you send for it is ignored.
 - `statusPagesNotifiedOnCreation` is the record of the pages that were told the incident was created. See [Adding status pages](#adding-status-pages).
@@ -122,16 +122,19 @@ Subscribers of a page hear that an incident was created once. So when you add pa
 - Ticked, the incident's 'created' notification is queued again, and it goes only to the pages that were not told yet. The incident keeps a record of the pages that were told, so the others do not hear it twice.
 - Unticked, the added pages start showing the incident, and hear about everything from now on, but are not told it was created.
 
-The checkbox only appears when the incident was declared with **Notify Status Page Subscribers** on, is visible on status pages and is not private. Two cases are handled for you:
+The checkbox only appears when ticking it would send something: at least one page you add was not told yet, and the incident was declared with **Notify Status Page Subscribers** on, is visible on status pages and is not private. Some cases are handled for you:
 
-- **The notification is still queued.** A queued send reads the pages when it goes out, so it already reaches the pages you added.
-- **The notification is being sent right now.** The save is refused, rather than racing that send. Try again in a minute, or save without the checkbox.
+- **The notification is still queued, or being sent right now.** A queued send reads the pages when it goes out, and a send that is running reads them again when it finishes and then tells the pages added meanwhile. So there is no checkbox: the pages you add are told either way.
+- **Every page you add was told already**, for example a page you removed and add back, or an incident that reached every site and is now narrowed to two of them. Nobody is told again, so there is no checkbox.
+- **The incident was never announced.** When it was published without **Notify subscribers that this incident was created**, or declared without monitors, nobody was told. Ticking the checkbox tells only the pages you add, not the pages it was already limited to.
+- **The incident was declared before this feature was released.** Its 'created' notification went out to every page that listed its monitors, and there is no record of those pages. Adding pages does not send it again, so the checkbox is not offered.
+- **The incident is hidden.** Nothing is sent while it is hidden. When you turn **Visible on Status Page** back on, the **Incident Settings** card offers **Notify subscribers that this incident was created** for the pages of its scope that were never told, such as the ones added while it was hidden.
 
 A page added later hears about what happens next: later public notes, state changes and the postmortem. It is not sent the notes and state changes that went out before it was added. If it needs to catch up, post a public note.
 
 The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped.
 
-Through the API, send `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` with the update that changes `statusPages`.
+Through the API, send `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` with the update that changes `statusPages`. Setting `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself still resends the 'created' notification to every page the incident reaches, as it always did: the record is emptied with it. After a failure it resumes where the failed send stopped instead.
 
 ### Removing status pages
 
@@ -142,6 +145,8 @@ Clearing the whole list is different from removing pages: the incident is then n
 ### When a picked status page is deleted
 
 Deleting a status page removes it from every incident that was limited to it. An incident whose picked pages have all been deleted stays limited, to nothing: it is hidden from every status page rather than shown on every page that lists its monitors. The **Status Page Scope** card says so. Pick other pages, or clear the list, to show it again.
+
+Incident templates work the same way. A template whose pages have all been deleted stays limited: an incident declared from it through the API is hidden from every status page, the template's **Status Page Scope** card warns you, and **Declare Incident** starts with no page picked and asks you to pick the pages the incident is for. Pick other pages on the template, or save its list empty to stop limiting the incidents declared from it.
 
 ## One email per person
 
@@ -176,9 +181,10 @@ See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for t
 
 ## Permissions
 
-- **The picker needs status page read access.** Status pages are read under the status page roles, not the incident roles, and a status page can be restricted by label. Give responders **Status Page Viewer**, limited to labels if you like. The picker says so when it has nothing to list.
+- **Picking a status page needs read access to it.** Status pages are read under the status page roles, not the incident roles, and a status page can be restricted by label. Give responders **Status Page Viewer**, limited to labels if you like. The picker says so when it has nothing to list, and the API refuses a page the caller cannot read, on incidents and on incident templates alike.
 - **Pages the editor cannot see are kept.** An editor who can read only some of an incident's pages sees only those in the picker, and saving keeps the pages they cannot see.
-- **The audience summary** is open to the roles that can declare or edit an incident or post a public note on one. It names only the pages the person can read, and it never shows addresses.
+- **The pages an incident is limited to are part of the incident.** Like its monitors, anyone who can read the incident sees their names, on the **Status Page Scope** card, the overview and in the incident feed, whether or not they can read those status pages.
+- **The audience summary** is open to the roles that can declare or edit an incident or post a public note on one. It names only the pages the person can read. Other pages the incident will notify are counted as "more status pages you do not have access to", and it never shows addresses.
 
 ## Where to read next
 

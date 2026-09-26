@@ -46,10 +46,17 @@ import IncidentStatusPageScope, {
  * - monitors and status pages named for an incident being declared must be
  *   the project's; another project's id is refused, not looked up;
  * - a status page the caller cannot read (status pages are label-scoped, and
- *   incident roles do not read them at all) is never named and its
- *   subscribers are never counted - the pages that will be notified that the
+ *   incident roles do not read them at all) is not named here and its
+ *   subscribers are not counted - the pages that will be notified that the
  *   caller cannot see come back as one number;
  * - subscribers are counted, never read out. No address leaves the server.
+ *
+ * What that protects is which pages list an incident's monitors. The pages
+ * an incident is limited to are part of the incident, like its monitors and
+ * like a scheduled maintenance event's status pages: anyone who can read the
+ * incident sees their names (the Status Page Scope card, and the incident
+ * feed, which names the pages added to and removed from the scope), whether
+ * or not they can read those status pages themselves.
  */
 
 export type IncidentSubscriberAudienceRequest =

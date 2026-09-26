@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import IncidentScopeAddedPagesNotification from "./IncidentScopeAddedPagesNotification";
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
 
 /*
@@ -19,6 +20,15 @@ import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotifi
  * notification status, and the Incident:SendNotificationToSubscribers job
  * sends it.
  *
+ * The same goes for status pages added to an incident's scope while it was
+ * hidden. Adding a page to a visible incident can tell that page it was
+ * created (IncidentScopeAddedPagesNotification), but a hidden incident is not
+ * sent anywhere, so a page added then was never told - and once it is in the
+ * scope it is no longer "added" by any later edit. So publishing also offers
+ * the notification when the incident's scope holds pages its record of told
+ * pages (Incident.statusPagesNotifiedOnCreation) does not list. The job then
+ * sends it to those pages only.
+ *
  * API callers keep the route they already had: set
  * subscriberNotificationStatusOnIncidentCreated to Pending.
  *
@@ -38,6 +48,13 @@ export interface IncidentCreatedRenotifyState {
     | null;
   isVisibleOnStatusPage?: boolean | undefined | null;
   isPrivate?: boolean | undefined | null;
+  /*
+   * The status pages the incident is limited to, and the job's record of the
+   * pages it told (Incident.statusPagesNotifiedOnCreation). Only needed to
+   * offer the notification to pages added while the incident was hidden.
+   */
+  statusPages?: unknown;
+  statusPagesNotifiedOnCreation?: unknown;
 }
 
 export default class IncidentCreatedRenotify {
@@ -65,6 +82,10 @@ export default class IncidentCreatedRenotify {
 
   public static readonly formFieldDescription: string =
     "Subscribers were not told about this incident because it was hidden from status pages. Tick this to send them the incident-created notification now. It starts unticked for resolved incidents, so publishing an old incident for the record does not announce it as new.";
+
+  // The same checkbox, for an incident whose earlier subscribers were told.
+  public static readonly untoldStatusPagesFormFieldDescription: string =
+    "Some status pages this incident is limited to were never sent the notification that it was created, for example pages added while it was hidden. Tick this to send it to them now. Pages that were already told are not sent it again.";
 
   /*
    * Only a real yes counts. The flag arrives over JSON, so accept the string
@@ -94,26 +115,85 @@ export default class IncidentCreatedRenotify {
    * again, given what is stored for it right now:
    *
    * - it is hidden today, so this really is the publish;
-   * - its 'created' notification was Skipped. Pending and InProgress are on
-   *   their way already (and a Pending send reads the incident when it goes
-   *   out, so it will see it visible); Success means subscribers were told;
-   *   Failed has its own Retry;
    * - notifying on creation is on. An incident created with notifications
    *   off was deliberately kept quiet, and publishing does not change that;
    * - it is not private. Private incidents are hidden from every status page,
-   *   so there is nothing to publish.
+   *   so there is nothing to publish;
+   * - and there is someone left to tell. Either its 'created' notification
+   *   was Skipped, so nobody was told; or it went out (Success, or Failed
+   *   part-way) and the incident is limited to status pages its record does
+   *   not list - typically pages added while it was hidden (see
+   *   hasUntoldStatusPages). Pending and InProgress are on their way already
+   *   (and a Pending send reads the incident when it goes out, so it will see
+   *   it visible).
    */
   public static canRenotifyOnPublish(
     incident: IncidentCreatedRenotifyState,
   ): boolean {
+    if (
+      incident.isVisibleOnStatusPage === true ||
+      incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
+        true ||
+      incident.isPrivate === true
+    ) {
+      return false;
+    }
+
     return (
-      incident.isVisibleOnStatusPage !== true &&
       incident.subscriberNotificationStatusOnIncidentCreated ===
-        StatusPageSubscriberNotificationStatus.Skipped &&
-      incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true &&
-      incident.isPrivate !== true
+        StatusPageSubscriberNotificationStatus.Skipped ||
+      this.hasUntoldStatusPages(incident)
     );
+  }
+
+  /*
+   * Whether a notification that already went out left status pages of the
+   * incident's scope untold: its record exists and misses one of them. Pages
+   * added while the incident was hidden land here, as do pages whose send
+   * failed. A page in the scope that lists none of the incident's monitors,
+   * or does not show incidents, is never told either; offering the checkbox
+   * for it sends nothing, and the incident feed says so.
+   *
+   * An incident without a record is not offered it: its notification went out
+   * before the record existed, to every page that listed its monitors (see
+   * IncidentScopeAddedPagesNotification).
+   */
+  public static hasUntoldStatusPages(
+    incident: IncidentCreatedRenotifyState,
+  ): boolean {
+    if (
+      incident.subscriberNotificationStatusOnIncidentCreated !==
+        StatusPageSubscriberNotificationStatus.Success &&
+      incident.subscriberNotificationStatusOnIncidentCreated !==
+        StatusPageSubscriberNotificationStatus.Failed
+    ) {
+      return false;
+    }
+
+    const recorded: Array<string> | null =
+      IncidentScopeAddedPagesNotification.getRecordedStatusPageIds(
+        incident.statusPagesNotifiedOnCreation,
+      );
+
+    if (recorded === null) {
+      return false;
+    }
+
+    return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+      incident.statusPages,
+    ).some((id: string): boolean => {
+      return !recorded.includes(id);
+    });
+  }
+
+  // The checkbox's description, for the case canRenotifyOnPublish found.
+  public static getFormFieldDescription(
+    incident: IncidentCreatedRenotifyState,
+  ): string {
+    return incident.subscriberNotificationStatusOnIncidentCreated ===
+      StatusPageSubscriberNotificationStatus.Skipped
+      ? this.formFieldDescription
+      : this.untoldStatusPagesFormFieldDescription;
   }
 
   /*

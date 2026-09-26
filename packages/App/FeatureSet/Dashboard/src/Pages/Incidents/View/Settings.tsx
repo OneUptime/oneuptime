@@ -14,7 +14,9 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
-import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedRenotify, {
+  IncidentCreatedRenotifyState,
+} from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import NextReminderCountdown, {
   ReminderRuleScope,
 } from "../../../Components/Reminders/NextReminderCountdown";
@@ -29,7 +31,6 @@ import {
   TranslatedScopeNotice,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
 import {
-  canNotifyAddedStatusPages,
   getNamedStatusPages,
   getNotifiedStatusPagesBeingRemoved,
   isClearingScope,
@@ -54,17 +55,29 @@ const IncidentDelete: FunctionComponent<
    */
   const [loadedIncident, setLoadedIncident] = useState<Incident | null>(null);
 
-  const canRenotifyOnPublish: boolean = Boolean(
-    loadedIncident &&
-      IncidentCreatedRenotify.canRenotifyOnPublish({
+  const renotifyState: IncidentCreatedRenotifyState | null = loadedIncident
+    ? {
         isVisibleOnStatusPage: loadedIncident.isVisibleOnStatusPage,
         isPrivate: loadedIncident.isPrivate,
         subscriberNotificationStatusOnIncidentCreated:
           loadedIncident.subscriberNotificationStatusOnIncidentCreated,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
           loadedIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
-      }),
+        statusPages: loadedIncident.statusPages,
+        statusPagesNotifiedOnCreation:
+          loadedIncident.statusPagesNotifiedOnCreation,
+      }
+    : null;
+
+  const canRenotifyOnPublish: boolean = Boolean(
+    renotifyState &&
+      IncidentCreatedRenotify.canRenotifyOnPublish(renotifyState),
   );
+
+  // Skipped, or limited to status pages that were never told.
+  const renotifyDescription: string | undefined = renotifyState
+    ? IncidentCreatedRenotify.getFormFieldDescription(renotifyState)
+    : undefined;
 
   const isResolved: boolean =
     loadedIncident?.currentIncidentState?.isResolvedState === true;
@@ -87,6 +100,7 @@ const IncidentDelete: FunctionComponent<
           tickedByDefault: IncidentCreatedRenotify.isTickedByDefault({
             isResolved: isResolved,
           }),
+          description: renotifyDescription,
         }),
       );
     }
@@ -103,7 +117,7 @@ const IncidentDelete: FunctionComponent<
     });
 
     return fields;
-  }, [canRenotifyOnPublish, isResolved]);
+  }, [canRenotifyOnPublish, isResolved, renotifyDescription]);
 
   /*
    * The incident as the 'Status Page Scope' card last loaded it: the pages it
@@ -127,16 +141,6 @@ const IncidentDelete: FunctionComponent<
 
   const loadedStatusPages: Array<NamedStatusPage> = getNamedStatusPages(
     scopeIncident?.statusPages,
-  );
-
-  const canNotifyAddedPages: boolean = Boolean(
-    scopeIncident &&
-      canNotifyAddedStatusPages({
-        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-          scopeIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
-        isVisibleOnStatusPage: scopeIncident.isVisibleOnStatusPage,
-        isPrivate: scopeIncident.isPrivate,
-      }),
   );
 
   const scopeFormFields: Fields<Incident> = useMemo(() => {
@@ -207,16 +211,21 @@ const IncidentDelete: FunctionComponent<
       },
     ];
 
-    if (canNotifyAddedPages) {
+    /*
+     * Shown only while ticking it would send something (see
+     * wouldQueueAddedPagesNotification): the form adds a page that was not
+     * told yet, and the incident's 'created' notification can go out to it.
+     */
+    if (scopeIncident) {
       fields.push(
         getIncidentScopeAddedPagesFormField({
-          loadedStatusPages: scopeIncident?.statusPages,
+          loadedIncident: scopeIncident,
         }),
       );
     }
 
     return fields;
-  }, [scopeIncident, canNotifyAddedPages, statusPagePickerAccess]);
+  }, [scopeIncident, statusPagePickerAccess]);
 
   return (
     <Fragment>
@@ -263,6 +272,11 @@ const IncidentDelete: FunctionComponent<
             currentIncidentState: {
               isResolvedState: true,
             },
+            // Pages added while it was hidden can be told when it is published.
+            statusPages: {
+              _id: true,
+            },
+            statusPagesNotifiedOnCreation: true,
           },
           onItemLoaded: (item: Incident) => {
             setLoadedIncident(item);
@@ -313,6 +327,7 @@ const IncidentDelete: FunctionComponent<
           selectMoreFields: {
             isScopedToStatusPages: true,
             statusPagesNotifiedOnCreation: true,
+            subscriberNotificationStatusOnIncidentCreated: true,
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
             isVisibleOnStatusPage: true,
             isPrivate: true,

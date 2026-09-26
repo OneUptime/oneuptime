@@ -6,6 +6,7 @@ import AuditLogService from "../../../Server/Services/AuditLogService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -312,15 +313,21 @@ describePostgres(
       incidentId: ObjectID,
       statusPageIds: Array<ObjectID>,
     ): Promise<void> {
+      /*
+       * Built apart from the call, so the compiler does not expand the deep
+       * partial-entity type of the literal.
+       */
+      const data: UpdateBy<Incident>["data"] = {
+        statusPages: statusPageIds.map((id: ObjectID) => {
+          const statusPage: StatusPage = new StatusPage();
+          statusPage.id = id;
+          return statusPage;
+        }),
+      } as unknown as UpdateBy<Incident>["data"];
+
       await IncidentService.updateOneById({
         id: incidentId,
-        data: {
-          statusPages: statusPageIds.map((id: ObjectID) => {
-            const statusPage: StatusPage = new StatusPage();
-            statusPage.id = id;
-            return statusPage;
-          }),
-        },
+        data: data,
         props: memberProps(),
       });
     }
@@ -562,6 +569,43 @@ describePostgres(
             return row.statusPageId;
           }),
         ).toEqual([site07.toString()]);
+      });
+
+      test("a template whose every page was deleted stays scoped, so its incidents are hidden rather than broadcast", async () => {
+        const templateId: ObjectID = await seedTemplate();
+        const site03: ObjectID = await seedStatusPage("Site 03");
+
+        await database.query(
+          `INSERT INTO "${schema}"."IncidentTemplateStatusPage" ("incidentTemplateId", "statusPageId") VALUES ($1, $2)`,
+          [templateId.toString(), site03.toString()],
+        );
+        // What IncidentTemplateService writes with the list.
+        await database.query(
+          `UPDATE "${schema}"."IncidentTemplate" SET "isScopedToStatusPages" = true WHERE "_id" = $1`,
+          [templateId.toString()],
+        );
+
+        await deleteStatusPage(site03);
+
+        const rows: Array<{ isScopedToStatusPages: boolean; pages: string }> =
+          await database.query(
+            `SELECT t."isScopedToStatusPages", (SELECT COUNT(*) FROM "${schema}"."IncidentTemplateStatusPage" j WHERE j."incidentTemplateId" = t."_id")::text AS pages FROM "${schema}"."IncidentTemplate" t WHERE t."_id" = $1`,
+            [templateId.toString()],
+          );
+
+        expect(rows).toEqual([{ isScopedToStatusPages: true, pages: "0" }]);
+      });
+
+      test("a new template starts unscoped", async () => {
+        const templateId: ObjectID = await seedTemplate();
+
+        const rows: Array<{ isScopedToStatusPages: boolean }> =
+          await database.query(
+            `SELECT "isScopedToStatusPages" FROM "${schema}"."IncidentTemplate" WHERE "_id" = $1`,
+            [templateId.toString()],
+          );
+
+        expect(rows).toEqual([{ isScopedToStatusPages: false }]);
       });
     });
   },

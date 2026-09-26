@@ -514,4 +514,88 @@ describe("declaring from a template", () => {
 
     expect(lastForm().initialValues["statusPages"]).toBeUndefined();
   });
+
+  test("reads whether the template is limited to status pages at all", async () => {
+    queryString = { incidentTemplateId: TEMPLATE_ID };
+
+    const template: IncidentTemplate = new IncidentTemplate();
+    template._id = TEMPLATE_ID;
+    getItemMock.mockResolvedValue(template);
+
+    await renderCreate();
+
+    const templateRequest: { select: JSONObject } = getItemMock.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType === IncidentTemplate
+        );
+      },
+    )![0] as { select: JSONObject };
+
+    expect(templateRequest.select["isScopedToStatusPages"]).toBe(true);
+  });
+
+  describe("a template whose status pages were all deleted", () => {
+    function scopedTemplateWithoutPages(): IncidentTemplate {
+      const template: IncidentTemplate = new IncidentTemplate();
+      template._id = TEMPLATE_ID;
+      template.title = "Region East outage";
+      template.isScopedToStatusPages = true;
+      template.statusPages = [];
+      return template;
+    }
+
+    test("the picker asks for the pages this incident is for", async () => {
+      queryString = { incidentTemplateId: TEMPLATE_ID };
+      getItemMock.mockResolvedValue(scopedTemplateWithoutPages());
+
+      await renderCreate();
+      await renderElement(
+        fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
+      );
+
+      expect(
+        screen.getByTestId("incident-create-template-scoped-to-deleted-pages"),
+      ).toHaveTextContent(
+        IncidentStatusPageScopeCopy.declaringFromTemplateScopedToDeletedPagesWarning,
+      );
+    });
+
+    test("the warning goes once pages are picked", async () => {
+      queryString = { incidentTemplateId: TEMPLATE_ID };
+      getItemMock.mockResolvedValue(scopedTemplateWithoutPages());
+
+      await renderCreate();
+      await renderElement(
+        fieldFor("statusPages").getFooterElement!({ statusPages: [SITE_03] }),
+      );
+
+      expect(
+        screen.queryByTestId(
+          "incident-create-template-scoped-to-deleted-pages",
+        ),
+      ).toBeNull();
+    });
+
+    test("no warning for a template that was never limited", async () => {
+      queryString = { incidentTemplateId: TEMPLATE_ID };
+
+      const template: IncidentTemplate = new IncidentTemplate();
+      template._id = TEMPLATE_ID;
+      template.isScopedToStatusPages = false;
+      template.statusPages = [];
+      getItemMock.mockResolvedValue(template);
+
+      await renderCreate();
+      await renderElement(
+        fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
+      );
+
+      expect(
+        screen.queryByTestId(
+          "incident-create-template-scoped-to-deleted-pages",
+        ),
+      ).toBeNull();
+    });
+  });
 });

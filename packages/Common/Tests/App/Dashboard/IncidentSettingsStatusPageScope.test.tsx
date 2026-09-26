@@ -181,6 +181,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience from "../../../Types/StatusPage/IncidentSubscriberAudience";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelForm, {
   FormType,
   ModelField,
@@ -213,7 +214,9 @@ function page(id: string, name: string): StatusPage {
 interface ScopeShape {
   statusPages?: Array<StatusPage> | undefined;
   isScoped?: boolean | undefined;
-  notified?: Array<string> | undefined;
+  // null: no record (told before the record existed, or never sent).
+  notified?: Array<string> | null | undefined;
+  status?: StatusPageSubscriberNotificationStatus | undefined;
   notifyOnCreate?: boolean | undefined;
   isVisible?: boolean | undefined;
   isPrivate?: boolean | undefined;
@@ -228,7 +231,11 @@ function buildIncident(shape: ScopeShape = {}): Incident {
     page(SITE_07, "Site 07"),
   ];
   incident.isScopedToStatusPages = shape.isScoped ?? true;
-  incident.statusPagesNotifiedOnCreation = shape.notified ?? [SITE_03];
+  incident.statusPagesNotifiedOnCreation = (
+    shape.notified === undefined ? [SITE_03] : shape.notified
+  ) as Array<string>;
+  incident.subscriberNotificationStatusOnIncidentCreated =
+    shape.status ?? StatusPageSubscriberNotificationStatus.Success;
   incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
     shape.notifyOnCreate ?? true;
   incident.isVisibleOnStatusPage = shape.isVisible ?? true;
@@ -378,6 +385,7 @@ describe("incident Settings tab: the 'Status Page Scope' card", () => {
     expect(scopeCard().modelDetailProps.selectMoreFields).toEqual({
       isScopedToStatusPages: true,
       statusPagesNotifiedOnCreation: true,
+      subscriberNotificationStatusOnIncidentCreated: true,
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       isVisibleOnStatusPage: true,
       isPrivate: true,
@@ -432,19 +440,76 @@ describe("incident Settings tab: the 'Status Page Scope' card", () => {
     );
   });
 
+  /*
+   * The box is offered exactly when ticking it would send something (the
+   * server's own rule), so for these it never shows, even for an edit that
+   * adds a page that was never told.
+   */
   test.each([
     ["notifying subscribers on creation is off", { notifyOnCreate: false }],
     ["the incident is hidden from status pages", { isVisible: false }],
     ["the incident is private", { isPrivate: true }],
+    [
+      "the incident was told before the record of told pages existed",
+      { notified: null },
+    ],
+    [
+      "the incident was told before the record existed, even after a failure",
+      { notified: null, status: StatusPageSubscriberNotificationStatus.Failed },
+    ],
+    [
+      "the notification is queued: it reaches the added page anyway",
+      { status: StatusPageSubscriberNotificationStatus.Pending },
+    ],
+    [
+      "the notification is being sent: it reaches the added page anyway",
+      { status: StatusPageSubscriberNotificationStatus.InProgress },
+    ],
   ] as Array<[string, ScopeShape]>)(
     "does not offer it when %s",
     async (_label: string, shape: ScopeShape) => {
       await renderSettings();
       await loadIncident(shape);
 
-      expect(fieldKeys(scopeCard().formFields)).toEqual(["statusPages"]);
+      const checkbox: Fields<Incident>[number] | undefined =
+        scopeCard().formFields[1];
+
+      expect(
+        checkbox?.showIf?.({
+          statusPages: [SITE_03, SITE_07, SITE_05],
+        } as FormValues<Incident>) ?? false,
+      ).toBe(false);
     },
   );
+
+  test("offers it for an incident that was never announced, for the pages added", async () => {
+    await renderSettings();
+    await loadIncident({
+      notified: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    });
+
+    expect(
+      scopeCard().formFields[1]!.showIf!({
+        statusPages: [SITE_03, SITE_07, SITE_05],
+      } as FormValues<Incident>),
+    ).toBe(true);
+  });
+
+  test("does not offer it when every added page was told already", async () => {
+    // Narrowed to Site 03 after Site 07 was told; adding Site 07 back.
+    await renderSettings();
+    await loadIncident({
+      statusPages: [page(SITE_03, "Site 03")],
+      notified: [SITE_03, SITE_07],
+    });
+
+    expect(
+      scopeCard().formFields[1]!.showIf!({
+        statusPages: [SITE_03, SITE_07],
+      } as FormValues<Incident>),
+    ).toBe(false);
+  });
 
   test("the checkbox compares the form against the pages the card loaded", async () => {
     await renderSettings();
@@ -712,7 +777,15 @@ describe("the scope, read only", () => {
 
 describe("the added-pages field", () => {
   const field: ModelField<Incident> = getIncidentScopeAddedPagesFormField({
-    loadedStatusPages: [page(SITE_03, "Site 03")],
+    loadedIncident: {
+      statusPages: [page(SITE_03, "Site 03")],
+      statusPagesNotifiedOnCreation: [SITE_03],
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      isVisibleOnStatusPage: true,
+      isPrivate: false,
+    },
   });
 
   test("is sent as the misc data prop the server reads, not as a column", () => {
@@ -796,7 +869,10 @@ describe("the added-pages checkbox in the edit form", () => {
         },
       },
       getIncidentScopeAddedPagesFormField({
-        loadedStatusPages: [page(SITE_03, "Site 03")],
+        loadedIncident: buildIncident({
+          statusPages: [page(SITE_03, "Site 03")],
+          notified: [SITE_03],
+        }),
       }),
     ];
 

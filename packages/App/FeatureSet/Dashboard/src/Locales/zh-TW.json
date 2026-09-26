@@ -6561,5 +6561,8 @@
   "Status page subscribers will not be notified: 'Notify Status Page Subscribers' is off.": "不會通知狀態頁面訂閱者：「通知狀態頁面訂閱者」已關閉。",
   "Nothing will be sent: private incidents are hidden from all status pages.": "不會傳送任何內容：私人事件在所有狀態頁面上都是隱藏的。",
   "Send the incident-created notification to newly added pages": "向新加入的頁面傳送事件建立通知",
-  "Subscribers of the status pages you add are sent the notification that this incident was created. Pages that were already told are not sent it again.": "您加入的狀態頁面的訂閱者將收到此事件已建立的通知。已通知過的頁面不會再次收到。"
+  "Subscribers of the status pages you add are sent the notification that this incident was created. Pages that were already told are not sent it again.": "您加入的狀態頁面的訂閱者將收到此事件已建立的通知。已通知過的頁面不會再次收到。",
+  "Some status pages this incident is limited to were never sent the notification that it was created, for example pages added while it was hidden. Tick this to send it to them now. Pages that were already told are not sent it again.": "此事件限定的部分狀態頁面從未收到事件已建立的通知，例如在事件隱藏期間加入的頁面。勾選此項即可立即向它們傳送。已通知過的頁面不會再次收到。",
+  "This template was limited to status pages that have all been deleted. Incidents declared from it through the API are not shown on any status page, and the Declare Incident form starts with no status page picked. Pick status pages here, or save the list empty to stop limiting incidents declared from this template.": "此範本限定的狀態頁面已全部刪除。透過 API 從此範本宣告的事件不會顯示在任何狀態頁面上，「宣告事件」表單也會在未選擇任何狀態頁面的情況下開啟。請在此處選擇狀態頁面，或儲存空白清單，以不再限定從此範本宣告的事件。",
+  "The template you are declaring from was limited to status pages that have all been deleted. Pick the status pages this incident is for. Left empty, it is shown on, and notifies, every status page that lists its monitors.": "您用來宣告的範本所限定的狀態頁面已全部刪除。請選擇此事件對應的狀態頁面。如果留空，它將顯示在列出其監測器的每個狀態頁面上，並通知這些頁面的訂閱者。"
 }

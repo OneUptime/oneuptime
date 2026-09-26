@@ -3,7 +3,11 @@ import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/Inciden
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { getAddedStatusPageIds } from "./IncidentStatusPageScopeForm";
+import {
+  AddedPagesNotificationIncident,
+  getAddedStatusPageIds,
+  wouldQueueAddedPagesNotification,
+} from "./IncidentStatusPageScopeForm";
 
 /**
  * The "Send the incident-created notification to newly added pages" checkbox
@@ -20,19 +24,20 @@ import { getAddedStatusPageIds } from "./IncidentStatusPageScopeForm";
  * Like the other notification checkboxes it is not bound to a column:
  * ModelForm sends a field with an `overrideFieldKey` as a misc data prop, and
  * IncidentService.onBeforeUpdate acts on it (see
- * IncidentScopeAddedPagesNotification). It only shows while the form adds a
- * page to the scope the card loaded; the page offers it only for an incident
- * whose 'created' notification can go out at all.
+ * IncidentScopeAddedPagesNotification). It only shows while ticking it would
+ * send something - the form adds a page that was not told yet, and the
+ * server would queue the notification for it (wouldQueueAddedPagesNotification)
+ * - so the form never offers a box that does nothing.
  *
  * `showEvenIfPermissionDoesNotExist` is needed because the form's per-column
  * permission check has no column to look at; the edit button that opens the
  * form is already gated on edit permission.
  */
 export const getIncidentScopeAddedPagesFormField: (data: {
-  // The status pages the incident is limited to, as the card loaded them.
-  loadedStatusPages: unknown;
+  // The incident as the card loaded it.
+  loadedIncident: AddedPagesNotificationIncident;
 }) => ModelField<Incident> = (data: {
-  loadedStatusPages: unknown;
+  loadedIncident: AddedPagesNotificationIncident;
 }): ModelField<Incident> => {
   return {
     overrideField: {
@@ -47,9 +52,9 @@ export const getIncidentScopeAddedPagesFormField: (data: {
     required: false,
     defaultValue: true,
     showIf: (values: FormValues<Incident>): boolean => {
-      return isAddingStatusPages({
-        loadedStatusPages: data.loadedStatusPages,
-        values: values,
+      return wouldQueueAddedPagesNotification({
+        incident: data.loadedIncident,
+        formValue: (values as Record<string, unknown>)["statusPages"],
       });
     },
   };

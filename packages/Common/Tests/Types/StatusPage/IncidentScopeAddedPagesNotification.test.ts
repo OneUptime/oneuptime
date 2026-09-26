@@ -231,6 +231,10 @@ describe("IncidentScopeAddedPagesNotification.getScopeChange", () => {
 });
 
 describe("IncidentScopeAddedPagesNotification.getAction", () => {
+  /*
+   * An incident whose 'created' notification can go out, with a record of
+   * told pages (an empty one: nobody told) unless the test says otherwise.
+   */
   function eligible(
     status: StatusPageSubscriberNotificationStatus | undefined | null,
     overrides: Partial<IncidentScopeAddedPagesNotificationState> = {},
@@ -240,6 +244,7 @@ describe("IncidentScopeAddedPagesNotification.getAction", () => {
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       isVisibleOnStatusPage: true,
       isPrivate: false,
+      statusPagesNotifiedOnCreation: [],
       ...overrides,
     };
   }
@@ -262,8 +267,12 @@ describe("IncidentScopeAddedPagesNotification.getAction", () => {
       IncidentScopeAddedPagesNotificationAction.AlreadyQueued,
     ],
     [
+      /*
+       * A running send reads the scope again when it finishes and queues
+       * itself for pages added meanwhile, so the edit is not refused.
+       */
       StatusPageSubscriberNotificationStatus.InProgress,
-      IncidentScopeAddedPagesNotificationAction.Reject,
+      IncidentScopeAddedPagesNotificationAction.AlreadyQueued,
     ],
   ])(
     "adding a page while the notification is %s: %s",
@@ -279,6 +288,14 @@ describe("IncidentScopeAddedPagesNotification.getAction", () => {
       ).toBe(action);
     },
   );
+
+  test("nothing ever refuses the edit: there is no Reject any more", () => {
+    expect(Object.values(IncidentScopeAddedPagesNotificationAction)).toEqual([
+      IncidentScopeAddedPagesNotificationAction.None,
+      IncidentScopeAddedPagesNotificationAction.Queue,
+      IncidentScopeAddedPagesNotificationAction.AlreadyQueued,
+    ]);
+  });
 
   test("a missing status, which would otherwise never be sent, is queued", () => {
     expect(
@@ -343,6 +360,187 @@ describe("IncidentScopeAddedPagesNotification.getAction", () => {
       }
     },
   );
+
+  describe("the record of told pages", () => {
+    test.each(Object.values(StatusPageSubscriberNotificationStatus))(
+      "every added page already told: nothing, even while %s",
+      (status: StatusPageSubscriberNotificationStatus) => {
+        expect(
+          IncidentScopeAddedPagesNotification.getAction({
+            addedStatusPageIds: [PAGE_A, PAGE_B],
+            incident: eligible(status, {
+              statusPagesNotifiedOnCreation: [PAGE_B, PAGE_A, PAGE_C],
+            }),
+          }),
+        ).toBe(IncidentScopeAddedPagesNotificationAction.None);
+      },
+    );
+
+    test("narrowing an unscoped incident to pages it already told queues nothing", () => {
+      // The common case: it reached every site, and is now limited to two.
+      expect(
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: [PAGE_A, PAGE_B],
+          incident: eligible(StatusPageSubscriberNotificationStatus.Success, {
+            statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B, PAGE_C],
+          }),
+        }),
+      ).toBe(IncidentScopeAddedPagesNotificationAction.None);
+    });
+
+    test("one added page that was not told is enough to queue it", () => {
+      expect(
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: [PAGE_A, PAGE_B],
+          incident: eligible(StatusPageSubscriberNotificationStatus.Success, {
+            statusPagesNotifiedOnCreation: [PAGE_A],
+          }),
+        }),
+      ).toBe(IncidentScopeAddedPagesNotificationAction.Queue);
+    });
+
+    test("ids are compared whatever their case", () => {
+      expect(
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: [PAGE_A.toUpperCase()],
+          incident: eligible(StatusPageSubscriberNotificationStatus.Success, {
+            statusPagesNotifiedOnCreation: [PAGE_A],
+          }),
+        }),
+      ).toBe(IncidentScopeAddedPagesNotificationAction.None);
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Success,
+      StatusPageSubscriberNotificationStatus.Failed,
+    ])(
+      "a notification that went out (%s) before the record existed is not sent again",
+      (status: StatusPageSubscriberNotificationStatus) => {
+        /*
+         * An incident from before the record: it reached every page that
+         * listed its monitors, and an empty record would read as "nobody".
+         */
+        for (const record of [null, undefined]) {
+          expect(
+            IncidentScopeAddedPagesNotification.getAction({
+              addedStatusPageIds: [PAGE_A],
+              incident: eligible(status, {
+                statusPagesNotifiedOnCreation: record,
+              }),
+            }),
+          ).toBe(IncidentScopeAddedPagesNotificationAction.None);
+        }
+      },
+    );
+
+    test("a record that is not a list counts as no record", () => {
+      expect(
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: [PAGE_A],
+          incident: eligible(StatusPageSubscriberNotificationStatus.Success, {
+            statusPagesNotifiedOnCreation: { _id: PAGE_B },
+          }),
+        }),
+      ).toBe(IncidentScopeAddedPagesNotificationAction.None);
+    });
+
+    test.each([
+      [
+        StatusPageSubscriberNotificationStatus.Skipped,
+        IncidentScopeAddedPagesNotificationAction.Queue,
+      ],
+      [
+        StatusPageSubscriberNotificationStatus.Pending,
+        IncidentScopeAddedPagesNotificationAction.AlreadyQueued,
+      ],
+      [
+        StatusPageSubscriberNotificationStatus.InProgress,
+        IncidentScopeAddedPagesNotificationAction.AlreadyQueued,
+      ],
+    ])(
+      "with no record, a notification that never went out (%s) still reaches added pages: %s",
+      (
+        status: StatusPageSubscriberNotificationStatus,
+        action: IncidentScopeAddedPagesNotificationAction,
+      ) => {
+        expect(
+          IncidentScopeAddedPagesNotification.getAction({
+            addedStatusPageIds: [PAGE_A],
+            incident: eligible(status, {
+              statusPagesNotifiedOnCreation: null,
+            }),
+          }),
+        ).toBe(action);
+      },
+    );
+  });
+});
+
+describe("IncidentScopeAddedPagesNotification.getRecordedStatusPageIds", () => {
+  test("a list of ids in any shape, normalized", () => {
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordedStatusPageIds([
+        PAGE_A.toUpperCase(),
+        { _id: PAGE_B },
+        PAGE_A,
+      ]),
+    ).toEqual([PAGE_A, PAGE_B]);
+  });
+
+  test("an empty list is a record: nobody was told", () => {
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordedStatusPageIds([]),
+    ).toEqual([]);
+  });
+
+  test.each([null, undefined, "", PAGE_A, { _id: PAGE_A }, 7])(
+    "%p is no record",
+    (value: unknown) => {
+      expect(
+        IncidentScopeAddedPagesNotification.getRecordedStatusPageIds(value),
+      ).toBeNull();
+    },
+  );
+});
+
+describe("IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue", () => {
+  test("a stored record stands: nothing to write", () => {
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+        statusPagesNotifiedOnCreation: [PAGE_A],
+        statusPageIdsBeforeUpdate: [statusPage(PAGE_A), statusPage(PAGE_B)],
+      }),
+    ).toBeUndefined();
+
+    // Even an empty one.
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+        statusPagesNotifiedOnCreation: [],
+        statusPageIdsBeforeUpdate: [statusPage(PAGE_A)],
+      }),
+    ).toBeUndefined();
+  });
+
+  test("without a record, the pages it was limited to before are written in, so only added pages are told", () => {
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+        statusPagesNotifiedOnCreation: null,
+        statusPageIdsBeforeUpdate: [
+          statusPage(PAGE_A),
+          statusPage(PAGE_B.toUpperCase()),
+        ],
+      }),
+    ).toEqual([PAGE_A, PAGE_B]);
+  });
+
+  test("an incident that was not limited before leaves nothing out: every page it is limited to now is added", () => {
+    expect(
+      IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+        statusPagesNotifiedOnCreation: undefined,
+        statusPageIdsBeforeUpdate: [],
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("IncidentScopeAddedPagesNotification copy", () => {
@@ -352,9 +550,9 @@ describe("IncidentScopeAddedPagesNotification copy", () => {
     );
   });
 
-  test("the rejection tells the editor how to get the edit through", () => {
-    expect(
-      IncidentScopeAddedPagesNotification.rejectedWhileSendingMessage,
-    ).toContain(IncidentScopeAddedPagesNotification.formFieldTitle);
+  test("the status left when pages were added mid-send says they are next", () => {
+    expect(IncidentScopeAddedPagesNotification.addedWhileSendingMessage).toBe(
+      "Status pages were added to this incident while its subscribers were being sent the notification that it was created. The added pages will be sent it next.",
+    );
   });
 });

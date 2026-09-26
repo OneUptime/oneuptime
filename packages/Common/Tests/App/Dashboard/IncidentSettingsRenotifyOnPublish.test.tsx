@@ -144,6 +144,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentCreatedRenotifyFormField";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -172,7 +173,13 @@ interface IncidentShape {
   status?: StatusPageSubscriberNotificationStatus | undefined;
   notifyOnCreate?: boolean | undefined;
   isResolved?: boolean | undefined;
+  // The pages it is limited to, and the record of the ones told.
+  statusPageIds?: Array<string> | undefined;
+  notified?: Array<string> | null | undefined;
 }
+
+const SITE_03: string = "b0000000-0000-4000-8000-000000000003";
+const SITE_07: string = "b0000000-0000-4000-8000-000000000007";
 
 // A hidden incident whose 'created' notification the worker skipped.
 function buildIncident(shape: IncidentShape = {}): Incident {
@@ -184,6 +191,16 @@ function buildIncident(shape: IncidentShape = {}): Incident {
     shape.status ?? StatusPageSubscriberNotificationStatus.Skipped;
   incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
     shape.notifyOnCreate ?? true;
+  incident.statusPages = (shape.statusPageIds || []).map(
+    (id: string): StatusPage => {
+      const statusPage: StatusPage = new StatusPage();
+      statusPage._id = id;
+      return statusPage;
+    },
+  );
+  incident.statusPagesNotifiedOnCreation = (
+    shape.notified === undefined ? null : shape.notified
+  ) as Array<string>;
 
   const state: IncidentState = new IncidentState();
   state.isResolvedState = shape.isResolved ?? false;
@@ -265,6 +282,9 @@ describe("incident Settings tab: offering to notify subscribers on publish", () 
         subscriberNotificationStatusOnIncidentCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
         currentIncidentState: { isResolvedState: true },
+        // Pages added while it was hidden can be told on publish.
+        statusPages: { _id: true },
+        statusPagesNotifiedOnCreation: true,
       }),
     );
     expect(settingsCard().modelDetailProps.modelId.toString()).toBe(
@@ -349,6 +369,49 @@ describe("incident Settings tab: offering to notify subscribers on publish", () 
       ]);
     },
   );
+
+  test("the skipped case explains that nobody was told", async () => {
+    await renderSettings();
+    await loadIncident();
+
+    expect(renotifyField()!.description).toBe(
+      IncidentCreatedRenotify.formFieldDescription,
+    );
+  });
+
+  describe("an incident told before it was hidden", () => {
+    // Told on Site 03, hidden, then Site 07 added to its scope.
+    const toldThenHidden: IncidentShape = {
+      status: StatusPageSubscriberNotificationStatus.Success,
+      statusPageIds: [SITE_03, SITE_07],
+      notified: [SITE_03],
+    };
+
+    test("offers it for the pages added while it was hidden, and says so", async () => {
+      await renderSettings();
+      await loadIncident(toldThenHidden);
+
+      expect(renotifyField()).toBeDefined();
+      expect(renotifyField()!.defaultValue).toBe(true);
+      expect(renotifyField()!.description).toBe(
+        IncidentCreatedRenotify.untoldStatusPagesFormFieldDescription,
+      );
+    });
+
+    test("does not offer it when every page of its scope was told", async () => {
+      await renderSettings();
+      await loadIncident({ ...toldThenHidden, notified: [SITE_03, SITE_07] });
+
+      expect(renotifyField()).toBeUndefined();
+    });
+
+    test("does not offer it when it was told before the record existed", async () => {
+      await renderSettings();
+      await loadIncident({ ...toldThenHidden, notified: null });
+
+      expect(renotifyField()).toBeUndefined();
+    });
+  });
 
   test("withdraws the offer once a save has queued the notification", async () => {
     await renderSettings();

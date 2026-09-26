@@ -135,6 +135,13 @@ RunCron(
     );
 
     for (const incident of incidents) {
+      /*
+       * The pages this send has told so far, on top of the ones told before.
+       * Kept outside the try, so a send that fails part-way still records the
+       * pages it finished and Retry resumes after them.
+       */
+      let notifiedStatusPageIds: Array<string> | null = null;
+
       try {
         logger.debug(
           `Processing incident ${incident.id} (project: ${incident.projectId}) for subscriber notifications.`,
@@ -238,17 +245,26 @@ RunCron(
          * The pages already told about this incident. Adding pages to an
          * incident's scope puts this notification back to Pending (see
          * IncidentScopeAddedPagesNotification); this record is what keeps the
-         * pages that already heard from hearing it twice. Each page is added
-         * once it has been sent, so a run that stops part-way resumes where
-         * it stopped.
+         * pages that already heard from hearing it twice. The pages this send
+         * tells are added to it, and it is written once, with the status the
+         * send settles on - Success, or Failed so that Retry resumes after
+         * the pages it finished. Writing it after every page would fire the
+         * incident's 'on update' workflows, realtime events and audit log
+         * once per page.
+         *
+         * An incident with no record yet (null) has never had a send settle
+         * since the record was introduced: IncidentService does not queue a
+         * notification that already went out without one, and writes one
+         * when it queues a notification that was skipped.
          */
         const alreadyNotifiedStatusPageIds: Array<string> =
           IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
             incident.statusPagesNotifiedOnCreation,
           );
-        const notifiedStatusPageIds: Array<string> = [
+        const toldStatusPageIds: Array<string> = [
           ...alreadyNotifiedStatusPageIds,
         ];
+        notifiedStatusPageIds = toldStatusPageIds;
 
         const deliveryRecord: SubscriberNotificationDeliveryRecord =
           new SubscriberNotificationDeliveryRecord({
@@ -797,28 +813,8 @@ RunCron(
               }
             }
 
-            /*
-             * Every subscriber of this page has been looked at, so the page
-             * has been told. It is recorded straight away, so a run that
-             * stops part-way does not tell it again when it resumes.
-             */
-            notifiedStatusPageIds.push(statuspage.id.toString().toLowerCase());
-
-            await IncidentService.updateOneById({
-              id: incident.id!,
-              data: {
-                statusPagesNotifiedOnCreation: [...notifiedStatusPageIds],
-              },
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
-              },
-            }).catch((err: Error) => {
-              // The record is written again in full when the send finishes.
-              logger.error(
-                `Failed to record status page ${statuspage.id} as notified for incident ${incident.id}: ${err.message}`,
-              );
-            });
+            // Every subscriber of this page has been looked at: it was told.
+            toldStatusPageIds.push(statuspage.id.toString().toLowerCase());
           } catch (err) {
             logger.error(err);
             deliveryRecord.skipStatusPage(
@@ -881,10 +877,10 @@ RunCron(
             subscriberNotificationStatusMessage:
               "Notifications sent successfully to all subscribers",
             /*
-             * Written in full even when no page was told, so a record that
-             * is still empty (null) means the send never ran.
+             * Written in full even when no page was told: from now on the
+             * incident has a record, and an empty one means nobody was told.
              */
-            statusPagesNotifiedOnCreation: [...notifiedStatusPageIds],
+            statusPagesNotifiedOnCreation: [...toldStatusPageIds],
           },
           props: {
             isRoot: true,
@@ -894,6 +890,16 @@ RunCron(
         logger.debug(
           `Incident ${incident.id} marked as Success for subscriber notifications.`,
         );
+
+        await requeueForStatusPagesAddedWhileSending({
+          incident: incident,
+          visitedStatusPageIds: statusPages.map(
+            (statusPage: StatusPage): string => {
+              return (statusPage.id?.toString() || "").toLowerCase();
+            },
+          ),
+          toldStatusPageIds: toldStatusPageIds,
+        });
       } catch (err) {
         // If there was an error, mark as failed
         logger.error(err);
@@ -904,6 +910,13 @@ RunCron(
               StatusPageSubscriberNotificationStatus.Failed,
             subscriberNotificationStatusMessage:
               err instanceof Error ? err.message : String(err),
+            /*
+             * The pages it did tell, so Retry resumes after them. Left alone
+             * when the send failed before it read the record.
+             */
+            ...(notifiedStatusPageIds
+              ? { statusPagesNotifiedOnCreation: [...notifiedStatusPageIds] }
+              : {}),
           },
           props: {
             isRoot: true,
@@ -918,3 +931,69 @@ RunCron(
     }
   },
 );
+
+/*
+ * Status pages can be added to an incident's scope while its 'created'
+ * notification is being sent. IncidentService leaves a notification that is
+ * Pending or InProgress alone when that happens (see
+ * IncidentScopeAddedPagesNotification): a queued send reads the scope when it
+ * goes out. A send that is already running read it before the pages were
+ * added, so once it has settled it reads the scope again, and queues itself
+ * once more when it now reaches a page it neither visited nor has a record of
+ * telling. The next run tells only those pages: everything else is in the
+ * record or was looked at already.
+ *
+ * Pages that do not show incidents are left out: the next run would skip them
+ * too. Never throws: the send it follows has already succeeded.
+ */
+async function requeueForStatusPagesAddedWhileSending(data: {
+  incident: Incident;
+  visitedStatusPageIds: Array<string>;
+  toldStatusPageIds: Array<string>;
+}): Promise<void> {
+  try {
+    const current: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [data.incident],
+      });
+
+    const addedWhileSending: Array<StatusPage> = current.statusPages.filter(
+      (statusPage: StatusPage): boolean => {
+        const id: string = (statusPage.id?.toString() || "").toLowerCase();
+
+        return (
+          Boolean(id) &&
+          statusPage.showIncidentsOnStatusPage !== false &&
+          !data.visitedStatusPageIds.includes(id) &&
+          !data.toldStatusPageIds.includes(id)
+        );
+      },
+    );
+
+    if (addedWhileSending.length === 0) {
+      return;
+    }
+
+    logger.debug(
+      `Status pages were added to incident ${data.incident.id} while its created notification was being sent; queueing it again for ${addedWhileSending.length} page(s).`,
+    );
+
+    await IncidentService.updateOneById({
+      id: data.incident.id!,
+      data: {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessage:
+          IncidentScopeAddedPagesNotification.addedWhileSendingMessage,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+  } catch (err) {
+    logger.error(
+      `Failed to check incident ${data.incident.id} for status pages added while its created notification was being sent: ${err}`,
+    );
+  }
+}

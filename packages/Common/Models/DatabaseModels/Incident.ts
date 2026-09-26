@@ -2898,6 +2898,11 @@ export default class Incident extends BaseModel {
    * Shaped like ScheduledMaintenance.statusPages, with the access control of
    * the monitors list above. Whether an incident is scoped is kept separately
    * in isScopedToStatusPages, so the status page queries can filter on it.
+   *
+   * Like the monitors list, the pages are part of the incident: anyone who
+   * can read it sees their names (StatusPage.name is readable on a relation
+   * query), whether or not they can read those status pages. Picking a page
+   * needs read access to it (StatusPageReadAccess).
    */
   @ColumnAccessControl({
     create: [
@@ -3024,10 +3029,19 @@ export default class Incident extends BaseModel {
    * 'created' notification. A status page added to the scope later can then
    * be told exactly once, without telling the pages that already heard.
    *
-   * The Incident:SendNotificationToSubscribers job writes it as root. It is
-   * computed and never taken from a client; its update access control matches
-   * subscriberNotificationStatusOnIncidentCreated so a service hook can clear
-   * it inside the caller's own update (a 'resend to all pages').
+   * The Incident:SendNotificationToSubscribers job writes it as root, once per
+   * send, with the status it settles on. It is computed and never taken from
+   * a client; its update access control matches
+   * subscriberNotificationStatusOnIncidentCreated so IncidentService can write
+   * it inside the caller's own update: it empties it when the update resends
+   * the notification to every page (the status set back to Pending), and when
+   * pages are added to an incident whose notification was skipped, it lists
+   * the pages the incident was limited to before, which were deliberately not
+   * told, so only the added ones are (see IncidentScopeAddedPagesNotification).
+   *
+   * Null means no send has settled since the column was added: an incident
+   * whose notification went out before then has no record, and pages added to
+   * it are not sent the notification again.
    */
   @ColumnAccessControl({
     create: [],

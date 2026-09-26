@@ -1,4 +1,7 @@
-import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
+import IncidentScopeAddedPagesNotification, {
+  IncidentScopeAddedPagesNotificationAction,
+} from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 /*
  * The React-free half of editing an incident's status page scope
@@ -159,24 +162,60 @@ export const isScopedToDeletedStatusPages: (incident: {
 };
 
 /*
- * Whether the 'created' notification can be sent to pages added now: the
- * incident is set to notify on creation, and shows on status pages once the
- * edit is saved. Otherwise the server does nothing with the request
- * (IncidentScopeAddedPagesNotification.getAction), so the box is not offered.
+ * The incident as the scope card loaded it: what decides whether pages added
+ * to its scope can be sent the incident-created notification.
  */
-export const canNotifyAddedStatusPages: (incident: {
+export interface AddedPagesNotificationIncident {
+  statusPages?: unknown;
+  statusPagesNotifiedOnCreation?: unknown;
+  subscriberNotificationStatusOnIncidentCreated?:
+    | StatusPageSubscriberNotificationStatus
+    | undefined
+    | null;
   shouldStatusPageSubscribersBeNotifiedOnIncidentCreated?: boolean | undefined;
   isVisibleOnStatusPage?: boolean | undefined;
   isPrivate?: boolean | undefined;
-}) => boolean = (incident: {
-  shouldStatusPageSubscribersBeNotifiedOnIncidentCreated?: boolean | undefined;
-  isVisibleOnStatusPage?: boolean | undefined;
-  isPrivate?: boolean | undefined;
+}
+
+/*
+ * Whether ticking "Send the incident-created notification to newly added
+ * pages" would send anything for the edit as it stands: the pages it adds to
+ * the loaded scope, and the server's own rule for them
+ * (IncidentScopeAddedPagesNotification.getAction), so the box is offered
+ * exactly when the server would queue the notification. It is not offered
+ * when:
+ *
+ * - no page is added, or every added page was told already (it is in the
+ *   incident's record of told pages);
+ * - the incident is not set to notify on creation, is hidden or private;
+ * - its notification went out before that record existed;
+ * - the notification is queued or being sent: it reaches the added pages
+ *   anyway.
+ */
+export const wouldQueueAddedPagesNotification: (data: {
+  incident: AddedPagesNotificationIncident;
+  formValue: unknown;
+}) => boolean = (data: {
+  incident: AddedPagesNotificationIncident;
+  formValue: unknown;
 }): boolean => {
   return (
-    incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated === true &&
-    incident.isVisibleOnStatusPage === true &&
-    incident.isPrivate !== true
+    IncidentScopeAddedPagesNotification.getAction({
+      addedStatusPageIds: getAddedStatusPageIds({
+        before: data.incident.statusPages,
+        after: data.formValue,
+      }),
+      incident: {
+        subscriberNotificationStatusOnIncidentCreated:
+          data.incident.subscriberNotificationStatusOnIncidentCreated,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+          data.incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        isVisibleOnStatusPage: data.incident.isVisibleOnStatusPage,
+        isPrivate: data.incident.isPrivate,
+        statusPagesNotifiedOnCreation:
+          data.incident.statusPagesNotifiedOnCreation,
+      },
+    }) === IncidentScopeAddedPagesNotificationAction.Queue
   );
 };
 

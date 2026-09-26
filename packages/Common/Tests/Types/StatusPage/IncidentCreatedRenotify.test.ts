@@ -109,6 +109,9 @@ describe("IncidentCreatedRenotify.isRequested", () => {
   });
 });
 
+const PAGE_A: string = "0b5e0c8e-1f53-4f55-9a52-6a0c1e0f0b01";
+const PAGE_B: string = "0b5e0c8e-1f53-4f55-9a52-6a0c1e0f0b02";
+
 // A hidden incident whose 'created' notification the worker skipped.
 function hiddenSkippedIncident(): IncidentCreatedRenotifyState {
   return {
@@ -210,6 +213,124 @@ describe("IncidentCreatedRenotify.canRenotifyOnPublish", () => {
       }),
     ).toBe(false);
   });
+
+  describe("an incident told before it was hidden", () => {
+    // Visible and told on Site A, hidden, then Site B added to its scope.
+    function hiddenWithPageAddedWhileHidden(
+      overrides: Partial<IncidentCreatedRenotifyState> = {},
+    ): IncidentCreatedRenotifyState {
+      return {
+        isVisibleOnStatusPage: false,
+        isPrivate: false,
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        statusPages: [{ _id: PAGE_A }, { _id: PAGE_B }],
+        statusPagesNotifiedOnCreation: [PAGE_A],
+        ...overrides,
+      };
+    }
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Success,
+      StatusPageSubscriberNotificationStatus.Failed,
+    ])(
+      "offers it when a page of its scope was never told (%s)",
+      (status: StatusPageSubscriberNotificationStatus) => {
+        expect(
+          IncidentCreatedRenotify.canRenotifyOnPublish(
+            hiddenWithPageAddedWhileHidden({
+              subscriberNotificationStatusOnIncidentCreated: status,
+            }),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test("does not offer it when every page of its scope was told", () => {
+      expect(
+        IncidentCreatedRenotify.canRenotifyOnPublish(
+          hiddenWithPageAddedWhileHidden({
+            statusPagesNotifiedOnCreation: [PAGE_B, PAGE_A.toUpperCase()],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("does not offer it for an unscoped incident: nothing was added to a scope", () => {
+      expect(
+        IncidentCreatedRenotify.canRenotifyOnPublish(
+          hiddenWithPageAddedWhileHidden({ statusPages: [] }),
+        ),
+      ).toBe(false);
+    });
+
+    test("does not offer it without a record: it went out before the record existed, to every page", () => {
+      for (const record of [null, undefined]) {
+        expect(
+          IncidentCreatedRenotify.canRenotifyOnPublish(
+            hiddenWithPageAddedWhileHidden({
+              statusPagesNotifiedOnCreation: record,
+            }),
+          ),
+        ).toBe(false);
+      }
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.InProgress,
+    ])(
+      "does not offer it while it is %s: it is on its way",
+      (status: StatusPageSubscriberNotificationStatus) => {
+        expect(
+          IncidentCreatedRenotify.canRenotifyOnPublish(
+            hiddenWithPageAddedWhileHidden({
+              subscriberNotificationStatusOnIncidentCreated: status,
+            }),
+          ),
+        ).toBe(false);
+      },
+    );
+
+    test("the same rules as a skipped incident: not when visible, private or set not to notify", () => {
+      for (const overrides of [
+        { isVisibleOnStatusPage: true },
+        { isPrivate: true },
+        { shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false },
+      ] as Array<Partial<IncidentCreatedRenotifyState>>) {
+        expect(
+          IncidentCreatedRenotify.canRenotifyOnPublish(
+            hiddenWithPageAddedWhileHidden(overrides),
+          ),
+        ).toBe(false);
+      }
+    });
+
+    test("hasUntoldStatusPages is false for a skipped incident: nobody was told, and the skip covers it", () => {
+      expect(
+        IncidentCreatedRenotify.hasUntoldStatusPages(
+          hiddenWithPageAddedWhileHidden({
+            subscriberNotificationStatusOnIncidentCreated:
+              StatusPageSubscriberNotificationStatus.Skipped,
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("the checkbox explains which case it is", () => {
+      expect(
+        IncidentCreatedRenotify.getFormFieldDescription(
+          hiddenWithPageAddedWhileHidden(),
+        ),
+      ).toBe(IncidentCreatedRenotify.untoldStatusPagesFormFieldDescription);
+      expect(
+        IncidentCreatedRenotify.getFormFieldDescription(
+          hiddenSkippedIncident(),
+        ),
+      ).toBe(IncidentCreatedRenotify.formFieldDescription);
+    });
+  });
 });
 
 describe("IncidentCreatedRenotify.isTickedByDefault", () => {
@@ -285,6 +406,7 @@ describe("IncidentCreatedRenotify copy", () => {
     for (const value of [
       IncidentCreatedRenotify.formFieldTitle,
       IncidentCreatedRenotify.formFieldDescription,
+      IncidentCreatedRenotify.untoldStatusPagesFormFieldDescription,
       IncidentCreatedRenotify.hiddenFromStatusPagesLabel,
       IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
       IncidentCreatedRenotify.queuedMessage,

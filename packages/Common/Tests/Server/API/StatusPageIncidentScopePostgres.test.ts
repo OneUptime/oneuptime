@@ -49,7 +49,7 @@ import { DataSource } from "typeorm";
  * INCLUDING ALL), into a uniquely named schema that search_path puts first;
  * no row is written outside it, and it is dropped afterwards.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_INCIDENT_STATUS_PAGE_SCOPE_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -516,7 +516,7 @@ describePostgres(
         setHeader: jest.fn(),
         status: jest.fn().mockReturnThis(),
       } as unknown as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: jest.Mock = jest.fn() as unknown as jest.Mock;
       const responseMock: jest.Mock =
         Response.sendJsonObjectResponse as unknown as jest.Mock;
       const previousResponseCount: number = responseMock.mock.calls.length;

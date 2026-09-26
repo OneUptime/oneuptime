@@ -88,7 +88,10 @@ import {
   TranslatedScopeNotice,
   TranslatedScopeText,
 } from "../../Components/Incident/IncidentStatusPageScopeNotices";
-import { getIdsFromFormValue } from "../../Components/Incident/IncidentStatusPageScopeForm";
+import {
+  getIdsFromFormValue,
+  isScopedToDeletedStatusPages,
+} from "../../Components/Incident/IncidentStatusPageScopeForm";
 import useStatusPagePickerAccess, {
   StatusPagePickerAccess,
 } from "../../Components/Incident/useStatusPagePickerAccess";
@@ -214,6 +217,11 @@ const IncidentCreate: FunctionComponent<
    */
   const statusPagePickerAccess: StatusPagePickerAccess =
     useStatusPagePickerAccess();
+  // Declaring from a template whose status pages have all been deleted.
+  const [
+    isTemplateScopedToDeletedStatusPages,
+    setIsTemplateScopedToDeletedStatusPages,
+  ] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
     useRef<Array<RoleAssignment>>([]);
@@ -510,8 +518,23 @@ const IncidentCreate: FunctionComponent<
           changeMonitorStatusToId: true,
           // Declaring from a template that has status pages scopes the incident.
           statusPages: true,
+          isScopedToStatusPages: true,
         },
       });
+
+    /*
+     * A template limited to status pages that have all been deleted since:
+     * there is nothing to prefill, so the picker says why it is empty.
+     */
+    setIsTemplateScopedToDeletedStatusPages(
+      Boolean(
+        incidentTemplate &&
+          isScopedToDeletedStatusPages({
+            isScopedToStatusPages: incidentTemplate.isScopedToStatusPages,
+            statusPages: incidentTemplate.statusPages,
+          }),
+      ),
+    );
 
     const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
       await ModelAPI.getList<IncidentTemplateOwnerTeam>({
@@ -1079,6 +1102,17 @@ const IncidentCreate: FunctionComponent<
                           monitorIds={values.monitors}
                           statusPageIds={values.statusPages}
                         />
+                        {isTemplateScopedToDeletedStatusPages &&
+                        getIdsFromFormValue(values.statusPages).length === 0 ? (
+                          <TranslatedScopeNotice
+                            text={
+                              IncidentStatusPageScopeCopy.declaringFromTemplateScopedToDeletedPagesWarning
+                            }
+                            dataTestId="incident-create-template-scoped-to-deleted-pages"
+                          />
+                        ) : (
+                          <></>
+                        )}
                       </>
                     );
                   },

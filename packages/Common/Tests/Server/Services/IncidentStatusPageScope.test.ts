@@ -32,6 +32,7 @@ import Permission, {
 import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRenotify";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageReadAccess from "../../../Server/Utils/StatusPage/StatusPageReadAccess";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   afterEach,
@@ -95,6 +96,7 @@ interface ScopeCarryForward {
   removedStatusPageIds: Array<string>;
   isScoped: boolean;
   notificationQueued: boolean;
+  notificationAlreadyQueued?: boolean | undefined;
 }
 
 function makeProps(
@@ -147,6 +149,12 @@ function storedIncident(
   incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated = true;
   incident.subscriberNotificationStatusOnIncidentCreated =
     StatusPageSubscriberNotificationStatus.Success;
+  /*
+   * An incident whose send settled since the record was introduced: it has
+   * a record, empty unless a test says who was told. An incident from before
+   * the record (null) is its own case below.
+   */
+  incident.statusPagesNotifiedOnCreation = [];
 
   const { statusPageIds, ...rest } = overrides;
 
@@ -156,6 +164,21 @@ function storedIncident(
 
   Object.assign(incident, rest);
   return incident;
+}
+
+// The ids QueryHelper.any was given (it builds a Raw IN operator).
+function idsInQueryOperator(operator: unknown): Array<string> {
+  const raw: { objectLiteralParameters?: Dictionary<unknown> } = operator as {
+    objectLiteralParameters?: Dictionary<unknown>;
+  };
+
+  return (
+    Object.values(raw.objectLiteralParameters || {}) as Array<Array<string>>
+  )
+    .flat()
+    .map((id: string): string => {
+      return String(id).toLowerCase();
+    });
 }
 
 // What the database holds for the incidents an update matches.
@@ -438,6 +461,27 @@ describe("IncidentService.onBeforeUpdate: isScopedToStatusPages follows statusPa
     expect(findBy.query["_id"]).toBe(incidentId);
     expect(findBy.select["statusPages"]).toEqual({ _id: true });
   });
+
+  test("a non-root caller's read is limited to their own project", async () => {
+    /*
+     * The update's tenant filter is only added after this hook, so without
+     * it another project's incident would be read, and could refuse the
+     * edit on its own state instead of the usual "nothing updated".
+     */
+    await runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A] } }));
+
+    expect(incidentFindBy.mock.calls[0]![0].query["projectId"]).toBe(projectId);
+  });
+
+  test("a root caller's read uses the update's own query", async () => {
+    await runBeforeUpdate(
+      scopeUpdate({ data: { statusPages: [PAGE_A] }, props: { isRoot: true } }),
+    );
+
+    expect(incidentFindBy.mock.calls[0]![0].query).toEqual({
+      _id: incidentId,
+    });
+  });
 });
 
 describe("IncidentService.onBeforeUpdate: scoped pages the editor cannot read survive the edit", () => {
@@ -461,6 +505,7 @@ describe("IncidentService.onBeforeUpdate: scoped pages the editor cannot read su
       removedStatusPageIds: [],
       isScoped: true,
       notificationQueued: false,
+      notificationAlreadyQueued: false,
     });
   });
 
@@ -486,6 +531,7 @@ describe("IncidentService.onBeforeUpdate: scoped pages the editor cannot read su
 
     await runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A] } }));
 
+    // Only the hidden-page question: nothing is added.
     expect(statusPageFindBy).toHaveBeenCalledTimes(1);
     expect(statusPageFindBy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
   });
@@ -533,16 +579,19 @@ describe("IncidentService.onBeforeUpdate: scoped pages the editor cannot read su
     expect(statusPageFindBy).not.toHaveBeenCalled();
   });
 
-  test("an incident with no scope asks nothing about readability", async () => {
+  test("an incident with no scope has no hidden pages to keep: only the added pages are checked", async () => {
     storedIncidents = [storedIncident({ statusPageIds: [] })];
 
     await runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A] } }));
 
-    expect(statusPageFindBy).not.toHaveBeenCalled();
+    expect(statusPageFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      idsInQueryOperator(statusPageFindBy.mock.calls[0]![0].query["_id"]),
+    ).toEqual([PAGE_A]);
   });
 
   test("a bulk edit keeps hidden pages every matched incident holds", async () => {
-    readableStatusPageIds = [PAGE_A];
+    readableStatusPageIds = [PAGE_A, PAGE_B];
     storedIncidents = [
       storedIncident({ statusPageIds: [PAGE_A, HIDDEN_PAGE_X] }),
       storedIncident({
@@ -631,10 +680,12 @@ describe("IncidentService.onBeforeUpdate: 'Send the incident-created notificatio
     StatusPageSubscriberNotificationStatus.Skipped,
     StatusPageSubscriberNotificationStatus.Failed,
   ])(
-    "while the notification is %s",
+    "while the notification is %s, with a record of the pages told",
     (status: StatusPageSubscriberNotificationStatus) => {
       test("adding a page with the box ticked queues it again", async () => {
-        storedIncidents = [withStatus(status)];
+        storedIncidents = [
+          withStatus(status, { statusPagesNotifiedOnCreation: [PAGE_A] }),
+        ];
 
         const { data, carryForward } = await runBeforeUpdate(addPages());
 
@@ -649,13 +700,16 @@ describe("IncidentService.onBeforeUpdate: 'Send the incident-created notificatio
           removedStatusPageIds: [],
           isScoped: true,
           notificationQueued: true,
+          notificationAlreadyQueued: false,
         });
         // The record of notified pages is the job's, and is left alone.
         expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
       });
 
       test("without the box, the scope changes and nothing is queued", async () => {
-        storedIncidents = [withStatus(status)];
+        storedIncidents = [
+          withStatus(status, { statusPagesNotifiedOnCreation: [PAGE_A] }),
+        ];
 
         const { data, carryForward } = await runBeforeUpdate(
           addPages({ box: false }),
@@ -665,35 +719,37 @@ describe("IncidentService.onBeforeUpdate: 'Send the incident-created notificatio
         expect(data).not.toHaveProperty(
           "subscriberNotificationStatusOnIncidentCreated",
         );
+        expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
         expect(scopeChangeOf(carryForward)?.notificationQueued).toBe(false);
       });
     },
   );
 
-  test("while the notification is Pending, the queued send already uses the new scope", async () => {
-    storedIncidents = [
-      withStatus(StatusPageSubscriberNotificationStatus.Pending),
-    ];
+  test.each([
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.InProgress,
+  ])(
+    "while the notification is %s, the edit goes through and the send picks the pages up",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      /*
+       * A queued send reads the scope when it goes out; a running one reads
+       * it again when it finishes. So nothing is refused or rewritten, and
+       * onUpdateSuccess is told to check the send did not slip past.
+       */
+      storedIncidents = [withStatus(status)];
 
-    const { data, carryForward } = await runBeforeUpdate(addPages());
+      const { data, carryForward } = await runBeforeUpdate(addPages());
 
-    expect(savedStatusPageIds(data)).toEqual([PAGE_A, PAGE_B]);
-    expect(data).not.toHaveProperty(
-      "subscriberNotificationStatusOnIncidentCreated",
-    );
-    expect(data).not.toHaveProperty("subscriberNotificationStatusMessage");
-    expect(scopeChangeOf(carryForward)?.notificationQueued).toBe(false);
-  });
-
-  test("while the notification is being sent, the edit is refused with a message", async () => {
-    storedIncidents = [
-      withStatus(StatusPageSubscriberNotificationStatus.InProgress),
-    ];
-
-    await expect(runBeforeUpdate(addPages())).rejects.toThrow(
-      IncidentScopeAddedPagesNotification.rejectedWhileSendingMessage,
-    );
-  });
+      expect(savedStatusPageIds(data)).toEqual([PAGE_A, PAGE_B]);
+      expect(data).not.toHaveProperty(
+        "subscriberNotificationStatusOnIncidentCreated",
+      );
+      expect(data).not.toHaveProperty("subscriberNotificationStatusMessage");
+      expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+      expect(scopeChangeOf(carryForward)?.notificationQueued).toBe(false);
+      expect(scopeChangeOf(carryForward)?.notificationAlreadyQueued).toBe(true);
+    },
+  );
 
   test("while the notification is being sent, the edit goes through without the box", async () => {
     storedIncidents = [
@@ -939,7 +995,7 @@ describe("IncidentService.onBeforeUpdate: 'Send the incident-created notificatio
     ).toBe(false);
   });
 
-  test("a bulk edit is refused when one matched incident is being sent", async () => {
+  test("a bulk edit queues when one matched incident is being sent: that send picks the pages up", async () => {
     storedIncidents = [
       withStatus(StatusPageSubscriberNotificationStatus.Success),
       storedIncident({
@@ -950,9 +1006,14 @@ describe("IncidentService.onBeforeUpdate: 'Send the incident-created notificatio
       } as Partial<Incident>),
     ];
 
-    await expect(runBeforeUpdate(addPages())).rejects.toThrow(
-      IncidentScopeAddedPagesNotification.rejectedWhileSendingMessage,
+    const { data, carryForward } = await runBeforeUpdate(addPages());
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
     );
+    expect(
+      scopeChangeOf(carryForward, secondIncidentId)?.notificationQueued,
+    ).toBe(false);
   });
 });
 
@@ -974,6 +1035,7 @@ describe("IncidentService.onBeforeUpdate: carries the scope change forward for t
       removedStatusPageIds: [PAGE_A],
       isScoped: true,
       notificationQueued: false,
+      notificationAlreadyQueued: false,
     });
     // The monitor bookkeeping for the same incident is kept.
     expect(carryForward[incidentId]).toMatchObject({
@@ -994,7 +1056,629 @@ describe("IncidentService.onBeforeUpdate: carries the scope change forward for t
       removedStatusPageIds: [PAGE_A],
       isScoped: false,
       notificationQueued: false,
+      notificationAlreadyQueued: false,
     });
+  });
+});
+
+/*
+ * The job's record of told pages decides who a re-queued 'created'
+ * notification goes to. Two kinds of incident have no record (null), and
+ * neither may let an added-pages request tell pages that were not added.
+ */
+describe("IncidentService.onBeforeUpdate: added pages and incidents without a record of told pages", () => {
+  function addPage(
+    statusPages: Array<string>,
+    box: boolean = true,
+  ): UpdateBy<Incident> {
+    return scopeUpdate({
+      data: { statusPages: statusPages },
+      miscDataProps: box
+        ? IncidentScopeAddedPagesNotification.getMiscDataProps()
+        : undefined,
+    });
+  }
+
+  async function expectNothingQueued(
+    updateBy: UpdateBy<Incident>,
+  ): Promise<Record<string, unknown>> {
+    const { data, carryForward } = await runBeforeUpdate(updateBy);
+
+    expect(data).not.toHaveProperty(
+      "subscriberNotificationStatusOnIncidentCreated",
+    );
+    expect(data).not.toHaveProperty("subscriberNotificationStatusMessage");
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+    expect(scopeChangeOf(carryForward)?.notificationQueued).toBe(false);
+
+    return data;
+  }
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Failed,
+  ])(
+    "an incident told before the record existed (%s, no record) is not told again when it is scoped",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      /*
+       * Created last release on a monitor shared by every site: all of them
+       * were emailed. Narrowing it to Site A and B must not email them again.
+       */
+      storedIncidents = [
+        storedIncident({
+          statusPageIds: [],
+          subscriberNotificationStatusOnIncidentCreated: status,
+          statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+        }),
+      ];
+
+      const data: Record<string, unknown> = await expectNothingQueued(
+        addPage([PAGE_A, PAGE_B]),
+      );
+
+      // The scope itself still changes.
+      expect(savedStatusPageIds(data)).toEqual([PAGE_A, PAGE_B]);
+      expect(data["isScopedToStatusPages"]).toBe(true);
+    },
+  );
+
+  test("an incident published without announcing it tells only the page added later, not the pages it was limited to", async () => {
+    /*
+     * Hidden and Skipped, then published with 'Notify subscribers' unticked:
+     * still Skipped, no record. Adding Site C with the box ticked must not
+     * announce it on A and B, which the editor declined.
+     */
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [PAGE_A, PAGE_B],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      }),
+    ];
+
+    const { data, carryForward } = await runBeforeUpdate(
+      addPage([PAGE_A, PAGE_B, PAGE_C]),
+    );
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    // Written in the same update: the job then tells C only.
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([PAGE_A, PAGE_B]);
+    expect(scopeChangeOf(carryForward)?.notificationQueued).toBe(true);
+  });
+
+  test("a skipped incident that was not limited before: every page it is limited to now is added", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(addPage([PAGE_A, PAGE_B]));
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+  });
+
+  test("a skipped incident with a record keeps it", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [PAGE_A],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(addPage([PAGE_A, PAGE_B]));
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
+
+  test("without the box, a skipped incident's record is not written either", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [PAGE_A],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      }),
+    ];
+
+    await expectNothingQueued(addPage([PAGE_A, PAGE_B], false));
+  });
+
+  test("an unscoped incident narrowed to pages it already told queues nothing", async () => {
+    // It reached every site; the record lists them.
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [],
+        statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B, PAGE_C],
+      }),
+    ];
+
+    await expectNothingQueued(addPage([PAGE_A, PAGE_B]));
+  });
+
+  test("a page removed earlier and added back is not told twice", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [PAGE_A],
+        statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B],
+      }),
+    ];
+
+    await expectNothingQueued(addPage([PAGE_A, PAGE_B]));
+  });
+
+  test("a bulk edit writes one record for incidents that were limited to the same pages", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPageIds: [PAGE_A],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      }),
+      storedIncident({
+        _id: secondIncidentId,
+        statusPageIds: [PAGE_A],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      } as Partial<Incident>),
+    ];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({
+        data: { statusPages: [PAGE_A, PAGE_B] },
+        query: { projectId: projectId },
+        miscDataProps: IncidentScopeAddedPagesNotification.getMiscDataProps(),
+      }),
+    );
+
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([PAGE_A]);
+  });
+
+  test.each([
+    [
+      "they were limited to different pages",
+      {
+        statusPageIds: [PAGE_B],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      },
+    ],
+    [
+      "the other one has a record the write would overwrite",
+      {
+        statusPageIds: [PAGE_A],
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      },
+    ],
+    [
+      "the other one is already on its way",
+      {
+        statusPageIds: [PAGE_A],
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      },
+    ],
+  ])(
+    "a bulk edit that would have to write a record is refused when %s",
+    async (_label: string, other: Record<string, unknown>) => {
+      storedIncidents = [
+        storedIncident({
+          statusPageIds: [PAGE_A],
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+        }),
+        storedIncident({
+          _id: secondIncidentId,
+          ...other,
+        } as Partial<Incident>),
+      ];
+
+      await expect(
+        runBeforeUpdate(
+          scopeUpdate({
+            data: { statusPages: [PAGE_A, PAGE_B, PAGE_C] },
+            query: { projectId: projectId },
+            miscDataProps:
+              IncidentScopeAddedPagesNotification.getMiscDataProps(),
+          }),
+        ),
+      ).rejects.toThrow("Change them one at a time.");
+    },
+  );
+});
+
+/*
+ * Picking a status page decides who is told about an incident, so it needs
+ * read access to that page - through the API as well as the picker.
+ */
+describe("IncidentService.onBeforeUpdate: the pages an editor adds must be pages they can read", () => {
+  test("an editor without status page access cannot add a page", async () => {
+    readableStatusPageIds = null;
+    storedIncidents = [storedIncident({ statusPageIds: [] })];
+
+    await expect(
+      runBeforeUpdate(
+        scopeUpdate({
+          data: { statusPages: [PAGE_A] },
+          props: makeProps([Permission.IncidentMember]),
+        }),
+      ),
+    ).rejects.toThrow(StatusPageReadAccess.getRefusalMessage("incident"));
+  });
+
+  test("a label-restricted editor cannot add a page outside their labels", async () => {
+    readableStatusPageIds = [PAGE_A];
+    storedIncidents = [storedIncident({ statusPageIds: [PAGE_A] })];
+
+    await expect(
+      runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A, PAGE_C] } })),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("pages the incident already holds are not added, so they are not checked", async () => {
+    // The dashboard sends the loaded list back, hidden pages included.
+    readableStatusPageIds = [PAGE_A];
+    storedIncidents = [
+      storedIncident({ statusPageIds: [PAGE_A, HIDDEN_PAGE_X] }),
+    ];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({ data: { statusPages: [HIDDEN_PAGE_X] } }),
+    );
+
+    expect(savedStatusPageIds(data)).toEqual([HIDDEN_PAGE_X]);
+  });
+
+  test("removing pages needs no read access", async () => {
+    readableStatusPageIds = null;
+    storedIncidents = [storedIncident({ statusPageIds: [PAGE_A, PAGE_B] })];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({
+        data: { statusPages: [PAGE_A] },
+        props: makeProps([Permission.IncidentMember]),
+      }),
+    );
+
+    // A was not readable, so it is kept as a hidden page too.
+    expect(savedStatusPageIds(data).sort()).toEqual([PAGE_A, PAGE_B].sort());
+  });
+
+  test("a bulk edit checks every page it adds to any matched incident", async () => {
+    readableStatusPageIds = [PAGE_A, PAGE_C];
+    storedIncidents = [
+      storedIncident({ statusPageIds: [PAGE_A, PAGE_C] }),
+      storedIncident({
+        _id: secondIncidentId,
+        statusPageIds: [PAGE_A],
+      } as Partial<Incident>),
+    ];
+
+    // C is added to the second one only, and readable: fine.
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({
+        data: { statusPages: [PAGE_A, PAGE_C] },
+        query: { projectId: projectId },
+      }),
+    );
+
+    expect(savedStatusPageIds(data)).toEqual([PAGE_A, PAGE_C]);
+    expect(
+      idsInQueryOperator(
+        statusPageFindBy.mock.calls[statusPageFindBy.mock.calls.length - 1]![0]
+          .query["_id"],
+      ),
+    ).toEqual([PAGE_C]);
+
+    // B is added to both, and not readable.
+    await expect(
+      runBeforeUpdate(
+        scopeUpdate({
+          data: { statusPages: [PAGE_A, PAGE_B, PAGE_C] },
+          query: { projectId: projectId },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("a root caller adds any page of the project", async () => {
+    readableStatusPageIds = null;
+    storedIncidents = [storedIncident({ statusPageIds: [] })];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({
+        data: { statusPages: [PAGE_A] },
+        props: { isRoot: true },
+      }),
+    );
+
+    expect(savedStatusPageIds(data)).toEqual([PAGE_A]);
+    expect(statusPageFindBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The API route of resending the 'created' notification - setting its status
+ * back to Pending - goes to every page, as it always did. The job skips the
+ * pages in its record, so the record is emptied in the same write.
+ */
+describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification empties the record", () => {
+  function resend(
+    props: DatabaseCommonInteractionProps = MEMBER_PROPS,
+    extra: Record<string, unknown> = {},
+  ): UpdateBy<Incident> {
+    return scopeUpdate({
+      data: {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        ...extra,
+      },
+      props: props,
+    });
+  }
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Skipped,
+  ])(
+    "resending a notification that is %s reaches every page again",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      storedIncidents = [
+        storedIncident({
+          subscriberNotificationStatusOnIncidentCreated: status,
+          statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B],
+        }),
+      ];
+
+      const { data } = await runBeforeUpdate(resend());
+
+      expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+        StatusPageSubscriberNotificationStatus.Pending,
+      );
+      expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+    },
+  );
+
+  test("Retry after a failure resumes: the pages the failed send told keep their record", async () => {
+    storedIncidents = [
+      storedIncident({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Failed,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(resend());
+
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.InProgress,
+  ])(
+    "a notification that is %s keeps its record",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      storedIncidents = [
+        storedIncident({
+          subscriberNotificationStatusOnIncidentCreated: status,
+          statusPagesNotifiedOnCreation: [PAGE_A],
+        }),
+      ];
+
+      const { data } = await runBeforeUpdate(resend());
+
+      expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+    },
+  );
+
+  test("turning notifying on creation on (root) resends to every page", async () => {
+    storedIncidents = [
+      storedIncident({
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({
+        data: {
+          shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        },
+        props: { isRoot: true },
+      }),
+    );
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+  });
+
+  test("a bulk resend empties the record when any matched incident would reach nobody", async () => {
+    storedIncidents = [
+      storedIncident({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Failed,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+      storedIncident({
+        _id: secondIncidentId,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      } as Partial<Incident>),
+    ];
+
+    const { data } = await runBeforeUpdate(resend());
+
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+  });
+
+  test("a client's own record never survives, even on a resend", async () => {
+    storedIncidents = [
+      storedIncident({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Failed,
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(
+      resend(MEMBER_PROPS, { statusPagesNotifiedOnCreation: [PAGE_C] }),
+    );
+
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
+
+  test("a root caller that writes the record itself keeps it", async () => {
+    storedIncidents = [storedIncident()];
+
+    const { data } = await runBeforeUpdate(
+      resend({ isRoot: true }, { statusPagesNotifiedOnCreation: [PAGE_C] }),
+    );
+
+    expect(data["statusPagesNotifiedOnCreation"]).toEqual([PAGE_C]);
+  });
+
+  test("an update that does not resend reads nothing for it", async () => {
+    await runBeforeUpdate(scopeUpdate({ data: { title: "Renamed" } }));
+
+    expect(incidentFindBy).not.toHaveBeenCalled();
+  });
+
+  test("the resend's read is limited to the caller's project", async () => {
+    storedIncidents = [storedIncident()];
+
+    await runBeforeUpdate(resend());
+
+    expect(incidentFindBy.mock.calls[0]![0].query["projectId"]).toBe(projectId);
+    expect(incidentFindBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+  });
+});
+
+/*
+ * A page added to an incident's scope while it is hidden cannot be told then,
+ * and is no longer "added" by any later edit. Publishing offers to tell it.
+ */
+describe("IncidentService.onBeforeUpdate: publishing tells the pages added while the incident was hidden", () => {
+  function publish(extra: Record<string, unknown> = {}): UpdateBy<Incident> {
+    return scopeUpdate({
+      data: { isVisibleOnStatusPage: true, ...extra },
+      miscDataProps: IncidentCreatedRenotify.getMiscDataProps(),
+    });
+  }
+
+  function toldThenHidden(
+    overrides: Partial<Incident> & { statusPageIds?: Array<string> } = {},
+  ): Incident {
+    // Visible and told on A, hidden, then B added to its scope.
+    return storedIncident({
+      statusPageIds: [PAGE_A, PAGE_B],
+      isVisibleOnStatusPage: false,
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      statusPagesNotifiedOnCreation: [PAGE_A],
+      ...overrides,
+    });
+  }
+
+  test("queues the notification for the pages that were never told", async () => {
+    storedIncidents = [toldThenHidden()];
+
+    const { data } = await runBeforeUpdate(publish());
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(data["subscriberNotificationStatusMessage"]).toBe(
+      IncidentCreatedRenotify.queuedMessage,
+    );
+    // The record stays: the job tells B, not A again.
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
+
+  test("queues nothing when every page of its scope was told", async () => {
+    storedIncidents = [
+      toldThenHidden({ statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B] }),
+    ];
+
+    const { data } = await runBeforeUpdate(publish());
+
+    expect(data).not.toHaveProperty(
+      "subscriberNotificationStatusOnIncidentCreated",
+    );
+  });
+
+  test("queues nothing for an incident told before the record existed", async () => {
+    storedIncidents = [
+      toldThenHidden({
+        statusPagesNotifiedOnCreation: null as unknown as Array<string>,
+      }),
+    ];
+
+    const { data } = await runBeforeUpdate(publish());
+
+    expect(data).not.toHaveProperty(
+      "subscriberNotificationStatusOnIncidentCreated",
+    );
+  });
+
+  test("without the box, nothing is queued", async () => {
+    storedIncidents = [toldThenHidden()];
+
+    const { data } = await runBeforeUpdate(
+      scopeUpdate({ data: { isVisibleOnStatusPage: true } }),
+    );
+
+    expect(data).not.toHaveProperty(
+      "subscriberNotificationStatusOnIncidentCreated",
+    );
+  });
+
+  test("the same edit's list of pages is the one that counts", async () => {
+    storedIncidents = [
+      toldThenHidden({ statusPagesNotifiedOnCreation: [PAGE_A, PAGE_B] }),
+    ];
+
+    const { data } = await runBeforeUpdate(
+      publish({ statusPages: [PAGE_A, PAGE_B, PAGE_C] }),
+    );
+
+    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+  });
+
+  test("reads the scope and the record, within the caller's project", async () => {
+    storedIncidents = [toldThenHidden()];
+
+    await runBeforeUpdate(publish());
+
+    const findBy: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = incidentFindBy.mock.calls[0]![0];
+
+    expect(findBy.select["statusPages"]).toEqual({ _id: true });
+    expect(findBy.select["statusPagesNotifiedOnCreation"]).toBe(true);
+    expect(findBy.query["projectId"]).toBe(projectId);
   });
 });
 
@@ -1132,6 +1816,139 @@ describe("IncidentService.onBeforeCreate: the scope of a new incident", () => {
     expect(created.statusPagesNotifiedOnCreation).toEqual([PAGE_A]);
   });
 
+  describe("the pages a caller picks must be pages they can read", () => {
+    let callerTemplates: Array<IncidentTemplate> | Error = [];
+    let templatesWithPages: Array<IncidentTemplate> = [];
+
+    beforeEach(() => {
+      callerTemplates = [];
+      templatesWithPages = [];
+
+      jest.spyOn(IncidentTemplateService, "findBy").mockImplementation(((data: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!data.props.isRoot) {
+          return callerTemplates instanceof Error
+            ? Promise.reject(callerTemplates)
+            : Promise.resolve(callerTemplates);
+        }
+
+        return Promise.resolve(templatesWithPages);
+      }) as never);
+    });
+
+    function template(
+      id: string,
+      statusPageIds: Array<string>,
+    ): IncidentTemplate {
+      const incidentTemplate: IncidentTemplate = new IncidentTemplate();
+      incidentTemplate._id = id;
+      incidentTemplate.statusPages = statusPageIds.map((pageId: string) => {
+        return statusPage(pageId);
+      });
+      return incidentTemplate;
+    }
+
+    test("a page the caller cannot read is refused", async () => {
+      readableStatusPageIds = [PAGE_A];
+
+      await expect(
+        runBeforeCreate(
+          newIncident({
+            statusPages: [statusPage(PAGE_A), statusPage(PAGE_C)],
+          }),
+          MEMBER_PROPS,
+        ),
+      ).rejects.toThrow(StatusPageReadAccess.getRefusalMessage("incident"));
+    });
+
+    test("a caller with no status page access at all cannot pick one", async () => {
+      readableStatusPageIds = null;
+
+      await expect(
+        runBeforeCreate(
+          newIncident({ statusPages: [statusPage(PAGE_A)] }),
+          makeProps([Permission.IncidentMember]),
+        ),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    });
+
+    test("a page of a template the caller can read may be picked without reading it", async () => {
+      // The dashboard fills a template's pages in for whoever declares from it.
+      readableStatusPageIds = null;
+      callerTemplates = [template(templateId, [])];
+      templatesWithPages = [template(templateId, [PAGE_C])];
+
+      const created: Incident = await runBeforeCreate(
+        newIncident({ statusPages: [statusPage(PAGE_C)] }),
+        makeProps([Permission.IncidentMember]),
+      );
+
+      expect(
+        IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          created.statusPages,
+        ),
+      ).toEqual([PAGE_C]);
+      expect(created.isScopedToStatusPages).toBe(true);
+
+      // The templates are read with the caller's own permissions first.
+      const callerRead: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      } = (IncidentTemplateService.findBy as unknown as MockFunction).mock
+        .calls[0]![0];
+
+      expect(callerRead.props.isRoot).toBeFalsy();
+      expect(callerRead.query["projectId"]).toBe(projectId);
+    });
+
+    test("a template page does not cover another page the caller cannot read", async () => {
+      readableStatusPageIds = null;
+      callerTemplates = [template(templateId, [])];
+      templatesWithPages = [template(templateId, [PAGE_C])];
+
+      await expect(
+        runBeforeCreate(
+          newIncident({
+            statusPages: [statusPage(PAGE_C), statusPage(PAGE_B)],
+          }),
+          makeProps([Permission.IncidentMember]),
+        ),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    });
+
+    test("a caller who cannot read templates gets no template's pages", async () => {
+      readableStatusPageIds = null;
+      callerTemplates = new NotAuthorizedException(
+        "You do not have permissions to read Incident Template.",
+      );
+      templatesWithPages = [template(templateId, [PAGE_C])];
+
+      await expect(
+        runBeforeCreate(
+          newIncident({ statusPages: [statusPage(PAGE_C)] }),
+          makeProps([Permission.IncidentMember]),
+        ),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    });
+
+    test("a root caller picks any page, and nothing is read for it", async () => {
+      readableStatusPageIds = null;
+
+      const incident: Incident = newIncident({
+        statusPages: [statusPage(PAGE_C)],
+      });
+      incident.projectId = projectId;
+
+      const created: Incident = await runBeforeCreate(incident, {
+        isRoot: true,
+      });
+
+      expect(created.isScopedToStatusPages).toBe(true);
+      expect(statusPageFindBy).not.toHaveBeenCalled();
+    });
+  });
+
   describe("declared from a template", () => {
     function templateWithPages(ids: Array<string>): IncidentTemplate {
       const incidentTemplate: IncidentTemplate = new IncidentTemplate();
@@ -1213,6 +2030,102 @@ describe("IncidentService.onBeforeCreate: the scope of a new incident", () => {
 
       expect(created.statusPages).toBeUndefined();
       expect(created.isScopedToStatusPages).toBe(false);
+    });
+
+    test("pages copied from the template are not the caller's pick, so they are not checked", async () => {
+      readableStatusPageIds = null;
+      template = templateWithPages([PAGE_C]);
+
+      const created: Incident = await runBeforeCreate(
+        newIncident({ createdIncidentTemplateId: templateId }),
+        makeProps([Permission.IncidentMember]),
+      );
+
+      expect(
+        IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          created.statusPages,
+        ),
+      ).toEqual([PAGE_C]);
+      expect(statusPageFindBy).not.toHaveBeenCalled();
+    });
+
+    describe("a template whose status pages were all deleted", () => {
+      function scopedTemplateWithoutPages(): IncidentTemplate {
+        const incidentTemplate: IncidentTemplate = templateWithPages([]);
+        incidentTemplate.isScopedToStatusPages = true;
+        return incidentTemplate;
+      }
+
+      test("declares the incident scoped to nothing: hidden, rather than on every page", async () => {
+        template = scopedTemplateWithoutPages();
+
+        const created: Incident = await runBeforeCreate(
+          newIncident({ createdIncidentTemplateId: templateId }),
+        );
+
+        expect(created.isScopedToStatusPages).toBe(true);
+        expect(
+          IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+            created.statusPages,
+          ),
+        ).toEqual([]);
+      });
+
+      test("reads the template's flag", async () => {
+        template = scopedTemplateWithoutPages();
+
+        await runBeforeCreate(
+          newIncident({ createdIncidentTemplateId: templateId }),
+        );
+
+        const findOneBy: { select: Record<string, unknown> } = (
+          IncidentTemplateService.findOneBy as unknown as MockFunction
+        ).mock.calls[0]![0];
+
+        expect(findOneBy.select["isScopedToStatusPages"]).toBe(true);
+      });
+
+      test("the pages the caller picked still win", async () => {
+        template = scopedTemplateWithoutPages();
+
+        const created: Incident = await runBeforeCreate(
+          newIncident({
+            createdIncidentTemplateId: templateId,
+            statusPages: [statusPage(PAGE_B)],
+          }),
+        );
+
+        expect(
+          IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+            created.statusPages,
+          ),
+        ).toEqual([PAGE_B]);
+        expect(created.isScopedToStatusPages).toBe(true);
+      });
+
+      test("an explicitly empty list is still an intentional override", async () => {
+        template = scopedTemplateWithoutPages();
+
+        const created: Incident = await runBeforeCreate(
+          newIncident({
+            createdIncidentTemplateId: templateId,
+            statusPages: [],
+          }),
+        );
+
+        expect(created.isScopedToStatusPages).toBe(false);
+      });
+
+      test("a template that was never scoped still declares unscoped incidents", async () => {
+        template = templateWithPages([]);
+        template.isScopedToStatusPages = false;
+
+        const created: Incident = await runBeforeCreate(
+          newIncident({ createdIncidentTemplateId: templateId }),
+        );
+
+        expect(created.isScopedToStatusPages).toBe(false);
+      });
     });
 
     test("the copied pages are validated against the project with the rest", async () => {
@@ -1442,6 +2355,158 @@ describe("IncidentService.onUpdateSuccess: the feed records scope changes", () =
     ).resolves.toBeUndefined();
 
     expect(createFeedItem).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Pages added while the 'created' notification was Pending or being sent
+   * leave the status alone. If the whole send ran between this update
+   * reading the status and writing the pages, it missed them: once the pages
+   * are written, the notification is queued again for them.
+   */
+  describe("a send that finished without the pages the update added", () => {
+    let stored: Incident | null = null;
+    let updateOneById: MockFunction;
+
+    beforeEach(() => {
+      stored = null;
+
+      jest.spyOn(IncidentService, "findOneById").mockImplementation(((data: {
+        select: Record<string, unknown>;
+      }) => {
+        if (data.select["subscriberNotificationStatusOnIncidentCreated"]) {
+          return Promise.resolve(stored);
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = incidentId;
+        incident.projectId = projectId;
+        incident.incidentNumber = 42;
+        incident.incidentNumberWithPrefix = "INC-42";
+        return Promise.resolve(incident);
+      }) as never);
+
+      updateOneById = getJestMockFunction();
+      updateOneById.mockResolvedValue(1);
+      jest
+        .spyOn(IncidentService, "updateOneById")
+        .mockImplementation(updateOneById as never);
+    });
+
+    function storedNotification(
+      status: StatusPageSubscriberNotificationStatus,
+      record: Array<string> | null,
+    ): Incident {
+      const incident: Incident = new Incident();
+      incident._id = incidentId;
+      incident.subscriberNotificationStatusOnIncidentCreated = status;
+      incident.statusPagesNotifiedOnCreation = record as Array<string>;
+      return incident;
+    }
+
+    const alreadyQueuedChange: ScopeCarryForward = {
+      addedStatusPageIds: [PAGE_B],
+      removedStatusPageIds: [],
+      isScoped: true,
+      notificationQueued: false,
+      notificationAlreadyQueued: true,
+    };
+
+    test("queues it again when the send settled without an added page", async () => {
+      stored = storedNotification(
+        StatusPageSubscriberNotificationStatus.Success,
+        [PAGE_A],
+      );
+
+      await runUpdateSuccess(alreadyQueuedChange);
+
+      expect(updateOneById).toHaveBeenCalledTimes(1);
+      expect(updateOneById.mock.calls[0]![0]).toEqual({
+        id: new ObjectID(incidentId),
+        data: {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            IncidentScopeAddedPagesNotification.queuedMessage,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.InProgress,
+    ])(
+      "leaves a notification that is still %s alone: it reads the new pages itself",
+      async (status: StatusPageSubscriberNotificationStatus) => {
+        stored = storedNotification(status, [PAGE_A]);
+
+        await runUpdateSuccess(alreadyQueuedChange);
+
+        expect(updateOneById).not.toHaveBeenCalled();
+      },
+    );
+
+    test("leaves it alone when the send did reach the added page", async () => {
+      stored = storedNotification(
+        StatusPageSubscriberNotificationStatus.Success,
+        [PAGE_A, PAGE_B],
+      );
+
+      await runUpdateSuccess(alreadyQueuedChange);
+
+      expect(updateOneById).not.toHaveBeenCalled();
+    });
+
+    test("leaves a failed send to its Retry", async () => {
+      stored = storedNotification(
+        StatusPageSubscriberNotificationStatus.Failed,
+        [PAGE_A],
+      );
+
+      await runUpdateSuccess(alreadyQueuedChange);
+
+      expect(updateOneById).not.toHaveBeenCalled();
+    });
+
+    test("checks nothing for an update that queued the notification itself, or found it settled", async () => {
+      stored = storedNotification(
+        StatusPageSubscriberNotificationStatus.Success,
+        [PAGE_A],
+      );
+
+      await runUpdateSuccess({
+        ...alreadyQueuedChange,
+        notificationQueued: true,
+        notificationAlreadyQueued: false,
+      });
+
+      expect(updateOneById).not.toHaveBeenCalled();
+    });
+
+    test("a failure checking does not fail the update that was already written", async () => {
+      jest.spyOn(IncidentService, "findOneById").mockImplementation(((data: {
+        select: Record<string, unknown>;
+      }) => {
+        if (data.select["subscriberNotificationStatusOnIncidentCreated"]) {
+          return Promise.reject(new Error("connection lost"));
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = incidentId;
+        incident.projectId = projectId;
+        incident.incidentNumber = 42;
+        return Promise.resolve(incident);
+      }) as never);
+
+      await expect(
+        runUpdateSuccess(alreadyQueuedChange),
+      ).resolves.toBeUndefined();
+
+      expect(updateOneById).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -1680,6 +2745,18 @@ describe("IncidentService.updateOneById: an incident member sets and clears the 
       .mockResolvedValue(undefined as never);
   });
 
+  /*
+   * An update writing these status pages. Built apart from the call, so the
+   * compiler does not expand the deep partial-entity type of the literal.
+   */
+  function scopeData(ids: Array<string>): UpdateBy<Incident>["data"] {
+    return {
+      statusPages: ids.map((id: string): StatusPage => {
+        return statusPage(id);
+      }),
+    } as unknown as UpdateBy<Incident>["data"];
+  }
+
   function saved(): Record<string, unknown> {
     expect(saveMock).toHaveBeenCalledTimes(1);
     return saveMock.mock.calls[0]![0] as Record<string, unknown>;
@@ -1688,9 +2765,7 @@ describe("IncidentService.updateOneById: an incident member sets and clears the 
   test("sets the scope: the list and the derived flag are written together", async () => {
     await IncidentService.updateOneById({
       id: new ObjectID(incidentId),
-      data: {
-        statusPages: [statusPage(PAGE_A), statusPage(PAGE_B)],
-      },
+      data: scopeData([PAGE_A, PAGE_B]),
       props: makeProps([Permission.IncidentMember]),
     });
 
@@ -1721,7 +2796,7 @@ describe("IncidentService.updateOneById: an incident member sets and clears the 
 
     await IncidentService.updateOneById({
       id: new ObjectID(incidentId),
-      data: { statusPages: [statusPage(PAGE_A), statusPage(PAGE_B)] },
+      data: scopeData([PAGE_A, PAGE_B]),
       miscDataProps: IncidentScopeAddedPagesNotification.getMiscDataProps(),
       props: makeProps([Permission.IncidentMember]),
     });
@@ -1751,7 +2826,7 @@ describe("IncidentService.updateOneById: an incident member sets and clears the 
     await expect(
       IncidentService.updateOneById({
         id: new ObjectID(incidentId),
-        data: { statusPages: [statusPage(PAGE_A)] },
+        data: scopeData([PAGE_A]),
         props: makeProps([Permission.IncidentViewer]),
       }),
     ).rejects.toThrow();

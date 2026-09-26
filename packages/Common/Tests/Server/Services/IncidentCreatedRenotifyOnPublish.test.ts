@@ -439,7 +439,17 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
     expect(data["subscriberNotificationStatusMessage"]).toBe(
       "Queued by the API",
     );
-    expect(findByMock).not.toHaveBeenCalled();
+    /*
+     * The publish check reads nothing for it. The only read is the resend's
+     * own: whether to empty the record of told pages so the API resend
+     * reaches every page, as it always did.
+     */
+    for (const call of findByMock.mock.calls) {
+      expect((call[0] as { select: Record<string, unknown> }).select).toEqual({
+        _id: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+      });
+    }
   });
 
   test("the API route still works without the box: a status reset to Pending is kept", async () => {

@@ -147,10 +147,36 @@ describe("the dashboard renders the shared strings", () => {
   test("the Create page prefills the scope from a template", () => {
     const source: string = readSource("Pages", "Incidents", "Create.tsx");
 
-    expect(source).toContain("statusPages: true, }, });");
+    expect(source).toContain(
+      "statusPages: true, isScopedToStatusPages: true, }, });",
+    );
     expect(source).toContain(
       "statusPages: incidentTemplate.statusPages?.map( (statusPage: StatusPage) => { return statusPage.id!.toString(); }, ),",
     );
+  });
+
+  test("the Create page warns when the template's status pages were all deleted", () => {
+    const source: string = readSource("Pages", "Incidents", "Create.tsx");
+
+    expect(source).toContain("setIsTemplateScopedToDeletedStatusPages(");
+    expect(source).toContain("isScopedToDeletedStatusPages({");
+    expect(source).toContain(
+      "IncidentStatusPageScopeCopy.declaringFromTemplateScopedToDeletedPagesWarning",
+    );
+  });
+
+  test("the template view warns when the template's status pages were all deleted", () => {
+    const source: string = readSource(
+      "Pages",
+      "Incidents",
+      "Settings",
+      "IncidentTemplatesView.tsx",
+    );
+
+    expect(source).toContain(
+      "IncidentStatusPageScopeCopy.templateScopedToDeletedPagesWarning",
+    );
+    expect(source).toContain("isScopedToStatusPages: true,");
   });
 
   test("the Settings tab has the scope card with its checkbox and warnings", () => {

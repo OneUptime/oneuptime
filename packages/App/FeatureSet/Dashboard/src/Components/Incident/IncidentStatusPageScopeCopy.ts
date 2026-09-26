@@ -29,6 +29,8 @@ export const IncidentStatusPageScopeCopy: {
   removingNotifiedPagesWarning: string;
   clearingScopeWarning: string;
   scopedToDeletedPagesWarning: string;
+  templateScopedToDeletedPagesWarning: string;
+  declaringFromTemplateScopedToDeletedPagesWarning: string;
 
   // The incident's Settings tab.
   settingsCardTitle: string;
@@ -99,6 +101,10 @@ export const IncidentStatusPageScopeCopy: {
     "With no status pages picked, this incident is shown on, and notifies, every status page that lists its monitors (except pages that only show incidents limited to them).",
   scopedToDeletedPagesWarning:
     "This incident is limited to status pages that have all been deleted, so it is not shown on any status page and notifies no one. Pick status pages to show it again, or clear the list to show it on every status page that lists its monitors.",
+  templateScopedToDeletedPagesWarning:
+    "This template was limited to status pages that have all been deleted. Incidents declared from it through the API are not shown on any status page, and the Declare Incident form starts with no status page picked. Pick status pages here, or save the list empty to stop limiting incidents declared from this template.",
+  declaringFromTemplateScopedToDeletedPagesWarning:
+    "The template you are declaring from was limited to status pages that have all been deleted. Pick the status pages this incident is for. Left empty, it is shown on, and notifies, every status page that lists its monitors.",
 
   settingsCardTitle: "Status Page Scope",
   settingsCardDescription:

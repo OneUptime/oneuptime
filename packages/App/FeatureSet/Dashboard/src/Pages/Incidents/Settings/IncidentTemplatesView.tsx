@@ -44,8 +44,10 @@ import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElemen
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
   StatusPagePickerAccessHint,
+  TranslatedScopeNotice,
   TranslatedScopeText,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
+import { isScopedToDeletedStatusPages } from "../../../Components/Incident/IncidentStatusPageScopeForm";
 import useStatusPagePickerAccess, {
   StatusPagePickerAccess,
 } from "../../../Components/Incident/useStatusPagePickerAccess";
@@ -554,6 +556,26 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: IncidentTemplate): ReactElement => {
                 const statusPages: Array<StatusPage> = item.statusPages || [];
 
+                /*
+                 * Limited to pages that have all been deleted since: the
+                 * flag stays, so say what that means for its incidents.
+                 */
+                if (
+                  isScopedToDeletedStatusPages({
+                    isScopedToStatusPages: item.isScopedToStatusPages,
+                    statusPages: statusPages,
+                  })
+                ) {
+                  return (
+                    <TranslatedScopeNotice
+                      text={
+                        IncidentStatusPageScopeCopy.templateScopedToDeletedPagesWarning
+                      }
+                      dataTestId="incident-template-scoped-to-deleted-pages"
+                    />
+                  );
+                }
+
                 if (statusPages.length === 0) {
                   return (
                     <TranslatedScopeText
@@ -567,6 +589,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
             },
           ],
+          selectMoreFields: {
+            isScopedToStatusPages: true,
+          },
           modelId: modelId,
         }}
       />

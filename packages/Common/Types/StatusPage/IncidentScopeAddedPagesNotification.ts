@@ -18,31 +18,46 @@ import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotifi
  * job sends it to the pages in the scope that are not yet listed in
  * Incident.statusPagesNotifiedOnCreation. That record is what keeps the pages
  * that were already told from hearing it twice: the request re-queues the
- * notification, and the record decides who it goes to. So the request never
- * rewrites the record - a page that was never actually told (the send failed,
- * or the incident was hidden) must stay unrecorded so it still gets told.
+ * notification, and the record decides who it goes to.
+ *
+ * The record only exists once the job has settled a send, so two cases have
+ * none, and each is handled so that only the pages the edit adds are told:
+ *
+ * - the notification went out before the record existed (an incident from an
+ *   earlier release, Success or Failed with no record). It reached every page
+ *   that listed the incident's monitors back then, so there is no way to tell
+ *   an added page from one that was told, and nothing is queued. An empty
+ *   record would otherwise read as "nobody was told" and announce the incident
+ *   a second time;
+ * - the notification was Skipped and never sent (published without
+ *   announcing it, or declared without monitors). The pages the incident was
+ *   limited to before the edit were deliberately not told, so the update
+ *   writes them in as the record when it queues the notification (see
+ *   getRecordToSeedOnQueue): the job then tells the added pages only, not the
+ *   pages the editor chose not to announce it on.
  *
  * Everything here is shared by the dashboard, which offers the checkbox, and
- * the server, which acts on it, so the two cannot drift apart.
+ * the server, which acts on it, so the two cannot drift apart: the dashboard
+ * offers the checkbox exactly when getAction would queue.
  */
 
 // What an update that adds status pages does to the 'created' notification.
 export enum IncidentScopeAddedPagesNotificationAction {
-  // Nothing to do: no page was added, or the incident is not to be announced.
+  /*
+   * Nothing to do: no page was added, every added page was told already, or
+   * the incident is not to be announced.
+   */
   None = "None",
   // Put the 'created' notification back to Pending.
   Queue = "Queue",
   /*
-   * It is Pending already. The queued send reads the scope when it goes out,
-   * so it reaches the added pages without any change.
+   * It is Pending, or being sent right now. A queued send reads the scope
+   * when it goes out, and a send that is running reads it again once it has
+   * finished and queues itself once more for any page added meanwhile, so the
+   * added pages are reached without any change here. IncidentService checks
+   * once the update is written, in case the send finished in between.
    */
   AlreadyQueued = "AlreadyQueued",
-  /*
-   * It is being sent right now. That send read the old scope, and the job
-   * only picks up Pending rows, so re-queueing now would race it. The update
-   * is refused with rejectedWhileSendingMessage.
-   */
-  Reject = "Reject",
 }
 
 export interface IncidentScopeAddedPagesNotificationState {
@@ -57,6 +72,11 @@ export interface IncidentScopeAddedPagesNotificationState {
   // Both as they will be once the update is written.
   isVisibleOnStatusPage?: boolean | undefined | null;
   isPrivate?: boolean | undefined | null;
+  /*
+   * Incident.statusPagesNotifiedOnCreation as stored: the pages the job has a
+   * record of telling. Null or undefined when it has none (see the header).
+   */
+  statusPagesNotifiedOnCreation?: unknown;
 }
 
 export interface StatusPageScopeChange {
@@ -72,8 +92,12 @@ export default class IncidentScopeAddedPagesNotification {
   public static readonly queuedMessage: string =
     "Status pages were added to this incident. Their subscribers will be sent the notification that this incident was created.";
 
-  public static readonly rejectedWhileSendingMessage: string =
-    "Subscribers are being sent the notification that this incident was created right now, so it cannot also be queued for the status pages you added. Try again in a minute, or save without 'Send the incident-created notification to newly added pages'.";
+  /*
+   * The status the job leaves when pages were added to the scope while it was
+   * sending: queued again, for the pages it had not reached.
+   */
+  public static readonly addedWhileSendingMessage: string =
+    "Status pages were added to this incident while its subscribers were being sent the notification that it was created. The added pages will be sent it next.";
 
   public static readonly formFieldTitle: string =
     "Send the incident-created notification to newly added pages";
@@ -148,6 +172,19 @@ export default class IncidentScopeAddedPagesNotification {
   }
 
   /*
+   * The pages Incident.statusPagesNotifiedOnCreation lists, or null when there
+   * is no record: never written (the job has not settled a send since the
+   * record was introduced), or not a list.
+   */
+  public static getRecordedStatusPageIds(value: unknown): Array<string> | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    return this.normalizeStatusPageIds(value);
+  }
+
+  /*
    * What adding `addedStatusPageIds` to an incident's scope does to its
    * 'created' notification, given where that notification is:
    *
@@ -156,19 +193,32 @@ export default class IncidentScopeAddedPagesNotification {
    *   notifications off was deliberately kept quiet, and scoping it does not
    *   change that;
    * - hidden from status pages or private once the update is written:
-   *   nothing. The job would only skip it again; publishing the incident has
-   *   its own way to announce it (IncidentCreatedRenotify);
-   * - Success, Skipped or Failed: queue it again. The job then sends it to the
-   *   pages in the scope it has no record of telling - the added pages, plus,
-   *   after a failure, the pages the failed send did not reach;
-   * - Pending: already queued, and the queued send reads the new scope;
-   * - InProgress: refuse, rather than race the send that is running.
+   *   nothing. The job would only skip it again. Publishing the incident
+   *   offers to announce it to the pages that were not told
+   *   (IncidentCreatedRenotify.canRenotifyOnPublish), including pages added
+   *   while it was hidden;
+   * - every added page is in the record: nothing, they were told already
+   *   (a page removed earlier and added back, or an unscoped incident being
+   *   narrowed to pages it reached);
+   * - Success or Failed with no record: nothing. It went out before the
+   *   record existed, to every page that listed the monitors then (see the
+   *   header);
+   * - Success, Skipped or Failed otherwise: queue it again. The job then
+   *   sends it to the pages in the scope it has no record of telling - the
+   *   added pages, plus, after a failure, the pages the failed send did not
+   *   reach;
+   * - Pending or InProgress: already on its way, and it reaches the added
+   *   pages (see AlreadyQueued).
    */
   public static getAction(data: {
     addedStatusPageIds: Array<string>;
     incident: IncidentScopeAddedPagesNotificationState;
   }): IncidentScopeAddedPagesNotificationAction {
-    if (data.addedStatusPageIds.length === 0) {
+    const addedStatusPageIds: Array<string> = this.normalizeStatusPageIds(
+      data.addedStatusPageIds,
+    );
+
+    if (addedStatusPageIds.length === 0) {
       return IncidentScopeAddedPagesNotificationAction.None;
     }
 
@@ -188,11 +238,32 @@ export default class IncidentScopeAddedPagesNotification {
       return IncidentScopeAddedPagesNotificationAction.None;
     }
 
-    switch (incident.subscriberNotificationStatusOnIncidentCreated) {
+    const status: StatusPageSubscriberNotificationStatus | undefined | null =
+      incident.subscriberNotificationStatusOnIncidentCreated;
+
+    const recorded: Array<string> | null = this.getRecordedStatusPageIds(
+      incident.statusPagesNotifiedOnCreation,
+    );
+
+    if (recorded === null) {
+      if (
+        status === StatusPageSubscriberNotificationStatus.Success ||
+        status === StatusPageSubscriberNotificationStatus.Failed
+      ) {
+        return IncidentScopeAddedPagesNotificationAction.None;
+      }
+    } else if (
+      addedStatusPageIds.every((id: string): boolean => {
+        return recorded.includes(id);
+      })
+    ) {
+      return IncidentScopeAddedPagesNotificationAction.None;
+    }
+
+    switch (status) {
       case StatusPageSubscriberNotificationStatus.Pending:
-        return IncidentScopeAddedPagesNotificationAction.AlreadyQueued;
       case StatusPageSubscriberNotificationStatus.InProgress:
-        return IncidentScopeAddedPagesNotificationAction.Reject;
+        return IncidentScopeAddedPagesNotificationAction.AlreadyQueued;
       default:
         /*
          * Success, Skipped and Failed - and a missing status, which the
@@ -201,6 +272,30 @@ export default class IncidentScopeAddedPagesNotification {
          */
         return IncidentScopeAddedPagesNotificationAction.Queue;
     }
+  }
+
+  /*
+   * The record an update that queues the notification (action Queue) has to
+   * write along with it, or undefined when the stored record stands.
+   *
+   * With a record, the job already knows who was told. Without one the
+   * notification was never sent (getAction does not queue a Success or
+   * Failed one without a record), so the pages the incident was limited to
+   * before the update were deliberately not told - it was published without
+   * announcing it, or declared without monitors. They are written in as the
+   * record, so the job tells only the pages the update adds. An incident
+   * that was not limited to any page before has nothing to leave out: every
+   * page it is now limited to is one the update adds.
+   */
+  public static getRecordToSeedOnQueue(data: {
+    statusPagesNotifiedOnCreation: unknown;
+    statusPageIdsBeforeUpdate: unknown;
+  }): Array<string> | undefined {
+    if (this.getRecordedStatusPageIds(data.statusPagesNotifiedOnCreation)) {
+      return undefined;
+    }
+
+    return this.normalizeStatusPageIds(data.statusPageIdsBeforeUpdate);
   }
 
   private static getStatusPageId(entry: unknown): string | undefined {

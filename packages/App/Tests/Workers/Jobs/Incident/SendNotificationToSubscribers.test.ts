@@ -15,6 +15,7 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
 
 /*
  * Incident created subscriber notifications. These tests drive a tick of the
@@ -1169,12 +1170,28 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
     expect(sentSms()).toHaveLength(2);
   });
 
-  test("records each page as it is told, and settles with the full record", async () => {
+  // Every write the job made to the incident, in order.
+  function incidentWrites(): Array<JSONObject> {
+    return mock(IncidentService.updateOneById).mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      },
+    );
+  }
+
+  // Lets the job's fire-and-forget Failed write land.
+  async function flushPromises(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  test("writes the record once, with the status the send settles on", async () => {
     everySiteHasOneEmailSubscriber();
 
     await runJob();
 
-    expect(notifiedPageRecords()).toEqual([[3], [3, 7], [3, 7]]);
+    expect(notifiedPageRecords()).toEqual([[3, 7]]);
     expect(finalWrite()).toEqual(
       expect.objectContaining({
         subscriberNotificationStatusOnIncidentCreated:
@@ -1188,6 +1205,231 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
         ignoreHooks: true,
       });
     }
+  });
+
+  test.each([
+    ["scoped to two of ten pages", scopedTo([3, 7])],
+    ["reaching all ten pages", undefined],
+  ])(
+    "writes the incident twice per send, %s: every write fires its update workflows, realtime events and audit log",
+    async (_label: string, scope: StoredIncidentScope | undefined) => {
+      storedScopes = scope ? { [INCIDENT_ID.toString()]: scope } : {};
+      everySiteHasOneEmailSubscriber();
+
+      await runJob();
+
+      expect(
+        incidentWrites().map((data: JSONObject): unknown => {
+          return data["subscriberNotificationStatusOnIncidentCreated"];
+        }),
+      ).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Success,
+      ]);
+    },
+  );
+
+  test("a send that fails part-way records the pages it told, so Retry resumes after them", async () => {
+    everySiteHasOneEmailSubscriber();
+    mock(IncidentFeedService.createIncidentFeedItem).mockRejectedValue(
+      new Error("feed unavailable") as never,
+    );
+
+    await runJob();
+    await flushPromises();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(finalWrite()).toEqual({
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "feed unavailable",
+      statusPagesNotifiedOnCreation: [
+        sitePageId(3).toString(),
+        sitePageId(7).toString(),
+      ],
+    });
+  });
+
+  test("a failed send keeps the pages told before it in the record", async () => {
+    everySiteHasOneEmailSubscriber();
+    mock(IncidentFeedService.createIncidentFeedItem).mockRejectedValue(
+      new Error("feed unavailable") as never,
+    );
+    pendingIncidents = [scopedIncident([5])];
+
+    await runJob();
+    await flushPromises();
+
+    expect(notifiedPageRecords().pop()).toEqual([5, 3, 7]);
+  });
+
+  test("a send that fails before it read the record leaves the record alone", async () => {
+    everySiteHasOneEmailSubscriber();
+    mock(StatusPageResourceService.findByMonitors).mockRejectedValue(
+      new Error("database went away") as never,
+    );
+    pendingIncidents = [scopedIncident([5])];
+
+    await runJob();
+    await flushPromises();
+
+    expect(finalWrite()).toEqual({
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "database went away",
+    });
+  });
+
+  describe("pages added while the notification is being sent", () => {
+    /*
+     * The scope as the job reads it: the first read (before the send) and
+     * every read after it can differ, as when an editor adds a page while
+     * the send runs.
+     */
+    function scopeChangesDuringTheSend(
+      before: StoredIncidentScope,
+      after: StoredIncidentScope,
+    ): void {
+      let reads: number = 0;
+
+      mock(IncidentService.findBy).mockImplementation(((args: unknown) => {
+        reads++;
+        const scope: StoredIncidentScope = reads === 1 ? before : after;
+
+        return incidentScopeFindBy(() => {
+          return { [INCIDENT_ID.toString()]: scope };
+        })(args);
+      }) as never);
+    }
+
+    test("queues itself again once it has settled, for the added pages only", async () => {
+      everySiteHasOneEmailSubscriber();
+      scopeChangesDuringTheSend(scopedTo([3, 7]), scopedTo([3, 7, 9]));
+
+      await runJob();
+
+      // This run told the pages it read.
+      expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+
+      const writes: Array<JSONObject> = incidentWrites();
+
+      expect(writes).toHaveLength(3);
+      expect(writes[1]).toEqual(
+        expect.objectContaining({
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Success,
+        }),
+      );
+      expect(notifiedPageRecords()).toEqual([[3, 7]]);
+      // Settled first, then queued again: the next run reads the new scope.
+      expect(writes[2]).toEqual({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessage:
+          IncidentScopeAddedPagesNotification.addedWhileSendingMessage,
+      });
+
+      // The next run tells Site 09, and nobody twice.
+      jest.clearAllMocks();
+      mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+      storedScopes = { [INCIDENT_ID.toString()]: scopedTo([3, 7, 9]) };
+      mock(IncidentService.findBy).mockImplementation(
+        incidentScopeFindBy(() => {
+          return storedScopes;
+        }) as never,
+      );
+      pendingIncidents = [scopedIncident([3, 7])];
+
+      await runJob();
+
+      expect(emailsSentTo()).toEqual(["site9@acme.com"]);
+      expect(
+        finalWrite()["subscriberNotificationStatusOnIncidentCreated"],
+      ).toBe(StatusPageSubscriberNotificationStatus.Success);
+    });
+
+    test("an unchanged scope settles as Success and stays there", async () => {
+      everySiteHasOneEmailSubscriber();
+
+      await runJob();
+
+      expect(
+        incidentWrites().some((data: JSONObject): boolean => {
+          return (
+            data["subscriberNotificationStatusMessage"] ===
+            IncidentScopeAddedPagesNotification.addedWhileSendingMessage
+          );
+        }),
+      ).toBe(false);
+    });
+
+    test("a page removed during the send queues nothing", async () => {
+      everySiteHasOneEmailSubscriber();
+      scopeChangesDuringTheSend(scopedTo([3, 7]), scopedTo([3]));
+
+      await runJob();
+
+      expect(incidentWrites()).toHaveLength(2);
+    });
+
+    test("a page added during the send that does not show incidents queues nothing", async () => {
+      everySiteHasOneEmailSubscriber();
+      pages[8] = sitePage(9, { showIncidentsOnStatusPage: false });
+      scopeChangesDuringTheSend(scopedTo([3, 7]), scopedTo([3, 7, 9]));
+
+      await runJob();
+
+      expect(incidentWrites()).toHaveLength(2);
+    });
+
+    test("a page this send skipped does not queue it again", async () => {
+      // Site 07 hides incidents: visited, never recorded, never re-queued.
+      everySiteHasOneEmailSubscriber();
+      pages[6] = sitePage(7, { showIncidentsOnStatusPage: false });
+
+      await runJob();
+
+      expect(incidentWrites()).toHaveLength(2);
+    });
+
+    test("a failure checking the scope again leaves the send settled as Success", async () => {
+      everySiteHasOneEmailSubscriber();
+      let reads: number = 0;
+      mock(IncidentService.findBy).mockImplementation(((args: unknown) => {
+        reads++;
+
+        if (reads > 1) {
+          return Promise.reject(new Error("connection lost"));
+        }
+
+        return incidentScopeFindBy(() => {
+          return storedScopes;
+        })(args);
+      }) as never);
+
+      await runJob();
+      await flushPromises();
+
+      expect(
+        finalWrite()["subscriberNotificationStatusOnIncidentCreated"],
+      ).toBe(StatusPageSubscriberNotificationStatus.Success);
+    });
+  });
+
+  test("an incident announced to nobody, then given pages, tells only the pages added", async () => {
+    /*
+     * Published without announcing it, then Site 03 added with the box
+     * ticked: IncidentService wrote the pages it was limited to (Site 01 and
+     * Site 02) in as the record, so only Site 03 hears about it.
+     */
+    everySiteHasOneEmailSubscriber();
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([1, 2, 3]) };
+    pendingIncidents = [scopedIncident([1, 2])];
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com"]);
+    expect(notifiedPageRecords().pop()).toEqual([1, 2, 3]);
   });
 
   test("pages added to the scope later are told once, and the others are not told again", async () => {

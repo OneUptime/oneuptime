@@ -54,6 +54,8 @@ import IncidentScopeAddedPagesNotification, {
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageService from "./StatusPageService";
+import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
+import Select from "../Types/Database/Select";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -128,11 +130,26 @@ import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAle
  * How an update changed an incident's status page scope, for its feed item.
  * notificationQueued: the update also queued the 'created' notification for
  * the added pages (IncidentScopeAddedPagesNotification).
+ * notificationAlreadyQueued: that notification was Pending or being sent, so
+ * the update left it alone; onUpdateSuccess checks it did not finish without
+ * the added pages in the meantime.
  */
 type StatusPageScopeCarryForward = StatusPageScopeChange & {
   isScoped: boolean;
   notificationQueued: boolean;
+  notificationAlreadyQueued?: boolean | undefined;
 };
+
+/*
+ * What adding status pages does to one matched incident's 'created'
+ * notification, and the record of told pages to write if it is queued with
+ * none (IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue).
+ */
+interface AddedStatusPagesDecision {
+  incidentId: string;
+  action: IncidentScopeAddedPagesNotificationAction;
+  recordToSeed: Array<string> | undefined;
+}
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -494,6 +511,12 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.isVisibleOnStatusPage = false;
     }
 
+    this.stripServiceOwnedScopeColumns(updateBy);
+
+    // Before the hooks below add a Pending of their own.
+    const isCreatedNotificationResendRequested: boolean =
+      this.isCreatedNotificationResendRequested(updateBy);
+
     await this.validateProjectScopedReferences(updateBy);
 
     const carryForward: UpdateCarryForward = {};
@@ -600,6 +623,11 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.clearCreatedNotificationRecordOnResend({
+      updateBy: updateBy,
+      isResendRequested: isCreatedNotificationResendRequested,
+    });
+
     await this.queueCreatedNotificationOnPublishIfRequested(updateBy);
 
     await this.applyStatusPageScopeToUpdate(updateBy, carryForward);
@@ -623,20 +651,162 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The incidents an update will write to, as they are stored, for the hooks
+   * below that decide what else joins the update.
+   *
+   * Read as root: the answer only decides which columns join this update, and
+   * the update itself is still checked against the caller's permissions
+   * afterwards. Reading with the caller's props would fail the whole edit for
+   * a role that may edit incidents but not read these columns. The query
+   * already carries the caller's privacy filter (applyIncidentSelfPrivacyFilter),
+   * but not their tenant: the update's permission check adds it only after
+   * this hook runs. So a non-root caller's read is limited to their own
+   * project here, or a request for another project's incident id would be
+   * answered with that incident's state (a refusal that depends on it)
+   * instead of the usual "nothing updated".
+   */
+  private async findIncidentsForUpdateHook(data: {
+    updateBy: UpdateBy<Model>;
+    select: Select<Model>;
+  }): Promise<Array<Model>> {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    const query: Query<Model> =
+      !updateBy.props.isRoot && updateBy.props.tenantId
+        ? {
+            ...updateBy.query,
+            projectId: updateBy.props.tenantId,
+          }
+        : updateBy.query;
+
+    return await this.findBy({
+      query: query,
+      select: data.select,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * isScopedToStatusPages and statusPagesNotifiedOnCreation are this
+   * service's to write. A client value for either is dropped before any hook
+   * runs, so what the hooks write is all that is written: the flag is derived
+   * from statusPages (applyStatusPageScopeToUpdate), and the record is the
+   * notification job's - a client must not be able to seed it and so keep
+   * pages from ever hearing about the incident, or clear it and have them
+   * told twice. Root (internal) callers keep the record they send.
+   */
+  private stripServiceOwnedScopeColumns(updateBy: UpdateBy<Model>): void {
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    delete data["isScopedToStatusPages"];
+
+    if (!updateBy.props.isRoot) {
+      delete data["statusPagesNotifiedOnCreation"];
+    }
+  }
+
+  /*
+   * Whether an update itself asks for the 'created' notification to go out
+   * again: it sets the status to Pending - the API route of resending it -
+   * or turns notifying on creation on, which onBeforeUpdate maps to Pending.
+   * Read before any hook adds a Pending of its own.
+   */
+  private isCreatedNotificationResendRequested(
+    updateBy: UpdateBy<Model>,
+  ): boolean {
+    return (
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+        StatusPageSubscriberNotificationStatus.Pending ||
+      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
+        true
+    );
+  }
+
+  /*
+   * A resend asked for by the update itself (see
+   * isCreatedNotificationResendRequested) goes to every status page, as it
+   * always did. The job skips the pages in its record of told pages
+   * (Incident.statusPagesNotifiedOnCreation), so without this a resend of a
+   * notification that went out would reach nobody: the record is emptied in
+   * the same write.
+   *
+   * It is kept in three cases:
+   * - Failed: Retry resumes where the failed send stopped, so the pages it
+   *   told are not told twice;
+   * - Pending or InProgress: the notification is on its way already, and its
+   *   record is what keeps a send queued for added pages from reaching the
+   *   pages told before;
+   * - a root caller that writes the record itself.
+   *
+   * An update matching several incidents empties the record when any of them
+   * would otherwise be resent to nobody, because the write applies the same
+   * data to all of them.
+   */
+  private async clearCreatedNotificationRecordOnResend(data: {
+    updateBy: UpdateBy<Model>;
+    isResendRequested: boolean;
+  }): Promise<void> {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    if (!data.isResendRequested) {
+      return;
+    }
+
+    if (
+      (updateBy.data as Dictionary<unknown>)[
+        "statusPagesNotifiedOnCreation"
+      ] !== undefined
+    ) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+      },
+    });
+
+    const someIncidentWouldReachNobody: boolean = incidents.some(
+      (incident: Model): boolean => {
+        return ![
+          StatusPageSubscriberNotificationStatus.Failed,
+          StatusPageSubscriberNotificationStatus.Pending,
+          StatusPageSubscriberNotificationStatus.InProgress,
+        ].includes(
+          incident.subscriberNotificationStatusOnIncidentCreated as StatusPageSubscriberNotificationStatus,
+        );
+      },
+    );
+
+    if (someIncidentWouldReachNobody) {
+      updateBy.data.statusPagesNotifiedOnCreation = [];
+    }
+  }
+
+  /*
    * Publishing a hidden incident can announce it: when the editor turns
    * 'Visible on Status Page' on and ticks "Notify subscribers that this
    * incident was created" (see IncidentCreatedRenotify), the incident's
    * 'created' notification goes back to Pending, and the
    * Incident:SendNotificationToSubscribers job sends it now that the incident
-   * is visible.
+   * is visible - to the pages its record of told pages does not list, so an
+   * incident whose notification went out before it was hidden tells only the
+   * pages added while it was hidden.
    *
-   * It only ever re-queues a notification that was Skipped for an incident
-   * that is hidden today, not private, and meant to notify on creation, so a
-   * stray request cannot email subscribers twice or break a deliberate
-   * "don't notify". The status is written into this same update, so it lands
-   * together with the visibility change or not at all. The column (and its
-   * message) are computed, but their update ACL lists the incident roles, so
-   * a non-root edit still passes the column check that runs after this hook.
+   * It only ever re-queues a notification with someone left to tell, for an
+   * incident that is hidden today, not private, and meant to notify on
+   * creation, so a stray request cannot email subscribers twice or break a
+   * deliberate "don't notify". The status is written into this same update,
+   * so it lands together with the visibility change or not at all. The
+   * column (and its message) are computed, but their update ACL lists the
+   * incident roles, so a non-root edit still passes the column check that
+   * runs after this hook.
    *
    * An update that sets the status itself - the API route of resetting it to
    * Pending, or the notify-on-create flag above - is left alone. An update
@@ -660,26 +830,18 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    /*
-     * Read as root: the answer only decides whether two columns join this
-     * update, and the update itself is still checked against the caller's
-     * permissions and tenant afterwards. Reading with the caller's props
-     * would fail the whole edit for a role that may edit incidents but not
-     * read these columns.
-     */
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
       select: {
         _id: true,
         isVisibleOnStatusPage: true,
         isPrivate: true,
         subscriberNotificationStatusOnIncidentCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
+        statusPagesNotifiedOnCreation: true,
+        statusPages: {
+          _id: true,
+        },
       },
     });
 
@@ -700,13 +862,19 @@ export class Service extends DatabaseService<Model> {
             incident.subscriberNotificationStatusOnIncidentCreated,
           shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
             incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+          // The pages it is limited to once this update is written.
+          statusPages:
+            updateBy.data.statusPages !== undefined
+              ? updateBy.data.statusPages
+              : incident.statusPages,
+          statusPagesNotifiedOnCreation: incident.statusPagesNotifiedOnCreation,
         });
       },
     );
 
     if (!everyIncidentQualifies) {
       logger.debug(
-        `Not re-queueing the incident created notification on publish: ${incidents.length} incident(s) matched and not all of them were hidden, skipped and set to notify subscribers.`,
+        `Not re-queueing the incident created notification on publish: ${incidents.length} incident(s) matched and not all of them were hidden, set to notify subscribers and had subscribers left to tell.`,
       );
       return;
     }
@@ -730,8 +898,24 @@ export class Service extends DatabaseService<Model> {
    * the pages it told. A client must not be able to seed it and so keep pages
    * from ever hearing about the incident; only root (internal) callers keep
    * what they send.
+   *
+   * The pages a non-root caller picks must be pages they can read (see
+   * StatusPageReadAccess), except the pages of an incident template they can
+   * read: the dashboard fills a template's pages in for everyone who declares
+   * from it, which is what the template is for. Pages copied from a template
+   * on the server are not the caller's pick. That is checked once the pages
+   * are known to be the project's (assertCallerCanPickStatusPagesOnCreate).
+   *
+   * `isScopedToNothingByTemplate`: declared through the API from a template
+   * whose status pages were all deleted. The incident is scoped with no
+   * pages - hidden from every status page - rather than unscoped.
    */
-  private applyStatusPageScopeToCreate(createBy: CreateBy<Model>): void {
+  private applyStatusPageScopeToCreate(data: {
+    createBy: CreateBy<Model>;
+    isScopedToNothingByTemplate?: boolean | undefined;
+  }): void {
+    const createBy: CreateBy<Model> = data.createBy;
+
     if (!createBy.props.isRoot) {
       delete createBy.data.statusPagesNotifiedOnCreation;
     }
@@ -748,7 +932,136 @@ export class Service extends DatabaseService<Model> {
       createBy.data.statusPages = this.toStatusPageStubs(statusPageIds);
     }
 
-    createBy.data.isScopedToStatusPages = statusPageIds.length > 0;
+    createBy.data.isScopedToStatusPages =
+      statusPageIds.length > 0 || data.isScopedToNothingByTemplate === true;
+  }
+
+  /*
+   * The pages a non-root caller picks for a new incident must be pages they
+   * can read (see applyStatusPageScopeToCreate). Runs after the project check,
+   * so another project's page, or one that does not exist, is reported as
+   * such rather than as a page the caller cannot read.
+   */
+  private async assertCallerCanPickStatusPagesOnCreate(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID;
+    statusPagesFromCaller: boolean;
+  }): Promise<void> {
+    const createBy: CreateBy<Model> = data.createBy;
+
+    const statusPageIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      );
+
+    if (
+      createBy.props.isRoot ||
+      !data.statusPagesFromCaller ||
+      statusPageIds.length === 0
+    ) {
+      return;
+    }
+
+    const readableStatusPageIds: Array<string> =
+      await StatusPageReadAccess.getReadableStatusPageIds({
+        statusPageIds: statusPageIds,
+        props: createBy.props,
+      });
+
+    let unreadableStatusPageIds: Array<string> = statusPageIds.filter(
+      (id: string): boolean => {
+        return !readableStatusPageIds.includes(id);
+      },
+    );
+
+    if (unreadableStatusPageIds.length > 0) {
+      const templateStatusPageIds: Array<string> =
+        await this.getStatusPageIdsOfTemplatesReadableByCaller({
+          projectId: data.projectId,
+          props: createBy.props,
+        });
+
+      unreadableStatusPageIds = unreadableStatusPageIds.filter(
+        (id: string): boolean => {
+          return !templateStatusPageIds.includes(id);
+        },
+      );
+    }
+
+    if (unreadableStatusPageIds.length > 0) {
+      throw new NotAuthorizedException(
+        StatusPageReadAccess.getRefusalMessage("incident"),
+      );
+    }
+  }
+
+  /*
+   * The status pages the incident templates the caller can read are limited
+   * to. Such a page may be picked for a new incident without reading it:
+   * declaring from the template picks it anyway. The templates are read with
+   * the caller's permissions (and labels); their pages as root. A caller who
+   * cannot read templates at all gets none.
+   */
+  private async getStatusPageIdsOfTemplatesReadableByCaller(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    let templates: Array<IncidentTemplate> = [];
+
+    try {
+      templates = await IncidentTemplateService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+    } catch (err) {
+      // No access to templates (or not on a plan that has them): no pages.
+      logger.debug(
+        `Could not read the caller's incident templates while checking the status pages of a new incident: ${err}`,
+      );
+      return [];
+    }
+
+    if (templates.length === 0) {
+      return [];
+    }
+
+    const templatesWithPages: Array<IncidentTemplate> =
+      await IncidentTemplateService.findBy({
+        query: {
+          _id: QueryHelper.any(
+            templates.map((template: IncidentTemplate): string => {
+              return template.id!.toString();
+            }),
+          ),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          statusPages: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+      templatesWithPages.flatMap(
+        (template: IncidentTemplate): Array<StatusPage> => {
+          return template.statusPages || [];
+        },
+      ),
+    );
   }
 
   /*
@@ -757,21 +1070,26 @@ export class Service extends DatabaseService<Model> {
    * caller's own update, so the list, the flag and a re-queued notification
    * land together or not at all:
    *
-   * - isScopedToStatusPages is derived from the list the update writes, and
-   *   a value the caller sent for it is dropped. Nothing else ever sets it,
-   *   and it is never recomputed when join rows disappear: deleting the only
-   *   page an incident is scoped to leaves it scoped to nothing, hidden from
-   *   every page, rather than widened to all of them;
+   * - isScopedToStatusPages is derived from the list the update writes (a
+   *   value the caller sent for it was dropped by
+   *   stripServiceOwnedScopeColumns). Nothing else ever sets it, and it is
+   *   never recomputed when join rows disappear: deleting the only page an
+   *   incident is scoped to leaves it scoped to nothing, hidden from every
+   *   page, rather than widened to all of them;
    * - a non-root caller's list is topped up with the pages the incident is
    *   scoped to that the caller cannot read. Status pages are label-scoped,
    *   so an editor may see only some of an incident's pages, and a list write
    *   replaces the whole list (the dashboard sends back what the editor
    *   sees). Without this, saving the incident would silently drop every page
    *   the editor was not shown;
+   * - the pages a non-root caller adds must be pages they can read (see
+   *   StatusPageReadAccess);
    * - with IncidentScopeAddedPagesNotification requested, the 'created'
    *   notification is queued again for the pages the update adds;
    * - what was added and removed is carried forward for the feed item
-   *   onUpdateSuccess writes.
+   *   onUpdateSuccess writes, and so is whether the notification was on its
+   *   way already, which onUpdateSuccess checks again once the pages are
+   *   written.
    *
    * The flag and the notification columns are computed, but their update
    * access control lists every role that may edit statusPages, so a non-root
@@ -783,24 +1101,12 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
 
-    delete data["isScopedToStatusPages"];
-
-    if (!updateBy.props.isRoot) {
-      delete data["statusPagesNotifiedOnCreation"];
-    }
-
     if (data["statusPages"] === undefined) {
       return;
     }
 
-    /*
-     * Read as root: this only decides what joins the caller's update, and the
-     * update itself is still checked against the caller's permissions and
-     * tenant afterwards. The query already carries the caller's privacy
-     * filter.
-     */
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
       select: {
         _id: true,
         statusPages: {
@@ -810,11 +1116,7 @@ export class Service extends DatabaseService<Model> {
         isPrivate: true,
         subscriberNotificationStatusOnIncidentCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
+        statusPagesNotifiedOnCreation: true,
       },
     });
 
@@ -837,10 +1139,21 @@ export class Service extends DatabaseService<Model> {
       }),
     ];
 
+    if (!updateBy.props.isRoot) {
+      await StatusPageReadAccess.assertCallerCanPickStatusPages({
+        statusPageIds: this.getStatusPageIdsAddedToAny({
+          incidents: incidents,
+          statusPageIds: statusPageIds,
+        }),
+        props: updateBy.props,
+        subject: "incident",
+      });
+    }
+
     data["statusPages"] = this.toStatusPageStubs(statusPageIds);
     data["isScopedToStatusPages"] = statusPageIds.length > 0;
 
-    const actions: Dictionary<IncidentScopeAddedPagesNotificationAction> = {};
+    const decisions: Array<AddedStatusPagesDecision> = [];
 
     for (const incident of incidents) {
       const incidentId: string = incident.id!.toString();
@@ -849,6 +1162,27 @@ export class Service extends DatabaseService<Model> {
         IncidentScopeAddedPagesNotification.getScopeChange({
           before: incident.statusPages,
           after: statusPageIds,
+        });
+
+      const action: IncidentScopeAddedPagesNotificationAction =
+        IncidentScopeAddedPagesNotification.getAction({
+          addedStatusPageIds: change.addedStatusPageIds,
+          incident: {
+            subscriberNotificationStatusOnIncidentCreated:
+              incident.subscriberNotificationStatusOnIncidentCreated,
+            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            isVisibleOnStatusPage: this.getValueAfterUpdate(
+              updateBy.data.isVisibleOnStatusPage,
+              incident.isVisibleOnStatusPage,
+            ),
+            isPrivate: this.getValueAfterUpdate(
+              updateBy.data.isPrivate,
+              incident.isPrivate,
+            ),
+            statusPagesNotifiedOnCreation:
+              incident.statusPagesNotifiedOnCreation,
+          },
         });
 
       carryForward[incidentId] = {
@@ -861,33 +1195,62 @@ export class Service extends DatabaseService<Model> {
           ...change,
           isScoped: statusPageIds.length > 0,
           notificationQueued: false,
+          /*
+           * On its way already, and nothing in this update sets the status:
+           * onUpdateSuccess makes sure the send did not finish without the
+           * added pages in the meantime.
+           */
+          notificationAlreadyQueued:
+            action ===
+              IncidentScopeAddedPagesNotificationAction.AlreadyQueued &&
+            updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+              undefined,
         },
       };
 
-      actions[incidentId] = IncidentScopeAddedPagesNotification.getAction({
-        addedStatusPageIds: change.addedStatusPageIds,
-        incident: {
-          subscriberNotificationStatusOnIncidentCreated:
-            incident.subscriberNotificationStatusOnIncidentCreated,
-          shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-            incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
-          isVisibleOnStatusPage: this.getValueAfterUpdate(
-            updateBy.data.isVisibleOnStatusPage,
-            incident.isVisibleOnStatusPage,
-          ),
-          isPrivate: this.getValueAfterUpdate(
-            updateBy.data.isPrivate,
-            incident.isPrivate,
-          ),
-        },
+      decisions.push({
+        incidentId: incidentId,
+        action: action,
+        recordToSeed:
+          action === IncidentScopeAddedPagesNotificationAction.Queue
+            ? IncidentScopeAddedPagesNotification.getRecordToSeedOnQueue({
+                statusPagesNotifiedOnCreation:
+                  incident.statusPagesNotifiedOnCreation,
+                statusPageIdsBeforeUpdate: incident.statusPages,
+              })
+            : undefined,
       });
     }
 
     this.queueCreatedNotificationForAddedStatusPagesIfRequested({
       updateBy: updateBy,
-      actions: actions,
+      decisions: decisions,
       carryForward: carryForward,
     });
+  }
+
+  /*
+   * The pages an update writing `statusPageIds` adds to at least one of the
+   * incidents it matches.
+   */
+  private getStatusPageIdsAddedToAny(data: {
+    incidents: Array<Model>;
+    statusPageIds: Array<string>;
+  }): Array<string> {
+    const added: Array<string> = [];
+
+    for (const incident of data.incidents) {
+      for (const id of IncidentScopeAddedPagesNotification.getScopeChange({
+        before: incident.statusPages,
+        after: data.statusPageIds,
+      }).addedStatusPageIds) {
+        if (!added.includes(id)) {
+          added.push(id);
+        }
+      }
+    }
+
+    return added;
   }
 
   /*
@@ -897,15 +1260,21 @@ export class Service extends DatabaseService<Model> {
    * has no record of telling (Incident.statusPagesNotifiedOnCreation). See
    * IncidentScopeAddedPagesNotification.getAction for when it applies.
    *
+   * A notification that was never sent has no record yet, so the pages the
+   * incident was limited to before are written in as the record in the same
+   * write (getRecordToSeedOnQueue): the job then tells only the added pages.
+   *
    * An update that sets the status itself - the API route of resetting it to
    * Pending, the notify-on-create flag, or publishing a hidden incident - is
    * left alone. An update that matches several incidents queues only when it
    * may for every one of them, because the write applies the same data to
-   * all; one of them being sent right now refuses the whole update.
+   * all. For the same reason it cannot write a record that differs between
+   * them, or overwrite the record of an incident that has one, and is refused
+   * instead.
    */
   private queueCreatedNotificationForAddedStatusPagesIfRequested(data: {
     updateBy: UpdateBy<Model>;
-    actions: Dictionary<IncidentScopeAddedPagesNotificationAction>;
+    decisions: Array<AddedStatusPagesDecision>;
     carryForward: UpdateCarryForward;
   }): void {
     const updateBy: UpdateBy<Model> = data.updateBy;
@@ -923,13 +1292,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     const actions: Array<IncidentScopeAddedPagesNotificationAction> =
-      Object.values(data.actions);
-
-    if (actions.includes(IncidentScopeAddedPagesNotificationAction.Reject)) {
-      throw new BadDataException(
-        IncidentScopeAddedPagesNotification.rejectedWhileSendingMessage,
+      data.decisions.map(
+        (
+          decision: AddedStatusPagesDecision,
+        ): IncidentScopeAddedPagesNotificationAction => {
+          return decision.action;
+        },
       );
-    }
 
     if (!actions.includes(IncidentScopeAddedPagesNotificationAction.Queue)) {
       return;
@@ -951,21 +1320,130 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    const recordsToSeed: Array<Array<string>> = data.decisions
+      .map((decision: AddedStatusPagesDecision): Array<string> | undefined => {
+        return decision.recordToSeed;
+      })
+      .filter((record: Array<string> | undefined): boolean => {
+        return record !== undefined;
+      }) as Array<Array<string>>;
+
+    if (recordsToSeed.length > 0) {
+      const recordToSeed: Array<string> = recordsToSeed[0]!;
+
+      const everyIncidentTakesTheSameRecord: boolean =
+        recordsToSeed.length === data.decisions.length &&
+        recordsToSeed.every((record: Array<string>): boolean => {
+          return (
+            [...record].sort().join(",") === [...recordToSeed].sort().join(",")
+          );
+        });
+
+      if (!everyIncidentTakesTheSameRecord) {
+        throw new BadDataException(
+          "These incidents cannot be sent the incident-created notification for their added status pages together: they were limited to different status pages, or not all of them were ever announced. Change them one at a time.",
+        );
+      }
+
+      updateBy.data.statusPagesNotifiedOnCreation = recordToSeed;
+    }
+
     updateBy.data.subscriberNotificationStatusOnIncidentCreated =
       StatusPageSubscriberNotificationStatus.Pending;
     updateBy.data.subscriberNotificationStatusMessage =
       IncidentScopeAddedPagesNotification.queuedMessage;
 
-    for (const [incidentId, action] of Object.entries(data.actions)) {
+    for (const decision of data.decisions) {
       const scopeChange: StatusPageScopeCarryForward | undefined =
-        data.carryForward[incidentId]?.statusPageScopeChange;
+        data.carryForward[decision.incidentId]?.statusPageScopeChange;
 
       if (
         scopeChange &&
-        action === IncidentScopeAddedPagesNotificationAction.Queue
+        decision.action === IncidentScopeAddedPagesNotificationAction.Queue
       ) {
         scopeChange.notificationQueued = true;
       }
+    }
+  }
+
+  /*
+   * An update that added pages while the 'created' notification was Pending
+   * or being sent left the status alone: the queued send reads the scope when
+   * it goes out, and a running send reads it again once it has finished (see
+   * the Incident:SendNotificationToSubscribers job). One case slips between
+   * the two: the whole send started after this update read the status and
+   * finished before it wrote the pages. Once the pages are written, this
+   * checks for exactly that - the send finished, and an added page is not in
+   * its record - and queues the notification again for the pages it missed.
+   *
+   * Never throws: the update is already written.
+   */
+  private async requeueCreatedNotificationIfAddedPagesWereMissed(data: {
+    incidentId: ObjectID;
+    change: StatusPageScopeCarryForward | undefined;
+  }): Promise<void> {
+    if (
+      !data.change?.notificationAlreadyQueued ||
+      data.change.addedStatusPageIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const incident: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          subscriberNotificationStatusOnIncidentCreated: true,
+          statusPagesNotifiedOnCreation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        incident?.subscriberNotificationStatusOnIncidentCreated !==
+        StatusPageSubscriberNotificationStatus.Success
+      ) {
+        // Still on its way (it will see the pages), or settled otherwise.
+        return;
+      }
+
+      const recorded: Array<string> =
+        IncidentScopeAddedPagesNotification.getRecordedStatusPageIds(
+          incident.statusPagesNotifiedOnCreation,
+        ) || [];
+
+      const missed: boolean = data.change.addedStatusPageIds.some(
+        (id: string): boolean => {
+          return !recorded.includes(id);
+        },
+      );
+
+      if (!missed) {
+        return;
+      }
+
+      await this.updateOneById({
+        id: data.incidentId,
+        data: {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            IncidentScopeAddedPagesNotification.queuedMessage,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to check whether the incident created notification reached the status pages added to the incident: ${err}`,
+        {
+          incidentId: data.incidentId?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 
@@ -999,7 +1477,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     const readableIds: Array<string> =
-      await this.getStatusPageIdsReadableByCaller({
+      await StatusPageReadAccess.getReadableStatusPageIds({
         statusPageIds: heldIds,
         props: data.props,
       });
@@ -1029,40 +1507,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return hiddenIds;
-  }
-
-  /*
-   * Which of these status pages the caller can read, through the status page
-   * permissions and labels they actually hold. A caller with no status page
-   * read access at all can read none of them.
-   */
-  private async getStatusPageIdsReadableByCaller(data: {
-    statusPageIds: Array<string>;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<Array<string>> {
-    try {
-      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
-        query: {
-          _id: QueryHelper.any(data.statusPageIds),
-        },
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: data.props,
-      });
-
-      return IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
-        statusPages,
-      );
-    } catch (err) {
-      if (err instanceof NotAuthorizedException) {
-        return [];
-      }
-
-      throw err;
-    }
   }
 
   private toStatusPageStubs(statusPageIds: Array<string>): Array<StatusPage> {
@@ -1293,6 +1737,14 @@ export class Service extends DatabaseService<Model> {
       createBy.props.tenantId || createBy.data.projectId!;
 
     /*
+     * Status pages the caller picked, as opposed to ones copied from a
+     * template below (see applyStatusPageScopeToCreate).
+     */
+    const statusPagesFromCaller: boolean =
+      createBy.data.statusPages !== undefined &&
+      createBy.data.statusPages !== null;
+
+    /*
      * Declaring the incident from alerts. The alert ids are checked here,
      * before the incident number is taken and before anything is written, so
      * a bad id (a typo, another project's alert, an alert the caller cannot
@@ -1344,6 +1796,9 @@ export class Service extends DatabaseService<Model> {
 
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
+
+    // Declared from a template whose status pages were all deleted.
+    let isScopedToNothingByTemplate: boolean = false;
 
     // If currentIncidentStateId is already provided (manual selection), use it
     if (createBy.data.currentIncidentStateId) {
@@ -1401,6 +1856,7 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicies: { _id: true },
             labels: { _id: true },
             statusPages: { _id: true },
+            isScopedToStatusPages: true,
           },
           props: {
             isRoot: true,
@@ -1560,12 +2016,23 @@ export class Service extends DatabaseService<Model> {
           );
           if (stubs && stubs.length > 0) {
             createBy.data.statusPages = stubs;
+          } else if (incidentTemplate.isScopedToStatusPages) {
+            /*
+             * A template limited to status pages that have all been deleted
+             * since. Its incidents stay limited - to nothing - like an
+             * incident whose pages were deleted, rather than reaching every
+             * page that lists their monitors.
+             */
+            isScopedToNothingByTemplate = true;
           }
         }
       }
     }
 
-    this.applyStatusPageScopeToCreate(createBy);
+    this.applyStatusPageScopeToCreate({
+      createBy: createBy,
+      isScopedToNothingByTemplate: isScopedToNothingByTemplate,
+    });
 
     // If no custom state is provided or found, fall back to default created state
     if (!initialIncidentStateId) {
@@ -1653,6 +2120,13 @@ export class Service extends DatabaseService<Model> {
         serviceLevelObjectives: createBy.data.serviceLevelObjectives,
       },
     );
+
+    // Before the counter increment too, like the checks above.
+    await this.assertCallerCanPickStatusPagesOnCreate({
+      createBy: createBy,
+      projectId: projectId,
+      statusPagesFromCaller: statusPagesFromCaller,
+    });
 
     const incidentCounterResult: {
       counter: number;
@@ -3519,6 +3993,11 @@ ${incidentSeverity.name}
               feedInfoInMarkdown += statusPageScopeMarkdown;
               shouldAddIncidentFeed = true;
             }
+
+            await this.requeueCreatedNotificationIfAddedPagesWereMissed({
+              incidentId: incidentId,
+              change: incidentCarryForward.statusPageScopeChange,
+            });
 
             if (
               incidentCarryForward.oldChangeMonitorStatusIdTo &&

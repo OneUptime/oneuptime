@@ -17,7 +17,9 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  * ModelForm only sends it while ticked, so an unticked box asks for nothing.
  *
  * The page offers it only for an incident that could be re-notified at all
- * (hidden, skipped, set to notify, not private), and the box itself only
+ * (hidden, set to notify, not private, and either skipped or limited to
+ * status pages that were never told, such as pages added while it was
+ * hidden), with the description for that case, and the box itself only
  * appears once the toggle is switched on and the incident is not being made
  * private in the same edit.
  *
@@ -27,8 +29,11 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  */
 export const getIncidentCreatedRenotifyFormField: (data: {
   tickedByDefault: boolean;
+  // IncidentCreatedRenotify.getFormFieldDescription for the incident.
+  description?: string | undefined;
 }) => ModelField<Incident> = (data: {
   tickedByDefault: boolean;
+  description?: string | undefined;
 }): ModelField<Incident> => {
   return {
     overrideField: {
@@ -38,7 +43,8 @@ export const getIncidentCreatedRenotifyFormField: (data: {
     showEvenIfPermissionDoesNotExist: true,
     doNotShowWhenCreating: true,
     title: IncidentCreatedRenotify.formFieldTitle,
-    description: IncidentCreatedRenotify.formFieldDescription,
+    description:
+      data.description || IncidentCreatedRenotify.formFieldDescription,
     fieldType: FormFieldSchemaType.Checkbox,
     required: false,
     defaultValue: data.tickedByDefault,
