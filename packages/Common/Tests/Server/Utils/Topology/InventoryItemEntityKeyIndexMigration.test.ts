@@ -42,6 +42,8 @@ interface Catalog {
   pages: number;
   /* What the bounded count answers when the statistics are unknown. */
   counted?: number;
+  /* An online (CONCURRENTLY) build of the index is running right now. */
+  building?: boolean;
 }
 
 const SMALL: Catalog = {
@@ -59,6 +61,9 @@ async function record(
   const queryRunner: QueryRunner = {
     query: async (sql: string, params?: Array<unknown>): Promise<unknown> => {
       recorded.push({ sql, params });
+      if (sql.includes("pg_stat_progress_create_index")) {
+        return catalog.building ? [{ "?column?": 1 }] : [];
+      }
       if (sql.includes("pg_index")) {
         return catalog.index === "absent"
           ? []
@@ -187,10 +192,27 @@ describe("InventoryItem (projectId, entityKey) index", () => {
       `SET LOCAL statement_timeout = DEFAULT`,
       `SET LOCAL lock_timeout = '5s'`,
       expect.stringContaining("pg_index"),
+      expect.stringContaining("pg_stat_progress_create_index"),
       DROP,
       expect.stringContaining("reltuples"),
       CREATE,
     ]);
+  });
+
+  /*
+   * A CONCURRENTLY build that is still running is INVALID until it finishes.
+   * Dropping it would queue for ACCESS EXCLUSIVE behind the build and stall
+   * every reader and writer of InventoryItem, so it is left alone.
+   */
+  test("up(): an online build still in progress is neither dropped nor raced", async () => {
+    const warn: WarnSpy = silenceWarnings();
+    const statements: Array<string> = statementsOf(
+      await up({ ...SMALL, index: "invalid", building: true }),
+    );
+    expect(statements).not.toContain(DROP);
+    expect(statements.join(" ")).not.toContain("CREATE INDEX");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain("in progress");
   });
 
   test("up() on a table too large to index inline: no build, a warning with the runbook", async () => {
@@ -291,7 +313,7 @@ describe("InventoryItem (projectId, entityKey) index", () => {
     expect(statementsOf(recorded)).toContain(CREATE);
   });
 
-  test("down() drops exactly that index", async () => {
+  test("down() drops exactly that index, without waiting long for its lock", async () => {
     const recorded: Array<Recorded> = await record(
       SMALL,
       async (queryRunner: QueryRunner): Promise<void> => {
@@ -300,7 +322,11 @@ describe("InventoryItem (projectId, entityKey) index", () => {
         );
       },
     );
-    expect(statementsOf(recorded)).toEqual([DROP]);
+    expect(statementsOf(recorded)).toEqual([
+      `SET LOCAL statement_timeout = DEFAULT`,
+      `SET LOCAL lock_timeout = '5s'`,
+      DROP,
+    ]);
   });
 
   describe("registration", () => {

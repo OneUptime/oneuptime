@@ -78,6 +78,13 @@ export const INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX_RUNBOOK: string = `CREATE I
  * name, which IF NOT EXISTS would otherwise accept forever; such a leftover
  * is dropped here first (so the runbook works as written afterwards) and
  * rebuilt when the table is small enough.
+ *
+ * An online build that is still RUNNING looks exactly like that leftover
+ * (pg_index.indisvalid is false until it finishes). Dropping it would queue
+ * for an ACCESS EXCLUSIVE lock behind the build and stall every reader and
+ * writer of InventoryItem meanwhile, so a build in progress
+ * (pg_stat_progress_create_index) is left to finish and this migration
+ * completes without touching it.
  */
 export class AddInventoryItemProjectEntityKeyIndex1795200000000
   implements MigrationInterface
@@ -111,6 +118,12 @@ export class AddInventoryItemProjectEntityKeyIndex1795200000000
     }
 
     if (existing.length > 0) {
+      if (await this.isBuildInProgress(queryRunner)) {
+        logger.warn(
+          `AddInventoryItemProjectEntityKeyIndex: an online build of ${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX} is in progress; leaving it to finish. If that build fails, drop the INVALID index it leaves behind and run again: ${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX_RUNBOOK};`,
+        );
+        return;
+      }
       await queryRunner.query(
         `DROP INDEX IF EXISTS "${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX}"`,
       );
@@ -133,9 +146,27 @@ export class AddInventoryItemProjectEntityKeyIndex1795200000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    /*
+     * DROP INDEX takes ACCESS EXCLUSIVE on the table; waiting for it would
+     * park every reader and writer of InventoryItem behind this statement.
+     */
+    await queryRunner.query(`SET LOCAL statement_timeout = DEFAULT`);
+    await queryRunner.query(`SET LOCAL lock_timeout = '5s'`);
     await queryRunner.query(
       `DROP INDEX IF EXISTS "${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX}"`,
     );
+  }
+
+  /* Whether a CREATE INDEX (CONCURRENTLY) of this index is running now. */
+  private async isBuildInProgress(queryRunner: QueryRunner): Promise<boolean> {
+    const builds: Array<unknown> = await queryRunner.query(
+      `SELECT 1 FROM pg_stat_progress_create_index p
+       JOIN pg_class c ON c.oid = p.index_relid
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE c.relname = $1 AND n.nspname = current_schema()`,
+      [INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX],
+    );
+    return builds.length > 0;
   }
 
   /*

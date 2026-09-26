@@ -329,15 +329,98 @@ describePostgres(
       ]);
     });
 
-    test("down() drops it", async () => {
+    /*
+     * An operator's CONCURRENTLY build that is still running is INVALID
+     * until it finishes. Dropping it would queue for ACCESS EXCLUSIVE behind
+     * the build and stall every reader and writer of the table, so the
+     * migration must leave it alone and complete at once.
+     */
+    test("an online build still in progress is left to finish, never dropped", async () => {
+      await seed(3);
+      const writer: QueryRunner = database.createQueryRunner();
+      const builder: QueryRunner = database.createQueryRunner();
+      await writer.connect();
+      await builder.connect();
+      try {
+        // An open writer makes CONCURRENTLY wait with its index INVALID.
+        await writer.startTransaction();
+        await writer.query(
+          `INSERT INTO "InventoryItem"
+            ("_id", "createdAt", "updatedAt", "version", "projectId", "entityType",
+             "entityKey", "displayName", "source", "lastSeenAt", "isArchived")
+           VALUES (gen_random_uuid(), now(), now(), 1, $1, 'type-w', 'key-w',
+             'writer', 'discovered', now(), false)`,
+          [projectId],
+        );
+        const build: Promise<unknown> = builder.query(
+          `CREATE INDEX CONCURRENTLY "${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX}" ON "InventoryItem" ("projectId", "entityKey")`,
+        );
+
+        let inProgress: boolean = false;
+        for (let attempt: number = 0; attempt < 50 && !inProgress; attempt++) {
+          const rows: Array<unknown> = await database.query(
+            `SELECT 1 FROM pg_stat_progress_create_index p
+             JOIN pg_class c ON c.oid = p.index_relid
+             WHERE c.relname = $1`,
+            [INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX],
+          );
+          inProgress = rows.length > 0;
+          if (!inProgress) {
+            await new Promise<void>((resolve: () => void): void => {
+              setTimeout(resolve, 100);
+            });
+          }
+        }
+        expect(inProgress).toBe(true);
+        expect(await indexes()).toEqual([
+          expect.objectContaining({ isValid: false }),
+        ]);
+
+        const warn: { mock: { calls: Array<Array<unknown>> } } =
+          silenceWarnings();
+        const startedAt: number = Date.now();
+        const run: Run = await runUp(10);
+        expect(Date.now() - startedAt).toBeLessThan(3_000);
+        expect(run.statements).not.toContain(
+          `DROP INDEX IF EXISTS "${INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX}"`,
+        );
+        expect(created(run)).toBe(false);
+        expect(String(warn.mock.calls[0]![0])).toContain("in progress");
+
+        await writer.commitTransaction();
+        await build;
+        expect(await indexes()).toEqual([
+          expect.objectContaining({
+            name: INVENTORY_ITEM_PROJECT_ENTITY_KEY_INDEX,
+            isValid: true,
+            isUnique: false,
+          }),
+        ]);
+      } finally {
+        if (writer.isTransactionActive) {
+          await writer.rollbackTransaction();
+        }
+        await writer.release();
+        await builder.release();
+      }
+    });
+
+    test("down() drops it, inside its own transaction as TypeORM runs it", async () => {
       await seed(1);
       await runUp(10);
       expect(await indexes()).toHaveLength(1);
       const queryRunner: QueryRunner = database.createQueryRunner();
+      await queryRunner.connect();
       try {
+        await queryRunner.startTransaction();
         await new AddInventoryItemProjectEntityKeyIndex1795200000000().down(
           queryRunner,
         );
+        const lockTimeout: Array<{ value: string }> = await queryRunner.query(
+          `SELECT current_setting('lock_timeout') AS "value"`,
+        );
+        expect(lockTimeout[0]!.value).toBe("5s");
+        await queryRunner.commitTransaction();
       } finally {
         await queryRunner.release();
       }
