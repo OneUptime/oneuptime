@@ -116,6 +116,7 @@ import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleS
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
+import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -499,6 +500,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the same refresh for them.
    */
   new ScheduleRemindersMissedByReminderRuleLookup(),
+  /*
+   * The Kubernetes dashboard template's "Cluster CPU (cores in use)" tile
+   * summed the k8s.node.cpu.usage gauge over every node, scrape and bucket,
+   * so it read hundreds of cores on a small cluster once the agent chart
+   * started emitting that metric. The template now ships the busiest node's
+   * peak (Max). Rewrites the tile on dashboards already created from the
+   * template, matching its exact title, metric and Sum only; a tile the user
+   * renamed or re-aggregated is left alone. Compare-and-set per dashboard, so
+   * a concurrent save wins. Idempotent.
+   */
+  new RepairKubernetesDashboardClusterCpuTile(),
 ];
 
 export default DataMigrations;
