@@ -49,6 +49,7 @@ import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorSta
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
+import FetchIncidentState from "../../Components/IncidentState/FetchIncidentState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -1109,7 +1110,13 @@ const IncidentCreate: FunctionComponent<
                       return <p>Will use first available state by priority</p>;
                     }
 
-                    return <p>Initial state will be set to selected state</p>;
+                    return (
+                      <FetchIncidentState
+                        incidentStateId={
+                          new ObjectID(item.currentIncidentState.toString())
+                        }
+                      />
+                    );
                   },
                 },
                 {
