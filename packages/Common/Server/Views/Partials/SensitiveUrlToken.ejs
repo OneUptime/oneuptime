@@ -4,7 +4,8 @@
 
     Password reset and email verification links carry their token in the URL
     *path* — /accounts/reset-password/<token>, /accounts/verify-email/<token>,
-    /reset-password/<token> on a status page. Every analytics and advertising
+    /reset-password/<token> on a status page — and so does the unsubscribe
+    link in every status page notification, /unsubscribe/<subscriberId>-<token>. Every analytics and advertising
     tag on the page reports the page URL as a matter of course, so the token
     left the browser to whoever the container happened to be loading. Measured
     on production before this partial existed, a single visit to
@@ -51,12 +52,14 @@
         var STORAGE_KEY = "oneuptime-sensitive-url-token";
 
         /*
-         * Route segments whose NEXT path segment is a single-use bearer token.
-         * Matched against the second-to-last segment, so this covers
+         * Route segments whose NEXT path segment is a bearer token. Matched
+         * against the second-to-last segment, so this covers
          * /accounts/reset-password/<token>, /reset-password/<token> and
-         * /status-page/<id>/reset-password/<token> alike.
+         * /status-page/<id>/reset-password/<token> alike. "unsubscribe" is a
+         * status page subscriber's unsubscribe link, whose last segment is
+         * <subscriberId>-<token> (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
          */
-        var TOKEN_ROUTES = ["reset-password", "verify-email"];
+        var TOKEN_ROUTES = ["reset-password", "verify-email", "unsubscribe"];
 
         function segmentsOf(pathname) {
             var parts = String(pathname || "").split("/");

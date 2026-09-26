@@ -11,6 +11,7 @@ import {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { StatusPageSubscriberUnsubscribeSource } from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import { mockRouter } from "./Helpers";
 import {
   beforeAll,
@@ -96,8 +97,10 @@ describe("StatusPageAPI subscriber ownership", () => {
 
   const callUpdateSubscription: (data: {
     statusPageId: ObjectID;
+    isUnsubscribed?: boolean;
   }) => Promise<void> = async (data: {
     statusPageId: ObjectID;
+    isUnsubscribed?: boolean;
   }): Promise<void> => {
     const request: ExpressRequest = {
       params: {
@@ -106,7 +109,7 @@ describe("StatusPageAPI subscriber ownership", () => {
       },
       body: {
         data: {
-          isUnsubscribed: true,
+          isUnsubscribed: data.isUnsubscribed ?? true,
           isSubscribedToAllResources: true,
         },
       },
@@ -205,6 +208,10 @@ describe("StatusPageAPI subscriber ownership", () => {
       .spyOn(StatusPageSubscriberService, "create")
       .mockResolvedValue(victimSubscriber as never);
 
+    jest
+      .spyOn(StatusPageSubscriberService, "unsubscribe")
+      .mockResolvedValue(true);
+
     mockResponse = {
       cookie: jest.fn(),
       send: jest.fn(),
@@ -263,7 +270,39 @@ describe("StatusPageAPI subscriber ownership", () => {
         StatusPageSubscriberService.updateOneById as unknown as jest.Mock
       ).mock.calls[0]![0] as { id: ObjectID; data: JSONObject };
       expect(updateArgs.id.toString()).toBe(subscriberId.toString());
-      expect(updateArgs.data["isUnsubscribed"]).toBe(true);
+
+      /*
+       * Cancelling goes through unsubscribe(), like the unsubscribe link: it
+       * records Unsubscribed At once and tells the team about a subscriber
+       * it added. The preferences update does not write the flag itself.
+       */
+      expect(updateArgs.data["isUnsubscribed"]).toBeUndefined();
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledTimes(1);
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledWith({
+        subscriberId: subscriberId,
+        source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+      });
+    });
+
+    it("subscribes again through the manage page by writing the flag off, without unsubscribe()", async () => {
+      await callUpdateSubscription({
+        statusPageId: victimStatusPageId,
+        isUnsubscribed: false,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const updateArgs: { id: ObjectID; data: JSONObject } = (
+        StatusPageSubscriberService.updateOneById as unknown as jest.Mock
+      ).mock.calls[0]![0] as { id: ObjectID; data: JSONObject };
+      expect(updateArgs.data["isUnsubscribed"]).toBe(false);
+      expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
+    });
+
+    it("does not cancel a subscriber of another status page", async () => {
+      await callUpdateSubscription({ statusPageId: attackerStatusPageId });
+
+      expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
     });
   });
 

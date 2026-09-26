@@ -127,7 +127,7 @@ describe("optional email navigation", () => {
   );
 
   test.each([
-    ["UnsubscribeBlock", "unsubscribeUrl", "Manage subscription"],
+    ["UnsubscribeBlock", "unsubscribeUrl", "Unsubscribe"],
     [
       "UnsubscribeOwnerEmail",
       "notificationPreferencesUrl",

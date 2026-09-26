@@ -7,8 +7,9 @@ import {
 import ProjectSMTPConfigService from "../Services/ProjectSmtpConfigService";
 import CreateBy from "../Types/Database/CreateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
@@ -35,6 +36,7 @@ import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/St
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { IncidentSubscriberAudienceCounts } from "../../Types/StatusPage/IncidentSubscriberAudience";
 import Dictionary from "../../Types/Dictionary";
+import { JSONObject } from "../../Types/JSON";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -43,6 +45,56 @@ import SSRFProtection from "../Utils/SSRFProtection";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
+import TeamMemberService from "./TeamMemberService";
+import UserService from "./UserService";
+import User from "../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
+import ModelEventType from "../../Types/Realtime/ModelEventType";
+import StatusPageSubscriberUnsubscribe, {
+  StatusPageSubscriberContact,
+  StatusPageSubscriberUnsubscribeDetails,
+  StatusPageSubscriberUnsubscribeState,
+} from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import StatusPageSubscriberUnsubscribeToken from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeToken";
+import StatusPageSubscriberUnsubscribeNotice, {
+  StatusPageSubscriberUnsubscribeNoticeEmail,
+  StatusPageSubscriberUnsubscribeSource,
+} from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+
+/*
+ * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
+ * manager.query back `[rows, rowCount]` rather than the bare row array (see
+ * UserTwoFactorBackupCodeService.consumeCode). Read defensively: anything
+ * unrecognisable is "no row changed", never a silent success.
+ */
+type ReturnedRowsFunction = (result: unknown) => Array<JSONObject>;
+
+const returnedRows: ReturnedRowsFunction = (
+  result: unknown,
+): Array<JSONObject> => {
+  if (!Array.isArray(result)) {
+    return [];
+  }
+
+  if (
+    result.length === 2 &&
+    Array.isArray(result[0]) &&
+    typeof result[1] === "number"
+  ) {
+    return result[0] as Array<JSONObject>;
+  }
+
+  return result.filter((row: unknown): boolean => {
+    return Boolean(row) && typeof row === "object" && !Array.isArray(row);
+  }) as Array<JSONObject>;
+};
+
+interface UnsubscribedAtCarryForward {
+  // The value this update writes to isUnsubscribed, when it writes one.
+  isUnsubscribed: boolean | null;
+  // The matched subscribers that are subscribed now, which this update cancels.
+  subscriberIdsBeingUnsubscribed: Array<string>;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -361,6 +413,27 @@ export class Service extends DatabaseService<Model> {
       100000,
       999999,
     ).toString();
+
+    /*
+     * The secret in this subscriber's unsubscribe link. Always minted here,
+     * whatever the request carried: the column is computed, so the create
+     * column check lets a client send one, and a token the client chose would
+     * be one somebody else could know. A re-subscribe deletes the old row
+     * above and gets a new token, so links to the old subscription stop
+     * working.
+     */
+    data.data.unsubscribeToken =
+      StatusPageSubscriberUnsubscribeToken.generate();
+
+    /*
+     * Likewise never taken from a client. A subscriber is only ever created
+     * unsubscribed through the API, and then it was cancelled now.
+     */
+    if (data.data.isUnsubscribed) {
+      data.data.unsubscribedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete data.data.unsubscribedAt;
+    }
     logger.debug(
       `Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`,
       {
@@ -379,6 +452,476 @@ export class Service extends DatabaseService<Model> {
     } as LogAttributes);
 
     return { createBy: data, carryForward: statuspage };
+  }
+
+  /*
+   * Unsubscribed At follows Is Unsubscribed on every write that sets it - a
+   * teammate's toggle on the dashboard, the API, a workflow - not only on the
+   * unsubscribe link, which sets both itself (see unsubscribe()).
+   *
+   * Which rows an update cancels has to be known before it runs: afterwards
+   * every matched row reads unsubscribed, and a row that already was would
+   * get today's date for a cancellation that happened long ago (or before the
+   * column existed). The stamp itself is written after the update, as root,
+   * by a plain UPDATE: through updateBy it would be a second update of the
+   * row and fire the "on update" workflow trigger a second time.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const isUnsubscribed: unknown = (
+      updateBy.data as unknown as JSONObject | undefined
+    )?.["isUnsubscribed"];
+
+    const carryForward: UnsubscribedAtCarryForward = {
+      isUnsubscribed:
+        typeof isUnsubscribed === "boolean" ? isUnsubscribed : null,
+      subscriberIdsBeingUnsubscribed: [],
+    };
+
+    if (carryForward.isUnsubscribed === true) {
+      const matched: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          isUnsubscribed: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      carryForward.subscriberIdsBeingUnsubscribed = matched
+        .filter((subscriber: Model): boolean => {
+          return Boolean(subscriber._id) && subscriber.isUnsubscribed !== true;
+        })
+        .map((subscriber: Model): string => {
+          return subscriber._id!.toString();
+        });
+    }
+
+    return { updateBy, carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const carryForward: UnsubscribedAtCarryForward | undefined =
+      onUpdate.carryForward as UnsubscribedAtCarryForward | undefined;
+
+    if (!carryForward || carryForward.isUnsubscribed === null) {
+      return onUpdate;
+    }
+
+    const updatedIds: Array<string> = updatedItemIds.map(
+      (id: ObjectID): string => {
+        return id.toString();
+      },
+    );
+
+    if (carryForward.isUnsubscribed === true) {
+      const cancelledIds: Array<string> =
+        carryForward.subscriberIdsBeingUnsubscribed.filter(
+          (id: string): boolean => {
+            return updatedIds.includes(id);
+          },
+        );
+
+      if (cancelledIds.length > 0) {
+        await this.getRepository().manager.query(
+          `UPDATE "StatusPageSubscriber" SET "unsubscribedAt" = $1 WHERE "_id" = ANY($2::uuid[]) AND "isUnsubscribed" = true AND "unsubscribedAt" IS NULL`,
+          [OneUptimeDate.getCurrentDate(), cancelledIds],
+        );
+      }
+
+      return onUpdate;
+    }
+
+    // Subscribed again: the old date no longer describes this subscription.
+    if (updatedIds.length > 0) {
+      await this.getRepository().manager.query(
+        `UPDATE "StatusPageSubscriber" SET "unsubscribedAt" = NULL WHERE "_id" = ANY($1::uuid[]) AND "isUnsubscribed" = false AND "unsubscribedAt" IS NOT NULL`,
+        [updatedIds],
+      );
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * Cancel a subscription, once. Returns whether this call cancelled it:
+   * false when it was already cancelled (or does not exist), which makes the
+   * unsubscribe link idempotent.
+   *
+   * ONE STATEMENT, ON PURPOSE: the WHERE clause's `"isUnsubscribed" = false`
+   * lets Postgres decide which of two simultaneous requests - a double click,
+   * a mail client that follows the confirmation twice - cancels the
+   * subscription, so its Unsubscribed At is written once and the team is told
+   * once. `RETURNING` is what tells this call whether it was the one.
+   *
+   * Written as raw SQL because no DatabaseService write both takes that
+   * predicate and reports what it matched. That skips the update hooks, so
+   * the "on update" workflow trigger and the realtime event a DatabaseService
+   * update fires are fired here, by hand, with the two columns this wrote.
+   */
+  @CaptureSpan()
+  public async unsubscribe(data: {
+    subscriberId: ObjectID;
+    source: StatusPageSubscriberUnsubscribeSource;
+  }): Promise<boolean> {
+    const unsubscribedAt: Date = OneUptimeDate.getCurrentDate();
+
+    const rows: Array<JSONObject> = returnedRows(
+      await this.getRepository().manager.query(
+        `UPDATE "StatusPageSubscriber"
+            SET "isUnsubscribed" = true,
+                "unsubscribedAt" = $1,
+                "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "_id" = $2
+            AND "isUnsubscribed" = false
+            AND "deletedAt" IS NULL
+      RETURNING "_id", "projectId"`,
+        [unsubscribedAt, data.subscriberId.toString()],
+      ),
+    );
+
+    const row: JSONObject | undefined = rows[0];
+
+    if (!row || !row["_id"]) {
+      return false;
+    }
+
+    const projectId: ObjectID | null = row["projectId"]
+      ? new ObjectID(row["projectId"].toString())
+      : null;
+
+    if (projectId) {
+      if (this.getModel().enableWorkflowOn?.update) {
+        await this.onTriggerWorkflow(
+          data.subscriberId,
+          projectId,
+          "on-update",
+          {
+            updatedFields: {
+              isUnsubscribed: true,
+              unsubscribedAt: unsubscribedAt.toISOString(),
+            },
+          },
+        );
+      }
+
+      await this.onTriggerRealtime(
+        data.subscriberId,
+        projectId,
+        ModelEventType.Update,
+      );
+    }
+
+    /*
+     * The subscription is cancelled either way; a failure to tell the team
+     * must not turn that into an error for the person who asked.
+     */
+    try {
+      await this.notifyTeamOfUnsubscribe({
+        subscriberId: data.subscriberId,
+        source: data.source,
+        unsubscribedAt: unsubscribedAt,
+      });
+    } catch (err) {
+      logger.error(err, {
+        statusPageSubscriberId: data.subscriberId.toString(),
+      } as LogAttributes);
+    }
+
+    return true;
+  }
+
+  /*
+   * What the status page's unsubscribe page shows for a link, before anything
+   * is changed. Opening the page calls this; only a POST unsubscribes.
+   *
+   * Every way a link can be wrong - a malformed id or token, no such
+   * subscriber, a deleted one, one on another status page, a token that does
+   * not match - reads the same, Invalid, after the same constant-time token
+   * comparison, so the answer cannot be used to tell them apart.
+   */
+  @CaptureSpan()
+  public async getUnsubscribeLinkDetails(data: {
+    statusPageId: string;
+    subscriberId: string;
+    token: string;
+  }): Promise<StatusPageSubscriberUnsubscribeDetails> {
+    const subscriber: Model | null =
+      await this.findSubscriberByUnsubscribeLink(data);
+
+    if (!subscriber) {
+      return { state: StatusPageSubscriberUnsubscribeState.Invalid };
+    }
+
+    const contact: StatusPageSubscriberContact | null =
+      StatusPageSubscriberUnsubscribe.describeContact(subscriber);
+
+    return {
+      state: subscriber.isUnsubscribed
+        ? StatusPageSubscriberUnsubscribeState.Unsubscribed
+        : StatusPageSubscriberUnsubscribeState.Subscribed,
+      channel: contact?.channel,
+      contact: contact?.contact,
+      wasAddedByTeam: Boolean(subscriber.createdByUserId),
+    };
+  }
+
+  /*
+   * The unsubscribe page's POST: cancel the subscription the link belongs to.
+   * Idempotent - a second confirmation, or one for a subscription already
+   * cancelled some other way, answers Unsubscribed again and changes nothing.
+   * A bad link answers Invalid, exactly as getUnsubscribeLinkDetails does.
+   */
+  @CaptureSpan()
+  public async unsubscribeWithLink(data: {
+    statusPageId: string;
+    subscriberId: string;
+    token: string;
+  }): Promise<StatusPageSubscriberUnsubscribeState> {
+    const subscriber: Model | null =
+      await this.findSubscriberByUnsubscribeLink(data);
+
+    if (!subscriber || !subscriber.id) {
+      return StatusPageSubscriberUnsubscribeState.Invalid;
+    }
+
+    if (!subscriber.isUnsubscribed) {
+      await this.unsubscribe({
+        subscriberId: subscriber.id,
+        source: StatusPageSubscriberUnsubscribeSource.UnsubscribeLink,
+      });
+    }
+
+    return StatusPageSubscriberUnsubscribeState.Unsubscribed;
+  }
+
+  /*
+   * The subscriber a link belongs to, or null when the link is not good. The
+   * subscriber is found by its primary key, never by the token, and the token
+   * is then compared in constant time - a query on the token would let the
+   * database's own comparison time a guess. The comparison runs even when
+   * there is no subscriber to compare with.
+   */
+  private async findSubscriberByUnsubscribeLink(data: {
+    statusPageId: string;
+    subscriberId: string;
+    token: string;
+  }): Promise<Model | null> {
+    const isWellFormed: boolean =
+      ObjectID.isValidUUID(data.statusPageId) &&
+      ObjectID.isValidUUID(data.subscriberId);
+
+    const subscriber: Model | null = isWellFormed
+      ? await this.findOneBy({
+          query: {
+            _id: data.subscriberId,
+            statusPageId: new ObjectID(data.statusPageId),
+          },
+          select: {
+            _id: true,
+            statusPageId: true,
+            unsubscribeToken: true,
+            isUnsubscribed: true,
+            createdByUserId: true,
+            subscriberEmail: true,
+            subscriberPhone: true,
+            slackIncomingWebhookUrl: true,
+            slackWorkspaceName: true,
+            microsoftTeamsIncomingWebhookUrl: true,
+            microsoftTeamsWorkspaceName: true,
+            subscriberWebhook: true,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        })
+      : null;
+
+    const tokenMatches: boolean = StatusPageSubscriberUnsubscribeToken.matches({
+      stored: subscriber?.unsubscribeToken,
+      presented: data.token,
+    });
+
+    if (!subscriber || !tokenMatches) {
+      return null;
+    }
+
+    return subscriber;
+  }
+
+  /*
+   * Tell the team that a subscriber it added has unsubscribed itself (see
+   * StatusPageSubscriberUnsubscribeNotice for why). Subscribers people signed
+   * up for themselves on the status page have no creator and tell nobody.
+   *
+   * It goes to the status page's owners - its owner users and the members of
+   * its owner teams - and to the teammate who added the subscriber, each once
+   * and only while they are still members of the project, as one plain email
+   * through MailService rather than a notification rule: it is about a
+   * subscriber list, not an event anyone is on call for. A page with no owners
+   * tells only the teammate who added the subscriber.
+   */
+  @CaptureSpan()
+  public async notifyTeamOfUnsubscribe(data: {
+    subscriberId: ObjectID;
+    source: StatusPageSubscriberUnsubscribeSource;
+    unsubscribedAt: Date;
+  }): Promise<void> {
+    const subscriber: Model | null = await this.findOneById({
+      id: data.subscriberId,
+      select: {
+        _id: true,
+        projectId: true,
+        statusPageId: true,
+        createdByUserId: true,
+        createdAt: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackIncomingWebhookUrl: true,
+        slackWorkspaceName: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        microsoftTeamsWorkspaceName: true,
+        subscriberWebhook: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (
+      !subscriber ||
+      !subscriber.createdByUserId ||
+      !subscriber.projectId ||
+      !subscriber.statusPageId
+    ) {
+      return;
+    }
+
+    const contact: StatusPageSubscriberContact | null =
+      StatusPageSubscriberUnsubscribe.describeContact(subscriber, {
+        maskPhone: false,
+      });
+
+    if (!contact) {
+      return;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: subscriber.statusPageId,
+      select: {
+        _id: true,
+        name: true,
+        pageTitle: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (!statusPage) {
+      return;
+    }
+
+    const creator: User | null = await UserService.findOneById({
+      id: subscriber.createdByUserId,
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const candidates: Array<User> = [
+      ...(await StatusPageService.findOwners(subscriber.statusPageId)),
+      ...(creator ? [creator] : []),
+    ];
+
+    const recipients: Array<User> = [];
+    const seenUserIds: Set<string> = new Set<string>();
+
+    for (const user of await TeamMemberService.filterUsersToProjectMembers({
+      projectId: subscriber.projectId,
+      users: candidates,
+    })) {
+      const userId: string = user.id?.toString().toLowerCase() || "";
+
+      if (!userId || !user.email || seenUserIds.has(userId)) {
+        continue;
+      }
+
+      seenUserIds.add(userId);
+      recipients.push(user);
+    }
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    const subscriberListUrl: string = (
+      await StatusPageService.getStatusPageLinkInDashboard(
+        subscriber.projectId,
+        subscriber.statusPageId,
+      )
+    )
+      .addRoute(
+        `/${StatusPageSubscriberUnsubscribeNotice.getSubscriberListRoute(
+          contact.channel,
+        )}`,
+      )
+      .toString();
+
+    const email: StatusPageSubscriberUnsubscribeNoticeEmail =
+      StatusPageSubscriberUnsubscribeNotice.build({
+        statusPageName:
+          statusPage.name || statusPage.pageTitle || "Status Page",
+        contact: contact,
+        source: data.source,
+        unsubscribedAt: data.unsubscribedAt,
+        addedByName: creator?.name?.toString() || creator?.email?.toString(),
+        addedAt: subscriber.createdAt,
+        subscriberListUrl: subscriberListUrl,
+      });
+
+    for (const recipient of recipients) {
+      MailService.sendMail(
+        {
+          toEmail: recipient.email!,
+          templateType: EmailTemplateType.SimpleMessage,
+          vars: {
+            subject: email.subject,
+            message: email.message,
+          },
+          subject: email.subject,
+          isSubjectLiteral: true,
+        },
+        {
+          projectId: subscriber.projectId,
+          userId: recipient.id!,
+        },
+      ).catch((err: Error) => {
+        logger.error(err, {
+          projectId: subscriber.projectId?.toString(),
+          statusPageId: subscriber.statusPageId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   @CaptureSpan()
@@ -415,9 +958,10 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId?.toString(),
     } as LogAttributes);
 
+    // createdItem carries the unsubscribe token onBeforeCreate minted.
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
-      createdItem.id!,
+      createdItem,
     ).toString();
     logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, {
       projectId: createdItem.projectId?.toString(),
@@ -530,7 +1074,7 @@ export class Service extends DatabaseService<Model> {
 **You have successfully subscribed to receive status updates!**
 
 🔗 **Status Page:** [${statusPageName}](${statusPageURL})
-📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
+🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
 
 You will receive real-time notifications for:
 • Incidents and outages 
@@ -613,7 +1157,7 @@ Stay informed about service availability! 🚀`;
 **You have successfully subscribed to receive status updates!**
 
 🔗 **Status Page:** [${statusPageName}](${statusPageURL})
-📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
+🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
 
 You will receive real-time notifications for:
 • Incidents and outages 
@@ -677,13 +1221,14 @@ Stay informed about service availability! 🚀`;
         projectId: true,
         subscriptionConfirmationToken: true,
         sendYouHaveSubscribedMessage: true,
+        unsubscribeToken: true,
       },
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`, {
+    logger.debug(`Found Subscriber: ${subscriber?.id?.toString()}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
 
@@ -779,7 +1324,7 @@ Stay informed about service availability! 🚀`;
     ) {
       const unsubscribeUrl: string = this.getUnsubscribeLink(
         URL.fromString(statusPageURL),
-        subscriber.id!,
+        subscriber,
       ).toString();
       logger.debug(`Unsubscribe URL: ${unsubscribeUrl}`, {
         statusPageSubscriberId: data.subscriberId?.toString(),
@@ -911,13 +1456,14 @@ Stay informed about service availability! 🚀`;
         subscriberPhone: true,
         projectId: true,
         sendYouHaveSubscribedMessage: true,
+        unsubscribeToken: true,
       },
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`, {
+    logger.debug(`Found Subscriber: ${subscriber?.id?.toString()}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
 
@@ -999,7 +1545,7 @@ Stay informed about service availability! 🚀`;
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
-      subscriber.id!,
+      subscriber,
     ).toString();
     logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
@@ -1176,16 +1722,26 @@ Stay informed about service availability! 🚀`;
         statusPageResources: true,
         isSubscribedToAllEventTypes: true,
         statusPageEventTypes: true,
+        // Every sender puts this subscriber's unsubscribe link in its message.
+        unsubscribeToken: true,
+        /*
+         * Whether the team added this subscriber (dashboard and API creates
+         * carry a creator; sign-ups on the status page do not).
+         */
+        createdByUserId: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
       props: props,
     });
 
-    logger.debug("Found subscribers:", {
-      statusPageId: statusPageId?.toString(),
-    } as LogAttributes);
-    logger.debug(subscribers, {
+    await this.ensureUnsubscribeTokens(subscribers);
+
+    /*
+     * The count, not the rows: each row now carries its unsubscribe token,
+     * which is a credential and has no place in a log line.
+     */
+    logger.debug(`Found ${subscribers.length} subscribers.`, {
       statusPageId: statusPageId?.toString(),
     } as LogAttributes);
 
@@ -1273,35 +1829,117 @@ Stay informed about service availability! 🚀`;
     return counts;
   }
 
+  /*
+   * The link to a subscriber's unsubscribe page, which every notification to
+   * it carries: {statusPageUrl}/unsubscribe/{id}-{token}. It works on public
+   * and private status pages alike and without signing in, and it only ever
+   * asks - the page unsubscribes when its reader confirms (see
+   * Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
+   *
+   * Pass the subscriber read with its unsubscribeToken: every loader that
+   * feeds a sender selects it (getSubscribersByStatusPage and the subscribe
+   * and manage emails). A subscriber without one still gets a link, to the
+   * page that says the link is out of date, rather than none; that is logged,
+   * because only a subscriber created around the migration that added the
+   * token, or one written with hooks skipped, can lack it.
+   */
   public getUnsubscribeLink(
+    statusPageUrl: URL,
+    subscriber: Pick<Model, "_id" | "id" | "unsubscribeToken">,
+  ): URL {
+    const subscriberId: ObjectID | null = subscriber.id;
+
+    if (!subscriberId) {
+      throw new BadDataException(
+        "A subscriber id is required to build an unsubscribe link.",
+      );
+    }
+
+    if (
+      !StatusPageSubscriberUnsubscribe.isWellFormedToken(
+        subscriber.unsubscribeToken,
+      )
+    ) {
+      logger.error(
+        `Status page subscriber ${subscriberId.toString()} has no unsubscribe token; its unsubscribe link leads to the out-of-date link page.`,
+        {
+          statusPageSubscriberId: subscriberId.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    return StatusPageSubscriberUnsubscribe.buildLink({
+      statusPageUrl: statusPageUrl,
+      subscriberId: subscriberId,
+      unsubscribeToken: subscriber.unsubscribeToken,
+    });
+  }
+
+  /*
+   * The subscriber's Update Subscription page, where it can choose resources
+   * and event types (and unsubscribe). The "manage your subscription" email a
+   * visitor asks for from the Subscribe page links here. On a private status
+   * page it needs a signed-in visitor, like the rest of the page.
+   */
+  public getManageSubscriptionLink(
     statusPageUrl: URL,
     statusPageSubscriberId: ObjectID,
   ): URL {
-    logger.debug("getUnsubscribeLink called with statusPageUrl:", {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug(statusPageUrl, {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug("statusPageSubscriberId:", {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug(statusPageSubscriberId, {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
+    return StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+      statusPageUrl: statusPageUrl,
+      subscriberId: statusPageSubscriberId,
+    });
+  }
 
-    const unsubscribeLink: URL = URL.fromString(
-      statusPageUrl.toString(),
-    ).addRoute("/update-subscription/" + statusPageSubscriberId.toString());
+  /*
+   * Give every subscriber in the list an unsubscribe token it lacks, in place,
+   * so the links built from them work. The migration gave every subscriber
+   * that existed one and every create mints one, so this normally finds
+   * nothing to do; it covers a subscriber created between the two, or with
+   * hooks skipped.
+   *
+   * The write only fills an empty column, so two senders racing on the same
+   * subscriber cannot hand out two different tokens: the loser reads back the
+   * winner's.
+   */
+  @CaptureSpan()
+  public async ensureUnsubscribeTokens(
+    subscribers: Array<Model>,
+  ): Promise<void> {
+    for (const subscriber of subscribers) {
+      if (
+        !subscriber._id ||
+        StatusPageSubscriberUnsubscribe.isWellFormedToken(
+          subscriber.unsubscribeToken,
+        )
+      ) {
+        continue;
+      }
 
-    logger.debug("Generated Unsubscribe Link:", {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug(unsubscribeLink, {
-      statusPageSubscriberId: statusPageSubscriberId?.toString(),
-    } as LogAttributes);
+      await this.getRepository().manager.query(
+        `UPDATE "StatusPageSubscriber" SET "unsubscribeToken" = $1 WHERE "_id" = $2 AND "unsubscribeToken" IS NULL`,
+        [
+          StatusPageSubscriberUnsubscribeToken.generate(),
+          subscriber._id.toString(),
+        ],
+      );
 
-    return unsubscribeLink;
+      const stored: Model | null = await this.findOneById({
+        id: new ObjectID(subscriber._id.toString()),
+        select: {
+          _id: true,
+          unsubscribeToken: true,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      if (stored?.unsubscribeToken) {
+        subscriber.unsubscribeToken = stored.unsubscribeToken;
+      }
+    }
   }
 
   public shouldSendNotification(data: {

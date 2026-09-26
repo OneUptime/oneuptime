@@ -230,6 +230,12 @@ import {
   statusPagesByIdFake,
   subscribersByPageFake,
 } from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -270,7 +276,10 @@ const STATUS_PAGE_URL: string = "https://status.acme.com";
 const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
 // The status page shows an episode on its incident detail route.
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${EPISODE_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/episode/3";
 
 const EPISODE_TITLE: string = "Regional network interruption";
@@ -425,7 +434,7 @@ function subscriber(overrides?: {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -729,11 +738,7 @@ beforeEach(() => {
     true,
   );
   mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
-    (pageUrl: unknown, subscriberId: unknown): URL => {
-      return URL.fromString((pageUrl as URL).toString()).addRoute(
-        `/update-subscription/${(subscriberId as ObjectID).toString()}`,
-      );
-    },
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockImplementation(
     async (statusPageId: unknown): Promise<string> => {
@@ -1126,7 +1131,7 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       expect(call.variables["statusPageUrl"]).toBe(SECOND_STATUS_PAGE_URL);
       expect(call.variables["resourcesAffected"]).toBe("DNS resolvers");
       expect(call.variables["unsubscribeUrl"]).toBe(
-        `${SECOND_STATUS_PAGE_URL}/update-subscription/${SECOND_SUBSCRIBER_ID.toString()}`,
+        `${unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}`,
       );
     }
 
@@ -1537,7 +1542,10 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
         return call.variables["unsubscribeUrl"] as string;
       },
     );
-    const secondUnsubscribeUrl: string = `${STATUS_PAGE_URL}/update-subscription/${SECOND_SUBSCRIBER_ID.toString()}`;
+    const secondUnsubscribeUrl: string = unsubscribeLinkFor(
+      STATUS_PAGE_URL,
+      SECOND_SUBSCRIBER_ID,
+    );
 
     // Subscribers are sent to one after another, five templates each.
     expect(unsubscribeUrls).toEqual([
@@ -2081,6 +2089,23 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers, with statu
         "",
         "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
       ].join("\n"),
+    );
+  });
+});
+
+describe("IncidentEpisodeStateTimeline unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    pendingTimelines = [stateTimeline()];
+
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
     );
   });
 });

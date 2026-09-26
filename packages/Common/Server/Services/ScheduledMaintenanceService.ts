@@ -266,7 +266,7 @@ export class Service extends DatabaseService<Model> {
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
               URL.fromString(statusPageURL),
-              subscriber.id!,
+              subscriber,
             ).toString();
 
           // Template variables for custom templates, as Markdown (Slack)

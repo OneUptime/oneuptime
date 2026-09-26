@@ -527,7 +527,12 @@ describe("customer branding and subscription navigation", () => {
     expect(owner).toContain("Manage notification preferences");
     expect(owner).not.toContain(SUBSCRIPTION_URL);
     expect(subscriber).toContain(`href="${SUBSCRIPTION_URL}"`);
-    expect(subscriber).toContain("Manage subscription");
+    /*
+     * The subscriber's link is its unsubscribe page, which asks before it
+     * acts, and works on private status pages without signing in.
+     */
+    expect(subscriber).toContain(">Unsubscribe</a>");
+    expect(subscriber).toContain("You will be asked to confirm.");
     expect(subscriber).not.toContain(PREFERENCES_URL);
     expect(subscriber).toContain("<p>Updates from our support team.</p>");
   });

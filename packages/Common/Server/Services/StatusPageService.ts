@@ -1405,7 +1405,7 @@ export class Service extends DatabaseService<StatusPage> {
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
-            subscriber.id!,
+            subscriber,
           ).toString();
 
         if (subscriber.subscriberEmail) {

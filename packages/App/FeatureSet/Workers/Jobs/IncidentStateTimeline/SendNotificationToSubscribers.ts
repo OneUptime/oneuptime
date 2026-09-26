@@ -475,7 +475,7 @@ RunCron(
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
                 URL.fromString(statusPageURL),
-                subscriber.id!,
+                subscriber,
               ).toString();
 
             // Add unsubscribeUrl to template variables

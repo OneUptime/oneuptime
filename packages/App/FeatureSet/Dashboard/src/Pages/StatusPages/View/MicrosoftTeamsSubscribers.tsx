@@ -34,6 +34,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
+import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -374,6 +376,12 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
             />
           )}
           <SubscriberNotificationWarnings statusPageId={modelId} />
+          <TeamAddedSubscribersUnsubscribedNotice
+            statusPageId={modelId}
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            channelQuery={{ microsoftTeamsWorkspaceName: new NotNull() }}
+            contactSelect={{ microsoftTeamsWorkspaceName: true }}
+          />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-microsoft-teams-subscriber"
@@ -464,6 +472,13 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                 title: "Subscribed At",
                 type: FieldType.DateTime,
               },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
+                type: FieldType.DateTime,
+              },
             ]}
             columns={[
               {
@@ -502,6 +517,14 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   createdAt: true,
                 },
                 title: "Subscribed At",
+                type: FieldType.DateTime,
+                hideOnMobile: true,
+              },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
                 type: FieldType.DateTime,
                 hideOnMobile: true,
               },

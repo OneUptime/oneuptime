@@ -215,6 +215,26 @@
     "confirm": {
       "title": "購読を確認",
       "success": "購読が正常に確認されました"
+    },
+    "unsubscribe": {
+      "title": "購読解除",
+      "titleWithName": "{{statusPageName}} の購読を解除",
+      "confirmPrompt": "このステータスページからの通知の受信を停止しますか？",
+      "channelEmail": "メールアドレス",
+      "channelSms": "電話番号",
+      "channelSlack": "Slack ワークスペース",
+      "channelMicrosoftTeams": "Microsoft Teams ワークスペース",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "この購読は、このステータスページを運営するチームが追加したものです。メーリングリストなどの共有アドレスの場合、購読を解除すると、それを受け取っている全員にこれらの通知が届かなくなり、チームにも通知されます。",
+      "confirmButton": "購読を解除",
+      "manageInstead": "代わりに受け取る通知を選択する",
+      "manageSubscription": "購読を管理",
+      "success": "購読を解除しました。今後このステータスページからの通知は届きません。",
+      "alreadyUnsubscribed": "この購読はすでに解除されています。このステータスページからの通知は届きません。",
+      "outOfDateLink": "この購読解除リンクは古くなっています。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "invalidLink": "この購読解除リンクは無効です。リンクが不完全であるか、購読が削除された可能性があります。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "failed": "購読を解除できませんでした。もう一度お試しください。",
+      "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
     }
   },
   "accounts": {

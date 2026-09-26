@@ -245,6 +245,12 @@ import {
   statusPagesByIdFake,
   subscribersByPageFake,
 } from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisode/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -284,10 +290,14 @@ const DETAILS_URL: string =
   "https://status.acme.com/incidents/33333333-3333-4333-8333-333333333333";
 const SECOND_DETAILS_URL: string =
   "https://status.beta.com/incidents/33333333-3333-4333-8333-333333333333";
-const UNSUBSCRIBE_URL: string =
-  "https://status.acme.com/update-subscription/55555555-5555-4555-8555-555555555555";
-const SECOND_UNSUBSCRIBE_URL: string =
-  "https://status.acme.com/update-subscription/66666666-6666-4666-8666-666666666666";
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  "https://status.acme.com",
+  SUBSCRIBER_ID,
+);
+const SECOND_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  "https://status.acme.com",
+  SECOND_SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/episode/1";
 
 const EPISODE_TITLE: string = "Regional network interruption";
@@ -426,7 +436,7 @@ function subscriber(overrides?: {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -745,11 +755,7 @@ beforeEach(() => {
   );
   // Each subscriber gets a link of its own, on the page it subscribed to.
   mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
-    (url: unknown, subscriberId: unknown): URL => {
-      return (url as URL).addRoute(
-        `/update-subscription/${(subscriberId as ObjectID).toString()}`,
-      );
-    },
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockImplementation(
     async (statusPageId: unknown): Promise<string> => {
@@ -2126,6 +2132,21 @@ describe("IncidentEpisode:SendNotificationToSubscribers, with status page scope 
     expect(emailsSentTo()).toEqual(["site7@acme.com"]);
     expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
       "- **Site 03**: not sent, this status page does not show episodes.",
+    );
+  });
+});
+
+describe("IncidentEpisode unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
     );
   });
 });

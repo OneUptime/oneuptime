@@ -9,6 +9,7 @@ import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import { withUnsubscribeToken } from "./UnsubscribeLinkFixtures";
 
 /*
  * Shared fixtures for the status page scope cases in the incident and episode
@@ -182,6 +183,7 @@ export function siteSubscriber(data: {
   const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
   subscriber._id = `5e0000${data.site.toString().padStart(2, "0")}-0000-4000-8000-0000000000${(data.index || 0).toString().padStart(2, "0")}`;
   subscriber.statusPageId = sitePageId(data.site);
+  withUnsubscribeToken(subscriber);
 
   if (data.email) {
     subscriber.subscriberEmail = new Email(data.email);

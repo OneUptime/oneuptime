@@ -231,6 +231,13 @@ import {
   statusPagesByIdFake,
   subscribersByPageFake,
 } from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  unsubscribeLinkFor,
+  unsubscribeTokenFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -276,7 +283,10 @@ const SECOND_TIMELINE_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/incident/1";
 
 const INCIDENT_TITLE: string = "Checkout requests failing";
@@ -453,7 +463,7 @@ function subscriber(id?: ObjectID): StatusPageSubscriber {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -799,11 +809,7 @@ beforeEach(() => {
     true,
   );
   mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
-    (statusPageUrl: unknown, subscriberId: unknown): URL => {
-      return URL.fromString((statusPageUrl as URL).toString()).addRoute(
-        `/update-subscription/${(subscriberId as ObjectID).toString()}`,
-      );
-    },
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockImplementation(
     async (statusPageId: unknown): Promise<string> => {
@@ -904,7 +910,7 @@ describe("IncidentStateTimeline custom templates receive every advertised variab
       );
       expect(call.variables["incidentDescription"]).not.toBe("");
 
-      const unsubscribePrefix: string = `${pageUrl}/update-subscription/`;
+      const unsubscribePrefix: string = `${pageUrl}/unsubscribe/`;
       expect(
         call.variables["unsubscribeUrl"]!.startsWith(unsubscribePrefix),
       ).toBe(true);
@@ -915,12 +921,17 @@ describe("IncidentStateTimeline custom templates receive every advertised variab
       }
     }
 
+    // Each link is {subscriberId}-{that subscriber's token}.
+    const credential: (id: ObjectID) => string = (id: ObjectID): string => {
+      return `${id.toString()}-${unsubscribeTokenFor(id)}`;
+    };
+
     expect(seen.sort()).toEqual(
       [
-        `Acme Status -> ${SUBSCRIBER_ID.toString()}`,
-        `Acme Status -> ${SECOND_SUBSCRIBER_ID.toString()}`,
-        `Beta Status -> ${SUBSCRIBER_ID.toString()}`,
-        `Beta Status -> ${SECOND_SUBSCRIBER_ID.toString()}`,
+        `Acme Status -> ${credential(SUBSCRIBER_ID)}`,
+        `Acme Status -> ${credential(SECOND_SUBSCRIBER_ID)}`,
+        `Beta Status -> ${credential(SUBSCRIBER_ID)}`,
+        `Beta Status -> ${credential(SECOND_SUBSCRIBER_ID)}`,
       ].sort(),
     );
   });
@@ -1259,7 +1270,7 @@ describe("IncidentStateTimeline custom template rendering", () => {
 
     // The second page has no custom SMTP or Twilio, so it sends the defaults.
     expect(sentSms()).toContain(
-      `Incident ${INCIDENT_TITLE} on Beta Status is Monitoring. Details: ${SECOND_STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}. Unsub: ${SECOND_STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`,
+      `Incident ${INCIDENT_TITLE} on Beta Status is Monitoring. Details: ${SECOND_STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}. Unsub: ${unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SUBSCRIBER_ID)}`,
     );
     expect(
       sentMail().map((mail: JSONObject): string => {
@@ -1994,6 +2005,21 @@ describe("IncidentStateTimeline:SendNotificationToSubscribers, with a status pag
     expect(emailsSentTo()).toEqual(["site7@acme.com"]);
     expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
       "- **Site 03**: not sent, this status page does not show incidents.",
+    );
+  });
+});
+
+describe("IncidentStateTimeline unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
     );
   });
 });

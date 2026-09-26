@@ -44,10 +44,10 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 
 ## Setting up one page per audience
 
-1. **Create a status page for each audience**, for example `Site 01` to `Site 10`. Make them private if the audience is internal (see [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page)). Give them labels such as `Region East`, so the picker can add every page with a label in one click.
+1. **Create a status page for each audience**, for example `Site 01` to `Site 10`. Make them private if the audience is internal (see [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page)). Subscribers of a private page can still unsubscribe without signing in, through the link in every message (see [Managing and canceling a subscription](/docs/status-pages/subscribers#managing-and-canceling-a-subscription)). Give them labels such as `Region East`, so the picker can add every page with a label in one click.
 2. **Put the shared monitor on each page** as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Resources → Monitor Rules** can do this for you from the monitor's labels.
 3. **Turn on Only Show Incidents Scoped to This Page** on each of those pages. It is on **Status Pages → your page → Advanced → Advanced Settings**, behind **Edit Settings** on the **Incident Settings** card. From then on, nothing reaches a site page unless someone picks it.
-4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**.
+4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
 5. **Let responders read status pages.** The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty, and says why.
 6. **Optionally, save incident templates with pages already picked.** A `Region East outage` template can carry the East site pages.
 

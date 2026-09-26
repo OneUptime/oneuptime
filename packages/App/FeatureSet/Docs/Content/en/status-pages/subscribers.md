@@ -61,17 +61,33 @@ There is no toggle to turn email confirmation off — it is unconditional for an
 
 ## Managing and canceling a subscription
 
-Every subscriber email carries an unsubscribe link of the form `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`. That page is titled **Update Subscription** and tells the visitor they can update their preferences or unsubscribe there. It holds:
+Every message a subscriber gets carries an unsubscribe link of the form `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-{token}`: at the bottom of an email, in the text of an SMS, Slack or Microsoft Teams message, and as `unsubscribeUrl` in a webhook payload. The token is a random secret that belongs to that one subscription, so the link works without signing in. That includes a private status page, where everything else needs a signed-in visitor.
+
+**Opening the link changes nothing.** The page shows the status page's name and logo and the subscription the link belongs to: an email address in full, a phone number masked to its last four digits, a Slack or Microsoft Teams workspace name, or a webhook's host. It asks *Do you want to stop receiving notifications from this status page?* and only pressing **Unsubscribe** cancels the subscription, so mail scanners and link previewers that open every link in a message cannot unsubscribe anyone. Nothing else about the page is shown, and none of its custom JavaScript runs. Confirming twice, or opening the link of a subscription that is already cancelled, just says it is cancelled. On a public status page the unsubscribe page also links to the subscriber's **Update Subscription** page, to choose which notifications they receive instead.
+
+The **Update Subscription** page, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, is titled **Update Subscription** and tells the visitor they can update their preferences or unsubscribe there. It holds:
 
 - Whatever resource and event-type pickers the page allows.
 - An **Unsubscribe** toggle, described as unsubscribing from all resources. It writes **Is Unsubscribed** (`isUnsubscribed`, default false).
 - A submit button reading **Update Subscription**; saving shows *Your changes have been saved.*
 
-Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. OneUptime replies that an email with the link has been sent and to check the spam folder if it does not arrive.
+On a private status page it needs a signed-in visitor, like the rest of the page. Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. OneUptime replies that an email with the link has been sent and to check the spam folder if it does not arrive. That message links to the **Update Subscription** page, and hands a custom template both links: `manageSubscriptionUrl` and `unsubscribeUrl`.
 
-The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` and `PUT .../update-subscription/:statusPageId/:subscriberId`.
+The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId`, `PUT .../update-subscription/:statusPageId/:subscriberId`, and `GET` and `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. The unsubscribe `GET` only describes the link. The `POST` cancels the subscription whatever its body, including the `List-Unsubscribe=One-Click` body of a one-click unsubscribe request. Both give the same answer for a wrong token, a deleted subscriber and a subscriber of another status page, so they cannot be used to find out who is subscribed.
 
-Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail.
+Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail. It also records **Unsubscribed At** (`unsubscribedAt`), whoever cancelled the subscription: the subscriber through the link or the **Update Subscription** page, or a teammate on the dashboard or through the API. Each subscriber list has an **Unsubscribed At** column and filter. Turning **Is Unsubscribed** off again clears it. Subscriptions cancelled before OneUptime recorded this have no date.
+
+Links in messages sent before the unsubscribe page existed keep working: an **Update Subscription** link still opens that page. Very old messages carried `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, which used to unsubscribe as soon as it was opened. It no longer changes anything: it leads to the unsubscribe page, which says the link is out of date and to use the one in a recent message.
+
+### Shared addresses and mailing lists
+
+Anyone who can read a mailbox can unsubscribe it. For an address somebody signed up themselves, that is the point. For one your team added, such as a site's mailing list like `site03-all@`, it means one reader can take everyone on the list off the page before the next outage. So:
+
+- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so.
+- **The team is told.** When a subscriber your team added (from the dashboard or through the API) unsubscribes, through its link or the **Update Subscription** page, the status page's owners (its owner users, and the members of its owner teams) and the teammate who added it each get one email naming the subscriber, with a link to the page's subscriber list. A page with no owners emails only the teammate who added the subscriber. People who signed up themselves on the status page are never reported.
+- **The subscriber lists show it.** Above each list, a notice names the subscribers your team added that unsubscribed in the last 30 days.
+
+The unsubscribe page warns a reader of such a subscription before they confirm: if it is a shared address, unsubscribing stops the notifications for everyone who receives them, and the team will be told.
 
 ## What subscribers get notified about
 

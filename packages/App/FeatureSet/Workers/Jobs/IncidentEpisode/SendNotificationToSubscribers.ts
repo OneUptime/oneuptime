@@ -488,7 +488,7 @@ RunCron(
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
                     URL.fromString(statusPageURL),
-                    subscriber.id!,
+                    subscriber,
                   ).toString();
 
                 logger.debug(

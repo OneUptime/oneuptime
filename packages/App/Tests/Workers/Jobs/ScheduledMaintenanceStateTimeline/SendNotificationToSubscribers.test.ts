@@ -225,6 +225,12 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -290,7 +296,7 @@ function detailsUrlFor(page: PageFixture): string {
 }
 
 function unsubscribeUrlFor(page: PageFixture): string {
-  return `${page.url}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+  return unsubscribeLinkFor(page.url, SUBSCRIBER_ID);
 }
 
 const STATUS_PAGE_URL: string = MAIN_PAGE.url;
@@ -476,7 +482,7 @@ function subscriber(): StatusPageSubscriber {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -842,11 +848,7 @@ beforeEach(() => {
   );
   // Each status page's unsubscribe link is on its own host.
   mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
-    (url: unknown, subscriberId: unknown): URL => {
-      return URL.fromString(
-        `https://${(url as URL).hostname.toString()}/update-subscription/${(subscriberId as ObjectID).toString()}`,
-      );
-    },
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockImplementation(
     async (statusPageId: unknown): Promise<string> => {
@@ -1693,5 +1695,20 @@ describe("ScheduledMaintenanceStateTimeline email subjects are sent as written",
       `[${STATE_NAME} Scheduled Maintenance] Upgrade to {{ .Values.image.tag }}`,
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+describe("ScheduledMaintenanceStateTimeline unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
   });
 });

@@ -134,6 +134,11 @@ import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizati
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
+import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import {
+  StatusPageSubscriberUnsubscribeDetails,
+  StatusPageSubscriberUnsubscribeState,
+} from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -765,6 +770,80 @@ export default class StatusPageAPI extends BaseAPI<
         });
 
         return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    /*
+     * The unsubscribe link in every subscriber notification opens the status
+     * page's unsubscribe page ({statusPageUrl}/unsubscribe/{id}-{token}, see
+     * Common/Types/StatusPage/StatusPageSubscriberUnsubscribe), which reads
+     * what the link belongs to with GET and cancels it with POST.
+     *
+     * - GET changes nothing. Mail scanners and link previewers fetch every
+     *   link in a message; they must not unsubscribe anybody.
+     * - POST unsubscribes, and is idempotent. It answers whatever its body is
+     *   - the page sends none, and an RFC 8058 one-click request sends
+     *   "List-Unsubscribe=One-Click" - because holding the token is the whole
+     *   authorisation.
+     *
+     * Deliberately no read-access check: a private status page's subscribers
+     * are exactly the people who may not be able to sign in to it, and the
+     * token proves the request came from the subscription's own inbox (or
+     * phone, or channel). Nothing but the subscription's own contact is ever
+     * returned - no page content - so a private page stays private.
+     *
+     * Every bad link answers the same Invalid, so the endpoint cannot be used
+     * to learn which subscriptions exist; see
+     * StatusPageSubscriberService.getUnsubscribeLinkDetails.
+     */
+    const unsubscribeApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/unsubscribe/:statusPageId/:subscriberId/:token`;
+
+    this.router.get(
+      unsubscribeApiPath,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const details: StatusPageSubscriberUnsubscribeDetails =
+            await StatusPageSubscriberService.getUnsubscribeLinkDetails({
+              statusPageId: req.params["statusPageId"] as string,
+              subscriberId: req.params["subscriberId"] as string,
+              token: req.params["token"] as string,
+            });
+
+          // A token-bearing answer: never let a shared cache keep it.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            details as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      unsubscribeApiPath,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const state: StatusPageSubscriberUnsubscribeState =
+            await StatusPageSubscriberService.unsubscribeWithLink({
+              statusPageId: req.params["statusPageId"] as string,
+              subscriberId: req.params["subscriberId"] as string,
+              token: req.params["token"] as string,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            state: state,
+          });
+        } catch (err) {
+          next(err);
+        }
       },
     );
 
@@ -2915,20 +2994,40 @@ export default class StatusPageAPI extends BaseAPI<
     let lookupQuery: Query<StatusPageSubscriber>;
     let lookupSelect: Select<StatusPageSubscriber>;
 
+    /*
+     * The unsubscribe token is read too: the message carries the
+     * subscription's unsubscribe link as well as its manage link.
+     */
     if (email) {
       lookupQuery = { subscriberEmail: email };
-      lookupSelect = { _id: true, subscriberEmail: true };
+      lookupSelect = {
+        _id: true,
+        subscriberEmail: true,
+        unsubscribeToken: true,
+      };
     } else if (phone) {
       lookupQuery = { subscriberPhone: phone };
-      lookupSelect = { _id: true, subscriberPhone: true };
+      lookupSelect = {
+        _id: true,
+        subscriberPhone: true,
+        unsubscribeToken: true,
+      };
     } else if (slackWorkspaceName) {
       lookupQuery = { slackWorkspaceName: slackWorkspaceName };
-      lookupSelect = { _id: true, slackIncomingWebhookUrl: true };
+      lookupSelect = {
+        _id: true,
+        slackIncomingWebhookUrl: true,
+        unsubscribeToken: true,
+      };
     } else {
       lookupQuery = {
         microsoftTeamsWorkspaceName: microsoftTeamsWorkspaceName!,
       };
-      lookupSelect = { _id: true, microsoftTeamsIncomingWebhookUrl: true };
+      lookupSelect = {
+        _id: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        unsubscribeToken: true,
+      };
     }
 
     logger.debug(
@@ -3063,20 +3162,28 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
 
         const manageUrlink: string =
-          StatusPageSubscriberService.getUnsubscribeLink(
+          StatusPageSubscriberService.getManageSubscriptionLink(
             URL.fromString(statusPageURL),
             statusPageSubscriber.id!,
           ).toString();
 
         /*
-         * The manage link is the subscriber's update-subscription page, which
-         * is the same URL every other sender passes as unsubscribeUrl, so a
-         * template may use either name for it.
+         * The visitor asked to manage their subscription, so the message
+         * links to its Update Subscription page. It also hands templates the
+         * unsubscribe link every other sender passes as unsubscribeUrl: that
+         * one works without signing in, which the manage page on a private
+         * status page does not.
          */
+        const unsubscribeUrl: string =
+          StatusPageSubscriberService.getUnsubscribeLink(
+            URL.fromString(statusPageURL),
+            statusPageSubscriber,
+          ).toString();
+
         const manageTemplateVariables: Record<string, string> = {
           statusPageName: statusPageNameStr,
           statusPageUrl: statusPageURL,
-          unsubscribeUrl: manageUrlink,
+          unsubscribeUrl: unsubscribeUrl,
           manageSubscriptionUrl: manageUrlink,
         };
 
@@ -3591,12 +3698,12 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (isUpdate) {
-      // check isUnsubscribed is set to false.
       logger.debug(
         `Updating subscriber with ID: ${statusPageSubscriber.id}`,
         getLogAttributesFromRequest(req as any),
       );
-      statusPageSubscriber.isUnsubscribed = Boolean(
+
+      const wantsToUnsubscribe: boolean = Boolean(
         req.body.data["isUnsubscribed"],
       );
 
@@ -3609,12 +3716,25 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageEventTypes: statusPageSubscriber.statusPageEventTypes!,
           isSubscribedToAllEventTypes:
             statusPageSubscriber.isSubscribedToAllEventTypes!,
-          isUnsubscribed: statusPageSubscriber.isUnsubscribed,
+          /*
+           * Cancelling goes through unsubscribe() below, like the unsubscribe
+           * link: it records when, once, and tells the team about a
+           * subscriber it added. Only turning the subscription back on is
+           * written here (which clears Unsubscribed At).
+           */
+          ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
         } as any,
         props: {
           isRoot: true,
         },
       });
+
+      if (wantsToUnsubscribe) {
+        await StatusPageSubscriberService.unsubscribe({
+          subscriberId: statusPageSubscriber.id!,
+          source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+        });
+      }
     } else {
       logger.debug(
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,

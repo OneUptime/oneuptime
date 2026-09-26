@@ -215,6 +215,26 @@
     "confirm": {
       "title": "确认订阅",
       "success": "订阅确认成功"
+    },
+    "unsubscribe": {
+      "title": "取消订阅",
+      "titleWithName": "取消订阅 {{statusPageName}}",
+      "confirmPrompt": "您要停止接收此状态页的通知吗？",
+      "channelEmail": "电子邮件地址",
+      "channelSms": "电话号码",
+      "channelSlack": "Slack 工作区",
+      "channelMicrosoftTeams": "Microsoft Teams 工作区",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "此订阅由运营此状态页的团队添加。如果这是一个共享地址（例如邮件列表），取消订阅后，所有接收者都将不再收到这些通知，团队也会收到通知。",
+      "confirmButton": "取消订阅",
+      "manageInstead": "改为选择您要接收的通知",
+      "manageSubscription": "管理您的订阅",
+      "success": "您已取消订阅，将不再收到此状态页的通知。",
+      "alreadyUnsubscribed": "此订阅已被取消。您不会收到此状态页的通知。",
+      "outOfDateLink": "此取消订阅链接已过期。要取消订阅，请使用此状态页最近发送的消息中的取消订阅链接。",
+      "invalidLink": "此取消订阅链接无效。链接可能不完整，或者订阅可能已被删除。要取消订阅，请使用此状态页最近发送的消息中的取消订阅链接。",
+      "failed": "无法取消订阅，请重试。",
+      "loadFailed": "无法加载此取消订阅链接，请稍后重试。"
     }
   },
   "accounts": {

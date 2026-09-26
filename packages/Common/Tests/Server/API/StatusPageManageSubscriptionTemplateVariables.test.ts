@@ -99,6 +99,13 @@ const STATUS_PAGE_URL: string = "https://status.acme-example.com";
 const MANAGE_URL: string =
   "https://status.acme-example.com/update-subscription/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28";
 
+/*
+ * The subscription's unsubscribe token, and the link that works without
+ * signing in - which the manage page on a private status page does not.
+ */
+const UNSUBSCRIBE_TOKEN: string = "5d".repeat(32);
+const UNSUBSCRIBE_URL: string = `https://status.acme-example.com/unsubscribe/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
+
 const SUBSCRIBER_EMAIL: string = "manage.subscriber@acme-example.com";
 const SUBSCRIBER_PHONE: string = "+15550100123";
 const SLACK_WORKSPACE_NAME: string = "acme-ops-workspace";
@@ -486,6 +493,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
     const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
     subscriber.id = new ObjectID(SUBSCRIBER_ID);
+    subscriber.unsubscribeToken = UNSUBSCRIBE_TOKEN;
 
     if (query["subscriberEmail"]?.toString() === SUBSCRIBER_EMAIL) {
       subscriber.subscriberEmail = new Email(SUBSCRIBER_EMAIL);
@@ -569,8 +577,9 @@ describe("StatusPageAPI manage-subscription templates", () => {
         return Promise.resolve([pageToSend]);
       });
 
-    // The real link builder, watched.
+    // The real link builders, watched.
     jest.spyOn(StatusPageSubscriberService, "getUnsubscribeLink");
+    jest.spyOn(StatusPageSubscriberService, "getManageSubscriptionLink");
 
     jest
       .spyOn(
@@ -776,38 +785,62 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
   describe("variable values", () => {
     it.each(CHANNELS)(
-      "$name: unsubscribeUrl is the subscriber's manage link",
+      "$name: manageSubscriptionUrl is the manage page and unsubscribeUrl the token link",
       async (channel: ChannelCase) => {
         useCustomTemplatesOnEveryChannel();
 
         await callManageSubscription(channel.requestData);
 
-        // Built by the real helper from the page URL and this subscriber.
+        // Built by the real helpers from the page URL and this subscriber.
+        const manageCalls: Array<Array<unknown>> = mockOf(
+          StatusPageSubscriberService.getManageSubscriptionLink,
+        ).mock.calls as Array<Array<unknown>>;
+        expect(manageCalls).toHaveLength(1);
+        expect((manageCalls[0]![0] as URL).toString()).toBe(
+          URL.fromString(STATUS_PAGE_URL).toString(),
+        );
+        expect((manageCalls[0]![1] as ObjectID).toString()).toBe(SUBSCRIBER_ID);
+
+        /*
+         * The unsubscribe link is built from the subscriber row the lookup
+         * read - token included - so it works without signing in.
+         */
         const linkCalls: Array<Array<unknown>> = mockOf(
           StatusPageSubscriberService.getUnsubscribeLink,
         ).mock.calls as Array<Array<unknown>>;
         expect(linkCalls).toHaveLength(1);
-        expect((linkCalls[0]![0] as URL).toString()).toBe(
-          URL.fromString(STATUS_PAGE_URL).toString(),
-        );
-        expect((linkCalls[0]![1] as ObjectID).toString()).toBe(SUBSCRIBER_ID);
+        expect(
+          (linkCalls[0]![1] as StatusPageSubscriber).unsubscribeToken,
+        ).toBe(UNSUBSCRIBE_TOKEN);
 
-        expect(MANAGE_URL).not.toBe(STATUS_PAGE_URL);
         expect(MANAGE_URL).toContain(SUBSCRIBER_ID);
+        expect(UNSUBSCRIBE_URL).toContain(UNSUBSCRIBE_TOKEN);
 
         const calls: Array<CompileCall> = compileCalls();
         expect(calls).toHaveLength(channel.compileCallsPerRequest);
         for (const call of calls) {
-          expect(call.variables["unsubscribeUrl"]).toBe(MANAGE_URL);
+          expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
           expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
           expect(call.variables["statusPageUrl"]).toBe(STATUS_PAGE_URL);
         }
 
         expect(renderedMessage(channel)).toContain(
-          `unsubscribeUrl=[${MANAGE_URL}]`,
+          `unsubscribeUrl=[${UNSUBSCRIBE_URL}]`,
         );
       },
     );
+
+    it("reads each subscriber's unsubscribe token with the lookup", async () => {
+      await callManageSubscription(CHANNELS[0]!.requestData);
+
+      const select: JSONObject = (
+        mockOf(StatusPageSubscriberService.findBy).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+
+      expect(select["unsubscribeToken"]).toBe(true);
+    });
 
     it.each(CHANNELS)(
       "$name: statusPageName is the page's public title, not its internal name",
@@ -901,7 +934,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const expectedValues: Record<string, string> = {
           statusPageName: PAGE_TITLE,
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: MANAGE_URL,
+          unsubscribeUrl: UNSUBSCRIBE_URL,
           manageSubscriptionUrl: MANAGE_URL,
         };
 
