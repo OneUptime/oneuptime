@@ -104,14 +104,18 @@ export interface InfrastructureData {
   entities: Array<TopologyEntity>;
   /*
    * At most two containment relationships per resource (its best container
-   * and, when that one is inactive, its best active container) plus where
-   * services run. Enough to rebuild exactly the tree all relationships give.
+   * and, when that one is inactive, its best active container), where
+   * services run, and the in-range calls (`depends-on`, with traffic)
+   * between placed services. Enough to rebuild exactly the tree — and the
+   * traffic — all relationships give.
    */
   relationships: Array<TopologyRelationship>;
   collections: Array<InfrastructureCollection>;
   totals: InfrastructureTotals;
   /* The resource cap, when it was hit (kind "resources"). */
   truncation: TopologyTruncation | null;
+  /* The cap on calls between services, when it was hit (kind "connections"). */
+  dependencyTruncation: TopologyTruncation | null;
 }
 
 /** What a caller knows about an entity before its details are fetched. */

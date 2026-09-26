@@ -105,8 +105,8 @@ const TopologyPage: FunctionComponent<
     activeTab !== null &&
     (activeTab.status === "idle" || activeTab.status === "loading");
   /*
-   * The safety caps the payload on screen hit (never in practice). The
-   * Service Map can hit two at once: its resources and its connections.
+   * The safety caps the payload on screen hit (never in practice). Either
+   * map can hit two at once: its resources and its connections.
    */
   let activeTruncations: Array<TopologyTruncation> = [];
   if (
@@ -117,9 +117,17 @@ const TopologyPage: FunctionComponent<
   } else if (
     activeTabName === "Infrastructure" &&
     topology.infrastructure.status === "ready" &&
-    topology.infrastructure.data?.truncation
+    topology.infrastructure.data
   ) {
-    activeTruncations = [topology.infrastructure.data.truncation];
+    const infrastructure: InfrastructureData = topology.infrastructure.data;
+    for (const truncation of [
+      infrastructure.truncation,
+      infrastructure.dependencyTruncation,
+    ]) {
+      if (truncation) {
+        activeTruncations.push(truncation);
+      }
+    }
   }
 
   /*
@@ -250,6 +258,7 @@ const TopologyPage: FunctionComponent<
         totals={tab.data.totals}
         truncation={tab.data.truncation}
         metricsWindowSeconds={METRICS_WINDOW_SECONDS}
+        timeRange={timeRange}
         rangeStart={tab.data.rangeStart}
         includeInactive={includeInactive}
         onOpenServiceMap={openServiceMap}

@@ -149,6 +149,8 @@ function infrastructurePayload(
     nodes: [],
     services: [],
     placements: [],
+    dependencies: [],
+    dependencyTruncation: null,
     collections: [],
     totals: { resources: 0, activeResources: 0 },
     truncation: null,
@@ -897,6 +899,155 @@ describe("decodeInfrastructureResponse", () => {
     expect(data.collections).toEqual([]);
     expect(data.totals).toEqual({ resources: 0, activeResources: 0 });
     expect(data.truncation).toBeNull();
+    expect(data.dependencyTruncation).toBeNull();
+  });
+
+  /*
+   * Issue #3972: the map draws traffic between resources from the calls
+   * between the services on them, so the calls must survive decoding with
+   * their traffic and land on the right services.
+   */
+  describe("calls between placed services", () => {
+    function tracedPayload(
+      dependencies: Array<unknown>,
+    ): TopologyInfrastructureResponseJSON {
+      return infrastructurePayload({
+        nodes: [
+          node("pod-backend", EntityType.KubernetesPod),
+          node("pod-blob", EntityType.KubernetesPod),
+        ],
+        services: [
+          { key: "svc-backend", name: "wb-ims-backend" },
+          { key: "svc-blob", name: "wb-ims-blob" },
+          { key: "svc-edh", name: "wb-ims-integration-edh" },
+        ],
+        placements: [
+          [0, 0],
+          [1, 1],
+        ],
+        dependencies:
+          dependencies as TopologyInfrastructureResponseJSON["dependencies"],
+      });
+    }
+
+    function calls(data: InfrastructureData): Array<TopologyRelationship> {
+      return data.relationships.filter(
+        (relationship: TopologyRelationship): boolean => {
+          return (
+            relationship.relationshipType === EntityRelationshipType.DependsOn
+          );
+        },
+      );
+    }
+
+    test("service indexes become depends-on relationships with their traffic", () => {
+      const data: InfrastructureData = decodeInfrastructureResponse(
+        tracedPayload([
+          {
+            from: 0,
+            to: 1,
+            callCount: 1200,
+            errorCount: 6,
+            avgDurationMs: 45.5,
+          },
+          { from: 1, to: 2, callCount: 0, errorCount: 0, avgDurationMs: null },
+        ]),
+      );
+      expect(calls(data)).toEqual([
+        {
+          fromEntityKey: "svc-backend",
+          toEntityKey: "svc-blob",
+          relationshipType: EntityRelationshipType.DependsOn,
+          callCount: 1200,
+          errorCount: 6,
+          avgDurationMs: 45.5,
+        },
+        {
+          fromEntityKey: "svc-blob",
+          toEntityKey: "svc-edh",
+          relationshipType: EntityRelationshipType.DependsOn,
+          callCount: 0,
+          errorCount: 0,
+        },
+      ]);
+      /* The containment and placements are decoded exactly as before. */
+      expect(relationshipTriples(data.relationships)).toEqual([
+        "svc-backend -runs-on-> pod-backend",
+        "svc-blob -runs-on-> pod-blob",
+        "svc-backend -depends-on-> svc-blob",
+        "svc-blob -depends-on-> svc-edh",
+      ]);
+    });
+
+    test("traffic sent as numeric strings becomes numbers; garbage stays absent", () => {
+      const data: InfrastructureData = decodeInfrastructureResponse(
+        tracedPayload([
+          {
+            from: 0,
+            to: 1,
+            callCount: "1200",
+            errorCount: "lots",
+            avgDurationMs: "12.5",
+          },
+        ]),
+      );
+      expect(calls(data)).toEqual([
+        {
+          fromEntityKey: "svc-backend",
+          toEntityKey: "svc-blob",
+          relationshipType: EntityRelationshipType.DependsOn,
+          callCount: 1200,
+          avgDurationMs: 12.5,
+        },
+      ]);
+    });
+
+    test("a call whose ends cannot be resolved, or that calls itself, is skipped", () => {
+      const data: InfrastructureData = decodeInfrastructureResponse(
+        tracedPayload([
+          { from: 0, to: 0, callCount: 5, errorCount: 0, avgDurationMs: 1 },
+          { from: 0, to: 9, callCount: 5, errorCount: 0, avgDurationMs: 1 },
+          { from: -1, to: 1, callCount: 5, errorCount: 0, avgDurationMs: 1 },
+          { from: 0.5, to: 1, callCount: 5, errorCount: 0, avgDurationMs: 1 },
+          { from: "0", to: 1, callCount: 5, errorCount: 0, avgDurationMs: 1 },
+          { to: 1, callCount: 5 },
+          "not a row",
+          null,
+          { from: 1, to: 0, callCount: 7, errorCount: 1, avgDurationMs: 2 },
+        ]),
+      );
+      expect(relationshipTriples(calls(data))).toEqual([
+        "svc-blob -depends-on-> svc-backend",
+      ]);
+    });
+
+    test("a payload from a server without calls draws no traffic", () => {
+      const payload: JSONObject = tracedPayload([]) as unknown as JSONObject;
+      delete payload["dependencies"];
+      delete payload["dependencyTruncation"];
+      const data: InfrastructureData = decodeInfrastructureResponse(payload);
+      expect(calls(data)).toEqual([]);
+      expect(data.dependencyTruncation).toBeNull();
+      /* Everything else still decodes. */
+      expect(relationshipTriples(data.relationships)).toEqual([
+        "svc-backend -runs-on-> pod-backend",
+        "svc-blob -runs-on-> pod-blob",
+      ]);
+    });
+
+    test("a hit call cap is reported as connections", () => {
+      const data: InfrastructureData = decodeInfrastructureResponse(
+        infrastructurePayload({
+          dependencyTruncation: { shown: 200000, total: 250001 },
+        }),
+      );
+      expect(data.dependencyTruncation).toEqual({
+        kind: "connections",
+        shown: 200000,
+        total: 250001,
+      });
+      expect(data.truncation).toBeNull();
+    });
   });
 
   test("a hit safety cap is reported with exact totals", () => {
