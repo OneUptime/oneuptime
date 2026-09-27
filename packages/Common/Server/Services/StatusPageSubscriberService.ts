@@ -89,6 +89,26 @@ const returnedRows: ReturnedRowsFunction = (
   }) as Array<JSONObject>;
 };
 
+/*
+ * How many rows an UPDATE without RETURNING changed: the postgres driver
+ * answers it with `[rows, rowCount]`. Anything else reads as none.
+ */
+type AffectedRowCountFunction = (result: unknown) => number;
+
+const affectedRowCount: AffectedRowCountFunction = (
+  result: unknown,
+): number => {
+  if (
+    Array.isArray(result) &&
+    result.length === 2 &&
+    typeof result[1] === "number"
+  ) {
+    return result[1];
+  }
+
+  return 0;
+};
+
 interface UnsubscribedAtCarryForward {
   // The value this update writes to isUnsubscribed, when it writes one.
   isUnsubscribed: boolean | null;
@@ -96,9 +116,101 @@ interface UnsubscribedAtCarryForward {
   subscriberIdsBeingUnsubscribed: Array<string>;
 }
 
+/*
+ * The subscriber rows being created for a visitor who signed up on the status
+ * page itself (see createFromStatusPageSignUp). Every other create - a
+ * teammate on the dashboard, an API key, a workflow - is the team adding a
+ * subscriber, and onBeforeCreate marks it so (Is Added By Team).
+ *
+ * The very model instances, held only for the length of the create: nothing
+ * a request body carries can put a row in here, so no client can pass its
+ * subscriber off as a sign-up and keep the page's owners from hearing when
+ * it unsubscribes.
+ */
+const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
+
+// How many subscribers the backfill and the token top-up handle per statement.
+const UNSUBSCRIBE_COLUMNS_BATCH_SIZE: number = 1000;
+
+export interface StatusPageSubscriberUnsubscribeBackfillResult {
+  // Subscribers given an unsubscribe token.
+  tokensGiven: number;
+  // Subscribers marked Is Added By Team because they have a creator.
+  markedAddedByTeam: number;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A create hands its caller the row it saved, and every caller passes it
+   * on whole: BaseAPI serializes it into the response of POST
+   * /status-page-subscriber without a column read check (a teammate's Add
+   * Subscriber and Add in Bulk, any API key), and a workflow's Create Status
+   * Page Subscriber step returns it, to be kept in the workflow's logs.
+   *
+   * So the two secrets onBeforeCreate minted are taken off it first: the
+   * unsubscribe token, which lets whoever holds it cancel the subscription
+   * without signing in - and makes the team's notice say the subscriber did -
+   * and the six-digit confirmation code. Nobody can read either column
+   * (read: []). They leave the server only inside the messages to the
+   * subscription's own contact, which onCreateSuccess has sent by now; the
+   * confirmation email reads its code back from the database.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    const row: Record<string, unknown> = created as unknown as Record<
+      string,
+      unknown
+    >;
+    row["unsubscribeToken"] = undefined;
+    row["subscriptionConfirmationToken"] = undefined;
+
+    return created;
+  }
+
+  /*
+   * Create the subscriber a visitor signed up for on the status page itself
+   * (StatusPageAPI's subscribe endpoint). The one create that is not the team
+   * adding a subscriber: it is created as root, like the rest of that
+   * endpoint, and Is Added By Team is left off.
+   */
+  @CaptureSpan()
+  public async createFromStatusPageSignUp(data: Model): Promise<Model> {
+    statusPageSignUps.add(data);
+
+    try {
+      return await this.create({
+        data: data,
+        props: {
+          isRoot: true,
+        },
+      });
+    } finally {
+      statusPageSignUps.delete(data);
+    }
+  }
+
+  /*
+   * Whether the team added this subscriber, rather than it signing up on the
+   * status page. Is Added By Team says so for every subscriber created since
+   * it existed; Created By is read as well for the ones created before, until
+   * the backfill has marked them (every create with a creator is the team's).
+   */
+  public isAddedByTeam(
+    subscriber: Pick<Model, "isAddedByTeam" | "createdByUserId">,
+  ): boolean {
+    return (
+      subscriber.isAddedByTeam === true || Boolean(subscriber.createdByUserId)
+    );
   }
 
   @CaptureSpan()
@@ -426,6 +538,15 @@ export class Service extends DatabaseService<Model> {
       StatusPageSubscriberUnsubscribeToken.generate();
 
     /*
+     * Never taken from a client either: whether the team added this
+     * subscriber. Only a sign-up on the status page is not the team's, and
+     * only createFromStatusPageSignUp creates one. A teammate's create carries
+     * a creator (Created By) but an API key's or a workflow's does not, so
+     * this is the column that says it for all of them.
+     */
+    data.data.isAddedByTeam = !statusPageSignUps.has(data.data);
+
+    /*
      * Likewise never taken from a client. A subscriber is only ever created
      * unsubscribed through the API, and then it was cancelled now.
      */
@@ -670,7 +791,7 @@ export class Service extends DatabaseService<Model> {
         : StatusPageSubscriberUnsubscribeState.Subscribed,
       channel: contact?.channel,
       contact: contact?.contact,
-      wasAddedByTeam: Boolean(subscriber.createdByUserId),
+      wasAddedByTeam: this.isAddedByTeam(subscriber),
     };
   }
 
@@ -730,6 +851,7 @@ export class Service extends DatabaseService<Model> {
             statusPageId: true,
             unsubscribeToken: true,
             isUnsubscribed: true,
+            isAddedByTeam: true,
             createdByUserId: true,
             subscriberEmail: true,
             subscriberPhone: true,
@@ -761,14 +883,20 @@ export class Service extends DatabaseService<Model> {
   /*
    * Tell the team that a subscriber it added has unsubscribed itself (see
    * StatusPageSubscriberUnsubscribeNotice for why). Subscribers people signed
-   * up for themselves on the status page have no creator and tell nobody.
+   * up for themselves on the status page tell nobody.
+   *
+   * A subscriber the team added is one with Is Added By Team - from the
+   * dashboard, with an API key or by a workflow - or, created before that
+   * column, with a creator (see isAddedByTeam).
    *
    * It goes to the status page's owners - its owner users and the members of
-   * its owner teams - and to the teammate who added the subscriber, each once
-   * and only while they are still members of the project, as one plain email
-   * through MailService rather than a notification rule: it is about a
-   * subscriber list, not an event anyone is on call for. A page with no owners
-   * tells only the teammate who added the subscriber.
+   * its owner teams - and to the teammate who added the subscriber, when a
+   * teammate did, each once and only while they are still members of the
+   * project, as one plain email through MailService rather than a
+   * notification rule: it is about a subscriber list, not an event anyone is
+   * on call for. A page with no owners tells only the teammate who added the
+   * subscriber; one an API key or a workflow added, on a page with no owners,
+   * tells nobody.
    */
   @CaptureSpan()
   public async notifyTeamOfUnsubscribe(data: {
@@ -782,6 +910,7 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         statusPageId: true,
+        isAddedByTeam: true,
         createdByUserId: true,
         createdAt: true,
         subscriberEmail: true,
@@ -800,7 +929,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       !subscriber ||
-      !subscriber.createdByUserId ||
+      !this.isAddedByTeam(subscriber) ||
       !subscriber.projectId ||
       !subscriber.statusPageId
     ) {
@@ -833,17 +962,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const creator: User | null = await UserService.findOneById({
-      id: subscriber.createdByUserId,
-      select: {
-        _id: true,
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    // Only a teammate's create has a creator; an API key's or a workflow's does not.
+    const creator: User | null = subscriber.createdByUserId
+      ? await UserService.findOneById({
+          id: subscriber.createdByUserId,
+          select: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
 
     const candidates: Array<User> = [
       ...(await StatusPageService.findOwners(subscriber.statusPageId)),
@@ -1003,10 +1135,24 @@ export class Service extends DatabaseService<Model> {
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
 
+      /*
+       * On a public status page the SMS keeps the shorter manage link, which
+       * works there without signing in: an SMS is billed by the segment (see
+       * StatusPageSubscriberUnsubscribe.buildSmsLink).
+       */
+      const smsUnsubscribeLink: string =
+        StatusPageSubscriberUnsubscribe.buildSmsLink({
+          isPublicStatusPage: (onCreate.carryForward as StatusPage | undefined)
+            ?.isPublicStatusPage,
+          statusPageUrl: statusPageURL,
+          subscriberId: createdItem.id!,
+          unsubscribeUrl: unsubscribeLink,
+        });
+
       SmsService.sendSms(
         {
           to: createdItem.subscriberPhone,
-          message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${unsubscribeLink}`,
+          message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${smsUnsubscribeLink}`,
         },
         {
           projectId: createdItem.projectId,
@@ -1234,6 +1380,9 @@ Stay informed about service availability! 🚀`;
       } as LogAttributes);
       return;
     }
+
+    // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
+    await this.ensureUnsubscribeTokens([subscriber]);
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -1467,6 +1616,9 @@ Stay informed about service availability! 🚀`;
       } as LogAttributes);
       return;
     }
+
+    // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
+    await this.ensureUnsubscribeTokens([subscriber]);
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -1716,9 +1868,10 @@ Stay informed about service availability! 🚀`;
         // Every sender puts this subscriber's unsubscribe link in its message.
         unsubscribeToken: true,
         /*
-         * Whether the team added this subscriber (dashboard and API creates
-         * carry a creator; sign-ups on the status page do not).
+         * Whether the team added this subscriber rather than it signing up
+         * on the status page (see isAddedByTeam).
          */
+        isAddedByTeam: true,
         createdByUserId: true,
       },
       skip: 0,
@@ -1884,19 +2037,26 @@ Stay informed about service availability! 🚀`;
 
   /*
    * Give every subscriber in the list an unsubscribe token it lacks, in place,
-   * so the links built from them work. The migration gave every subscriber
-   * that existed one and every create mints one, so this normally finds
-   * nothing to do; it covers a subscriber created between the two, or with
-   * hooks skipped.
+   * so the links built from them work. Every create mints one, and the
+   * BackfillStatusPageSubscriberUnsubscribeColumns data migration gives one
+   * to every subscriber that existed before; this covers the ones that
+   * migration has not reached yet (it runs after the upgrade, in batches), a
+   * subscriber created in between, and one written with hooks skipped.
+   *
+   * One statement per batch of subscribers, not per subscriber: until the
+   * backfill has run, a whole page's list can be missing its tokens.
    *
    * The write only fills an empty column, so two senders racing on the same
-   * subscriber cannot hand out two different tokens: the loser reads back the
-   * winner's.
+   * subscriber - or a sender and the backfill - cannot hand out two different
+   * tokens: the loser reads back the winner's.
    */
   @CaptureSpan()
   public async ensureUnsubscribeTokens(
     subscribers: Array<Model>,
   ): Promise<void> {
+    // The rows that lack one, by id: a list can hold the same subscriber twice.
+    const missing: Map<string, Array<Model>> = new Map<string, Array<Model>>();
+
     for (const subscriber of subscribers) {
       if (
         !subscriber._id ||
@@ -1907,30 +2067,174 @@ Stay informed about service availability! 🚀`;
         continue;
       }
 
-      await this.getRepository().manager.query(
-        `UPDATE "StatusPageSubscriber" SET "unsubscribeToken" = $1 WHERE "_id" = $2 AND "unsubscribeToken" IS NULL`,
-        [
-          StatusPageSubscriberUnsubscribeToken.generate(),
-          subscriber._id.toString(),
-        ],
+      const id: string = subscriber._id.toString().toLowerCase();
+      missing.set(id, [...(missing.get(id) || []), subscriber]);
+    }
+
+    const ids: Array<string> = Array.from(missing.keys());
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += UNSUBSCRIBE_COLUMNS_BATCH_SIZE
+    ) {
+      const batch: Array<string> = ids.slice(
+        start,
+        start + UNSUBSCRIBE_COLUMNS_BATCH_SIZE,
       );
 
-      const stored: Model | null = await this.findOneById({
-        id: new ObjectID(subscriber._id.toString()),
+      await this.fillMissingUnsubscribeTokens(batch);
+
+      const stored: Array<Model> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(batch),
+        },
         select: {
           _id: true,
           unsubscribeToken: true,
         },
+        skip: 0,
+        limit: batch.length,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
 
-      if (stored?.unsubscribeToken) {
-        subscriber.unsubscribeToken = stored.unsubscribeToken;
+      for (const row of stored) {
+        if (
+          !row._id ||
+          !StatusPageSubscriberUnsubscribe.isWellFormedToken(
+            row.unsubscribeToken,
+          )
+        ) {
+          continue;
+        }
+
+        for (const subscriber of missing.get(
+          row._id.toString().toLowerCase(),
+        ) || []) {
+          subscriber.unsubscribeToken = row.unsubscribeToken;
+        }
       }
     }
+  }
+
+  /*
+   * The BackfillStatusPageSubscriberUnsubscribeColumns data migration: give
+   * every subscriber that existed before the upgrade its unsubscribe token,
+   * and mark the ones with a creator as added by the team (Is Added By
+   * Team). Soft-deleted subscribers are included: one that is restored must
+   * not come back without a token.
+   *
+   * The table is walked in primary key order, a batch of ids at a time, and
+   * each batch is written by primary key in short statements of their own.
+   * So however large the table, no statement holds its rows for long or runs
+   * into the connection's statement timeout, and notifications, sign-ups and
+   * the subscriber lists carry on while it runs - which one UPDATE of every
+   * row, in the migration that added the columns, would have stopped.
+   *
+   * Idempotent, and safe to run twice at once (the data migration runner is
+   * not serialized): every write only fills what is still empty, and
+   * re-checks that under the row lock, so a token a sender has already put
+   * in a message is never replaced.
+   */
+  @CaptureSpan()
+  public async backfillUnsubscribeColumns(options?: {
+    batchSize?: number | undefined;
+  }): Promise<StatusPageSubscriberUnsubscribeBackfillResult> {
+    const batchSize: number = Math.max(
+      1,
+      Math.floor(options?.batchSize || UNSUBSCRIBE_COLUMNS_BATCH_SIZE),
+    );
+
+    const result: StatusPageSubscriberUnsubscribeBackfillResult = {
+      tokensGiven: 0,
+      markedAddedByTeam: 0,
+    };
+
+    let lastId: string | null = null;
+
+    for (;;) {
+      const rows: Array<{
+        _id: string;
+        needsToken: boolean;
+        needsAddedByTeam: boolean;
+      }> = await this.getRepository().manager.query(
+        `SELECT "_id"::text AS "_id",
+                ("unsubscribeToken" IS NULL) AS "needsToken",
+                ("isAddedByTeam" = false AND "createdByUserId" IS NOT NULL) AS "needsAddedByTeam"
+           FROM "StatusPageSubscriber"
+          WHERE ($2::uuid IS NULL OR "_id" > $2::uuid)
+          ORDER BY "_id" ASC
+          LIMIT $1`,
+        [batchSize, lastId],
+      );
+
+      if (rows.length === 0) {
+        break;
+      }
+
+      const needToken: Array<string> = rows
+        .filter((row: { needsToken: boolean }): boolean => {
+          return row.needsToken === true;
+        })
+        .map((row: { _id: string }): string => {
+          return row._id;
+        });
+
+      const needAddedByTeam: Array<string> = rows
+        .filter((row: { needsAddedByTeam: boolean }): boolean => {
+          return row.needsAddedByTeam === true;
+        })
+        .map((row: { _id: string }): string => {
+          return row._id;
+        });
+
+      result.tokensGiven += await this.fillMissingUnsubscribeTokens(needToken);
+
+      if (needAddedByTeam.length > 0) {
+        result.markedAddedByTeam += affectedRowCount(
+          await this.getRepository().manager.query(
+            `UPDATE "StatusPageSubscriber" SET "isAddedByTeam" = true WHERE "_id" = ANY($1::uuid[]) AND "createdByUserId" IS NOT NULL AND "isAddedByTeam" = false`,
+            [needAddedByTeam],
+          ),
+        );
+      }
+
+      lastId = rows[rows.length - 1]!._id;
+
+      if (rows.length < batchSize) {
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  /*
+   * Mint a token, from Node's CSPRNG like every other, for each of these
+   * subscribers that has none, in one statement. Returns how many were given
+   * one. `"unsubscribeToken" IS NULL` is checked again under each row's lock,
+   * so a token another writer stored first is kept.
+   */
+  private async fillMissingUnsubscribeTokens(
+    subscriberIds: Array<string>,
+  ): Promise<number> {
+    if (subscriberIds.length === 0) {
+      return 0;
+    }
+
+    const tokens: Array<string> = subscriberIds.map((): string => {
+      return StatusPageSubscriberUnsubscribeToken.generate();
+    });
+
+    return affectedRowCount(
+      await this.getRepository().manager.query(
+        `UPDATE "StatusPageSubscriber" AS "subscriber" SET "unsubscribeToken" = "minted"."token" FROM unnest($1::uuid[], $2::text[]) AS "minted"("id", "token") WHERE "subscriber"."_id" = "minted"."id" AND "subscriber"."unsubscribeToken" IS NULL`,
+        [subscriberIds, tokens],
+      ),
+    );
   }
 
   public shouldSendNotification(data: {

@@ -17,6 +17,7 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
@@ -641,16 +642,32 @@ RunCron(
                     unsubscribeUrl: unsubscribeUrl,
                   };
 
+                  /*
+                   * On a public status page the SMS keeps the shorter manage link,
+                   * which works there without signing in: an SMS is billed by the
+                   * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+                   */
+                  const smsUnsubscribeUrl: string =
+                    StatusPageSubscriberUnsubscribe.buildSmsLink({
+                      isPublicStatusPage: statuspage.isPublicStatusPage,
+                      statusPageUrl: statusPageURL,
+                      subscriberId: subscriber.id!,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+
                   // Use custom template if available and custom Twilio is configured, otherwise use default
                   let smsMessage: string;
                   if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     smsMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         smsTemplate.templateBody,
-                        smsTemplateVars,
+                        {
+                          ...smsTemplateVars,
+                          unsubscribeUrl: smsUnsubscribeUrl,
+                        },
                       );
                   } else {
-                    smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                    smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
                   }
 
                   const sms: SMS = {

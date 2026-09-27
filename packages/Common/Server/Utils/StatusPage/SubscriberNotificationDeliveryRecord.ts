@@ -3,6 +3,7 @@ import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import {
   ExcludedStatusPage,
   StatusPageExclusionReason,
@@ -193,7 +194,15 @@ export default class SubscriberNotificationDeliveryRecord {
     );
 
     if (data.subject !== undefined && delivery.subject === undefined) {
-      delivery.subject = data.subject;
+      /*
+       * The feed is read by everyone who can read the incident. A custom
+       * subject template can carry {{unsubscribeUrl}}, whose token belongs to
+       * the one subscriber that email went to, so the feed keeps the link
+       * with its token redacted.
+       */
+      delivery.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
+        data.subject,
+      );
     }
   }
 

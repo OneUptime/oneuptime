@@ -13,11 +13,12 @@ import {
  * signed up themselves that is the point; for one the team added - a site's
  * mailing list, say site03-all@ - it means one reader can take a whole site
  * off the page before the next outage, and nobody would notice until then. So
- * when a subscriber with a creator (StatusPageSubscriber.createdByUserId,
- * which only dashboard and API creates carry; sign-ups on the status page run
- * without a user) unsubscribes through its link or the manage page, the
- * page's owners and the teammate who added it are told
- * (StatusPageSubscriberService.notifyTeamOfUnsubscribe).
+ * when a subscriber the team added (StatusPageSubscriber.isAddedByTeam: from
+ * the dashboard, with an API key or by a workflow, never a sign-up on the
+ * status page) unsubscribes through its link or the manage page, the page's
+ * owners and the teammate who added it, if a teammate did, are told
+ * (StatusPageSubscriberService.notifyTeamOfUnsubscribe). Without a teammate -
+ * an API key or a workflow added it - the email says someone on the team did.
  *
  * Kept free of database access so what the email says can be pinned by a
  * test. It is sent through the SimpleMessage template, whose `message` is
@@ -38,7 +39,10 @@ export interface StatusPageSubscriberUnsubscribeNoticeInput {
   contact: StatusPageSubscriberContact;
   source: StatusPageSubscriberUnsubscribeSource;
   unsubscribedAt: Date;
-  // The teammate who added the subscriber, when they are still known.
+  /*
+   * The teammate who added the subscriber, when a teammate did and they are
+   * still known (an API key or a workflow has no name to give).
+   */
   addedByName?: string | undefined;
   addedAt?: Date | undefined;
   // The status page's list of subscribers on this channel, in the dashboard.

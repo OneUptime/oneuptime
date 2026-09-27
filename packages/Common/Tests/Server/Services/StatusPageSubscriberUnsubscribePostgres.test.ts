@@ -1,22 +1,25 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
-import { AddStatusPageSubscriberUnsubscribeToken1795600000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1795600000000-AddStatusPageSubscriberUnsubscribeToken";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import { StatusPageSubscriberUnsubscribeSource } from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
-import { DataSource, QueryRunner } from "typeorm";
+import { DataSource } from "typeorm";
 
 /*
  * The SQL behind unsubscribing without signing in, against a migrated
  * Postgres:
  *
- *   - the migration's backfill gives every existing subscriber its own
- *     well-formed token, and leaves a token already there alone;
+ *   - the backfill data migration (backfillUnsubscribeColumns) walks the
+ *     table in batches, gives every existing subscriber its own well-formed
+ *     token, leaves a token already there alone, marks the subscribers with
+ *     a creator as added by the team, and agrees with itself when two run at
+ *     once;
  *   - StatusPageSubscriberService.unsubscribe cancels a subscription exactly
  *     once, even when two confirmations race, and never a deleted one;
- *   - ensureUnsubscribeTokens fills only an empty token.
+ *   - ensureUnsubscribeTokens fills only an empty token, for a whole list in
+ *     one statement.
  *
  * Opt in with RUN_POSTGRES_SUBSCRIBER_UNSUBSCRIBE_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
@@ -53,6 +56,8 @@ describePostgres(
       token?: string | null;
       isUnsubscribed?: boolean;
       isDeleted?: boolean;
+      createdByUserId?: ObjectID | null;
+      isAddedByTeam?: boolean;
     }): Promise<ObjectID> {
       const id: ObjectID = ObjectID.generate();
 
@@ -60,8 +65,8 @@ describePostgres(
         `INSERT INTO "${schema}"."StatusPageSubscriber"
          ("_id", "projectId", "statusPageId", "subscriberEmail",
           "isUnsubscribed", "isSubscriptionConfirmed", "unsubscribeToken",
-          "deletedAt", "version")
-       VALUES ($1, $2, $3, $4, $5, true, $6, $7, 1)`,
+          "deletedAt", "createdByUserId", "isAddedByTeam", "version")
+       VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $9, 1)`,
         [
           id.toString(),
           projectId.toString(),
@@ -70,6 +75,8 @@ describePostgres(
           row.isUnsubscribed ?? false,
           row.token ?? null,
           row.isDeleted ? new Date() : null,
+          row.createdByUserId ? row.createdByUserId.toString() : null,
+          row.isAddedByTeam ?? false,
         ],
       );
 
@@ -80,13 +87,15 @@ describePostgres(
       unsubscribeToken: string | null;
       isUnsubscribed: boolean;
       unsubscribedAt: Date | null;
+      isAddedByTeam: boolean;
     }> {
       const rows: Array<{
         unsubscribeToken: string | null;
         isUnsubscribed: boolean;
         unsubscribedAt: Date | null;
+        isAddedByTeam: boolean;
       }> = await database.query(
-        `SELECT "unsubscribeToken", "isUnsubscribed", "unsubscribedAt" FROM "${schema}"."StatusPageSubscriber" WHERE "_id" = $1`,
+        `SELECT "unsubscribeToken", "isUnsubscribed", "unsubscribedAt", "isAddedByTeam" FROM "${schema}"."StatusPageSubscriber" WHERE "_id" = $1`,
         [id.toString()],
       );
 
@@ -163,7 +172,7 @@ describePostgres(
       expect(rows[0]!.count).toBe("1");
     });
 
-    test("the migration's backfill gives every subscriber its own well-formed token", async () => {
+    test("the backfill gives every subscriber its own well-formed token, a batch at a time", async () => {
       const existing: string = "ab".repeat(32);
 
       const ids: Array<ObjectID> = [];
@@ -173,19 +182,13 @@ describePostgres(
       const deleted: ObjectID = await seed({ token: null, isDeleted: true });
       const alreadyHasOne: ObjectID = await seed({ token: existing });
 
-      // The backfill statement exactly as the migration runs it.
-      const statements: Array<string> = [];
-      await new AddStatusPageSubscriberUnsubscribeToken1795600000000().up({
-        query: (sql: string): Promise<void> => {
-          statements.push(sql);
-          return Promise.resolve();
-        },
-      } as unknown as QueryRunner);
-      const backfill: string = statements.find((sql: string) => {
-        return sql.startsWith("UPDATE");
-      })!;
+      // A batch smaller than the table, so the walk crosses several pages.
+      const result: { tokensGiven: number; markedAddedByTeam: number } =
+        await StatusPageSubscriberService.backfillUnsubscribeColumns({
+          batchSize: 7,
+        });
 
-      await database.query(backfill);
+      expect(result.tokensGiven).toBe(26);
 
       const tokens: Array<string> = [];
 
@@ -200,6 +203,79 @@ describePostgres(
 
       expect(new Set(tokens).size).toBe(tokens.length);
       expect((await read(alreadyHasOne)).unsubscribeToken).toBe(existing);
+    });
+
+    test("the backfill marks every subscriber with a creator as added by the team, and only those", async () => {
+      const teammate: ObjectID = ObjectID.generate();
+
+      const byTeammate: ObjectID = await seed({
+        token: "ac".repeat(32),
+        createdByUserId: teammate,
+      });
+      const byTeammateDeleted: ObjectID = await seed({
+        createdByUserId: teammate,
+        isDeleted: true,
+      });
+      const signUp: ObjectID = await seed({ token: "ad".repeat(32) });
+      // An API key's subscriber from after the upgrade: marked on create.
+      const byApiKey: ObjectID = await seed({
+        token: "ae".repeat(32),
+        isAddedByTeam: true,
+      });
+
+      const result: { tokensGiven: number; markedAddedByTeam: number } =
+        await StatusPageSubscriberService.backfillUnsubscribeColumns({
+          batchSize: 2,
+        });
+
+      expect(result.markedAddedByTeam).toBe(2);
+      expect((await read(byTeammate)).isAddedByTeam).toBe(true);
+      expect((await read(byTeammateDeleted)).isAddedByTeam).toBe(true);
+      expect((await read(signUp)).isAddedByTeam).toBe(false);
+      expect((await read(byApiKey)).isAddedByTeam).toBe(true);
+    });
+
+    test("a second backfill, even one racing the first, changes nothing the first wrote", async () => {
+      const ids: Array<ObjectID> = [];
+      for (let i: number = 0; i < 12; i++) {
+        ids.push(
+          await seed({ token: null, createdByUserId: ObjectID.generate() }),
+        );
+      }
+
+      await Promise.all([
+        StatusPageSubscriberService.backfillUnsubscribeColumns({
+          batchSize: 5,
+        }),
+        StatusPageSubscriberService.backfillUnsubscribeColumns({
+          batchSize: 3,
+        }),
+      ]);
+
+      const afterRace: Array<string | null> = [];
+      for (const id of ids) {
+        afterRace.push((await read(id)).unsubscribeToken);
+      }
+
+      const again: { tokensGiven: number; markedAddedByTeam: number } =
+        await StatusPageSubscriberService.backfillUnsubscribeColumns({
+          batchSize: 4,
+        });
+
+      expect(again).toEqual({ tokensGiven: 0, markedAddedByTeam: 0 });
+
+      for (let i: number = 0; i < ids.length; i++) {
+        const row: { unsubscribeToken: string | null; isAddedByTeam: boolean } =
+          await read(ids[i]!);
+        expect(
+          StatusPageSubscriberUnsubscribe.isWellFormedToken(
+            row.unsubscribeToken,
+          ),
+        ).toBe(true);
+        // Whoever won, the token is the one it wrote, and it stayed.
+        expect(row.unsubscribeToken).toBe(afterRace[i]);
+        expect(row.isAddedByTeam).toBe(true);
+      }
     });
 
     test("unsubscribe() cancels a live subscription once and dates it", async () => {
@@ -279,10 +355,23 @@ describePostgres(
       const staleRow: StatusPageSubscriber = new StatusPageSubscriber();
       staleRow._id = filled.toString();
 
+      const secondEmpty: ObjectID = await seed({ token: null });
+      const secondEmptyRow: StatusPageSubscriber = new StatusPageSubscriber();
+      secondEmptyRow._id = secondEmpty.toString();
+
       await StatusPageSubscriberService.ensureUnsubscribeTokens([
         emptyRow,
         staleRow,
+        secondEmptyRow,
       ]);
+
+      // One token each, both stored, and handed back to the rows.
+      const secondStored: string | null = (await read(secondEmpty))
+        .unsubscribeToken;
+      expect(
+        StatusPageSubscriberUnsubscribe.isWellFormedToken(secondStored),
+      ).toBe(true);
+      expect(secondEmptyRow.unsubscribeToken).toBe(secondStored);
 
       const stored: string | null = (await read(empty)).unsubscribeToken;
 

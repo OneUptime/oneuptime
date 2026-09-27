@@ -242,6 +242,7 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -293,6 +294,11 @@ const STORAGE_GROUP_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/scheduled-events/${EVENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -690,7 +696,10 @@ function expectedCustomMessages(data: {
   return [
     `Email|${data.emailBody ?? data.body}`,
     `Subject|${data.plainTextBody ?? data.body}`,
-    `SMS|${data.plainTextBody ?? data.body}`,
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    `SMS|${(data.plainTextBody ?? data.body)
+      .split(UNSUBSCRIBE_URL)
+      .join(SMS_UNSUBSCRIBE_URL)}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
@@ -777,7 +786,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     scheduledMaintenanceTitle: EVENT_TITLE,
     note: NOTE,
   };
@@ -965,7 +977,7 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated;
 
     expect(sentSms()).toEqual([
-      `Maintenance note updated: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Maintenance note updated: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(event, StatusPageSubscriberNotificationMethod.SMS),
@@ -1158,7 +1170,7 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
       `[Update Scheduled Maintenance] ${EVENT_TITLE}`,
     );
     expect(sentSms()[0]).toBe(
-      `Maintenance update: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Maintenance update: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
     expect(sentSlack()[0]).toContain("**New Note Added**");
     expect(sentWebhooks()[0]!["eventType"]).toBe(
@@ -1712,7 +1724,8 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
       expect(compiledVariablesByChannel()).toEqual({
         Email: emailBody,
         Subject: plainText,
-        SMS: plainText,
+        // An SMS from this public page carries the manage link (see smsManageLinkFor).
+        SMS: { ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL },
         Slack: markdown,
         "Microsoft Teams": markdown,
       });

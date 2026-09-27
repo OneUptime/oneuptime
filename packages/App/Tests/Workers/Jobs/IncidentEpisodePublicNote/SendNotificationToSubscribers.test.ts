@@ -263,6 +263,7 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -311,6 +312,11 @@ const STATUS_PAGE_URL: string = "https://status.acme.com";
 // The status page shows an episode on its incident detail route.
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${EPISODE_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -549,7 +555,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     episodeTitle: EPISODE_TITLE,
     episodeSeverity: "Major",
     resourcesAffected: "Edge network",
@@ -923,7 +932,7 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
       StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated;
 
     expect(sentSms()).toEqual([
-      `Incident update: ${EPISODE_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${EPISODE_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(event, StatusPageSubscriberNotificationMethod.SMS),
@@ -1101,7 +1110,7 @@ describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", ()
       `[Update Incident] ${EPISODE_TITLE}`,
     );
     expect(sentSms()[0]).toBe(
-      `Incident update: ${EPISODE_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${EPISODE_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
     expect(sentSlack()[0]).toContain(
       "**New note has been added to an incident**",
@@ -1675,8 +1684,13 @@ describe("IncidentEpisodePublicNote custom template variable values", () => {
         expect(message).not.toMatch(/{{|}}/);
 
         for (const name of names) {
-          const value: string =
+          let value: string =
             name === "note" ? noteByChannel[channel]! : expectedValues[name]!;
+
+          // An SMS from this public page carries the manage link.
+          if (name === "unsubscribeUrl" && channel === "sms") {
+            value = SMS_UNSUBSCRIBE_URL;
+          }
 
           expect(value).not.toBe("");
           expect(message).toContain(`${name}=[${value}]`);
@@ -1754,8 +1768,12 @@ describe.each(TRIGGERS)(
       expect(sentMail()[0]!["subject"]).toBe(
         `${EPISODE_TITLE}: ${NOTE_TEXT} (${GROUPED_RESOURCES_TEXT})`,
       );
+      // An SMS from this public page carries the manage link (see smsManageLinkFor).
       expect(sentSms()).toEqual([
-        renderedEveryVariable("sms", trigger.eventType, plainTextVariables),
+        renderedEveryVariable("sms", trigger.eventType, {
+          ...plainTextVariables,
+          unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+        }),
       ]);
       expect(sentSlack()).toEqual([
         renderedEveryVariable("slack", trigger.eventType, markdownVariables),
@@ -1818,7 +1836,7 @@ describe.each(TRIGGERS)(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.SMS]!,
         ),
-      ).toEqual(plainTextVariables);
+      ).toEqual({ ...plainTextVariables, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
       expect(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.Slack]!,

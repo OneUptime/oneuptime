@@ -117,6 +117,7 @@ import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
+import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -511,6 +512,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * a concurrent save wins. Idempotent.
    */
   new RepairKubernetesDashboardClusterCpuTile(),
+  /*
+   * Issue #4035: gives every status page subscriber that existed before the
+   * upgrade the token its unsubscribe link carries, and marks the ones a
+   * teammate added (they have a creator) as added by the team. Walks the
+   * table in primary key order, a batch at a time, outside the schema
+   * migrations' transactions, so the table stays usable while it runs;
+   * senders give a subscriber it has not reached yet a token of its own.
+   * Idempotent: it only fills what is still empty.
+   */
+  new BackfillStatusPageSubscriberUnsubscribeColumns(),
 ];
 
 export default DataMigrations;

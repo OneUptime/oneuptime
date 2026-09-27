@@ -841,6 +841,58 @@ export default class StatusPageSubscriber extends BaseModel {
   })
   public unsubscribeToken?: string = undefined;
 
+  /*
+   * Whether the status page's team added this subscriber - from the
+   * dashboard, with an API key (the REST API, Terraform, a script loading a
+   * list of addresses) or by a workflow - rather than its owner signing up
+   * on the status page.
+   *
+   * A subscriber the team added may be a shared address, such as a site's
+   * mailing list, that any one reader could take off the page with the
+   * unsubscribe link. So when such a subscriber unsubscribes itself, the
+   * page's owners are emailed, the unsubscribe page warns the reader first,
+   * and the subscriber lists name it (see StatusPageSubscriberService).
+   *
+   * Created By (createdByUserId) cannot tell this on its own: only a
+   * signed-in user's create carries one, and an API key's or a workflow's
+   * does not. StatusPageSubscriberService sets this on every create - true
+   * unless the create is a sign-up on the status page - and nobody else can
+   * write it. Subscribers created before it existed were given it from
+   * Created By, so a subscriber an API key added before then reads as a
+   * sign-up.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Added By Team",
+    description:
+      "Whether your team added this subscriber (from the dashboard, with an API key or by a workflow) rather than the subscriber signing up on the status page. Set by OneUptime when the subscriber is created; any value sent for it is ignored.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAddedByTeam?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

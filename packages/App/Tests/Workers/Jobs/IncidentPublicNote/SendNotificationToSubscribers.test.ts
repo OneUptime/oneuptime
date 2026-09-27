@@ -255,6 +255,7 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -311,6 +312,11 @@ const SECOND_STATUS_PAGE_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -573,7 +579,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     incidentTitle: INCIDENT_TITLE,
     incidentSeverity: "Critical",
     resourcesAffected: "Checkout API",
@@ -896,7 +905,7 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     await runJob(UPDATED_JOB);
 
     expect(sentSms()).toEqual([
-      `Incident update: ${INCIDENT_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${INCIDENT_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
 
     const event: StatusPageSubscriberNotificationEventType =
@@ -1186,7 +1195,7 @@ describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
       `[Update Incident] ${INCIDENT_TITLE}`,
     );
     expect(sentSms()[0]).toBe(
-      `Incident update: ${INCIDENT_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${INCIDENT_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
     expect(sentSlack()[0]).toContain(
       "**New note has been added to an incident**",
@@ -1427,11 +1436,12 @@ describe("IncidentPublicNote custom templates, in each channel's format", () => 
         ),
       ).toEqual(html);
       expect(variablesCompiledInto(EMAIL_SUBJECT_TEMPLATE)).toEqual(plainText);
+      // An SMS from this public page carries the manage link (see smsManageLinkFor).
       expect(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.SMS]!,
         ),
-      ).toEqual(plainText);
+      ).toEqual({ ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
       expect(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.Slack]!,
@@ -1844,6 +1854,9 @@ describe("IncidentPublicNote custom template variable values", () => {
             value = NOTE_HTML;
           } else if (name === "note" && channel === "sms") {
             value = NOTE_TEXT;
+          } else if (name === "unsubscribeUrl" && channel === "sms") {
+            // An SMS from this public page carries the manage link.
+            value = SMS_UNSUBSCRIBE_URL;
           }
 
           expect(value).not.toBe("");

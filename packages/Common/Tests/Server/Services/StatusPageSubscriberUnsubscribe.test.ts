@@ -6,6 +6,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import MailService from "../../../Server/Services/MailService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
@@ -25,6 +26,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
+import UserType from "../../../Types/UserType";
 import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeChannel,
   StatusPageSubscriberUnsubscribeDetails,
@@ -78,6 +80,7 @@ let storedSubscriber: StatusPageSubscriber | null;
 function subscriberRow(overrides?: {
   isUnsubscribed?: boolean;
   createdByUserId?: ObjectID | null;
+  isAddedByTeam?: boolean;
   unsubscribeToken?: string | null;
   statusPageId?: ObjectID;
 }): StatusPageSubscriber {
@@ -96,6 +99,10 @@ function subscriberRow(overrides?: {
   if (overrides?.createdByUserId !== null) {
     row.createdByUserId = overrides?.createdByUserId || CREATOR_ID;
   }
+
+  // A teammate's create, unless a test says otherwise.
+  row.isAddedByTeam =
+    overrides?.isAddedByTeam ?? overrides?.createdByUserId !== null;
 
   return row;
 }
@@ -409,6 +416,227 @@ describe("a subscriber's unsubscribe token, minted on create", () => {
   });
 });
 
+describe("who added a subscriber (Is Added By Team), set on create", () => {
+  function newSubscriber(): StatusPageSubscriber {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row.projectId = PROJECT_ID;
+    row.statusPageId = STATUS_PAGE_ID;
+    row.subscriberEmail = new Email("site03-all@acme.com");
+    row.isSubscriptionConfirmed = true;
+    return row;
+  }
+
+  /*
+   * DatabaseService.create with the database taken out: it runs the
+   * service's onBeforeCreate on the very row it was handed, as the real one
+   * does, and "saves" it with the secrets the hook minted.
+   */
+  let seenByHook: Array<StatusPageSubscriber>;
+
+  beforeEach(() => {
+    seenByHook = [];
+
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockImplementation((() => {
+        const page: StatusPage = new StatusPage();
+        page._id = STATUS_PAGE_ID.toString();
+        page.projectId = PROJECT_ID;
+        page.name = "Site 03";
+        return Promise.resolve([page]);
+      }) as never);
+    jest
+      .spyOn(ProjectService, "getCurrentPlan")
+      .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false } as never);
+    jest
+      .spyOn(StatusPageSubscriberService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    jest
+      .spyOn(DatabaseService.prototype, "create")
+      .mockImplementation(async function (
+        this: unknown,
+        createBy: unknown,
+      ): Promise<unknown> {
+        const onCreate: OnCreate<StatusPageSubscriber> = await (
+          this as {
+            onBeforeCreate: (
+              createBy: CreateBy<StatusPageSubscriber>,
+            ) => Promise<OnCreate<StatusPageSubscriber>>;
+          }
+        ).onBeforeCreate(createBy as CreateBy<StatusPageSubscriber>);
+
+        const saved: StatusPageSubscriber = onCreate.createBy.data;
+        saved._id = SUBSCRIBER_ID.toString();
+        seenByHook.push(saved);
+        return saved;
+      } as never);
+  });
+
+  const teammate: DatabaseCommonInteractionProps = {
+    userId: CREATOR_ID,
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+  };
+
+  // A project API key: the REST API, Terraform, a script. No user.
+  const apiKey: DatabaseCommonInteractionProps = {
+    userType: UserType.API,
+    tenantId: PROJECT_ID,
+  };
+
+  // A workflow's Create Status Page Subscriber step.
+  const workflow: DatabaseCommonInteractionProps = {
+    isRoot: true,
+    tenantId: PROJECT_ID,
+  };
+
+  test.each([
+    ["a teammate on the dashboard", teammate],
+    ["a project API key, which carries no user", apiKey],
+    ["a workflow, which runs as root", workflow],
+  ])(
+    "%s adds a subscriber for the team",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      await StatusPageSubscriberService.create({
+        data: newSubscriber(),
+        props: props,
+      });
+
+      expect(seenByHook[0]!.isAddedByTeam).toBe(true);
+    },
+  );
+
+  test("a sign-up on the status page is not the team's", async () => {
+    await StatusPageSubscriberService.createFromStatusPageSignUp(
+      newSubscriber(),
+    );
+
+    expect(seenByHook[0]!.isAddedByTeam).toBe(false);
+  });
+
+  test("a sign-up is created as root, like the rest of the subscribe endpoint", async () => {
+    await StatusPageSubscriberService.createFromStatusPageSignUp(
+      newSubscriber(),
+    );
+
+    const createBy: CreateBy<StatusPageSubscriber> = (
+      DatabaseService.prototype.create as unknown as jest.Mock
+    ).mock.calls[0]![0] as CreateBy<StatusPageSubscriber>;
+
+    expect(createBy.props).toEqual({ isRoot: true });
+  });
+
+  test("whatever a client sends for it is ignored", async () => {
+    const claimsSignUp: StatusPageSubscriber = newSubscriber();
+    claimsSignUp.isAddedByTeam = false;
+
+    await StatusPageSubscriberService.create({
+      data: claimsSignUp,
+      props: apiKey,
+    });
+
+    expect(seenByHook[0]!.isAddedByTeam).toBe(true);
+  });
+
+  test("a row stops counting as a sign-up once its create is over", async () => {
+    const row: StatusPageSubscriber = newSubscriber();
+
+    await StatusPageSubscriberService.createFromStatusPageSignUp(row);
+    expect(row.isAddedByTeam).toBe(false);
+
+    // The same instance, created again by the team (the hook sees the row itself).
+    await StatusPageSubscriberService.create({ data: row, props: teammate });
+    expect(row.isAddedByTeam).toBe(true);
+  });
+
+  test("a sign-up that fails still leaves nothing behind", async () => {
+    const row: StatusPageSubscriber = newSubscriber();
+
+    (
+      DatabaseService.prototype.create as unknown as jest.Mock
+    ).mockRejectedValueOnce(new Error("database is down") as never);
+
+    await expect(
+      StatusPageSubscriberService.createFromStatusPageSignUp(row),
+    ).rejects.toThrow("database is down");
+
+    await StatusPageSubscriberService.create({ data: row, props: teammate });
+
+    expect(seenByHook[0]!.isAddedByTeam).toBe(true);
+  });
+
+  test("the column is computed, so the stamp passes a teammate's column check", async () => {
+    await StatusPageSubscriberService.create({
+      data: newSubscriber(),
+      props: teammate,
+    });
+
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        StatusPageSubscriber,
+        seenByHook[0]!,
+        {
+          ...teammate,
+          userTenantAccessPermission: {
+            [PROJECT_ID.toString()]: {
+              projectId: PROJECT_ID,
+              _type: "UserTenantAccessPermission",
+              permissions: [
+                {
+                  _type: "UserPermission",
+                  permission: Permission.ProjectAdmin,
+                  labelIds: [],
+                  isBlockPermission: false,
+                },
+              ],
+            },
+          },
+        },
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+});
+
+describe("a create never hands back the secrets it minted", () => {
+  beforeEach(() => {
+    jest.spyOn(DatabaseService.prototype, "create").mockImplementation((() => {
+      // What DatabaseService.create returns: the saved row, secrets and all.
+      const saved: StatusPageSubscriber = subscriberRow();
+      saved.subscriptionConfirmationToken = "123456";
+      return Promise.resolve(saved);
+    }) as never);
+  });
+
+  test.each([
+    ["the create a teammate, an API key or a workflow makes", false],
+    ["a sign-up on the status page", true],
+  ])("%s", async (_label: string, isSignUp: boolean) => {
+    const data: StatusPageSubscriber = new StatusPageSubscriber();
+
+    const created: StatusPageSubscriber = isSignUp
+      ? await StatusPageSubscriberService.createFromStatusPageSignUp(data)
+      : await StatusPageSubscriberService.create({
+          data: data,
+          props: { userType: UserType.API, tenantId: PROJECT_ID },
+        });
+
+    expect(created.unsubscribeToken).toBeUndefined();
+    expect(created.subscriptionConfirmationToken).toBeUndefined();
+    // Nothing else is lost.
+    expect(created.id?.toString()).toBe(SUBSCRIBER_ID.toString());
+    expect(created.subscriberEmail?.toString()).toBe("site03-all@acme.com");
+
+    const json: string = JSON.stringify(
+      StatusPageSubscriber.toJSON(created, StatusPageSubscriber),
+    );
+    expect(json).not.toContain(TOKEN);
+    expect(json).not.toContain("123456");
+    expect(json).not.toContain("unsubscribeToken");
+  });
+});
+
 describe("StatusPageSubscriberService.getUnsubscribeLink", () => {
   test("builds the token link from the subscriber row", () => {
     expect(
@@ -465,6 +693,7 @@ describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
     ).select;
 
     expect(select["unsubscribeToken"]).toBe(true);
+    expect(select["isAddedByTeam"]).toBe(true);
     expect(select["createdByUserId"]).toBe(true);
     // Rows with a token are left alone.
     expect(query).not.toHaveBeenCalled();
@@ -475,11 +704,13 @@ describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
       unsubscribeToken: null,
     });
 
-    jest
+    // The page's list, then the read-back of what the database now holds.
+    const findBy: jest.SpyInstance = jest
       .spyOn(StatusPageSubscriberService, "findBy")
-      .mockResolvedValue([withoutToken] as never);
-
-    storedSubscriber = subscriberRow({ unsubscribeToken: TOKEN });
+      .mockResolvedValueOnce([withoutToken] as never)
+      .mockResolvedValueOnce([
+        subscriberRow({ unsubscribeToken: TOKEN }),
+      ] as never);
 
     const subscribers: Array<StatusPageSubscriber> =
       await StatusPageSubscriberService.getSubscribersByStatusPage(
@@ -492,15 +723,192 @@ describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
     expect(writes).toHaveLength(1);
     // Only an empty column is filled, so two racing senders agree on one token.
     expect(writes[0]!.sql).toBe(
-      'UPDATE "StatusPageSubscriber" SET "unsubscribeToken" = $1 WHERE "_id" = $2 AND "unsubscribeToken" IS NULL',
+      'UPDATE "StatusPageSubscriber" AS "subscriber" SET "unsubscribeToken" = "minted"."token" FROM unnest($1::uuid[], $2::text[]) AS "minted"("id", "token") WHERE "subscriber"."_id" = "minted"."id" AND "subscriber"."unsubscribeToken" IS NULL',
     );
-    expect(
-      StatusPageSubscriberUnsubscribe.isWellFormedToken(writes[0]!.params[0]),
-    ).toBe(true);
-    expect(writes[0]!.params[1]).toBe(SUBSCRIBER_ID.toString());
+    expect(writes[0]!.params[0]).toEqual([SUBSCRIBER_ID.toString()]);
+    const minted: Array<unknown> = writes[0]!.params[1] as Array<unknown>;
+    expect(minted).toHaveLength(1);
+    expect(StatusPageSubscriberUnsubscribe.isWellFormedToken(minted[0])).toBe(
+      true,
+    );
 
     // What the database holds - the winner's token - is what the link uses.
+    expect(
+      (findBy.mock.calls[1]![0] as unknown as { select: JSONObject }).select,
+    ).toEqual({ _id: true, unsubscribeToken: true });
     expect(subscribers[0]!.unsubscribeToken).toBe(TOKEN);
+  });
+});
+
+describe("StatusPageSubscriberService.ensureUnsubscribeTokens", () => {
+  const SECOND_ID: string = "30000000-0000-4000-8000-000000000008";
+  const SECOND_TOKEN: string = "cd".repeat(32);
+
+  test("tops up a whole list in one statement and one read, not one per subscriber", async () => {
+    const first: StatusPageSubscriber = subscriberRow({
+      unsubscribeToken: null,
+    });
+    // The same subscriber twice, as a list can hold it.
+    const firstAgain: StatusPageSubscriber = subscriberRow({
+      unsubscribeToken: null,
+    });
+    const second: StatusPageSubscriber = subscriberRow({
+      unsubscribeToken: null,
+    });
+    second._id = SECOND_ID;
+    const alreadyHasOne: StatusPageSubscriber = subscriberRow();
+    alreadyHasOne._id = "30000000-0000-4000-8000-000000000009";
+
+    const storedFirst: StatusPageSubscriber = subscriberRow();
+    const storedSecond: StatusPageSubscriber = subscriberRow({
+      unsubscribeToken: SECOND_TOKEN,
+    });
+    storedSecond._id = SECOND_ID;
+
+    const findBy: jest.SpyInstance = jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([storedFirst, storedSecond] as never);
+
+    await StatusPageSubscriberService.ensureUnsubscribeTokens([
+      first,
+      firstAgain,
+      second,
+      alreadyHasOne,
+    ]);
+
+    const writes: Array<{ sql: string; params: Array<unknown> }> = sqlCalls();
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.params[0]).toEqual([SUBSCRIBER_ID.toString(), SECOND_ID]);
+
+    // Each gets a token of its own.
+    const minted: Array<string> = writes[0]!.params[1] as Array<string>;
+    expect(minted).toHaveLength(2);
+    expect(new Set(minted).size).toBe(2);
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(first.unsubscribeToken).toBe(TOKEN);
+    expect(firstAgain.unsubscribeToken).toBe(TOKEN);
+    expect(second.unsubscribeToken).toBe(SECOND_TOKEN);
+    expect(alreadyHasOne.unsubscribeToken).toBe(TOKEN);
+  });
+
+  test("a list that already has every token costs nothing", async () => {
+    const findBy: jest.SpyInstance = jest.spyOn(
+      StatusPageSubscriberService,
+      "findBy",
+    );
+
+    await StatusPageSubscriberService.ensureUnsubscribeTokens([
+      subscriberRow(),
+    ]);
+
+    expect(query).not.toHaveBeenCalled();
+    expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("StatusPageSubscriberService.backfillUnsubscribeColumns", () => {
+  const ID_A: string = "30000000-0000-4000-8000-00000000000a";
+  const ID_B: string = "30000000-0000-4000-8000-00000000000b";
+  const ID_C: string = "30000000-0000-4000-8000-00000000000c";
+
+  function page(
+    rows: Array<[string, boolean, boolean]>,
+  ): Array<{ _id: string; needsToken: boolean; needsAddedByTeam: boolean }> {
+    return rows.map(
+      (
+        row: [string, boolean, boolean],
+      ): { _id: string; needsToken: boolean; needsAddedByTeam: boolean } => {
+        return { _id: row[0], needsToken: row[1], needsAddedByTeam: row[2] };
+      },
+    );
+  }
+
+  test("walks the table by primary key, a batch at a time, writing only what is empty", async () => {
+    query.mockReset();
+    query
+      // First page: from the start.
+      .mockResolvedValueOnce(
+        page([
+          [ID_A, true, false],
+          [ID_B, false, true],
+        ]) as never,
+      )
+      .mockResolvedValueOnce([[], 1] as never)
+      .mockResolvedValueOnce([[], 1] as never)
+      // Second page: after the last id of the first.
+      .mockResolvedValueOnce(page([[ID_C, true, true]]) as never)
+      .mockResolvedValueOnce([[], 1] as never)
+      .mockResolvedValueOnce([[], 1] as never);
+
+    const result: { tokensGiven: number; markedAddedByTeam: number } =
+      await StatusPageSubscriberService.backfillUnsubscribeColumns({
+        batchSize: 2,
+      });
+
+    const statements: Array<{ sql: string; params: Array<unknown> }> =
+      sqlCalls();
+
+    expect(statements).toHaveLength(6);
+
+    // Keyset pages, never OFFSET: each page starts after the last id seen.
+    expect(statements[0]!.sql).toContain('ORDER BY "_id" ASC LIMIT $1');
+    expect(statements[0]!.sql).toContain(
+      '($2::uuid IS NULL OR "_id" > $2::uuid)',
+    );
+    expect(statements[0]!.sql).not.toContain("OFFSET");
+    expect(statements[0]!.params).toEqual([2, null]);
+    expect(statements[3]!.params).toEqual([2, ID_B]);
+
+    // Tokens only for the rows without one, and never over one.
+    expect(statements[1]!.sql).toContain(
+      '"subscriber"."unsubscribeToken" IS NULL',
+    );
+    expect(statements[1]!.params[0]).toEqual([ID_A]);
+    // Added By Team only for rows with a creator that are not marked yet.
+    expect(statements[2]!.sql).toBe(
+      'UPDATE "StatusPageSubscriber" SET "isAddedByTeam" = true WHERE "_id" = ANY($1::uuid[]) AND "createdByUserId" IS NOT NULL AND "isAddedByTeam" = false',
+    );
+    expect(statements[2]!.params[0]).toEqual([ID_B]);
+
+    expect(statements[4]!.params[0]).toEqual([ID_C]);
+    expect(statements[5]!.params[0]).toEqual([ID_C]);
+
+    // A short page is the last one.
+    expect(result).toEqual({ tokensGiven: 2, markedAddedByTeam: 2 });
+  });
+
+  test("a page with nothing to fill writes nothing, and an empty table ends at once", async () => {
+    query.mockReset();
+    query
+      .mockResolvedValueOnce(page([[ID_A, false, false]]) as never)
+      .mockResolvedValueOnce([] as never);
+
+    const result: { tokensGiven: number; markedAddedByTeam: number } =
+      await StatusPageSubscriberService.backfillUnsubscribeColumns({
+        batchSize: 1,
+      });
+
+    const statements: Array<{ sql: string; params: Array<unknown> }> =
+      sqlCalls();
+
+    expect(statements).toHaveLength(2);
+    expect(statements[0]!.sql.startsWith("SELECT")).toBe(true);
+    expect(statements[1]!.sql.startsWith("SELECT")).toBe(true);
+    expect(statements[1]!.params).toEqual([1, ID_A]);
+    expect(result).toEqual({ tokensGiven: 0, markedAddedByTeam: 0 });
+  });
+
+  test("reads the whole table, soft-deleted subscribers included", async () => {
+    query.mockReset();
+    query.mockResolvedValueOnce([] as never);
+
+    await StatusPageSubscriberService.backfillUnsubscribeColumns();
+
+    const select: { sql: string; params: Array<unknown> } = sqlCalls()[0]!;
+    expect(select.sql).not.toContain("deletedAt");
+    // The default batch keeps every statement small.
+    expect(select.params[0]).toBe(1000);
   });
 });
 
@@ -540,6 +948,27 @@ describe("opening an unsubscribe link (GET) changes nothing", () => {
     expect(Object.keys(lookup).sort()).toEqual(["_id", "statusPageId"]);
     expect(lookup["_id"]).toBe(SUBSCRIBER_ID.toString());
     expect(lookup["statusPageId"]?.toString()).toBe(STATUS_PAGE_ID.toString());
+  });
+
+  test("a subscriber an API key or a workflow added is described as added by the team", async () => {
+    storedSubscriber = subscriberRow({
+      createdByUserId: null,
+      isAddedByTeam: true,
+    });
+
+    const details: StatusPageSubscriberUnsubscribeDetails =
+      await StatusPageSubscriberService.getUnsubscribeLinkDetails(linkData());
+
+    expect(details.wasAddedByTeam).toBe(true);
+  });
+
+  test("so is one a teammate added before Is Added By Team was backfilled", async () => {
+    storedSubscriber = subscriberRow({ isAddedByTeam: false });
+
+    const details: StatusPageSubscriberUnsubscribeDetails =
+      await StatusPageSubscriberService.getUnsubscribeLinkDetails(linkData());
+
+    expect(details.wasAddedByTeam).toBe(true);
   });
 
   test("a subscriber that signed up itself is not described as added by the team", async () => {
@@ -822,6 +1251,46 @@ describe("telling the team when a subscriber it added unsubscribes", () => {
 
     expect(MailService.sendMail).not.toHaveBeenCalled();
     expect(StatusPageService.findOwners).not.toHaveBeenCalled();
+  });
+
+  test("a subscriber an API key or a workflow added (no creator) still tells the page's owners", async () => {
+    storedSubscriber = subscriberRow({
+      createdByUserId: null,
+      isAddedByTeam: true,
+    });
+
+    await unsubscribeNow();
+
+    expect(recipients()).toEqual(["olga@acme.com", "tom@acme.com"]);
+    // There is no teammate to look up, or to name.
+    expect(UserService.findOneById).not.toHaveBeenCalled();
+    expect(
+      (sentMail()[0]!.mail["vars"] as JSONObject)["message"] as string,
+    ).toContain("Someone on your team added this subscriber");
+  });
+
+  test("one an API key added, on a page with no owners, tells nobody", async () => {
+    storedSubscriber = subscriberRow({
+      createdByUserId: null,
+      isAddedByTeam: true,
+    });
+    jest.spyOn(StatusPageService, "findOwners").mockResolvedValue([] as never);
+
+    await unsubscribeNow();
+
+    expect(MailService.sendMail).not.toHaveBeenCalled();
+  });
+
+  test("a teammate's subscriber from before the backfill (creator, not marked yet) still tells the team", async () => {
+    storedSubscriber = subscriberRow({ isAddedByTeam: false });
+
+    await unsubscribeNow();
+
+    expect(recipients()).toEqual([
+      "dana@acme.com",
+      "olga@acme.com",
+      "tom@acme.com",
+    ]);
   });
 
   test("a page with no owners tells only the teammate who added the subscriber", async () => {

@@ -106,6 +106,20 @@ const MANAGE_URL: string =
 const UNSUBSCRIBE_TOKEN: string = "5d".repeat(32);
 const UNSUBSCRIBE_URL: string = `https://status.acme-example.com/unsubscribe/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
 
+/*
+ * The unsubscribeUrl a channel's template is given. An SMS from a public
+ * status page gets the (shorter) manage link, as every other SMS from one
+ * does - an SMS is billed by the segment (see
+ * StatusPageSubscriberUnsubscribe.buildSmsLink); the fixture page is public.
+ */
+function unsubscribeUrlOnPublicPage(
+  method: StatusPageSubscriberNotificationMethod,
+): string {
+  return method === StatusPageSubscriberNotificationMethod.SMS
+    ? MANAGE_URL
+    : UNSUBSCRIBE_URL;
+}
+
 const SUBSCRIBER_EMAIL: string = "manage.subscriber@acme-example.com";
 const SUBSCRIBER_PHONE: string = "+15550100123";
 const SLACK_WORKSPACE_NAME: string = "acme-ops-workspace";
@@ -853,16 +867,41 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const calls: Array<CompileCall> = compileCalls();
         expect(calls).toHaveLength(channel.compileCallsPerRequest);
         for (const call of calls) {
-          expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+          expect(call.variables["unsubscribeUrl"]).toBe(
+            unsubscribeUrlOnPublicPage(channel.method),
+          );
           expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
           expect(call.variables["statusPageUrl"]).toBe(STATUS_PAGE_URL);
         }
 
         expect(renderedMessage(channel)).toContain(
-          `unsubscribeUrl=[${UNSUBSCRIBE_URL}]`,
+          `unsubscribeUrl=[${unsubscribeUrlOnPublicPage(channel.method)}]`,
         );
       },
     );
+
+    it("sms from a private status page: unsubscribeUrl is the token link, since its manage page needs a signed-in visitor", async () => {
+      const smsChannel: ChannelCase = CHANNELS.find(
+        (channel: ChannelCase): boolean => {
+          return channel.method === StatusPageSubscriberNotificationMethod.SMS;
+        },
+      )!;
+
+      useCustomTemplatesOnEveryChannel();
+      pageToSend.isPublicStatusPage = false;
+
+      await callManageSubscription(smsChannel.requestData);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(smsChannel.compileCallsPerRequest);
+      for (const call of calls) {
+        expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+        expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
+      }
+      expect(renderedMessage(smsChannel)).toContain(
+        `unsubscribeUrl=[${UNSUBSCRIBE_URL}]`,
+      );
+    });
 
     it("reads each subscriber's unsubscribe token with the lookup", async () => {
       await callManageSubscription(CHANNELS[0]!.requestData);
@@ -1004,7 +1043,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const expectedValues: Record<string, string> = {
           statusPageName: PAGE_TITLE,
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: UNSUBSCRIBE_URL,
+          unsubscribeUrl: unsubscribeUrlOnPublicPage(channel.method),
           manageSubscriptionUrl: MANAGE_URL,
         };
 

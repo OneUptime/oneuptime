@@ -6,7 +6,6 @@ import { formatScopeText } from "../Incident/IncidentStatusPageScopeCopy";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
-import NotNull from "Common/Types/BaseDatabase/NotNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -28,8 +27,9 @@ import useAsyncEffect from "use-async-effect";
 
 /*
  * A notice above a status page's subscriber list naming the subscribers the
- * team added (they have a creator: dashboard and API creates) that have
- * unsubscribed recently.
+ * team added (Is Added By Team: from the dashboard, with an API key or by a
+ * workflow, never a sign-up on the status page) that have unsubscribed
+ * recently.
  *
  * Every notification carries an unsubscribe link that works without signing
  * in, so one reader of a shared address - a site's mailing list, say - can
@@ -80,7 +80,7 @@ const TeamAddedSubscribersUnsubscribedNotice: FunctionComponent<
             statusPageId: props.statusPageId,
             projectId: props.projectId,
             isUnsubscribed: true,
-            createdByUserId: new NotNull(),
+            isAddedByTeam: true,
             unsubscribedAt: new GreaterThan(
               OneUptimeDate.getSomeDaysAgo(
                 RECENTLY_UNSUBSCRIBED_WINDOW_IN_DAYS,

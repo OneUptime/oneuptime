@@ -269,6 +269,7 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -325,6 +326,11 @@ const DETAILS_URL: string =
 const SECOND_DETAILS_URL: string =
   "https://status.beta.com/incidents/33333333-3333-4333-8333-333333333333";
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  "https://status.acme.com",
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   "https://status.acme.com",
   SUBSCRIBER_ID,
 );
@@ -564,7 +570,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     episodeTitle: EPISODE_TITLE,
     episodeSeverity: SEVERITY,
     episodeDescription: DESCRIPTION,
@@ -901,7 +910,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
     await runJob();
 
     expect(sentSms()).toEqual([
-      `Incident ${EPISODE_TITLE} (${SEVERITY}) on Acme Status. Impact: ${RESOURCE}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident ${EPISODE_TITLE} (${SEVERITY}) on Acme Status. Impact: ${RESOURCE}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
@@ -1463,7 +1472,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
   });
 
   test("unsubscribeUrl is each subscriber's own link", async () => {
-    useCustomTemplatesOnEveryChannel();
+    const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
     mock(
       StatusPageSubscriberService.getSubscribersByStatusPage,
     ).mockResolvedValue([
@@ -1476,18 +1485,35 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
     const calls: Array<CompileCall> = compileCalls();
     expect(calls).toHaveLength(10);
 
-    // Each subscriber's five templates are compiled before the next one's.
+    /*
+     * Each subscriber's five templates are compiled before the next one's.
+     * An SMS from this public page carries the subscriber's manage link
+     * instead (see smsManageLinkFor).
+     */
+    const isSms: (call: CompileCall) => boolean = (
+      call: CompileCall,
+    ): boolean => {
+      return (
+        call.template === bodies[StatusPageSubscriberNotificationMethod.SMS]
+      );
+    };
     for (const call of calls.slice(0, 5)) {
-      expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+      expect(call.variables["unsubscribeUrl"]).toBe(
+        isSms(call) ? SMS_UNSUBSCRIBE_URL : UNSUBSCRIBE_URL,
+      );
     }
     for (const call of calls.slice(5)) {
-      expect(call.variables["unsubscribeUrl"]).toBe(SECOND_UNSUBSCRIBE_URL);
+      expect(call.variables["unsubscribeUrl"]).toBe(
+        isSms(call)
+          ? smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)
+          : SECOND_UNSUBSCRIBE_URL,
+      );
     }
 
     expect(sentSms()).toHaveLength(2);
-    expect(sentSms()[0]).toContain(`unsubscribeUrl=[${UNSUBSCRIBE_URL}]`);
+    expect(sentSms()[0]).toContain(`unsubscribeUrl=[${SMS_UNSUBSCRIBE_URL}]`);
     expect(sentSms()[1]).toContain(
-      `unsubscribeUrl=[${SECOND_UNSUBSCRIBE_URL}]`,
+      `unsubscribeUrl=[${smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}]`,
     );
   });
 
@@ -1634,10 +1660,15 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
       expect(message).not.toMatch(/{{|}}/);
 
       for (const name of names) {
-        const value: string =
+        let value: string =
           name === "episodeDescription"
             ? descriptionByChannel[channel]!
             : expectedValues[name]!;
+
+        // An SMS from this public page carries the manage link.
+        if (name === "unsubscribeUrl" && channel === "sms") {
+          value = SMS_UNSUBSCRIBE_URL;
+        }
 
         expect(value).not.toBe("");
         expect(message).toContain(`${name}=[${value}]`);
@@ -1766,7 +1797,13 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates with gr
     expect(sentMail()[0]!["subject"]).toBe(
       `${EPISODE_TITLE}: ${DESCRIPTION_TEXT} (${GROUPED_RESOURCES_TEXT})`,
     );
-    expect(sentSms()).toEqual([renderedEveryVariable("sms", values.plainText)]);
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(sentSms()).toEqual([
+      renderedEveryVariable("sms", {
+        ...values.plainText,
+        unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+      }),
+    ]);
     expect(sentSlack()).toEqual([
       renderedEveryVariable("slack", values.markdown),
     ]);
@@ -1828,7 +1865,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates with gr
       variablesCompiledInto(
         bodies[StatusPageSubscriberNotificationMethod.SMS]!,
       ),
-    ).toEqual(values.plainText);
+    ).toEqual({ ...values.plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
     expect(
       variablesCompiledInto(
         bodies[StatusPageSubscriberNotificationMethod.Slack]!,
@@ -2290,7 +2327,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in 
       }),
     );
     expect(sentSms()).toEqual([
-      `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()[0]).toContain(
       `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,

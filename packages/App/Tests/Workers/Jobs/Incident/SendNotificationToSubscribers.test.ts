@@ -243,6 +243,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -283,6 +284,11 @@ const MONITOR_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -518,7 +524,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     incidentTitle: INCIDENT_TITLE,
     incidentSeverity: "Critical",
     resourcesAffected: "Checkout API",
@@ -635,13 +644,75 @@ describe("Incident:SendNotificationToSubscribers", () => {
       }),
     );
     expect(sentSms()).toEqual([
-      `Incident ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()).toHaveLength(1);
     expect(sentSlack()[0]).toContain(`## 🚨 Incident - ${INCIDENT_TITLE}`);
     expect(sentTeams()).toHaveLength(1);
     expect(sentTeams()[0]).toContain(`## 🚨 Incident - ${INCIDENT_TITLE}`);
     expect(sentWebhooks()[0]!["eventType"]).toBe("IncidentCreated");
+  });
+
+  /*
+   * Which link each message carries: the unsubscribe page's token link on
+   * every channel, except an SMS from a public status page, which keeps the
+   * manage link - 57 characters shorter, and an SMS is billed by the segment
+   * (StatusPageSubscriberUnsubscribe.buildSmsLink).
+   */
+  test("a public page: the SMS keeps the manage link, every other channel carries the token link", async () => {
+    await runJob();
+
+    expect(sentSms()[0]).toContain(`Unsub: ${SMS_UNSUBSCRIBE_URL}`);
+    expect(sentSms()[0]).not.toContain("/unsubscribe/");
+    expect(SMS_UNSUBSCRIBE_URL.length).toBe(UNSUBSCRIBE_URL.length - 57);
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({ unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
+    expect(sentSlack()[0]).toContain(`[Unsubscribe](${UNSUBSCRIBE_URL})`);
+    expect(sentTeams()[0]).toContain(`[Unsubscribe](${UNSUBSCRIBE_URL})`);
+    expect(sentWebhooks()[0]!["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+  });
+
+  test("a private page: the SMS carries the token link too, since its manage page needs a signed-in visitor", async () => {
+    const privatePage: StatusPage = statusPage();
+    privatePage.isPublicStatusPage = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([privatePage] as never);
+
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+    ]);
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({ unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
+    expect(sentWebhooks()[0]!["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+  });
+
+  test("a private page's custom SMS template gets the token link as {{unsubscribeUrl}}", async () => {
+    const privatePage: StatusPage = statusPage();
+    privatePage.isPublicStatusPage = false;
+    // A custom SMS template is used only with the page's own Twilio.
+    (privatePage as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.SMS
+        ? { templateBody: "Stop: {{unsubscribeUrl}}" }
+        : null;
+    });
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([privatePage] as never);
+
+    await runJob();
+
+    expect(sentSms()).toEqual([`Stop: ${UNSUBSCRIBE_URL}`]);
   });
 
   test("matches the dashboard's incident created defaults", async () => {
@@ -737,7 +808,11 @@ describe("Incident:SendNotificationToSubscribers, with custom templates and grou
 
     expect(variablesCompiledInto(CUSTOM_EMAIL_BODY)).toEqual(html);
     expect(variablesCompiledInto(CUSTOM_EMAIL_SUBJECT)).toEqual(plainText);
-    expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual(plainText);
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual({
+      ...plainText,
+      unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+    });
     expect(variablesCompiledInto(CUSTOM_SLACK_BODY)).toEqual(markdown);
     expect(variablesCompiledInto(CUSTOM_TEAMS_BODY)).toEqual(markdown);
   });
@@ -1814,7 +1889,7 @@ describe("Incident:SendNotificationToSubscribers escapes plain values in email",
       await runJob();
 
       expect(sentSms()).toEqual([
-        `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+        `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
       ]);
       expect(sentSlack()[0]).toContain(
         `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,

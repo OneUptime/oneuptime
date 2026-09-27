@@ -72,6 +72,12 @@ const MONITOR_ID: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
 
+// The secret in the subscriber's unsubscribe link, as its row carries it.
+const UNSUBSCRIBE_TOKEN: string = "5e".repeat(32);
+const STATUS_PAGE_URL: string = "https://status.example.com";
+const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID.toString()}-${UNSUBSCRIBE_TOKEN}`;
+const MANAGE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+
 const STARTS_AT: Date = new Date("2024-03-04T06:08:00.000Z");
 const TITLE: string = "Quarterly database failover drill";
 const DESCRIPTION: string = "Failing over the **primary**.";
@@ -170,6 +176,7 @@ function subscriber(id: ObjectID = SUBSCRIBER_ID): StatusPageSubscriber {
   row.subscriberWebhook = URL.fromString(
     "https://hooks.example.com/subscriber",
   );
+  row.unsubscribeToken = UNSUBSCRIBE_TOKEN;
 
   return row;
 }
@@ -399,19 +406,29 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
         OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT),
       scheduledEndTime: "",
       resourcesAffected: "Primary database, Replica",
-      unsubscribeUrl: expect.any(String),
     };
 
+    /*
+     * Every message links to the subscriber's unsubscribe page, token and
+     * all - except an SMS from this public page, which keeps the shorter
+     * manage link (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+     */
     expect(sms).toEqual({
       ...shared,
       scheduledMaintenanceDescription: DESCRIPTION_TEXT,
+      unsubscribeUrl: MANAGE_URL,
     });
     expect(slack).toEqual({
       ...shared,
       scheduledMaintenanceDescription: DESCRIPTION,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
     });
-    expect(emailBody).toEqual(expect.objectContaining(shared));
-    expect(emailSubject).toEqual(expect.objectContaining(shared));
+    expect(emailBody).toEqual(
+      expect.objectContaining({ ...shared, unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
+    expect(emailSubject).toEqual(
+      expect.objectContaining({ ...shared, unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
     expect(Object.keys(emailSubject).sort()).toEqual(
       Object.keys(emailBody).sort(),
     );
@@ -546,6 +563,70 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
       }),
     );
   });
+  describe("the unsubscribe link", () => {
+    beforeEach(() => {
+      jest
+        .spyOn(
+          StatusPageSubscriberNotificationTemplateService,
+          "getTemplateForStatusPage",
+        )
+        .mockResolvedValue(null);
+    });
+
+    test("the default email, Slack and webhook carry the token link; a public page's SMS the manage link", async () => {
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(sentMail()[0]!.vars["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+      expect(sentSlack()[0]).toContain(`[Unsubscribe](${UNSUBSCRIBE_URL})`);
+      expect(
+        (
+          mock(StatusPageSubscriberWebhookUtil.sendWebhookNotification).mock
+            .calls[0]![0] as { payload: { unsubscribeUrl: string } }
+        ).payload.unsubscribeUrl,
+      ).toBe(UNSUBSCRIBE_URL);
+      expect(sentSms()[0]).toContain(`Unsub: ${MANAGE_URL}`);
+      expect(sentSms()[0]).not.toContain(UNSUBSCRIBE_TOKEN);
+    });
+
+    test("a private page's SMS carries the token link: its manage page needs a signed-in visitor", async () => {
+      const privatePage: StatusPage = statusPage({ withCustomProviders: true });
+      privatePage.isPublicStatusPage = false;
+
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([privatePage]);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(sentSms()[0]).toContain(`Unsub: ${UNSUBSCRIBE_URL}`);
+      expect(sentMail()[0]!.vars["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+    });
+
+    test("a private page's custom SMS template gets the token link as {{unsubscribeUrl}}", async () => {
+      const privatePage: StatusPage = statusPage({ withCustomProviders: true });
+      privatePage.isPublicStatusPage = false;
+
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([privatePage]);
+      useCustomTemplates(CUSTOM_SUBJECT);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(
+        variablesCompiledInto(
+          CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
+        )["unsubscribeUrl"],
+      ).toBe(UNSUBSCRIBE_URL);
+    });
+  });
+
   /*
    * Escaping. The maintenance title, the status page's name and the names of
    * its resources are plain text a project member typed. In an email body

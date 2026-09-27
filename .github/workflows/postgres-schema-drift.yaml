@@ -272,12 +272,14 @@ jobs:
           Tests/Server/Services/StatusPageSubscriberAudienceCountsPostgres.test.ts --forceExit
 
       # Clones the migrated StatusPageSubscriber table into an isolated schema
-      # and runs the unsubscribe link's SQL against it: the migration's
-      # backfill gives every subscriber its own 64-hex unsubscribe token and
-      # keeps one already there, StatusPageSubscriberService.unsubscribe
+      # and runs the unsubscribe link's SQL against it: the backfill data
+      # migration walks the table in batches, gives every subscriber its own
+      # 64-hex unsubscribe token, keeps one already there, marks the
+      # subscribers a teammate added as added by the team, and agrees with
+      # itself when two run at once; StatusPageSubscriberService.unsubscribe
       # cancels a subscription exactly once even when confirmations race (so
-      # the team is told once) and never a deleted one, and a missing token
-      # is filled without overwriting another sender's.
+      # the team is told once) and never a deleted one; and missing tokens
+      # are filled, a list at a time, without overwriting another sender's.
       - name: Test subscriber unsubscribe on migrated Postgres
         working-directory: packages/Common
         env:

@@ -17,6 +17,7 @@ import { SkipHiddenIncidentCreatedNotifications1795300000000 } from "./179530000
 import { AddIncidentStatusPageScope1795400000000 } from "./1795400000000-AddIncidentStatusPageScope";
 import { AddIncidentTemplateStatusPageScopeFlag1795500000000 } from "./1795500000000-AddIncidentTemplateStatusPageScopeFlag";
 import { AddStatusPageSubscriberUnsubscribeToken1795600000000 } from "./1795600000000-AddStatusPageSubscriberUnsubscribeToken";
+import { AddStatusPageSubscriberIsAddedByTeam1795700000000 } from "./1795700000000-AddStatusPageSubscriberIsAddedByTeam";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1234,4 +1235,5 @@ export default [
   AddIncidentStatusPageScope1795400000000,
   AddIncidentTemplateStatusPageScopeFlag1795500000000,
   AddStatusPageSubscriberUnsubscribeToken1795600000000,
+  AddStatusPageSubscriberIsAddedByTeam1795700000000,
 ];

@@ -23,6 +23,7 @@ import { JSONObject } from "Common/Types/JSON";
 import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import EmailLogService from "Common/Server/Services/EmailLogService";
@@ -911,7 +912,17 @@ export default class MailService {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
       emailLog.toEmail = mail.toEmail;
-      emailLog.subject = mail.subject;
+      /*
+       * A status page's custom subject template can put {{unsubscribeUrl}}
+       * in the subject, and the token in that link lets whoever holds it
+       * cancel the subscription without signing in. The email log is
+       * readable by project members who may not touch subscribers, so it
+       * keeps the link with its token redacted (see
+       * StatusPageSubscriberUnsubscribe.redactCredentials).
+       */
+      emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
+        mail.subject,
+      );
 
       if (options.emailServer?.id) {
         emailLog.projectSmtpConfigId = options.emailServer?.id;

@@ -255,6 +255,7 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   unsubscribeTokenFor,
   withUnsubscribeToken,
@@ -318,6 +319,11 @@ const STATUS_PAGE_URL: string = "https://status.acme.com";
 const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -584,7 +590,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     incidentTitle: INCIDENT_TITLE,
     incidentSeverity: INCIDENT_SEVERITY,
     incidentState: INCIDENT_STATE_NAME,
@@ -946,6 +955,18 @@ describe("IncidentStateTimeline custom templates receive every advertised variab
       );
       expect(call.variables["incidentDescription"]).not.toBe("");
 
+      // An SMS from a public page carries the manage link instead (see smsManageLinkFor).
+      if (
+        call.template ===
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]
+      ) {
+        expect([
+          smsManageLinkFor(pageUrl, SUBSCRIBER_ID),
+          smsManageLinkFor(pageUrl, SECOND_SUBSCRIBER_ID),
+        ]).toContain(call.variables["unsubscribeUrl"]);
+        continue;
+      }
+
       const unsubscribePrefix: string = `${pageUrl}/unsubscribe/`;
       expect(
         call.variables["unsubscribeUrl"]!.startsWith(unsubscribePrefix),
@@ -1065,7 +1086,7 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
     );
   });
 
-  test("only the description differs between channels", async () => {
+  test("only the description, and an SMS's unsubscribe link, differ between channels", async () => {
     useCustomTemplatesOnEveryChannel();
 
     await runJob();
@@ -1082,6 +1103,16 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
       (call: CompileCall): Record<string, string> => {
         const variables: Record<string, string> = { ...call.variables };
         delete variables["incidentDescription"];
+
+        // An SMS from this public page carries the manage link (see smsManageLinkFor).
+        if (
+          call.template ===
+          CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]
+        ) {
+          expect(variables["unsubscribeUrl"]).toBe(SMS_UNSUBSCRIBE_URL);
+          variables["unsubscribeUrl"] = UNSUBSCRIBE_URL;
+        }
+
         return variables;
       },
     );
@@ -1264,10 +1295,15 @@ describe("IncidentStateTimeline custom template rendering", () => {
       expect(message).not.toMatch(/{{|}}/);
 
       for (const name of names) {
-        const value: string =
+        let value: string =
           name === "incidentDescription"
             ? descriptionByChannel[channel]!
             : expectedValues[name]!;
+
+        // An SMS from this public page carries the manage link.
+        if (name === "unsubscribeUrl" && channel === "sms") {
+          value = SMS_UNSUBSCRIBE_URL;
+        }
 
         expect(value).not.toBe("");
         expect(message).toContain(`${name}=[${value}]`);
@@ -1306,7 +1342,7 @@ describe("IncidentStateTimeline custom template rendering", () => {
 
     // The second page has no custom SMTP or Twilio, so it sends the defaults.
     expect(sentSms()).toContain(
-      `Incident ${INCIDENT_TITLE} on Beta Status is Monitoring. Details: ${SECOND_STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}. Unsub: ${unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SUBSCRIBER_ID)}`,
+      `Incident ${INCIDENT_TITLE} on Beta Status is Monitoring. Details: ${SECOND_STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}. Unsub: ${smsManageLinkFor(SECOND_STATUS_PAGE_URL, SUBSCRIBER_ID)}`,
     );
     expect(
       sentMail().map((mail: JSONObject): string => {
@@ -1421,7 +1457,13 @@ describe("IncidentStateTimeline custom templates, with grouped resources", () =>
     expect(sentMail()[0]!["subject"]).toBe(
       `Subject: ${INCIDENT_TITLE} is ${INCIDENT_STATE_NAME} on ${GROUPED_RESOURCES_TEXT} (${INCIDENT_DESCRIPTION_TEXT})`,
     );
-    expect(sentSms()).toEqual([renderedWith("sms", expected.plainText)]);
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(sentSms()).toEqual([
+      renderedWith("sms", {
+        ...expected.plainText,
+        unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+      }),
+    ]);
     expect(sentSlack()).toEqual([renderedWith("slack", expected.markdown)]);
     expect(sentTeams()).toEqual([renderedWith("teams", expected.markdown)]);
 
@@ -1459,7 +1501,7 @@ describe("IncidentStateTimeline custom templates, with grouped resources", () =>
       variablesCompiledInto(
         CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
       ),
-    ).toEqual(expected.plainText);
+    ).toEqual({ ...expected.plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
     expect(
       variablesCompiledInto(
         CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!,
@@ -1548,7 +1590,7 @@ describe("IncidentStateTimeline default messages", () => {
     await runJob();
 
     expect(sentSms()).toEqual([
-      `Incident ${INCIDENT_TITLE} on Acme Status is ${INCIDENT_STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident ${INCIDENT_TITLE} on Acme Status is ${INCIDENT_STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),

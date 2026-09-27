@@ -181,6 +181,31 @@ describe("SubscriberNotificationDeliveryRecord counts", () => {
     expect(record.hasQueuedAny()).toBe(true);
   });
 
+  test("a subject carrying a subscriber's unsubscribe link is recorded with its token redacted", () => {
+    /*
+     * A custom subject template can use {{unsubscribeUrl}}. The feed is read
+     * by everyone who can read the incident; the token belongs to the one
+     * subscriber the email went to, and cancels its subscription.
+     */
+    const token: string = "3e".repeat(32);
+    const subscriberId: string = "c0000000-0000-4000-8000-000000000001";
+
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    record.recordQueued({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      subject: `Checkout down - stop: https://status.acme.com/unsubscribe/${subscriberId}-${token}`,
+    });
+
+    expect(record.getSubject(SITE_03)).toBe(
+      `Checkout down - stop: https://status.acme.com/unsubscribe/${subscriberId}-[redacted]`,
+    );
+    expect(record.toMarkdown()).not.toContain(token);
+  });
+
   test("a record with nothing queued says so", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });

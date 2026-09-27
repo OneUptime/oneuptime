@@ -48,6 +48,20 @@ export function unsubscribeLinkFor(
     .toLowerCase()}-${unsubscribeTokenFor(subscriberId)}`;
 }
 
+/*
+ * The link an SMS from a PUBLIC status page carries instead: the subscriber's
+ * manage page, which works there without signing in and is 57 characters
+ * shorter - an SMS is billed by the segment (see
+ * StatusPageSubscriberUnsubscribe.buildSmsLink). The job fixtures' pages are
+ * public. An SMS from a private page carries unsubscribeLinkFor.
+ */
+export function smsManageLinkFor(
+  statusPageUrl: string,
+  subscriberId: { toString(): string },
+): string {
+  return `${statusPageUrl}/update-subscription/${subscriberId.toString()}`;
+}
+
 // Stands in for StatusPageSubscriberService.getUnsubscribeLink.
 export function fakeGetUnsubscribeLink(
   statusPageUrl: unknown,

@@ -135,7 +135,7 @@ import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
-import {
+import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
@@ -3270,10 +3270,24 @@ export default class StatusPageAPI extends BaseAPI<
         if (subscriberPhone) {
           let smsMessage: string;
           if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
+            /*
+             * On a public status page an SMS carries the shorter manage link
+             * where other messages carry the unsubscribe link: an SMS is
+             * billed by the segment (see
+             * StatusPageSubscriberUnsubscribe.buildSmsLink).
+             */
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 manageSmsTemplate.templateBody,
-                manageTemplateVariables,
+                {
+                  ...manageTemplateVariables,
+                  unsubscribeUrl: StatusPageSubscriberUnsubscribe.buildSmsLink({
+                    isPublicStatusPage: statusPage.isPublicStatusPage,
+                    statusPageUrl: statusPageURL,
+                    subscriberId: statusPageSubscriber.id!,
+                    unsubscribeUrl: unsubscribeUrl,
+                  }),
+                },
               );
           } else {
             smsMessage = defaultChatMessage;
@@ -3741,12 +3755,10 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
-      await StatusPageSubscriberService.create({
-        data: statusPageSubscriber,
-        props: {
-          isRoot: true,
-        },
-      });
+      // A sign-up, not a subscriber the team added (Is Added By Team stays off).
+      await StatusPageSubscriberService.createFromStatusPageSignUp(
+        statusPageSubscriber,
+      );
     }
 
     logger.debug(

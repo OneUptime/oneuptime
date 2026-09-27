@@ -224,6 +224,7 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -288,6 +289,11 @@ const GROUP_IDS: Record<string, ObjectID> = {
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/announcements/${ANNOUNCEMENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -680,7 +686,10 @@ function dashboardDefault(
     detailsUrl: DETAILS_URL,
     announcementTitle: TITLE,
     announcementDescription: DESCRIPTION,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
   };
 
   return template.replace(/{{\s*(\w+)\s*}}/g, (_match: string, key: string) => {
@@ -912,7 +921,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     await runJob(UPDATED_JOB);
 
     expect(sentSms()).toEqual([
-      `Announcement updated: ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Announcement updated: ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(
@@ -1238,7 +1247,7 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
     );
     expect(sentMail()[0]!.mail["subject"]).toBe(`[Announcement] ${TITLE}`);
     expect(sentSms()).toEqual([
-      `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()[0]).toContain(`## 📢 Announcement - ${TITLE}`);
     expect(sentTeams()[0]).toContain(`## 📢 Announcement - ${TITLE}`);
@@ -1472,7 +1481,10 @@ describe.each(TRIGGERS)(
         }),
       );
 
-      expect(sentSms()).toEqual([`SMS|${plainTextRendering}`]);
+      // An SMS from this public page carries the manage link (see smsManageLinkFor).
+      expect(sentSms()).toEqual([
+        `SMS|${plainTextRendering.replace(UNSUBSCRIBE_URL, SMS_UNSUBSCRIBE_URL)}`,
+      ]);
       expect(sentSlack()).toEqual([`Slack|${markdownRendering}`]);
       expect(sentTeams()).toEqual([`Microsoft Teams|${markdownRendering}`]);
       expect(sentCustomEmails()).toEqual([
@@ -1525,7 +1537,12 @@ describe.each(TRIGGERS)(
         }).toEqual({
           statusPageName: "Acme Status",
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: UNSUBSCRIBE_URL,
+          // An SMS from this public page carries the manage link (see smsManageLinkFor).
+          unsubscribeUrl: call.template.startsWith(
+            `${StatusPageSubscriberNotificationMethod.SMS}|`,
+          )
+            ? SMS_UNSUBSCRIBE_URL
+            : UNSUBSCRIBE_URL,
           resourcesAffected: "",
           announcementTitle: TITLE,
           announcementDescription: "",
@@ -1623,6 +1640,8 @@ describe.each(TRIGGERS)(
           ...shared,
           announcementDescription: DESCRIPTION_TEXT,
           resourcesAffected: RESOURCES_AFFECTED_TEXT,
+          // An SMS from this public page carries the manage link (see smsManageLinkFor).
+          unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
         },
         [StatusPageSubscriberNotificationMethod.Slack]: {
           ...shared,

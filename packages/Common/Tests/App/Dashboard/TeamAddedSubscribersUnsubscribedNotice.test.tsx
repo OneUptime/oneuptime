@@ -133,7 +133,12 @@ describe("TeamAddedSubscribersUnsubscribedNotice", () => {
     expect(query["statusPageId"]).toBe(STATUS_PAGE_ID);
     expect(query["projectId"]).toBe(PROJECT_ID);
     expect(query["isUnsubscribed"]).toBe(true);
-    expect(query["createdByUserId"]).toBeInstanceOf(NotNull);
+    /*
+     * Is Added By Team, not Created By: a subscriber an API key or a
+     * workflow added has no creator, and is the team's all the same.
+     */
+    expect(query["isAddedByTeam"]).toBe(true);
+    expect(query["createdByUserId"]).toBeUndefined();
     expect(query["subscriberEmail"]).toBeInstanceOf(NotNull);
 
     const since: GreaterThan<Date> = query["unsubscribedAt"] as never;

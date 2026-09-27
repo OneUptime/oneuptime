@@ -9,6 +9,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import SmsStatus from "Common/Types/SmsStatus";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Text from "Common/Types/Text";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
@@ -128,10 +129,22 @@ export default class SmsService {
 
       smsLog.toNumber = to;
 
+      /*
+       * The copy of the message that is kept: the SMS log, and the owners'
+       * email when it cannot be sent. Status page subscriber messages carry
+       * the subscriber's unsubscribe link, whose token lets its holder cancel
+       * the subscription without signing in - and the SMS log is readable by
+       * project members who may not touch subscribers (Viewer, Read SMS Log).
+       * So the token is kept out of every copy; only Twilio gets the message
+       * as written.
+       */
+      const loggedMessage: string =
+        StatusPageSubscriberUnsubscribe.redactCredentials(message);
+
       smsLog.smsText =
         options && options.isSensitive
           ? "This message is sensitive and is not logged"
-          : message;
+          : loggedMessage;
       smsLog.smsCostInUSDCents = 0;
 
       if (options.projectId) {
@@ -274,7 +287,7 @@ export default class SmsService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "SMS notifications not enabled for " + (project.name || ""),
-              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
+              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessage} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
             );
           }
           return;
@@ -319,7 +332,7 @@ export default class SmsService {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
+                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessage} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
                   (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
                 } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`,
               );
@@ -353,7 +366,7 @@ export default class SmsService {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
+                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessage} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
                   project.smsOrCallCurrentBalanceInUSDCents / 100
                 } USD. Required balance is ${smsCost} USD to send this SMS. Please enable auto recharge or recharge manually.`,
               );

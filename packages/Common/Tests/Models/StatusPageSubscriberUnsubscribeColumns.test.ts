@@ -164,3 +164,55 @@ describe("StatusPageSubscriber.unsubscribedAt", () => {
     }).not.toThrow();
   });
 });
+
+/*
+ * isAddedByTeam decides whether the page's owners hear about an unsubscribe,
+ * so no client may set it: a teammate or an API key that could send `false`
+ * would make a shared address it added leave silently.
+ */
+describe("StatusPageSubscriber.isAddedByTeam", () => {
+  test("is read by exactly the roles that read the rest of a subscriber, so the lists can filter on it", () => {
+    expect([...accessControl("isAddedByTeam").read].sort()).toEqual(
+      [...accessControl("isUnsubscribed").read].sort(),
+    );
+  });
+
+  test("nobody writes it through the API; the service sets it on every create", () => {
+    expect(accessControl("isAddedByTeam").create).toEqual([]);
+    expect(accessControl("isAddedByTeam").update).toEqual([]);
+    expect(metadata("isAddedByTeam").computed).toBe(true);
+    expect(metadata("isAddedByTeam").type).toBe(TableColumnType.Boolean);
+    expect(metadata("isAddedByTeam").defaultValue).toBe(false);
+  });
+
+  test("a teammate's create carrying the stamp passes the column check", () => {
+    const created: StatusPageSubscriber = new StatusPageSubscriber();
+    created.projectId = projectId;
+    created.statusPageId = ObjectID.generate();
+    created.subscriberEmail = new Email("site03-all@acme.com");
+    created.isAddedByTeam = true;
+
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        StatusPageSubscriber,
+        created,
+        props([Permission.CreateStatusPageSubscriber]),
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+
+  test("nobody may turn it off (or on) on an update", () => {
+    const update: StatusPageSubscriber = new StatusPageSubscriber();
+    update.isAddedByTeam = false;
+
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        StatusPageSubscriber,
+        update,
+        props([Permission.ProjectOwner]),
+        DatabaseRequestType.Update,
+      );
+    }).toThrow(/isAddedByTeam/);
+  });
+});

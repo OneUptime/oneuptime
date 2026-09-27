@@ -232,3 +232,110 @@ describe("StatusPageSubscriberUnsubscribe contact", () => {
     expect(StatusPageSubscriberUnsubscribe.maskPhone("123")).toBe("123");
   });
 });
+
+describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
+  const link: string = `https://status.acme.com/unsubscribe/${SUBSCRIBER_ID}-${TOKEN}`;
+  const redacted: string = `https://status.acme.com/unsubscribe/${SUBSCRIBER_ID}-[redacted]`;
+
+  test("replaces the token of a link built by buildLink, and keeps the id", () => {
+    const built: string = StatusPageSubscriberUnsubscribe.buildLink({
+      statusPageUrl: "https://status.acme.com",
+      subscriberId: new ObjectID(SUBSCRIBER_ID),
+      unsubscribeToken: TOKEN,
+    }).toString();
+
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(`Unsub: ${built}`),
+    ).toBe(`Unsub: ${redacted}`);
+  });
+
+  test("every link in the text, on a custom domain or the page's own address", () => {
+    const ownAddress: string = `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/unsubscribe/${SUBSCRIBER_ID}-${TOKEN}`;
+
+    const text: string = `First ${link}. Again ${link}. Own address ${ownAddress}.`;
+
+    const result: string =
+      StatusPageSubscriberUnsubscribe.redactCredentials(text);
+
+    expect(result).toBe(
+      `First ${redacted}. Again ${redacted}. Own address https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/unsubscribe/${SUBSCRIBER_ID}-[redacted].`,
+    );
+    expect(result).not.toContain(TOKEN);
+  });
+
+  test("a token some template ran straight into more text is still caught", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `${link}abcdef-and-more`,
+      ),
+    ).toBe(`${redacted}abcdef-and-more`);
+  });
+
+  test("an upper-cased link is caught too", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `/unsubscribe/${SUBSCRIBER_ID.toUpperCase()}-${TOKEN.toUpperCase()}`,
+      ),
+    ).toBe(`/unsubscribe/${SUBSCRIBER_ID.toUpperCase()}-[redacted]`);
+  });
+
+  test("leaves everything else alone: manage links, out-of-date links, other hex", () => {
+    const untouched: string = [
+      `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`,
+      `https://status.acme.com/unsubscribe/${SUBSCRIBER_ID}`,
+      `https://status.acme.com/incidents/${SUBSCRIBER_ID}-${TOKEN}`,
+      TOKEN,
+    ].join(" ");
+
+    expect(StatusPageSubscriberUnsubscribe.redactCredentials(untouched)).toBe(
+      untouched,
+    );
+    expect(StatusPageSubscriberUnsubscribe.redactCredentials("")).toBe("");
+  });
+
+  test("gives the same answer however often it is called (the pattern is global)", () => {
+    for (let i: number = 0; i < 3; i++) {
+      expect(StatusPageSubscriberUnsubscribe.redactCredentials(link)).toBe(
+        redacted,
+      );
+    }
+  });
+});
+
+describe("StatusPageSubscriberUnsubscribe.buildSmsLink", () => {
+  const unsubscribeUrl: string = StatusPageSubscriberUnsubscribe.buildLink({
+    statusPageUrl: "https://status.acme.com",
+    subscriberId: new ObjectID(SUBSCRIBER_ID),
+    unsubscribeToken: TOKEN,
+  }).toString();
+
+  function smsLink(isPublicStatusPage: boolean | null | undefined): string {
+    return StatusPageSubscriberUnsubscribe.buildSmsLink({
+      isPublicStatusPage: isPublicStatusPage,
+      statusPageUrl: "https://status.acme.com",
+      subscriberId: new ObjectID(SUBSCRIBER_ID),
+      unsubscribeUrl: unsubscribeUrl,
+    });
+  }
+
+  test("a public page's SMS keeps the manage link, which works there without signing in", () => {
+    expect(smsLink(true)).toBe(
+      `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`,
+    );
+  });
+
+  test("which is 57 characters shorter than the token link - an SMS is billed by the segment", () => {
+    expect(unsubscribeUrl.length - smsLink(true).length).toBe(57);
+  });
+
+  test.each([
+    ["a private page", false],
+    ["a page whose visibility was not read", undefined],
+    ["a page whose visibility is empty", null],
+  ])(
+    "%s gets the token link: a manage page may need a signed-in visitor",
+    (_label: string, isPublicStatusPage: boolean | null | undefined) => {
+      expect(smsLink(isPublicStatusPage)).toBe(unsubscribeUrl);
+    },
+  );
+});

@@ -248,6 +248,7 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -288,6 +289,11 @@ const MONITOR_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
 const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -515,7 +521,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     incidentTitle: INCIDENT_TITLE,
     incidentSeverity: "Critical",
     resourcesAffected: "Checkout API",
@@ -629,7 +638,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers", () => {
       }),
     );
     expect(sentSms()).toEqual([
-      `Postmortem: ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Postmortem: ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()).toHaveLength(1);
     expect(sentSlack()[0]).toContain(
@@ -724,7 +733,11 @@ describe("Incident:SendPostmortemNotificationToSubscribers, with custom template
 
     expect(variablesCompiledInto(CUSTOM_EMAIL_BODY)).toEqual(html);
     expect(variablesCompiledInto(CUSTOM_EMAIL_SUBJECT)).toEqual(plainText);
-    expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual(plainText);
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual({
+      ...plainText,
+      unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+    });
     expect(variablesCompiledInto(CUSTOM_SLACK_BODY)).toEqual(markdown);
     expect(variablesCompiledInto(CUSTOM_TEAMS_BODY)).toEqual(markdown);
   });
@@ -1126,7 +1139,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values 
       }),
     );
     expect(sentSms()).toEqual([
-      `Postmortem: ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Postmortem: ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSlack()[0]).toContain(
       `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,

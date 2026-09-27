@@ -249,6 +249,7 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
+  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -336,6 +337,11 @@ function unsubscribeUrlFor(page: PageFixture): string {
 const STATUS_PAGE_URL: string = MAIN_PAGE.url;
 const DETAILS_URL: string = detailsUrlFor(MAIN_PAGE);
 const UNSUBSCRIBE_URL: string = unsubscribeUrlFor(MAIN_PAGE);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  MAIN_PAGE.url,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string =
   "https://oneuptime.acme.com/dashboard/scheduled-maintenance/12";
 
@@ -730,7 +736,10 @@ function expectedCustomMessages(data: {
   return [
     `Email|${data.emailBody ?? data.body}`,
     `Subject|${data.plainTextBody ?? data.body}`,
-    `SMS|${data.plainTextBody ?? data.body}`,
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    `SMS|${(data.plainTextBody ?? data.body)
+      .split(UNSUBSCRIBE_URL)
+      .join(SMS_UNSUBSCRIBE_URL)}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
@@ -770,7 +779,8 @@ function expectedVariablesByChannel(): Record<string, Record<string, string>> {
   return {
     Email: emailBody,
     Subject: plainText,
-    SMS: plainText,
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    SMS: { ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL },
     Slack: markdown,
     "Microsoft Teams": markdown,
   };
@@ -818,7 +828,10 @@ function dashboardDefault(
     statusPageName: MAIN_PAGE.pageTitle,
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     resourcesAffected: DEFAULT_RESOURCES_AFFECTED,
     scheduledMaintenanceTitle: EVENT_TITLE,
     scheduledMaintenanceState: STATE_NAME,
@@ -958,7 +971,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     expect(compileTemplateCalls()).toEqual([]);
 
     expect(sentSms()).toEqual([
-      `Maintenance ${EVENT_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Maintenance ${EVENT_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
@@ -1271,6 +1284,9 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
               ? GROUPED_RESOURCES_HTML
               : GROUPED_RESOURCES_TEXT,
           scheduledMaintenanceDescription: descriptionForChannel(call.channel),
+          // An SMS from this public page carries the manage link.
+          unsubscribeUrl:
+            call.channel === "SMS" ? SMS_UNSUBSCRIBE_URL : UNSUBSCRIBE_URL,
         },
       });
     }
@@ -1578,7 +1594,11 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
           statusPageName: page!.pageTitle,
           statusPageUrl: page!.url,
           detailsUrl: detailsUrlFor(page!),
-          unsubscribeUrl: unsubscribeUrlFor(page!),
+          // An SMS from a public page carries the manage link (see smsManageLinkFor).
+          unsubscribeUrl:
+            call.channel === "SMS"
+              ? smsManageLinkFor(page!.url, SUBSCRIBER_ID)
+              : unsubscribeUrlFor(page!),
           resourcesAffected:
             call.channel === "Email"
               ? htmlResourcesByPage[page!.url]

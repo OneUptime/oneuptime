@@ -21,6 +21,7 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -561,17 +562,33 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             },
           );
 
+          /*
+           * On a public status page the SMS keeps the shorter manage link,
+           * which works there without signing in: an SMS is billed by the
+           * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+           */
+          const smsUnsubscribeUrl: string =
+            StatusPageSubscriberUnsubscribe.buildSmsLink({
+              isPublicStatusPage: statuspage.isPublicStatusPage,
+              statusPageUrl: statusPageURL,
+              subscriberId: subscriber.id!,
+              unsubscribeUrl: unsubscribeUrl,
+            });
+
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberPlainTextTemplateVariables,
+                {
+                  ...subscriberPlainTextTemplateVariables,
+                  unsubscribeUrl: smsUnsubscribeUrl,
+                },
               );
           } else {
             // Use default hard-coded template
-            smsMessage = `Incident update: ${incident.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+            smsMessage = `Incident update: ${incident.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
           }
 
           const sms: SMS = {

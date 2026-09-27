@@ -127,6 +127,17 @@ const CREDENTIAL_PATTERN: RegExp = new RegExp(
   `^(${UUID_PATTERN})(?:-([0-9a-fA-F]{64}))?$`,
 );
 
+/*
+ * An unsubscribe link's credential anywhere in a text: the route segment, the
+ * subscriber id, and the 64 hex characters of its token. No lookahead after
+ * the token, so a token that some template runs straight into more text is
+ * still caught.
+ */
+const LINK_TOKEN_PATTERN: RegExp = new RegExp(
+  `(/unsubscribe/${UUID_PATTERN})-[0-9a-fA-F]{64}`,
+  "g",
+);
+
 export default class StatusPageSubscriberUnsubscribe {
   /*
    * The status page route segment the link opens, on both a custom domain
@@ -143,8 +154,35 @@ export default class StatusPageSubscriberUnsubscribe {
    */
   public static readonly TOKEN_LENGTH: number = 64;
 
+  // What redactCredentials puts where a token was.
+  public static readonly REDACTED_TOKEN: string = "[redacted]";
+
   public static isWellFormedToken(value: unknown): value is string {
     return typeof value === "string" && TOKEN_PATTERN.test(value);
+  }
+
+  /*
+   * The text with the token of every unsubscribe link in it replaced by
+   * "[redacted]": ".../unsubscribe/{id}-[redacted]".
+   *
+   * For any copy of a message that is kept where people other than its
+   * recipient can read it. The token is the whole of what lets the link's
+   * holder cancel the subscription without signing in, on a private status
+   * page too, so it may only ever leave the server inside the message to the
+   * subscription's own contact. An SMS is the case in point: the SMS log keeps
+   * its text, and project members who may not touch subscribers (Viewer, and
+   * any role with Read SMS Log) can read that log. The id is kept, so the log
+   * still says which subscription the message went to.
+   */
+  public static redactCredentials(text: string): string {
+    if (!text || typeof text !== "string") {
+      return text;
+    }
+
+    return text.replace(
+      LINK_TOKEN_PATTERN,
+      `$1-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+    );
   }
 
   /*
@@ -215,11 +253,50 @@ export default class StatusPageSubscriberUnsubscribe {
   }
 
   /*
+   * The link an SMS to this subscriber carries where every other message
+   * carries its unsubscribe link (unsubscribeUrl, from buildLink).
+   *
+   * On a public status page an SMS keeps the subscriber's manage page,
+   * {statusPageUrl}/update-subscription/{subscriberId}, as it always had.
+   * That page works there without signing in, and is 57 characters shorter
+   * than the token link - and an SMS is billed by the 160-character segment,
+   * so the token link would push most default subscriber texts into another
+   * segment, at a cost to every SMS subscriber on every notification, for
+   * nothing the manage page does not already do. Opening either link changes
+   * nothing by itself.
+   *
+   * On a private status page (or when it is not known whether the page is
+   * public) the manage page needs a signed-in visitor, so the SMS carries the
+   * unsubscribe link, the only way its recipient can stop the texts.
+   *
+   * Email, Slack, Microsoft Teams and webhooks carry the unsubscribe link on
+   * every page: length costs nothing there, and its confirmation page is
+   * what keeps mail scanners from unsubscribing anyone.
+   */
+  public static buildSmsLink(data: {
+    isPublicStatusPage: boolean | null | undefined;
+    statusPageUrl: URL | string;
+    subscriberId: { toString(): string } | string;
+    unsubscribeUrl: URL | string;
+  }): string {
+    if (data.isPublicStatusPage === true) {
+      return StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+        statusPageUrl: data.statusPageUrl,
+        subscriberId: data.subscriberId,
+      }).toString();
+    }
+
+    return data.unsubscribeUrl.toString();
+  }
+
+  /*
    * The subscriber's manage page, where a subscriber on a public status page
    * (or a signed-in one on a private page) chooses which resources and event
    * types they hear about. It is keyed by the subscriber id alone and is still
-   * what the "manage your subscription" email links to; notifications link to
-   * the unsubscribe page instead, which offers this one on public pages.
+   * what the "manage your subscription" email links to, and what an SMS from
+   * a public status page carries (see buildSmsLink); every other
+   * notification links to the unsubscribe page instead, which offers this one
+   * on public pages.
    */
   public static buildManageSubscriptionLink(data: {
     statusPageUrl: URL | string;
