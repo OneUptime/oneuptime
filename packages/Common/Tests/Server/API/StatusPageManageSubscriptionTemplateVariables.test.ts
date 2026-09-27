@@ -930,7 +930,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
             await findSubscribersFake(findBy);
 
           for (const subscriber of found) {
-            subscriber.unsubscribeToken = undefined;
+            subscriber.unsubscribeToken = undefined as unknown as string;
           }
 
           return found;

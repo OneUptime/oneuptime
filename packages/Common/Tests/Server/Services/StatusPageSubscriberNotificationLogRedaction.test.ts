@@ -22,7 +22,7 @@ afterEach(() => {
 
 describe("StatusPageSubscriberService.shouldSendNotification", () => {
   test("logs the subscriber's id, never its unsubscribe token", () => {
-    const debug: jest.SpiedFunction<typeof logger.debug> = jest
+    const debug: ReturnType<typeof jest.spyOn> = jest
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
 
