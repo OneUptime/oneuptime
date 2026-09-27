@@ -15,6 +15,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
  * The subscriber jobs run every minute on the shared Worker queue and await
@@ -114,7 +115,7 @@ describe("SubscriberNotificationRunLimit", () => {
     acquire.mockRejectedValue(
       new SemaphoreLockTimeoutError("Acquire semaphore timeout") as never,
     );
-    const run: jest.Mock = jest.fn();
+    const run: MockFunction = getJestMockFunction();
 
     await SubscriberNotificationRunLimit.limit(JOB_NAME, async () => {
       run();
@@ -138,7 +139,7 @@ describe("SubscriberNotificationRunLimit", () => {
     acquire.mockRejectedValue(
       new Error("Redis client is not connected") as never,
     );
-    const run: jest.Mock = jest.fn();
+    const run: MockFunction = getJestMockFunction();
 
     await SubscriberNotificationRunLimit.limit(JOB_NAME, async () => {
       run();

@@ -7,7 +7,7 @@ import {
 } from "Common/Server/Utils/Express";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * POST /api/notification/sms/send - the cluster-internal route every SMS the

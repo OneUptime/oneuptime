@@ -3,6 +3,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import API from "../../../Utils/API";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   afterEach,
   beforeEach,
@@ -22,10 +23,10 @@ import {
  */
 
 describe("SmsService.sendSms and failIfNotSent", () => {
-  let post: jest.Mock;
+  let post: MockFunction;
 
   beforeEach(() => {
-    post = jest.fn();
+    post = getJestMockFunction();
     post.mockResolvedValue({} as never);
     jest.spyOn(API, "post").mockImplementation(post as never);
   });
