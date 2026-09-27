@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { ResourceInfo } from "../Types/CLITypes";
+import { buildProgram } from "../Program";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -26,6 +27,7 @@ const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ResourceCommands", () => {
   let originalConfigContent: string | null = null;
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeAll(() => {
     if (fs.existsSync(CONFIG_FILE)) {
@@ -45,7 +47,7 @@ describe("ResourceCommands", () => {
     if (fs.existsSync(CONFIG_FILE)) {
       fs.unlinkSync(CONFIG_FILE);
     }
-    jest.spyOn(console, "log").mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(process, "exit").mockImplementation((() => {}) as any);
     mockExecuteApiRequest.mockReset();
@@ -535,6 +537,107 @@ describe("ResourceCommands", () => {
         await program.parseAsync(["node", "test", "incident", "count"]);
 
         expect(process.exit).toHaveBeenCalled();
+      });
+    });
+
+    describe("output format through the CLI entry point", () => {
+      const originalIsTTY: boolean | undefined = process.stdout.isTTY;
+
+      afterEach(() => {
+        Object.defineProperty(process.stdout, "isTTY", {
+          value: originalIsTTY,
+          writable: true,
+          configurable: true,
+        });
+      });
+
+      describe.each([
+        ["incident", "list"],
+        ["incident", "get", "test-id-123"],
+        ["incident", "create", "--data", '{"title":"API outage"}'],
+        [
+          "incident",
+          "update",
+          "test-id-123",
+          "--data",
+          '{"title":"API outage"}',
+        ],
+        ["log", "list"],
+        ["log", "create", "--data", '{"body":"API outage"}'],
+      ])("%s %s", (...args: string[]) => {
+        it.each([
+          { flag: "--output", format: "table", before: true, tty: false },
+          { flag: "-o", format: "table", before: false, tty: false },
+          { flag: "--output", format: "json", before: false, tty: true },
+          { flag: "", format: "table", before: false, tty: true },
+          { flag: "", format: "json", before: false, tty: false },
+        ])(
+          "uses $format with flag '$flag', before=$before, tty=$tty",
+          async ({
+            flag,
+            format,
+            before,
+            tty,
+          }: {
+            flag: string;
+            format: string;
+            before: boolean;
+            tty: boolean;
+          }) => {
+            Object.defineProperty(process.stdout, "isTTY", {
+              value: tty,
+              writable: true,
+              configurable: true,
+            });
+            const item: { title: string } = { title: "API outage" };
+            const isList: boolean = args[1] === "list";
+            mockExecuteApiRequest.mockResolvedValue(
+              isList ? { data: [item] } : item,
+            );
+            const outputArgs: string[] = flag ? [flag, format] : [];
+            const program: Command = buildProgram();
+
+            await program.parseAsync([
+              "node",
+              "test",
+              ...(before ? [...outputArgs, ...args] : [...args, ...outputArgs]),
+            ]);
+
+            expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
+            const output: string = consoleLogSpy.mock.calls[0][0];
+            if (format === "json") {
+              expect(JSON.parse(output)).toEqual(isList ? [item] : item);
+            } else {
+              expect(output).toContain("\u2500");
+              expect(output).toContain("API outage");
+            }
+          },
+        );
+      });
+
+      it("honors wide output for lists with more than six columns", async () => {
+        mockExecuteApiRequest.mockResolvedValue({
+          data: [{ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, lastColumn: "visible" }],
+        });
+
+        await buildProgram().parseAsync([
+          "node",
+          "test",
+          "incident",
+          "list",
+          "--output",
+          "wide",
+        ]);
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("lastColumn"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("visible"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("\u2500"),
+        );
       });
     });
 
