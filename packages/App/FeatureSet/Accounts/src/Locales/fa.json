@@ -118,7 +118,13 @@
     "verifyEmailSent": "یک پیوند تأیید برای شما ارسال کردیم.",
     "verifyEmailInstructions": "برای فعال‌سازی حساب خود، پیوند موجود در آن ایمیل را باز کنید و سپس وارد شوید.",
     "verifyEmailResendHint": "آن را پیدا نمی‌کنید؟ پوشه هرزنامه را بررسی کنید. این پیوند پس از ۲۴ ساعت منقضی می‌شود و با ورود با ایمیل و رمز عبور، پیوند جدیدی برایتان ارسال می‌شود.",
-    "verifyEmailLoginLink": "رفتن به صفحه ورود"
+    "verifyEmailLoginLink": "رفتن به صفحه ورود",
+    "verifyEmailSpamHint": "آن را پیدا نمی‌کنید؟ پوشه هرزنامه یا ایمیل‌های ناخواسته را بررسی کنید. این پیوند پس از ۲۴ ساعت منقضی می‌شود.",
+    "verifyEmailOpenProvider": "باز کردن {{provider}}",
+    "verifyEmailOpensInNewTab": "(در زبانه جدید باز می‌شود)",
+    "verifyEmailAlreadyVerifiedPrompt": "ایمیل خود را قبلاً تأیید کرده‌اید؟",
+    "verifyEmailWrongAddressPrompt": "آدرس ایمیل اشتباه است؟",
+    "verifyEmailUseDifferentEmail": "ثبت‌نام با ایمیلی دیگر"
   },
   "forgotPassword": {
     "title": "رمز عبور خود را فراموش کرده‌اید",
@@ -159,7 +165,18 @@
     "errorTitle": "متأسفیم، مشکلی پیش آمد!",
     "returnToSignIn": "بازگشت به صفحه ورود؟",
     "loginLink": "ورود.",
-    "continueToSignIn": "ادامه برای ورود"
+    "continueToSignIn": "ادامه برای ورود",
+    "linkInvalidTitle": "این پیوند تأیید دیگر معتبر نیست",
+    "requestNewLinkDescription": "اگر پیوند شما منقضی شده یا دیگر کار نمی‌کند، می‌توانیم پیوند جدیدی به ایمیلتان ارسال کنیم.",
+    "tryAgain": "تلاش دوباره"
+  },
+  "resendVerificationEmail": {
+    "button": "ارسال دوباره ایمیل تأیید",
+    "countdown": "می‌توانید پس از {{time}} ایمیل دیگری درخواست کنید.",
+    "sent": "یک پیوند تأیید جدید ارسال کردیم. ممکن است رسیدن آن یکی دو دقیقه طول بکشد.",
+    "wait": "به‌تازگی یک ایمیل تأیید ارسال شده است. پس از پایان شمارش معکوس می‌توانید ایمیل دیگری درخواست کنید.",
+    "alreadyVerified": "آدرس ایمیل شما قبلاً تأیید شده است. اکنون می‌توانید وارد شوید.",
+    "failed": "نتوانستیم ایمیل تأیید جدیدی ارسال کنیم. لطفاً چند لحظه دیگر دوباره تلاش کنید."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "گذرواژه نمی‌تواند فقط شامل فاصله باشد.",
   "Password is required.": "وارد کردن گذرواژه الزامی است.",
   "Password must be a string.": "گذرواژه باید یک رشتهٔ متنی باشد.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "این درخواست تأیید دیگر معتبر نیست. با ایمیل و رمز عبور خود وارد شوید تا پیوند تأیید جدیدی برایتان ارسال کنیم.",
+  "Your account has been blocked. Please contact your administrator.": "حساب شما مسدود شده است. لطفاً با مدیر خود تماس بگیرید.",
   "Account details": "جزئیات حساب",
   "Secure your account": "حساب خود را ایمن کنید",
   "Between {{minimum}} and {{maximum}} characters": "بین {{minimum}} و {{maximum}} نویسه",

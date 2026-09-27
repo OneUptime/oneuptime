@@ -65,6 +65,12 @@ export interface OAuth2TokenHttpRequest {
   // Form fields, sent as application/x-www-form-urlencoded.
   body: Dictionary<string>;
   timeoutInMs: number;
+  /*
+   * Optional: cancels the request when aborted. timeoutInMs is how long the
+   * socket may sit idle, so a server that trickles its answer can outlast it;
+   * a caller that needs a wall-clock bound aborts this.
+   */
+  signal?: AbortSignal | undefined;
 }
 
 export interface OAuth2TokenHttpResponse {
@@ -675,6 +681,10 @@ export default class OAuth2TokenClient {
       httpAgent: httpAgent,
       httpsAgent: httpsAgent,
     };
+
+    if (request.signal) {
+      axiosOptions.signal = request.signal;
+    }
 
     try {
       const response: AxiosResponse<string> = await axios(axiosOptions);

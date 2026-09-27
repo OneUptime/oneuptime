@@ -369,6 +369,15 @@ export default class ApiMonitor {
       const isSanitizedGuardRefusal: boolean =
         err instanceof EgressGuardException && err.isTargetUnreachable();
 
+      /*
+       * A request that failed on the probe itself (no usable IPv6, say) is
+       * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the API
+       * being down, and it goes on to be the incident's root cause.
+       */
+      const failureCause: string =
+        API.getProbeNetworkFailureDescription(err) ||
+        API.getFriendlyErrorMessage(err as Error);
+
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
         attemptedAt,
@@ -378,7 +387,7 @@ export default class ApiMonitor {
           : responseReceivedAt.getTime() - attemptedAt.getTime(),
         responseCode: undefined,
         isOnline: false,
-        failureCause: API.getFriendlyErrorMessage(err as Error),
+        failureCause: failureCause,
       });
 
       if (
@@ -440,7 +449,7 @@ export default class ApiMonitor {
         isTimeout: false,
         responseBody: "",
         responseHeaders: {},
-        failureCause: API.getFriendlyErrorMessage(err as Error),
+        failureCause: failureCause,
         requestFailedDetails: requestFailedDetails,
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,

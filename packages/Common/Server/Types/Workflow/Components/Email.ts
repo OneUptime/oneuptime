@@ -6,19 +6,16 @@ import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components/Email";
 import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
-import net from "net";
 import DataSourceEgressGuard, {
   ResolvedAddress,
 } from "../../../Utils/DataSource/EgressGuard";
+import PinnedSmtpSocket, {
+  SmtpSocketCallback,
+} from "../../../Utils/Mail/PinnedSmtpSocket";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
-// What nodemailer's getSocket hook hands back: an already connected socket.
-type SmtpSocketCallback = (
-  error: Error | null,
-  socketOptions?: { connection: net.Socket },
-) => void;
-
 export default class Email extends ComponentCode {
+  // nodemailer's own default connection timeout.
   private static readonly CONNECTION_TIMEOUT_IN_MS: number = 2 * 60 * 1000;
 
   public constructor() {
@@ -181,10 +178,11 @@ export default class Email extends ComponentCode {
           _options: SMTPTransport.Options,
           callback: SmtpSocketCallback,
         ): void => {
-          Email.connectToValidatedAddresses({
+          PinnedSmtpSocket.connect({
             host: bareSmtpHost,
             port: smtpPort,
             addresses: validatedAddresses,
+            timeoutInMs: Email.CONNECTION_TIMEOUT_IN_MS,
             onDone: callback,
           });
         },
@@ -235,101 +233,5 @@ export default class Email extends ComponentCode {
         executePort: errorPort,
       });
     }
-  }
-
-  /*
-   * Open a TCP connection that can only reach the given, already validated
-   * addresses, for nodemailer's getSocket hook: handed a connected socket,
-   * nodemailer resolves and dials nothing itself.
-   *
-   * The pinned lookup answers with every validated address, and
-   * autoSelectFamily tries them in turn, alternating families. That keeps
-   * what nodemailer did when it resolved the name itself: a host whose
-   * address family this worker cannot route (IPv4 on an IPv6-only cluster),
-   * or one record that is down, falls through to the next address instead
-   * of failing the send.
-   */
-  private static connectToValidatedAddresses(data: {
-    host: string;
-    port: number;
-    addresses: Array<ResolvedAddress>;
-    onDone: SmtpSocketCallback;
-  }): void {
-    const socket: net.Socket = net.connect({
-      host: data.host,
-      port: data.port,
-      lookup: DataSourceEgressGuard.createPinnedLookup(data.addresses) as never,
-      autoSelectFamily: true,
-    });
-
-    let settled: boolean = false;
-
-    const settle: (error: Error | null) => void = (
-      error: Error | null,
-    ): void => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      socket.setTimeout(0);
-
-      if (error) {
-        // A late error from a socket nobody owns would crash the process.
-        socket.on("error", () => {});
-        socket.destroy();
-        data.onDone(error);
-        return;
-      }
-
-      /*
-       * nodemailer attaches its own error and timeout handlers synchronously
-       * inside this callback, so the socket is never left unwatched. The
-       * listeners below stay behind as no-ops.
-       */
-      data.onDone(null, { connection: socket });
-    };
-
-    socket.once("connect", () => {
-      settle(null);
-    });
-    socket.once("error", (error: Error) => {
-      settle(Email.describeConnectionError(error));
-    });
-    socket.once("timeout", () => {
-      settle(new Error("Connection timeout"));
-    });
-    // nodemailer's own default connection timeout.
-    socket.setTimeout(Email.CONNECTION_TIMEOUT_IN_MS);
-  }
-
-  /*
-   * When every address fails, autoSelectFamily reports an AggregateError
-   * whose own message is empty, which would reach the workflow log as the
-   * generic "Email could not be sent.". Name each attempt instead, the way
-   * nodemailer's "connect ECONNREFUSED <ip>:<port>" did.
-   */
-  private static describeConnectionError(error: Error): Error {
-    const attempts: unknown = (error as { errors?: unknown }).errors;
-
-    if (error.message || !Array.isArray(attempts) || attempts.length === 0) {
-      return error;
-    }
-
-    const described: NodeJS.ErrnoException = new Error(
-      attempts
-        .map((attempt: unknown) => {
-          const message: unknown = (attempt as { message?: unknown } | null)
-            ?.message;
-          return typeof message === "string" ? message : String(attempt);
-        })
-        .join("; "),
-    );
-    const code: string | undefined = (error as NodeJS.ErrnoException).code;
-    if (code) {
-      described.code = code;
-    }
-
-    return described;
   }
 }

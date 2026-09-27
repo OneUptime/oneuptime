@@ -92,3 +92,15 @@ export const VERIFY_EMAIL_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const RESET_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/reset-password"),
 );
+
+/*
+ * Mails a fresh verification link to an account that signed up but has not
+ * verified its address yet. There is no session at that point, so the request
+ * is authorized by a credential instead: the short-lived resend token /signup
+ * handed back, or a verification token from a link that stopped working. It
+ * never takes an email address -- the link only ever goes to the address the
+ * account already holds.
+ */
+export const RESEND_VERIFICATION_EMAIL_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/resend-verification-email"));

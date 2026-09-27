@@ -118,7 +118,13 @@
     "verifyEmailSent": "Enviamos um link de verificação para você.",
     "verifyEmailInstructions": "Abra o link desse e-mail para ativar sua conta e, em seguida, faça login.",
     "verifyEmailResendHint": "Não encontrou? Verifique sua pasta de spam. O link expira em 24 horas, e ao fazer login com seu e-mail e senha enviaremos um novo.",
-    "verifyEmailLoginLink": "Ir para o login"
+    "verifyEmailLoginLink": "Ir para o login",
+    "verifyEmailSpamHint": "Não encontrou? Verifique sua pasta de spam ou lixo eletrônico. O link expira em 24 horas.",
+    "verifyEmailOpenProvider": "Abrir {{provider}}",
+    "verifyEmailOpensInNewTab": "(abre em uma nova aba)",
+    "verifyEmailAlreadyVerifiedPrompt": "Já verificou seu e-mail?",
+    "verifyEmailWrongAddressPrompt": "Endereço de e-mail errado?",
+    "verifyEmailUseDifferentEmail": "Cadastre-se com outro e-mail"
   },
   "forgotPassword": {
     "title": "Esqueceu a senha",
@@ -159,7 +165,18 @@
     "errorTitle": "Desculpe, algo deu errado!",
     "returnToSignIn": "Voltar para o login?",
     "loginLink": "Entrar.",
-    "continueToSignIn": "Continuar para o login"
+    "continueToSignIn": "Continuar para o login",
+    "linkInvalidTitle": "Este link de verificação não é mais válido",
+    "requestNewLinkDescription": "Se o seu link expirou ou parou de funcionar, podemos enviar um novo para o seu e-mail.",
+    "tryAgain": "Tentar novamente"
+  },
+  "resendVerificationEmail": {
+    "button": "Reenviar e-mail de verificação",
+    "countdown": "Você poderá solicitar outro e-mail em {{time}}.",
+    "sent": "Enviamos um novo link de verificação. Ele pode levar um ou dois minutos para chegar.",
+    "wait": "Um e-mail de verificação foi enviado recentemente. Você poderá solicitar outro quando o cronômetro terminar.",
+    "alreadyVerified": "Seu endereço de e-mail já foi verificado. Você já pode fazer login.",
+    "failed": "Não foi possível enviar um novo e-mail de verificação. Tente novamente em instantes."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "A senha não pode conter apenas espaços.",
   "Password is required.": "A senha é obrigatória.",
   "Password must be a string.": "A senha deve ser uma sequência de texto.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Esta solicitação de verificação não é mais válida. Faça login com seu e-mail e senha e enviaremos um novo link de verificação.",
+  "Your account has been blocked. Please contact your administrator.": "Sua conta foi bloqueada. Entre em contato com o administrador.",
   "Account details": "Detalhes da conta",
   "Secure your account": "Proteja sua conta",
   "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} e {{maximum}} caracteres",

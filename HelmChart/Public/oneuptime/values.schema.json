@@ -1882,6 +1882,15 @@
             },
             "additionalProperties": false
         },
+        "outboundConnections": {
+            "type": "object",
+            "properties": {
+                "blockPrivateNetwork": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "vapid": {
             "type": "object",
             "properties": {

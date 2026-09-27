@@ -118,7 +118,13 @@
     "verifyEmailSent": "Ti abbiamo inviato un link di verifica.",
     "verifyEmailInstructions": "Apri il link contenuto nell'email per attivare il tuo account, poi accedi.",
     "verifyEmailResendHint": "Non la trovi? Controlla la cartella spam. Il link scade dopo 24 ore e, accedendo con email e password, te ne invieremo uno nuovo.",
-    "verifyEmailLoginLink": "Vai all'accesso"
+    "verifyEmailLoginLink": "Vai all'accesso",
+    "verifyEmailSpamHint": "Non la trovi? Controlla la cartella spam o della posta indesiderata. Il link scade dopo 24 ore.",
+    "verifyEmailOpenProvider": "Apri {{provider}}",
+    "verifyEmailOpensInNewTab": "(si apre in una nuova scheda)",
+    "verifyEmailAlreadyVerifiedPrompt": "Hai già verificato la tua email?",
+    "verifyEmailWrongAddressPrompt": "Indirizzo email sbagliato?",
+    "verifyEmailUseDifferentEmail": "Registrati con un'altra email"
   },
   "forgotPassword": {
     "title": "Password dimenticata",
@@ -159,7 +165,18 @@
     "errorTitle": "Spiacenti, qualcosa è andato storto!",
     "returnToSignIn": "Torna all'accesso?",
     "loginLink": "Accedi.",
-    "continueToSignIn": "Continua con l'accesso"
+    "continueToSignIn": "Continua con l'accesso",
+    "linkInvalidTitle": "Questo link di verifica non è più valido",
+    "requestNewLinkDescription": "Se il tuo link è scaduto o non funziona più, possiamo inviartene uno nuovo via email.",
+    "tryAgain": "Riprova"
+  },
+  "resendVerificationEmail": {
+    "button": "Invia di nuovo l'email di verifica",
+    "countdown": "Potrai richiedere un'altra email tra {{time}}.",
+    "sent": "Ti abbiamo inviato un nuovo link di verifica. Potrebbero volerci un paio di minuti prima che arrivi.",
+    "wait": "Un'email di verifica è stata inviata di recente. Potrai richiederne un'altra allo scadere del timer.",
+    "alreadyVerified": "Il tuo indirizzo email è già verificato. Ora puoi accedere.",
+    "failed": "Non siamo riusciti a inviare una nuova email di verifica. Riprova tra qualche istante."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "La password non può contenere solo spazi.",
   "Password is required.": "La password è obbligatoria.",
   "Password must be a string.": "La password deve essere una stringa di testo.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Questa richiesta di verifica non è più valida. Accedi con email e password e ti invieremo un nuovo link di verifica.",
+  "Your account has been blocked. Please contact your administrator.": "Il tuo account è stato bloccato. Contatta il tuo amministratore.",
   "Account details": "Dettagli dell’account",
   "Secure your account": "Proteggi il tuo account",
   "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",

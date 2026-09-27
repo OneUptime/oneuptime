@@ -896,6 +896,29 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — networ
     ).toBe("Device is unreachable by ping and SNMP: Request timed out");
   });
 
+  /*
+   * A probe with no IPv6 never contacted the device. Its cause says so, and
+   * an "unreachable" lead-in in front of it would contradict it.
+   */
+  test("Is Online does not call a device unreachable when the probe could not check it", () => {
+    const probeSideCause: string =
+      "This probe cannot send IPv6 traffic (send EADDRNOTAVAIL 2001:518:2800:9::2:161), so 2001:518:2800:9::2 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:518:2800:9::2 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.";
+
+    const observation: string | null =
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpIsOnline,
+          isOnline: false,
+          failureCause: probeSideCause,
+        }),
+      );
+
+    expect(observation).toBe(
+      `Device could not be checked from this probe: ${probeSideCause}`,
+    );
+    expect(observation).not.toContain("unreachable");
+  });
+
   test("Walk Is Succeeding names the no-walk state rather than calling it a failure", () => {
     expect(
       MonitorCriteriaObservationBuilder.describeFilterObservation(

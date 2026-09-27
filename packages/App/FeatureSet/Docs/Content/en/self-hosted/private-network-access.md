@@ -39,7 +39,7 @@ These sinks are covered, because the target is a URL an authenticated member of 
 
 **Not** covered, and never will be: **status page subscriber webhooks**. Any visitor to a public status page can register one, so relaxing that sink would let anyone on the internet make your server POST into your private network. This is not configurable.
 
-Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers (a project's SMTP settings and the workflow **Email** component), SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs.
+Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers (a project's SMTP settings and the workflow **Email** component), SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs. See [Other outbound connections](#other-outbound-connections).
 
 ### Configuring the API server
 
@@ -85,6 +85,38 @@ webhooks:
   privateNetworkAllowlist: "mattermost.internal,10.20.0.0/16"
 ```
 
+## Other outbound connections
+
+A second guard covers outbound connections whose target a project member chooses but which are not webhooks:
+
+- external data sources (PostgreSQL, MySQL, SQL Server, ClickHouse, Elasticsearch and REST API connections), security event connections such as Splunk, and threat intel feeds
+- LLM providers, including a self-hosted Ollama or vLLM
+- SMTP servers — a project's SMTP settings and the workflow **Email** component — and SMTP and workflow OAuth token URLs
+- OIDC discovery for single sign-on
+- status page and dashboard custom domain verification
+- Runbook HTTP steps
+
+This guard works the other way round from the webhook settings. On a self-hosted install it **allows** the private tier by default, because the database, mail server or model server these connect to usually lives on your own network. The forbidden tier — loopback, link-local and the cloud metadata endpoint — is refused either way, and there is no allowlist for it.
+
+`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` tightens it. Set it to `true` to refuse the private tier for these connections as well, for example when the projects on your instance belong to people who should not reach your internal network:
+
+```
+DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true
+```
+
+Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change which targets the webhook settings above or the probe setting below allow; each gate is configured on its own. It does change how refusals read, for webhooks and workflow requests too: with it on, a refused host name is reported without saying what it resolved to (see [Verifying it works](#verifying-it-works)).
+
+On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` line (add it if your `config.env` predates it). Change that line to `true` rather than adding a second one, then run `npm run start` so the containers are recreated with the new value; `docker compose restart` does not re-read `config.env`.
+
+On Kubernetes, set it in your values file and upgrade the release. The chart passes it to the app and worker pods:
+
+```yaml
+outboundConnections:
+  blockPrivateNetwork: true
+```
+
+With it on, a refused host name is reported without saying what it resolved to, for example _"LLM provider host ollama.internal could not be reached."_ A name that does not resolve at all gets the same message, so project members cannot use these fields to find out which internal names exist. An address typed as an IP is still named along with the reason, for example _"LLM provider host 10.0.4.12 is not allowed: private network address."_ With `LOG_LEVEL=DEBUG`, the app logs the address each refused name resolved to.
+
 ## Probes and monitors
 
 Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space. API, Website and External Status Page monitors validate and pin DNS results for every connection and revalidate each redirect; Custom JavaScript Code applies the same address policy in its sandbox bridge.
@@ -127,6 +159,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — a global probe with `BILLING_ENABLED=true` in its environment ran the monitor. Auto-registered global probes stay public-only there, whatever their switch says; deploy a private probe inside the target's network and select it on the monitor.
 - _"Monitor target host ... could not be reached."_ — an API, Website or External Status Page monitor whose target is a **hostname** reports this when the name resolves to a refused address as well as when DNS fails, so a monitor cannot be used to map which internal names exist. The error details shown with it mention `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` either way; they do not say which case applied. If the name points at a private address, check the probe's startup log for its private-network policy; when it is off, the fix is the same as for the messages above. With `LOG_LEVEL=DEBUG`, the probe also logs the exact reason for each refused name.
 - _"Request URL could not be reached."_ — the same rule for a **Custom JavaScript Code** monitor: a script that requests a **hostname** gets this both when the name resolves to a refused address and when DNS fails. With `LOG_LEVEL=DEBUG`, the probe logs the exact reason.
+- _"Webhook URL could not be reached."_ or, from a workflow, _"Request URL could not be reached."_ — the instance runs with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (or `BILLING_ENABLED=true`), so a refused **hostname** is not explained: it either resolved to a refused address or did not resolve at all. With `LOG_LEVEL=DEBUG`, the app or worker logs which one, and the address.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — the target is in the forbidden tier. For a webhook, name the exact host or CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` if you really need it. For a monitor, there is no override.
 - _"...hostname could not be resolved via DNS."_ — the container cannot resolve the name. Check that it shares a network with the target.
 

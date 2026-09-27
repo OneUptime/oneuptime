@@ -6,6 +6,8 @@ import DataSourceEgressGuard, {
 } from "../../../../Server/Utils/DataSource/EgressGuard";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
+import { ClientRequest } from "http";
+import https from "https";
 import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
 
 /*
@@ -116,6 +118,131 @@ describe("DataSourceEgressGuard.createPinnedLookup", () => {
     );
 
     expect(result.address).toBe("93.184.216.34");
+  });
+
+  /*
+   * dns.lookup never calls back synchronously, and Node's net/tls connect
+   * relies on that. See the regression test below for what broke.
+   */
+  test.each([
+    ["every address", { all: true }],
+    ["the first address", { all: false }],
+    ["no address of the wanted family", { family: 6 as number }],
+  ])(
+    "answers asynchronously with %s",
+    async (
+      _label: string,
+      options: { all?: boolean | undefined; family?: number | undefined },
+    ) => {
+      const lookup: EgressLookupFunction =
+        DataSourceEgressGuard.createPinnedLookup([
+          { address: "93.184.216.34", family: 4 },
+        ]);
+      let hasAnswered: boolean = false;
+
+      const answered: Promise<LookupResult> = new Promise(
+        (resolve: (value: LookupResult) => void) => {
+          lookup(
+            "anything.example",
+            options,
+            (
+              error: NodeJS.ErrnoException | null,
+              address: string | Array<{ address: string; family: number }>,
+              family?: number,
+            ) => {
+              hasAnswered = true;
+              resolve({ error, address, family });
+            },
+          );
+        },
+      );
+
+      expect(hasAnswered).toBe(false);
+
+      const result: LookupResult = await answered;
+
+      expect(hasAnswered).toBe(true);
+      if (options.family === 6) {
+        expect(result.error?.code).toBe("ENOTFOUND");
+      } else {
+        expect(result.error).toBeNull();
+      }
+    },
+  );
+});
+
+/*
+ * REGRESSION: an HTTPS request through a pinned agent whose every address
+ * fails at connect() time. That is what a probe with no IPv6 gets for an
+ * IPv6-only hostname (EADDRNOTAVAIL/ENETUNREACH from connect() itself), and
+ * with a lookup that answered synchronously Node destroyed the TLSSocket
+ * before tls.connect called setServername on it: https.get threw
+ * "Cannot read properties of null (reading 'setServername')", which the
+ * monitor reported instead of the real error, and the real error escaped as
+ * an unhandled 'error' event on the socket.
+ *
+ * connect() to the broadcast address fails the same way, locally and with no
+ * packet sent (EAFNOSUPPORT on macOS, ENETUNREACH on Linux).
+ */
+describe("DataSourceEgressGuard.createPinnedLookup through an https agent", () => {
+  test("a connect that fails on every pinned address rejects cleanly instead of throwing", async () => {
+    const uncaught: Array<unknown> = [];
+    const onUncaught: (error: unknown) => void = (error: unknown): void => {
+      uncaught.push(error);
+    };
+
+    process.on("uncaughtException", onUncaught);
+
+    try {
+      const agent: https.Agent = new https.Agent({
+        lookup: DataSourceEgressGuard.createPinnedLookup([
+          { address: "255.255.255.255", family: 4 },
+        ]) as never,
+      });
+
+      const requestError: Error = await new Promise(
+        (resolve: (error: Error) => void, reject: (error: Error) => void) => {
+          let request: ClientRequest;
+
+          try {
+            request = https.get("https://pinned.example/", {
+              agent: agent,
+              timeout: 5000,
+            });
+          } catch (error) {
+            reject(error as Error);
+            return;
+          }
+
+          request.on("error", (error: Error) => {
+            resolve(error);
+          });
+          request.on("timeout", () => {
+            request.destroy(new Error("request timed out"));
+          });
+          request.on("response", () => {
+            reject(new Error("broadcast address answered"));
+          });
+        },
+      );
+
+      // Give a stray 'error' event on the socket a chance to surface.
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 50);
+      });
+
+      expect(requestError).not.toBeInstanceOf(TypeError);
+      expect(requestError.message).not.toContain("setServername");
+      expect(
+        typeof (requestError as NodeJS.ErrnoException).code === "string" ||
+          Array.isArray((requestError as { errors?: unknown }).errors),
+      ).toBe(true);
+      expect(uncaught).toEqual([]);
+
+      agent.destroy();
+    } finally {
+      process.removeListener("uncaughtException", onUncaught);
+    }
   });
 });
 

@@ -9,9 +9,15 @@ import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import OAuth2TokenClient, {
+  OAuth2TokenHttpRequest,
+} from "Common/Server/Utils/Workflow/OAuth2TokenClient";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { generateKeyPairSync } from "crypto";
 import dns from "dns";
+import http from "http";
+import https from "https";
 import nodemailer from "nodemailer";
 
 jest.mock("Common/Server/Infrastructure/GlobalCache", () => {
@@ -91,9 +97,9 @@ jest.mock(
  *  - tokenUrl, which SMTPOAuthService POSTs the OAuth client_id and
  *    client_secret to, and whose response body is echoed back through
  *    POST /api/notification/smtp-config/test. Unvalidated, that is credential
- *    exfiltration plus a read-capable probe of the internal network — and node
- *    fetch follows redirects by default, so validating the first hop is not
- *    enough on its own.
+ *    exfiltration plus a read-capable probe of the internal network — and an
+ *    HTTP client that follows redirects would let a validated first hop send
+ *    the secret on to one that was never checked.
  *
  *  - hostname/port, which nodemailer dials and then reports on: its "Invalid
  *    greeting. response=<raw bytes>" lands in EmailLog.statusMessage and is
@@ -111,7 +117,8 @@ type LookupSpy = jest.SpiedFunction<
 >;
 
 let lookupSpy: LookupSpy;
-let fetchSpy: jest.SpyInstance;
+// Every outbound HTTP(S) request made through node's http/https modules.
+let requestSpies: Array<jest.SpyInstance>;
 
 function makeOAuthConfig(tokenUrl: string): {
   clientId: string;
@@ -131,6 +138,12 @@ function makeOAuthConfig(tokenUrl: string): {
   };
 }
 
+/*
+ * Refusals are asserted with the detail a self-hosted install shows; the
+ * SaaS wording is tested on its own below. CI exports BILLING_ENABLED=true.
+ */
+startEachTestOnSelfHostedEgressPolicy();
+
 beforeEach(() => {
   lookupSpy = jest.spyOn(dns.promises, "lookup") as unknown as LookupSpy;
 
@@ -146,21 +159,23 @@ beforeEach(() => {
   jest.spyOn(GlobalCache, "getJSONObject").mockResolvedValue(null);
   jest.spyOn(GlobalCache, "setJSON").mockResolvedValue(undefined as never);
 
-  fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: () => {
-      return Promise.resolve({
-        access_token: "token",
-        token_type: "Bearer",
-        expires_in: 3600,
-      });
-    },
-    text: () => {
-      return Promise.resolve("");
-    },
-  } as unknown as Response);
+  /*
+   * The token request goes out through axios' node adapter, which calls
+   * http.request / https.request. Nothing here may get that far; a call
+   * fails loudly instead of reaching the network.
+   */
+  requestSpies = [http, https].map((module: typeof http | typeof https) => {
+    return jest.spyOn(module, "request").mockImplementation((() => {
+      throw new Error("No request should have been sent.");
+    }) as never);
+  });
 });
+
+function expectNoRequestSent(): void {
+  for (const spy of requestSpies) {
+    expect(spy).not.toHaveBeenCalled();
+  }
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -181,9 +196,9 @@ describe("SMTP OAuth token URL is guarded", () => {
     async (tokenUrl: string) => {
       await expect(
         SMTPOAuthService.getAccessToken(makeOAuthConfig(tokenUrl)),
-      ).rejects.toThrow();
+      ).rejects.toThrow("OAuth token URL host");
 
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expectNoRequestSent();
     },
   );
 
@@ -194,26 +209,51 @@ describe("SMTP OAuth token URL is guarded", () => {
       SMTPOAuthService.getAccessToken(
         makeOAuthConfig("https://login.attacker.example/token"),
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(
+      "OAuth token URL host login.attacker.example resolves to 169.254.169.254, which is not allowed",
+    );
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expectNoRequestSent();
   });
 
-  test("a public token URL is fetched with redirects set to manual", async () => {
+  /*
+   * The transport itself (pinning, the redirect refusal) runs for real over
+   * a socket in SmtpOAuthTokenPinning.test.ts. This pins that the SMTP token
+   * request is handed to it, with a wall-clock deadline attached.
+   */
+  test("a public token URL goes out through the egress-guarded, pinned token transport", async () => {
+    const transportSpy: jest.SpyInstance = jest
+      .spyOn(OAuth2TokenClient, "sendThroughEgressGuard")
+      .mockResolvedValue({
+        statusCode: 200,
+        bodyText: JSON.stringify({
+          access_token: "token",
+          token_type: "Bearer",
+          expires_in: 3600,
+        }),
+        headers: {},
+      });
+
     const token: string = await SMTPOAuthService.getAccessToken(
       makeOAuthConfig("https://login.microsoftonline.com/tenant/oauth2/token"),
     );
 
     expect(token).toBe("token");
-    expect(fetchSpy).toHaveBeenCalled();
+    expect(transportSpy).toHaveBeenCalledTimes(1);
 
-    const requestInit: RequestInit = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const request: OAuth2TokenHttpRequest = transportSpy.mock
+      .calls[0]![0] as OAuth2TokenHttpRequest;
 
-    /*
-     * Without this, a validated host can 3xx the credentials onward to one
-     * that was never checked.
-     */
-    expect(requestInit.redirect).toBe("manual");
+    expect(request.url).toBe(
+      "https://login.microsoftonline.com/tenant/oauth2/token",
+    );
+    expect(request.body).toEqual({
+      client_id: "client-id",
+      client_secret: "client-secret",
+      scope: "https://outlook.office365.com/.default",
+      grant_type: "client_credentials",
+    });
+    expect(request.signal).toBeInstanceOf(AbortSignal);
   });
 
   test("the JWT Bearer flow is guarded on the same path", async () => {
@@ -236,7 +276,7 @@ describe("SMTP OAuth token URL is guarded", () => {
       }),
     ).rejects.toThrow("OAuth token URL host 169.254.169.254 is not allowed");
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expectNoRequestSent();
   });
 });
 
@@ -322,29 +362,6 @@ describe("custom SMTP hosts are guarded before nodemailer dials them", () => {
    * it points; a self-hosted operator still gets the diagnosis.
    */
   describe("what the refusal says about the configured host", () => {
-    let originalBillingEnabled: string | undefined;
-    let originalBlockPrivate: string | undefined;
-
-    beforeEach(() => {
-      originalBillingEnabled = process.env["BILLING_ENABLED"];
-      originalBlockPrivate = process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
-      delete process.env["BILLING_ENABLED"];
-      delete process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
-    });
-
-    afterEach(() => {
-      for (const [name, value] of [
-        ["BILLING_ENABLED", originalBillingEnabled],
-        ["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES", originalBlockPrivate],
-      ] as Array<[string, string | undefined]>) {
-        if (value === undefined) {
-          delete process.env[name];
-        } else {
-          process.env[name] = value;
-        }
-      }
-    });
-
     async function refusalFor(host: string): Promise<string> {
       try {
         await TransporterPool.getTransporter(makeProjectEmailServer(host), {});
