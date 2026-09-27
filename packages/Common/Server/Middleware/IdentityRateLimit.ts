@@ -74,6 +74,17 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * DatabaseNotConnectedException when Redis is down. Logging in is already
  * impossible in that state; the difference this makes is a 503 that says to
  * come back shortly instead of a 500.
+ *
+ * ONE ROUTE HERE SENDS MAIL RATHER THAN CHECKING A CREDENTIAL
+ *
+ * POST /resend-verification-email (Authentication.ts) is limited by this
+ * middleware too, on a bucket of its own. It is not a guessing oracle against
+ * a stored credential -- the credential it takes is server-minted and signed,
+ * or a random UUID from an emailed link -- but every request that gets past its
+ * checks makes the server send an email, and an anonymous route that sends
+ * mail needs a ceiling in front of its database reads and its caps. It shares
+ * the fail-closed choice for the same reason: its own cooldown fence lives in
+ * Redis, so with Redis down it could not bound anything either.
  */
 
 /*
@@ -144,6 +155,15 @@ export enum IdentityRateLimitBucket {
 
   // Discoverable passkey requests have no account identifier until verified.
   Passkey = "passkey",
+
+  /*
+   * POST /resend-verification-email -- an unverified account asking for its
+   * verification link again. Mail, not guessing: see
+   * VERIFICATION_EMAIL_RESEND_BUCKET. Its own counter so that a user mashing
+   * "resend" cannot spend the sign-in attempts they are about to need, and so
+   * that sign-in noise cannot refuse the resend.
+   */
+  VerificationEmailResend = "verification-email-resend",
 }
 
 export enum IdentityRateLimitScope {
@@ -413,6 +433,55 @@ const PASSKEY_BUCKET: BucketConfig = {
   perIpLimit: PASSKEY_RATE_LIMIT,
 };
 
+/*
+ * Verification email resend budget.
+ *
+ * Shaped like the passkey bucket, and for the same reason: the request carries
+ * no email address (it carries a signed resend token or a verification link
+ * token instead), so resolveAccountKey answers "none" and the account counter
+ * is keyed on the client address alone. Both counters are therefore the same
+ * per-address budget and are given the same number; a caller who adds an
+ * `email` field to rotate the account key still meets the address ceiling.
+ *
+ * This is NOT what bounds mail to any one inbox. The route's own caps do that
+ * per account -- a cooldown between sends, a per-hour cap, and a small fixed
+ * number of sends per credential (VerificationEmailResendPolicy) -- and those
+ * hold however many addresses a caller has. What this bounds is how much work
+ * one address can make the route do before those caps are even consulted:
+ * token verification, a verification-token lookup, a user lookup and a Redis
+ * read per request.
+ *
+ * Twenty a quarter hour is far past an honest user, who presses the button a
+ * handful of times at most because the page itself counts the cooldown down,
+ * and still generous to an office behind one NAT where several people are
+ * finishing signup at once.
+ */
+const VERIFICATION_EMAIL_RESEND_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_PER_IP_PER_WINDOW",
+  20,
+);
+const VERIFICATION_EMAIL_RESEND_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_VERIFICATION_EMAIL_RESEND_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: VERIFICATION_EMAIL_RESEND_RATE_LIMIT,
+  perIpLimit: VERIFICATION_EMAIL_RESEND_RATE_LIMIT,
+};
+
+/*
+ * What a refused caller is told. See getRefusalMessages for why the sign-in
+ * routes all share one pair and the resend route has its own.
+ */
+export const IDENTITY_RATE_LIMITED_MESSAGE: string =
+  "Too many sign-in attempts. Please try again later.";
+export const IDENTITY_COUNTER_UNAVAILABLE_MESSAGE: string =
+  "Unable to sign you in right now. Please try again shortly.";
+export const VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE: string =
+  "Too many requests for a new verification email. Please try again later.";
+export const VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE: string =
+  "Unable to send a verification email right now. Please try again shortly.";
+
 const KEY_PREFIX: string = "identity:rl:";
 
 /*
@@ -574,7 +643,42 @@ export default class IdentityRateLimit {
       return STATUS_PAGE_LOGIN_BUCKET;
     }
 
+    if (bucket === IdentityRateLimitBucket.VerificationEmailResend) {
+      return VERIFICATION_EMAIL_RESEND_BUCKET;
+    }
+
     return LOGIN_BUCKET;
+  }
+
+  /*
+   * What a refused request is told, for the 429 and for the fail-closed 503.
+   *
+   * Every sign-in bucket gets the same pair, byte for byte, whichever counter
+   * fired and whichever route was hit -- see the note in getMiddleware on why
+   * a sign-in limiter must not answer differently for different accounts.
+   *
+   * The resend route gets its own pair because the sign-in wording is simply
+   * wrong there: somebody who pressed "resend verification email" has made no
+   * sign-in attempt, and telling them they made too many would send them
+   * looking for a problem they do not have. The pair is still uniform WITHIN
+   * the route: the same text for every caller, token and account, so it
+   * discloses nothing the sign-in pair does not.
+   */
+  public static getRefusalMessages(bucket: IdentityRateLimitBucket): {
+    rateLimited: string;
+    unavailable: string;
+  } {
+    if (bucket === IdentityRateLimitBucket.VerificationEmailResend) {
+      return {
+        rateLimited: VERIFICATION_EMAIL_RESEND_RATE_LIMITED_MESSAGE,
+        unavailable: VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+      };
+    }
+
+    return {
+      rateLimited: IDENTITY_RATE_LIMITED_MESSAGE,
+      unavailable: IDENTITY_COUNTER_UNAVAILABLE_MESSAGE,
+    };
   }
 
   /*
@@ -773,13 +877,14 @@ export default class IdentityRateLimit {
          * account exists. These routes are careful not to say which half of a
          * credential was wrong; a limiter that answered differently for a real
          * address than for an invented one would hand back the account
-         * enumeration the handlers withhold.
+         * enumeration the handlers withhold. (The resend route has wording of
+         * its own, but it is just as uniform; see getRefusalMessages.)
          */
         return Response.sendErrorResponse(
           req,
           res,
           new TooManyRequestsException(
-            "Too many sign-in attempts. Please try again later.",
+            IdentityRateLimit.getRefusalMessages(bucket).rateLimited,
           ),
         );
       }
@@ -800,7 +905,7 @@ export default class IdentityRateLimit {
           req,
           res,
           new ServiceUnavailableException(
-            "Unable to sign you in right now. Please try again shortly.",
+            IdentityRateLimit.getRefusalMessages(bucket).unavailable,
           ),
         );
       }

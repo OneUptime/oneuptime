@@ -1,4 +1,5 @@
 import { AccountsRoute, DashboardRoute } from "Common/ServiceRoute";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
@@ -6,8 +7,10 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import ObjectID from "Common/Types/ObjectID";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
+import { VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE } from "Common/Server/Middleware/IdentityRateLimit";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import logger from "Common/Server/Utils/Logger";
@@ -18,7 +21,24 @@ import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificati
 import User from "Common/Models/DatabaseModels/User";
 
 export default class AuthenticationEmail {
-  public static async sendVerificationEmail(user: User): Promise<void> {
+  /*
+   * Mints a fresh verification token for the account and mails its link to
+   * the address stored on the account.
+   *
+   * By default the mail is fire-and-forget: sign-in answers "we have sent you
+   * a link" whether or not SMTP is reachable, as it always has.
+   *
+   * `awaitDelivery` is for /resend-verification-email, whose reply says in
+   * so many words that a mail went out, and whose caps count every token row
+   * as a mail sent. There a send that fails has to fail the request -- so the
+   * page does not claim a mail nobody will receive -- and has to take its
+   * token row with it, so an outage cannot spend a user's resends on mail
+   * that never left.
+   */
+  public static async sendVerificationEmail(
+    user: User,
+    options?: { awaitDelivery?: boolean | undefined } | undefined,
+  ): Promise<void> {
     const generatedToken: ObjectID = ObjectID.generate();
 
     const emailVerificationToken: EmailVerificationToken =
@@ -43,7 +63,7 @@ export default class AuthenticationEmail {
       service: "identity",
     });
 
-    MailService.sendMail({
+    const sendingMail: Promise<unknown> = MailService.sendMail({
       toEmail: user.email!,
       subject: "Please verify email.",
       isSubjectLiteral: true,
@@ -59,7 +79,76 @@ export default class AuthenticationEmail {
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
       },
-    })
+    });
+
+    if (options?.awaitDelivery) {
+      /*
+       * Two ways a send fails: the call throws (no answer from the
+       * notification service at all), or it resolves with an
+       * HTTPErrorResponse -- the shared API client returns error statuses
+       * rather than throwing them, so awaiting alone would miss every
+       * refusal the mail service actually sends back.
+       */
+      let didDeliveryFail: boolean = false;
+      let deliveryError: unknown = null;
+
+      try {
+        const response: unknown = await sendingMail;
+
+        if (response instanceof HTTPErrorResponse) {
+          didDeliveryFail = true;
+          deliveryError = response;
+        }
+      } catch (err) {
+        /*
+         * The fact of the rejection, not its value: a send rejected with
+         * nothing (or anything falsy) still sent nothing.
+         */
+        didDeliveryFail = true;
+        deliveryError = err;
+      }
+
+      if (didDeliveryFail) {
+        logger.error(deliveryError, {
+          userId: user.id?.toString(),
+          service: "identity",
+        });
+
+        /*
+         * The link in this row was never delivered. Removed so it counts
+         * toward no cooldown or cap; if removing it fails as well, the
+         * caller still learns the mail did not go out.
+         */
+        await EmailVerificationTokenService.deleteOneBy({
+          query: { token: generatedToken },
+          props: {
+            isRoot: true,
+          },
+        }).catch((deleteErr: Error) => {
+          logger.error(deleteErr, {
+            userId: user.id?.toString(),
+            service: "identity",
+          });
+        });
+
+        /*
+         * One fixed message whatever went wrong: the mail service's own
+         * error text is for the log above, not for an anonymous caller.
+         */
+        throw new ServiceUnavailableException(
+          VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+        );
+      }
+
+      logger.debug("Verification email sent", {
+        userId: user.id?.toString(),
+        service: "identity",
+      });
+
+      return;
+    }
+
+    sendingMail
       .then(() => {
         logger.debug("Verification email sent", {
           userId: user.id?.toString(),

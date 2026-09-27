@@ -118,7 +118,13 @@
     "verifyEmailSent": "We hebben je een verificatielink gestuurd.",
     "verifyEmailInstructions": "Open de link in die e-mail om je account te activeren en log daarna in.",
     "verifyEmailResendHint": "Kun je hem niet vinden? Kijk in je spammap. De link verloopt na 24 uur, en als je inlogt met je e-mailadres en wachtwoord sturen we je een nieuwe.",
-    "verifyEmailLoginLink": "Naar inloggen"
+    "verifyEmailLoginLink": "Naar inloggen",
+    "verifyEmailSpamHint": "Kun je hem niet vinden? Kijk in je spammap of de map met ongewenste e-mail. De link verloopt na 24 uur.",
+    "verifyEmailOpenProvider": "{{provider}} openen",
+    "verifyEmailOpensInNewTab": "(opent in een nieuw tabblad)",
+    "verifyEmailAlreadyVerifiedPrompt": "Heb je je e-mailadres al bevestigd?",
+    "verifyEmailWrongAddressPrompt": "Verkeerd e-mailadres?",
+    "verifyEmailUseDifferentEmail": "Aanmelden met een ander e-mailadres"
   },
   "forgotPassword": {
     "title": "Wachtwoord vergeten",
@@ -159,7 +165,18 @@
     "errorTitle": "Sorry, er is iets misgegaan!",
     "returnToSignIn": "Terug naar aanmelden?",
     "loginLink": "Inloggen.",
-    "continueToSignIn": "Doorgaan naar inloggen"
+    "continueToSignIn": "Doorgaan naar inloggen",
+    "linkInvalidTitle": "Deze verificatielink is niet meer geldig",
+    "requestNewLinkDescription": "Als je link is verlopen of niet meer werkt, kunnen we je per e-mail een nieuwe sturen.",
+    "tryAgain": "Opnieuw proberen"
+  },
+  "resendVerificationEmail": {
+    "button": "Verificatie-e-mail opnieuw versturen",
+    "countdown": "Je kunt over {{time}} een nieuwe e-mail aanvragen.",
+    "sent": "We hebben een nieuwe verificatielink gestuurd. Het kan een minuut of twee duren voordat deze binnenkomt.",
+    "wait": "Er is onlangs al een verificatie-e-mail verstuurd. Je kunt een nieuwe aanvragen zodra de timer is afgelopen.",
+    "alreadyVerified": "Je e-mailadres is al bevestigd. Je kunt nu inloggen.",
+    "failed": "We konden geen nieuwe verificatie-e-mail versturen. Probeer het zo meteen opnieuw."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Het wachtwoord mag niet alleen uit spaties bestaan.",
   "Password is required.": "Een wachtwoord is verplicht.",
   "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Dit verificatieverzoek is niet meer geldig. Log in met je e-mailadres en wachtwoord, dan sturen we je een nieuwe verificatielink.",
+  "Your account has been blocked. Please contact your administrator.": "Je account is geblokkeerd. Neem contact op met je beheerder.",
   "Account details": "Accountgegevens",
   "Secure your account": "Beveilig je account",
   "Between {{minimum}} and {{maximum}} characters": "Tussen {{minimum}} en {{maximum}} tekens",

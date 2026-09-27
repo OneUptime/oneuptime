@@ -1,5 +1,6 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
 import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
+import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
@@ -65,16 +66,25 @@ const RegisterPage: () => JSX.Element = () => {
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
   /*
-   * One mounted register form is one signup at most: a success logs the user
-   * in and navigates away. Both funnel events are latched so a form that
-   * calls back more than once still reports a single attempt and a single
-   * completion, and sign_up can never outrun signup_started.
+   * One visitor is one funnel conversion. A success usually logs the user in
+   * and navigates away, but a hosted signup stops at "verify your email", and
+   * from there "sign up with a different email" brings the form back for a
+   * second account. Both funnel events stay latched across that, so the page
+   * still reports a single attempt and a single completion, and sign_up can
+   * never outrun signup_started. The corrected address is not lost, though:
+   * identifiedEmail remembers who analytics was told about, and a completion
+   * under a different address re-identifies the visitor and records
+   * accounts/register_email_changed instead of a second conversion.
    */
   const hasCapturedSignupStart: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   const hasCapturedSignupComplete: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  const identifiedEmail: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
 
   const [error, setError] = useState<string>("");
 
@@ -105,6 +115,38 @@ const RegisterPage: () => JSX.Element = () => {
   const submittedEmail: React.MutableRefObject<Email | null> =
     useRef<Email | null>(null);
 
+  /*
+   * The resend credential /signup returned with `emailVerificationRequired`,
+   * and how long until the first resend is allowed. Both optional: an older
+   * server, or one that could not mint the token, sends neither, and the
+   * screen falls back to "sign in to get a new link".
+   */
+  const [verificationEmailResendToken, setVerificationEmailResendToken] =
+    React.useState<string | undefined>(undefined);
+
+  const [
+    verificationEmailResendAvailableInSeconds,
+    setVerificationEmailResendAvailableInSeconds,
+  ] = React.useState<number | undefined>(undefined);
+
+  /*
+   * What the visitor typed, kept so "sign up with a different email" can put
+   * the form back the way they left it and only the address needs fixing.
+   * Deliberately never the password, its confirmation or the captcha token:
+   * a secret has no business outliving the request it was typed for, and a
+   * captcha answer is single-use anyway.
+   */
+  const lastSubmittedValues: React.MutableRefObject<JSONObject> =
+    useRef<JSONObject>({});
+
+  /*
+   * True when the address came in on the link (?email=) -- an invitation, or
+   * a marketing page that already asked for it. That address is the one the
+   * link was meant for, so it stays read-only, and the "wrong address?"
+   * escape hatch is not offered for it.
+   */
+  const [isEmailLocked, setIsEmailLocked] = React.useState<boolean>(false);
+
   const isCaptchaEnabled: boolean =
     CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
 
@@ -117,6 +159,21 @@ const RegisterPage: () => JSX.Element = () => {
       return current + 1;
     });
   }, []);
+
+  /*
+   * "Sign up with a different email" on the verification screen: back to the
+   * form, filled in with what was typed last time minus the secrets, with the
+   * address editable. Nothing is undone on the server -- the account that
+   * was just created cannot be signed into until its address is verified --
+   * and the funnel latches above keep this from counting as a new visitor.
+   */
+  const handleUseDifferentEmail: () => void = (): void => {
+    setInitialValues({ ...lastSubmittedValues.current });
+    setVerificationEmailResendToken(undefined);
+    setVerificationEmailResendAvailableInSeconds(undefined);
+    setEmailAwaitingVerification(null);
+    setShouldResetCaptcha(false);
+  };
 
   /*
    * A visitor who is already signed in is sent on to the Dashboard -- once,
@@ -175,6 +232,7 @@ const RegisterPage: () => JSX.Element = () => {
       setInitialValues({
         email: Navigation.getQueryStringByName("email"),
       });
+      setIsEmailLocked(true);
     }
 
     // if promo code is found, please save it in localstorage.
@@ -192,7 +250,7 @@ const RegisterPage: () => JSX.Element = () => {
       sectionTitle: t("Account details"),
       placeholder: "jeff@example.com",
       required: true,
-      disabled: Boolean(initialValues && initialValues["email"]),
+      disabled: isEmailLocked,
       title: t("common.email"),
       dataTestId: "email",
       disableSpellCheck: true,
@@ -408,44 +466,14 @@ const RegisterPage: () => JSX.Element = () => {
 
   if (emailAwaitingVerification !== null) {
     return (
-      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md mx-auto">
-          <img
-            className="mx-auto h-10 w-auto sm:h-12"
-            src={OneUptimeLogo}
-            alt="OneUptime"
-          />
-          <div
-            className="mt-6 rounded-xl border border-gray-200 bg-white px-6 py-8 text-center shadow-sm sm:px-8"
-            data-testid="verify-email-required"
-          >
-            <h2 className="text-xl tracking-tight text-gray-900 sm:text-2xl">
-              {t("register.verifyEmailTitle")}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-gray-600">
-              {emailAwaitingVerification
-                ? t("register.verifyEmailSentTo", {
-                    email: emailAwaitingVerification,
-                  })
-                : t("register.verifyEmailSent")}
-            </p>
-            <p className="mt-3 text-sm leading-6 text-gray-600">
-              {t("register.verifyEmailInstructions")}
-            </p>
-            <p className="mt-3 text-sm leading-6 text-gray-500">
-              {t("register.verifyEmailResendHint")}
-            </p>
-          </div>
-          <p className="mt-4 text-center text-sm text-gray-600 sm:mt-5">
-            <Link
-              to={new Route("/accounts/login")}
-              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
-            >
-              {t("register.verifyEmailLoginLink")}
-            </Link>
-          </p>
-        </div>
-      </div>
+      <VerifyEmailPending
+        email={emailAwaitingVerification}
+        resendToken={verificationEmailResendToken}
+        resendAvailableInSeconds={verificationEmailResendAvailableInSeconds}
+        onUseDifferentEmail={
+          isEmailLocked ? undefined : handleUseDifferentEmail
+        }
+      />
     );
   }
 
@@ -509,6 +537,36 @@ const RegisterPage: () => JSX.Element = () => {
               }
 
               submittedEmail.current = item.email || null;
+
+              /*
+               * Plain strings, so the form can be prefilled with them later.
+               * Never password, confirmPassword or captchaToken -- see
+               * lastSubmittedValues.
+               */
+              const valuesToKeep: Array<[string, string | undefined]> = [
+                ["email", item.email?.toString()],
+                ["name", item.name?.toString()],
+                ["companyName", item.companyName?.toString()],
+                ["companyPhoneNumber", item.companyPhoneNumber?.toString()],
+                [
+                  "selfHostedCompanyName",
+                  miscDataProps["selfHostedCompanyName"]?.toString(),
+                ],
+                [
+                  "selfHostedPhoneNumber",
+                  miscDataProps["selfHostedPhoneNumber"]?.toString(),
+                ],
+              ];
+
+              const keptValues: JSONObject = {};
+
+              for (const [key, value] of valuesToKeep) {
+                if (value) {
+                  keptValues[key] = value;
+                }
+              }
+
+              lastSubmittedValues.current = keptValues;
               if (isCaptchaEnabled) {
                 const captchaToken: string | undefined = (
                   miscDataProps["captchaToken"] as string | undefined
@@ -621,15 +679,52 @@ const RegisterPage: () => JSX.Element = () => {
 
               if (signedUpEmail && !hasCapturedSignupComplete.current) {
                 hasCapturedSignupComplete.current = true;
+                identifiedEmail.current = signedUpEmail.toString();
                 UiAnalytics.userAuth(signedUpEmail);
                 UiAnalytics.capture("accounts/register");
                 UiAnalytics.captureRevenueEvent(
                   RevenueEventName.SignupCompleted,
                   { funnel_stage: RevenueFunnelStage.Signup },
                 );
+              } else if (
+                signedUpEmail &&
+                identifiedEmail.current !== signedUpEmail.toString()
+              ) {
+                /*
+                 * The same visitor, signing up again under a corrected
+                 * address. Not a second conversion; analytics just follows
+                 * them to the address they actually use.
+                 */
+                identifiedEmail.current = signedUpEmail.toString();
+                UiAnalytics.userAuth(signedUpEmail);
+                UiAnalytics.capture("accounts/register_email_changed");
               }
 
               if (isEmailVerificationRequired) {
+                /*
+                 * Only what the screen can use: a non-empty string and a
+                 * finite number. Anything else -- including an older server
+                 * that sends neither -- leaves the screen on its "sign in to
+                 * get a new link" fallback.
+                 */
+                const resendToken: unknown = miscData
+                  ? miscData["verificationEmailResendToken"]
+                  : undefined;
+                const resendAvailableInSeconds: unknown = miscData
+                  ? miscData["verificationEmailResendAvailableInSeconds"]
+                  : undefined;
+
+                setVerificationEmailResendToken(
+                  typeof resendToken === "string" && resendToken
+                    ? resendToken
+                    : undefined,
+                );
+                setVerificationEmailResendAvailableInSeconds(
+                  typeof resendAvailableInSeconds === "number" &&
+                    Number.isFinite(resendAvailableInSeconds)
+                    ? resendAvailableInSeconds
+                    : undefined,
+                );
                 setEmailAwaitingVerification(
                   submittedEmail.current?.toString() || "",
                 );

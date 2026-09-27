@@ -118,7 +118,13 @@
     "verifyEmailSent": "We've sent you a verification link.",
     "verifyEmailInstructions": "Open the link in that email to activate your account, then sign in.",
     "verifyEmailResendHint": "Can't find it? Check your spam folder. The link expires in 24 hours, and signing in with your email and password sends you a new one.",
-    "verifyEmailLoginLink": "Go to sign in"
+    "verifyEmailLoginLink": "Go to sign in",
+    "verifyEmailSpamHint": "Can't find it? Check your spam or junk folder. The link expires in 24 hours.",
+    "verifyEmailOpenProvider": "Open {{provider}}",
+    "verifyEmailOpensInNewTab": "(opens in a new tab)",
+    "verifyEmailAlreadyVerifiedPrompt": "Already verified your email?",
+    "verifyEmailWrongAddressPrompt": "Wrong email address?",
+    "verifyEmailUseDifferentEmail": "Sign up with a different email"
   },
   "forgotPassword": {
     "title": "Forgot your password",
@@ -159,7 +165,18 @@
     "errorTitle": "Sorry, something went wrong!",
     "returnToSignIn": "Return to sign in?",
     "loginLink": "Login.",
-    "continueToSignIn": "Continue to sign in"
+    "continueToSignIn": "Continue to sign in",
+    "linkInvalidTitle": "This verification link is no longer valid",
+    "requestNewLinkDescription": "If your link has expired or stopped working, we can email you a new one.",
+    "tryAgain": "Try again"
+  },
+  "resendVerificationEmail": {
+    "button": "Resend verification email",
+    "countdown": "You can request another email in {{time}}.",
+    "sent": "We've sent a new verification link. It can take a minute or two to arrive.",
+    "wait": "A verification email was sent recently. You can request another one when the timer runs out.",
+    "alreadyVerified": "Your email address is already verified. You can sign in now.",
+    "failed": "We couldn't send a new verification email. Please try again in a moment."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Password cannot be blank.",
   "Password is required.": "Password is required.",
   "Password must be a string.": "Password must be a string.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.",
+  "Your account has been blocked. Please contact your administrator.": "Your account has been blocked. Please contact your administrator.",
   "Account details": "Account details",
   "Secure your account": "Secure your account",
   "Between {{minimum}} and {{maximum}} characters": "Between {{minimum}} and {{maximum}} characters",

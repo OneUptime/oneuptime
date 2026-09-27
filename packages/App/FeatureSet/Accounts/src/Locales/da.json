@@ -118,7 +118,13 @@
     "verifyEmailSent": "Vi har sendt dig et bekræftelseslink.",
     "verifyEmailInstructions": "Åbn linket i e-mailen for at aktivere din konto, og log derefter ind.",
     "verifyEmailResendHint": "Kan du ikke finde den? Tjek din spam-mappe. Linket udløber efter 24 timer, og når du logger ind med din e-mail og adgangskode, sender vi dig et nyt.",
-    "verifyEmailLoginLink": "Gå til log ind"
+    "verifyEmailLoginLink": "Gå til log ind",
+    "verifyEmailSpamHint": "Kan du ikke finde den? Tjek din spam-mappe eller mappen med uønsket post. Linket udløber efter 24 timer.",
+    "verifyEmailOpenProvider": "Åbn {{provider}}",
+    "verifyEmailOpensInNewTab": "(åbner i en ny fane)",
+    "verifyEmailAlreadyVerifiedPrompt": "Har du allerede bekræftet din e-mail?",
+    "verifyEmailWrongAddressPrompt": "Forkert e-mailadresse?",
+    "verifyEmailUseDifferentEmail": "Tilmeld dig med en anden e-mailadresse"
   },
   "forgotPassword": {
     "title": "Glemt adgangskode",
@@ -159,7 +165,18 @@
     "errorTitle": "Beklager, noget gik galt!",
     "returnToSignIn": "Tilbage til login?",
     "loginLink": "Log ind.",
-    "continueToSignIn": "Fortsæt til log ind"
+    "continueToSignIn": "Fortsæt til log ind",
+    "linkInvalidTitle": "Dette bekræftelseslink er ikke længere gyldigt",
+    "requestNewLinkDescription": "Hvis dit link er udløbet eller er holdt op med at virke, kan vi sende dig et nyt på e-mail.",
+    "tryAgain": "Prøv igen"
+  },
+  "resendVerificationEmail": {
+    "button": "Send bekræftelsesmail igen",
+    "countdown": "Du kan anmode om en ny e-mail om {{time}}.",
+    "sent": "Vi har sendt et nyt bekræftelseslink. Der kan gå et minut eller to, før det når frem.",
+    "wait": "Der blev for nylig sendt en bekræftelsesmail. Du kan anmode om en ny, når nedtællingen er slut.",
+    "alreadyVerified": "Din e-mailadresse er allerede bekræftet. Du kan logge ind nu.",
+    "failed": "Vi kunne ikke sende en ny bekræftelsesmail. Prøv igen om lidt."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Adgangskoden må ikke kun indeholde mellemrum.",
   "Password is required.": "Adgangskode er påkrævet.",
   "Password must be a string.": "Adgangskoden skal være en tekststreng.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Denne bekræftelsesanmodning er ikke længere gyldig. Log ind med din e-mail og adgangskode, så sender vi dig et nyt bekræftelseslink.",
+  "Your account has been blocked. Please contact your administrator.": "Din konto er blevet blokeret. Kontakt din administrator.",
   "Account details": "Kontooplysninger",
   "Secure your account": "Beskyt din konto",
   "Between {{minimum}} and {{maximum}} characters": "Mellem {{minimum}} og {{maximum}} tegn",
