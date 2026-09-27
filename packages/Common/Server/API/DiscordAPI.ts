@@ -46,6 +46,8 @@ import { DiscordIncidentEpisodeActionModule } from "../Utils/Workspace/Discord/A
 import { DiscordAlertEpisodeActionModule } from "../Utils/Workspace/Discord/Actions/AlertEpisode";
 import { DiscordScheduledMaintenanceActionModule } from "../Utils/Workspace/Discord/Actions/ScheduledMaintenance";
 import { DiscordMonitorActionModule } from "../Utils/Workspace/Discord/Actions/Monitor";
+import { DiscordIncidentCreationModule } from "../Utils/Workspace/Discord/Actions/IncidentCreation";
+import { DiscordMaintenanceCreationModule } from "../Utils/Workspace/Discord/Actions/ScheduledMaintenanceCreation";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
   PublicDashboardRateLimitDecision,
@@ -186,6 +188,8 @@ export default class DiscordAPI {
             DiscordAlertEpisodeActionModule,
             DiscordScheduledMaintenanceActionModule,
             DiscordMonitorActionModule,
+            DiscordIncidentCreationModule,
+            DiscordMaintenanceCreationModule,
           ],
         });
         return cachedDispatcher;

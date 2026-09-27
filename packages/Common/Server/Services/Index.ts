@@ -418,6 +418,7 @@ import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryS
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import DiscordInteractionReceiptService from "./DiscordInteractionReceiptService";
+import DiscordCreationDraftService from "./DiscordCreationDraftService";
 
 import MonitorLogService from "./MonitorLogService";
 import NetworkFlowService from "./NetworkFlowService";
@@ -856,6 +857,7 @@ const services: Array<BaseService> = [
 
   WorkspaceProjectAuthTokenService,
   DiscordInteractionReceiptService,
+  DiscordCreationDraftService,
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,

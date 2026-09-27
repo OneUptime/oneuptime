@@ -1,5 +1,6 @@
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../../Types/ObjectID";
+import { DiscordDraftOutcome } from "../../../../Services/DiscordCreationDraftService";
 
 export enum DiscordInteractionKind {
   ApplicationCommand = 2,
@@ -26,6 +27,8 @@ export interface DiscordActionRequest {
   action: string;
   resourceId?: ObjectID | undefined;
   values: Readonly<Record<string, string>>;
+  // Multi-value select menus; only draft continuations carry these.
+  selections?: Readonly<Record<string, ReadonlyArray<string>>> | undefined;
   context: DiscordActionContext;
 }
 
@@ -93,7 +96,66 @@ export interface DiscordModalDescriptor {
   fields: ReadonlyArray<DiscordModalField>;
 }
 
+/*
+ * A multi-step creation form whose partial state persists as a draft. Text
+ * fields are edited in one native modal; choice fields page through a
+ * registered choice provider. The flow owns rendering and persistence.
+ */
+export type DiscordDraftField =
+  | {
+      kind: "text";
+      customId: string;
+      label: string;
+      required: boolean;
+      style?: "short" | "paragraph";
+      minLength?: number;
+      maxLength?: number;
+      placeholder?: string;
+    }
+  | {
+      kind: "choice";
+      customId: string;
+      label: string;
+      provider: string;
+      required: boolean;
+      multiple: boolean;
+    };
+
+export interface DiscordDraftDescriptor {
+  name: string;
+  title: string;
+  submitAction: string;
+  fields: ReadonlyArray<DiscordDraftField>;
+}
+
+// Minted only by the flow after a durable claim; a handler cannot forge it.
+export interface DiscordDraftProvenance {
+  readonly __discordDraft: unique symbol;
+}
+
+export interface DiscordDraftSubmissionRequest {
+  action: string;
+  values: Readonly<Record<string, string>>;
+  selections: Readonly<Record<string, ReadonlyArray<string>>>;
+  context: DiscordActionContext;
+  provenance: DiscordDraftProvenance;
+}
+
+export interface DiscordDraftSubmissionResult {
+  outcome: Exclude<DiscordDraftOutcome, { kind: "cancelled" }>;
+  response: { kind: "message"; content: string; ephemeral?: boolean };
+}
+
+export interface DiscordDraftSubmissionRegistration {
+  name: string;
+  action: string;
+  handle: (
+    request: DiscordDraftSubmissionRequest,
+  ) => Promise<DiscordDraftSubmissionResult>;
+}
+
 export type DiscordActionResult =
+  | { kind: "draft"; draft: DiscordDraftDescriptor }
   | {
       kind: "message";
       content: string;
@@ -169,4 +231,8 @@ export interface DiscordActionModuleRegistration {
     | ReadonlyArray<DiscordChoiceProviderRegistration>
     | undefined;
   commands?: ReadonlyArray<DiscordCommandRegistration> | undefined;
+  // Final handlers for reviewed drafts; never reachable as a wire action.
+  draftSubmissions?:
+    | ReadonlyArray<DiscordDraftSubmissionRegistration>
+    | undefined;
 }

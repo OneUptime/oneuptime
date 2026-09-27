@@ -22,6 +22,7 @@ import {
   DiscordChoiceProviderRegistration,
   DiscordCommandOption,
   DiscordCommandRegistration,
+  DiscordDraftSubmissionRegistration,
   DiscordHandlerResponseMode,
   DiscordInteractionKind,
   DiscordModalDescriptor,
@@ -29,6 +30,7 @@ import {
   DiscordStringSelectOption,
 } from "./Actions/Types";
 import DiscordClient from "./DiscordClient";
+import DiscordDraftFlow, { DiscordDraftPlan } from "./DiscordDraftFlow";
 
 const PICKER_NAMESPACE: string = "discord-interaction-picker";
 const SESSION_TTL_SECONDS: number = 15 * 60;
@@ -91,12 +93,15 @@ export default class DiscordInteractionDispatcher {
     new Map();
   private readonly commands: Map<string, DiscordCommandRegistration> =
     new Map();
+  // Owns every `oud:` continuation; built from the modules' draft submissions.
+  private readonly draftFlow: DiscordDraftFlow;
 
   public constructor(data: {
     applicationId: string;
     modules: ReadonlyArray<DiscordActionModuleRegistration>;
   }) {
     this.applicationId = DiscordClient.snowflake(data.applicationId);
+    const submissions: Array<DiscordDraftSubmissionRegistration> = [];
     for (const module of data.modules) {
       for (const registration of module.handlers) {
         if (
@@ -132,7 +137,13 @@ export default class DiscordInteractionDispatcher {
         }
         this.commands.set(command.name, command);
       }
+      submissions.push(...(module.draftSubmissions || []));
     }
+    this.draftFlow = new DiscordDraftFlow({
+      applicationId: this.applicationId,
+      submissions,
+      choiceProviders: Array.from(this.providers.values()),
+    });
   }
 
   public commandPayloads(): JSONArray {
@@ -246,6 +257,9 @@ export default class DiscordInteractionDispatcher {
     }
     if (parsed.type === DiscordInteractionKind.ModalSubmit) {
       const customId: string = this.customId(parsed.data);
+      if (this.draftFlow.handles(customId)) {
+        return await this.prepareDraftContinuation(parsed, customId);
+      }
       if (customId.startsWith("PickerSearchSubmit:")) {
         return this.preparePickerSearchSubmit(parsed, customId);
       }
@@ -256,6 +270,9 @@ export default class DiscordInteractionDispatcher {
     }
     if (parsed.type === DiscordInteractionKind.MessageComponent) {
       const customId: string = this.customId(parsed.data);
+      if (this.draftFlow.handles(customId)) {
+        return await this.prepareDraftContinuation(parsed, customId);
+      }
       if (customId.startsWith("PickerSelect:")) {
         return this.preparePickerSelection(parsed, customId);
       }
@@ -375,6 +392,65 @@ export default class DiscordInteractionDispatcher {
         }
       },
     };
+  }
+
+  /*
+   * `oud:<draft>:<revision>:<operation>` continuations. Edit and search must
+   * answer with a modal, so they resolve the actor and run before the initial
+   * response. Every other operation acknowledges as a deferred update (type 6)
+   * of the draft message it came from, then resolves the actor, binds the
+   * receipt and runs. Payload shape is validated before either path so a
+   * malformed envelope never reaches the flow or a deferred acknowledgement.
+   */
+  private async prepareDraftContinuation(
+    interaction: ParsedInteraction,
+    customId: string,
+  ): Promise<DiscordPreparedInteraction> {
+    const operation: string = customId.split(":")[3] || "";
+    const values: Readonly<Record<string, string>> =
+      interaction.type === DiscordInteractionKind.ModalSubmit
+        ? this.modalValues(interaction.data)
+        : {};
+    const selections: Readonly<Record<string, ReadonlyArray<string>>> =
+      interaction.type === DiscordInteractionKind.MessageComponent
+        ? this.multiComponentValues(interaction.data, operation)
+        : {};
+    const plan: (context: DiscordActionContext) => Promise<DiscordDraftPlan> =
+      (context: DiscordActionContext): Promise<DiscordDraftPlan> => {
+        return this.draftFlow.continue({
+          kind: interaction.type,
+          customId,
+          values,
+          selections,
+          context,
+        });
+      };
+    if (operation === "edit" || operation === "search") {
+      const context: DiscordActionContext =
+        await this.resolveReceiptContext(interaction);
+      const immediate: DiscordDraftPlan = await plan(context);
+      if (immediate.mode !== "immediate") {
+        throw new BadDataException(
+          "This Discord draft step must answer immediately.",
+        );
+      }
+      return { initialResponse: immediate.response };
+    }
+    return this.deferred(
+      interaction,
+      async (): Promise<JSONObject> => {
+        const context: DiscordActionContext =
+          await this.resolveReceiptContext(interaction);
+        const deferred: DiscordDraftPlan = await plan(context);
+        if (deferred.mode !== "deferred") {
+          throw new BadDataException(
+            "Discord cannot open a modal after a deferred response.",
+          );
+        }
+        return await deferred.execute();
+      },
+      true,
+    );
   }
 
   private async handleAutocomplete(
@@ -575,6 +651,12 @@ export default class DiscordInteractionDispatcher {
     if (result.kind === "modal") {
       return this.modalResponse(result.modal);
     }
+    if (result.kind === "draft") {
+      return {
+        type: 4,
+        data: await this.draftFlow.start({ draft: result.draft, context }),
+      };
+    }
     if (result.kind === "picker") {
       return {
         type: 4,
@@ -601,6 +683,9 @@ export default class DiscordInteractionDispatcher {
   ): Promise<JSONObject> {
     if (result.kind === "message") {
       return this.messageData(result.content);
+    }
+    if (result.kind === "draft") {
+      return await this.draftFlow.start({ draft: result.draft, context });
     }
     if (result.kind === "picker") {
       return await this.renderPicker(result.picker, context);
@@ -1128,6 +1213,36 @@ export default class DiscordInteractionDispatcher {
       throw new BadDataException("Invalid Discord selection.");
     }
     return values[0];
+  }
+
+  /*
+   * Draft select menus allow zero to many values (min_values 0). A button
+   * carries no `values` and yields no selection. The field chooser keys its
+   * value as `field`; every other menu as `selection`, which the flow checks
+   * against the operation it belongs to.
+   */
+  private multiComponentValues(
+    data: JSONObject,
+    operation: string,
+  ): Readonly<Record<string, ReadonlyArray<string>>> {
+    const values: unknown = data["values"];
+    if (values === undefined) {
+      return {};
+    }
+    if (
+      !Array.isArray(values) ||
+      values.length > 25 ||
+      values.some((value: unknown): boolean => {
+        return (
+          typeof value !== "string" || value.length < 1 || value.length > 100
+        );
+      })
+    ) {
+      throw new BadDataException("Invalid Discord selection.");
+    }
+    return {
+      [operation === "field" ? "field" : "selection"]: values as Array<string>,
+    };
   }
 
   private modalResponse(modal: DiscordModalDescriptor): JSONObject {

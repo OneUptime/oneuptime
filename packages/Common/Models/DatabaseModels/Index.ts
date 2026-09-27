@@ -472,6 +472,7 @@ import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
 import DiscordInteractionReceipt from "./DiscordInteractionReceipt";
+import DiscordCreationDraft from "./DiscordCreationDraft";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
@@ -501,6 +502,7 @@ const AllModelTypes: Array<{
   WorkspaceUserAuthToken,
   WorkspaceProjectAuthToken,
   DiscordInteractionReceipt,
+  DiscordCreationDraft,
   Probe,
   Project,
   EmailVerificationToken,
