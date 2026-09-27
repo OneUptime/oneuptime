@@ -16,6 +16,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
 import IncidentCustomFieldTemplateVariables from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
+import SubscriberTemplateLivePreview from "../../../Components/StatusPage/SubscriberTemplateLivePreview";
 import {
   DefaultSubscriberNotificationTemplate,
   getDefaultSubscriberNotificationTemplate,
@@ -236,6 +237,13 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                 getDefaultTemplateLanguage(notificationMethod);
               return (
                 <div className="mt-4 space-y-4">
+                  {/* The template as typed, filled in with sample values. */}
+                  <SubscriberTemplateLivePreview
+                    eventType={eventType}
+                    notificationMethod={notificationMethod}
+                    templateBody={values.templateBody as string | undefined}
+                    emailSubject={values.emailSubject as string | undefined}
+                  />
                   {defaults && (
                     <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                       <div className="text-sm font-semibold text-indigo-900 mb-1">

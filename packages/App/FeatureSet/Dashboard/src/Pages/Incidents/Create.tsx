@@ -90,6 +90,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import SubscriberAudienceSummary from "../../Components/Incident/SubscriberAudienceSummary";
+import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
+import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
   StatusPagePickerAccessHint,
@@ -1865,8 +1867,30 @@ const IncidentCreate: FunctionComponent<
                   getFooterElement: (values: FormValues<Incident>) => {
                     return getAudienceSummary(values);
                   },
+                  /*
+                   * On the last step, also what they will be sent: each
+                   * status page's email, from the incident as declared here.
+                   */
                   getSummaryElement: (item: FormValues<Incident>) => {
-                    return getAudienceSummary(item);
+                    return (
+                      <>
+                        {getAudienceSummary(item)}
+                        <SubscriberNotificationPreviewButton
+                          dataTestId="incident-create-preview-notification"
+                          getRequest={() => {
+                            return getIncidentCreatedPreviewRequest({
+                              values: item as Record<string, unknown>,
+                              customFields: packCustomFieldFormValues({
+                                definitions: detailsStepDefinitions,
+                                formValues: item as JSONObject,
+                                startingCustomFields: startingCustomFields,
+                                isShown: isAskedOnIncidentForm,
+                              }),
+                            });
+                          }}
+                        />
+                      </>
+                    );
                   },
                 },
                 {

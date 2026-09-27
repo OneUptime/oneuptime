@@ -63,6 +63,12 @@ export interface ComponentProps {
    * email)"), shown under the notify checkbox while it is ticked.
    */
   notifyAudience?: ReactElement | undefined;
+  /*
+   * What the notification would look like ('Preview notification' for
+   * incident public notes), from the note as it is being written. Shown with
+   * the audience while the notify checkbox is ticked.
+   */
+  notifyPreview?: ((values: NoteComposerValues) => ReactElement) | undefined;
   isPostedAtEditable: boolean;
   isSubmitting: boolean;
   error?: string | undefined;
@@ -385,6 +391,13 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
             {props.values.shouldNotify && props.notifyAudience ? (
               <div data-testid="note-notify-audience">
                 {props.notifyAudience}
+              </div>
+            ) : (
+              <></>
+            )}
+            {props.values.shouldNotify && props.notifyPreview ? (
+              <div data-testid="note-notify-preview">
+                {props.notifyPreview(props.values)}
               </div>
             ) : (
               <></>

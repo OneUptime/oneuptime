@@ -1303,6 +1303,46 @@ describe("event notes: the composer", () => {
     expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
   });
 
+  /*
+   * 'Preview notification' for the incident pages that pass one: rendered
+   * from the note as it is being written, under the notify box, and only
+   * while it is ticked.
+   */
+  test("offers a preview of the notification, from the note being written, while notifying is ticked", async () => {
+    const drafts: Array<{ note: string; postedAt: Date | null }> = [];
+
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        renderPreview: (draft: {
+          note: string;
+          postedAt: Date | null;
+        }): ReactElement => {
+          drafts.push(draft);
+          return <div data-testid="stub-preview">{draft.note}</div>;
+        },
+      },
+    });
+    await openComposer();
+
+    type(editor(), "Rolling back the release.");
+
+    expect(
+      within(screen.getByTestId("note-notify-preview")).getByTestId(
+        "stub-preview",
+      ),
+    ).toHaveTextContent("Rolling back the release.");
+    expect(drafts[drafts.length - 1]).toEqual({
+      note: "Rolling back the release.",
+      postedAt: null,
+    });
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-preview")).toBeNull();
+  });
+
   test("without an audience to show, the notify box stands alone", async () => {
     await renderPublic();
     await openComposer();

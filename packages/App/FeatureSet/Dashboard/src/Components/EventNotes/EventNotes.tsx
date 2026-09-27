@@ -98,6 +98,14 @@ export interface EventNotesSubscriberConfig {
    * subscribers" while it is ticked (SubscriberAudienceSummary for incidents).
    */
   audienceSummary?: ReactElement | undefined;
+  /*
+   * What a new note's notification would look like, from the note being
+   * written ('Preview notification' for incident public notes), shown with
+   * the audience while "Notify status page subscribers" is ticked.
+   */
+  renderPreview?:
+    | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+    | undefined;
 }
 
 export interface ComponentProps<TNote extends BaseModel> {
@@ -778,6 +786,16 @@ function EventNotes<TNote extends BaseModel>(
         isAttachmentsEnabled={isCreateAttachmentsEnabled}
         notifyOption={createNotifyOption}
         notifyAudience={props.subscriberNotifications?.audienceSummary}
+        notifyPreview={
+          props.subscriberNotifications?.renderPreview
+            ? (values: NoteComposerValues): ReactElement => {
+                return props.subscriberNotifications!.renderPreview!({
+                  note: values.note,
+                  postedAt: values.postedAt,
+                });
+              }
+            : undefined
+        }
         isPostedAtEditable={isCreatePostedAtEditable}
         isSubmitting={isPosting}
         error={postError}

@@ -1,5 +1,9 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
 import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
+import SubscriberNotificationPreviewButton from "../../../Components/Incident/SubscriberNotificationPreviewButton";
+import { getPublicNotePreviewRequest } from "../../../Components/Incident/SubscriberNotificationPreviewRequests";
+import SubscriberNotificationPreviewCopy from "../../../Components/StatusPage/SubscriberNotificationPreviewCopy";
+import { SubscriberNotificationPreviewRequest } from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import { fetchIncidentNoteTemplateVariables } from "../../../Components/Incident/IncidentNoteTemplateVariables";
 import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
 import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
@@ -72,6 +76,34 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
             dataTestId="incident-public-note-audience"
           />
         ),
+        /*
+         * And what they will be sent: each status page's email, with the
+         * note as it is being written.
+         */
+        renderPreview: (draft: {
+          note: string;
+          postedAt: Date | null;
+        }): ReactElement => {
+          const getRequest: () => SubscriberNotificationPreviewRequest | null =
+            (): SubscriberNotificationPreviewRequest | null => {
+              return getPublicNotePreviewRequest({
+                incidentId: modelId,
+                note: draft.note,
+                postedAt: draft.postedAt,
+              });
+            };
+
+          return (
+            <SubscriberNotificationPreviewButton
+              dataTestId="incident-public-note-preview-notification"
+              getRequest={getRequest}
+              isDisabled={getRequest() === null}
+              disabledReason={
+                SubscriberNotificationPreviewCopy.previewButtonDisabledNoNote
+              }
+            />
+          );
+        },
       }}
       templates={{
         modelType: IncidentNoteTemplate,

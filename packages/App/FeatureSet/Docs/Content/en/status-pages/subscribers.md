@@ -122,6 +122,18 @@ Events created from a template take **Event Created: Notify Status Page Subscrib
 
 An incident's messages — created, state changed, public note and postmortem — go to the subscribers of every status page that lists one of its monitors. Two settings narrow that. **Limit to these status pages** on the incident keeps it to the pages you pick among those, and **Only Show Incidents Scoped to This Page** on a status page keeps away every incident that is not limited to it. For an incident limited to specific pages, an email address or phone number subscribed on several of them gets one email or text message per send, not one per page; webhook, Slack and Microsoft Teams messages are never merged. The declare form and the **Public Notes** page show who will be notified before anything is sent. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
+#### Previewing the email before it is sent
+
+**Preview notification** is on the last step of **Declare New Incident**, under **Notify Status Page Subscribers**, and under the **Notify Status Page Subscribers** checkbox while you write a public note. It shows the email each status page's subscribers will get, built and rendered by the same code, template and settings the notification is sent with, so what you see is what they receive:
+
+- pick a status page to see its email, with its subject and its "up to" counts per channel;
+- a line says which template is used and why, for example that the page's custom template is not used because the page has no **Custom SMTP Config**;
+- when nothing will be sent (no monitors, a private or hidden incident, **Notify Status Page Subscribers** switched off, or no status page that shows the incident) it says so instead of showing an email.
+
+Only the status pages you can see are previewed; the others are counted. The email is shown in a sandboxed frame that runs no scripts. Its unsubscribe link is a sample, because each subscriber's email carries their own.
+
+**Send test to me** sends the shown page's email to your own account email, with `[Test]` at the start of the subject, through the page's **Custom SMTP Config** when it has one. It never sends to any other address, it needs your account email to be verified, and each person can send ten test emails every 15 minutes.
+
 #### Incident custom fields in notifications
 
 Incident custom fields with **Include in Subscriber Notifications** turned on (at **Incidents → Settings → Custom Fields**) go out with the incident's messages — created, state changed, public note posted or updated, and postmortem. This works on every plan that has custom fields; it needs neither a custom template nor custom SMTP.
@@ -221,6 +233,10 @@ The key is the field's **Template Variable**, which does not change when the fie
 The body of an **Email** template is sent as HTML, so the values OneUptime puts into it are escaped: a title, a name, a severity or state and a URL read as the characters they hold, and markup in them (an incident titled `<a href="...">`, say) shows as text rather than becoming a link. Descriptions, notes, the postmortem and `{{resourcesAffected}}` are already HTML and go in as they are. The template's own HTML is sent as you wrote it. A subject, SMS, Slack and Microsoft Teams show text as written, so they get every value unchanged.
 
 Links and images in Markdown that reaches an email (descriptions, notes, announcements) are kept only for `http`, `https` and `mailto` addresses (`http` and `https` for images); any other link shows as its text.
+
+### Live preview
+
+While you write a template, **Live preview** under the template body fills it in with sample values, the way each notification is filled in with real ones. An email template shows as the email would look, in a sandboxed frame, with HTML values as HTML and every other value escaped; the other channels show the text they would send. Placeholders the template's event does not offer are listed under the preview: they are sent as written. Report templates have no preview, because they are filled in with the report's own data when the report is sent.
 
 ## Email footer, custom SMTP and Twilio
 

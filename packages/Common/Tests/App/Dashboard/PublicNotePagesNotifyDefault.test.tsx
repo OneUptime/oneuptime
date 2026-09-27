@@ -49,6 +49,9 @@ type RecordedFeedProps = {
     isNotifyingByDefault: boolean;
     quietDescription: string;
     audienceSummary?: ReactElement | undefined;
+    renderPreview?:
+      | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+      | undefined;
   };
 };
 
@@ -377,6 +380,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
         ...feed().subscriberNotifications,
       };
       delete settings["audienceSummary"];
+      delete settings["renderPreview"];
 
       expect(settings).toEqual({
         isNotifyingByDefault: false,
@@ -401,6 +405,49 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
           audience!.props as { request: { incidentId: ObjectID } }
         ).request.incidentId.toString(),
       ).toBe(EVENT_ID);
+    });
+
+    test("a new note offers a preview of its notification where the event has a scope", async () => {
+      await renderFor(true);
+
+      const renderPreview:
+        | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+        | undefined = feed().subscriberNotifications?.renderPreview;
+
+      if (!page.hasAudienceSummary) {
+        expect(renderPreview).toBeUndefined();
+        return;
+      }
+
+      expect(renderPreview).toBeDefined();
+
+      const postedAt: Date = new Date("2026-09-27T10:30:00.000Z");
+      const button: ReactElement = renderPreview!({
+        note: "Rolling back.",
+        postedAt: postedAt,
+      });
+      const buttonProps: {
+        getRequest: () => unknown;
+        isDisabled: boolean;
+      } = button.props as {
+        getRequest: () => unknown;
+        isDisabled: boolean;
+      };
+
+      expect(buttonProps.isDisabled).toBe(false);
+      expect(buttonProps.getRequest()).toEqual({
+        event: "IncidentPublicNoteCreated",
+        incidentId: EVENT_ID,
+        note: "Rolling back.",
+        postedAt: postedAt,
+      });
+
+      // A blank note has nothing to preview yet.
+      const blank: ReactElement = renderPreview!({
+        note: "  ",
+        postedAt: null,
+      });
+      expect((blank.props as { isDisabled: boolean }).isDisabled).toBe(true);
     });
 
     test.each([
