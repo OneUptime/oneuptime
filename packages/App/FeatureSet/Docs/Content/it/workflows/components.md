@@ -88,15 +88,26 @@ Manda un messaggio a una chat Telegram usando un token del bot e un chat ID.
 
 ## Email
 
-Manda un'email attraverso OneUptime.
+Manda un'email attraverso un server SMTP che inserisci nel blocco.
 
 **Settings**:
 
-- **To** — l'indirizzo email del destinatario.
+- **From Email** — il mittente, per esempio `Alerts <alerts@company.com>`.
+- **To Email** — l'indirizzo email del destinatario. Separa più indirizzi con virgole o punti e virgola.
 - **Subject** — l'oggetto.
-- **Body** — il messaggio, in Markdown o HTML.
+- **Email Body** — il messaggio, inviato come HTML.
+- **SMTP Host** e **SMTP Port** — il server di posta a cui collegarsi.
+- **SMTP Username** e **SMTP Password** — facoltativi. Compilali entrambi o nessuno dei due.
+- **Use Implicit TLS** — attivalo per il TLS implicito, di solito sulla porta 465. Lascialo disattivato per STARTTLS, di solito sulla porta 587.
 
-L'email parte dal mittente configurato nel tuo progetto — vedi [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Success** — scatta quando il server SMTP ha accettato il messaggio.
+- **Error** — scatta quando l'host SMTP viene rifiutato, il server non è raggiungibile oppure rifiuta il messaggio. Porta con sé il messaggio di errore. Se invece manca **To Email**, **From Email**, **SMTP Host** o **SMTP Port**, l'esecuzione si interrompe.
+
+Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime stesso, e le email che invia non compaiono nei Registri di notifica. Per controllare che cosa ha fatto, guarda le [Esecuzioni e log](/docs/workflows/runs-and-logs) del workflow.
+
+Le connessioni verso indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e dei metadati cloud vengono rifiutate. Su OneUptime Cloud viene rifiutato anche un host SMTP su un indirizzo di rete privata, o un nome che si risolve in un indirizzo del genere. Le installazioni self-hosted possono raggiungere un server di posta nella propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato a `true`. Un host rifiutato esce dall'output **Error** e non viene inviato nulla.
 
 ## Custom Code
 

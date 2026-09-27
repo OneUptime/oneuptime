@@ -39,7 +39,7 @@ These sinks are covered, because the target is a URL an authenticated member of 
 
 **Not** covered, and never will be: **status page subscriber webhooks**. Any visitor to a public status page can register one, so relaxing that sink would let anyone on the internet make your server POST into your private network. This is not configurable.
 
-Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers and OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs. See [Other outbound connections](#other-outbound-connections).
+Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers (a project's SMTP settings and the workflow **Email** component), SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs. See [Other outbound connections](#other-outbound-connections).
 
 ### Configuring the API server
 
@@ -91,7 +91,7 @@ A second guard covers outbound connections whose target a project member chooses
 
 - external data sources (PostgreSQL, MySQL, SQL Server, ClickHouse, Elasticsearch and REST API connections), security event connections such as Splunk, and threat intel feeds
 - LLM providers, including a self-hosted Ollama or vLLM
-- a project's own SMTP server, and SMTP and workflow OAuth token URLs
+- SMTP servers — a project's SMTP settings and the workflow **Email** component — and SMTP and workflow OAuth token URLs
 - OIDC discovery for single sign-on
 - status page and dashboard custom domain verification
 - Runbook HTTP steps

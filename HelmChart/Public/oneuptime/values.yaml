@@ -1075,8 +1075,9 @@ webhooks:
 
 # Outbound connection egress policy, for everything that is not a webhook:
 # external data sources (security event connections, threat intel feeds), LLM
-# providers, project SMTP servers, SMTP and workflow OAuth token URLs, OIDC
-# discovery, status page / dashboard domain verification and Runbook HTTP steps.
+# providers, SMTP servers (project settings and the workflow Email component),
+# SMTP and workflow OAuth token URLs, OIDC discovery, status page / dashboard
+# domain verification and Runbook HTTP steps.
 #
 # Loopback, link-local (169.254.169.254) and reserved ranges are refused for
 # these in every deployment. The private tier (RFC-1918, CGNAT, IPv6
@@ -1086,7 +1087,8 @@ outboundConnections:
   # Refuse the private tier for these connections too — for example when
   # projects on this instance belong to people who should not reach your
   # internal network. Always on when billing.enabled is true, whatever this
-  # says. Does not affect webhooks (above) or probes.<key>.allowPrivateNetworkMonitors.
+  # says. Does not affect webhooks (above) or
+  # probes.<key>.allowPrivateNetworkMonitors.
   blockPrivateNetwork: false
 
 # VAPID Configuration for Web Push Notifications
