@@ -50,6 +50,41 @@ describe("Discord API transport", () => {
     expect(API.fetch).not.toHaveBeenCalled();
   });
 
+  /*
+   * The lifecycle and interaction transports share one request helper after
+   * composition. Preserve the audit reason on bot requests without adding bot
+   * credentials to token-authenticated interaction webhooks.
+   */
+  test("preserves the opaque lifecycle audit reason with bot authorization", async (): Promise<void> => {
+    (API.fetch as jest.Mock).mockResolvedValue(new HTTPResponse(200, {}, {}));
+    const auditLogReason: string =
+      "oneuptime:11111111-1111-4111-8111-111111111111";
+    await DiscordClient.request({
+      authToken,
+      method: HTTPMethod.POST,
+      path: `/channels/${channelId}/threads`,
+      auditLogReason,
+      body: { name: "Thread" },
+    });
+    const request: APIFetchOptions = (API.fetch as jest.Mock).mock.calls[0]![0];
+    expect(request.headers).toEqual({
+      Authorization: `Bot ${authToken}`,
+      "X-Audit-Log-Reason": auditLogReason,
+    });
+  });
+
+  test("refuses a non-opaque audit reason before making a request", async (): Promise<void> => {
+    await expect(
+      DiscordClient.request({
+        authToken,
+        method: HTTPMethod.POST,
+        path: `/channels/${channelId}/threads`,
+        auditLogReason: "customer title must not enter audit logs",
+      }),
+    ).rejects.toThrow("Invalid Discord audit log reason");
+    expect(API.fetch).not.toHaveBeenCalled();
+  });
+
   test("rejects dot-segment traversal in a prebuilt bot path", async () => {
     await expect(
       DiscordClient.request({

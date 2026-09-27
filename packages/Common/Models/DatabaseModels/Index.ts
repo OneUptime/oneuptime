@@ -70,6 +70,7 @@ import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
 import CloudResourceLabelRule from "./CloudResourceLabelRule";
 import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
 import DatabaseServer from "./DatabaseServer";
+import DiscordResourceThread from "./DiscordResourceThread";
 import DatabaseServerEndpoint from "./DatabaseServerEndpoint";
 import DatabaseServerFeed from "./DatabaseServerFeed";
 import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
@@ -981,6 +982,7 @@ const AllModelTypes: Array<{
   CloudResourceLabelRule,
   CloudResourceOwnerRule,
   DatabaseServer,
+  DiscordResourceThread,
   DatabaseServerEndpoint,
   DatabaseServerFeed,
   DatabaseServerOwnerTeam,

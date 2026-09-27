@@ -4,11 +4,13 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject, JSONArray } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import WorkspaceChannelInvitationPayload from "../../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import DiscordResourceThreadService from "../../../Services/DiscordResourceThreadService";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceThread,
@@ -349,6 +351,11 @@ export default class Discord extends WorkspaceBase {
         path: "/channels/" + channelId,
         body: { archived: true, locked: true },
       });
+      // Ownership rows track the archive so a later state change can reopen.
+      await DiscordResourceThreadService.markArchived({
+        projectId: data.projectId,
+        threadIds: [channelId],
+      });
     }
   }
   public static override async joinChannel(
@@ -390,6 +397,14 @@ export default class Discord extends WorkspaceBase {
         "Discord membership operations require a thread.",
       );
     }
+    /*
+     * Guild and type are not ownership: a managed thread must be active
+     * under the live installation before anyone is added to it (F25).
+     */
+    await DiscordResourceThreadService.assertInvitable({
+      projectId: data.projectId,
+      threadId: DiscordClient.snowflake(data.channelId),
+    });
     await DiscordClient.request({
       authToken: data.authToken,
       method: HTTPMethod.PUT,
@@ -399,6 +414,33 @@ export default class Discord extends WorkspaceBase {
         "/thread-members/" +
         DiscordClient.snowflake(data.workspaceUserId),
     });
+  }
+  /*
+   * Thread names are not unique: a recreated thread carries the name of the
+   * one it replaced, and the by-name lookup refuses an ambiguous match (F30).
+   * The rule path knows the destination ids, so invites go by id.
+   */
+  public static override async inviteUsersToChannels(data: {
+    authToken: string;
+    workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const channelIds: Array<string> =
+      data.workspaceChannelInvitationPayload.channelIds || [];
+    if (channelIds.length === 0) {
+      return await super.inviteUsersToChannels(data);
+    }
+    for (const channelId of channelIds) {
+      for (const workspaceUserId of data.workspaceChannelInvitationPayload
+        .workspaceUserIds) {
+        await this.inviteUserToChannelByChannelId({
+          authToken: data.authToken,
+          channelId,
+          workspaceUserId,
+          projectId: data.projectId,
+        });
+      }
+    }
   }
   public static override async inviteUserToChannelByChannelName(
     data: Project & { channelName: string; workspaceUserId: string },

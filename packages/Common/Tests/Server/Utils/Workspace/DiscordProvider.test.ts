@@ -15,6 +15,13 @@ jest.mock(
   },
 );
 jest.mock("../../../../Server/Utils/Workspace/Discord/DiscordClient");
+// Thread ownership rows live in Postgres; this contract test has no database.
+jest.mock("../../../../Server/Services/DiscordResourceThreadService", () => {
+  return {
+    __esModule: true,
+    default: { markArchived: jest.fn(), assertInvitable: jest.fn() },
+  };
+});
 const guild: string = "111111111111111111";
 const parent: string = "222222222222222222";
 const thread: string = "333333333333333333";

@@ -769,6 +769,11 @@ import CephClusterOwnerUserService, {
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
+import DiscordResourceThread from "Common/Models/DatabaseModels/DiscordResourceThread";
+import DiscordResourceThreadService, {
+  Service as DiscordResourceThreadServiceType,
+} from "Common/Server/Services/DiscordResourceThreadService";
+import DiscordResourceThreadAPI from "Common/Server/API/DiscordResourceThreadAPI";
 import DatabaseServerEndpointService, {
   Service as DatabaseServerEndpointServiceType,
 } from "Common/Server/Services/DatabaseServerEndpointService";
@@ -4644,6 +4649,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DiscordResourceThread, DiscordResourceThreadServiceType>(
+        DiscordResourceThread,
+        DiscordResourceThreadService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerEndpoint, DatabaseServerEndpointServiceType>(
         DatabaseServerEndpoint,
         DatabaseServerEndpointService,
@@ -5114,6 +5127,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new DiscordAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DiscordResourceThreadAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),

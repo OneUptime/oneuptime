@@ -25,6 +25,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import DiscordResourceThreadService from "./DiscordResourceThreadService";
+import { DiscordResourceType } from "../../Models/DatabaseModels/DiscordResourceThread";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
@@ -890,6 +892,7 @@ ${createdItem.rootCause}`,
           },
           select: {
             _id: true,
+            projectId: true,
             alertStateId: true,
           },
         });
@@ -905,6 +908,36 @@ ${createdItem.rootCause}`,
           props: {
             isRoot: true,
           },
+        });
+      }
+
+      /*
+       * Leaving the final state is only possible by deleting its timeline
+       * entry: every backward state change is refused on create. So this is
+       * where a Discord thread archived on that state is reopened (HOM-42,
+       * F13). The gate is the effective state after the delete; removing an
+       * older entry leaves the resource final and must not reopen. Slack and
+       * Teams are untouched.
+       */
+      if (
+        alertStateTimeline &&
+        alertStateTimeline.projectId &&
+        alertStateTimeline.alertStateId &&
+        !(await this.isLastAlertState({
+          projectId: alertStateTimeline.projectId,
+          alertStateId: alertStateTimeline.alertStateId,
+        }))
+      ) {
+        await DiscordResourceThreadService.reopenArchived({
+          projectId: alertStateTimeline.projectId,
+          resource: {
+            resourceType: DiscordResourceType.Alert,
+            resourceId: alertId,
+          },
+        }).catch((error: Error) => {
+          logger.error(`Error while reopening Discord thread: ${error}`, {
+            projectId: alertStateTimeline.projectId?.toString(),
+          } as LogAttributes);
         });
       }
 

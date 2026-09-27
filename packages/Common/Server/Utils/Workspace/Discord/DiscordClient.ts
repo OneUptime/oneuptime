@@ -14,6 +14,19 @@ export class DiscordAPIError extends BadDataException {
   }
 }
 
+/*
+ * Thrown when the request left the process but no answer came back (socket
+ * error, timeout). The remote side may have completed the operation, so a
+ * caller that created something must treat the outcome as unknown rather
+ * than retry. Distinguished by type because the generic BadDataException is
+ * also what validation failures throw.
+ */
+export class DiscordAmbiguousOutcomeError extends BadDataException {
+  public constructor() {
+    super("Discord API transport failed; delivery is unknown.");
+  }
+}
+
 export default class DiscordClient {
   public static readonly BASE_URL: string = "https://discord.com/api/v10";
 
@@ -38,9 +51,20 @@ export default class DiscordClient {
     path: string;
     body?: JSONObject | JSONArray;
     params?: { before?: string; limit?: string };
+    /*
+     * Opaque operation id recorded in the guild audit log as
+     * "oneuptime:<uuid>". Only that shape is accepted so no title, user or
+     * secret can leak into a log guild admins read.
+     */
+    auditLogReason?: string;
   }): Promise<JSONObject | JSONArray> {
     if (!data.authToken) {
       throw new BadDataException("Invalid Discord API request.");
+    }
+    const reasonPattern: RegExp =
+      /^oneuptime:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    if (data.auditLogReason && !reasonPattern.test(data.auditLogReason)) {
+      throw new BadDataException("Invalid Discord audit log reason.");
     }
 
     return await this.requestWithHeaders({
@@ -48,7 +72,12 @@ export default class DiscordClient {
       path: data.path,
       body: data.body,
       params: data.params,
-      headers: { Authorization: `Bot ${data.authToken}` },
+      headers: {
+        Authorization: `Bot ${data.authToken}`,
+        ...(data.auditLogReason
+          ? { "X-Audit-Log-Reason": data.auditLogReason }
+          : {}),
+      },
     });
   }
 
@@ -92,9 +121,7 @@ export default class DiscordClient {
           options: { retries: 0, timeout: 10_000, doNotFollowRedirects: true },
         });
       } catch {
-        throw new BadDataException(
-          "Discord API transport failed; delivery is unknown.",
-        );
+        throw new DiscordAmbiguousOutcomeError();
       }
 
       if (response.statusCode === 429 && attempt < 2) {

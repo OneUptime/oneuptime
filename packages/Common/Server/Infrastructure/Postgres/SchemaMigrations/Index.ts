@@ -15,6 +15,8 @@ import { AddUserProjectSsoConsent1795100000000 } from "./1795100000000-AddUserPr
 import { AddInventoryItemProjectEntityKeyIndex1795200000000 } from "./1795200000000-AddInventoryItemProjectEntityKeyIndex";
 import { AddUserDiscord1795300000000 } from "./1795300000000-AddUserDiscord";
 import { AddUserDiscordUniqueMethod1795300000001 } from "./1795300000001-AddUserDiscordUniqueMethod";
+import { AddDiscordResourceThread1795400000000 } from "./1795400000000-AddDiscordResourceThread";
+import { AddDiscordResourceThreadRetiredThreadIds1795400000001 } from "./1795400000001-AddDiscordResourceThreadRetiredThreadIds";
 import { AddDiscordInteractionReceipt1795600000000 } from "./1795600000000-AddDiscordInteractionReceipt";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1231,5 +1233,7 @@ export default [
   AddInventoryItemProjectEntityKeyIndex1795200000000,
   AddUserDiscord1795300000000,
   AddUserDiscordUniqueMethod1795300000001,
+  AddDiscordResourceThread1795400000000,
+  AddDiscordResourceThreadRetiredThreadIds1795400000001,
   AddDiscordInteractionReceipt1795600000000,
 ];

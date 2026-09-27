@@ -25,6 +25,13 @@ jest.mock("../../Server/Infrastructure/GlobalCache", () => {
     default: { setStringIfNotExists: jest.fn(), deleteKeyIfValue: jest.fn() },
   };
 });
+// Thread ownership rows live in Postgres; this simulation has no database.
+jest.mock("../../Server/Services/DiscordResourceThreadService", () => {
+  return {
+    __esModule: true,
+    default: { markArchived: jest.fn(), assertInvitable: jest.fn() },
+  };
+});
 
 test("simulated HTTP lifecycle creates, delivers and archives an explicit incident thread", async () => {
   const guild: string = "111111111111111111";

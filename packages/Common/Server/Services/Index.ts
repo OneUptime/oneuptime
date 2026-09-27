@@ -107,6 +107,7 @@ import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import DatabaseServerService from "./DatabaseServerService";
+import DiscordResourceThreadService from "./DiscordResourceThreadService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
@@ -584,6 +585,7 @@ const services: Array<BaseService> = [
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
   DatabaseServerService,
+  DiscordResourceThreadService,
   DatabaseServerEndpointService,
   DatabaseServerLabelRuleService,
   DatabaseServerOwnerRuleService,
