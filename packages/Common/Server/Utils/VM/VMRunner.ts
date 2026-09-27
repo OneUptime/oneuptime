@@ -117,6 +117,14 @@ export default class VMRunner {
        * knows which process's environment that is; the guard does not.
        */
       privateNetworkHint?: string | undefined;
+      /*
+       * Whether a refusal decided by DNS may tell the script what DNS
+       * answered (see SSRFProtection). Absent ⇒ the guard's deployment
+       * default, which is right for the workflow caller on the API server.
+       * The Probe passes false: a shared probe must not let one tenant's
+       * script map the network it sits in.
+       */
+      includeResolutionDetailInError?: boolean | undefined;
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
@@ -548,6 +556,8 @@ export default class VMRunner {
            */
           targetLabel: "Request URL",
           privateNetworkHint: options.privateNetworkHint,
+          includeResolutionDetailInError:
+            options.includeResolutionDetailInError,
         });
         const canonicalUrl: string = validatedTarget.url.toString();
         const pinnedLookup: EgressLookupFunction =

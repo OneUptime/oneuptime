@@ -79,10 +79,21 @@ export interface EgressGuardOptions {
    */
   privateNetworkHint?: string | undefined;
   /*
-   * Detailed DNS failures and address-policy reasons are useful to operators,
-   * but tenant-facing callers can compare them to enumerate internal names.
-   * Defaults to true for backwards compatibility; shared-probe monitor
-   * requests set it to false and receive one indistinguishable failure.
+   * Whether a refused HOSTNAME may say why: which address it resolved to and
+   * which policy refused it, or the resolver's own error. That is exactly what
+   * an operator needs, and exactly what a tenant must not get — trying names
+   * like `redis` or `kubernetes.default.svc.cluster.local` and comparing
+   * "resolves to 10.1.2.3" with "could not resolve" maps the internal network
+   * without a socket ever being opened. With false, every resolve-path refusal
+   * is one sentence ("<Label> host X could not be reached.") and the precise
+   * cause goes to the debug log.
+   *
+   * Undefined ⇒ shouldIncludeResolutionDetail(): detail on a self-hosted
+   * install, where whoever configures the target also runs the network; none
+   * wherever shouldBlockPrivateAddresses() is true, i.e. multi-tenant SaaS or
+   * an operator who asked for SaaS policy. Shared-probe monitor requests pass
+   * false outright, whatever the deployment. Literal IPs are unaffected: their
+   * refusal echoes only what the caller typed.
    */
   includeResolvedAddressInError?: boolean | undefined;
   /*
@@ -195,6 +206,21 @@ export default class DataSourceEgressGuard {
      * so this is behaviourally identical to the const.
      */
     return process.env["BILLING_ENABLED"] === "true";
+  }
+
+  /*
+   * Default for EgressGuardOptions.includeResolvedAddressInError, and for the
+   * equivalent switch on SSRFProtection. It keys off the private-address
+   * POLICY of the deployment, not off any per-call override of it: the oracle
+   * exists because the person choosing the target is not trusted with the
+   * network's layout, and that is a property of the deployment. So a caller
+   * that loosens blockPrivateAddresses on SaaS still gets no detail unless it
+   * asks for it explicitly.
+   */
+  public static shouldIncludeResolutionDetail(
+    includeResolvedAddressInError?: boolean | undefined,
+  ): boolean {
+    return includeResolvedAddressInError ?? !this.shouldBlockPrivateAddresses();
   }
 
   private static ipv4ToInt(ip: string): number {
@@ -673,15 +699,19 @@ export default class DataSourceEgressGuard {
         return this.defaultResolve(host, options);
       });
 
+    const includeDetail: boolean = this.shouldIncludeResolutionDetail(
+      options?.includeResolvedAddressInError,
+    );
+
     let addresses: Array<ResolvedAddress> = [];
     try {
       addresses = await resolveFunction(bareHostname);
     } catch (error) {
-      if (options?.includeResolvedAddressInError === false) {
+      if (!includeDetail) {
         /*
          * The cause is destroyed for the caller by design, so log it here:
-         * this is the only place an operator can still learn whether a
-         * monitor failed on DNS or on address policy.
+         * this is the only place an operator can still learn whether the
+         * target failed on DNS or on address policy.
          */
         logger.debug(
           `EgressGuard: could not resolve ${bareHostname} - ${
@@ -702,7 +732,7 @@ export default class DataSourceEgressGuard {
     }
 
     if (addresses.length === 0) {
-      if (options?.includeResolvedAddressInError === false) {
+      if (!includeDetail) {
         logger.debug(`EgressGuard: ${bareHostname} resolved to no addresses.`);
         throw new EgressGuardException(
           `${label} host ${bareHostname} could not be reached.`,
@@ -721,14 +751,14 @@ export default class DataSourceEgressGuard {
         options,
       );
       if (verdict.blocked) {
-        if (options?.includeResolvedAddressInError === false) {
+        if (!includeDetail) {
           logger.debug(
-            `EgressGuard: ${bareHostname} resolved to a blocked address - ${verdict.reason}.`,
+            `EgressGuard: ${bareHostname} resolved to a blocked address ${resolved.address} - ${verdict.reason}.`,
           );
           /*
            * Reported as Unreachable, NOT AddressBlocked. Sharing one reason
-           * with the DNS branches above is what stops a tenant on a shared
-           * probe from using the difference to enumerate internal names.
+           * with the DNS branches above is what stops a tenant from using the
+           * difference to enumerate internal names.
            */
           throw new EgressGuardException(
             `${label} host ${bareHostname} could not be reached.`,

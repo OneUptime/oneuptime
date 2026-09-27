@@ -81,6 +81,23 @@ describe("VMRunner — private network policy plumbing", () => {
     );
   });
 
+  test("the caller decides how much a DNS-decided refusal says", () => {
+    /*
+     * The probe passes false; the workflow caller passes nothing and gets the
+     * deployment default. Dropping it here would hand every script the
+     * detailed refusal on a shared probe.
+     */
+    expect(runnerSource).toMatch(
+      /includeResolutionDetailInError:\s*\n?\s*options\.includeResolutionDetailInError/,
+    );
+    expect(runnerSource).toMatch(
+      /includeResolutionDetailInError\?:\s*boolean \| undefined;/,
+    );
+    expect(apiSource).toMatch(
+      /includeResolutionDetailInError\?:\s*boolean \| undefined;/,
+    );
+  });
+
   test("there is exactly one call to the guard", () => {
     /*
      * A second, unguarded request path inside the runner would be invisible to

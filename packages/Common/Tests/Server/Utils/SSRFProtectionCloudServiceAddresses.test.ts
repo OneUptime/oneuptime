@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import dns from "dns";
+import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
 const ALLOW_PRIVATE_NETWORKS_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
 const PRIVATE_NETWORK_ALLOWLIST_ENV: string =
@@ -251,6 +252,9 @@ const nonGlobalPrivateAddresses: Array<AddressCase> = [
     url: "http://[2001:db8:ffff:ffff:ffff:ffff:ffff:ffff]/",
   },
 ];
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("SSRFProtection — cloud service and translation addresses", () => {
   let lookupSpy: LookupSpy;

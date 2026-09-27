@@ -6,6 +6,7 @@ import DataSourceEgressGuard, {
 } from "../../../../Server/Utils/DataSource/EgressGuard";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
+import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
 
 /*
  * The egress guard is only half a control on its own: validating an address
@@ -60,6 +61,9 @@ const callLookup: CallLookup = (
     );
   });
 };
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("DataSourceEgressGuard.createPinnedLookup", () => {
   const addresses: Array<ResolvedAddress> = [
