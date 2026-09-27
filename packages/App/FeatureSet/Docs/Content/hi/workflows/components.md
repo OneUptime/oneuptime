@@ -88,15 +88,26 @@ bot token और chat ID की मदद से किसी Telegram chat म�
 
 ## Email
 
-OneUptime से ईमेल भेजिए।
+उस SMTP server के ज़रिए ईमेल भेजिए, जिसे आप block में भरते हैं।
 
 **सेटिंग्स**:
 
-- **प्रति** — पाने वाले का ईमेल पता।
-- **विषय** — विषय पंक्ति।
-- **Body** — Markdown या HTML में संदेश।
+- **From Email** — भेजने वाला, जैसे `Alerts <alerts@company.com>`।
+- **To Email** — पाने वाले का ईमेल पता। कई पतों को comma या semicolon से अलग कीजिए।
+- **Subject** — विषय पंक्ति।
+- **Email Body** — संदेश, जो HTML के रूप में भेजा जाता है।
+- **SMTP Host** और **SMTP Port** — वह mail server जिससे जुड़ना है।
+- **SMTP Username** और **SMTP Password** — वैकल्पिक। दोनों भरिए या कोई भी नहीं।
+- **Use Implicit TLS** — implicit TLS के लिए इसे चालू कीजिए, आम तौर पर port 465 पर। STARTTLS के लिए इसे बंद छोड़ दीजिए, आम तौर पर port 587 पर।
 
-ईमेल आपके प्रोजेक्ट के तय भेजने वाले से जाता है — देखिए [SMTP](/docs/emails/smtp)।
+**Outputs**:
+
+- **सफलता** — तब चलता है जब SMTP server ने संदेश स्वीकार कर लिया।
+- **त्रुटि** — तब चलता है जब SMTP host ठुकरा दिया जाता है, server तक पहुँचा नहीं जा सकता, या server संदेश अस्वीकार कर देता है। त्रुटि का संदेश आगे पहुँचा देता है। **To Email**, **From Email**, **SMTP Host** या **SMTP Port** न होने पर इसकी जगह run ही रुक जाता है।
+
+यह block सीधे अपनी सेटिंग्स में दिए server से जुड़ता है। यह न आपके प्रोजेक्ट की [SMTP](/docs/emails/smtp) सेटिंग्स इस्तेमाल करता है, न OneUptime का अपना mail server, और इसके भेजे ईमेल सूचना लॉग में नहीं दिखते। इसने क्या किया, यह जाँचने के लिए [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) देखिए।
+
+loopback (`localhost`, `127.0.0.1`), link-local और cloud metadata पतों तक connection ठुकरा दिए जाते हैं। OneUptime Cloud पर किसी निजी network पते वाला SMTP host, या ऐसे पते पर resolve होने वाला नाम, भी ठुकरा दिया जाता है। स्व-होस्टेड installs अपने ही network के mail server तक पहुँच सकते हैं, बशर्ते `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` को `true` पर सेट न किया गया हो। ठुकराए गए host पर **त्रुटि** output चलता है, और कुछ भी नहीं भेजा जाता।
 
 ## Custom Code
 
