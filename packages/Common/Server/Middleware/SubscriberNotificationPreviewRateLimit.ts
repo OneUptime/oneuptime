@@ -114,14 +114,12 @@ export default class SubscriberNotificationPreviewRateLimit {
       }
 
       if (count > config.perUserLimit) {
-        const msIntoWindow: number = Date.now() % windowMs;
-
         return {
           outcome: SubscriberNotificationPreviewRateLimitOutcome.RateLimited,
-          retryAfterSeconds: Math.max(
-            1,
-            Math.ceil((windowMs - msIntoWindow) / 1000),
-          ),
+          retryAfterSeconds:
+            SubscriberNotificationTestSendRateLimit.getSecondsUntilWindowEnd(
+              config.windowSeconds,
+            ),
           isFirstRejectionInWindow: count === config.perUserLimit + 1,
         };
       }

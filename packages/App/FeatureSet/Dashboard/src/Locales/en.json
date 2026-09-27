@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.",
   "Edit Status Page Scope": "Edit Status Page Scope",
   "Limited to Status Pages": "Limited to Status Pages",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "Every status page that lists this incident's monitors shows it and notifies its subscribers.",
   "Change in Settings": "Change in Settings",
   "Search status pages...": "Search status pages...",
   "Only Show Incidents Scoped to This Page": "Only Show Incidents Scoped to This Page",

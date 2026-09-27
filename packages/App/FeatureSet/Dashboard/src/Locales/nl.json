@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "Beperk dit incident tot enkele van de statuspagina's die de monitoren ervan vermelden. Het wordt alleen op die pagina's getoond en informeert alleen de abonnees daarvan.",
   "Edit Status Page Scope": "Bereik van statuspagina's bewerken",
   "Limited to Status Pages": "Beperkt tot statuspagina's",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "Elke statuspagina die de monitoren van dit incident vermeldt, toont het en informeert haar abonnees.",
   "Change in Settings": "Wijzigen in Instellingen",
   "Search status pages...": "Statuspagina's zoeken...",
   "Only Show Incidents Scoped to This Page": "Alleen incidenten tonen die tot deze pagina zijn beperkt",

@@ -198,6 +198,32 @@ describe("the SMS log never keeps an unsubscribe link's token", () => {
     expect(body).not.toContain(TOKEN);
   });
 
+  /*
+   * The owners' email places its message as HTML (SimpleMessage's info
+   * block), and the SMS text is plain text built from incident titles,
+   * resource names and custom field values. Markup in it is shown, never
+   * rendered - a title must not become a live link in an email from us.
+   */
+  test("the owners' email shows markup in the SMS text as text", async () => {
+    project.enableSmsNotifications = false;
+
+    await send(
+      `Incident <a href="https://evil.example">Verify billing</a> & more on Site 03. Unsub: ${UNSUBSCRIBE_URL}`,
+    );
+
+    const body: string = (
+      ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+    ).mock.calls[0]![2] as string;
+
+    expect(body).not.toContain("<a href");
+    expect(body).toContain(
+      "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; &amp; more on Site 03.",
+    );
+    // The email's own line breaks are still HTML.
+    expect(body).toContain("with message: <br/> <br/> Incident &lt;a");
+    expect(body).toContain(REDACTED_URL);
+  });
+
   test("uses the same redaction the link's own module defines", () => {
     expect(StatusPageSubscriberUnsubscribe.redactCredentials(MESSAGE)).toBe(
       MESSAGE.replace(UNSUBSCRIBE_URL, REDACTED_URL),

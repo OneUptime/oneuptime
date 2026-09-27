@@ -5,6 +5,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Logger";
 import {
   ExcludedStatusPage,
@@ -438,7 +439,7 @@ export default class SubscriberNotificationDeliveryRecord {
     if (this.deliveries.length > 0) {
       const lines: Array<string> = this.deliveries.map(
         (delivery: StatusPageDelivery): string => {
-          return `- **${escapeMarkdown(delivery.statusPageName)}**: ${this.describeDelivery(delivery)}`;
+          return `- **${escapeMarkdownInline(delivery.statusPageName)}**: ${this.describeDelivery(delivery)}`;
         },
       );
 
@@ -460,7 +461,7 @@ export default class SubscriberNotificationDeliveryRecord {
           return excluded.reason === reason;
         })
         .map((excluded: ExcludedStatusPage): string => {
-          return escapeMarkdown(
+          return escapeMarkdownInline(
             SubscriberNotificationDeliveryRecord.getStatusPageName(
               excluded.statusPage,
             ),
@@ -614,7 +615,7 @@ export default class SubscriberNotificationDeliveryRecord {
     }
 
     if (delivery.subject !== undefined) {
-      text += ` Subject: "${escapeMarkdown(delivery.subject)}".`;
+      text += ` Subject: "${escapeMarkdownInline(delivery.subject)}".`;
     }
 
     return text;
@@ -870,15 +871,6 @@ function joinNames(names: Array<string>): string {
   }
 
   return `${listed.slice(0, -1).join(", ")} and ${listed[listed.length - 1]}`;
-}
-
-/*
- * Page names and subjects are free text; keep them from turning into
- * Markdown (a name like "*Internal*" or a subject with brackets) or breaking
- * the line they are on.
- */
-function escapeMarkdown(text: string): string {
-  return text.replace(/[\r\n]+/g, " ").replace(/([\\`*_[\]<>#|~])/g, "\\$1");
 }
 
 // A page name on one line, for the plain-text status message.

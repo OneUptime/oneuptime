@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "इस घटना को इसके मॉनिटर सूचीबद्ध करने वाले कुछ स्थिति पृष्ठों तक सीमित करें। यह केवल उन्हीं पृष्ठों पर दिखती है और केवल उन्हीं के सब्सक्राइबर को सूचित करती है।",
   "Edit Status Page Scope": "स्थिति पृष्ठ दायरा संपादित करें",
   "Limited to Status Pages": "सीमित स्थिति पृष्ठ",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "इस घटना के मॉनिटर सूचीबद्ध करने वाला हर स्थिति पृष्ठ इसे दिखाता है और अपने सब्सक्राइबर को सूचित करता है।",
   "Change in Settings": "सेटिंग्स में बदलें",
   "Search status pages...": "स्थिति पृष्ठ खोजें...",
   "Only Show Incidents Scoped to This Page": "केवल इस पृष्ठ तक सीमित घटनाएँ दिखाएँ",

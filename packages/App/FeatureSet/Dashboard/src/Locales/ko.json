@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "이 인시던트를 모니터를 표시하는 상태 페이지 중 일부로 제한합니다. 해당 페이지에만 표시되고 해당 구독자에게만 알림이 전송됩니다.",
   "Edit Status Page Scope": "상태 페이지 범위 편집",
   "Limited to Status Pages": "제한된 상태 페이지",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "이 인시던트의 모니터를 표시하는 모든 상태 페이지에 표시되고 해당 구독자에게 알림이 전송됩니다.",
   "Change in Settings": "설정에서 변경",
   "Search status pages...": "상태 페이지 검색...",
   "Only Show Incidents Scoped to This Page": "이 페이지로 제한된 인시던트만 표시",

@@ -42,17 +42,6 @@ export default class IncidentAPI extends BaseAPI<
   Incident,
   IncidentServiceType
 > {
-  /*
-   * The roles that may see who an incident's notifications would reach: the
-   * ones that may declare an incident, edit one, or post a public note on
-   * one - the three places the audience is shown. Which incident, monitors
-   * and status pages the answer covers is then bounded by what the caller
-   * may read (IncidentSubscriberAudienceBuilder, which the notification
-   * preview checks against too).
-   */
-  public static readonly SUBSCRIBER_AUDIENCE_PERMISSIONS: ReadonlyArray<Permission> =
-    IncidentSubscriberAudienceBuilder.PERMISSIONS;
-
   public constructor() {
     super(Incident, IncidentService);
 

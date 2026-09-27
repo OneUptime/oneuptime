@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "Begränsa incidenten till några av de statussidor som listar dess monitorer. Den visas bara på de sidorna och meddelar bara deras prenumeranter.",
   "Edit Status Page Scope": "Redigera statussideomfång",
   "Limited to Status Pages": "Begränsad till statussidor",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "Alla statussidor som listar incidentens monitorer visar den och meddelar sina prenumeranter.",
   "Change in Settings": "Ändra under Inställningar",
   "Search status pages...": "Sök statussidor...",
   "Only Show Incidents Scoped to This Page": "Visa bara incidenter som är begränsade till den här sidan",

@@ -996,17 +996,9 @@ describe("One Status Page per Audience docs", () => {
 
     it("lets the roles that declare, edit or post a public note see the audience", () => {
       /*
-       * IncidentAPI's SUBSCRIBER_AUDIENCE_PERMISSIONS is the builder's list,
-       * which the notification preview checks against too.
+       * IncidentSubscriberAudienceBuilder.PERMISSIONS is what the audience
+       * endpoint and the notification preview both check against.
        */
-      const api: string = fs.readFileSync(
-        path.join(REPO_ROOT, "Common/Server/API/IncidentAPI.ts"),
-        "utf8",
-      );
-      expect(api).toMatch(
-        /SUBSCRIBER_AUDIENCE_PERMISSIONS[^=]*=\s*IncidentSubscriberAudienceBuilder\.PERMISSIONS;/,
-      );
-
       const source: string = fs.readFileSync(
         path.join(
           REPO_ROOT,

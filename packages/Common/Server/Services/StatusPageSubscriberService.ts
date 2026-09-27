@@ -2267,12 +2267,17 @@ Stay informed about service availability! 🚀`;
     statusPage: StatusPage;
     eventType: StatusPageEventType;
   }): boolean {
-    logger.debug("shouldSendNotification called with data:", {
-      statusPageId: data.statusPage?.id?.toString(),
-    } as LogAttributes);
-    logger.debug(data, {
-      statusPageId: data.statusPage?.id?.toString(),
-    } as LogAttributes);
+    /*
+     * Ids only: the subscriber carries its unsubscribe token, which is a
+     * credential (it cancels the subscription, private pages included), and
+     * every subscriber job calls this for every subscriber.
+     */
+    logger.debug(
+      `shouldSendNotification called for subscriber ${data.subscriber?._id?.toString() || ""} (${data.eventType}, ${data.statusPageResources?.length || 0} resource(s)).`,
+      {
+        statusPageId: data.statusPage?.id?.toString(),
+      } as LogAttributes,
+    );
 
     let shouldSendNotification: boolean = true; // default to true.
 

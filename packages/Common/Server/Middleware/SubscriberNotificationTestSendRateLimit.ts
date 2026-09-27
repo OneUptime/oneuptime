@@ -253,9 +253,11 @@ export default class SubscriberNotificationTestSendRateLimit {
 
   /*
    * Remaining seconds in the current fixed window, so a refused caller is
-   * told to come back when the window actually rolls.
+   * told to come back when the window actually rolls. The preview limiter
+   * (SubscriberNotificationPreviewRateLimit) counts in the same fixed
+   * windows, and uses this too.
    */
-  private static getSecondsUntilWindowEnd(windowSeconds: number): number {
+  public static getSecondsUntilWindowEnd(windowSeconds: number): number {
     const windowMs: number = windowSeconds * 1000;
     const msIntoWindow: number = Date.now() % windowMs;
 

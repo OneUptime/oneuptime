@@ -37,7 +37,6 @@ export const IncidentStatusPageScopeCopy: {
   settingsCardDescription: string;
   settingsEditButton: string;
   scopeFieldTitle: string;
-  notScopedDescription: string;
 
   // The incident overview.
   overviewFieldTitle: string;
@@ -112,8 +111,6 @@ export const IncidentStatusPageScopeCopy: {
     "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.",
   settingsEditButton: "Edit Status Page Scope",
   scopeFieldTitle: "Limited to Status Pages",
-  notScopedDescription:
-    "Every status page that lists this incident's monitors shows it and notifies its subscribers.",
 
   overviewFieldTitle: "Status Page Scope",
   overviewEditLink: "Change in Settings",

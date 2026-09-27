@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "將此事件限定到列出其監測器的部分狀態頁面。事件只會顯示在這些頁面上，也只會通知這些頁面的訂閱者。",
   "Edit Status Page Scope": "編輯狀態頁面範圍",
   "Limited to Status Pages": "限定的狀態頁面",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "列出此事件監測器的每個狀態頁面都會顯示它並通知其訂閱者。",
   "Change in Settings": "在設定中變更",
   "Search status pages...": "搜尋狀態頁面...",
   "Only Show Incidents Scoped to This Page": "僅顯示限定到此頁面的事件",

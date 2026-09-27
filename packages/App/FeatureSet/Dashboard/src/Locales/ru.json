@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "Ограничьте этот инцидент некоторыми страницами состояния, где указаны его мониторы. Он будет показываться только на них и уведомлять только их подписчиков.",
   "Edit Status Page Scope": "Изменить охват страниц состояния",
   "Limited to Status Pages": "Ограничен страницами состояния",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "Все страницы состояния, где указаны мониторы этого инцидента, показывают его и уведомляют своих подписчиков.",
   "Change in Settings": "Изменить в настройках",
   "Search status pages...": "Поиск страниц состояния...",
   "Only Show Incidents Scoped to This Page": "Показывать только инциденты, ограниченные этой страницей",

@@ -5,7 +5,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
   AddedPagesNotificationIncident,
-  getAddedStatusPageIds,
   wouldQueueAddedPagesNotification,
 } from "./IncidentStatusPageScopeForm";
 
@@ -58,20 +57,4 @@ export const getIncidentScopeAddedPagesFormField: (data: {
       });
     },
   };
-};
-
-// Whether the edit form, as it stands, adds a page to the loaded scope.
-export const isAddingStatusPages: (data: {
-  loadedStatusPages: unknown;
-  values: FormValues<Incident>;
-}) => boolean = (data: {
-  loadedStatusPages: unknown;
-  values: FormValues<Incident>;
-}): boolean => {
-  return (
-    getAddedStatusPageIds({
-      before: data.loadedStatusPages,
-      after: (data.values as Record<string, unknown>)["statusPages"],
-    }).length > 0
-  );
 };

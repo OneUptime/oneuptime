@@ -915,6 +915,52 @@ describe("StatusPageAPI manage-subscription templates", () => {
       expect(select["unsubscribeToken"]).toBe(true);
     });
 
+    /*
+     * Every other sender tops up a missing token before building the link
+     * (ensureUnsubscribeTokens); a subscriber the backfill has not reached
+     * yet would otherwise be sent a link to the "out of date" page.
+     */
+    it("a subscriber read without its token is given one before the link is built", async () => {
+      const toppedUpToken: string = "9c".repeat(32);
+
+      jest
+        .spyOn(StatusPageSubscriberService, "findBy")
+        .mockImplementation((async (findBy: { query: JSONObject }) => {
+          const found: Array<StatusPageSubscriber> =
+            await findSubscribersFake(findBy);
+
+          for (const subscriber of found) {
+            subscriber.unsubscribeToken = undefined;
+          }
+
+          return found;
+        }) as never);
+
+      const ensure: jest.SpyInstance = jest
+        .spyOn(StatusPageSubscriberService, "ensureUnsubscribeTokens")
+        .mockImplementation((async (
+          subscribers: Array<StatusPageSubscriber>,
+        ): Promise<void> => {
+          for (const subscriber of subscribers) {
+            subscriber.unsubscribeToken = toppedUpToken;
+          }
+        }) as never);
+
+      useCustomTemplatesOnEveryChannel();
+
+      await callManageSubscription(CHANNELS[0]!.requestData);
+
+      expect(ensure).toHaveBeenCalledTimes(1);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls.length).toBeGreaterThan(0);
+      for (const call of calls) {
+        expect(call.variables["unsubscribeUrl"]).toBe(
+          `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID}-${toppedUpToken}`,
+        );
+      }
+    });
+
     it.each(CHANNELS)(
       "$name: statusPageName is the page's public title, not its internal name",
       async (channel: ChannelCase) => {

@@ -93,6 +93,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -3317,7 +3318,8 @@ export class Service extends DatabaseService<Model> {
     let markdown: string = "";
 
     for (const statusPage of statusPages) {
-      markdown += `- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
+      // A page name is free text: kept from turning into a link or an image.
+      markdown += `- [${escapeMarkdownInline(statusPage.name || "Untitled status page")}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
     }
 
     return markdown;
@@ -4576,7 +4578,8 @@ ${incidentSeverity.name}
             continue;
           }
 
-          lines += `- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`;
+          // A page name is free text: kept from turning into a link or an image.
+          lines += `- [${escapeMarkdownInline(statusPage.name || "Untitled status page")}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`;
         }
 
         return lines;

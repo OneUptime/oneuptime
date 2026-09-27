@@ -362,6 +362,11 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
       .spyOn(StatusPageSubscriberService, "findBy")
       .mockImplementation(findByFake as never);
 
+    // Their unsubscribe tokens are topped up in the database; nothing to top up here.
+    jest
+      .spyOn(StatusPageSubscriberService, "ensureUnsubscribeTokens")
+      .mockResolvedValue(undefined as never);
+
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockImplementation((): Promise<Array<StatusPage>> => {

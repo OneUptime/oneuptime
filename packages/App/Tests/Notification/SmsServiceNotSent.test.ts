@@ -308,4 +308,34 @@ describe("an SMS the Notification service does not send", () => {
 
     expect((error as Error).message).toBe("Invalid 'To' number");
   });
+
+  /*
+   * The owners' email about an SMS the project could not afford places the
+   * SMS text as HTML; the text is plain (incident titles, resource names,
+   * custom field values), so markup in it is shown, not rendered.
+   */
+  test("the owners' low balance email shows markup in the SMS text as text", async () => {
+    project!.smsOrCallCurrentBalanceInUSDCents = 0;
+    project!.lowCallAndSMSBalanceNotificationSentToOwners = false;
+
+    await SmsService.sendSms(
+      TO,
+      'Incident <a href="https://evil.example">Verify billing</a> on Site 03.',
+      {
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+      },
+    );
+
+    expect(createMessage).not.toHaveBeenCalled();
+
+    const body: string = (
+      ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+    ).mock.calls[0]![2] as string;
+
+    expect(body).not.toContain("<a href");
+    expect(body).toContain(
+      "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; on Site 03.",
+    );
+  });
 });

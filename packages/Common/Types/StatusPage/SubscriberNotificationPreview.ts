@@ -75,7 +75,7 @@ export enum SubscriberNotificationPreviewNothingSentReason {
 export interface SubscriberNotificationPreviewStatusPage {
   statusPageId: string;
   name: string;
-  // The Phase 1a "up to" counts, per channel (IncidentSubscriberAudience).
+  // The audience summary's "up to" counts, per channel (IncidentSubscriberAudience).
   subscriberCounts: IncidentSubscriberAudienceCounts;
   subject: string;
   html: string;

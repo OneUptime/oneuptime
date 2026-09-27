@@ -163,10 +163,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import IncidentSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/Settings";
-import {
-  getIncidentScopeAddedPagesFormField,
-  isAddingStatusPages,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentScopeAddedPagesFormField";
+import { getIncidentScopeAddedPagesFormField } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentScopeAddedPagesFormField";
 import IncidentStatusPageScopeCopy, {
   formatScopeText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
@@ -826,12 +823,6 @@ describe("the added-pages field", () => {
       } as FormValues<Incident>;
 
       expect(field.showIf!(values)).toBe(shown);
-      expect(
-        isAddingStatusPages({
-          loadedStatusPages: [SITE_03],
-          values: values,
-        }),
-      ).toBe(shown);
     },
   );
 });

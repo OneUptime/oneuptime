@@ -3092,6 +3092,13 @@ export default class StatusPageAPI extends BaseAPI<
   }): Promise<void> {
     const { statusPageId, subscribers, req } = data;
 
+    /*
+     * Their unsubscribe links need their tokens, as every other sender's do:
+     * a subscriber the backfill has not reached yet is given one first,
+     * rather than sent a link to the "out of date" page.
+     */
+    await StatusPageSubscriberService.ensureUnsubscribeTokens(subscribers);
+
     const statusPageURL: string =
       await StatusPageService.getStatusPageURL(statusPageId);
 

@@ -17,7 +17,6 @@ import {
   SubscriberEmailTemplateChoice,
   SubscriberEmailTemplateChoiceReason,
 } from "../../../Types/StatusPage/SubscriberNotificationPreview";
-import SubscriberNotificationTrigger from "../../../Types/StatusPage/SubscriberNotificationTrigger";
 import { Service as StatusPageServiceType } from "../../Services/StatusPageService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
@@ -135,22 +134,6 @@ export interface SubscriberIncidentStatusPageEmail {
 }
 
 export default class SubscriberIncidentEmailBuilder {
-  // The event a public note's notification is.
-  public static getPublicNoteEvent(
-    trigger: SubscriberNotificationTrigger,
-  ): SubscriberIncidentEmailEvent {
-    return trigger === SubscriberNotificationTrigger.Updated
-      ? SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated
-      : SubscriberIncidentEmailEvent.IncidentPublicNoteCreated;
-  }
-
-  // The event type the event's custom templates are saved under.
-  public static getTemplateEventType(
-    event: SubscriberIncidentEmailEvent,
-  ): StatusPageSubscriberNotificationEventType {
-    return EMAIL_COPY[event].templateEventType;
-  }
-
   /**
    * The values every message of this event is filled with, on every
    * channel, read once per send (IncidentTemplateVariableBuilder).

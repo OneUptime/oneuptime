@@ -6530,7 +6530,6 @@
   "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.": "このインシデントを、モニターを掲載しているステータスページの一部に限定します。それらのページにのみ表示され、その購読者にのみ通知されます。",
   "Edit Status Page Scope": "ステータスページの範囲を編集",
   "Limited to Status Pages": "限定先のステータスページ",
-  "Every status page that lists this incident's monitors shows it and notifies its subscribers.": "このインシデントのモニターを掲載しているすべてのステータスページに表示され、その購読者に通知されます。",
   "Change in Settings": "設定で変更",
   "Search status pages...": "ステータスページを検索...",
   "Only Show Incidents Scoped to This Page": "このページに限定されたインシデントのみ表示",

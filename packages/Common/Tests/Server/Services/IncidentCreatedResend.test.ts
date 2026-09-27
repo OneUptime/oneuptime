@@ -35,11 +35,11 @@ import {
  * Sending the notification that an incident was created again.
  *
  * The notification keeps a record of the status pages it was sent to in full
- * (Incident.statusPagesNotifiedOnCreation), which the job skips. Phase 1a
- * already emptied that record when an update puts the status back to Pending
- * (the API route, and the dashboard's Resend of a success) - except after a
- * failure, where Retry resumes after the pages already reached. What is new
- * is 'Resend to all pages' (IncidentCreatedResend): a request that empties
+ * (Incident.statusPagesNotifiedOnCreation), which the job skips. An update
+ * that puts the status back to Pending (the API route, and the dashboard's
+ * Resend of a success) empties that record - except after a failure, where
+ * Retry resumes after the pages already reached. 'Resend to all pages'
+ * (IncidentCreatedResend) is different: a request that empties
  * the record whatever the notification's state, so a failed send can start
  * over. These tests pin how the two fit together:
  *

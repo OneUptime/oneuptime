@@ -13,6 +13,7 @@ import Email from "../../../../Types/Email";
 import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import { escapeMarkdownInline } from "../../../../Utils/Markdown/MarkdownEscape";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
@@ -435,6 +436,44 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     expect(markdown).toContain("**\\*Internal\\* \\[ops\\]**");
     expect(markdown).toContain('Subject: "Line one Line \\_two\\_ \\<b\\>".');
     expect(markdown.split("\n")).toHaveLength(3);
+  });
+
+  /*
+   * The jobs put this record and the custom field values sent into one feed
+   * item, and the custom field half escapes with the shared helper
+   * (escapeMarkdownInline). Both halves escape by the same rule, so a name
+   * is never a link or an image in one half and text in the other.
+   */
+  test("escapes page names, excluded pages and subjects as the shared feed helper does", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    const name: string =
+      "Site 3](https://evil.example) ![](https://t.example/p.png)";
+    const tricky: StatusPage = page(SITE_03, name);
+    record.startStatusPage(tricky);
+    record.recordSent({
+      statusPage: tricky,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      subject: "[Acme] Checkout - down (EU)!",
+    });
+    record.addExcludedStatusPages([
+      {
+        statusPage: page(SITE_07, "Site 07 ![x](https://t.example/q.png)"),
+        reason: StatusPageExclusionReason.OutsideIncidentScope,
+      },
+    ]);
+
+    const markdown: string = record.toMarkdown();
+
+    expect(markdown).toContain(`**${escapeMarkdownInline(name)}**`);
+    expect(markdown).toContain(
+      `Subject: "${escapeMarkdownInline("[Acme] Checkout - down (EU)!")}".`,
+    );
+    expect(markdown).toContain(
+      escapeMarkdownInline("Site 07 ![x](https://t.example/q.png)"),
+    );
+    expect(markdown).not.toContain("](https://");
   });
 
   test("a page goes by its name, then its public title", () => {

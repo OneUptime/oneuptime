@@ -76,7 +76,6 @@ import ObjectID from "../../../../Types/ObjectID";
 import StatusPageSubscriberNotificationEventType from "../../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { SubscriberEmailTemplateChoiceReason } from "../../../../Types/StatusPage/SubscriberNotificationPreview";
-import SubscriberNotificationTrigger from "../../../../Types/StatusPage/SubscriberNotificationTrigger";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -693,19 +692,6 @@ describe("helpers", () => {
         incidentId: undefined,
       }),
     ).toBe(STATUS_PAGE_URL);
-  });
-
-  test("a public note's trigger maps to its event", () => {
-    expect(
-      SubscriberIncidentEmailBuilder.getPublicNoteEvent(
-        SubscriberNotificationTrigger.Created,
-      ),
-    ).toBe(SubscriberIncidentEmailEvent.IncidentPublicNoteCreated);
-    expect(
-      SubscriberIncidentEmailBuilder.getPublicNoteEvent(
-        SubscriberNotificationTrigger.Updated,
-      ),
-    ).toBe(SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated);
   });
 
   test("a page with no id is refused rather than looked up", async () => {
