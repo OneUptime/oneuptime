@@ -1574,6 +1574,7 @@ describeSubscriberDelivery({
   },
   statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
   messageColumn: "subscriberNotificationStatusMessageOnPostmortemPublished",
+  claimedAtColumn: "subscriberNotificationClaimedAtOnPostmortemPublished",
   claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
   update: IncidentService.updateOneById,
   feed: IncidentFeedService.createIncidentFeedItem,

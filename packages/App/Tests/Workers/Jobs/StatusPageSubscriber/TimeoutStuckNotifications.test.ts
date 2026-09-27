@@ -121,13 +121,18 @@ function mock(fn: unknown): jest.Mock {
   return fn as jest.Mock;
 }
 
-// Every notification column the sweep covers, and what Retry does after it.
+/*
+ * Every notification column the sweep covers, what Retry does after it (for
+ * a row stored with nothing else), and the column its claim stamps, for the
+ * rows other code writes while they are being sent.
+ */
 interface CoveredColumn {
   name: string;
   service: unknown;
   statusColumn: string;
   messageColumn: string;
   message: string;
+  claimedAtColumn?: string | undefined;
 }
 
 const COVERED: Array<CoveredColumn> = [
@@ -136,8 +141,12 @@ const COVERED: Array<CoveredColumn> = [
     service: IncidentService,
     statusColumn: "subscriberNotificationStatusOnIncidentCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    // Resumes after the pages it recorded as told.
-    message: SubscriberNotificationInterruption.resumesMessage,
+    /*
+     * A row stored without a record of told pages: Retry sends to every
+     * page. With one, it resumes after them (tested below).
+     */
+    message: SubscriberNotificationInterruption.resendsMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnIncidentCreated",
   },
   {
     name: "incident postmortem",
@@ -145,6 +154,7 @@ const COVERED: Array<CoveredColumn> = [
     statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
     messageColumn: "subscriberNotificationStatusMessageOnPostmortemPublished",
     message: SubscriberNotificationInterruption.resendsMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnPostmortemPublished",
   },
   {
     name: "incident state change",
@@ -173,6 +183,7 @@ const COVERED: Array<CoveredColumn> = [
     statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
     messageColumn: "subscriberNotificationStatusMessage",
     message: SubscriberNotificationInterruption.resendsMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnEpisodeCreated",
   },
   {
     name: "episode state change",
@@ -257,29 +268,67 @@ interface StoredRow {
 
 /*
  * The rows of each service's table. findBy applies the sweep's query to them
- * - the status column equal to the value asked for, and updatedAt before the
- * cutoff its lessThan carries - so a test sees which rows the sweep's query
- * would reach.
+ * - the status column equal to the value asked for, a time column before
+ * the cutoff its lessThan carries, a column its isNull asks to be empty - so
+ * a test sees which rows the sweep's query would reach.
  */
 let tables: Map<unknown, Array<StoredRow>> = new Map();
 
 /*
- * What the sweep's lessThan builds (a typeorm FindOperator), as far as these
- * tests read it: typeorm is Common's, not App's (TestImportsResolveFromApp).
+ * What the sweep's lessThan and isNull build (typeorm Raw FindOperators), as
+ * far as these tests read them: typeorm is Common's, not App's
+ * (TestImportsResolveFromApp). A lessThan carries its value as a parameter;
+ * an isNull carries none.
  */
 interface QueryOperator {
   objectLiteralParameters?: Record<string, unknown> | undefined;
 }
 
-function cutoffOf(query: JSONObject): Date {
-  const operator: QueryOperator = query[
-    "updatedAt"
-  ] as unknown as QueryOperator;
+function isOperator(value: unknown): value is QueryOperator {
+  return typeof value === "object" && value !== null;
+}
+
+function lessThanOf(value: unknown): Date | null {
+  if (!isOperator(value)) {
+    return null;
+  }
+
   const parameters: Array<unknown> = Object.values(
-    operator.objectLiteralParameters || {},
+    value.objectLiteralParameters || {},
   );
 
-  return parameters[0] as Date;
+  return parameters[0] instanceof Date ? parameters[0] : null;
+}
+
+// The cutoff of the query's time condition, whichever column it is on.
+function cutoffOf(query: JSONObject): Date {
+  for (const value of Object.values(query)) {
+    const cutoff: Date | null = lessThanOf(value);
+
+    if (cutoff) {
+      return cutoff;
+    }
+  }
+
+  throw new Error("The query has no time condition.");
+}
+
+function matches(row: StoredRow, key: string, value: unknown): boolean {
+  if (!isOperator(value)) {
+    return row[key] === value;
+  }
+
+  const cutoff: Date | null = lessThanOf(value);
+
+  if (cutoff) {
+    return (
+      row[key] instanceof Date &&
+      (row[key] as Date).getTime() < cutoff.getTime()
+    );
+  }
+
+  // isNull
+  return row[key] === undefined || row[key] === null;
 }
 
 function fakeFindBy(service: unknown) {
@@ -289,30 +338,30 @@ function fakeFindBy(service: unknown) {
       limit: number;
       select: JSONObject;
     } = args as { query: JSONObject; limit: number; select: JSONObject };
-    const cutoff: Date = cutoffOf(findBy.query);
-
-    const statusQuery: Array<[string, unknown]> = Object.entries(
-      findBy.query,
-    ).filter(([key]: [string, unknown]): boolean => {
-      return key !== "updatedAt";
-    });
 
     return (tables.get(service) || [])
       .filter((row: StoredRow): boolean => {
-        return (
-          row.updatedAt.getTime() < cutoff.getTime() &&
-          statusQuery.every(([key, value]: [string, unknown]): boolean => {
-            return row[key] === value;
-          })
+        return Object.entries(findBy.query).every(
+          ([key, value]: [string, unknown]): boolean => {
+            return matches(row, key, value);
+          },
         );
       })
       .slice(0, findBy.limit)
       .map((row: StoredRow): unknown => {
-        return {
+        const read: JSONObject = {
           _id: row._id,
           id: new ObjectID(row._id),
           version: row.version,
-        };
+        } as unknown as JSONObject;
+
+        for (const key of Object.keys(findBy.select || {})) {
+          if (!(key in read) && key in row) {
+            read[key] = row[key] as never;
+          }
+        }
+
+        return read;
       });
   };
 }
@@ -357,6 +406,9 @@ function storeRow(
     status: StatusPageSubscriberNotificationStatus;
     updatedAt: Date;
     version?: number;
+    // When the claim stamped the column's claimed-at time, if it has one.
+    claimedAt?: Date;
+    extra?: Record<string, unknown>;
   },
 ): StoredRow {
   const row: StoredRow = {
@@ -364,6 +416,10 @@ function storeRow(
     version: data.version ?? 3,
     updatedAt: data.updatedAt,
     [column.statusColumn]: data.status,
+    ...(data.claimedAt && column.claimedAtColumn
+      ? { [column.claimedAtColumn]: data.claimedAt }
+      : {}),
+    ...(data.extra || {}),
   };
 
   const table: Array<StoredRow> = tables.get(column.service) || [];
@@ -531,7 +587,7 @@ describe("StatusPageSubscriber:TimeoutStuckNotifications", () => {
     });
   });
 
-  test("asks each table for In progress rows last updated before the job timeout plus the margin", async () => {
+  test("asks each table for In progress rows claimed, or last updated, before the job timeout plus the margin", async () => {
     const before: number = Date.now();
     await runTick();
     const after: number = Date.now();
@@ -554,6 +610,11 @@ describe("StatusPageSubscriber:TimeoutStuckNotifications", () => {
         StatusPageSubscriberNotificationStatus.InProgress,
       );
 
+      // Timed from the claim where the claim stamps a column, else updatedAt.
+      expect(Object.keys(query).sort()).toEqual(
+        [column.statusColumn, column.claimedAtColumn || "updatedAt"].sort(),
+      );
+
       const cutoff: number = cutoffOf(query).getTime();
       expect(cutoff).toBeGreaterThanOrEqual(
         before - SubscriberNotificationTiming.STUCK_AFTER_IN_MS,
@@ -564,8 +625,150 @@ describe("StatusPageSubscriber:TimeoutStuckNotifications", () => {
 
       expect(queries[0]!["limit"]).toBe(MAX_STUCK_NOTIFICATIONS_PER_TABLE);
       expect(queries[0]!["props"]).toEqual({ isRoot: true });
-      expect(queries[0]!["select"]).toEqual({ _id: true, version: true });
+      expect(queries[0]!["select"]).toEqual(
+        expect.objectContaining({ _id: true, version: true }),
+      );
     }
+  });
+
+  /*
+   * The incident and episode rows are written on a schedule by other code
+   * while they are open - the owners' reminder job every interval, state
+   * changes, incidents joining an episode - so updatedAt keeps moving. A
+   * send cut off by a redeploy must still be failed on time, so Retry,
+   * Resend and the added-pages notification are not held up until the
+   * incident goes quiet.
+   */
+  describe.each(
+    COVERED.filter((column: CoveredColumn): boolean => {
+      return Boolean(column.claimedAtColumn);
+    }),
+  )(
+    "the $name notification, which other code writes while it is sent",
+    (column: CoveredColumn) => {
+      test("is timed from its claim, not from updatedAt: one claimed long ago is failed although the row was written a minute ago", async () => {
+        const row: StoredRow = storeRow(column, {
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+          // The reminder job wrote the incident a minute ago.
+          updatedAt: minutesAgo(1),
+          claimedAt: minutesAgo(JUST_PAST_STUCK),
+        });
+
+        await runTick();
+
+        expect(row[column.statusColumn]).toBe(
+          StatusPageSubscriberNotificationStatus.Failed,
+        );
+      });
+
+      test("one claimed recently is left alone, however long ago the row was last written", async () => {
+        const row: StoredRow = storeRow(column, {
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+          updatedAt: minutesAgo(JUST_PAST_STUCK * 3),
+          claimedAt: minutesAgo(5),
+        });
+
+        await runTick();
+
+        expect(row[column.statusColumn]).toBe(
+          StatusPageSubscriberNotificationStatus.InProgress,
+        );
+      });
+
+      test("one claimed before the column existed is timed from updatedAt, as before", async () => {
+        const stale: StoredRow = storeRow(column, {
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+          updatedAt: minutesAgo(JUST_PAST_STUCK),
+        });
+        const fresh: StoredRow = storeRow(column, {
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+          updatedAt: minutesAgo(5),
+        });
+
+        await runTick();
+
+        expect(stale[column.statusColumn]).toBe(
+          StatusPageSubscriberNotificationStatus.Failed,
+        );
+        expect(fresh[column.statusColumn]).toBe(
+          StatusPageSubscriberNotificationStatus.InProgress,
+        );
+      });
+    },
+  );
+
+  /*
+   * Retry resumes the incident created notification after the pages its
+   * record lists. A row with no record - the send stopped before it
+   * finished a page, or a version before the record left it stuck - is sent
+   * again to every page, and its message must say that, not promise Retry
+   * skips the pages already told.
+   */
+  describe("what the incident created notification says Retry will do", () => {
+    const column: CoveredColumn = COVERED[0]!;
+
+    test("with a record of the pages it told, Retry resumes after them", async () => {
+      const row: StoredRow = storeRow(column, {
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: minutesAgo(JUST_PAST_STUCK),
+        extra: {
+          statusPagesNotifiedOnCreation: [
+            "5b000000-0000-4000-8000-000000000003",
+          ],
+        },
+      });
+
+      await runTick();
+
+      expect(row[column.messageColumn]).toBe(
+        SubscriberNotificationInterruption.resumesMessage,
+      );
+    });
+
+    test("with an empty record, Retry still resumes: nobody was recorded as told", async () => {
+      const row: StoredRow = storeRow(column, {
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: minutesAgo(JUST_PAST_STUCK),
+        claimedAt: minutesAgo(JUST_PAST_STUCK),
+        extra: { statusPagesNotifiedOnCreation: [] },
+      });
+
+      await runTick();
+
+      expect(row[column.messageColumn]).toBe(
+        SubscriberNotificationInterruption.resumesMessage,
+      );
+    });
+
+    test("with no record at all, Retry sends to every page, and the message says so", async () => {
+      const row: StoredRow = storeRow(column, {
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: minutesAgo(JUST_PAST_STUCK),
+        extra: { statusPagesNotifiedOnCreation: null },
+      });
+
+      await runTick();
+
+      expect(row[column.messageColumn]).toBe(
+        SubscriberNotificationInterruption.resendsMessage,
+      );
+    });
+
+    test("reads the record with the stuck rows", async () => {
+      await runTick();
+
+      const select: JSONObject = mock(
+        (column.service as { findBy: unknown }).findBy,
+      )
+        .mock.calls.map((call: Array<unknown>): JSONObject => {
+          return call[0] as JSONObject;
+        })
+        .find((call: JSONObject): boolean => {
+          return column.statusColumn in (call["query"] as JSONObject);
+        })!["select"] as JSONObject;
+
+      expect(select["statusPagesNotifiedOnCreation"]).toBe(true);
+    });
   });
 
   test("a send that settles just before the write keeps its outcome", async () => {

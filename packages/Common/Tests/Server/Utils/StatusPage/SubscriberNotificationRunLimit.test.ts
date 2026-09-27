@@ -173,3 +173,103 @@ describe("SubscriberNotificationRunLimit", () => {
     );
   });
 });
+
+/*
+ * The run permits are shared by every project on the server, and a run sends
+ * one notification at a time. So one project's notifications also take one
+ * of a few per-project slots each: a tenant whose sends are slow - its own
+ * mail server hangs, or it posts a burst of notes on a large page - holds at
+ * most that many runs of a job, and the rest keep sending everyone else's.
+ */
+describe("SubscriberNotificationRunLimit.takeProjectSlot", () => {
+  const PROJECT_ID: string = "10000000-0000-4000-8000-00000000000A";
+
+  test("a project gets fewer slots than the job has runs", () => {
+    expect(
+      SubscriberNotificationRunLimit.MAX_CONCURRENT_SENDS_PER_PROJECT,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      SubscriberNotificationRunLimit.MAX_CONCURRENT_SENDS_PER_PROJECT,
+    ).toBeLessThan(SubscriberNotificationRunLimit.MAX_CONCURRENT_RUNS_PER_JOB);
+  });
+
+  test("takes one of the project's slots for this job, and gives it back", async () => {
+    const slot: Awaited<
+      ReturnType<typeof SubscriberNotificationRunLimit.takeProjectSlot>
+    > = await SubscriberNotificationRunLimit.takeProjectSlot({
+      jobName: JOB_NAME,
+      projectId: PROJECT_ID,
+    });
+
+    expect(slot).not.toBeNull();
+    expect(acquire.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        // Per job and project; the project id as it is stored.
+        key: `${JOB_NAME}:${PROJECT_ID.toLowerCase()}`,
+        namespace: SubscriberNotificationRunLimit.PROJECT_NAMESPACE,
+        limit: SubscriberNotificationRunLimit.MAX_CONCURRENT_SENDS_PER_PROJECT,
+        lockTimeout: SubscriberNotificationRunLimit.PERMIT_TTL_IN_MS,
+        acquireAttemptsLimit: 1,
+      }),
+    );
+
+    await slot!.release();
+    expect(release).toHaveBeenCalledWith(permit);
+  });
+
+  test("a project that already has its share being sent gets none: its notification waits", async () => {
+    acquire.mockRejectedValue(
+      new SemaphoreLockTimeoutError("Acquire semaphore timeout") as never,
+    );
+
+    await expect(
+      SubscriberNotificationRunLimit.takeProjectSlot({
+        jobName: JOB_NAME,
+        projectId: PROJECT_ID,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("sends without a slot when Redis cannot be reached, as a run does without its permit", async () => {
+    acquire.mockRejectedValue(
+      new Error("Redis client is not connected") as never,
+    );
+
+    const slot: Awaited<
+      ReturnType<typeof SubscriberNotificationRunLimit.takeProjectSlot>
+    > = await SubscriberNotificationRunLimit.takeProjectSlot({
+      jobName: JOB_NAME,
+      projectId: PROJECT_ID,
+    });
+
+    expect(slot).not.toBeNull();
+    await slot!.release();
+    expect(release).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  test("a notification without a project is not bounded by one", async () => {
+    const slot: Awaited<
+      ReturnType<typeof SubscriberNotificationRunLimit.takeProjectSlot>
+    > = await SubscriberNotificationRunLimit.takeProjectSlot({
+      jobName: JOB_NAME,
+      projectId: undefined,
+    });
+
+    expect(slot).not.toBeNull();
+    expect(acquire).not.toHaveBeenCalled();
+  });
+
+  test("a slot that cannot be given back does not throw: it lapses", async () => {
+    release.mockRejectedValue(new Error("connection reset") as never);
+
+    const slot: Awaited<
+      ReturnType<typeof SubscriberNotificationRunLimit.takeProjectSlot>
+    > = await SubscriberNotificationRunLimit.takeProjectSlot({
+      jobName: JOB_NAME,
+      projectId: PROJECT_ID,
+    });
+
+    await expect(slot!.release()).resolves.toBeUndefined();
+  });
+});

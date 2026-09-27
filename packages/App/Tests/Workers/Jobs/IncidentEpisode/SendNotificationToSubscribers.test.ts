@@ -980,6 +980,8 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
       {
         subscriberNotificationStatusOnEpisodeCreated:
           StatusPageSubscriberNotificationStatus.InProgress,
+        // What the sweeper times an interrupted send from.
+        subscriberNotificationClaimedAtOnEpisodeCreated: expect.any(Date),
       },
       {
         subscriberNotificationStatusOnEpisodeCreated:
@@ -1038,6 +1040,8 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
       {
         subscriberNotificationStatusOnEpisodeCreated:
           StatusPageSubscriberNotificationStatus.InProgress,
+        // What the sweeper times an interrupted send from.
+        subscriberNotificationClaimedAtOnEpisodeCreated: expect.any(Date),
       },
       {
         subscriberNotificationStatusOnEpisodeCreated:
@@ -2448,6 +2452,7 @@ describeSubscriberDelivery({
   },
   statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
   messageColumn: "subscriberNotificationStatusMessage",
+  claimedAtColumn: "subscriberNotificationClaimedAtOnEpisodeCreated",
   claim: IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
   update: IncidentEpisodeService.updateOneById,
   feed: IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,

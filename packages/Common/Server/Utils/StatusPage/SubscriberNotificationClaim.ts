@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DatabaseService from "../../Services/DatabaseService";
@@ -25,8 +26,11 @@ import DatabaseService from "../../Services/DatabaseService";
  * sent, re-queued or edited since is left for a run that reads it afresh.
  * Exactly one run wins a notification. The claim is a hook-free write: it
  * fires none of the row's 'on update' workflows, realtime events or audit
- * log entries (the status the send settles on does), and it stamps
- * updatedAt, which is what the sweeper times an InProgress row from.
+ * log entries (the status the send settles on does). It stamps updatedAt,
+ * and, for a notification with one, its claimed-at column: the sweeper times
+ * an InProgress row from the claimed-at column where there is one, since
+ * other code writes those rows (an open incident or episode) all the time,
+ * and from updatedAt otherwise.
  */
 export default class SubscriberNotificationClaim {
   /*
@@ -36,19 +40,39 @@ export default class SubscriberNotificationClaim {
    *
    * `version` is the row's version as the job read it. A row read without
    * one is claimed on its status alone.
+   *
+   * `claimedAtColumn` is stamped with the time of the claim, for the
+   * sweeper (see Incident.subscriberNotificationClaimedAtOnIncidentCreated).
+   *
+   * `alsoSet` settles other columns of the row in the same write, only if
+   * they still hold `expected`: the public note jobs use it to skip a note's
+   * update notification that the 'posted' notification they are claiming
+   * already covers (see the note jobs).
    */
   public static async claim<TBaseModel extends BaseModel>(data: {
     service: DatabaseService<TBaseModel>;
     id: ObjectID;
     statusColumn: keyof TBaseModel & string;
     version: number | undefined | null;
+    claimedAtColumn?: (keyof TBaseModel & string) | undefined;
+    alsoSet?:
+      | {
+          data: PartialEntity<TBaseModel>;
+          expected: PartialEntity<TBaseModel>;
+        }
+      | undefined;
   }): Promise<boolean> {
     return await data.service.compareAndSetColumnsByIdWithoutHooks({
       id: data.id,
       data: {
+        ...(data.alsoSet?.data || {}),
         [data.statusColumn]: StatusPageSubscriberNotificationStatus.InProgress,
+        ...(data.claimedAtColumn
+          ? { [data.claimedAtColumn]: OneUptimeDate.getCurrentDate() }
+          : {}),
       } as unknown as PartialEntity<TBaseModel>,
       expectedData: {
+        ...(data.alsoSet?.expected || {}),
         [data.statusColumn]: StatusPageSubscriberNotificationStatus.Pending,
         ...(typeof data.version === "number" ? { version: data.version } : {}),
       } as unknown as PartialEntity<TBaseModel>,

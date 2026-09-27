@@ -1386,6 +1386,94 @@ describe("IncidentPublicNote jobs send the builder's email", () => {
 });
 
 describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
+  /*
+   * A note edited with 'notify subscribers' ticked before it was announced
+   * has both notifications Pending. The posted one goes out with the edit in
+   * it (its claim checks the version it read), so its claim settles the
+   * update one as Skipped in the same write - otherwise an update run that
+   * read the note earlier, and lost its claim to the changed version, would
+   * send "a note has been updated" with the text just sent as the new note.
+   */
+  test("claiming a note's posted notification skips an update notification it covers, in the same write", async () => {
+    const note: IncidentPublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+    note.version = 2;
+    note.subscriberNotificationStatusOnNoteUpdated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    createdNotes = [note];
+
+    await runJob(CREATED_JOB);
+
+    const select: JSONObject = (
+      mock(IncidentPublicNoteService.findBy).mock.calls[0]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+    expect(select["subscriberNotificationStatusOnNoteUpdated"]).toBe(true);
+
+    const claim: JSONObject = mock(
+      IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).mock.calls[0]![0] as JSONObject;
+
+    expect(claim["data"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.InProgress,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        SubscriberUpdateNotification.notYetNotifiedMessage,
+    });
+    // Only while the update is still Pending: never one another run is sending.
+    expect(claim["expectedData"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      version: 2,
+    });
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.InProgress,
+    StatusPageSubscriberNotificationStatus.Failed,
+    undefined,
+  ])(
+    "an update notification that is %s is not touched by the posted notification's claim",
+    async (
+      updateStatus: StatusPageSubscriberNotificationStatus | undefined,
+    ) => {
+      const note: IncidentPublicNote = publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      });
+      note.version = 2;
+      if (updateStatus) {
+        note.subscriberNotificationStatusOnNoteUpdated = updateStatus;
+      }
+      createdNotes = [note];
+
+      await runJob(CREATED_JOB);
+
+      const claim: JSONObject = mock(
+        IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+      ).mock.calls[0]![0] as JSONObject;
+
+      expect(claim["data"]).toEqual({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      });
+      expect(claim["expectedData"]).toEqual({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        version: 2,
+      });
+    },
+  );
+
   test("still only picks up notes whose author asked to notify", async () => {
     await runJob(CREATED_JOB);
 

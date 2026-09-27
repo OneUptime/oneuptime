@@ -1,5 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -42,13 +43,24 @@ import logger from "Common/Server/Utils/Logger";
  * - The incident created notification records the pages it has told as it
  *   goes (Incident.statusPagesNotifiedOnCreation), so Retry resumes after
  *   them. A page part-way through when the send stopped is sent again in
- *   full: progress is kept per page, not per subscriber.
+ *   full: progress is kept per page, not per subscriber. One with no record
+ *   at all - it stopped before it finished a page, or a version before the
+ *   record left it stuck - is sent again to every page, and says so.
  * - Every other notification is sent again to every page.
  *
- * The InProgress time is read off updatedAt, which the claim stamps. A row
- * edited since (an incident whose title changed, say) is only swept later,
- * never sooner. Each row is failed with a compare-and-set on its status and
- * version, so a send that settles at the last moment is never overwritten.
+ * How long a row has been InProgress is read off the time of its claim. The
+ * incident and episode notifications have a column for it, stamped by the
+ * claim alone (SubscriberNotificationClaim): other code writes those rows on
+ * a schedule while the incident or episode is open - the owners' reminders,
+ * state changes, incidents joining an episode - and a send cut off by a
+ * redeploy would otherwise stay "being sent" until the incident went quiet,
+ * with Retry, Resend and the added-pages notification all waiting on it. A
+ * row claimed before that column existed has none, and is timed from
+ * updatedAt, as every other notification is: those rows are written only by
+ * edits to the note or state change itself, so an edit can push the sweep
+ * back a little, never bring it forward. Each row is failed with a
+ * compare-and-set on its status and version, so a send that settles at the
+ * last moment is never overwritten.
  *
  * Covered: the incident and episode notifications this build awaits (the
  * incident created, state change, public note created and updated,
@@ -62,6 +74,13 @@ import logger from "Common/Server/Utils/Logger";
 // Bound the work per table per tick, so one bad backlog cannot monopolise the Worker queue.
 export const MAX_STUCK_NOTIFICATIONS_PER_TABLE: number = 100;
 
+// One row the sweep found stuck, and the message it is failed with.
+export interface StuckNotificationRow {
+  id: ObjectID;
+  version: number | undefined;
+  message: string;
+}
+
 interface StuckNotificationColumn {
   // What the log calls it.
   name: string;
@@ -69,12 +88,9 @@ interface StuckNotificationColumn {
   findStuck: (data: {
     cutoff: Date;
     limit: number;
-  }) => Promise<Array<{ id: ObjectID; version: number | undefined }>>;
+  }) => Promise<Array<StuckNotificationRow>>;
   // Fail one, if it is still InProgress at that version.
-  failInterrupted: (row: {
-    id: ObjectID;
-    version: number | undefined;
-  }) => Promise<boolean>;
+  failInterrupted: (row: StuckNotificationRow) => Promise<boolean>;
 }
 
 function stuckNotificationColumn<TBaseModel extends BaseModel>(data: {
@@ -82,55 +98,107 @@ function stuckNotificationColumn<TBaseModel extends BaseModel>(data: {
   service: DatabaseService<TBaseModel>;
   statusColumn: keyof TBaseModel & string;
   messageColumn: keyof TBaseModel & string;
-  message: string;
+  /*
+   * The column the claim stamps (SubscriberNotificationClaim), for a row
+   * other code writes while its send runs. Without one, updatedAt.
+   */
+  claimedAtColumn?: (keyof TBaseModel & string) | undefined;
+  // More columns to read, for `getMessage`.
+  select?: Select<TBaseModel> | undefined;
+  // What a stuck row is failed with: what Retry will do for it.
+  getMessage: (row: TBaseModel) => string;
 }): StuckNotificationColumn {
+  const read: (
+    query: Query<TBaseModel>,
+    limit: number,
+  ) => Promise<Array<TBaseModel>> = async (
+    query: Query<TBaseModel>,
+    limit: number,
+  ): Promise<Array<TBaseModel>> => {
+    return await data.service.findBy({
+      query: {
+        [data.statusColumn]: StatusPageSubscriberNotificationStatus.InProgress,
+        ...query,
+      } as Query<TBaseModel>,
+      select: {
+        ...(data.select || {}),
+        _id: true,
+        version: true,
+      } as Select<TBaseModel>,
+      limit: limit,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  };
+
   return {
     name: data.name,
     findStuck: async (query: {
       cutoff: Date;
       limit: number;
-    }): Promise<Array<{ id: ObjectID; version: number | undefined }>> => {
-      const rows: Array<TBaseModel> = await data.service.findBy({
-        query: {
-          [data.statusColumn]:
-            StatusPageSubscriberNotificationStatus.InProgress,
-          updatedAt: QueryHelper.lessThan(query.cutoff),
-        } as Query<TBaseModel>,
-        select: {
-          _id: true,
-          version: true,
-        } as Select<TBaseModel>,
-        limit: query.limit,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    }): Promise<Array<StuckNotificationRow>> => {
+      let rows: Array<TBaseModel>;
+
+      if (data.claimedAtColumn) {
+        // Claimed before the cutoff.
+        rows = await read(
+          {
+            [data.claimedAtColumn]: QueryHelper.lessThan(query.cutoff),
+          } as Query<TBaseModel>,
+          query.limit,
+        );
+
+        // Claimed before the column existed: timed from updatedAt, as before.
+        if (rows.length < query.limit) {
+          rows = rows.concat(
+            await read(
+              {
+                [data.claimedAtColumn]: QueryHelper.isNull(),
+                updatedAt: QueryHelper.lessThan(query.cutoff),
+              } as Query<TBaseModel>,
+              query.limit - rows.length,
+            ),
+          );
+        }
+      } else {
+        rows = await read(
+          {
+            updatedAt: QueryHelper.lessThan(query.cutoff),
+          } as Query<TBaseModel>,
+          query.limit,
+        );
+      }
 
       return rows
         .filter((row: TBaseModel): boolean => {
           return Boolean(row.id);
         })
-        .map(
-          (row: TBaseModel): { id: ObjectID; version: number | undefined } => {
-            return { id: row.id!, version: row.version };
-          },
-        );
+        .map((row: TBaseModel): StuckNotificationRow => {
+          return {
+            id: row.id!,
+            version: row.version,
+            message: data.getMessage(row),
+          };
+        });
     },
-    failInterrupted: async (row: {
-      id: ObjectID;
-      version: number | undefined;
-    }): Promise<boolean> => {
+    failInterrupted: async (row: StuckNotificationRow): Promise<boolean> => {
       return await SubscriberNotificationClaim.failInterrupted({
         service: data.service,
         id: row.id,
         statusColumn: data.statusColumn,
         messageColumn: data.messageColumn,
-        message: data.message,
+        message: row.message,
         version: row.version,
       });
     },
   };
+}
+
+// Every notification but the incident created one: Retry sends it to every page.
+function resendsToEveryPage(): string {
+  return SubscriberNotificationInterruption.resendsMessage;
 }
 
 export const STUCK_NOTIFICATION_COLUMNS: Array<StuckNotificationColumn> = [
@@ -139,105 +207,119 @@ export const STUCK_NOTIFICATION_COLUMNS: Array<StuckNotificationColumn> = [
     service: IncidentService,
     statusColumn: "subscriberNotificationStatusOnIncidentCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resumesMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnIncidentCreated",
+    select: {
+      statusPagesNotifiedOnCreation: true,
+    },
+    /*
+     * Retry resumes after the pages the record lists. With no record, it
+     * sends to every page, and the message must not promise otherwise.
+     */
+    getMessage: (incident: Incident): string => {
+      return Array.isArray(incident.statusPagesNotifiedOnCreation)
+        ? SubscriberNotificationInterruption.resumesMessage
+        : SubscriberNotificationInterruption.resendsMessage;
+    },
   }),
   stuckNotificationColumn({
     name: "incident postmortem",
     service: IncidentService,
     statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
     messageColumn: "subscriberNotificationStatusMessageOnPostmortemPublished",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnPostmortemPublished",
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "incident state change",
     service: IncidentStateTimelineService,
     statusColumn: "subscriberNotificationStatus",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "incident public note created",
     service: IncidentPublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "incident public note updated",
     service: IncidentPublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "episode created",
     service: IncidentEpisodeService,
     statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    claimedAtColumn: "subscriberNotificationClaimedAtOnEpisodeCreated",
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "episode state change",
     service: IncidentEpisodeStateTimelineService,
     statusColumn: "subscriberNotificationStatus",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "episode public note created",
     service: IncidentEpisodePublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "episode public note updated",
     service: IncidentEpisodePublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "scheduled maintenance created",
     service: ScheduledMaintenanceService,
     statusColumn: "subscriberNotificationStatusOnEventScheduled",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "scheduled maintenance state change",
     service: ScheduledMaintenanceStateTimelineService,
     statusColumn: "subscriberNotificationStatus",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "scheduled maintenance public note created",
     service: ScheduledMaintenancePublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteCreated",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "scheduled maintenance public note updated",
     service: ScheduledMaintenancePublicNoteService,
     statusColumn: "subscriberNotificationStatusOnNoteUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "announcement created",
     service: StatusPageAnnouncementService,
     statusColumn: "subscriberNotificationStatus",
     messageColumn: "subscriberNotificationStatusMessage",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
   stuckNotificationColumn({
     name: "announcement updated",
     service: StatusPageAnnouncementService,
     statusColumn: "subscriberNotificationStatusOnAnnouncementUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnAnnouncementUpdated",
-    message: SubscriberNotificationInterruption.resendsMessage,
+    getMessage: resendsToEveryPage,
   }),
 ];
 
@@ -251,7 +333,7 @@ RunCron(
     );
 
     for (const column of STUCK_NOTIFICATION_COLUMNS) {
-      let stuck: Array<{ id: ObjectID; version: number | undefined }> = [];
+      let stuck: Array<StuckNotificationRow> = [];
 
       try {
         stuck = await column.findStuck({

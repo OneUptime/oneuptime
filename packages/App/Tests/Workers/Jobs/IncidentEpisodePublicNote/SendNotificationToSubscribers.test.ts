@@ -1182,6 +1182,66 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
 });
 
 describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", () => {
+  /*
+   * As for incident notes: the posted notification carries an edit made
+   * before it was claimed, so its claim skips the Pending update
+   * notification in the same write, and only while it is still Pending.
+   */
+  test("claiming a note's posted notification skips an update notification it covers, in the same write", async () => {
+    const note: IncidentEpisodePublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+    note.version = 4;
+    note.subscriberNotificationStatusOnNoteUpdated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    createdNotes = [note];
+
+    await runJob(CREATED_JOB);
+
+    const claim: JSONObject = (
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
+    ).mock.calls[0]![0] as JSONObject;
+
+    expect(claim["data"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.InProgress,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        SubscriberUpdateNotification.notYetNotifiedMessage,
+    });
+    expect(claim["expectedData"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      version: 4,
+    });
+  });
+
+  test("a posted notification with no update pending claims its own column only", async () => {
+    const note: IncidentEpisodePublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+    note.version = 4;
+    note.subscriberNotificationStatusOnNoteUpdated =
+      StatusPageSubscriberNotificationStatus.Success;
+    createdNotes = [note];
+
+    await runJob(CREATED_JOB);
+
+    const claim: JSONObject = (
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
+    ).mock.calls[0]![0] as JSONObject;
+
+    expect(claim["data"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.InProgress,
+    });
+  });
+
   test("still marks notes that should not notify as Skipped on the original columns", async () => {
     skipNotes = [publicNote()];
 

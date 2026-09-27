@@ -287,13 +287,31 @@ describe("AddIncidentStatusPageScope migration - up()", () => {
     );
   });
 
-  test("indexes the scope flag the status page queries split on", async () => {
+  /*
+   * The migration alters Incident, so an index built on it in the same
+   * transaction holds that ALTER's lock - which blocks reads - for the whole
+   * build over the table. The flag is false on nearly every row, so an index
+   * could not help the queries that split on it anyway.
+   */
+  test("builds no index on Incident, which it alters in the same transaction", async () => {
     expect(
       statementsMatching(
         await recordQueries("up"),
-        /^CREATE INDEX "IDX_\w+" ON "Incident" \("isScopedToStatusPages"\)/,
+        /^CREATE INDEX "IDX_\w+" ON "Incident"/,
       ),
-    ).toHaveLength(1);
+    ).toEqual([]);
+    expect(
+      getMetadataArgsStorage().indices.filter(
+        (index: { target: unknown; columns?: unknown }): boolean => {
+          return (
+            index.target === Incident &&
+            JSON.stringify(index.columns || []).includes(
+              "isScopedToStatusPages",
+            )
+          );
+        },
+      ),
+    ).toEqual([]);
   });
 
   test("touches no other table", async () => {

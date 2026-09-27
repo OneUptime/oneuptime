@@ -849,10 +849,14 @@ export default class SubscriberNotificationDeliveryRecord {
 
     if (data.method === StatusPageSubscriberNotificationMethod.Email) {
       reservations = this.sentEmails;
-      address = SubscriberNotificationDeliveryRecord.normalizeEmail(data.to);
+      address = SubscriberNotificationDeliveryRecord.normalizeEmail(
+        data.to.toString(),
+      );
     } else if (data.method === StatusPageSubscriberNotificationMethod.SMS) {
       reservations = this.sentPhones;
-      address = SubscriberNotificationDeliveryRecord.normalizePhone(data.to);
+      address = SubscriberNotificationDeliveryRecord.normalizePhone(
+        data.to.toString(),
+      );
     } else {
       return;
     }

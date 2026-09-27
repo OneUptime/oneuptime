@@ -10,7 +10,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   incidents are unscoped, which is today's behaviour, so the default needs
  *   no backfill. It is never recomputed when join rows cascade away: an
  *   incident whose only scoped page is deleted stays scoped - to nothing - and
- *   is hidden rather than widened to every page its monitors reach.
+ *   is hidden rather than widened to every page its monitors reach. It is not
+ *   indexed: false on nearly every row, and an index built here would hold
+ *   this transaction's lock on Incident, reads included, for the whole build.
+ *   Adding the NOT NULL DEFAULT false column itself does not rewrite the
+ *   table.
  * - Incident.statusPagesNotifiedOnCreation: the pages already sent the
  *   incident's 'created' notification, so a page added later is told once.
  * - IncidentTemplateStatusPage: the scope an incident template applies.
@@ -51,9 +55,6 @@ export class AddIncidentStatusPageScope1795400000000
       `ALTER TABLE "Incident" ADD "statusPagesNotifiedOnCreation" jsonb`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_97e555a923067c2fe35e4718cb" ON "Incident" ("isScopedToStatusPages") `,
-    );
-    await queryRunner.query(
       `ALTER TABLE "IncidentStatusPage" ADD CONSTRAINT "FK_a4ad6eb224d14cc177084209619" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
@@ -79,9 +80,6 @@ export class AddIncidentStatusPageScope1795400000000
     );
     await queryRunner.query(
       `ALTER TABLE "IncidentStatusPage" DROP CONSTRAINT "FK_a4ad6eb224d14cc177084209619"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_97e555a923067c2fe35e4718cb"`,
     );
     await queryRunner.query(
       `ALTER TABLE "Incident" DROP COLUMN "statusPagesNotifiedOnCreation"`,

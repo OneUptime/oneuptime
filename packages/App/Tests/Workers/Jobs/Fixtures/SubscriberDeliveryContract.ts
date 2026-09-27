@@ -93,6 +93,11 @@ export interface SubscriberDeliveryHarness {
   pendRows: (count: number) => Array<ObjectID>;
   statusColumn: string;
   messageColumn: string;
+  /*
+   * The column the claim stamps with its time, for the sweeper, on a row
+   * other code writes while it is sent (the incident and episode ones).
+   */
+  claimedAtColumn?: string | undefined;
   // The service's compareAndSetColumnsByIdWithoutHooks (the claim).
   claim: unknown;
   // The service's updateOneById (the settle).
@@ -181,7 +186,8 @@ export function describeSubscriberDelivery(
       try {
         await harness.runJob();
 
-        expect(acquire).toHaveBeenCalledTimes(1);
+        // The run's permit, then the project's slot for the notification.
+        expect(acquire).toHaveBeenCalledTimes(2);
         expect(acquire.mock.calls[0]![0]).toEqual(
           expect.objectContaining({
             key: harness.jobName,
@@ -189,6 +195,17 @@ export function describeSubscriberDelivery(
             limit: SubscriberNotificationRunLimit.MAX_CONCURRENT_RUNS_PER_JOB,
           }),
         );
+        expect(acquire.mock.calls[1]![0]).toEqual(
+          expect.objectContaining({
+            key: expect.stringMatching(
+              new RegExp(`^${harness.jobName}:[0-9a-f-]+$`),
+            ),
+            namespace: SubscriberNotificationRunLimit.PROJECT_NAMESPACE,
+            limit:
+              SubscriberNotificationRunLimit.MAX_CONCURRENT_SENDS_PER_PROJECT,
+          }),
+        );
+        expect(release).toHaveBeenCalledTimes(2);
         expect(release).toHaveBeenCalledWith(permit);
 
         // Taken before the first claim, given back after the settle.
@@ -204,6 +221,101 @@ export function describeSubscriberDelivery(
         acquire.mockRestore();
         release.mockRestore();
       }
+    });
+
+    /*
+     * The permits are shared by every project on the server. A project that
+     * already has its share of this job's notifications being sent - its own
+     * mail server hangs, say - leaves this one Pending, so one tenant cannot
+     * hold every run while the others wait.
+     */
+    test("a notification whose project already has its share being sent is left Pending, untouched", async () => {
+      harness.pendRows(1);
+
+      const permit: SemaphorePermit = {
+        identifier: "permit",
+      } as unknown as SemaphorePermit;
+      const acquire: jest.Mock = jest
+        .spyOn(Semaphore, "acquirePermit")
+        .mockImplementation((async (options: { namespace: string }) => {
+          if (
+            options.namespace ===
+            SubscriberNotificationRunLimit.PROJECT_NAMESPACE
+          ) {
+            throw new SemaphoreLockTimeoutError("Acquire semaphore timeout");
+          }
+
+          return permit;
+        }) as never) as unknown as jest.Mock;
+      const release: jest.Mock = jest
+        .spyOn(Semaphore, "releasePermit")
+        .mockResolvedValue(undefined as never) as unknown as jest.Mock;
+
+      try {
+        await harness.runJob();
+      } finally {
+        acquire.mockRestore();
+        release.mockRestore();
+      }
+
+      for (const channel of CHANNELS) {
+        expect(harness.senders[channel]).not.toHaveBeenCalled();
+      }
+      expect(harness.claim).not.toHaveBeenCalled();
+      expect(harness.update).not.toHaveBeenCalled();
+    });
+
+    test("a project's slot is given back when its notification settles, so its next one can go", async () => {
+      harness.pendRows(2);
+
+      const slotsHeld: Array<string> = [];
+      let mostHeldAtOnce: number = 0;
+      const acquire: jest.Mock = jest
+        .spyOn(Semaphore, "acquirePermit")
+        .mockImplementation((async (options: {
+          namespace: string;
+          key: string;
+        }) => {
+          const permit: SemaphorePermit = {
+            identifier: options.namespace,
+          } as unknown as SemaphorePermit;
+
+          if (
+            options.namespace ===
+            SubscriberNotificationRunLimit.PROJECT_NAMESPACE
+          ) {
+            slotsHeld.push(options.key);
+            mostHeldAtOnce = Math.max(mostHeldAtOnce, slotsHeld.length);
+          }
+
+          return permit;
+        }) as never) as unknown as jest.Mock;
+      const release: jest.Mock = jest
+        .spyOn(Semaphore, "releasePermit")
+        .mockImplementation((async (permit: SemaphorePermit) => {
+          if (
+            (permit as unknown as { identifier: string }).identifier ===
+            SubscriberNotificationRunLimit.PROJECT_NAMESPACE
+          ) {
+            slotsHeld.pop();
+          }
+        }) as never) as unknown as jest.Mock;
+
+      try {
+        await harness.runJob();
+      } finally {
+        acquire.mockRestore();
+        release.mockRestore();
+      }
+
+      // One slot per notification, each given back before the next is taken.
+      expect(mostHeldAtOnce).toBe(1);
+      expect(slotsHeld).toEqual([]);
+      expect(
+        writes().filter((write: StatusWrite): boolean => {
+          return write.via === "claim";
+        }),
+      ).toHaveLength(2);
     });
 
     test("a run that finds every permit taken sends and claims nothing", async () => {
@@ -243,12 +355,42 @@ export function describeSubscriberDelivery(
       expect(claims[0]!.data).toEqual({
         [harness.statusColumn]:
           StatusPageSubscriberNotificationStatus.InProgress,
+        ...(harness.claimedAtColumn
+          ? { [harness.claimedAtColumn]: expect.any(Date) }
+          : {}),
       });
       expect(claims[0]!.expectedData).toEqual({
         [harness.statusColumn]: StatusPageSubscriberNotificationStatus.Pending,
         version: PENDING_ROW_VERSION,
       });
     });
+
+    /*
+     * The sweeper fails a notification In progress for too long. For a row
+     * other code writes while it is sent - an open incident's reminders and
+     * state changes - it times the send from the claim, not updatedAt.
+     */
+    if (harness.claimedAtColumn) {
+      test("stamps the time of the claim, for the sweeper", async () => {
+        const [id] = harness.pendRows(1);
+        const before: number = Date.now();
+
+        await harness.runJob();
+
+        const claim: StatusWrite | undefined = writes(id).find(
+          (write: StatusWrite): boolean => {
+            return write.via === "claim";
+          },
+        );
+        const claimedAt: Date = claim!.data[
+          harness.claimedAtColumn!
+        ] as unknown as Date;
+
+        expect(claimedAt).toBeInstanceOf(Date);
+        expect(claimedAt.getTime()).toBeGreaterThanOrEqual(before);
+        expect(claimedAt.getTime()).toBeLessThanOrEqual(Date.now());
+      });
+    }
 
     test("sends nothing, and settles nothing, when another run has claimed it", async () => {
       harness.pendRows(1);

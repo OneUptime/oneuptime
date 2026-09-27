@@ -674,12 +674,15 @@ describe("Subscriber notification delivery docs", () => {
     it("resumes only the 'created' notification, and covers scheduled maintenance and announcements too", () => {
       const source: string = readSource(SWEEPER);
 
-      // resumesMessage is written for the incident created column alone.
+      /*
+       * resumesMessage is written for the incident created column alone, and
+       * only when it has a record of the pages it told to resume after.
+       */
       expect(
         source.match(/SubscriberNotificationInterruption\.resumesMessage/g),
       ).toHaveLength(1);
       expect(source).toMatch(
-        /statusColumn:\s*"subscriberNotificationStatusOnIncidentCreated",\s*messageColumn:\s*"subscriberNotificationStatusMessage",\s*message:\s*SubscriberNotificationInterruption\.resumesMessage/,
+        /statusColumn:\s*"subscriberNotificationStatusOnIncidentCreated",[^]*?statusPagesNotifiedOnCreation[^]*?SubscriberNotificationInterruption\.resumesMessage[^]*?statusColumn:\s*"subscriberNotificationStatusOnPostmortemPublished"/,
       );
 
       for (const service of [

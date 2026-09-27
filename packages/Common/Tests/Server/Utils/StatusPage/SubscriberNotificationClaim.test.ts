@@ -1,3 +1,4 @@
+import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import SubscriberNotificationClaim from "../../../../Server/Utils/StatusPage/SubscriberNotificationClaim";
@@ -64,6 +65,81 @@ describe("SubscriberNotificationClaim.claim", () => {
       .calls[0]![0] as { skipUpdateDateColumn?: boolean };
 
     expect(input.skipUpdateDateColumn).toBeUndefined();
+  });
+
+  /*
+   * A row other code writes while its send runs - an open incident, which
+   * the owners' reminders and state changes keep updating - has its own
+   * claimed-at column, stamped by the claim alone, for the sweeper to time
+   * the send from.
+   */
+  test("stamps the notification's claimed-at column with the time of the claim", async () => {
+    const before: number = Date.now();
+
+    await SubscriberNotificationClaim.claim({
+      service: service as unknown as DatabaseService<Incident>,
+      id: NOTE_ID,
+      statusColumn: "subscriberNotificationStatusOnIncidentCreated",
+      claimedAtColumn: "subscriberNotificationClaimedAtOnIncidentCreated",
+      version: 4,
+    });
+
+    const input: { data: Record<string, unknown>; expectedData: unknown } =
+      compareAndSet.mock.calls[0]![0] as {
+        data: Record<string, unknown>;
+        expectedData: unknown;
+      };
+    const claimedAt: Date = input.data[
+      "subscriberNotificationClaimedAtOnIncidentCreated"
+    ] as Date;
+
+    expect(input.data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.InProgress,
+    );
+    expect(claimedAt).toBeInstanceOf(Date);
+    expect(claimedAt.getTime()).toBeGreaterThanOrEqual(before);
+    // The condition is unchanged: its status and version only.
+    expect(input.expectedData).toEqual({
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      version: 4,
+    });
+  });
+
+  test("settles other columns in the same write, only while they still hold what was read", async () => {
+    await SubscriberNotificationClaim.claim({
+      service: service,
+      id: NOTE_ID,
+      statusColumn: "subscriberNotificationStatusOnNoteCreated",
+      version: 4,
+      alsoSet: {
+        data: {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        },
+        expected: {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.Pending,
+        },
+      },
+    });
+
+    expect(compareAndSet).toHaveBeenCalledWith({
+      id: NOTE_ID,
+      data: {
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+      },
+      expectedData: {
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        version: 4,
+      },
+    });
   });
 
   test("another run's claim, or a change since the read, loses", async () => {

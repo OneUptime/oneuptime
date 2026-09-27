@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -58,7 +59,9 @@ import SubscriberNotificationTiming, {
   SubscriberNotificationSendWindow,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
 import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
-import SubscriberNotificationRunLimit from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
+import SubscriberNotificationRunLimit, {
+  SubscriberNotificationProjectSlot,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 
@@ -133,6 +136,14 @@ RunCron(
           },
           limit: LIMIT_MAX,
           skip: 0,
+          /*
+           * Oldest first, and each sent in full before the next: a state
+           * change or note queued before another reaches subscribers before it
+           * (the default order is newest first).
+           */
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
           select: {
             _id: true,
             // What the claim checks the row against (SubscriberNotificationClaim).
@@ -164,6 +175,22 @@ RunCron(
             "Leaving the remaining episode state timelines for the next run.",
           );
           break;
+        }
+
+        /*
+         * One of the project's slots for this job: a project already sending
+         * its share of these notifications leaves this one Pending, so one
+         * tenant's slow sends cannot hold every run (SubscriberNotificationRunLimit).
+         */
+        const projectSlot: SubscriberNotificationProjectSlot | null =
+          await SubscriberNotificationRunLimit.takeProjectSlot({
+            jobName:
+              "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
+            projectId: episodeStateTimeline.projectId,
+          });
+
+        if (!projectSlot) {
+          continue;
         }
 
         // Whether this run owns the notification, and so may settle it.
@@ -1099,6 +1126,8 @@ RunCron(
               `Failed to mark episode state timeline ${episodeStateTimeline.id} as Failed: ${updateError}`,
             );
           });
+        } finally {
+          await projectSlot.release();
         }
       }
     },

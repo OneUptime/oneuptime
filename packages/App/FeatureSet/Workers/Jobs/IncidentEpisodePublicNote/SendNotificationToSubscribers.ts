@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -58,7 +59,9 @@ import SubscriberNotificationTiming, {
   SubscriberNotificationSendWindow,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
 import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
-import SubscriberNotificationRunLimit from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
+import SubscriberNotificationRunLimit, {
+  SubscriberNotificationProjectSlot,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
@@ -87,6 +90,8 @@ interface EpisodeNoteNotificationCopy {
   statusColumn:
     | "subscriberNotificationStatusOnNoteCreated"
     | "subscriberNotificationStatusOnNoteUpdated";
+  // The job that sends it, whose per-project slots it takes.
+  jobName: string;
 }
 
 const NOTIFICATION_COPY: Record<
@@ -106,6 +111,7 @@ const NOTIFICATION_COPY: Record<
     feedNotSentSubject: "the public note",
     successMessage: "Notifications sent successfully to all subscribers.",
     statusColumn: "subscriberNotificationStatusOnNoteCreated",
+    jobName: "IncidentEpisodePublicNote:SendNotificationToSubscribers",
   },
   [SubscriberNotificationTrigger.Updated]: {
     templateEventType:
@@ -120,6 +126,7 @@ const NOTIFICATION_COPY: Record<
     feedNotSentSubject: "the updated public note",
     successMessage: SubscriberUpdateNotification.sentMessage,
     statusColumn: "subscriberNotificationStatusOnNoteUpdated",
+    jobName: "IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers",
   },
 };
 
@@ -161,6 +168,58 @@ const setNotificationStatus: (data: {
   });
 };
 
+/*
+ * An update notification the 'posted' notification being claimed covers.
+ *
+ * Editing a note that has not been announced yet, with 'notify subscribers'
+ * ticked, queues an update notification as well. The posted notification
+ * then goes out with the edit in it: the claim checks the version it read,
+ * and the edit changed it, so the run that claims it has read the note since.
+ * The update job skips such an update itself when it sees the posted one
+ * still Pending - but it decides from the note as it read it when its run
+ * started, and a run can be minutes into its sends before it gets to the
+ * note. Were the posted notification claimed, sent and settled in that gap,
+ * the update job's own claim would fail on the changed version, and its next
+ * run would find the posted one sent and send "a note has been updated" with
+ * the text subscribers had just been sent as the new note.
+ *
+ * So the claim of the posted notification settles, in the same write, an
+ * update notification the run read as Pending: Skipped, with the reason the
+ * update job gives. Only if it is still Pending, so an update another run has
+ * claimed meanwhile is never touched (the posted notification then waits for
+ * the next run).
+ */
+function getUpdateNotificationCoveredByPost(data: {
+  note: IncidentEpisodePublicNote;
+  trigger: SubscriberNotificationTrigger;
+}):
+  | {
+      data: QueryDeepPartialEntity<IncidentEpisodePublicNote>;
+      expected: QueryDeepPartialEntity<IncidentEpisodePublicNote>;
+    }
+  | undefined {
+  if (
+    data.trigger !== SubscriberNotificationTrigger.Created ||
+    data.note.subscriberNotificationStatusOnNoteUpdated !==
+      StatusPageSubscriberNotificationStatus.Pending
+  ) {
+    return undefined;
+  }
+
+  return {
+    data: {
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        SubscriberUpdateNotification.notYetNotifiedMessage,
+    },
+    expected: {
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    },
+  };
+}
+
 const notifySubscribersOfEpisodePublicNote: (data: {
   episodePublicNote: IncidentEpisodePublicNote;
   trigger: SubscriberNotificationTrigger;
@@ -184,6 +243,21 @@ const notifySubscribersOfEpisodePublicNote: (data: {
   const copy: EpisodeNoteNotificationCopy = NOTIFICATION_COPY[trigger];
   // Whether this run owns the notification, and so may settle it.
   let claimed: boolean = false;
+
+  /*
+   * One of the project's slots for this job: a project already sending its
+   * share of these notifications leaves this one Pending, so one tenant's
+   * slow sends cannot hold every run (SubscriberNotificationRunLimit).
+   */
+  const projectSlot: SubscriberNotificationProjectSlot | null =
+    await SubscriberNotificationRunLimit.takeProjectSlot({
+      jobName: copy.jobName,
+      projectId: episodePublicNote.projectId,
+    });
+
+  if (!projectSlot) {
+    return;
+  }
 
   try {
     logger.debug(`Processing episode public note ${episodePublicNote.id}.`, {
@@ -215,6 +289,10 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       id: episodePublicNote.id!,
       statusColumn: copy.statusColumn,
       version: episodePublicNote.version,
+      alsoSet: getUpdateNotificationCoveredByPost({
+        note: episodePublicNote,
+        trigger: trigger,
+      }),
     });
 
     if (!claimed) {
@@ -1106,6 +1184,8 @@ ${episodePublicNote.note}`,
       status: StatusPageSubscriberNotificationStatus.Failed,
       message: (err as Error).message,
     });
+  } finally {
+    await projectSlot.release();
   }
 };
 
@@ -1184,6 +1264,14 @@ RunCron(
           },
           limit: LIMIT_MAX,
           skip: 0,
+          /*
+           * Oldest first, and each sent in full before the next: a state
+           * change or note queued before another reaches subscribers before it
+           * (the default order is newest first).
+           */
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
           select: {
             _id: true,
             // What the claim checks the row against (SubscriberNotificationClaim).
@@ -1191,6 +1279,8 @@ RunCron(
             note: true,
             incidentEpisodeId: true,
             projectId: true,
+            // An update notification this one covers (getUpdateNotificationCoveredByPost).
+            subscriberNotificationStatusOnNoteUpdated: true,
           },
         });
 
@@ -1252,6 +1342,14 @@ RunCron(
           },
           limit: LIMIT_MAX,
           skip: 0,
+          /*
+           * Oldest first, and each sent in full before the next: a state
+           * change or note queued before another reaches subscribers before it
+           * (the default order is newest first).
+           */
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
           select: {
             _id: true,
             // What the claim checks the row against (SubscriberNotificationClaim).

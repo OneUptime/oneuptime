@@ -2631,6 +2631,7 @@ describeSubscriberDelivery({
   },
   statusColumn: "subscriberNotificationStatusOnIncidentCreated",
   messageColumn: "subscriberNotificationStatusMessage",
+  claimedAtColumn: "subscriberNotificationClaimedAtOnIncidentCreated",
   claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
   update: IncidentService.updateOneById,
   feed: IncidentFeedService.createIncidentFeedItem,

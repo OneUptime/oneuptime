@@ -1948,6 +1948,37 @@ export default class Incident extends BaseModel {
   })
   public subscriberNotificationStatusMessage?: string = undefined;
 
+  /*
+   * When a subscriber job last claimed the 'incident created' notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Incident Created",
+    description:
+      "When a subscriber notification job last started sending the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnIncidentCreated?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2035,6 +2066,38 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public subscriberNotificationStatusMessageOnPostmortemPublished?: string =
+    undefined;
+
+  /*
+   * When a subscriber job last claimed the postmortem notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Postmortem Published",
+    description:
+      "When a subscriber notification job last started sending the notification about this incident's postmortem.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnPostmortemPublished?: Date =
     undefined;
 
   @ColumnAccessControl({
@@ -2977,6 +3040,12 @@ export default class Incident extends BaseModel {
    * matches statusPages all the same: the service writes it into the caller's
    * own update, and the column check that runs after the hook exempts computed
    * columns only on create.
+   *
+   * Not indexed. It is false on nearly every row, so an index cannot help the
+   * unscoped half of those queries, and the scoped half reaches its incidents
+   * through the IncidentStatusPage join table's statusPageId index. Building
+   * one would also have held the lock of the migration's ALTER TABLE on
+   * Incident - reads included - for as long as it took on a large table.
    */
   @ColumnAccessControl({
     create: [
@@ -3006,7 +3075,6 @@ export default class Incident extends BaseModel {
       Permission.EditProjectIncident,
     ],
   })
-  @Index()
   @TableColumn({
     isDefaultValueColumn: true,
     computed: true,
