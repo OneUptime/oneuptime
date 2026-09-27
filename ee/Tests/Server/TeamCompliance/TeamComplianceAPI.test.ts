@@ -19,6 +19,7 @@ import TeamComplianceSettingService from "Common/Server/Services/TeamComplianceS
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
 import UserCallService from "Common/Server/Services/UserCallService";
+import UserDiscordService from "Common/Server/Services/UserDiscordService";
 import UserEmailService from "Common/Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "Common/Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
@@ -309,6 +310,7 @@ let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
 let userSlackFindBy: jest.SpyInstance;
 let userMicrosoftTeamsFindBy: jest.SpyInstance;
+let userDiscordFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -335,6 +337,7 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userTelegramFindBy,
     userSlackFindBy,
     userMicrosoftTeamsFindBy,
+    userDiscordFindBy,
     userWebhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -430,6 +433,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userMicrosoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  userDiscordFindBy = jest
+    .spyOn(UserDiscordService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -565,6 +571,7 @@ interface StubRule {
   userTelegramId?: ObjectID | undefined;
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
+  userDiscordId?: ObjectID | undefined;
   userWhatsAppId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
 }
@@ -704,21 +711,23 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     ]);
   });
 
-  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams or a webhook now counts", async () => {
+  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams, Discord or a webhook now counts", async () => {
     /*
      * The old check read userCallId/userSmsId/userEmailId/userPushId off the
      * rule row and treated a row carrying none of them as no rule at all, so a
      * responder reachable only on Telegram, WhatsApp or a webhook was reported
      * non-compliant while the runtime was quite happily paging them. A false RED
-     * teaches admins to ignore the table, which is worse than no table. Slack
-     * and Microsoft Teams arrived after the fix and are staged alongside so the
-     * defect cannot return for the channels that never lived through it.
+     * teaches admins to ignore the table, which is worse than no table. Slack,
+     * Microsoft Teams and Discord arrived after the fix and are staged
+     * alongside so the defect cannot return for the channels that never lived
+     * through it.
      *
-     * All five channels are staged onto one user at once: whichever column the
+     * All six channels are staged onto one user at once: whichever column the
      * rule carries, the row is a rule.
      */
     const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
     const warn: StubSeverity = { id: ObjectID.generate(), name: "Warn" };
+    const notice: StubSeverity = { id: ObjectID.generate(), name: "Notice" };
 
     stage({
       settings: [
@@ -762,9 +771,16 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
           alertSeverityId: warn.id,
           userMicrosoftTeamsId: ObjectID.generate(),
         },
+        {
+          _id: "rule-discord",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+          alertSeverityId: notice.id,
+          userDiscordId: ObjectID.generate(),
+        },
       ],
       incidentSeverities: [critical, major, minor],
-      alertSeverities: [page, warn],
+      alertSeverities: [page, warn, notice],
     });
 
     const statuses: Array<Record<string, unknown>> = statusesOf(
@@ -779,7 +795,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     /*
      * The structural half of the fix. The three formerly-invisible channels were
      * invisible because they were never SELECTed; asserting that NONE of the
-     * nine is selected means no future edit can reintroduce a partial column
+     * ten is selected means no future edit can reintroduce a partial column
      * list and quietly start under-counting again.
      */
     stage({
@@ -804,6 +820,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       "userTelegramId",
       "userSlackId",
       "userMicrosoftTeamsId",
+      "userDiscordId",
       "userWhatsAppId",
       "userWebhookId",
     ]) {

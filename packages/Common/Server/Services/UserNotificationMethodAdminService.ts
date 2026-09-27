@@ -19,6 +19,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserDiscordService from "./UserDiscordService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
@@ -46,6 +47,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../Models/DatabaseModels/UserDiscord";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -908,6 +910,82 @@ export class UserNotificationMethodAdminService extends BaseService {
         },
         deleteRow: async (data: { methodId: ObjectID }): Promise<void> => {
           await UserMicrosoftTeamsService.deleteOneById({
+            id: data.methodId,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.Discord,
+        isAdminAddable: false,
+        modelType: UserDiscord,
+        list: async (data: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<Array<AdminNotificationMethodView>> => {
+          const rows: Array<UserDiscord> = await UserDiscordService.findBy({
+            query: { projectId: data.projectId, userId: data.userId },
+            /*
+             * The display name only — never discordUserId, which is the
+             * address the bot sends to. Same rule OnCallReadinessService
+             * follows.
+             */
+            select: {
+              _id: true,
+              discordUserName: true,
+              isVerified: true,
+              createdAt: true,
+            },
+            sort: { createdAt: SortOrder.Ascending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+
+          return rows.map((row: UserDiscord): AdminNotificationMethodView => {
+            return this.toView({
+              row: row,
+              methodType: ReadinessMethodType.Discord,
+              isAdminAddable: false,
+              identifier: row.discordUserName,
+              kind: MaskedIdentifierKind.Handle,
+              isVerified: row.isVerified,
+            });
+          });
+        },
+        findOwnedRow: async (data: {
+          methodId: ObjectID;
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<AdminNotificationMethodView | null> => {
+          const row: UserDiscord | null = await UserDiscordService.findOneBy({
+            query: {
+              _id: data.methodId,
+              projectId: data.projectId,
+              userId: data.userId,
+            },
+            select: {
+              _id: true,
+              discordUserName: true,
+              isVerified: true,
+            },
+            props: { isRoot: true },
+          });
+
+          return row
+            ? this.toView({
+                row: row,
+                methodType: ReadinessMethodType.Discord,
+                isAdminAddable: false,
+                identifier: row.discordUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              })
+            : null;
+        },
+        // UserDiscordService's delete hook removes the rules that point here.
+        deleteRow: async (data: { methodId: ObjectID }): Promise<void> => {
+          await UserDiscordService.deleteOneById({
             id: data.methodId,
             props: { isRoot: true },
           });

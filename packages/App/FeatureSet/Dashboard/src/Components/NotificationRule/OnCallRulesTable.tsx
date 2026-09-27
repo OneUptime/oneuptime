@@ -12,6 +12,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserSlack from "Common/Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "Common/Models/DatabaseModels/UserDiscord";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -91,7 +92,7 @@ export type SeverityForeignKeyColumn = "incidentSeverityId" | "alertSeverityId";
  * submits nothing and is refused.
  */
 export interface NotificationMethodChoice {
-  /* One of the nine channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook. */
+  /* One of the ten channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Discord, Webhook. */
   methodType: string;
   /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
   methodId: string;
@@ -128,10 +129,11 @@ type MethodForeignKeyColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userDiscordId"
   | "userWebhookId";
 
 interface MethodChannel {
-  /* One of the nine channel names OnCallReadinessService puts on the wire. */
+  /* One of the ten channel names OnCallReadinessService puts on the wire. */
   methodType: string;
   foreignKeyColumn: MethodForeignKeyColumn;
 }
@@ -145,6 +147,7 @@ const METHOD_CHANNELS: Array<MethodChannel> = [
   { methodType: "Telegram", foreignKeyColumn: "userTelegramId" },
   { methodType: "Slack", foreignKeyColumn: "userSlackId" },
   { methodType: "Microsoft Teams", foreignKeyColumn: "userMicrosoftTeamsId" },
+  { methodType: "Discord", foreignKeyColumn: "userDiscordId" },
   { methodType: "Webhook", foreignKeyColumn: "userWebhookId" },
 ];
 
@@ -224,7 +227,7 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
 };
 
 /*
- * The method projection for a table that is about SOMEBODY ELSE: the nine
+ * The method projection for a table that is about SOMEBODY ELSE: the ten
  * foreign keys, and not one column of the seven models behind them.
  *
  * THIS IS A SECOND DOOR INTO THE SAME ROOM, and it is not the one anybody
@@ -279,7 +282,7 @@ const UNRESOLVED_METHOD_LABEL: string =
 /*
  * The method cell for a table that is about somebody else, resolved from ids.
  *
- * Exactly one of the nine foreign keys is set on a rule, so the first one found
+ * Exactly one of the ten foreign keys is set on a rule, so the first one found
  * is the answer. The id is matched against the masked list REGARDLESS of
  * verification - see `isSelectableMethod` - because a rule pointing at a method
  * that has since become unverified is a real state, and the whole reason an
@@ -489,6 +492,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const [userMicrosoftTeamsAccounts, setUserMicrosoftTeamsAccounts] = useState<
     Array<UserMicrosoftTeams>
   >([]);
+  const [userDiscords, setUserDiscords] = useState<Array<UserDiscord>>([]);
   const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
@@ -535,6 +539,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userTelegrams: userTelegrams,
           userSlacks: userSlacks,
           userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+          userDiscords: userDiscords,
           userWebhooks: userWebhooks,
         })
       : getSuppliedDropdownOptions(props.notificationMethods || []);
@@ -568,6 +573,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userTelegrams: userTelegrams,
         userSlacks: userSlacks,
         userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+        userDiscords: userDiscords,
         userWebhooks: userWebhooks,
       });
 
@@ -1219,6 +1225,24 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         });
 
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
+
+      // Display name only; the Discord user id never reaches the browser.
+      const userDiscordList: ListResult<UserDiscord> = await ModelAPI.getList({
+        modelType: UserDiscord,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          userId: targetUserId!,
+          isVerified: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          discordUserName: true,
+        },
+        sort: {},
+      });
+
+      setUserDiscords(userDiscordList.data);
 
       /*
        * Webhooks are the one method with no verification step - there is no

@@ -1,5 +1,6 @@
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
@@ -30,7 +31,8 @@ import Permission from "../../../../../Types/Permission";
  *
  * On-call notification configuration - the rules themselves plus every channel
  * they can fire through (email, SMS, call, push, WhatsApp, Telegram, Slack,
- * Microsoft Teams, webhook) - is row-scoped to its owner by one mechanism:
+ * Microsoft Teams, Discord, webhook) - is row-scoped to its owner by one
+ * mechanism:
  *
  *   @TableAccessControl({ ... [Permission.CurrentUser] ... })
  *   @CurrentUserCanAccessRecordBy("userId")
@@ -41,7 +43,7 @@ import Permission from "../../../../../Types/Permission";
  * addCurrentUserScopeToQuery() rewrites the query to `userId = me`, and throws
  * NotAuthorizedException outright if the caller had explicitly named somebody
  * else. The FIRST group below is the standing proof that this still holds for a
- * plain member on all ten models.
+ * plain member on all eleven models.
  *
  * GAP D in Docs/Internal/Roadmap/OnCallNotificationReadiness.md was the consequence
  * for everybody else: a Project ADMIN was treated identically to a plain member
@@ -99,7 +101,7 @@ import Permission from "../../../../../Types/Permission";
  *     list. It is force-scoped for a member and unscoped for an admin. The
  *     ownership decorator was therefore never the thing scoping admins out -
  *     the absent permission entry was, which is why the rule table's fix is an
- *     entry in a list rather than a new gate, and why the nine methods stay
+ *     entry in a list rather than a new gate, and why the ten methods stay
  *     scoped purely by having no such entry.
  *
  *   - AdminReadableNotificationRuleModel below isolates the same shape on a
@@ -115,7 +117,7 @@ import Permission from "../../../../../Types/Permission";
  * production models, but a combination of verbs that none of them use.
  *
  * It is deliberately not a copy of any shipping model - not of the rule table,
- * whose four lists are all widened, and not of the nine methods, whose four
+ * whose four lists are all widened, and not of the ten methods, whose four
  * lists are all closed. Its job is to pin the mechanism - the scope lifts for
  * the operations whose list names a real permission and holds for the ones
  * whose list does not - so that the production assertions above it are testing
@@ -156,8 +158,8 @@ class AdminReadableNotificationRuleModel extends BaseModel {
 type ModelTypeUnderTest = { new (): BaseModel };
 
 /*
- * The nine channels a rule can fire through. They are nine copies of one
- * decorator shape, so every method assertion runs against all nine rather than
+ * The ten channels a rule can fire through. They are ten copies of one
+ * decorator shape, so every method assertion runs against all ten rather than
  * against a representative one - a widening applied to one of them is exactly
  * the kind of thing that survives review.
  */
@@ -170,16 +172,17 @@ const NOTIFICATION_METHOD_MODELS: Array<ModelTypeUnderTest> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserDiscord,
   UserWebhook,
 ];
 
 /*
  * Every model that makes up a user's on-call notification configuration.
  *
- * All ten behave identically for a plain member, which is what the first
+ * All eleven behave identically for a plain member, which is what the first
  * group asserts over this list. They diverge only in what an ADMINISTRATOR
  * sees, so the admin-facing groups below name UserNotificationRule separately
- * and iterate NOTIFICATION_METHOD_MODELS for the nine that stay closed.
+ * and iterate NOTIFICATION_METHOD_MODELS for the ten that stay closed.
  */
 const NOTIFICATION_CONFIG_MODELS: Array<ModelTypeUnderTest> = [
   UserNotificationRule,
@@ -198,7 +201,7 @@ const ROW_SCOPED_REQUEST_TYPES: Array<DatabaseRequestType> = [
  * the model equals itself; naming them independently means a change to a
  * shipping list has to be re-stated deliberately in a test.
  *
- * On the nine method models these names appear only inside a `not.toContain`.
+ * On the ten method models these names appear only inside a `not.toContain`.
  */
 const ADMIN_READ_GRANTS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -558,10 +561,10 @@ describe("GAP D closed - the rule table opens to a ProjectAdmin on every verb", 
   });
 });
 
-describe("GAP D closed on the rule table alone - the nine methods open to nobody", () => {
+describe("GAP D closed on the rule table alone - the ten methods open to nobody", () => {
   /*
    * THE BOUNDARY OF THE PHASE, AND THE PART MOST LIKELY TO BE "TIDIED UP"
-   * LATER, because nine models that differ from their sibling in all four
+   * LATER, because ten models that differ from their sibling in all four
    * lists look like an oversight rather than a decision.
    *
    * Two independent reasons keep them closed, and both have to be understood or
@@ -740,7 +743,7 @@ describe("TeamMember proves the mechanism - a listed admin permission lifts the 
      *
      * That is the whole of what the rule table gained, on a model that has
      * always shipped it - which is why the fix there was an entry in a list
-     * rather than a new gate, and equally why the nine method models stay
+     * rather than a new gate, and equally why the ten method models stay
      * closed by simply having no such entry. Nothing guards them beyond the
      * absence, so this group stays here as the independent statement of what
      * the absence is doing.
@@ -846,14 +849,14 @@ describe("TeamMember proves the mechanism - a listed admin permission lifts the 
 
 describe("the lift mechanism in isolation, on a throwaway model", () => {
   /*
-   * The production groups above assert what UserNotificationRule and the nine
+   * The production groups above assert what UserNotificationRule and the ten
    * methods DO; this group asserts what the framework does with any user-scoped
    * model, on a class whose lists match neither of them - all four widened on
    * the rule table, all four closed on the methods, two-of-four here.
    *
    * That mismatch is the point. If a future change to TenantPermission alters
    * the rule, this group fails on its own terms and says so, instead of the
-   * failure arriving disguised as ten models having drifted.
+   * failure arriving disguised as eleven models having drifted.
    */
 
   it("lifts the ownership scope for a ProjectAdmin on read and update", async () => {
@@ -993,7 +996,7 @@ describe("notification config model decorators", () => {
        * while "restoring the admin feature" - and re-adding it silently removes
        * the row scope that every column on the model depends on. Neither
        * ADMIN_READ_GRANTS nor ADMIN_WRITE_GRANTS belongs in any list on these
-       * nine; there is no verb on a notification method that an administrator
+       * ten; there is no verb on a notification method that an administrator
        * may perform on somebody else's row.
        */
       const model: BaseModel = new modelType();

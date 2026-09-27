@@ -4,6 +4,10 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import DiscordUtil from "../../../Server/Utils/Workspace/Discord/Discord";
+import { DiscordAPIError } from "../../../Server/Utils/Workspace/Discord/DiscordClient";
+import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
+import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -483,7 +487,7 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       await expect(
         WorkspaceUserNotificationService.sendDirectMessageToUser({
           projectId: PROJECT_ID,
-          workspaceType: "Discord" as unknown as WorkspaceType,
+          workspaceType: "Mattermost" as unknown as WorkspaceType,
           workspaceUserId: "someone",
           messageBlocks: markdownBlocks(),
         }),
@@ -492,5 +496,145 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       expect(slackSend).not.toHaveBeenCalled();
       expect(teamsSend).not.toHaveBeenCalled();
     });
+  });
+});
+
+/*
+ * HOM-44, written before the Discord branch existed. Discord differs from
+ * Slack/Teams in one load-bearing way: its account links are tombstoned in
+ * place and can be relinked to a different Discord account with a raw write
+ * that fires no hook. So every Discord send re-reads the user's LIVE link and
+ * refuses unless it still names the stored Discord user id - a stale method
+ * must page nobody rather than the previous account.
+ */
+describe("WorkspaceUserNotificationService.sendDirectMessageToUser for Discord", () => {
+  const DISCORD_USER_ID: string = "100000000000000003";
+  let discordSend: jest.SpyInstance;
+  let getUserAuth: jest.SpyInstance;
+  let updateTimeline: jest.SpyInstance;
+
+  function link(
+    overrides: Partial<WorkspaceUserAuthToken> = {},
+  ): WorkspaceUserAuthToken {
+    return {
+      workspaceUserId: DISCORD_USER_ID,
+      authToken: "discord-verified-identity",
+      ...overrides,
+    } as unknown as WorkspaceUserAuthToken;
+  }
+
+  function send(extra: Record<string, unknown> = {}): Promise<void> {
+    return WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Discord,
+      workspaceUserId: DISCORD_USER_ID,
+      messageBlocks: markdownBlocks(),
+      userId: USER_ID,
+      userOnCallLogTimelineId: TIMELINE_ID,
+      ...extra,
+    });
+  }
+
+  function timelineUpdate(): { status: string; statusMessage: string } {
+    return (
+      updateTimeline.mock.calls[0][0] as {
+        data: { status: string; statusMessage: string };
+      }
+    ).data;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(projectAuth() as never);
+    jest
+      .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
+      .mockResolvedValue({} as never);
+    updateTimeline = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    discordSend = jest
+      .spyOn(DiscordUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(undefined as never);
+    getUserAuth = jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(link() as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a live matching link sends through DiscordUtil with the PROJECT bot token", async () => {
+    await send();
+
+    const lookup: {
+      projectId: ObjectID;
+      userId: ObjectID;
+      workspaceType: WorkspaceType;
+    } = getUserAuth.mock.calls[0][0] as {
+      projectId: ObjectID;
+      userId: ObjectID;
+      workspaceType: WorkspaceType;
+    };
+    expect(lookup.workspaceType).toBe(WorkspaceType.Discord);
+    expect(lookup.userId.toString()).toBe(USER_ID.toString());
+    const arg: { authToken: string; workspaceUserId: string } = discordSend.mock
+      .calls[0][0] as { authToken: string; workspaceUserId: string };
+    expect(arg.authToken).toBe(BOT_TOKEN);
+    expect(arg.workspaceUserId).toBe(DISCORD_USER_ID);
+    expect(timelineUpdate().status).toBe(UserNotificationStatus.Sent);
+    expect(timelineUpdate().statusMessage).toContain("Discord");
+  });
+
+  test("a send with no OneUptime user id is refused - the link cannot be checked", async () => {
+    await expect(send({ userId: undefined })).rejects.toThrow(BadDataException);
+    expect(discordSend).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["removed", null],
+    ["tombstoned", { deletedAt: new Date() }],
+    ["credential-cleared", { authToken: "" }],
+    ["relinked to another account", { workspaceUserId: "199999999999999999" }],
+  ])(
+    "a link %s pages nobody and records Error",
+    async (_label: string, overrides: unknown) => {
+      getUserAuth.mockResolvedValue(
+        (overrides === null
+          ? null
+          : link(overrides as Partial<WorkspaceUserAuthToken>)) as never,
+      );
+
+      await expect(send()).rejects.toThrow(
+        "no longer matches your linked Discord account",
+      );
+      expect(discordSend).not.toHaveBeenCalled();
+      expect(timelineUpdate().status).toBe(UserNotificationStatus.Error);
+    },
+  );
+
+  test("a Discord 403 is reported as a refused direct message, never as sent", async () => {
+    discordSend.mockRejectedValue(new DiscordAPIError(403) as never);
+
+    await expect(send()).rejects.toThrow("Discord refused the direct message");
+    expect(timelineUpdate().status).toBe(UserNotificationStatus.Error);
+    expect(timelineUpdate().statusMessage).toContain(
+      "Discord refused the direct message",
+    );
+  });
+
+  test("an ambiguous transport failure keeps its own delivery-unknown message", async () => {
+    discordSend.mockRejectedValue(
+      new BadDataException(
+        "Discord API transport failed; delivery is unknown.",
+      ) as never,
+    );
+
+    await expect(send()).rejects.toThrow("delivery is unknown");
+    expect(timelineUpdate().statusMessage).toContain("delivery is unknown");
   });
 });

@@ -1,4 +1,5 @@
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
@@ -40,9 +41,10 @@ import { describe, expect, test } from "@jest/globals";
  * decide it: a member with no matching rule was silently unpageable, and the
  * only person able to notice was the person who was not being notified.
  *
- * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The nine
+ * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The ten
  * notification-method models - UserEmail, UserSMS, UserCall, UserPush,
- * UserWhatsApp, UserTelegram, UserSlack, UserMicrosoftTeams, UserWebhook -
+ * UserWhatsApp, UserTelegram, UserSlack, UserMicrosoftTeams, UserDiscord,
+ * UserWebhook -
  * stay CurrentUser-only on every verb, so an administrator reading one of THEM
  * is refused exactly like any other member. That split is not a leftover; it
  * is the design, and it is the design because the alternative was tried and
@@ -80,7 +82,7 @@ import { describe, expect, test } from "@jest/globals";
  *
  *   - the rule table lifts for an administrator and not for a plain member, on
  *     all four verbs;
- *   - the nine method models lift for NOBODY on ANY verb, and the read case is
+ *   - the ten method models lift for NOBODY on ANY verb, and the read case is
  *     asserted in both directions because it is the one that shipped widened
  *     once already;
  *   - the rule's method FK id columns are admin-readable while the method
@@ -150,9 +152,9 @@ const NEW_GRANULAR_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * The nine notification methods a rule can point at. Every method assertion
- * runs against all nine rather than against a representative one: they are
- * nine copies of one decorator shape, and a widening applied to one of them is
+ * The ten notification methods a rule can point at. Every method assertion
+ * runs against all ten rather than against a representative one: they are
+ * ten copies of one decorator shape, and a widening applied to one of them is
  * exactly the kind of thing that survives review.
  */
 const METHOD_MODELS: Array<[string, ModelConstructor]> = [
@@ -164,6 +166,7 @@ const METHOD_MODELS: Array<[string, ModelConstructor]> = [
   ["UserTelegram", UserTelegram],
   ["UserSlack", UserSlack],
   ["UserMicrosoftTeams", UserMicrosoftTeams],
+  ["UserDiscord", UserDiscord],
   ["UserWebhook", UserWebhook],
 ];
 
@@ -483,10 +486,10 @@ describe("the rule table - an administrator's row scope lifts, a member's does n
   });
 });
 
-describe("the nine methods - an administrator may not look either", () => {
+describe("the ten methods - an administrator may not look either", () => {
   /*
    * THE CORE DECISION OF THIS PHASE AS IT FINALLY SHIPPED, AND THE ONE MOST
-   * LIKELY TO BE "TIDIED UP" LATER, because nine models that differ from their
+   * LIKELY TO BE "TIDIED UP" LATER, because ten models that differ from their
    * sibling in all four lists look like an oversight rather than a decision.
    *
    * The read half of these lists was widened once and then reverted. The reason
@@ -1257,8 +1260,9 @@ describe("the credentials behind a notification method, guarded by the table sco
    * credentials - anyone holding them can impersonate OneUptime to the member's
    * endpoint), the push device token, the Telegram chat id an unverified bot
    * message can be addressed to, the verification code that turns possession
-   * of that chat id into a verified method, and the Slack member id and
-   * Microsoft Teams user id the project's workspace bots deliver direct
+   * of that chat id into a verified method, and the Slack member id,
+   * Microsoft Teams user id and Discord user id (plus the Discord username,
+   * which is owner-only too) the project's workspace bots deliver direct
    * messages to.
    */
 
@@ -1275,6 +1279,8 @@ describe("the credentials behind a notification method, guarded by the table sco
     ["UserTelegram", "verificationCode", UserTelegram],
     ["UserSlack", "slackUserId", UserSlack],
     ["UserMicrosoftTeams", "microsoftTeamsUserId", UserMicrosoftTeams],
+    ["UserDiscord", "discordUserId", UserDiscord],
+    ["UserDiscord", "discordUserName", UserDiscord],
   ];
 
   test.each(CREDENTIAL_COLUMNS)(
@@ -1384,8 +1390,8 @@ describe("the rule relation - an administrator reads the FK, never the method be
    *
    * Neither check can see the query, so neither can tell whose row this is.
    * That leaves the outer column list as the only place the decision can be
-   * made, and it is why the nine method RELATION columns on
-   * UserNotificationRule are `read: [Permission.CurrentUser]` while the nine
+   * made, and it is why the ten method RELATION columns on
+   * UserNotificationRule are `read: [Permission.CurrentUser]` while the ten
    * FK ID columns beside them are admin-readable. The pairing is the design in
    * one line: an administrator may learn WHICH method a rule points at, and may
    * re-point it at a different one, without ever learning what the method IS.
@@ -1408,6 +1414,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     "userTelegramId",
     "userSlackId",
     "userMicrosoftTeamsId",
+    "userDiscordId",
     "userWebhookId",
   ];
 
@@ -1425,6 +1432,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     ["userTelegram", "telegramChatId"],
     ["userSlack", "slackUserId"],
     ["userMicrosoftTeams", "microsoftTeamsUserId"],
+    ["userDiscord", "discordUserId"],
     ["userWebhook", "webhookUrl"],
   ];
 
@@ -1433,7 +1441,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     async (grant: Permission): Promise<void> => {
       /*
        * The capability half, and it has to pass or the refusal below has taken
-       * the feature with it. Selecting all nine ids at once rather than one
+       * the feature with it. Selecting all ten ids at once rather than one
        * representative, because the admin surface renders the whole row and a
        * single narrowed column would break the page while six tests still
        * passed.
@@ -1504,6 +1512,38 @@ describe("the rule relation - an administrator reads the FK, never the method be
     }
 
     expect(leaked).toEqual([]);
+  });
+
+  test("an administrator selecting the Discord username through userDiscord is refused", async () => {
+    /*
+     * The username is the Discord label, not the DM target, but it names the
+     * person on an outside server and is owner-only for that reason. An admin
+     * gets the masked copy from OnCallReadinessService, never this join.
+     */
+    for (const grant of ADMIN_READ_GRANTS) {
+      const select: Select<BaseModel> = {
+        userDiscord: { discordUserName: true },
+      } as Select<BaseModel>;
+
+      let refused: boolean = false;
+
+      try {
+        await BasePermission.checkPermissions(
+          UserNotificationRule,
+          { userId: OTHER_USER_ID } as Query<BaseModel>,
+          select,
+          tenantProps(grant),
+          DatabaseRequestType.Read,
+        );
+      } catch {
+        refused = true;
+      }
+
+      expect(
+        refused ||
+          (select as Record<string, unknown>)["userDiscord"] === undefined,
+      ).toBe(true);
+    }
   });
 
   test("a member selecting a method's fields through the relation on their OWN rules still works", async () => {

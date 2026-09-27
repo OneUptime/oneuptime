@@ -9,6 +9,7 @@ import MailService from "../../../Server/Services/MailService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -22,6 +23,7 @@ import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -85,6 +87,8 @@ const RAW_PHONE: string = "+14155554821";
 const RAW_TELEGRAM_HANDLE: string = "@janeops_oncall";
 const RAW_SLACK_USERNAME: string = "ops.jane.slack";
 const RAW_TEAMS_USERNAME: string = "Jane Ops (Teams)";
+const RAW_DISCORD_USERNAME: string = "jane.ops.discord";
+const RAW_DISCORD_USER_ID: string = "412345678901234567";
 const RAW_WEBHOOK_NAME: string = "payments-hook";
 const RAW_DEVICE_NAME: string = "Jane's iPhone";
 
@@ -94,6 +98,8 @@ const ALL_RAW_VALUES: Array<string> = [
   RAW_TELEGRAM_HANDLE,
   RAW_SLACK_USERNAME,
   RAW_TEAMS_USERNAME,
+  RAW_DISCORD_USERNAME,
+  RAW_DISCORD_USER_ID,
   RAW_WEBHOOK_NAME,
   RAW_DEVICE_NAME,
 ];
@@ -116,6 +122,7 @@ let pushFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
 let slackFindBy: jest.SpyInstance;
 let microsoftTeamsFindBy: jest.SpyInstance;
+let discordFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 
 let emailCreate: jest.SpyInstance;
@@ -127,6 +134,8 @@ let slackFindOneBy: jest.SpyInstance;
 let slackDelete: jest.SpyInstance;
 let microsoftTeamsFindOneBy: jest.SpyInstance;
 let microsoftTeamsDelete: jest.SpyInstance;
+let discordFindOneBy: jest.SpyInstance;
+let discordDelete: jest.SpyInstance;
 let deletionImpact: jest.SpyInstance;
 
 function props(): DatabaseCommonInteractionProps {
@@ -218,6 +227,16 @@ function buildMicrosoftTeamsRow(): UserMicrosoftTeams {
   row.projectId = projectId;
   row.userId = targetUserId;
   row.microsoftTeamsUserName = RAW_TEAMS_USERNAME;
+  row.isVerified = true;
+  return row;
+}
+
+function buildDiscordRow(): UserDiscord {
+  const row: UserDiscord = new UserDiscord();
+  row._id = ObjectID.generate().toString();
+  row.projectId = projectId;
+  row.userId = targetUserId;
+  row.discordUserName = RAW_DISCORD_USERNAME;
   row.isVerified = true;
   return row;
 }
@@ -330,6 +349,9 @@ beforeEach(() => {
   microsoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
     .mockResolvedValue([buildMicrosoftTeamsRow()] as never);
+  discordFindBy = jest
+    .spyOn(UserDiscordService, "findBy")
+    .mockResolvedValue([buildDiscordRow()] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
     .mockResolvedValue([buildWebhookRow()] as never);
@@ -350,6 +372,9 @@ beforeEach(() => {
   microsoftTeamsFindOneBy = jest
     .spyOn(UserMicrosoftTeamsService, "findOneBy")
     .mockResolvedValue(buildMicrosoftTeamsRow() as never);
+  discordFindOneBy = jest
+    .spyOn(UserDiscordService, "findOneBy")
+    .mockResolvedValue(buildDiscordRow() as never);
   jest.spyOn(UserWebhookService, "findOneBy").mockResolvedValue(null as never);
 
   emailCreate = jest
@@ -396,6 +421,10 @@ beforeEach(() => {
     .spyOn(UserMicrosoftTeamsService, "deleteOneById")
     .mockResolvedValue(undefined as never);
 
+  discordDelete = jest
+    .spyOn(UserDiscordService, "deleteOneById")
+    .mockResolvedValue(undefined as never);
+
   smsResend = jest
     .spyOn(UserSmsService, "resendVerificationCode")
     .mockResolvedValue(undefined as never);
@@ -428,7 +457,7 @@ describe("listing", () => {
         userId: targetUserId,
       });
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(8);
 
     /*
      * The real maskIdentifier, not a stub, so these are the exact shapes an
@@ -449,12 +478,16 @@ describe("listing", () => {
     expect(
       viewFor(methods, ReadinessMethodType.MicrosoftTeams).maskedIdentifier,
     ).toBe(`Ja${IDENTIFIER_MASK}`);
+    expect(viewFor(methods, ReadinessMethodType.Discord).maskedIdentifier).toBe(
+      `ja${IDENTIFIER_MASK}`,
+    );
 
     // Born verified: the OAuth workspace link IS the verification.
     expect(viewFor(methods, ReadinessMethodType.Slack).isVerified).toBe(true);
     expect(
       viewFor(methods, ReadinessMethodType.MicrosoftTeams).isVerified,
     ).toBe(true);
+    expect(viewFor(methods, ReadinessMethodType.Discord).isVerified).toBe(true);
 
     /*
      * Scanned as a whole rather than field by field, so a view that grew a raw
@@ -504,6 +537,10 @@ describe("listing", () => {
     expect(teamsSelect.microsoftTeamsUserId).toBeUndefined();
     expect(teamsSelect.microsoftTeamsUserName).toBe(true);
 
+    const discordSelect: any = discordFindBy.mock.calls[0]![0].select;
+    expect(discordSelect.discordUserId).toBeUndefined();
+    expect(discordSelect.discordUserName).toBe(true);
+
     // Verification codes are live account-takeover material. Never selected.
     for (const spy of [emailFindBy, smsFindBy, callFindBy, whatsAppFindBy]) {
       const select: any = spy.mock.calls[0]![0].select;
@@ -523,6 +560,7 @@ describe("listing", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      discordFindBy,
       webhookFindBy,
     ]) {
       const call: any = spy.mock.calls[0]![0];
@@ -563,6 +601,9 @@ describe("listing", () => {
     expect(
       viewFor(methods, ReadinessMethodType.MicrosoftTeams).isAdminAddable,
     ).toBe(false);
+    expect(viewFor(methods, ReadinessMethodType.Discord).isAdminAddable).toBe(
+      false,
+    );
     expect(viewFor(methods, ReadinessMethodType.Webhook).isAdminAddable).toBe(
       false,
     );
@@ -613,6 +654,7 @@ describe("adding", () => {
       "Telegram",
       "Slack",
       "Microsoft Teams",
+      "Discord",
       "Webhook",
       "Carrier Pigeon",
     ]) {
@@ -934,6 +976,56 @@ describe("removing", () => {
     expectNothingRawIn(mail.vars);
   });
 
+  test("deletes a Discord account through its own service, scoped to the target", async () => {
+    const discordMethodId: ObjectID = ObjectID.generate();
+
+    await UserNotificationMethodAdminService.deleteMethodForUser({
+      projectId: projectId,
+      targetUserId: targetUserId,
+      actorUserId: actorUserId,
+      methodType: "Discord",
+      methodId: discordMethodId,
+      props: props(),
+    });
+
+    expect(discordDelete).toHaveBeenCalled();
+    expect(discordDelete.mock.calls[0]![0].id.toString()).toBe(
+      discordMethodId.toString(),
+    );
+
+    const lookup: any = discordFindOneBy.mock.calls[0]![0];
+    expect(lookup.query._id.toString()).toBe(discordMethodId.toString());
+    expect(lookup.query.projectId.toString()).toBe(projectId.toString());
+    expect(lookup.query.userId.toString()).toBe(targetUserId.toString());
+    expect(lookup.select.discordUserId).toBeUndefined();
+
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    const mail: any = mailSpy.mock.calls[0]![0];
+
+    expect(mail.vars.message).toContain(`ja${IDENTIFIER_MASK}`);
+    expectNothingRawIn(mail.vars);
+  });
+
+  test("refuses a Discord method that belongs to somebody else", async () => {
+    discordFindOneBy.mockResolvedValue(null as never);
+
+    await expect(
+      UserNotificationMethodAdminService.deleteMethodForUser({
+        projectId: projectId,
+        targetUserId: targetUserId,
+        actorUserId: actorUserId,
+        methodType: "Discord",
+        methodId: ObjectID.generate(),
+        props: props(),
+      }),
+    ).rejects.toThrow();
+
+    expect(discordDelete).not.toHaveBeenCalled();
+  });
+
   test("refuses a Slack method that belongs to somebody else", async () => {
     slackFindOneBy.mockResolvedValue(null as never);
 
@@ -1095,7 +1187,7 @@ describe("resending a verification code", () => {
   });
 
   test("refuses the workspace channels - the OAuth link is the verification, there is no code", async () => {
-    for (const methodType of ["Slack", "Microsoft Teams"]) {
+    for (const methodType of ["Slack", "Microsoft Teams", "Discord"]) {
       await expect(
         UserNotificationMethodAdminService.resendVerificationCodeForUser({
           projectId: projectId,

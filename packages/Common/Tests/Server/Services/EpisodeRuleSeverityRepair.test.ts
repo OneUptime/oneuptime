@@ -160,8 +160,11 @@ const EMAIL_METHOD_ID: ObjectID = new ObjectID(
 const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
   "ccccccc2-cccc-4ccc-8ccc-cccccccccccc",
 );
+const DISCORD_METHOD_ID: ObjectID = new ObjectID(
+  "ccccccc3-cccc-4ccc-8ccc-cccccccccccc",
+);
 
-/* The nine FK columns a rule can name a notification method through. */
+/* The ten FK columns a rule can name a notification method through. */
 type MethodColumn =
   | "userEmailId"
   | "userSmsId"
@@ -170,6 +173,7 @@ type MethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userDiscordId"
   | "userWebhookId"
   | "userPushId";
 
@@ -181,6 +185,7 @@ const ALL_METHOD_COLUMNS: Array<MethodColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userDiscordId",
   "userWebhookId",
   "userPushId",
 ];
@@ -1023,6 +1028,39 @@ describe("GAP G half 2 - RepairEpisodeNotificationRuleSeverity", () => {
 
         for (const column of ALL_METHOD_COLUMNS) {
           if (column === "userTelegramId") {
+            continue;
+          }
+          expect(rule[column]).toBeUndefined();
+        }
+      }
+    });
+
+    test("a Discord-only rule is repaired, and every replacement keeps userDiscordId", async () => {
+      /*
+       * The method columns are copied onto the replacements one by one. A
+       * column missing from that copy (or from the read's select) turns a
+       * Discord rule into "carries no notification method" and it is skipped
+       * instead of repaired - still matching no page.
+       */
+      table = [
+        nullAlertEpisodeRule({
+          methodColumn: "userDiscordId",
+          methodId: DISCORD_METHOD_ID,
+        }),
+      ];
+
+      await runMigration();
+
+      expect(createdRules()).toHaveLength(ALERT_SEVERITY_IDS.length);
+      expect(deletedRuleIds()).toEqual([NULL_ALERT_EPISODE_ID.toString()]);
+
+      for (const rule of createdRules()) {
+        expect(rule.userDiscordId!.toString()).toBe(
+          DISCORD_METHOD_ID.toString(),
+        );
+
+        for (const column of ALL_METHOD_COLUMNS) {
+          if (column === "userDiscordId") {
             continue;
           }
           expect(rule[column]).toBeUndefined();

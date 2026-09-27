@@ -2,6 +2,7 @@ import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Service
 import OnCallNotificationAlertingService from "../../../Server/Services/OnCallNotificationAlertingService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
@@ -46,10 +47,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * silently wrong:
  *
  *   1. WHICH CHANNELS. Zero-cost first: a responder with any of a verified push
- *      device, a verified email, a linked Slack account or a linked Microsoft
- *      Teams account gets ALL of those they have, because there is no reason to
- *      choose and none of them costs the project anything. Only a responder
- *      with none of the four is worth spending money on, and then exactly once,
+ *      device, a verified email, a linked Slack account, a linked Microsoft
+ *      Teams account or a linked Discord account gets ALL of those they have,
+ *      because there is no reason to choose and none of them costs the project
+ *      anything. Only a responder with none of the five is worth spending money
+ *      on, and then exactly once,
  *      down the ladder
  *      SMS -> Call -> WhatsApp -> Telegram -> Webhook - and only through
  *      channels the PROJECT still has switched on. That last clause is the one
@@ -136,6 +138,9 @@ const SLACK_METHOD_ID: ObjectID = new ObjectID(
 const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
   "a9a9a9a9-a9a9-4a9a-8a9a-a9a9a9a9a9a9",
 );
+const DISCORD_METHOD_ID: ObjectID = new ObjectID(
+  "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
+);
 
 const RESPONDER_EMAIL: string = "responder@company.com";
 const SEVERITY_NAME: string = "Sev4";
@@ -190,8 +195,8 @@ function makeVerifiedEmail(): Record<string, unknown> {
 }
 
 /*
- * Slack and Microsoft Teams rows are born verified - they come from the user's
- * own OAuth workspace link, not a verification-code flow - but the fallback
+ * Slack, Microsoft Teams and Discord rows are born verified - they come from
+ * the user's own OAuth workspace link, not a verification-code flow - but the fallback
  * still queries on isVerified, so the fixtures carry it.
  */
 function makeVerifiedSlack(): Record<string, unknown> {
@@ -210,6 +215,16 @@ function makeVerifiedMicrosoftTeams(): Record<string, unknown> {
     _id: MICROSOFT_TEAMS_METHOD_ID.toString(),
     microsoftTeamsUserId: "teams-user-1",
     microsoftTeamsUserName: RESPONDER_NAME,
+    isVerified: true,
+  };
+}
+
+function makeVerifiedDiscord(): Record<string, unknown> {
+  return {
+    id: DISCORD_METHOD_ID,
+    _id: DISCORD_METHOD_ID.toString(),
+    discordUserId: "123456789012345678",
+    discordUserName: "responder",
     isVerified: true,
   };
 }
@@ -345,6 +360,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
   let emailFindSpy: jest.SpyInstance;
   let slackFindSpy: jest.SpyInstance;
   let microsoftTeamsFindSpy: jest.SpyInstance;
+  let discordFindSpy: jest.SpyInstance;
   let smsFindSpy: jest.SpyInstance;
   let callFindSpy: jest.SpyInstance;
   let whatsAppFindSpy: jest.SpyInstance;
@@ -390,6 +406,9 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       .mockResolvedValue(null as never);
     microsoftTeamsFindSpy = jest
       .spyOn(UserMicrosoftTeamsService, "findOneBy")
+      .mockResolvedValue(null as never);
+    discordFindSpy = jest
+      .spyOn(UserDiscordService, "findOneBy")
       .mockResolvedValue(null as never);
     smsFindSpy = jest
       .spyOn(UserSmsService, "findOneBy")
@@ -558,19 +577,40 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       expect(webhookFindSpy).not.toHaveBeenCalled();
     });
 
-    test("a responder with push, email, Slack AND Microsoft Teams gets ALL FOUR, in this order", async () => {
+    test('a verified Discord account alone is chosen, as "Discord", with the relation AND the FK', async () => {
+      const discord: Record<string, unknown> = makeVerifiedDiscord();
+      discordFindSpy.mockResolvedValue(discord as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Discord"]);
+      expect(result.notified).toBe(true);
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+
+      const rule: UserNotificationRule = deliveredRules()[0]!;
+      expect(rule.userDiscord).toBe(discord);
+      expect(rule.userDiscordId!.toString()).toBe(DISCORD_METHOD_ID.toString());
+
+      for (const spy of everyPaidChannelFindSpy()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(webhookFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("a responder with push, email, Slack, Microsoft Teams AND Discord gets ALL FIVE, in this order", async () => {
       pushFindSpy.mockResolvedValue(makeVerifiedPush() as never);
       emailFindSpy.mockResolvedValue(makeVerifiedEmail() as never);
       slackFindSpy.mockResolvedValue(makeVerifiedSlack() as never);
       microsoftTeamsFindSpy.mockResolvedValue(
         makeVerifiedMicrosoftTeams() as never,
       );
+      discordFindSpy.mockResolvedValue(makeVerifiedDiscord() as never);
 
       const result: FallbackNotificationResult = await runFallback();
 
       /*
        * The zero-cost tier takes everything present, never a subset: none of
-       * the four costs the project anything, so there is no reason to pick
+       * the five costs the project anything, so there is no reason to pick
        * between them and every reason to maximise the chance of reaching a
        * human wherever they happen to be looking.
        */
@@ -579,11 +619,12 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
         "Email",
         "Slack",
         "Microsoft Teams",
+        "Discord",
       ]);
       expect(result.notified).toBe(true);
       expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
-      // Four channels, four delivery calls, each with its own rule.
-      expect(deliverSpy).toHaveBeenCalledTimes(4);
+      // Five channels, five delivery calls, each with its own rule.
+      expect(deliverSpy).toHaveBeenCalledTimes(5);
       for (const spy of everyPaidChannelFindSpy()) {
         expect(spy).not.toHaveBeenCalled();
       }
@@ -659,6 +700,38 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       );
       expect((query["userId"] as ObjectID).toString()).toBe(USER_ID.toString());
       expect(query["isVerified"]).toBe(true);
+    });
+
+    test("the Discord lookup is scoped to this project, this user, and verified accounts only", async () => {
+      discordFindSpy.mockResolvedValue(makeVerifiedDiscord() as never);
+
+      await runFallback();
+
+      const query: Record<string, unknown> = queryOf(discordFindSpy);
+      expect((query["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect((query["userId"] as ObjectID).toString()).toBe(USER_ID.toString());
+      expect(query["isVerified"]).toBe(true);
+    });
+
+    test("the Discord lookup selects the snowflake the DM is addressed to", async () => {
+      discordFindSpy.mockResolvedValue(makeVerifiedDiscord() as never);
+
+      await runFallback();
+
+      /*
+       * The Discord channel block reads userDiscord.discordUserId and
+       * isVerified off the relation. A select that left either out would load
+       * a row that delivery then silently skips.
+       */
+      const select: Record<string, unknown> = (
+        discordFindSpy.mock.calls[0]![0] as FindOneByArg
+      ).select;
+      expect(select["_id"]).toBe(true);
+      expect(select["discordUserId"]).toBe(true);
+      expect(select["discordUserName"]).toBe(true);
+      expect(select["isVerified"]).toBe(true);
     });
   });
 
@@ -852,6 +925,20 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       expect(projectFindSpy).not.toHaveBeenCalled();
       expect(smsFindSpy).not.toHaveBeenCalled();
     });
+
+    test("a Discord account alone keeps the paid ladder shut too", async () => {
+      discordFindSpy.mockResolvedValue(makeVerifiedDiscord() as never);
+      giveResponderEveryPaidMethod();
+      projectFindSpy.mockResolvedValue(
+        makeProject({ [SMS_FLAG]: true }) as never,
+      );
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Discord"]);
+      expect(projectFindSpy).not.toHaveBeenCalled();
+      expect(smsFindSpy).not.toHaveBeenCalled();
+    });
   });
 
   /*
@@ -978,6 +1065,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
           rule.userTelegram,
           rule.userSlack,
           rule.userMicrosoftTeams,
+          rule.userDiscord,
           rule.userWebhook,
         ].filter((method: unknown): boolean => {
           return Boolean(method);

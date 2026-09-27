@@ -185,6 +185,7 @@ import IncidentOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -215,6 +216,7 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserDiscord,
   UserWebhook,
 ];
 
@@ -256,6 +258,7 @@ const METHOD_FOREIGN_KEYS: Array<keyof UserNotificationRule> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userDiscordId",
   "userWebhookId",
 ];
 
@@ -374,6 +377,7 @@ const METHOD_RELATIONS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userDiscord",
   "userWebhook",
 ];
 
@@ -823,6 +827,29 @@ describe("OnCallRulesTable", () => {
     ]);
   });
 
+  test("points a supplied Discord method at userDiscordId", async () => {
+    const discordId: string = "00000000-0000-4000-8000-0000000000d4";
+
+    await renderForOtherUser([
+      ...SUPPLIED_METHODS,
+      {
+        methodType: "Discord",
+        methodId: discordId,
+        maskedIdentifier: "al•••",
+        isVerified: true,
+      },
+    ]);
+
+    const created: UserNotificationRule =
+      await capturedTables[0]!.onBeforeCreate(new UserNotificationRule(), {
+        notificationMethod: discordId,
+      });
+
+    expect(getMethodColumnsSet(created)).toEqual([
+      { column: "userDiscordId", value: discordId },
+    ]);
+  });
+
   test("sets no method at all for an id it was never handed", async () => {
     await renderForOtherUser(SUPPLIED_METHODS);
 
@@ -976,7 +1003,7 @@ describe("OnCallRulesTable", () => {
   test("the signed-in user's own table still reads the method models itself", async () => {
     /*
      * The regression surface. Four settings pages every existing user already
-     * relies on read their own nine models to fill this dropdown, and reading
+     * relies on read their own method models to fill this dropdown, and reading
      * your own rows is exactly what those models allow. Nothing about the admin
      * surface is a reason to change it - and an unmasked label is more use to
      * somebody looking at their own phone number than a mask of it.
@@ -993,7 +1020,7 @@ describe("OnCallRulesTable", () => {
       getQueriedUserIds().filter((userId: string | undefined) => {
         return userId === CURRENT_USER_ID_STRING;
       }),
-    ).toHaveLength(9);
+    ).toHaveLength(NOTIFICATION_METHOD_MODELS.length);
 
     expect(getMethodOptions(capturedTables[0]!)).toEqual([
       { label: `Email: ${OWN_EMAIL_ADDRESS}`, value: OWN_EMAIL_ID },

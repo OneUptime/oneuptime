@@ -217,6 +217,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
@@ -253,6 +254,7 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserDiscord,
   UserWebhook,
 ];
 
@@ -854,6 +856,7 @@ describe("adding a method on somebody's behalf", () => {
       "Telegram",
       "Slack",
       "Microsoft Teams",
+      "Discord",
       "Webhook",
     ]) {
       expect(optionLabels).not.toContain(forbidden);
@@ -1359,6 +1362,7 @@ describe("the self-serve view", () => {
 
     expect(mountedTableModels).toContain(UserSlack);
     expect(mountedTableModels).toContain(UserMicrosoftTeams);
+    expect(mountedTableModels).toContain(UserDiscord);
 
     await openTab("Push Notifications");
 

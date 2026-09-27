@@ -12,6 +12,7 @@ import UserNotificationRuleService, {
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
@@ -76,7 +77,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *       a user id is global.
  *   R3  a rule's method FK must point at a method row owned by the rule's own
  *       user - on create, on update, through the FK column and through the
- *       relation slot, on every one of the nine channels, and on update with
+ *       relation slot, on every one of the ten channels, and on update with
  *       the owner re-read from the DATABASE because the body is written by the
  *       party under suspicion.
  *   R6  the audit line and the owner's warning email are keyed on the actor the
@@ -137,14 +138,14 @@ const ADMIN_EMAIL: string = "ada.admin@example.test";
 const VICTIM_EMAIL: string = "vic.responder@example.test";
 
 /*
- * The nine channels, each named by the FK column that carries it, the relation
+ * The ten channels, each named by the FK column that carries it, the relation
  * slot that is the same write spelled differently, the service the guard has to
  * consult for that channel's owner, and the word that must appear in the
  * refusal so an operator can tell WHICH method was wrong.
  *
  * Everything about method ownership is driven off this table on purpose. The
- * one realistic way for the guard to be wrong is to cover eight channels and
- * forget the ninth, and an attacker choosing between nine doors will always
+ * one realistic way for the guard to be wrong is to cover nine channels and
+ * forget the tenth, and an attacker choosing between ten doors will always
  * choose the unlocked one - so a per-channel loop is the only shape of test
  * that means anything here.
  */
@@ -201,6 +202,12 @@ const CHANNELS: Array<ChannelFixture> = [
     relationColumn: "userMicrosoftTeams",
     label: "Microsoft Teams",
     service: UserMicrosoftTeamsService as unknown as MethodServiceLike,
+  },
+  {
+    idColumn: "userDiscordId",
+    relationColumn: "userDiscord",
+    label: "Discord",
+    service: UserDiscordService as unknown as MethodServiceLike,
   },
   {
     idColumn: "userPushId",
@@ -874,7 +881,7 @@ describe("Administrative notification rule edit guards", () => {
   describe("R3 on create: a rule's method must belong to the rule's user", () => {
     test("the guard covers exactly the notification method columns the model declares", () => {
       /*
-       * Derived from the model rather than restated, so that a tenth channel
+       * Derived from the model rather than restated, so that an eleventh channel
        * added to UserNotificationRule and forgotten in the guard fails HERE,
        * loudly, instead of quietly becoming the one unlocked door.
        */
@@ -887,7 +894,7 @@ describe("Administrative notification rule edit guards", () => {
       });
 
       // If the derivation itself ever breaks, fail rather than pass vacuously.
-      expect(columnsOnModel).toHaveLength(9);
+      expect(columnsOnModel).toHaveLength(10);
 
       expect(
         [
@@ -1797,7 +1804,7 @@ describe("Administrative notification rule edit guards", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Discord, Webhook, Email, or Push notification is required",
       );
     });
 
@@ -2009,7 +2016,7 @@ describe("Administrative notification rule edit guards", () => {
           updatePayload({ patch: { userEmailId: null } }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Discord, Webhook, Email, or Push notification is required",
       );
     });
 
@@ -2040,6 +2047,83 @@ describe("Administrative notification rule edit guards", () => {
           }),
         ),
       ).resolves.toBeDefined();
+    });
+
+    test("a rule whose only method is Discord counts as having a method", async () => {
+      /*
+       * The coherence check enumerates the method columns by hand. If
+       * userDiscordId is missing from that list, a Discord-only rule reads as
+       * "no method" and every edit to it is refused.
+       */
+      stubs.ruleFindBy.mockResolvedValue([
+        persistedRule({ userId: VICTIM_USER_ID, isOptOut: true }),
+      ] as never);
+
+      await expect(
+        ruleService().onBeforeUpdate(
+          updatePayload({
+            patch: { isOptOut: false, userDiscordId: VICTIM_METHOD_ID },
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    test("opting out a rule that still carries a Discord method is refused", async () => {
+      stubs.ruleFindBy.mockResolvedValue([
+        persistedRule({
+          userId: VICTIM_USER_ID,
+          userDiscordId: VICTIM_METHOD_ID,
+        }),
+      ] as never);
+
+      await expect(
+        ruleService().onBeforeUpdate(
+          updatePayload({ patch: { isOptOut: true } }),
+        ),
+      ).rejects.toThrow(
+        "An opt-out notification rule cannot have a notification method.",
+      );
+    });
+
+    test("the affected-row read selects every method column, so a Discord-only row is not read as method-less", async () => {
+      stubs.ruleFindBy.mockResolvedValue([
+        persistedRule({
+          userId: VICTIM_USER_ID,
+          userEmailId: VICTIM_METHOD_ID,
+        }),
+      ] as never);
+
+      await ruleService().onBeforeUpdate(
+        updatePayload({ patch: { userSmsId: VICTIM_METHOD_ID } }),
+      );
+
+      const select: Record<string, unknown> = (
+        stubs.ruleFindBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      for (const channel of CHANNELS) {
+        expect(select[channel.idColumn]).toBe(true);
+      }
+    });
+
+    test("clearing the Discord method on a rule that still pages is refused with the Discord-aware message", async () => {
+      stubs.ruleFindBy.mockResolvedValue([
+        persistedRule({
+          userId: VICTIM_USER_ID,
+          isOptOut: false,
+          userDiscordId: VICTIM_METHOD_ID,
+        }),
+      ] as never);
+
+      await expect(
+        ruleService().onBeforeUpdate(
+          updatePayload({ patch: { userDiscordId: null } }),
+        ),
+      ).rejects.toThrow(
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Discord, Webhook, Email, or Push notification is required",
+      );
     });
 
     test("swapping one method for another leaves the rule coherent", async () => {
@@ -2118,6 +2202,20 @@ describe("Administrative notification rule edit guards", () => {
 
       expect(findByArgs.props.isRoot).toBe(true);
       expect(findByArgs.query["_id"]).toBe(RULE_ID.toString());
+    });
+
+    test("the pre-delete snapshot selects every method column, Discord included", async () => {
+      await ruleService().onBeforeDelete(deletePayload());
+
+      const select: Record<string, unknown> = (
+        stubs.ruleFindBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      for (const channel of CHANNELS) {
+        expect(select[channel.idColumn]).toBe(true);
+      }
     });
 
     test("the snapshot is carried forward, because the audit entry cannot be rebuilt from a row that no longer exists", async () => {

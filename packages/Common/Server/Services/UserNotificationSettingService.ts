@@ -14,6 +14,7 @@ import PushNotificationService from "./PushNotificationService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserDiscordService from "./UserDiscordService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WebhookService from "./WebhookService";
@@ -43,6 +44,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../Models/DatabaseModels/UserDiscord";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
@@ -123,6 +125,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByTelegram: true,
           alertBySlack: true,
           alertByMicrosoftTeams: true,
+          alertByDiscord: true,
           alertByCall: true,
           alertByPush: true,
           alertByWebhook: true,
@@ -455,14 +458,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
 
       if (
         notificationSettings.alertBySlack ||
-        notificationSettings.alertByMicrosoftTeams
+        notificationSettings.alertByMicrosoftTeams ||
+        notificationSettings.alertByDiscord
       ) {
         /*
-         * Slack and Microsoft Teams share one derived message: callers hand
-         * this method channel payloads for the older channels only, so the
-         * workspace body is synthesised from the email subject + SMS body the
-         * same way the Telegram fallback body is. Standard markdown — Slack
-         * slackifies it and Teams renders it into an adaptive card.
+         * Slack, Microsoft Teams and Discord share one derived message:
+         * callers hand this method channel payloads for the older channels
+         * only, so the workspace body is synthesised from the email subject +
+         * SMS body the same way the Telegram fallback body is. Standard
+         * markdown — Slack slackifies it, Teams renders it into an adaptive
+         * card and Discord renders it as-is.
          */
         const subject: string = data.emailEnvelope.subject || "";
         const smsBody: string = data.smsMessage.message || "";
@@ -560,6 +565,51 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 projectId: data.projectId,
                 workspaceType: WorkspaceType.MicrosoftTeams,
                 workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
+                messageBlocks: messageBlocks,
+                messageSummary: subject || smsBody,
+                userId: data.userId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                teamId: data.teamId,
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+                onCallScheduleId: data.onCallScheduleId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+          }
+
+          if (notificationSettings.alertByDiscord) {
+            const userDiscords: Array<UserDiscord> =
+              await UserDiscordService.findBy({
+                query: {
+                  userId: data.userId,
+                  projectId: data.projectId,
+                  isVerified: true,
+                },
+                select: {
+                  discordUserId: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            for (const userDiscord of userDiscords) {
+              if (!userDiscord.discordUserId) {
+                continue;
+              }
+
+              // userId is required: the Discord send re-checks the live link.
+              WorkspaceUserNotificationService.sendDirectMessageToUser({
+                projectId: data.projectId,
+                workspaceType: WorkspaceType.Discord,
+                workspaceUserId: userDiscord.discordUserId,
                 messageBlocks: messageBlocks,
                 messageSummary: subject || smsBody,
                 userId: data.userId,

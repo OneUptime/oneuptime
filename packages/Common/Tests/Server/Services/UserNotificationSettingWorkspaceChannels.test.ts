@@ -1,6 +1,7 @@
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import MailService from "../../../Server/Services/MailService";
@@ -11,6 +12,7 @@ import logger from "../../../Server/Utils/Logger";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import URL from "../../../Types/API/URL";
@@ -65,6 +67,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const SLACK_USER_ID: string = "U0123ABCD";
 const SECOND_SLACK_USER_ID: string = "U0456EFGH";
 const TEAMS_USER_ID: string = "entra-object-id-1";
+const DISCORD_USER_ID: string = "412345678901234567";
 
 const EVENT_TYPE: NotificationSettingEventType =
   NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
@@ -87,6 +90,7 @@ function settingsRow(
     alertByTelegram: false,
     alertBySlack: false,
     alertByMicrosoftTeams: false,
+    alertByDiscord: false,
     alertByWebhook: false,
     ...overrides,
   } as unknown as UserNotificationSetting;
@@ -547,6 +551,148 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
   describe("failure isolation", () => {
     test("a rejected workspace send is logged and never rejects sendUserNotification", async () => {
       sendDm.mockRejectedValue(new Error("workspace unreachable") as never);
+
+      await expect(
+        UserNotificationSettingService.sendUserNotification(notificationData()),
+      ).resolves.toBeUndefined();
+
+      await flushMicrotasks();
+
+      expect(loggerError).toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (F) Discord.
+   *
+   * alertByDiscord gates Discord the same way the Slack and Teams toggles
+   * gate theirs. The send carries the OneUptime user id because the Discord
+   * send re-checks that user's live Discord link before it delivers.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("Discord", () => {
+    let findDiscords: jest.SpyInstance;
+
+    beforeEach(() => {
+      findDiscords = jest
+        .spyOn(UserDiscordService, "findBy")
+        .mockResolvedValue([
+          {
+            id: new ObjectID("66666666-6666-4666-8666-666666666666"),
+            discordUserId: DISCORD_USER_ID,
+          } as unknown as UserDiscord,
+        ] as never);
+    });
+
+    test("alertByDiscord on sends one Discord DM and never reads the Slack or Teams methods", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByDiscord: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(sendDm).toHaveBeenCalledTimes(1);
+      expect(sendArgs()[0]?.workspaceType).toBe(WorkspaceType.Discord);
+      expect(sendArgs()[0]?.workspaceUserId).toBe(DISCORD_USER_ID);
+      expect(sendArgs()[0]?.userId.toString()).toBe(USER_ID.toString());
+      expect(findSlacks).not.toHaveBeenCalled();
+      expect(findTeams).not.toHaveBeenCalled();
+    });
+
+    test("the settings read selects alertByDiscord", async () => {
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const arg: { select: Record<string, boolean> } = findSettings.mock
+        .calls[0][0] as { select: Record<string, boolean> };
+      expect(arg.select["alertByDiscord"]).toBe(true);
+    });
+
+    test("only VERIFIED Discord rows are read, scoped to this user and project", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByDiscord: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(findDiscords).toHaveBeenCalledTimes(1);
+      const arg: {
+        query: { userId: ObjectID; projectId: ObjectID; isVerified: boolean };
+        props: { isRoot: boolean };
+      } = findDiscords.mock.calls[0][0] as {
+        query: { userId: ObjectID; projectId: ObjectID; isVerified: boolean };
+        props: { isRoot: boolean };
+      };
+      expect(arg.query.userId.toString()).toBe(USER_ID.toString());
+      expect(arg.query.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(arg.query.isVerified).toBe(true);
+      expect(arg.props.isRoot).toBe(true);
+    });
+
+    test("alertByDiscord off never reads the Discord methods", async () => {
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(findDiscords).not.toHaveBeenCalled();
+      expect(sendArgs()).toHaveLength(1);
+      expect(sendArgs()[0]?.workspaceType).toBe(WorkspaceType.Slack);
+    });
+
+    test("all three toggles on sends one message per channel", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
+          alertByDiscord: true,
+        }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const workspaceTypes: Array<WorkspaceType> = sendArgs().map(
+        (arg: CapturedSendArg) => {
+          return arg.workspaceType;
+        },
+      );
+      expect(workspaceTypes.sort()).toEqual(
+        [
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+          WorkspaceType.Discord,
+        ].sort(),
+      );
+    });
+
+    test("a Discord row with no Discord user id is skipped", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByDiscord: true }) as never,
+      );
+      findDiscords.mockResolvedValue([
+        { discordUserId: "" } as unknown as UserDiscord,
+      ] as never);
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(sendDm).not.toHaveBeenCalled();
+    });
+
+    test("a rejected Discord send is logged and never rejects sendUserNotification", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByDiscord: true }) as never,
+      );
+      sendDm.mockRejectedValue(new Error("discord unreachable") as never);
 
       await expect(
         UserNotificationSettingService.sendUserNotification(notificationData()),

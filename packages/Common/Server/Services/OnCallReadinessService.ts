@@ -18,6 +18,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserDiscordService from "./UserDiscordService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
@@ -55,6 +56,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../Models/DatabaseModels/UserDiscord";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -135,6 +137,7 @@ export enum ReadinessMethodType {
   Telegram = "Telegram",
   Slack = "Slack",
   MicrosoftTeams = "Microsoft Teams",
+  Discord = "Discord",
   Webhook = "Webhook",
 }
 
@@ -444,6 +447,7 @@ const METHOD_DISPLAY_ORDER: Array<ReadinessMethodType> = [
   ReadinessMethodType.Email,
   ReadinessMethodType.Slack,
   ReadinessMethodType.MicrosoftTeams,
+  ReadinessMethodType.Discord,
   ReadinessMethodType.SMS,
   ReadinessMethodType.Call,
   ReadinessMethodType.WhatsApp,
@@ -2270,6 +2274,40 @@ export default class OnCallReadinessService {
       },
     });
 
+    await this.readEveryPage<UserDiscord>({
+      description: "Discord notification methods",
+      projectId: projectId,
+      completeness: completeness,
+      service: UserDiscordService,
+      query: {
+        projectId: projectId,
+        userId: new Includes(userIds),
+      },
+      /*
+       * The display name only — never discordUserId. The Discord user id is
+       * the addressable target the bot sends to; the display name is the
+       * human-facing label, and it is the one a user can recognise as theirs.
+       */
+      select: {
+        _id: true,
+        userId: true,
+        discordUserName: true,
+        isVerified: true,
+      },
+      consumePage: (rows: Array<UserDiscord>): void => {
+        for (const row of rows) {
+          addMethod(row, {
+            methodType: ReadinessMethodType.Discord,
+            maskedIdentifier: maskIdentifier(
+              row.discordUserName,
+              MaskedIdentifierKind.Handle,
+            ),
+            isVerified: Boolean(row.isVerified),
+          });
+        }
+      },
+    });
+
     await this.readEveryPage<UserWebhook>({
       description: "webhook notification methods",
       projectId: projectId,
@@ -2791,6 +2829,10 @@ export default class OnCallReadinessService {
 
     if (has(ReadinessMethodType.MicrosoftTeams)) {
       zeroCost.push(ReadinessMethodType.MicrosoftTeams);
+    }
+
+    if (has(ReadinessMethodType.Discord)) {
+      zeroCost.push(ReadinessMethodType.Discord);
     }
 
     if (zeroCost.length > 0) {

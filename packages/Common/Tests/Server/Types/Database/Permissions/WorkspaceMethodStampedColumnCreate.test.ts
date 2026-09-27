@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/Databa
 import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
 import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../../../../Models/DatabaseModels/UserDiscord";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
@@ -12,8 +13,9 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * REGRESSION PIN for the defect that made the whole feature dead on arrival.
  *
- * UserSlackService / UserMicrosoftTeamsService stamp the workspace identifier,
- * the display name and isVerified onto createBy.data inside onBeforeCreate.
+ * UserSlackService / UserMicrosoftTeamsService / UserDiscordService stamp the
+ * workspace identifier, the display name and isVerified onto createBy.data
+ * inside onBeforeCreate.
  * DatabaseService.create runs that hook FIRST and only then calls
  * ModelPermission.checkCreatePermissions on the STAMPED data — so the column
  * ACLs are evaluated against values the SERVER wrote, with the CALLER's
@@ -82,6 +84,17 @@ function stampedUserMicrosoftTeams(): UserMicrosoftTeams {
   return model;
 }
 
+/* Exactly what UserDiscordService.onBeforeCreate leaves behind. */
+function stampedUserDiscord(): UserDiscord {
+  const model: UserDiscord = new UserDiscord();
+  model.projectId = projectId;
+  model.userId = userId;
+  model.discordUserId = "112233445566778899";
+  model.discordUserName = "alice";
+  model.isVerified = true;
+  return model;
+}
+
 describe("server-stamped workspace method columns survive the create column check", () => {
   /*
    * Harness guard: a caller with NO permissions at all must still be refused,
@@ -128,6 +141,17 @@ describe("server-stamped workspace method columns survive the create column chec
     }).not.toThrow();
   });
 
+  it("a stamped UserDiscord passes for a plain authenticated member", () => {
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        UserDiscord,
+        stampedUserDiscord(),
+        makeProps([Permission.CurrentUser]),
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+
   /*
    * The other half of the design: opening the column ACL did NOT hand the
    * value to the client — the SERVICE hook refuses any non-root payload that
@@ -158,6 +182,23 @@ describe("server-stamped workspace method columns survive the create column chec
         DatabaseRequestType.Update,
       );
     }).toThrow();
+  });
+
+  it("update stays closed on the Discord snowflake, username and isVerified", () => {
+    for (const data of [
+      { discordUserId: "999999999999999999" } as UserDiscord,
+      { discordUserName: "spoofed" } as UserDiscord,
+      { isVerified: true } as UserDiscord,
+    ]) {
+      expect(() => {
+        ColumnPermissions.checkDataColumnPermissions(
+          UserDiscord,
+          data,
+          makeProps([Permission.CurrentUser]),
+          DatabaseRequestType.Update,
+        );
+      }).toThrow();
+    }
   });
 
   it("update stays closed on isVerified for both models", () => {

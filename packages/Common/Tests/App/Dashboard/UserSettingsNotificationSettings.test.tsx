@@ -263,6 +263,32 @@ describe("user settings > notification settings", () => {
       ).toHaveAttribute("aria-checked", "true");
     });
 
+    test("Discord is a channel column: read in the select, shown per event, written alone", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident note posted");
+
+      for (const call of getList.mock.calls) {
+        expect(call[0].select.alertByDiscord).toBe(true);
+      }
+
+      const discordSwitch: HTMLElement = within(row).getByRole("switch", {
+        name: /^Discord:/,
+      });
+      expect(discordSwitch).toHaveAttribute("aria-checked", "false");
+      fireEvent.click(discordSwitch);
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].data).toEqual({
+        alertByDiscord: true,
+      });
+    });
+
     test("a failed save puts the switch back and says why", async () => {
       jest
         .spyOn(ModelAPI, "updateById")
