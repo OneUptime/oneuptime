@@ -75,6 +75,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.MicrosoftTeams,
         },
+        {
+          link: {
+            title: "Discord",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap
+                  .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Hashtag,
+        },
       ],
     },
     /*

@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 /*
  * Incident created subscriber notifications. These tests drive a tick of the
@@ -177,6 +178,13 @@ jest.mock("Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams", () => {
   };
 });
 
+jest.mock("Common/Server/Utils/Workspace/Discord/DiscordWebhook", () => {
+  return {
+    __esModule: true,
+    default: { send: jest.fn() },
+  };
+});
+
 jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
   return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
 });
@@ -194,9 +202,12 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import DiscordWebhook from "Common/Server/Utils/Workspace/Discord/DiscordWebhook";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import Hostname from "Common/Types/API/Hostname";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
@@ -377,6 +388,9 @@ function subscriber(): StatusPageSubscriber {
   row.microsoftTeamsIncomingWebhookUrl = URL.fromString(
     "https://outlook.office.com/webhook/abc",
   );
+  row.discordIncomingWebhookUrl = URL.fromString(
+    "https://discord.com/api/webhooks/123456789012345678/AbCdEfGhIjKlMnOp-token",
+  );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
   return row;
 }
@@ -520,6 +534,10 @@ beforeEach(() => {
   mock(
     MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
   ).mockResolvedValue(undefined as never);
+  mock(DiscordWebhook.send).mockImplementation(() => {
+    const response: HTTPResponse<JSONObject> = new HTTPResponse(200, {}, {});
+    return Promise.resolve(response) as never;
+  });
   mock(
     StatusPageSubscriberWebhookUtil.sendWebhookNotification,
   ).mockResolvedValue(undefined as never);
@@ -746,5 +764,43 @@ describe("Incident:SendNotificationToSubscribers email subjects are sent as writ
       "[Incident] Rollout of {{ .Values.image.tag }} stalled",
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+describe("Incident:SendNotificationToSubscribers, Discord delivery failure", () => {
+  test("a Discord webhook failure marks the persisted subscriber notification status Failed", async () => {
+    mock(DiscordWebhook.send).mockImplementation(() => {
+      return Promise.resolve(new HTTPErrorResponse(403, {}, {})) as never;
+    });
+
+    await runJob();
+
+    const statusUpdates: Array<JSONObject> = mock(IncidentService.updateOneById)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      })
+      .filter((data: JSONObject): boolean => {
+        return (
+          data["subscriberNotificationStatusOnIncidentCreated"] !== undefined
+        );
+      });
+
+    expect(
+      statusUpdates.some((data: JSONObject): boolean => {
+        return (
+          data["subscriberNotificationStatusOnIncidentCreated"] ===
+          StatusPageSubscriberNotificationStatus.Failed
+        );
+      }),
+    ).toBe(true);
+
+    expect(
+      statusUpdates.some((data: JSONObject): boolean => {
+        return (
+          data["subscriberNotificationStatusOnIncidentCreated"] ===
+          StatusPageSubscriberNotificationStatus.Success
+        );
+      }),
+    ).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import {
   WorkspaceThread,
 } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import WorkspaceProjectAuthToken, {
+  DiscordMiscData,
   MicrosoftTeamsChat,
   MicrosoftTeamsMiscData,
   SlackMiscData,
@@ -33,7 +34,8 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 /*
  * Tests for WorkspaceNotificationRuleService.sendTestNotificationToDestination,
  * the service behind the "Send Test" button beside every Slack channel,
- * Microsoft Teams channel and Microsoft Teams chat in Project Settings.
+ * Microsoft Teams channel, Microsoft Teams chat and Discord channel in
+ * Project Settings.
  *
  * What these pin down:
  *
@@ -77,6 +79,11 @@ const TEAMS_APP_TOKEN: string = "teams-app-token";
 const TEAMS_CHAT_ID: string = "19:chat-7f3a91@thread.v2";
 const TEAMS_CHAT_NAME: string = "Ops War Room";
 
+// A Discord snowflake: decimal digits only, this one 18 of them.
+const DISCORD_CHANNEL_ID: string = "123456789012345678";
+const DISCORD_CHANNEL_NAME: string = "incidents";
+const DISCORD_BOT_TOKEN: string = "discord-bot-token";
+
 const PROJECT_NAME: string = "Acme Production";
 const USER_MARKDOWN: string =
   "[Alice Admin](https://oneuptime.example.com/dashboard/p1/settings/users/u1)";
@@ -84,15 +91,20 @@ const USER_MARKDOWN: string =
 const SUCCESS_STATUS_MESSAGE: string =
   "Test notification sent from Project Settings";
 
+// Every supported workspace is named, in any order.
 const MSG_UNSUPPORTED_WORKSPACE_TYPE_PATTERN: RegExp =
-  /Slack.*Microsoft Teams|Microsoft Teams.*Slack/;
+  /^(?=.*Slack)(?=.*Microsoft Teams)(?=.*Discord)/;
 const MSG_NO_DESTINATION: string =
   "Please choose a channel or a chat to send the test notification to.";
 const MSG_BOTH_DESTINATIONS: string =
   "Please choose either a channel or a chat, not both.";
 const MSG_CHAT_WITH_SLACK: string =
   "Chats are only supported for Microsoft Teams. Please choose a Slack channel.";
+const MSG_CHAT_WITH_DISCORD: string =
+  "Chats are only supported for Microsoft Teams. Please choose a Discord channel.";
 const MSG_INVALID_SLACK_CHANNEL: string = "The Slack channel id is not valid.";
+const MSG_INVALID_DISCORD_CHANNEL: string =
+  "The Discord channel id is not valid.";
 const MSG_TEAM_REQUIRED: string =
   "Please select the team this channel belongs to.";
 const MSG_INVALID_TEAMS_TEAM: string =
@@ -275,6 +287,11 @@ function makeProjectAuth(data: {
       teamName: "Acme Slack",
       botUserId: "U0BOTUSER",
     } as SlackMiscData;
+  } else if (data.workspaceType === WorkspaceType.Discord) {
+    auth.miscData = {
+      guildName: "Acme Guild",
+      botUserId: "987654321098765432",
+    } as DiscordMiscData;
   } else if (data.availableChats !== null) {
     auth.miscData = {
       tenantId: "tenant-1",
@@ -342,11 +359,31 @@ function defaultThreadFor(workspaceType: WorkspaceType): ThreadSpec {
     };
   }
 
+  if (workspaceType === WorkspaceType.Discord) {
+    return {
+      id: DISCORD_CHANNEL_ID,
+      name: DISCORD_CHANNEL_NAME,
+      threadId: "1234567890123456789",
+    };
+  }
+
   return {
     id: TEAMS_CHANNEL_ID,
     name: TEAMS_CHANNEL_NAME,
     threadId: "1726000000001",
   };
+}
+
+function authTokenFor(workspaceType: WorkspaceType): string {
+  if (workspaceType === WorkspaceType.Slack) {
+    return "xoxb-test-token";
+  }
+
+  if (workspaceType === WorkspaceType.Discord) {
+    return DISCORD_BOT_TOKEN;
+  }
+
+  return TEAMS_APP_TOKEN;
 }
 
 function mockDeps(options: MockOptions): Mocks {
@@ -357,10 +394,7 @@ function mockDeps(options: MockOptions): Mocks {
   if (connection === "connected") {
     projectAuth = makeProjectAuth({
       workspaceType: options.workspaceType,
-      authToken:
-        options.workspaceType === WorkspaceType.Slack
-          ? "xoxb-test-token"
-          : TEAMS_APP_TOKEN,
+      authToken: authTokenFor(options.workspaceType),
       availableChats: options.availableChats,
     });
   } else if (connection === "no-auth-token") {
@@ -531,6 +565,19 @@ function sendTest(args: DestinationArgs): Promise<WorkspaceThread> {
   });
 }
 
+// A well-formed channel id for the workspace.
+function channelIdFor(workspaceType: WorkspaceType): string {
+  if (workspaceType === WorkspaceType.Slack) {
+    return SLACK_CHANNEL_ID;
+  }
+
+  if (workspaceType === WorkspaceType.Discord) {
+    return DISCORD_CHANNEL_ID;
+  }
+
+  return TEAMS_CHANNEL_ID;
+}
+
 async function captureError(promise: Promise<unknown>): Promise<Error> {
   let resolvedWith: unknown = undefined;
 
@@ -693,7 +740,7 @@ const BARE_CHANNEL_MARKDOWN: string =
   "If you can see this message, OneUptime can post notifications to this channel. No action is needed.";
 
 /*
- * The three kinds of destination the button exists for, for behaviour that
+ * The four kinds of destination the button exists for, for behaviour that
  * must hold for every one of them.
  */
 interface DestinationCase {
@@ -718,6 +765,22 @@ const DESTINATIONS: Array<DestinationCase> = [
       id: SLACK_CHANNEL_ID,
       name: SLACK_CHANNEL_NAME,
       threadId: "1726000000.000100",
+    },
+  },
+  {
+    label: "a Discord channel",
+    workspaceType: WorkspaceType.Discord,
+    displayName: "Discord",
+    args: {
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    },
+    destinationId: DISCORD_CHANNEL_ID,
+    kind: "channel",
+    thread: {
+      id: DISCORD_CHANNEL_ID,
+      name: DISCORD_CHANNEL_NAME,
+      threadId: "1234567890123456789",
     },
   },
   {
@@ -1013,6 +1076,187 @@ describe("sendTestNotificationToDestination: Slack channel", () => {
       const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Slack });
 
       await sendTest({ workspaceType: WorkspaceType.Slack, channelId });
+
+      expect(onlyPayload(mocks).channelIds).toEqual([channelId]);
+    },
+  );
+});
+
+// =============================================================== Discord
+
+describe("sendTestNotificationToDestination: Discord channel", () => {
+  test("sends exactly one payload, addressed only to the channel id", async () => {
+    const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    const payload: WorkspaceMessagePayload = onlyPayload(mocks);
+
+    expect(payload._type).toBe("WorkspaceMessagePayload");
+    expect(payload.workspaceType).toBe(WorkspaceType.Discord);
+    expect(payload.channelIds).toEqual([DISCORD_CHANNEL_ID]);
+    expect(payload.channelNames).toEqual([]);
+    // teamId is a Microsoft Teams concept, chatIds a Teams chat concept.
+    expect(payload).not.toHaveProperty("teamId");
+    expect(payload).not.toHaveProperty("chatIds");
+  });
+
+  test("the message is the spec's markdown: heading, project, user and 'this channel'", async () => {
+    const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    const text: string = markdownOf(onlyPayload(mocks));
+
+    expect(text).toContain("this channel");
+    expect(text).not.toContain("this chat");
+    expect(text).toBe(FULL_CHANNEL_MARKDOWN);
+  });
+
+  test("loads the Discord project auth for this project", async () => {
+    const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    expect(mocks.getProjectAuthSpy).toHaveBeenCalledTimes(1);
+    expect(mocks.getProjectAuthSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Discord,
+    });
+  });
+
+  test("returns the thread the provider reported", async () => {
+    const response: WorkspaceSendMessageResponse = makeSendResponse({
+      workspaceType: WorkspaceType.Discord,
+      threads: [
+        {
+          id: DISCORD_CHANNEL_ID,
+          name: DISCORD_CHANNEL_NAME,
+          threadId: "1234567890123456777",
+        },
+      ],
+    });
+
+    mockDeps({ workspaceType: WorkspaceType.Discord, responses: [response] });
+
+    const thread: WorkspaceThread = await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    expect(thread).toBe(response.threads[0]);
+    expect(thread.threadId).toBe("1234567890123456777");
+    expect(thread.channel.id).toBe(DISCORD_CHANNEL_ID);
+  });
+
+  test("writes exactly one Success notification log with every spec field", async () => {
+    const mocks: Mocks = mockDeps({
+      workspaceType: WorkspaceType.Discord,
+      responses: [
+        makeSendResponse({
+          workspaceType: WorkspaceType.Discord,
+          threads: [
+            {
+              id: DISCORD_CHANNEL_ID,
+              name: DISCORD_CHANNEL_NAME,
+              threadId: "1234567890123456789",
+            },
+          ],
+        }),
+      ],
+    });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    expect(mocks.createLogSpy).toHaveBeenCalledTimes(1);
+
+    const log: WorkspaceNotificationLog = loggedEntries(mocks)[0]!;
+
+    expect(log).toBeInstanceOf(WorkspaceNotificationLog);
+    expect(log.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(log.workspaceType).toBe(WorkspaceType.Discord);
+    expect(log.channelId).toBe(DISCORD_CHANNEL_ID);
+    expect(log.channelName).toBe(DISCORD_CHANNEL_NAME);
+    expect(log.threadId).toBe("1234567890123456789");
+    expect(log.userId?.toString()).toBe(TEST_BY_USER_ID.toString());
+    expect(log.status).toBe(WorkspaceNotificationStatus.Success);
+    expect(log.statusMessage).toBe(SUCCESS_STATUS_MESSAGE);
+    expect(log.actionType).toBe(WorkspaceNotificationActionType.SendMessage);
+    expect(log.message).toBe(FULL_CHANNEL_MARKDOWN);
+    expect(loggedProps(mocks, 0)).toEqual({ isRoot: true });
+  });
+
+  test("does not consult the Microsoft Teams chat list", async () => {
+    const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+    });
+
+    expect(mocks.connectedChatsSpy).not.toHaveBeenCalled();
+  });
+
+  test("does not list Microsoft Teams channels, even with a teamId in the request", async () => {
+    const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Discord,
+      channelId: DISCORD_CHANNEL_ID,
+      teamId: TEAMS_TEAM_ID,
+    });
+
+    expect(mocks.listTeamChannelsSpy).not.toHaveBeenCalled();
+
+    const payload: WorkspaceMessagePayload = onlyPayload(mocks);
+    expect(payload).not.toHaveProperty("teamId");
+    expect(payload.channelIds).toEqual([DISCORD_CHANNEL_ID]);
+  });
+
+  test("a failed send is labelled #id, the Discord way", async () => {
+    const mocks: Mocks = mockDeps({
+      workspaceType: WorkspaceType.Discord,
+      responses: [],
+    });
+
+    await expectBadData(
+      sendTest({
+        workspaceType: WorkspaceType.Discord,
+        channelId: DISCORD_CHANNEL_ID,
+      }),
+      reconnectMessage({
+        destinationLabel: `#${DISCORD_CHANNEL_ID}`,
+        displayName: "Discord",
+      }),
+    );
+
+    expect(errorLogs(mocks)).toHaveLength(1);
+    expect(successLogs(mocks)).toHaveLength(0);
+  });
+
+  test.each<[string, string]>([
+    ["an 18-digit snowflake", DISCORD_CHANNEL_ID],
+    ["a 19-digit snowflake", "1234567890123456789"],
+    ["a single digit", "1"],
+    ["exactly 20 digits", "1".repeat(20)],
+  ])(
+    "accepts %s",
+    async (_description: string, channelId: string): Promise<void> => {
+      const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+      await sendTest({ workspaceType: WorkspaceType.Discord, channelId });
 
       expect(onlyPayload(mocks).channelIds).toEqual([channelId]);
     },
@@ -1852,8 +2096,9 @@ describe("sendTestNotificationToDestination: ids are trimmed before use", () => 
 describe("sendTestNotificationToDestination: validation rejects before any work", () => {
   describe("workspace type", () => {
     test.each<[string, string]>([
-      ["an unknown workspace", "Discord"],
+      ["an unknown workspace", "Mattermost"],
       ["the wrong casing of a real one", "slack"],
+      ["the wrong casing of Discord", "discord"],
       ["an empty workspace type", ""],
     ])(
       "rejects %s",
@@ -1876,7 +2121,7 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
       const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Slack });
 
       await expectBadData(
-        sendTest({ workspaceType: "Discord" as WorkspaceType }),
+        sendTest({ workspaceType: "Mattermost" as WorkspaceType }),
         MSG_UNSUPPORTED_WORKSPACE_TYPE_PATTERN,
       );
 
@@ -1888,6 +2133,7 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
     test.each<[string, WorkspaceType]>([
       ["Slack", WorkspaceType.Slack],
       ["Microsoft Teams", WorkspaceType.MicrosoftTeams],
+      ["Discord", WorkspaceType.Discord],
     ])(
       "%s: neither a channel nor a chat",
       async (_name: string, workspaceType: WorkspaceType): Promise<void> => {
@@ -1946,6 +2192,7 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
     test.each<[string, WorkspaceType]>([
       ["Slack", WorkspaceType.Slack],
       ["Microsoft Teams", WorkspaceType.MicrosoftTeams],
+      ["Discord", WorkspaceType.Discord],
     ])(
       "%s: both a channel and a chat",
       async (_name: string, workspaceType: WorkspaceType): Promise<void> => {
@@ -1955,10 +2202,7 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
           sendTest({
             workspaceType,
             teamId: TEAMS_TEAM_ID,
-            channelId:
-              workspaceType === WorkspaceType.Slack
-                ? SLACK_CHANNEL_ID
-                : TEAMS_CHANNEL_ID,
+            channelId: channelIdFor(workspaceType),
             chatId: TEAMS_CHAT_ID,
           }),
           MSG_BOTH_DESTINATIONS,
@@ -1991,6 +2235,48 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
 
       expectRejectedBeforeAnyWork(mocks);
     });
+
+    test("a chatId with Discord is rejected", async () => {
+      const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+      await expectBadData(
+        sendTest({
+          workspaceType: WorkspaceType.Discord,
+          chatId: TEAMS_CHAT_ID,
+        }),
+        MSG_CHAT_WITH_DISCORD,
+      );
+
+      expectRejectedBeforeAnyWork(mocks);
+    });
+
+    test("a Discord-looking chatId with Discord is rejected too", async () => {
+      const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+      await expectBadData(
+        sendTest({
+          workspaceType: WorkspaceType.Discord,
+          chatId: DISCORD_CHANNEL_ID,
+        }),
+        MSG_CHAT_WITH_DISCORD,
+      );
+
+      expectRejectedBeforeAnyWork(mocks);
+    });
+
+    test("the Discord message names Discord, not Slack", async () => {
+      mockDeps({ workspaceType: WorkspaceType.Discord });
+
+      const err: Error = await expectBadData(
+        sendTest({
+          workspaceType: WorkspaceType.Discord,
+          chatId: TEAMS_CHAT_ID,
+        }),
+        MSG_CHAT_WITH_DISCORD,
+      );
+
+      expect(err.message).not.toContain("Slack");
+    });
   });
 
   describe("Slack channel id format", () => {
@@ -2020,6 +2306,52 @@ describe("sendTestNotificationToDestination: validation rejects before any work"
         await expectBadData(
           sendTest({ workspaceType: WorkspaceType.Slack, channelId }),
           MSG_INVALID_SLACK_CHANNEL,
+        );
+
+        expectRejectedBeforeAnyWork(mocks);
+      },
+    );
+  });
+
+  /*
+   * A Discord channel id is a snowflake: digits only. Anything else is either
+   * a pasted name or link, an id from another workspace, or an attempt to
+   * smuggle something into the Discord API path.
+   */
+  describe("Discord channel id format", () => {
+    test.each<[string, string]>([
+      ["a path traversal", "../123456789012345678"],
+      ["a forward slash", "1234567890/12345678"],
+      ["a backslash", "1234567890\\12345678"],
+      ["an interior space", "1234567890 12345678"],
+      ["an interior tab", "1234567890\t12345678"],
+      ["an interior newline", "1234567890\n12345678"],
+      ["a channel name rather than an id", "#incidents"],
+      ["a channel mention", "<#123456789012345678>"],
+      ["a Slack channel id", SLACK_CHANNEL_ID],
+      ["a Microsoft Teams channel id", TEAMS_CHANNEL_ID],
+      ["a hyphen", "1234567890-12345678"],
+      ["an underscore", "1234567890_12345678"],
+      ["a dot", "1234567890.12345678"],
+      ["a negative number", "-123456789012345678"],
+      ["a query string", "123456789012345678?limit=1"],
+      ["a percent escape", "1234567890%2F12345678"],
+      ["a URL", "https://discord.com/channels/1/123456789012345678"],
+      ["a non-ASCII digit", `12345678901234567${String.fromCharCode(0x0663)}`],
+      [
+        "a NUL control character",
+        `1234567890${String.fromCharCode(0x00)}12345678`,
+      ],
+      ["21 digits", "1".repeat(21)],
+      ["a very long id", "1".repeat(10000)],
+    ])(
+      "rejects %s",
+      async (_description: string, channelId: string): Promise<void> => {
+        const mocks: Mocks = mockDeps({ workspaceType: WorkspaceType.Discord });
+
+        await expectBadData(
+          sendTest({ workspaceType: WorkspaceType.Discord, channelId }),
+          MSG_INVALID_DISCORD_CHANNEL,
         );
 
         expectRejectedBeforeAnyWork(mocks);
@@ -2405,6 +2737,24 @@ describe("sendTestNotificationToDestination: project not connected", () => {
 
     expect(err.message).toContain("Microsoft Teams");
     expect(err.message).not.toContain("Slack");
+  });
+
+  test("the Discord message names Discord, not Slack or Microsoft Teams", async () => {
+    mockDeps({
+      workspaceType: WorkspaceType.Discord,
+      connection: "not-connected",
+    });
+
+    const err: Error = await captureError(
+      sendTest({
+        workspaceType: WorkspaceType.Discord,
+        channelId: DISCORD_CHANNEL_ID,
+      }),
+    );
+
+    expect(err.message).toContain("Discord");
+    expect(err.message).not.toContain("Slack");
+    expect(err.message).not.toContain("Microsoft Teams");
   });
 
   test("an empty-string auth token counts as not connected", async () => {
@@ -3039,20 +3389,24 @@ describe("sendTestNotificationToDestination: a send that went nowhere is a failu
       /*
        * A chat's name comes from the captured chats and a Teams channel's
        * from the team's channel listing, both known before sending. Only a
-       * Slack channel's name would come back from the send, so with nothing
-       * sent it is labelled by its id.
+       * Slack or Discord channel's name would come back from the send, so
+       * with nothing sent it is labelled by its id.
        */
+      const isSlackOrDiscordChannel: boolean =
+        destination.kind === "channel" &&
+        (destination.workspaceType === WorkspaceType.Slack ||
+          destination.workspaceType === WorkspaceType.Discord);
+
       const expectedName: string =
         destination.kind === "chat"
           ? TEAMS_CHAT_NAME
-          : destination.workspaceType === WorkspaceType.Slack
+          : isSlackOrDiscordChannel
             ? destination.destinationId
             : TEAMS_CHANNEL_NAME;
 
-      const expectedLabel: string =
-        destination.workspaceType === WorkspaceType.Slack
-          ? `#${expectedName}`
-          : `"${expectedName}"`;
+      const expectedLabel: string = isSlackOrDiscordChannel
+        ? `#${expectedName}`
+        : `"${expectedName}"`;
 
       await expectBadData(
         sendTest(destination.args),

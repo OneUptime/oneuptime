@@ -13,6 +13,7 @@ export interface ComponentProps {
   enableSMSSubscribers: boolean;
   enableSlackSubscribers: boolean;
   enableMicrosoftTeamsSubscribers: boolean;
+  enableDiscordSubscribers: boolean;
   enableWebhookSubscribers: boolean;
 }
 
@@ -78,6 +79,21 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.MicrosoftTeams}
+        />
+      ) : (
+        <></>
+      )}
+      {props.enableDiscordSubscribers ? (
+        <SideMenuItem
+          link={{
+            title: t("subscribe.menu.discord"),
+            to: RouteUtil.populateRouteParams(
+              props.isPreviewStatusPage
+                ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_DISCORD] as Route)
+                : (RouteMap[PageMap.SUBSCRIBE_DISCORD] as Route),
+            ),
+          }}
+          icon={IconProp.Chat}
         />
       ) : (
         <></>

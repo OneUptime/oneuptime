@@ -133,6 +133,9 @@ const manageSubscriptionDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
     body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
+  },
 };
 
 const incidentCreatedDefaults: EventDefaults = {
@@ -167,6 +170,13 @@ const incidentCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## 🚨 Incident - {{incidentTitle}}
+**Severity:** {{incidentSeverity}}
+**Resources Affected:** {{resourcesAffected}}
+**Description:** {{incidentDescription}}
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## 🚨 Incident - {{incidentTitle}}
 **Severity:** {{incidentSeverity}}
 **Resources Affected:** {{resourcesAffected}}
@@ -230,6 +240,16 @@ const incidentStateChangedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `🚨 ## Incident - {{incidentTitle}}
+
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+**Status:** {{incidentState}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "incident.stateChanged",
@@ -281,6 +301,19 @@ const incidentNoteCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Incident - {{incidentTitle}}
+
+**New note has been added to an incident**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## Incident - {{incidentTitle}}
 
 **New note has been added to an incident**
@@ -358,6 +391,19 @@ const incidentNoteUpdatedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## Incident - {{incidentTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "incident.noteUpdated",
@@ -413,6 +459,13 @@ const incidentPostmortemPublishedDefaults: EventDefaults = {
 **Postmortem:** {{postmortemNote}}
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## 🚨 Incident Postmortem - {{incidentTitle}}
+**Severity:** {{incidentSeverity}}
+**Resources Affected:** {{resourcesAffected}}
+**Postmortem:** {{postmortemNote}}
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "incident.postmortemPublished",
@@ -461,6 +514,13 @@ const announcementCreatedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## 📢 Announcement - {{announcementTitle}}
+
+**Description:** {{announcementDescription}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "announcement.created",
@@ -502,6 +562,13 @@ const announcementUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## 📢 Announcement Updated - {{announcementTitle}}
+
+**Description:** {{announcementDescription}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## 📢 Announcement Updated - {{announcementTitle}}
 
 **Description:** {{announcementDescription}}
@@ -570,6 +637,17 @@ const scheduledMaintenanceCreatedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## 🔧 Scheduled Maintenance - {{scheduledMaintenanceTitle}}
+
+**Scheduled Date:** {{scheduledStartTime}}
+
+**Resources Affected:** {{resourcesAffected}}
+
+**Description:** {{scheduledMaintenanceDescription}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "scheduledMaintenance.created",
@@ -619,6 +697,13 @@ const scheduledMaintenanceStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Scheduled Maintenance State Update - {{statusPageName}}
+**Event:** {{scheduledMaintenanceTitle}}
+**State Changed To:** {{scheduledMaintenanceState}}
+**Resources Affected:** {{resourcesAffected}}
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## Scheduled Maintenance State Update - {{statusPageName}}
 **Event:** {{scheduledMaintenanceTitle}}
 **State Changed To:** {{scheduledMaintenanceState}}
@@ -676,6 +761,17 @@ const scheduledMaintenanceNoteCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Scheduled Maintenance Update - {{statusPageName}}
+
+**Event:** {{scheduledMaintenanceTitle}}
+
+**New Note Added**
+
+**Note:** {{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## Scheduled Maintenance Update - {{statusPageName}}
 
 **Event:** {{scheduledMaintenanceTitle}}
@@ -745,6 +841,17 @@ const scheduledMaintenanceNoteUpdatedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## Scheduled Maintenance Update - {{statusPageName}}
+
+**Event:** {{scheduledMaintenanceTitle}}
+
+**Note Updated**
+
+**Note:** {{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "scheduledMaintenance.noteUpdated",
@@ -799,6 +906,13 @@ const episodeCreatedDefaults: EventDefaults = {
 **Description:** {{episodeDescription}}
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## 🚨 Incident - {{episodeTitle}}
+**Severity:** {{episodeSeverity}}
+**Resources Affected:** {{resourcesAffected}}
+**Description:** {{episodeDescription}}
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "episode.created",
@@ -847,6 +961,16 @@ const episodeStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `🚨 ## Incident - {{episodeTitle}}
+
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{episodeSeverity}}
+**Status:** {{episodeState}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `🚨 ## Incident - {{episodeTitle}}
 
 
@@ -918,6 +1042,19 @@ const episodeNoteCreatedDefaults: EventDefaults = {
 
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
+    body: `## Incident - {{episodeTitle}}
+
+**New note has been added to an incident**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{episodeSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "episode.noteCreated",
@@ -969,6 +1106,19 @@ const episodeNoteUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Incident - {{episodeTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{episodeSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## Incident - {{episodeTitle}}
 
 **A note on this incident has been updated**
@@ -1106,6 +1256,14 @@ const reportDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## 📊 Uptime Report - {{statusPageName}}
+**Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
+**Average Uptime:** {{report.averageUptimePercent}}
+**Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
+**Incidents:** {{report.totalIncidents}}
+[View Status Page]({{statusPageUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Discord]: {
     body: `## 📊 Uptime Report - {{statusPageName}}
 **Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
 **Average Uptime:** {{report.averageUptimePercent}}

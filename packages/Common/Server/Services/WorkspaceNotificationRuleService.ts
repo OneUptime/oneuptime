@@ -27,6 +27,10 @@ import WorkspaceBase, {
   WorkspaceThread,
 } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import DiscordResourceThreadService, {
+  ResourceRef as DiscordResourceRef,
+  resourceFromNotificationFor as discordResourceFromNotificationFor,
+} from "./DiscordResourceThreadService";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import Dictionary from "../../Types/Dictionary";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -40,6 +44,7 @@ import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MiscData,
   SlackMiscData,
+  DiscordMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -80,6 +85,9 @@ export interface NotificationFor {
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
 const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
+
+// Discord channel ids are snowflakes: decimal digits only, at most 20 of them.
+const DISCORD_CHANNEL_ID_REGEX: RegExp = /^[0-9]{1,20}$/;
 
 /*
  * Upper bounds for Microsoft Teams ids accepted by the destination test.
@@ -742,10 +750,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): void {
     if (
       data.workspaceType !== WorkspaceType.Slack &&
-      data.workspaceType !== WorkspaceType.MicrosoftTeams
+      data.workspaceType !== WorkspaceType.MicrosoftTeams &&
+      data.workspaceType !== WorkspaceType.Discord
     ) {
       throw new BadDataException(
-        "Test notifications can only be sent to Slack or Microsoft Teams.",
+        "Test notifications can only be sent to Slack, Microsoft Teams, or Discord.",
       );
     }
 
@@ -768,6 +777,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         );
       }
 
+      if (data.workspaceType === WorkspaceType.Discord) {
+        throw new BadDataException(
+          "Chats are only supported for Microsoft Teams. Please choose a Discord channel.",
+        );
+      }
+
       if (data.chatId.length > TEST_NOTIFICATION_MAX_CHAT_ID_LENGTH) {
         throw new BadDataException("The Microsoft Teams chat id is not valid.");
       }
@@ -778,6 +793,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     if (data.workspaceType === WorkspaceType.Slack) {
       if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
         throw new BadDataException("The Slack channel id is not valid.");
+      }
+
+      return;
+    }
+
+    if (data.workspaceType === WorkspaceType.Discord) {
+      if (!DISCORD_CHANNEL_ID_REGEX.test(data.channelId)) {
+        throw new BadDataException("The Discord channel id is not valid.");
       }
 
       return;
@@ -916,7 +939,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): string {
     const label: string = data.name.trim() || data.id;
 
-    if (data.workspaceType === WorkspaceType.Slack && !data.isChat) {
+    if (
+      (data.workspaceType === WorkspaceType.Slack ||
+        data.workspaceType === WorkspaceType.Discord) &&
+      !data.isChat
+    ) {
       return `#${label}`;
     }
 
@@ -1498,6 +1525,43 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       );
     }
 
+    /*
+     * The resource column is a cache that is lost when the app dies between
+     * the accepted Discord create and the resource write, and that outlives
+     * an ownership decision made later (stale, orphaned, archived). The
+     * ownership row is the source of truth for Discord: drop every cached
+     * thread it fences, then union the verified active rows in. Channels
+     * the rule names on purpose are not ownership rows and are kept.
+     * Slack and Teams are unchanged.
+     */
+    if (data.workspaceType === WorkspaceType.Discord) {
+      const resource: DiscordResourceRef | null =
+        discordResourceFromNotificationFor(data.notificationFor);
+      if (resource) {
+        const owned: {
+          active: Array<WorkspaceChannel>;
+          fenced: Array<string>;
+        } = await DiscordResourceThreadService.channelsForResource({
+          projectId: data.projectId,
+          resource,
+        });
+        monitorChannels = monitorChannels.filter(
+          (existing: WorkspaceChannel): boolean => {
+            return !owned.fenced.includes(existing.id);
+          },
+        );
+        for (const channel of owned.active) {
+          if (
+            !monitorChannels.some((existing: WorkspaceChannel): boolean => {
+              return existing.id === channel.id;
+            })
+          ) {
+            monitorChannels.push(channel);
+          }
+        }
+      }
+    }
+
     logger.debug("Workspace channels found:", {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
@@ -1544,7 +1608,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Discord,
+    ];
   }
 
   public getBotUserIdFromprojectAuthToken(data: {
@@ -1557,8 +1625,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       throw new BadDataException("Misc data not found in project auth token");
     }
 
-    if (data.workspaceType === WorkspaceType.Slack) {
-      const userId: string = (miscData as SlackMiscData).botUserId;
+    // Slack and Discord both record the bot's user id at install time.
+    if (
+      data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Discord
+    ) {
+      const userId: string = (miscData as SlackMiscData | DiscordMiscData)
+        .botUserId;
 
       if (!userId) {
         throw new BadDataException(
@@ -2018,6 +2091,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               .map((channel: NotificationRuleWorkspaceChannel) => {
                 return channel.name;
               }),
+            channelIds: data.notificationChannels
+              .filter((channel: NotificationRuleWorkspaceChannel) => {
+                return (
+                  channel.notificationRuleId ===
+                  inviteUserPayload.notificationRuleId
+                );
+              })
+              .map((channel: NotificationRuleWorkspaceChannel) => {
+                return channel.id;
+              }),
             workspaceUserIds: workspaceUserIds,
           },
           projectId: data.projectId,
@@ -2232,6 +2315,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         authToken: projectAuth.authToken!,
         workspaceChannelInvitationPayload: {
           channelNames: channelNames,
+          channelIds: channelsToInviteToBasedOnRule.map(
+            (channel: NotificationRuleWorkspaceChannel) => {
+              return channel.id;
+            },
+          ),
           workspaceUserIds: workspaceUserIds,
         },
         projectId: data.projectId,
@@ -2468,10 +2556,38 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         );
       }
 
-      const channel: WorkspaceChannel =
-        await WorkspaceUtil.getWorkspaceTypeUtil(
+      /*
+       * Discord threads for a resource go through durable ownership
+       * (HOM-42): one claim per resource and rule, generation-checked
+       * persistence, no blind retry. A null result means this delivery must
+       * not attach a thread; the ownership row and the notification log
+       * already record why. Slack and Teams keep the direct create.
+       */
+      const discordResource: DiscordResourceRef | null =
+        data.workspaceType === WorkspaceType.Discord && data.notificationFor
+          ? discordResourceFromNotificationFor(data.notificationFor)
+          : null;
+
+      let channel: WorkspaceChannel | null;
+      if (discordResource) {
+        channel = await DiscordResourceThreadService.ensureThread({
+          projectId: data.projectId,
+          authToken: data.projectOrUserAuthTokenForWorkspace,
+          resource: discordResource,
+          notificationRuleId: new ObjectID(
+            notificationChannel.notificationRuleId,
+          ),
+          channelName: notificationChannel.channelName,
+          isPrivate: data.isPrivate === true,
+        });
+        if (!channel) {
+          continue;
+        }
+      } else {
+        channel = await WorkspaceUtil.getWorkspaceTypeUtil(
           data.workspaceType,
         ).createChannel(createChannelData);
+      }
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,

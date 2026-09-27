@@ -11,6 +11,7 @@ import ProjectAPI from "../../../Server/API/ProjectAPI";
 import ScheduledMaintenanceAPI from "../../../Server/API/ScheduledMaintenanceAPI";
 import TeamMemberAPI from "../../../Server/API/TeamMemberAPI";
 import UserCallAPI from "../../../Server/API/UserCallAPI";
+import UserDiscordAPI from "../../../Server/API/UserDiscordAPI";
 import UserEmailAPI from "../../../Server/API/UserEmailAPI";
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
 import UserMicrosoftTeamsAPI from "../../../Server/API/UserMicrosoftTeamsAPI";
@@ -157,6 +158,7 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/user-microsoft-teams/test",
     registeredBy: "UserMicrosoftTeamsAPI",
   },
+  { method: "POST", uri: "/user-discord/test", registeredBy: "UserDiscordAPI" },
   { method: "POST", uri: "/user-webhook/test", registeredBy: "UserWebhookAPI" },
 
   // Security key enrolment.
@@ -358,6 +360,7 @@ beforeAll(() => {
    */
   new UserSlackAPI();
   new UserMicrosoftTeamsAPI();
+  new UserDiscordAPI();
   new UserWebhookAPI();
   new UserWebAuthnAPI();
   new UserIncomingCallNumberAPI();

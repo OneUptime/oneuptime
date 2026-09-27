@@ -357,6 +357,23 @@ class UserNotificationSetting extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public alertByDiscord?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
     example: true,
   })
   @Column({

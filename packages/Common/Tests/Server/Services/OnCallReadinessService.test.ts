@@ -23,6 +23,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -47,6 +48,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -195,6 +197,9 @@ const SLACK_METHOD_ID: ObjectID = new ObjectID(
 const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
   "c0000000-0000-4000-8000-000000000009",
 );
+const DISCORD_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-00000000000b",
+);
 
 /*
  * Raw identifiers that must never reach a caller. Each is deliberately
@@ -208,6 +213,7 @@ const RAW_WHATSAPP_PHONE: string = "+61293744000";
 const RAW_TELEGRAM_HANDLE: string = "@ada_night_pager";
 const RAW_SLACK_USERNAME: string = "ada.pager.slack";
 const RAW_MICROSOFT_TEAMS_USERNAME: string = "Ada Lovelace [Overnight]";
+const RAW_DISCORD_USERNAME: string = "ada.graveyard.discord";
 /*
  * The addressable targets behind the two workspace channels - the Slack member
  * id the bot DMs and the Entra object id the Teams bot resolves. They sit on
@@ -218,6 +224,11 @@ const RAW_MICROSOFT_TEAMS_USERNAME: string = "Ada Lovelace [Overnight]";
  */
 const RAW_SLACK_USER_ID: string = "U0SLACKMEMBERLEAK";
 const RAW_MICROSOFT_TEAMS_USER_ID: string = "aad-ENTRAIDLEAK-4242";
+/*
+ * The Discord snowflake the bot DMs. Same rule as the Slack member id and the
+ * Entra object id: owner-only, never selected on a readiness path.
+ */
+const RAW_DISCORD_USER_ID: string = "990077665544332211";
 const RAW_WEBHOOK_NAME: string = "Payments Incident Bridge";
 const RAW_WEBHOOK_URL: string =
   "https://hooks.example.com/T0LEAK/B0LEAK/xoxbSUPERSECRETTOKEN";
@@ -285,6 +296,7 @@ let whatsAppFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
 let slackFindBy: jest.SpyInstance;
 let microsoftTeamsFindBy: jest.SpyInstance;
+let discordFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -589,6 +601,31 @@ function microsoftTeamsMethod(data: {
 }
 
 /*
+ * Carries its snowflake for the same reason the two fixtures above carry
+ * theirs: discordUserId is owner-only, and a widened select must show up as a
+ * leaked target downstream.
+ */
+function discordMethod(data: {
+  userId: ObjectID;
+  userName: string;
+  discordUserId?: string | undefined;
+  isVerified: boolean;
+  id?: ObjectID | undefined;
+}): UserDiscord {
+  const model: UserDiscord = new UserDiscord();
+  model.id = data.id || ObjectID.generate();
+  model.userId = data.userId;
+  model.discordUserName = data.userName;
+  model.isVerified = data.isVerified;
+
+  if (data.discordUserId !== undefined) {
+    model.discordUserId = data.discordUserId;
+  }
+
+  return model;
+}
+
+/*
  * A webhook fixture that deliberately CARRIES its bearer url, even though the
  * production select must never ask for it. If the select ever widens, the
  * leak assertions downstream see a real credential rather than an undefined.
@@ -674,6 +711,7 @@ function everySpy(): Array<jest.SpyInstance> {
     telegramFindBy,
     slackFindBy,
     microsoftTeamsFindBy,
+    discordFindBy,
     webhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -917,6 +955,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   microsoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  discordFindBy = jest
+    .spyOn(UserDiscordService, "findBy")
     .mockResolvedValue([] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -2056,6 +2097,18 @@ describe("status", () => {
         },
       ],
       [
+        "Discord",
+        (): void => {
+          discordFindBy.mockResolvedValue([
+            discordMethod({
+              userId: USER_A_ID,
+              userName: RAW_DISCORD_USERNAME,
+              isVerified: true,
+            }),
+          ] as never);
+        },
+      ],
+      [
         "Webhook",
         (): void => {
           webhookFindBy.mockResolvedValue([
@@ -2611,14 +2664,15 @@ describe("opt-out", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * (G) All nine channels.
+ * (G) All ten channels.
  *
  * TeamComplianceService counted call/SMS/email/push only, so a responder whose
  * only method was Telegram, WhatsApp or Webhook was reported non-compliant
  * while the runtime paged them perfectly happily. A false alarm teaches admins
- * to ignore the table, which is worse than no table. Slack and Microsoft Teams
- * arrived after that defect was closed, and each gets the same "alone is
- * enough" pin so the defect cannot quietly return one channel at a time.
+ * to ignore the table, which is worse than no table. Slack, Microsoft Teams
+ * and Discord arrived after that defect was closed, and each gets the same
+ * "alone is enough" pin so the defect cannot quietly return one channel at a
+ * time.
  * ---------------------------------------------------------------------------
  */
 describe("notification channels", () => {
@@ -2704,7 +2758,38 @@ describe("notification channels", () => {
     ]);
   });
 
-  test("all nine channels are read, and listed in fallback-attempt order", async () => {
+  test("a verified DISCORD account alone makes a responder reachable", async () => {
+    discordFindBy.mockResolvedValue([
+      discordMethod({
+        userId: USER_A_ID,
+        userName: RAW_DISCORD_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).not.toBe(ReadinessStatus.NotReachable);
+    expect(methodTypes(readiness)).toEqual([ReadinessMethodType.Discord]);
+  });
+
+  test("an UNVERIFIED Discord account is listed but does not make a responder reachable", async () => {
+    discordFindBy.mockResolvedValue([
+      discordMethod({
+        userId: USER_A_ID,
+        userName: RAW_DISCORD_USERNAME,
+        isVerified: false,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(methodTypes(readiness)).toEqual([ReadinessMethodType.Discord]);
+    expect(readiness.methods[0]!.isVerified).toBe(false);
+    expect(readiness.status).toBe(ReadinessStatus.NotReachable);
+  });
+
+  test("all ten channels are read, and listed in fallback-attempt order", async () => {
     pushFindBy.mockResolvedValue([
       pushMethod({
         userId: USER_A_ID,
@@ -2757,6 +2842,13 @@ describe("notification channels", () => {
         isVerified: true,
       }),
     ] as never);
+    discordFindBy.mockResolvedValue([
+      discordMethod({
+        userId: USER_A_ID,
+        userName: RAW_DISCORD_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({ userId: USER_A_ID, name: RAW_WEBHOOK_NAME }),
     ] as never);
@@ -2766,14 +2858,15 @@ describe("notification channels", () => {
     /*
      * Display order IS fallback order, deliberately: the first row an admin
      * reads is the channel a fallback page would actually arrive on. The
-     * zero-cost tier - Push, Email, Slack, Microsoft Teams - leads, then the
-     * paid channels in escalating-intrusiveness order, then Webhook.
+     * zero-cost tier - Push, Email, Slack, Microsoft Teams, Discord - leads,
+     * then the paid channels in escalating-intrusiveness order, then Webhook.
      */
     expect(methodTypes(readiness)).toEqual([
       ReadinessMethodType.Push,
       ReadinessMethodType.Email,
       ReadinessMethodType.Slack,
       ReadinessMethodType.MicrosoftTeams,
+      ReadinessMethodType.Discord,
       ReadinessMethodType.SMS,
       ReadinessMethodType.Call,
       ReadinessMethodType.WhatsApp,
@@ -2806,13 +2899,13 @@ describe("notification channels", () => {
       });
     });
 
-    test("every zero-cost channel is named when the responder has all four - and no paid one alongside them", async () => {
+    test("every zero-cost channel is named when the responder has all five - and no paid one alongside them", async () => {
       /*
-       * The zero-cost tier is Push, Email, Slack, Microsoft Teams, and the
-       * fallback takes ALL of them when any is present before it considers
-       * spending money. The verified SMS staged here is the assertion's other
-       * half: a sentence that named SMS beside four free channels would be
-       * describing a fallback that does not happen.
+       * The zero-cost tier is Push, Email, Slack, Microsoft Teams, Discord,
+       * and the fallback takes ALL of them when any is present before it
+       * considers spending money. The verified SMS staged here is the
+       * assertion's other half: a sentence that named SMS beside five free
+       * channels would be describing a fallback that does not happen.
        */
       pushFindBy.mockResolvedValue([
         pushMethod({ userId: USER_A_ID, isVerified: true }),
@@ -2838,6 +2931,13 @@ describe("notification channels", () => {
           isVerified: true,
         }),
       ] as never);
+      discordFindBy.mockResolvedValue([
+        discordMethod({
+          userId: USER_A_ID,
+          userName: RAW_DISCORD_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
       smsFindBy.mockResolvedValue([
         smsMethod({
           userId: USER_A_ID,
@@ -2849,7 +2949,7 @@ describe("notification channels", () => {
       const readiness: UserReadiness = await onlyUser();
 
       expect(readiness.reasons[0]).toBe(
-        "No rules for Sev1 incidents - pages fall back to Push, Email, Slack, Microsoft Teams",
+        "No rules for Sev1 incidents - pages fall back to Push, Email, Slack, Microsoft Teams, Discord",
       );
     });
 
@@ -2892,6 +2992,27 @@ describe("notification channels", () => {
 
       expect((await onlyUser()).reasons[0]).toBe(
         "No rules for Sev1 incidents - pages fall back to Microsoft Teams",
+      );
+    });
+
+    test("a verified DISCORD account alone is a zero-cost fallback, pre-empting a paid channel", async () => {
+      discordFindBy.mockResolvedValue([
+        discordMethod({
+          userId: USER_A_ID,
+          userName: RAW_DISCORD_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      smsFindBy.mockResolvedValue([
+        smsMethod({
+          userId: USER_A_ID,
+          phone: RAW_SMS_PHONE,
+          isVerified: true,
+        }),
+      ] as never);
+
+      expect((await onlyUser()).reasons[0]).toBe(
+        "No rules for Sev1 incidents - pages fall back to Discord",
       );
     });
 
@@ -3011,10 +3132,11 @@ describe("notification channels", () => {
  * (G2) Method identity - referencing a method without reading it.
  *
  * The admin rule form has to POINT A RULE AT one of these methods, and it is not
- * allowed to read the row it points at: the nine method models are scoped to
+ * allowed to read the row it points at: the ten method models are scoped to
  * their owner precisely because their columns are the raw phone number, the
  * webhook bearer url, the push device token, the telegram chat id, the slack
- * member id, the teams object id and the verification code. Widening that scope
+ * member id, the teams object id, the discord snowflake and the verification
+ * code. Widening that scope
  * so a dropdown could be populated was tried, and the exposure it opened could
  * not be contained.
  *
@@ -3034,7 +3156,7 @@ describe("method identity", () => {
     attachDirectly(USER_A_ID);
   });
 
-  function attachEveryNineChannels(): void {
+  function attachEveryChannel(): void {
     pushFindBy.mockResolvedValue([
       pushMethod({
         userId: USER_A_ID,
@@ -3101,6 +3223,15 @@ describe("method identity", () => {
         id: MICROSOFT_TEAMS_METHOD_ID,
       }),
     ] as never);
+    discordFindBy.mockResolvedValue([
+      discordMethod({
+        userId: USER_A_ID,
+        userName: RAW_DISCORD_USERNAME,
+        discordUserId: RAW_DISCORD_USER_ID,
+        isVerified: true,
+        id: DISCORD_METHOD_ID,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({
         userId: USER_A_ID,
@@ -3111,8 +3242,8 @@ describe("method identity", () => {
     ] as never);
   }
 
-  test("all nine channels carry the id of their OWN row, which is what a rule references", async () => {
-    attachEveryNineChannels();
+  test("all ten channels carry the id of their OWN row, which is what a rule references", async () => {
+    attachEveryChannel();
 
     const readiness: UserReadiness = await onlyUser();
 
@@ -3148,16 +3279,19 @@ describe("method identity", () => {
       ).methodId.toString(),
     ).toBe(MICROSOFT_TEAMS_METHOD_ID.toString());
     expect(
+      methodOfType(readiness, ReadinessMethodType.Discord).methodId.toString(),
+    ).toBe(DISCORD_METHOD_ID.toString());
+    expect(
       methodOfType(readiness, ReadinessMethodType.Webhook).methodId.toString(),
     ).toBe(WEBHOOK_METHOD_ID.toString());
   });
 
   test("no methodId is the USER's id - a rule pointed at a user id points at no method at all", async () => {
-    attachEveryNineChannels();
+    attachEveryChannel();
 
     const readiness: UserReadiness = await onlyUser();
 
-    expect(readiness.methods).toHaveLength(9);
+    expect(readiness.methods).toHaveLength(10);
 
     for (const method of readiness.methods) {
       /*
@@ -3328,6 +3462,14 @@ describe("identifier exposure", () => {
         isVerified: true,
       }),
     ] as never);
+    discordFindBy.mockResolvedValue([
+      discordMethod({
+        userId: USER_A_ID,
+        userName: RAW_DISCORD_USERNAME,
+        discordUserId: RAW_DISCORD_USER_ID,
+        isVerified: true,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({
         userId: USER_A_ID,
@@ -3367,13 +3509,17 @@ describe("identifier exposure", () => {
       `@ad${IDENTIFIER_MASK}`,
     );
     /*
-     * Both workspace channels mask their human-facing NAME column with the
+     * The workspace channels mask their human-facing NAME column with the
      * handle rule. The addressable ids - the Slack member id, the Entra object
-     * id - are never selected at all, which the select tests below pin.
+     * id, the Discord snowflake - are never selected at all, which the select
+     * tests below pin.
      */
     expect(masked.get(ReadinessMethodType.Slack)).toBe(`ad${IDENTIFIER_MASK}`);
     expect(masked.get(ReadinessMethodType.MicrosoftTeams)).toBe(
       `Ad${IDENTIFIER_MASK}`,
+    );
+    expect(masked.get(ReadinessMethodType.Discord)).toBe(
+      `ad${IDENTIFIER_MASK}`,
     );
     expect(masked.get(ReadinessMethodType.Webhook)).toBe(
       `Pa${IDENTIFIER_MASK}`,
@@ -3383,7 +3529,7 @@ describe("identifier exposure", () => {
   test("a method carries FOUR fields and no fifth - the id is the ONLY thing beside the mask", async () => {
     const readiness: UserReadiness = await onlyUser();
 
-    expect(readiness.methods).toHaveLength(9);
+    expect(readiness.methods).toHaveLength(10);
 
     /*
      * An exact key set, not a "does not contain the url" check, and this is the
@@ -3434,6 +3580,8 @@ describe("identifier exposure", () => {
       RAW_SLACK_USER_ID,
       RAW_MICROSOFT_TEAMS_USERNAME,
       RAW_MICROSOFT_TEAMS_USER_ID,
+      RAW_DISCORD_USERNAME,
+      RAW_DISCORD_USER_ID,
       RAW_WEBHOOK_NAME,
       RAW_WEBHOOK_URL,
       RAW_PUSH_DEVICE,
@@ -3451,6 +3599,8 @@ describe("identifier exposure", () => {
       "SLACKMEMBERLEAK",
       "Overnight",
       "ENTRAIDLEAK",
+      "graveyard",
+      "0077665544",
       "Incident Bridge",
       "SUPERSECRETTOKEN",
       "iPhone",
@@ -3515,6 +3665,20 @@ describe("identifier exposure", () => {
 
     expect(Object.keys(select)).not.toContain("microsoftTeamsUserId");
     expect(select["microsoftTeamsUserName"]).toBe(true);
+  });
+
+  test("the discord read never asks for the discord user id, which is the addressable target", async () => {
+    await policySummary();
+
+    const select: Record<string, unknown> = firstCall(discordFindBy).select!;
+
+    /*
+     * discordUserId is owner-only on the model: the snowflake is what the bot
+     * DMs. Only the username label belongs on a surface every project admin
+     * can read.
+     */
+    expect(Object.keys(select)).not.toContain("discordUserId");
+    expect(select["discordUserName"]).toBe(true);
   });
 
   test("a method with no identifier at all still reports the bare mask, not an empty cell", async () => {
@@ -3668,6 +3832,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      discordFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3685,6 +3850,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      discordFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3820,6 +3986,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      discordFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -4254,6 +4421,7 @@ describe("getReadinessForUsers", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      discordFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {

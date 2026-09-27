@@ -63,6 +63,9 @@ export default class ScheduledMaintenanceWorkspaceMessages {
         },
       );
 
+    // Discord renders the same shared blocks through DiscordMessageRenderer.
+    const discordBlocks: WorkspaceMessageBlock[] = microsoftTeamsBlocks;
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -71,6 +74,10 @@ export default class ScheduledMaintenanceWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Discord,
+        messageBlocks: discordBlocks,
       },
     ];
   }

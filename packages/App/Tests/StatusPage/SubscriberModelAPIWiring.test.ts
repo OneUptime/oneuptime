@@ -29,6 +29,7 @@ const SUBSCRIBE_PAGES: ReadonlyArray<string> = [
   "Pages/Subscribe/SmsSubscribe.tsx",
   "Pages/Subscribe/SlackSubscribe.tsx",
   "Pages/Subscribe/MicrosoftTeamsSubscribe.tsx",
+  "Pages/Subscribe/DiscordSubscribe.tsx",
   "Pages/Subscribe/WebhookSubscribe.tsx",
   "Pages/Subscribe/UpdateSubscription.tsx",
 ];

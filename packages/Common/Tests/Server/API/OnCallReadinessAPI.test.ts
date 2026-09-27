@@ -21,6 +21,7 @@ import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCall
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -38,6 +39,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -325,6 +327,7 @@ let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
 let userSlackFindBy: jest.SpyInstance;
 let userMicrosoftTeamsFindBy: jest.SpyInstance;
+let userDiscordFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -348,6 +351,7 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userTelegramFindBy,
     userSlackFindBy,
     userMicrosoftTeamsFindBy,
+    userDiscordFindBy,
     userWebhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -442,6 +446,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userMicrosoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  userDiscordFindBy = jest
+    .spyOn(UserDiscordService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -733,10 +740,11 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
 
     /*
      * Four fields and no fifth. `methods` is the part of this payload that
-     * describes rows an administrator is NOT permitted to read - the nine
+     * describes rows an administrator is NOT permitted to read - the ten
      * method models are owner-scoped precisely because their columns are the raw
      * phone number, the webhook bearer url, the push token, the telegram chat
-     * id, the slack member id, the teams object id and the verification code -
+     * id, the slack member id, the teams object id, the discord snowflake and
+     * the verification code -
      * so the wire shape is asserted exhaustively rather than field by field. A
      * field added to ReadinessMethod is a field that ships to every
      * administrator of the project, and it should have to pass through here on
@@ -1535,6 +1543,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
   const RAW_DEVICE: string = "Jane's iPhone 15 Pro";
   const RAW_SLACK_USERNAME: string = "jane.oncall.slack";
   const RAW_TEAMS_USERNAME: string = "Jane Doe [Overnight]";
+  const RAW_DISCORD_USERNAME: string = "jane.swingshift.discord";
   /*
    * The addressable targets behind the two workspace channels - the Slack
    * member id the bot DMs and the Entra object id the Teams bot resolves. On
@@ -1542,6 +1551,8 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
    */
   const RAW_SLACK_USER_ID: string = "U0MEMBERIDLEAK";
   const RAW_TEAMS_USER_ID: string = "aad-ENTRALEAK-7788";
+  // The Discord snowflake the bot DMs: owner-only, on the row, never selected.
+  const RAW_DISCORD_USER_ID: string = "881122334455667788";
   const RAW_WEBHOOK_NAME: string = "Payments Slack Hook";
   const RAW_WEBHOOK_URL: string =
     "https://hooks.slack.com/services/T000/B000/XXXXsecretXXXX";
@@ -1550,7 +1561,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
    * One fixed id per channel, and fixed rather than generated so that a failure
    * prints a value a reader can match against the fixture that produced it.
    *
-   * These are the ids UserNotificationRule's nine foreign keys reference -
+   * These are the ids UserNotificationRule's ten foreign keys reference -
    * userEmailId points at a UserEmail row, userSmsId at a UserSMS row - and they
    * are the reason `methodId` exists at all. An administrator building a rule
    * for somebody else may not READ any of these rows; what they get instead is
@@ -1586,10 +1597,13 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
   const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
     "1a000000-0000-4000-8000-000000000009",
   );
+  const DISCORD_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-00000000000a",
+  );
 
   /*
    * The expected id per channel, in one place, so the sweep below is a sweep
-   * over all nine rather than nine assertions that can each be forgotten
+   * over all ten rather than ten assertions that can each be forgotten
    * individually. Keyed by the wire's `methodType` string.
    */
   const METHOD_ID_BY_TYPE: Dictionary<string> = {
@@ -1601,6 +1615,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     [ReadinessMethodType.Telegram]: TELEGRAM_METHOD_ID.toString(),
     [ReadinessMethodType.Slack]: SLACK_METHOD_ID.toString(),
     [ReadinessMethodType.MicrosoftTeams]: MICROSOFT_TEAMS_METHOD_ID.toString(),
+    [ReadinessMethodType.Discord]: DISCORD_METHOD_ID.toString(),
     [ReadinessMethodType.Webhook]: WEBHOOK_METHOD_ID.toString(),
   };
 
@@ -1679,6 +1694,15 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     microsoftTeams.isVerified = true;
     userMicrosoftTeamsFindBy.mockResolvedValue([microsoftTeams] as never);
 
+    const discord: UserDiscord = new UserDiscord();
+    discord.id = DISCORD_METHOD_ID;
+    discord.userId = subjectUserId;
+    discord.discordUserName = RAW_DISCORD_USERNAME;
+    // On the row, and never selected: the snowflake is the addressable target.
+    discord.discordUserId = RAW_DISCORD_USER_ID;
+    discord.isVerified = true;
+    userDiscordFindBy.mockResolvedValue([discord] as never);
+
     const push: UserPush = new UserPush();
     push.id = PUSH_METHOD_ID;
     push.userId = subjectUserId;
@@ -1729,7 +1753,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
         isVerified: true,
       },
       /*
-       * The two workspace channels sit in the zero-cost tier beside Push and
+       * The workspace channels sit in the zero-cost tier beside Push and
        * Email, ahead of every paid channel. Their masked identifier is the
        * human-facing NAME column under the handle rule; the addressable ids
        * are never selected at all - see the select tests below.
@@ -1744,6 +1768,12 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
         methodId: MICROSOFT_TEAMS_METHOD_ID.toString(),
         methodType: ReadinessMethodType.MicrosoftTeams,
         maskedIdentifier: `Ja${IDENTIFIER_MASK}`,
+        isVerified: true,
+      },
+      {
+        methodId: DISCORD_METHOD_ID.toString(),
+        methodType: ReadinessMethodType.Discord,
+        maskedIdentifier: `ja${IDENTIFIER_MASK}`,
         isVerified: true,
       },
       {
@@ -1783,10 +1813,10 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     ]);
   });
 
-  test("all nine channels reach the wire carrying the id of their OWN row", async () => {
+  test("all ten channels reach the wire carrying the id of their OWN row", async () => {
     /*
      * The dropdown's entire premise, swept across every channel rather than
-     * spot-checked on one, because the nine are nine separate code paths that
+     * spot-checked on one, because the ten are ten separate code paths that
      * each build their own row and each have their own opportunity to hand over
      * somebody else's id - or none at all.
      *
@@ -1799,7 +1829,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(9);
+    expect(methods).toHaveLength(10);
 
     for (const method of methods) {
       const methodType: string = method["methodType"] as string;
@@ -1831,7 +1861,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(9);
+    expect(methods).toHaveLength(10);
 
     for (const method of methods) {
       expect(method["methodId"]).not.toBe(subjectUserId.toString());
@@ -1840,20 +1870,20 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       expect(method["methodId"]).not.toBe(projectId.toString());
     }
 
-    // And all nine are distinct - one id copied across channels is the same bug.
+    // And all ten are distinct - one id copied across channels is the same bug.
     const ids: Array<unknown> = methods.map(
       (method: Record<string, unknown>): unknown => {
         return method["methodId"];
       },
     );
-    expect(new Set(ids).size).toBe(9);
+    expect(new Set(ids).size).toBe(10);
   });
 
   test("a method carries its id, its type, its mask and its verification - and nothing else", async () => {
     /*
      * The containment assertion. Every field on this object ships to every
      * administrator of the project, about a row that administrator is not
-     * allowed to read, so the key set is pinned exhaustively on all nine rather
+     * allowed to read, so the key set is pinned exhaustively on all ten rather
      * than left to whatever the serialiser happens to copy. A `phone`, a
      * `webhookUrl`, a `telegramChatId` or a `slackUserId` appearing here is not
      * a formatting change; it is the exposure this design was built to avoid.
@@ -1878,10 +1908,10 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
      * Guards the guard, and it is not a formality here: the service drops any
      * method row it cannot find an id on, so a fixture regression that emptied
      * `methods` would satisfy every "not present" assertion below for the one
-     * reason that proves nothing at all. The nine masks have to be in the body
+     * reason that proves nothing at all. The ten masks have to be in the body
      * before their absence of raw values means anything.
      */
-    expect(methodsOf(payload)).toHaveLength(9);
+    expect(methodsOf(payload)).toHaveLength(10);
     expect(body).toContain(IDENTIFIER_MASK);
 
     /*
@@ -1898,6 +1928,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       RAW_DEVICE,
       RAW_SLACK_USERNAME,
       RAW_TEAMS_USERNAME,
+      RAW_DISCORD_USERNAME,
       RAW_WEBHOOK_NAME,
       RAW_WEBHOOK_URL,
       // The notification address's local part on its own, and the hook's host.
@@ -1905,14 +1936,20 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       "hooks.slack.com",
       // The telegram chat id - the addressable target, never the label.
       "998877",
-      // The workspace targets - the Slack member id and the Entra object id.
+      /*
+       * The workspace targets - the Slack member id, the Entra object id and
+       * the Discord snowflake.
+       */
       RAW_SLACK_USER_ID,
       RAW_TEAMS_USER_ID,
+      RAW_DISCORD_USER_ID,
       "MEMBERIDLEAK",
       "ENTRALEAK",
+      "1122334455",
       // The workspace names' revealing middles, past what a handle mask keeps.
       "oncall.slack",
       "[Overnight]",
+      "swingshift",
       /*
        * The unmasked tails of the four phone-shaped identifiers. maskIdentifier
        * keeps the last four digits on purpose, so the numbers themselves are
@@ -1954,7 +1991,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(9);
+    expect(methods).toHaveLength(10);
 
     for (const method of methods) {
       expect(method["methodId"]).not.toBe(ruleId.toString());
@@ -2046,6 +2083,15 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
 
     expect(call.select?.["microsoftTeamsUserName"]).toBe(true);
     expect(call.select?.["microsoftTeamsUserId"]).toBeUndefined();
+  });
+
+  test("the discord read takes the username, never the addressable discord user id", async () => {
+    await readUser();
+
+    const call: CapturedFindBy = firstCall(userDiscordFindBy);
+
+    expect(call.select?.["discordUserName"]).toBe(true);
+    expect(call.select?.["discordUserId"]).toBeUndefined();
   });
 });
 

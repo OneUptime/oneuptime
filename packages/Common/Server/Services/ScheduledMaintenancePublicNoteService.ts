@@ -2,6 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import CreateByTx from "../Types/Database/CreateByTx";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -274,6 +275,11 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     note: string;
     attachmentFileIds?: Array<ObjectID>;
     postedFromSlackMessageId?: string;
+    /*
+     * Server-only: join the note insert to a caller transaction and defer
+     * the create success phase until after commit (see CreateByTx).
+     */
+    tx?: CreateByTx;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -301,6 +307,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       props: {
         isRoot: true,
       },
+      ...(data.tx ? { tx: data.tx } : {}),
     });
   }
 

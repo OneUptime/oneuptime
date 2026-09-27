@@ -35,6 +35,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import DiscordResourceThreadService from "./DiscordResourceThreadService";
+import { DiscordResourceType } from "../../Models/DatabaseModels/DiscordResourceThread";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
@@ -1185,6 +1187,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           },
           select: {
             _id: true,
+            projectId: true,
             scheduledMaintenanceStateId: true,
           },
         });
@@ -1204,6 +1207,37 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           props: {
             isRoot: true,
           },
+        });
+      }
+
+      /*
+       * Leaving the final state is only possible by deleting its timeline
+       * entry: every backward state change is refused on create. So this is
+       * where a Discord thread archived on that state is reopened (HOM-42,
+       * F13). The gate is the effective state after the delete; removing an
+       * older entry leaves the resource final and must not reopen. Slack and
+       * Teams are untouched.
+       */
+      if (
+        scheduledMaintenanceStateTimeline &&
+        scheduledMaintenanceStateTimeline.projectId &&
+        scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId &&
+        !(await this.isLastScheduledMaintenanceState({
+          projectId: scheduledMaintenanceStateTimeline.projectId,
+          scheduledMaintenanceStateId:
+            scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId,
+        }))
+      ) {
+        await DiscordResourceThreadService.reopenArchived({
+          projectId: scheduledMaintenanceStateTimeline.projectId,
+          resource: {
+            resourceType: DiscordResourceType.ScheduledMaintenance,
+            resourceId: scheduledMaintenanceId,
+          },
+        }).catch((error: Error) => {
+          logger.error(`Error while reopening Discord thread: ${error}`, {
+            projectId: scheduledMaintenanceStateTimeline.projectId?.toString(),
+          } as LogAttributes);
         });
       }
 

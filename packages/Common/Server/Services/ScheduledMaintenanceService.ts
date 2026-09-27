@@ -76,6 +76,10 @@ import ScheduledMaintenanceOwnerRuleEngineService from "./ScheduledMaintenanceOw
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import DiscordWebhook from "../Utils/Workspace/Discord/DiscordWebhook";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
@@ -114,6 +118,7 @@ export class Service extends DatabaseService<Model> {
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const event of scheduledEvents) {
+      const discordFailures: Array<string> = [];
       // get status page resources from monitors.
 
       logger.debug(
@@ -220,6 +225,7 @@ export class Service extends DatabaseService<Model> {
           emailTemplate,
           smsTemplate,
           slackTemplate,
+          discordTemplate,
         ]: Array<StatusPageSubscriberNotificationTemplate | null> =
           await Promise.all([
             StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -246,6 +252,15 @@ export class Service extends DatabaseService<Model> {
                   StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
                 notificationMethod:
                   StatusPageSubscriberNotificationMethod.Slack,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Discord,
               },
             ),
           ]);
@@ -368,6 +383,50 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                 projectId: statuspage.projectId?.toString(),
               } as LogAttributes);
             });
+          }
+
+          if (subscriber.discordIncomingWebhookUrl) {
+            let discordMessage: string;
+
+            if (discordTemplate && discordTemplate.templateBody) {
+              // Use custom template
+              discordMessage =
+                StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  discordTemplate.templateBody,
+                  templateVariables,
+                );
+            } else {
+              // Use default template
+              discordMessage = `## 🔧 Scheduled Maintenance - ${event.title || ""}
+
+**Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
+
+${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
+
+**Description:** ${event.description || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+            }
+
+            /*
+             * Send Discord notification here. DiscordWebhook.send resolves
+             * with HTTPErrorResponse on failure rather than throwing; record
+             * failures and mark the event's subscriber notification status
+             * Failed after the loops, since the per-subscriber flow has no
+             * outer error boundary here.
+             */
+            await DiscordWebhook.send({
+              url: subscriber.discordIncomingWebhookUrl,
+              text: discordMessage,
+            }).then(
+              (result: HTTPResponse<JSONObject> | HTTPErrorResponse): void => {
+                if (result instanceof HTTPErrorResponse) {
+                  discordFailures.push(
+                    `HTTP ${result.statusCode} for subscriber ${subscriber._id}`,
+                  );
+                }
+              },
+            );
           }
 
           if (subscriber.subscriberWebhook) {
@@ -529,6 +588,27 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             }
           }
         }
+      }
+
+      /*
+       * The create job already marked this event's subscriber notification
+       * Success before this service call ran, so a failed Discord delivery
+       * must overwrite it here. The failure is definitive (Discord answered
+       * with an error status); no automatic retry.
+       */
+      if (discordFailures.length > 0 && event.id) {
+        await this.updateOneById({
+          id: event.id,
+          data: {
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.Failed,
+            subscriberNotificationStatusMessage: `Discord subscriber notification failed: ${discordFailures.join("; ")}`,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       }
     }
 

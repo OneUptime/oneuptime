@@ -5,6 +5,8 @@ import WorkspaceBase, {
 } from "./WorkspaceBase";
 import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
+import DiscordWorkspace from "./Discord/Discord";
+import DiscordHistory from "./Discord/DiscordHistory";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceMessagePayload, {
@@ -173,13 +175,12 @@ export default class WorkspaceUtil {
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    const workspaceTypes: Array<WorkspaceType> = [];
-
-    for (const workspaceType in WorkspaceType) {
-      workspaceTypes.push(workspaceType as WorkspaceType);
-    }
-
-    return workspaceTypes;
+    // Enumerate only providers supported by getWorkspaceTypeUtil below.
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Discord,
+    ];
   }
 
   @CaptureSpan()
@@ -192,6 +193,10 @@ export default class WorkspaceUtil {
 
     if (workspaceType === WorkspaceType.MicrosoftTeams) {
       return MicrosoftTeamsUtil;
+    }
+
+    if (workspaceType === WorkspaceType.Discord) {
+      return DiscordWorkspace;
     }
 
     throw new BadDataException(
@@ -447,6 +452,8 @@ export default class WorkspaceUtil {
 
         return await MicrosoftTeamsUtil.getChannelMessages(teamsParams);
       }
+      case WorkspaceType.Discord:
+        return await DiscordHistory.getChannelMessages(params);
       default:
         logger.debug(
           `Unsupported workspace type for channel messages: ${params.workspaceType}`,

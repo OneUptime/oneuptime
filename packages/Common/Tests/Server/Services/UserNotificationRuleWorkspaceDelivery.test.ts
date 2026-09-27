@@ -32,7 +32,7 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
- * The Slack / Microsoft Teams halves of deliverNotificationForRule, driven
+ * The Slack / Microsoft Teams / Discord halves of deliverNotificationForRule, driven
  * through the public executeNotificationRuleItem entrypoint exactly like the
  * older channels' characterisation suite. What is pinned:
  *
@@ -93,6 +93,7 @@ const SCHEDULE_ID: ObjectID = new ObjectID(
 
 const SLACK_USER_ID: string = "U0123ABCD";
 const TEAMS_USER_ID: string = "entra-object-id-1";
+const DISCORD_USER_ID: string = "123456789012345678";
 const ACK_SHORT_URL: string = "https://oneuptime.example.com/l/abc123";
 
 type ExecuteOptions = Parameters<
@@ -104,6 +105,7 @@ interface TimelineRow {
   statusMessage: string | undefined;
   userSlackId: ObjectID | undefined;
   userMicrosoftTeamsId: ObjectID | undefined;
+  userDiscordId: ObjectID | undefined;
 }
 
 function flushMicrotasks(): Promise<void> {
@@ -163,7 +165,18 @@ function verifiedTeams(): JSONObject {
   } as unknown as JSONObject;
 }
 
-describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
+function verifiedDiscord(): JSONObject {
+  return {
+    userDiscord: {
+      id: METHOD_ID,
+      discordUserId: DISCORD_USER_ID,
+      discordUserName: "alice#0001",
+      isVerified: true,
+    },
+  } as unknown as JSONObject;
+}
+
+describe("deliverNotificationForRule - Slack, Microsoft Teams and Discord", () => {
   let findRule: jest.SpyInstance;
   let sendDm: jest.SpyInstance;
   let timelineCreate: jest.SpyInstance;
@@ -284,6 +297,7 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
           statusMessage: data.statusMessage,
           userSlackId: data.userSlackId,
           userMicrosoftTeamsId: data.userMicrosoftTeamsId,
+          userDiscordId: data.userDiscordId,
         });
 
         return Promise.resolve({
@@ -441,6 +455,73 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
 
   /*
    * ----------------------------------------------------------------------- *
+   * (B2) The Discord path. Same shared helper as Slack and Teams; the
+   * Discord sender additionally needs userId to re-check the live link.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("a verified Discord method", () => {
+    beforeEach(() => {
+      findRule.mockResolvedValue(ruleItem(verifiedDiscord()) as never);
+    });
+
+    test("delivers with the Discord workspace type, the stored Discord user id, and the owner's userId", async () => {
+      await execute();
+
+      expect(sendDm).toHaveBeenCalledTimes(1);
+      const arg: CapturedSendArg = sendArg();
+      expect(arg.workspaceType).toBe(WorkspaceType.Discord);
+      expect(arg.workspaceUserId).toBe(DISCORD_USER_ID);
+      expect(arg.userId.toString()).toBe(USER_ID.toString());
+      expect(arg.userOnCallLogTimelineId.toString()).toBe(
+        TIMELINE_ID.toString(),
+      );
+    });
+
+    test("its timeline row is stamped with userDiscordId and the Discord sending message", async () => {
+      await execute();
+
+      expect(timelineRows).toHaveLength(1);
+      expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Sending);
+      expect(timelineRows[0]?.statusMessage).toBe("Sending Discord message.");
+      expect(timelineRows[0]?.userDiscordId?.toString()).toBe(
+        METHOD_ID.toString(),
+      );
+      expect(timelineRows[0]?.userSlackId).toBeUndefined();
+      expect(timelineRows[0]?.userMicrosoftTeamsId).toBeUndefined();
+
+      expect(timelineCreate.mock.invocationCallOrder[0] as number).toBeLessThan(
+        sendDm.mock.invocationCallOrder[0] as number,
+      );
+    });
+
+    test("the message sticks to markdown blocks, like the other workspace channels", async () => {
+      await execute();
+
+      for (const block of sendArg().messageBlocks) {
+        expect(block._type).toBe("WorkspacePayloadMarkdown");
+      }
+      expect(markdownText()).toContain(ACK_SHORT_URL);
+    });
+
+    test("a sender rejection with no message falls back to the Discord-named default", async () => {
+      sendDm.mockRejectedValue(new Error("") as never);
+
+      await expect(execute()).resolves.toBeUndefined();
+      await flushMicrotasks();
+
+      const arg: {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      } = timelineUpdate.mock.calls[0][0] as {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      };
+      expect(arg.data.status).toBe(UserNotificationStatus.Error);
+      expect(arg.data.statusMessage).toBe("Error sending Discord message.");
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
    * (C) The verification gate.
    * -----------------------------------------------------------------------
    */
@@ -487,6 +568,46 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       expect(timelineRows[0]?.statusMessage).toBe(
         "Microsoft Teams message not sent because the Microsoft Teams account is not verified.",
       );
+    });
+
+    test("an unverified Discord method writes one Error row stamped with userDiscordId and never sends", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          userDiscord: {
+            id: METHOD_ID,
+            discordUserId: DISCORD_USER_ID,
+            isVerified: false,
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).not.toHaveBeenCalled();
+      expect(timelineRows).toHaveLength(1);
+      expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Error);
+      expect(timelineRows[0]?.statusMessage).toBe(
+        "Discord message not sent because the Discord account is not verified.",
+      );
+      expect(timelineRows[0]?.userDiscordId?.toString()).toBe(
+        METHOD_ID.toString(),
+      );
+    });
+
+    test("a verified Discord relation whose discordUserId is missing sends nothing", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          userDiscord: {
+            id: METHOD_ID,
+            isVerified: true,
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).not.toHaveBeenCalled();
+      expect(timelineRows).toHaveLength(0);
     });
 
     test("a verified relation whose address column is missing sends nothing (the same silent skip as every channel)", async () => {
@@ -664,6 +785,31 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       );
       expect(workspaceTypes).toContain(WorkspaceType.Slack);
       expect(workspaceTypes).toContain(WorkspaceType.MicrosoftTeams);
+    });
+
+    test("a rule carrying Slack, Teams and Discord delivers on all three, Discord after Teams", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          ...verifiedSlack(),
+          ...verifiedTeams(),
+          ...verifiedDiscord(),
+        }) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).toHaveBeenCalledTimes(3);
+
+      const workspaceTypes: Array<WorkspaceType> = sendDm.mock.calls.map(
+        (call: Array<unknown>) => {
+          return (call[0] as { workspaceType: WorkspaceType }).workspaceType;
+        },
+      );
+      expect(workspaceTypes).toEqual([
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Discord,
+      ]);
     });
   });
 });

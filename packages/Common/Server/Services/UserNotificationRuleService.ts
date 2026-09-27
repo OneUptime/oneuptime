@@ -27,6 +27,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserDiscordService from "./UserDiscordService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
@@ -91,6 +92,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserDiscord from "../../Models/DatabaseModels/UserDiscord";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
@@ -133,6 +135,7 @@ export interface NotificationMethodDescriptor {
   userTelegramId?: ObjectID;
   userSlackId?: ObjectID;
   userMicrosoftTeamsId?: ObjectID;
+  userDiscordId?: ObjectID;
   userPushId?: ObjectID;
   userWebhookId?: ObjectID;
 }
@@ -521,12 +524,12 @@ type ChannelListFunction = () => Array<string>;
 
 /**
  * The channels no project setting can switch off. Push and Email are
- * zero-cost, Webhook is somebody else's endpoint, and Slack / Microsoft Teams
- * ride on the project's own workspace connection at no per-message cost, so
- * nothing gates them — which is what makes "a verified one of these survives"
- * a CERTAIN answer to "can this person still be paged" rather than a hopeful
- * one. Kept in step with OnCallReadinessService.isChannelEnabled, which
- * returns true for exactly these five unconditionally.
+ * zero-cost, Webhook is somebody else's endpoint, and Slack / Microsoft Teams /
+ * Discord ride on the project's own workspace connection at no per-message
+ * cost, so nothing gates them — which is what makes "a verified one of these
+ * survives" a CERTAIN answer to "can this person still be paged" rather than a
+ * hopeful one. Kept in step with OnCallReadinessService.isChannelEnabled,
+ * which returns true for exactly these six unconditionally.
  *
  * A FUNCTION rather than a module-level constant, and that is load-bearing
  * rather than stylistic: this module and OnCallReadinessService import each
@@ -544,6 +547,7 @@ const channelsWithNoProjectSwitch: ChannelListFunction = (): Array<string> => {
     ReadinessMethodType.Email,
     ReadinessMethodType.Slack,
     ReadinessMethodType.MicrosoftTeams,
+    ReadinessMethodType.Discord,
     ReadinessMethodType.Webhook,
   ];
 };
@@ -659,6 +663,12 @@ export class Service extends DatabaseService<Model> {
           isVerified: true,
           userId: true,
         },
+        userDiscord: {
+          discordUserId: true,
+          discordUserName: true,
+          isVerified: true,
+          userId: true,
+        },
         userWebhook: {
           webhookUrl: true,
           name: true,
@@ -770,6 +780,10 @@ export class Service extends DatabaseService<Model> {
       {
         label: "Microsoft Teams",
         ownerUserId: notificationRuleItem.userMicrosoftTeams?.userId,
+      },
+      {
+        label: "Discord",
+        ownerUserId: notificationRuleItem.userDiscord?.userId,
       },
       { label: "Push", ownerUserId: notificationRuleItem.userPush?.userId },
       {
@@ -2125,6 +2139,44 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // send Discord.
+    if (
+      notificationRuleItem.userDiscord?.discordUserId &&
+      notificationRuleItem.userDiscord?.isVerified
+    ) {
+      const attempted: boolean =
+        await this.deliverWorkspaceDirectMessageForRule({
+          workspaceType: WorkspaceType.Discord,
+          methodId: notificationRuleItem.userDiscord.id!,
+          workspaceUserId: notificationRuleItem.userDiscord.discordUserId,
+          notificationRuleItem: notificationRuleItem,
+          options: options,
+          logTimelineItem: logTimelineItem,
+          incident: incident,
+          alert: alert,
+          alertEpisode: alertEpisode,
+          incidentEpisode: incidentEpisode,
+        });
+
+      deliveryAttempted = deliveryAttempted || attempted;
+    }
+
+    if (
+      notificationRuleItem.userDiscord &&
+      !notificationRuleItem.userDiscord?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Discord message not sent because the Discord account is not verified.`;
+      logTimelineItem.userDiscordId = notificationRuleItem.userDiscord.id!;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // send webhook.
     if (notificationRuleItem.userWebhook?.webhookUrl) {
       const webhookUrl: string = notificationRuleItem.userWebhook.webhookUrl;
@@ -2958,8 +3010,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The Slack and Microsoft Teams halves of deliverNotificationForRule. Both
-   * channels deliver the same way — the same generated message blocks handed
+   * The Slack, Microsoft Teams and Discord parts of deliverNotificationForRule.
+   * All three channels deliver the same way — the same generated message blocks handed
    * to the same direct-message sender, with only the workspace type and the
    * timeline method column differing — so one helper carries both instead of
    * two more copies of the per-event ladder above.
@@ -3092,6 +3144,10 @@ export class Service extends DatabaseService<Model> {
       data.logTimelineItem.userMicrosoftTeamsId = data.methodId;
     }
 
+    if (data.workspaceType === WorkspaceType.Discord) {
+      data.logTimelineItem.userDiscordId = data.methodId;
+    }
+
     const updatedLog: UserOnCallLogTimeline =
       await UserOnCallLogTimelineService.create({
         data: data.logTimelineItem,
@@ -3196,6 +3252,13 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userMicrosoftTeams?.isVerified
     ) {
       channels.push("Microsoft Teams");
+    }
+
+    if (
+      notificationRuleItem.userDiscord?.discordUserId &&
+      notificationRuleItem.userDiscord?.isVerified
+    ) {
+      channels.push("Discord");
     }
 
     if (notificationRuleItem.userWebhook?.webhookUrl) {
@@ -3358,7 +3421,7 @@ export class Service extends DatabaseService<Model> {
   /*
    * Pick what to page the user on, and build an unsaved rule for each choice.
    *
-   * Zero-cost channels win: push, email, Slack and Microsoft Teams reach the
+   * Zero-cost channels win: push, email, Slack, Microsoft Teams and Discord reach the
    * most people for no money and no billing surprise, and there is no reason
    * to pick between them, so a user who has several gets all of them. Only a
    * user with none of these is worth spending on, and then just once, in
@@ -3468,6 +3531,30 @@ export class Service extends DatabaseService<Model> {
       rule.userMicrosoftTeams = userMicrosoftTeams;
       rule.userMicrosoftTeamsId = userMicrosoftTeams.id!;
       chosen.push({ channelName: "Microsoft Teams", rule: rule });
+    }
+
+    const userDiscord: UserDiscord | null = await UserDiscordService.findOneBy({
+      query: {
+        projectId: options.projectId,
+        userId: options.userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        discordUserId: true,
+        discordUserName: true,
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (userDiscord) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userDiscord = userDiscord;
+      rule.userDiscordId = userDiscord.id!;
+      chosen.push({ channelName: "Discord", rule: rule });
     }
 
     if (chosen.length > 0) {
@@ -4198,13 +4285,14 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * ---------------------------------------------------------------------- *
-   * Workspace (Slack / Microsoft Teams) direct-message generators.
+   * Workspace (Slack / Microsoft Teams / Discord) direct-message generators.
    *
-   * One generator family serves BOTH workspace channels: the blocks are
-   * written in standard markdown, which SlackUtil slackifies and
-   * MicrosoftTeamsUtil renders into an adaptive card. Keep them to the block
-   * types both platforms implement (markdown / header / divider / buttons) —
-   * anything else throws NotImplementedException on Teams.
+   * One generator family serves EVERY workspace channel: the blocks are
+   * written in standard markdown, which SlackUtil slackifies,
+   * MicrosoftTeamsUtil renders into an adaptive card and DiscordMessageRenderer
+   * posts as message content. Keep them to the block types all platforms
+   * implement (markdown / header / divider / buttons) — anything else throws
+   * NotImplementedException on Teams.
    * ---------------------------------------------------------------------- *
    */
 
@@ -5317,7 +5405,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!data.isOptOut && !data.hasNotificationMethod) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Discord, Webhook, Email, or Push notification is required",
       );
     }
   }
@@ -5618,6 +5706,7 @@ export class Service extends DatabaseService<Model> {
         userTelegramId: true,
         userSlackId: true,
         userMicrosoftTeamsId: true,
+        userDiscordId: true,
         userPushId: true,
         userWebhookId: true,
       },
@@ -5873,6 +5962,7 @@ export class Service extends DatabaseService<Model> {
         userTelegramId: true,
         userSlackId: true,
         userMicrosoftTeamsId: true,
+        userDiscordId: true,
         userPushId: true,
         userWebhookId: true,
       },
@@ -6044,6 +6134,9 @@ export class Service extends DatabaseService<Model> {
     if (descriptor.userMicrosoftTeamsId) {
       rule.userMicrosoftTeamsId = descriptor.userMicrosoftTeamsId;
     }
+    if (descriptor.userDiscordId) {
+      rule.userDiscordId = descriptor.userDiscordId;
+    }
     if (descriptor.userWebhookId) {
       rule.userWebhookId = descriptor.userWebhookId;
     }
@@ -6076,6 +6169,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (descriptor.userMicrosoftTeamsId) {
       query["userMicrosoftTeamsId"] = descriptor.userMicrosoftTeamsId;
+    }
+    if (descriptor.userDiscordId) {
+      query["userDiscordId"] = descriptor.userDiscordId;
     }
     if (descriptor.userWebhookId) {
       query["userWebhookId"] = descriptor.userWebhookId;
@@ -6459,6 +6555,13 @@ export class Service extends DatabaseService<Model> {
         props: props,
       });
       isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Discord) {
+      row = await UserDiscordService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
     } else if (data.methodType === ReadinessMethodType.Webhook) {
       row = await UserWebhookService.findOneBy({
         query: query,
@@ -6524,6 +6627,10 @@ export class Service extends DatabaseService<Model> {
 
     if (methodType === ReadinessMethodType.MicrosoftTeams) {
       return rule.userMicrosoftTeamsId;
+    }
+
+    if (methodType === ReadinessMethodType.Discord) {
+      return rule.userDiscordId;
     }
 
     if (methodType === ReadinessMethodType.Webhook) {
@@ -6862,6 +6969,7 @@ export class Service extends DatabaseService<Model> {
           userTelegramId: true,
           userSlackId: true,
           userMicrosoftTeamsId: true,
+          userDiscordId: true,
           userWebhookId: true,
         },
         sort: {

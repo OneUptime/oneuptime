@@ -24,6 +24,7 @@ import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenance
 import ScheduledMaintenanceEventViewAuditLogs from "../Pages/ScheduledMaintenanceEvents/View/AuditLogs";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionSlack from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
+import ScheduledMaintenanceWorkspaceConnectionDiscord from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionDiscord";
 
 import ScheduledMaintenanceEventsViewSettings from "../Pages/ScheduledMaintenanceEvents/View/Settings";
 
@@ -148,6 +149,25 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap
                     .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceWorkspaceConnectionDiscord
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
                 ] as Route
               }
             />

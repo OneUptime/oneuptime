@@ -1,4 +1,5 @@
 import UserCall from "../../Components/NotificationMethods/Call";
+import UserDiscord from "../../Components/NotificationMethods/Discord";
 import UserEmail from "../../Components/NotificationMethods/Email";
 import UserMicrosoftTeams from "../../Components/NotificationMethods/MicrosoftTeams";
 import UserPush from "../../Components/NotificationMethods/Push";
@@ -50,6 +51,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <div className="space-y-4">
                 <UserSlack />
                 <UserMicrosoftTeams />
+                <UserDiscord />
               </div>
             ),
           },

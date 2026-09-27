@@ -41,6 +41,8 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
         "Create custom Slack notification templates for status page subscribers. Use Markdown for formatting.",
       [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
         "Create custom Microsoft Teams notification templates for status page subscribers. Use Markdown for formatting.",
+      [StatusPageSubscriberNotificationMethod.Discord]:
+        "Create custom Discord notification templates for status page subscribers. Use Markdown for formatting.",
       [StatusPageSubscriberNotificationMethod.Webhook]:
         "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
     };
@@ -364,6 +366,12 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             name: "Microsoft Teams",
             children: getTemplateTable(
               StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            ),
+          },
+          {
+            name: "Discord",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.Discord,
             ),
           },
           {

@@ -8,6 +8,7 @@ import UserPush from "./UserPush";
 import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
+import UserDiscord from "./UserDiscord";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
@@ -885,6 +886,61 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userMicrosoftTeamsId?: ObjectID = undefined;
+
+  /*
+   * READ IS OWNER-ONLY ON THE RELATION, EVEN THOUGH THIS TABLE IS ADMIN-READABLE.
+   * Same reasoning as `userSlack` above: `select: { userDiscord: { discordUserId:
+   * true } }` on somebody else's rule would otherwise hand back their Discord
+   * user id, which is enough to address bot direct messages at them.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userDiscordId",
+    type: TableColumnType.Entity,
+    modelType: UserDiscord,
+    title: "User Discord",
+    description:
+      "Relation to User Discord Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserDiscord;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userDiscordId" })
+  public userDiscord?: UserDiscord = undefined;
+
+  // Re-pointable by an administrator. Read the essay above `userCall` first.
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [...ADMIN_WRITE_PERMISSIONS],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Discord ID",
+    description: "ID of User Discord in which this object belongs",
+    example: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userDiscordId?: ObjectID = undefined;
 
   /*
    * READ IS OWNER-ONLY ON THE RELATION, EVEN THOUGH THIS TABLE IS ADMIN-READABLE.

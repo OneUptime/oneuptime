@@ -14,6 +14,7 @@ import OnCallReadinessService, {
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserDiscordService from "../../../Server/Services/UserDiscordService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
@@ -32,6 +33,7 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -94,8 +96,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   A rule read through the wrong column matches no page at runtime, so
  *   counting it as coverage would certify a gap as covered.
  *
- *   CERTAINTY ABOUT REACHABILITY. Push, Email, Slack, Microsoft Teams and
- *   Webhook have no project switch, which is what makes "a verified one of
+ *   CERTAINTY ABOUT REACHABILITY. Push, Email, Slack, Microsoft Teams, Discord
+ *   and Webhook have no project switch, which is what makes "a verified one of
  *   those survives" a certain
  *   answer and "only paid channels survive" an honest "depends". Inventing a
  *   green in the second case is the exact false reassurance this whole feature
@@ -198,6 +200,7 @@ let whatsAppFindOneBy: jest.SpyInstance;
 let telegramFindOneBy: jest.SpyInstance;
 let slackFindOneBy: jest.SpyInstance;
 let microsoftTeamsFindOneBy: jest.SpyInstance;
+let discordFindOneBy: jest.SpyInstance;
 let webhookFindOneBy: jest.SpyInstance;
 let escalationUserFindBy: jest.SpyInstance;
 let escalationTeamFindBy: jest.SpyInstance;
@@ -220,6 +223,7 @@ function rule(data: {
   userTelegramId?: ObjectID | undefined;
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
+  userDiscordId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
 }): UserNotificationRule {
   const model: UserNotificationRule = new UserNotificationRule();
@@ -273,6 +277,10 @@ function rule(data: {
 
   if (data.userMicrosoftTeamsId) {
     model.userMicrosoftTeamsId = data.userMicrosoftTeamsId;
+  }
+
+  if (data.userDiscordId) {
+    model.userDiscordId = data.userDiscordId;
   }
 
   if (data.userWebhookId) {
@@ -518,8 +526,8 @@ beforeEach(() => {
   telegramRow.isVerified = true;
 
   /*
-   * Born verified: a UserSlack / UserMicrosoftTeams row is a pointer at the
-   * owner's own OAuth workspace link, so creation is verification.
+   * Born verified: a UserSlack / UserMicrosoftTeams / UserDiscord row is a
+   * pointer at the owner's own OAuth workspace link, so creation is verification.
    */
   const slackRow: UserSlack = new UserSlack();
   slackRow.id = SMS_METHOD_ID;
@@ -530,6 +538,11 @@ beforeEach(() => {
   microsoftTeamsRow.id = SMS_METHOD_ID;
   microsoftTeamsRow.userId = USER_ID;
   microsoftTeamsRow.isVerified = true;
+
+  const discordRow: UserDiscord = new UserDiscord();
+  discordRow.id = SMS_METHOD_ID;
+  discordRow.userId = USER_ID;
+  discordRow.isVerified = true;
 
   /*
    * Deliberately carries NO isVerified. UserWebhook has no such column at all,
@@ -564,6 +577,9 @@ beforeEach(() => {
   microsoftTeamsFindOneBy = jest
     .spyOn(UserMicrosoftTeamsService, "findOneBy")
     .mockResolvedValue(microsoftTeamsRow as never);
+  discordFindOneBy = jest
+    .spyOn(UserDiscordService, "findOneBy")
+    .mockResolvedValue(discordRow as never);
   webhookFindOneBy = jest
     .spyOn(UserWebhookService, "findOneBy")
     .mockResolvedValue(webhookRow as never);
@@ -1154,7 +1170,7 @@ describe("deleting a notification method: the cascade", () => {
     expect(impact.coverageLost).toHaveLength(0);
   });
 
-  test("each of the nine channels reads its own foreign key", async () => {
+  test("each of the ten channels reads its own foreign key", async () => {
     const cases: Array<{
       methodType: ReadinessMethodType;
       makeRule: () => UserNotificationRule;
@@ -1244,6 +1260,17 @@ describe("deleting a notification method: the cascade", () => {
             ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
             incidentSeverityId: SEV1_ID,
             userMicrosoftTeamsId: SMS_METHOD_ID,
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.Discord,
+        makeRule: (): UserNotificationRule => {
+          return rule({
+            id: RULE_1_ID,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: SEV1_ID,
+            userDiscordId: SMS_METHOD_ID,
           });
         },
       },
@@ -1375,8 +1402,8 @@ describe("deleting a notification method: the cascade", () => {
  *
  * Two of the four answers are certain and two are not, and the split is
  * structural: a method must be VERIFIED to be used at all, and Push, Email,
- * Slack, Microsoft Teams and Webhook have no project switch that can turn
- * them off. Anything that turns
+ * Slack, Microsoft Teams, Discord and Webhook have no project switch that can
+ * turn them off. Anything that turns
  * the honest "depends" into a green is a false reassurance in the one dialog
  * where it costs a page.
  * ---------------------------------------------------------------------------
@@ -1474,6 +1501,45 @@ describe("reachability after the deletion", () => {
     );
 
     expect(impact.reachability).toBe(PostDeletionReachability.Reachable);
+  });
+
+  test("a surviving verified Discord account is equally certain", async () => {
+    readinessRows = [
+      readiness({
+        methods: [
+          method(ReadinessMethodType.SMS),
+          method(ReadinessMethodType.Discord),
+        ],
+      }),
+    ];
+
+    const impact: NotificationDeletionImpact = await methodDeletionImpact(
+      ReadinessMethodType.SMS,
+      SMS_METHOD_ID,
+    );
+
+    expect(impact.reachability).toBe(PostDeletionReachability.Reachable);
+  });
+
+  test("deleting the last verified Discord account reports NotReachable", async () => {
+    readinessRows = [
+      readiness({
+        methods: [method(ReadinessMethodType.Discord)],
+      }),
+    ];
+
+    const impact: NotificationDeletionImpact = await methodDeletionImpact(
+      ReadinessMethodType.Discord,
+      SMS_METHOD_ID,
+    );
+
+    /*
+     * The deleted row is matched by CHANNEL. If Discord were not recognised
+     * as a channel, the one entry would survive the subtraction and the
+     * dialog would call a responder with nothing left reachable.
+     */
+    expect(impact.reachability).toBe(PostDeletionReachability.NotReachable);
+    expect(impact.verifiedMethodCountAfterDeletion).toBe(0);
   });
 
   test("a surviving Webhook counts, because a webhook has no verification concept", async () => {
@@ -2151,7 +2217,7 @@ describe("paging the rule read", () => {
  * ---------------------------------------------------------------------------
  * (L) The per-method-service entry points.
  *
- * Each of the nine notification-method services can answer for its own row,
+ * Each of the ten notification-method services can answer for its own row,
  * which is where the delete is actually initiated from. Each must name its own
  * channel: a service that passed the wrong one would preview the cascade of a
  * method the user is not deleting.
@@ -2286,6 +2352,21 @@ describe("the per-method-service entry points", () => {
         }),
       },
       {
+        name: "UserDiscordService",
+        call: (): Promise<NotificationDeletionImpact> => {
+          return UserDiscordService.getDeletionImpact({
+            itemId: SMS_METHOD_ID,
+            projectId: PROJECT_ID,
+          });
+        },
+        ruleWithThisMethod: rule({
+          id: RULE_1_ID,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: SEV1_ID,
+          userDiscordId: SMS_METHOD_ID,
+        }),
+      },
+      {
         name: "UserWebhookService",
         call: (): Promise<NotificationDeletionImpact> => {
           return UserWebhookService.getDeletionImpact({
@@ -2355,7 +2436,7 @@ describe("the per-method-service entry points", () => {
     expect(impact.reachability).toBe(PostDeletionReachability.NotReachable);
   });
 
-  test("the nine services do not read each other's tables", async () => {
+  test("the ten services do not read each other's tables", async () => {
     ruleRows = [];
 
     await UserTelegramService.getDeletionImpact({
@@ -2371,7 +2452,55 @@ describe("the per-method-service entry points", () => {
     expect(whatsAppFindOneBy).not.toHaveBeenCalled();
     expect(slackFindOneBy).not.toHaveBeenCalled();
     expect(microsoftTeamsFindOneBy).not.toHaveBeenCalled();
+    expect(discordFindOneBy).not.toHaveBeenCalled();
     expect(webhookFindOneBy).not.toHaveBeenCalled();
+  });
+
+  test("the Discord service reads its own table, scoped to the project", async () => {
+    ruleRows = [];
+
+    await UserDiscordService.getDeletionImpact({
+      itemId: SMS_METHOD_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(discordFindOneBy).toHaveBeenCalledTimes(1);
+    expect(microsoftTeamsFindOneBy).not.toHaveBeenCalled();
+    expect(slackFindOneBy).not.toHaveBeenCalled();
+
+    const call: FindOneByCall = discordFindOneBy.mock
+      .calls[0]![0] as FindOneByCall;
+
+    expect(call.query["_id"]?.toString()).toBe(SMS_METHOD_ID.toString());
+    expect(call.query["projectId"]?.toString()).toBe(PROJECT_ID.toString());
+    /*
+     * The preview needs the owner and the verified flag, nothing more. The
+     * snowflake is the addressable target and has no business in this read.
+     */
+    expect(call.select?.["discordUserId"]).toBeUndefined();
+  });
+
+  test("a Discord deletion previews methodType Discord and cascades its rules", async () => {
+    ruleRows = [
+      rule({
+        id: RULE_1_ID,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        incidentSeverityId: SEV1_ID,
+        userDiscordId: SMS_METHOD_ID,
+      }),
+    ];
+
+    const impact: NotificationDeletionImpact = await methodDeletionImpact(
+      ReadinessMethodType.Discord,
+      SMS_METHOD_ID,
+    );
+
+    expect(discordFindOneBy).toHaveBeenCalledTimes(1);
+    expect(impact.rulesDeletedCount).toBe(1);
+    expect(impact.coverageLost).toHaveLength(1);
+    expect(
+      warningsMatching(impact, "also deletes 1 notification rule that use it"),
+    ).toHaveLength(1);
   });
 });
 

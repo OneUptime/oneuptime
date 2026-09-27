@@ -6,6 +6,7 @@ import NotificationMethodUtil, {
 } from "../../../UI/Utils/NotificationMethodUtil";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -125,6 +126,18 @@ function microsoftTeams(
   return model;
 }
 
+function discord(id: string, userName?: string, userId?: string): UserDiscord {
+  const model: UserDiscord = new UserDiscord();
+  model.id = new ObjectID(id);
+  if (userName !== undefined) {
+    model.discordUserName = userName;
+  }
+  if (userId !== undefined) {
+    model.discordUserId = userId;
+  }
+  return model;
+}
+
 function emptyModels(): NotificationMethodModels {
   return {
     userCalls: [],
@@ -135,23 +148,27 @@ function emptyModels(): NotificationMethodModels {
     userTelegrams: [],
     userSlacks: [],
     userMicrosoftTeamsAccounts: [],
+    userDiscords: [],
     userWebhooks: [],
   };
 }
 
 // A 24-hex-char string is a valid ObjectID.
-const ID: Record<"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i", string> =
-  {
-    a: "aaaaaaaaaaaaaaaaaaaaaaaa",
-    b: "bbbbbbbbbbbbbbbbbbbbbbbb",
-    c: "cccccccccccccccccccccccc",
-    d: "dddddddddddddddddddddddd",
-    e: "eeeeeeeeeeeeeeeeeeeeeeee",
-    f: "ffffffffffffffffffffffff",
-    g: "abcabcabcabcabcabcabcabc",
-    h: "cdecdecdecdecdecdecdecde",
-    i: "fabfabfabfabfabfabfabfab",
-  };
+const ID: Record<
+  "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j",
+  string
+> = {
+  a: "aaaaaaaaaaaaaaaaaaaaaaaa",
+  b: "bbbbbbbbbbbbbbbbbbbbbbbb",
+  c: "cccccccccccccccccccccccc",
+  d: "dddddddddddddddddddddddd",
+  e: "eeeeeeeeeeeeeeeeeeeeeeee",
+  f: "ffffffffffffffffffffffff",
+  g: "abcabcabcabcabcabcabcabc",
+  h: "cdecdecdecdecdecdecdecde",
+  i: "fabfabfabfabfabfabfabfab",
+  j: "defdefdefdefdefdefdefdef",
+};
 
 /*
  * A minimal stand-in for a model row: getDisplayItems only needs getColumnValue,
@@ -178,6 +195,7 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
     expect(Object.keys(select).sort()).toEqual(
       [
         "userCall",
+        "userDiscord",
         "userEmail",
         "userMicrosoftTeams",
         "userPush",
@@ -216,6 +234,7 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
       microsoftTeamsUserName: true,
       microsoftTeamsUserId: true,
     });
+    expect(select["userDiscord"]).toEqual({ discordUserName: true });
   });
 
   test("selects ONLY name for a webhook — never the credential-bearing URL or secret", () => {
@@ -374,6 +393,24 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
     expect(items).toEqual([{ title: "Microsoft Teams", value: "29:1abc" }]);
   });
 
+  test("renders a Discord line with the display name", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userDiscord: { discordUserName: "alice.discord" } }),
+      );
+
+    expect(items).toEqual([{ title: "Discord", value: "alice.discord" }]);
+  });
+
+  test("never renders the Discord user id, even when the relation carries it", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userDiscord: { discordUserId: "412345678901234567" } }),
+      );
+
+    expect(items).toEqual([]);
+  });
+
   test("ignores a relation whose value is not an object", () => {
     expect(
       NotificationMethodUtil.getDisplayItems(
@@ -488,6 +525,22 @@ describe("NotificationMethodUtil.getLabel", () => {
     );
   });
 
+  /*
+   * A Discord user id is not a display value: the display name is what the
+   * user recognises, and the id is withheld from other members server-side.
+   */
+  test("labels a Discord method by display name, then Unknown Account, never the Discord user id", () => {
+    expect(
+      NotificationMethodUtil.getLabel(discord(ID.a, "alice.discord")),
+    ).toBe("Discord: alice.discord");
+
+    const nameless: string = NotificationMethodUtil.getLabel(
+      discord(ID.b, undefined, "412345678901234567"),
+    );
+    expect(nameless).toBe("Discord: Unknown Account");
+    expect(nameless).not.toContain("412345678901234567");
+  });
+
   test("labels call, sms, whatsapp with the phone number and their prefix", () => {
     expect(NotificationMethodUtil.getLabel(call(ID.a, "+15555550100"))).toBe(
       "Call: +15555550100",
@@ -538,6 +591,7 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       userTelegrams: [telegram(ID.f, "@jane")],
       userSlacks: [slack(ID.h, "alice")],
       userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
+      userDiscords: [discord(ID.j, "alice.discord")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
 
@@ -556,6 +610,7 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       "Telegram: @jane",
       "Slack: alice",
       "Microsoft Teams: Alice Example",
+      "Discord: alice.discord",
       "Webhook: Hook",
     ]);
   });
@@ -589,6 +644,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       userTelegrams: [telegram(ID.f, "@jane")],
       userSlacks: [slack(ID.h, "alice")],
       userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
+      userDiscords: [discord(ID.j, "alice.discord")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
   }
@@ -615,6 +671,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
     expect(rule.userTelegramId).toBeUndefined();
     expect(rule.userSlackId).toBeUndefined();
     expect(rule.userMicrosoftTeamsId).toBeUndefined();
+    expect(rule.userDiscordId).toBeUndefined();
   });
 
   test("maps each method type to its own foreign key", () => {
@@ -627,6 +684,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       { id: ID.f, key: "userTelegramId" },
       { id: ID.h, key: "userSlackId" },
       { id: ID.i, key: "userMicrosoftTeamsId" },
+      { id: ID.j, key: "userDiscordId" },
       { id: ID.g, key: "userWebhookId" },
     ];
 

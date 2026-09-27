@@ -38,6 +38,10 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import DiscordWebhook from "Common/Server/Utils/Workspace/Discord/DiscordWebhook";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
@@ -248,6 +252,7 @@ RunCron(
           Markdown.convertToPlainText(incident.description || "");
 
         let notificationSentToAtLeastOneSubscriber: boolean = false;
+        const discordFailures: Array<string> = [];
 
         for (const statuspage of statusPages) {
           try {
@@ -313,6 +318,7 @@ RunCron(
               smsTemplate,
               slackTemplate,
               teamsTemplate,
+              discordTemplate,
             ]: Array<StatusPageSubscriberNotificationTemplate | null> =
               await Promise.all([
                 StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -349,6 +355,15 @@ RunCron(
                       StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
                     notificationMethod:
                       StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Discord,
                   },
                 ),
               ]);
@@ -659,6 +674,55 @@ RunCron(
                   );
                 }
 
+                if (subscriber.discordIncomingWebhookUrl) {
+                  logger.debug(
+                    `Queueing Discord notification to subscriber ${subscriber._id} via incoming webhook.`,
+                  );
+
+                  let markdownMessage: string;
+                  if (discordTemplate?.templateBody) {
+                    // Use custom template
+                    markdownMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        discordTemplate.templateBody,
+                        subscriberMarkdownTemplateVariables,
+                      );
+                  } else {
+                    // Use default hard-coded template
+                    markdownMessage = `## 🚨 Incident - ${incident.title || ""}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${resourcesAffectedString}
+**Description:** ${incident.description || ""}
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                  }
+
+                  /*
+                   * send Discord notification. Unlike the other chat
+                   * channels, DiscordWebhook.send resolves with
+                   * HTTPErrorResponse on failure instead of throwing, so
+                   * collect failures and surface them at the persisted
+                   * subscriber notification status boundary below — the
+                   * per-subscriber catch here would otherwise swallow them.
+                   */
+                  await DiscordWebhook.send({
+                    url: subscriber.discordIncomingWebhookUrl,
+                    text: markdownMessage,
+                  }).then(
+                    (
+                      result: HTTPResponse<JSONObject> | HTTPErrorResponse,
+                    ): void => {
+                      if (result instanceof HTTPErrorResponse) {
+                        discordFailures.push(
+                          `HTTP ${result.statusCode} for subscriber ${subscriber._id}`,
+                        );
+                      }
+                    },
+                  );
+                  logger.debug(
+                    `Discord notification queued for subscriber ${subscriber._id}.`,
+                  );
+                }
+
                 if (subscriber.subscriberWebhook) {
                   logger.debug(
                     `Queueing webhook notification to subscriber ${subscriber._id}.`,
@@ -733,6 +797,17 @@ RunCron(
               sendWorkspaceNotification: false,
             },
           });
+        }
+
+        /*
+         * If a Discord delivery failed, record it as a notification failure
+         * instead of reporting success. No automatic retry: the send result
+         * is unambiguous (Discord answered with an error status).
+         */
+        if (discordFailures.length > 0) {
+          throw new Error(
+            `Discord subscriber notification failed: ${discordFailures.join("; ")}`,
+          );
         }
 
         // If we get here, the notification was successful

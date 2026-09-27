@@ -38,6 +38,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Labels",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DISCORD_INTEGRATION, [
+      "Project",
+      "Settings",
+      "Discord Integration",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "Settings",

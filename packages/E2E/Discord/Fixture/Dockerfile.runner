@@ -1,0 +1,6 @@
+ARG E2E_IMAGE=oneuptime-discord-e2e-tests:local
+FROM ${E2E_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libnss3-tools && rm -rf /var/lib/apt/lists/*
+COPY trust-browser.sh /usr/local/bin/discord-trust-browser
+ENTRYPOINT ["bash", "/usr/local/bin/discord-trust-browser"]

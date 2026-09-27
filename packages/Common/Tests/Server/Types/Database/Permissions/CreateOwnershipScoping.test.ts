@@ -2,6 +2,7 @@ import ProjectUserProfile from "../../../../../Models/DatabaseModels/ProjectUser
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../../Models/DatabaseModels/User";
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
+import UserDiscord from "../../../../../Models/DatabaseModels/UserDiscord";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
 import UserIncomingCallNumber from "../../../../../Models/DatabaseModels/UserIncomingCallNumber";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
@@ -140,6 +141,7 @@ const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
   ["UserTelegram", UserTelegram],
   ["UserSlack", UserSlack],
   ["UserMicrosoftTeams", UserMicrosoftTeams],
+  ["UserDiscord", UserDiscord],
   ["UserNotificationSetting", UserNotificationSetting],
   ["UserIncomingCallNumber", UserIncomingCallNumber],
   ["UserSession", UserSession],

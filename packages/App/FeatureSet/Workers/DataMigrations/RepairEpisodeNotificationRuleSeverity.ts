@@ -131,6 +131,7 @@ export default class RepairEpisodeNotificationRuleSeverity extends DataMigration
             userTelegramId: true,
             userSlackId: true,
             userMicrosoftTeamsId: true,
+            userDiscordId: true,
             userWebhookId: true,
           },
           sort: {
@@ -346,6 +347,10 @@ export default class RepairEpisodeNotificationRuleSeverity extends DataMigration
 
     if (rule.userMicrosoftTeamsId) {
       columns.userMicrosoftTeamsId = rule.userMicrosoftTeamsId;
+    }
+
+    if (rule.userDiscordId) {
+      columns.userDiscordId = rule.userDiscordId;
     }
 
     if (rule.userWebhookId) {

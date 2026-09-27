@@ -138,6 +138,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
+            title: "Discord Subscribers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_DISCORD_SUBSCRIBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Chat}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Webhook Subscribers",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route,

@@ -296,7 +296,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       telegram: jest
         .spyOn(TelegramService, "sendTelegramMessage")
         .mockResolvedValue(undefined as never),
-      // Slack and Microsoft Teams both deliver through this one service.
+      // Slack, Microsoft Teams and Discord all deliver through this one service.
       workspaceMessage: jest
         .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
         .mockResolvedValue(undefined as never),
@@ -579,7 +579,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
        * the loaded relation's userId against the rule's, and it can only report
        * a mismatch it can SEE - an unselected column arrives as `undefined` and
        * is deliberately read as "no evidence", so dropping any one of these
-       * nine silently disables the backstop for that channel.
+       * ten silently disables the backstop for that channel.
        *
        * Kept as an exact-shape assertion on purpose. This test caught the
        * column being added, which is the whole argument for not relaxing it
@@ -622,6 +622,12 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           isVerified: true,
           userId: true,
         },
+        userDiscord: {
+          discordUserId: true,
+          discordUserName: true,
+          isVerified: true,
+          userId: true,
+        },
         userWebhook: {
           webhookUrl: true,
           name: true,
@@ -650,6 +656,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       ["userTelegram"],
       ["userSlack"],
       ["userMicrosoftTeams"],
+      ["userDiscord"],
       ["userEmail"],
       ["userPush"],
     ])(
@@ -670,6 +677,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       ["userTelegram", "telegramChatId"],
       ["userSlack", "slackUserId"],
       ["userMicrosoftTeams", "microsoftTeamsUserId"],
+      ["userDiscord", "discordUserId"],
       ["userEmail", "email"],
       ["userPush", "deviceToken"],
     ])(
@@ -810,6 +818,11 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
             microsoftTeamsUserId: "teams-user-1",
             isVerified: false,
           },
+          userDiscord: {
+            id: METHOD_ID,
+            discordUserId: "123456789012345678",
+            isVerified: false,
+          },
           userCall: {
             id: METHOD_ID,
             phone: new Phone("+11234567892"),
@@ -837,8 +850,8 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(spies.workspaceMessage).not.toHaveBeenCalled();
       expect(spies.push).not.toHaveBeenCalled();
 
-      // One "not verified" Error row per unverified channel: 8 in total.
-      expect(timelineRows).toHaveLength(8);
+      // One "not verified" Error row per unverified channel: 9 in total.
+      expect(timelineRows).toHaveLength(9);
       for (const row of timelineRows) {
         expect(row.status).toBe(UserNotificationStatus.Error);
         expect(row.statusMessage).toContain("not verified");

@@ -105,6 +105,7 @@ import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberA
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserSlackAPI from "Common/Server/API/UserSlackAPI";
+import UserDiscordAPI from "Common/Server/API/UserDiscordAPI";
 import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
@@ -768,6 +769,11 @@ import CephClusterOwnerUserService, {
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
+import DiscordResourceThread from "Common/Models/DatabaseModels/DiscordResourceThread";
+import DiscordResourceThreadService, {
+  Service as DiscordResourceThreadServiceType,
+} from "Common/Server/Services/DiscordResourceThreadService";
+import DiscordResourceThreadAPI from "Common/Server/API/DiscordResourceThreadAPI";
 import DatabaseServerEndpointService, {
   Service as DatabaseServerEndpointServiceType,
 } from "Common/Server/Services/DatabaseServerEndpointService";
@@ -1502,6 +1508,7 @@ import ScheduledMaintenanceFeedService, {
 } from "Common/Server/Services/ScheduledMaintenanceFeedService";
 
 import SlackAPI from "Common/Server/API/SlackAPI";
+import DiscordAPI from "Common/Server/API/DiscordAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
 
@@ -4642,6 +4649,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DiscordResourceThread, DiscordResourceThreadServiceType>(
+        DiscordResourceThread,
+        DiscordResourceThreadService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerEndpoint, DatabaseServerEndpointServiceType>(
         DatabaseServerEndpoint,
         DatabaseServerEndpointService,
@@ -5111,6 +5126,11 @@ const BaseAPIFeatureSet: FeatureSet = {
       new OpenSourceDeploymentAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new DiscordAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DiscordResourceThreadAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),
@@ -5156,6 +5176,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserMicrosoftTeamsAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserDiscordAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -126,6 +126,10 @@ describe("Alerts side menu", () => {
           title: "Microsoft Teams",
           href: routeFor(PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS),
         },
+        {
+          title: "Discord",
+          href: routeFor(PageMap.ALERTS_WORKSPACE_CONNECTION_DISCORD),
+        },
       ]);
     });
   });

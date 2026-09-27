@@ -13,6 +13,7 @@ import UserService from "../../../../Server/Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import { MessageBlocksByWorkspaceType } from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import DiscordUtil from "../../../../Server/Utils/Workspace/Discord/Discord";
 import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
@@ -31,8 +32,8 @@ import API from "../../../../Utils/API";
  * throw — and for Microsoft Teams it always did, because Graph's
  * GET /users/{id} needs User.Read.All, which OneUptime's app does not have.
  * The exception aborted the whole post, so notes from anyone who had linked
- * Teams never reached Teams OR Slack. These pin down that resolving the author
- * can no longer stop a message.
+ * Teams never reached Teams, Slack OR Discord. These pin down that resolving
+ * the author can no longer stop a message.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -102,11 +103,15 @@ beforeEach((): void => {
       async (data: {
         workspaceType: WorkspaceType;
       }): Promise<WorkspaceProjectAuthToken | null> => {
-        return projectAuth(
-          data.workspaceType === WorkspaceType.Slack
-            ? "xoxb-token"
-            : "teams-token",
-        );
+        if (data.workspaceType === WorkspaceType.Slack) {
+          return projectAuth("xoxb-token");
+        }
+
+        if (data.workspaceType === WorkspaceType.Discord) {
+          return projectAuth("discord-token");
+        }
+
+        return projectAuth("teams-token");
       },
     );
 
@@ -132,7 +137,11 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
       blocks.map((b: MessageBlocksByWorkspaceType) => {
         return b.workspaceType;
       }),
-    ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Discord,
+    ]);
 
     for (const entry of blocks) {
       expect(entry.messageBlocks).toHaveLength(1);
@@ -156,6 +165,9 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
       "**Jane Doe** (jane@example.com) posted a note",
     );
     expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe(
       "**Jane Doe** (jane@example.com) posted a note",
     );
   });
@@ -197,8 +209,11 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
     expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
       "**Jane Doe** (jane@example.com) posted **private note**",
     );
-    // Slack is unaffected by Teams' failure.
+    // Slack and Discord are unaffected by Teams' failure.
     expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "**Jane Doe** (jane@example.com) posted **private note**",
+    );
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe(
       "**Jane Doe** (jane@example.com) posted **private note**",
     );
   });
@@ -324,6 +339,90 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
     );
   });
 
+  test("Discord mentions the linked user by their Discord name", async () => {
+    mockUserAuths({
+      [WorkspaceType.Discord]: userAuth({
+        workspaceUserId: "987654321098765432",
+      }),
+    });
+
+    const discordUsernameSpy: SpyInstance<
+      typeof DiscordUtil.getUsernameFromUserId
+    > = jest
+      .spyOn(DiscordUtil, "getUsernameFromUserId")
+      .mockResolvedValue("jane");
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    expect(discordUsernameSpy).toHaveBeenCalledWith({
+      userId: "987654321098765432",
+      authToken: "discord-token",
+      projectId: projectId,
+    });
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe("@jane posted a note");
+    // A Discord link says nothing about Slack or Teams.
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+  });
+
+  test('an unresolvable Discord name is never written as "@null"', async () => {
+    mockUserAuths({
+      [WorkspaceType.Discord]: userAuth({
+        workspaceUserId: "987654321098765432",
+      }),
+    });
+    jest.spyOn(DiscordUtil, "getUsernameFromUserId").mockResolvedValue(null);
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    expect(textFor(blocks, WorkspaceType.Discord)).not.toContain("@null");
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+  });
+
+  test("a Discord lookup that throws falls back to the OneUptime name, and does not abort Slack or Teams", async () => {
+    mockUserAuths({
+      [WorkspaceType.Discord]: userAuth({
+        workspaceUserId: "987654321098765432",
+      }),
+    });
+    jest
+      .spyOn(DiscordUtil, "getUsernameFromUserId")
+      .mockRejectedValue(new Error("ratelimited"));
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "posted a note",
+      });
+
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
+  });
+
   test("a linked account whose workspace is no longer connected falls back to the OneUptime name", async () => {
     mockUserAuths({
       [WorkspaceType.Slack]: userAuth({ workspaceUserId: "U123" }),
@@ -362,6 +461,9 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
     expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
       "**Jane Doe** (jane@example.com) posted a note",
     );
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe(
+      "**Jane Doe** (jane@example.com) posted a note",
+    );
   });
 
   test("when no name can be found at all the message is still sent, unprefixed", async () => {
@@ -376,6 +478,7 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
 
     expect(textFor(blocks, WorkspaceType.Slack)).toBe("posted a note");
     expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe("posted a note");
+    expect(textFor(blocks, WorkspaceType.Discord)).toBe("posted a note");
   });
 
   test("an empty OneUptime name adds no stray space", async () => {

@@ -142,6 +142,7 @@
       "sms": "پیامک",
       "slack": "اسلک",
       "microsoftTeams": "مایکروسافت تیمز",
+      "discord": "Discord",
       "webhooks": "وب‌هوک‌ها"
     },
     "email": {
@@ -215,6 +216,18 @@
     "confirm": {
       "title": "تأیید عضویت",
       "success": "عضویت با موفقیت تأیید شد"
+    },
+    "discord": {
+      "title": "Subscribe by Discord",
+      "description": "All of our updates will be sent to this Discord webhook.",
+      "channelName": "Discord Channel Name",
+      "channelNameDescription": "Enter your Discord channel name for validation.",
+      "channelNamePlaceholder": "alerts",
+      "webhookUrl": "Discord Incoming Webhook URL",
+      "webhookUrlDescription": "Status page updates will be sent to this Discord webhook.",
+      "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
+      "managePrompt": "Please enter your Discord channel name you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this channel."
     }
   },
   "accounts": {

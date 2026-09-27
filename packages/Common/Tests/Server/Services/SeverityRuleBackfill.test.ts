@@ -120,6 +120,7 @@ const EMAIL_C: ObjectID = new ObjectID("user-email-c");
 const CALL_A: ObjectID = new ObjectID("user-call-a");
 const SMS_A: ObjectID = new ObjectID("user-sms-a");
 const PUSH_A: ObjectID = new ObjectID("user-push-a");
+const DISCORD_A: ObjectID = new ObjectID("user-discord-a");
 
 // The severities that existed when the responder configured their rules...
 const SEV_1: ObjectID = new ObjectID("incident-severity-1");
@@ -150,6 +151,7 @@ type RuleMethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userDiscordId"
   | "userWebhookId";
 
 type RuleIdColumn =
@@ -168,6 +170,7 @@ const METHOD_COLUMNS: Array<RuleMethodColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userDiscordId",
   "userWebhookId",
 ];
 
@@ -184,7 +187,7 @@ const ID_COLUMNS: Array<RuleIdColumn> = [
  * An in-memory stand-in for the UserNotificationRule table.
  *
  * Rows are real model instances, because that is what the job reads: it asks
- * rules for `.userId`, `.isOptOut`, `.notifyAfterMinutes` and the nine method
+ * rules for `.userId`, `.isOptOut`, `.notifyAfterMinutes` and the ten method
  * foreign keys, and hands `create` a model it built itself.
  * -------------------------------------------------------------------------
  */
@@ -233,6 +236,7 @@ interface RuleSpec {
   userSmsId?: ObjectID | undefined;
   userCallId?: ObjectID | undefined;
   userPushId?: ObjectID | undefined;
+  userDiscordId?: ObjectID | undefined;
   isOptOut?: boolean | undefined;
 }
 
@@ -279,6 +283,10 @@ function makeRule(spec: RuleSpec): UserNotificationRule {
 
   if (spec.userPushId) {
     rule.userPushId = spec.userPushId;
+  }
+
+  if (spec.userDiscordId) {
+    rule.userDiscordId = spec.userDiscordId;
   }
 
   if (spec.isOptOut !== undefined) {
@@ -1021,6 +1029,88 @@ describe("backfillSeverity mirrors what the responder already asked for", () => 
 
     // The flattened default they must NOT get: their email, immediately.
     expect(shapes).not.toContain(`userEmailId:${EMAIL_A.toString()}@0`);
+  });
+
+  test("a Discord-only responder is mirrored onto the new severity on userDiscordId", async () => {
+    /*
+     * The job maps each method column by hand (select, existence query, and
+     * the column set on the new rule). A column missing from any of the three
+     * reads a Discord rule as "no method" and falls through to the email
+     * default, or to nothing.
+     */
+    verifiedEmails = [];
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userDiscordId: DISCORD_A,
+      notifyAfterMinutes: 5,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      shapesCreatedFor(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
+    ).toEqual([`userDiscordId:${DISCORD_A.toString()}@5`]);
+
+    const created: UserNotificationRule | undefined = createdOfType(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    )[0];
+
+    for (const column of METHOD_COLUMNS) {
+      if (column === "userDiscordId") {
+        continue;
+      }
+      expect(created?.[column]).toBeUndefined();
+    }
+  });
+
+  test("the pre-write check for a Discord rule names userDiscordId, and a second run writes nothing", async () => {
+    verifiedEmails = [];
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userDiscordId: DISCORD_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(idOf(queryOf(ruleFindOneBySpy, 0)["userDiscordId"])).toBe(
+      DISCORD_A.toString(),
+    );
+
+    const writtenFirstRun: number = createdRules.length;
+    createdRules = [];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(writtenFirstRun).toBeGreaterThan(0);
+    expect(createdRules).toHaveLength(0);
+  });
+
+  test("the project-wide rule read selects every method column, Discord included", async () => {
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userDiscordId: DISCORD_A,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    const select: Record<string, unknown> = (
+      ruleFindAllBySpy.mock.calls[0]![0] as {
+        select: Record<string, unknown>;
+      }
+    ).select;
+
+    for (const column of METHOD_COLUMNS) {
+      expect(select[column]).toBe(true);
+    }
   });
 
   test("every new rule is bound to the new severity and to no other", async () => {

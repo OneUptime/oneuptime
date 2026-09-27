@@ -17,6 +17,7 @@ import StatusPagesViewEmailSubscribers from "../Pages/StatusPages/View/EmailSubs
 import StatusPagesViewSMSSubscribers from "../Pages/StatusPages/View/SMSSubscribers";
 import StatusPagesViewSlackSubscribers from "../Pages/StatusPages/View/SlackSubscribers";
 import StatusPagesViewMicrosoftTeamsSubscribers from "../Pages/StatusPages/View/MicrosoftTeamsSubscribers";
+import StatusPagesViewDiscordSubscribers from "../Pages/StatusPages/View/DiscordSubscribers";
 import StatusPagesViewWebhookSubscribers from "../Pages/StatusPages/View/WebhookSubscribers";
 import StatusPagesViewEmbedded from "../Pages/StatusPages/View/EmbeddedStatus";
 import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
@@ -661,6 +662,20 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_DISCORD_SUBSCRIBERS,
+          )}
+          element={
+            <StatusPagesViewDiscordSubscribers
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_DISCORD_SUBSCRIBERS] as Route
               }
             />
           }

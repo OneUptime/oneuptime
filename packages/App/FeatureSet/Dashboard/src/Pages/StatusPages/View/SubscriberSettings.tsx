@@ -92,6 +92,8 @@ const StatusPageSubscriberSettings: FunctionComponent<
         return Purple500;
       case StatusPageSubscriberNotificationMethod.MicrosoftTeams:
         return Blue500;
+      case StatusPageSubscriberNotificationMethod.Discord:
+        return Blue500;
       case StatusPageSubscriberNotificationMethod.Webhook:
         return Cyan500;
       default:
@@ -238,6 +240,42 @@ const StatusPageSubscriberSettings: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Enable Microsoft Teams Subscribers",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Subscriber > Discord"
+        cardProps={{
+          title: "Discord Subscribers",
+          description: "Discord subscriber settings for this status page.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              enableDiscordSubscribers: true,
+            },
+            title: "Enable Discord Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder:
+              "Can Discord subscribers subscribe to this status page?",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-discord-subscribers",
+          fields: [
+            {
+              field: {
+                enableDiscordSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Discord Subscribers",
             },
           ],
           modelId: modelId,

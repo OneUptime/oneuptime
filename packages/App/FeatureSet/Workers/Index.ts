@@ -162,6 +162,9 @@ import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 // Microsoft Teams: save pinned / megaphoned channel messages as notes
 import "./Jobs/MicrosoftTeams/SyncReactionNotes";
 
+// Discord: save pinned / reaction-saved channel messages as notes
+import "./Jobs/Discord/SyncReactionNotes";
+
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 
@@ -332,6 +335,9 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";
+
+// Erases expired Discord creation-draft content every minute and on startup.
+import "./Jobs/Discord/ClearExpiredCreationDrafts";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";

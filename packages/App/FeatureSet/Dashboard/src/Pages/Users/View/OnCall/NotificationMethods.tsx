@@ -5,6 +5,7 @@ import UserSMS from "../../../../Components/NotificationMethods/SMS";
 import UserTelegram from "../../../../Components/NotificationMethods/Telegram";
 import UserSlackMethods from "../../../../Components/NotificationMethods/Slack";
 import UserMicrosoftTeamsMethods from "../../../../Components/NotificationMethods/MicrosoftTeams";
+import UserDiscordMethods from "../../../../Components/NotificationMethods/Discord";
 import UserWebhook from "../../../../Components/NotificationMethods/Webhook";
 import UserWhatsApp from "../../../../Components/NotificationMethods/WhatsApp";
 import PageComponentProps from "../../../PageComponentProps";
@@ -329,6 +330,7 @@ const UserViewNotificationMethods: FunctionComponent<
                 <div className="space-y-4">
                   <UserSlackMethods />
                   <UserMicrosoftTeamsMethods />
+                  <UserDiscordMethods />
                 </div>
               ),
             },

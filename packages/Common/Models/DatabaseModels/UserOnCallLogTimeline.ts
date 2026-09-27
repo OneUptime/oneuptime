@@ -17,6 +17,7 @@ import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
+import UserDiscord from "./UserDiscord";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
@@ -1151,6 +1152,58 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userMicrosoftTeamsId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userDiscordId",
+    type: TableColumnType.Entity,
+    modelType: UserDiscord,
+    title: "User Discord",
+    description:
+      "Relation to User Discord Resource in which this object belongs",
+  })
+  /*
+   * SET NULL, not CASCADE like the Slack and Microsoft Teams columns above:
+   * a Discord method is deleted whenever its account link is removed or
+   * relinked, and that must not erase the pages already delivered through it.
+   */
+  @ManyToOne(
+    () => {
+      return UserDiscord;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userDiscordId" })
+  public userDiscord?: UserDiscord = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Discord ID",
+    description: "ID of User Discord in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userDiscordId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

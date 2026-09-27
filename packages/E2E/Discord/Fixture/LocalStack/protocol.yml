@@ -1,0 +1,39 @@
+services:
+  app:
+    environment:
+      DISCORD_APP_CLIENT_ID: ${DISCORD_APP_CLIENT_ID}
+      DISCORD_APP_CLIENT_SECRET: ${DISCORD_APP_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_APP_PUBLIC_KEY: ${DISCORD_APP_PUBLIC_KEY}
+      NODE_EXTRA_CA_CERTS: /fixture-trust/ca.crt
+    volumes:
+      - fixture-trust:/fixture-trust:ro
+  discord-fixture:
+    image: oneuptime-discord-e2e-tests:local
+    entrypoint: [node, /fixture/server.cjs]
+    environment:
+      DISCORD_APP_CLIENT_SECRET: ${DISCORD_APP_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_FIXTURE_CONTROL_TOKEN: ${DISCORD_FIXTURE_CONTROL_TOKEN}
+    volumes:
+      - ../../packages/E2E/Discord/Fixture:/fixture:ro
+      - fixture-private:/fixture-certs:ro
+    networks:
+      oneuptime:
+        aliases: [discord.com]
+  e2e:
+    image: oneuptime-discord-e2e-trusted-tests:local
+    environment:
+      NODE_EXTRA_CA_CERTS: /fixture-trust/ca.crt
+      DISCORD_APP_CLIENT_SECRET: ${DISCORD_APP_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_FIXTURE_CONTROL_TOKEN: ${DISCORD_FIXTURE_CONTROL_TOKEN}
+      DISCORD_FIXTURE_SIGNING_KEY: /fixture-private/interaction.key
+    volumes:
+      - fixture-trust:/fixture-trust:ro
+      - fixture-private:/fixture-private:ro
+      - ../../packages/E2E/Discord:/usr/src/app/Discord:ro
+      - ../../packages/E2E/playwright.discord.config.ts:/usr/src/app/playwright.discord.config.ts:ro
+volumes:
+  fixture-private:
+  fixture-trust:

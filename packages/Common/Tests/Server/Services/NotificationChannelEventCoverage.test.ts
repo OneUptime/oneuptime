@@ -35,13 +35,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * THE SHAPE OF THE BUG THIS FILE EXISTS TO CATCH.
  *
- * `deliverNotificationForRule` is nine independent channel blocks stacked one
+ * `deliverNotificationForRule` is ten independent channel blocks stacked one
  * after another - email, SMS, WhatsApp, Telegram, Slack, Microsoft Teams,
- * webhook, call, push - and each block is itself a stack of
+ * Discord, webhook, call, push - and each block is itself a stack of
  * `if (eventType === X && entity)` branches, one per UserNotificationEventType
- * (the two workspace channels share one such ladder inside
+ * (the three workspace channels share one such ladder inside
  * deliverWorkspaceDirectMessageForRule, but each still opens its own gate).
- * That is a 9 x 4 grid written out by hand, thirty six times, with no compiler
+ * That is a 10 x 4 grid written out by hand, forty times, with no compiler
  * anywhere insisting the grid is full.
  *
  * It was not full. Gap F: `IncidentEpisodeCreated` was wired into the webhook
@@ -56,9 +56,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * A test that checked "email works" and "SMS works" would not have caught it,
  * because email and SMS did work - for three of the four event types. Only the
  * CARTESIAN PRODUCT catches a hole in a grid. So this file is table-driven on
- * purpose: it builds {nine channels} x {every member of UserNotificationEventType}
+ * purpose: it builds {ten channels} x {every member of UserNotificationEventType}
  * and asserts every single cell hands a page to its provider and writes a
- * timeline row. Adding a tenth channel or a fifth event type without filling
+ * timeline row. Adding an eleventh channel or a fifth event type without filling
  * in the new row or column fails here, loudly, in the cell that is missing.
  *
  * Two canaries keep the table honest, because a table that quietly stops
@@ -131,6 +131,8 @@ const SLACK_USER_ID: string = "U0123ABCD";
 const SLACK_USER_NAME: string = "alice";
 const TEAMS_USER_ID: string = "aad-object-0123";
 const TEAMS_USER_NAME: string = "Alice Example";
+const DISCORD_USER_ID: string = "123456789012345678";
+const DISCORD_USER_NAME: string = "alice";
 const WORKSPACE_BLOCKS: Array<Record<string, unknown>> = [
   { _type: "WorkspacePayloadMarkdown", text: "**workspace body**" },
 ];
@@ -167,7 +169,7 @@ interface SenderOptions {
   incidentEpisodeId?: ObjectID | undefined;
   /*
    * Only the shared workspace sender carries this: it is the ONE thing that
-   * says whether a call was a Slack page or a Microsoft Teams page.
+   * says whether a call was a Slack, Microsoft Teams or Discord page.
    */
   workspaceType?: WorkspaceType | undefined;
 }
@@ -304,7 +306,7 @@ interface ChannelSpec {
    */
   senderOptionsArgIndex: number;
   /*
-   * Slack and Microsoft Teams share ONE sender -
+   * Slack, Microsoft Teams and Discord share ONE sender -
    * WorkspaceUserNotificationService.sendDirectMessageToUser - so the spy
    * alone cannot say which channel a call was for; the workspaceType argument
    * can, and is asserted wherever the spec's is non-null. Null for channels
@@ -523,6 +525,41 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     generatorPrefix: "generateWorkspaceMessageBlocksFor",
     generatorTimelineIdArgIndex: 1,
   },
+  Discord: {
+    channel: "Discord",
+    verifiedMethod: (): Record<string, unknown> => {
+      return {
+        userDiscord: {
+          id: METHOD_ID,
+          discordUserId: DISCORD_USER_ID,
+          discordUserName: DISCORD_USER_NAME,
+          isVerified: true,
+        },
+      };
+    },
+    unverifiedMethod: (): Record<string, unknown> => {
+      return {
+        userDiscord: {
+          id: METHOD_ID,
+          discordUserId: DISCORD_USER_ID,
+          discordUserName: DISCORD_USER_NAME,
+          isVerified: false,
+        },
+      };
+    },
+    sendingMessage: "Sending Discord message.",
+    unverifiedMessage:
+      "Discord message not sent because the Discord account is not verified.",
+    sender: (): jest.SpyInstance => {
+      return spies.workspace;
+    },
+    senderOptionsArgIndex: 0,
+    workspaceType: WorkspaceType.Discord,
+    timelineMethodIdField: "userDiscordId",
+    /* Shared with Slack - see the note on that spec. */
+    generatorPrefix: "generateWorkspaceMessageBlocksFor",
+    generatorTimelineIdArgIndex: 1,
+  },
   Webhook: {
     channel: "Webhook",
     verifiedMethod: (): Record<string, unknown> => {
@@ -719,6 +756,7 @@ const CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Discord",
   "Webhook",
   "Call",
   "Push",
@@ -739,6 +777,7 @@ const GENERATOR_CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Discord",
   "Call",
 ];
 
@@ -750,6 +789,7 @@ const VERIFIABLE_CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Discord",
   "Call",
   "Push",
 ];
@@ -863,6 +903,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
             userTelegramId: data.userTelegramId,
             userSlackId: data.userSlackId,
             userMicrosoftTeamsId: data.userMicrosoftTeamsId,
+            userDiscordId: data.userDiscordId,
             userPushId: data.userPushId,
             userWebhookId: data.userWebhookId,
           },
@@ -946,7 +987,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       telegram: jest
         .spyOn(TelegramService, "sendTelegramMessage")
         .mockResolvedValue(undefined as never),
-      /* ONE sender for BOTH workspace channels - see ChannelSpec.workspaceType. */
+      /* ONE sender for ALL THREE workspace channels - see ChannelSpec.workspaceType. */
       workspace: jest
         .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
         .mockResolvedValue(undefined as never),
@@ -1159,7 +1200,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       /*
        * The canary for the next Gap F. Adding a fifth event type to the enum
        * fails here until it is added to EVENT_SPECS, at which point the matrix
-       * grows by nine cells and any channel that forgot the new branch fails.
+       * grows by ten cells and any channel that forgot the new branch fails.
        */
       const members: Array<string> = Object.values(UserNotificationEventType);
 
@@ -1193,7 +1234,48 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       expect(FULL_MATRIX).toHaveLength(
         CHANNEL_NAMES.length * EVENT_NAMES.length,
       );
-      expect(FULL_MATRIX).toHaveLength(36);
+      expect(FULL_MATRIX).toHaveLength(40);
+    });
+
+    test("the census lists Discord right after Microsoft Teams", () => {
+      /*
+       * The fell-through guard names channels in census order, so the order is
+       * user-visible. Discord is the third workspace channel and sits directly
+       * behind Teams, ahead of Webhook.
+       */
+      const allChannels: Array<string> = contactableChannelNames(
+        ruleItem(everyVerifiedMethod()),
+      );
+      const teamsIndex: number = allChannels.indexOf("Microsoft Teams");
+
+      expect(teamsIndex).toBeGreaterThanOrEqual(0);
+      expect(allChannels[teamsIndex + 1]).toBe("Discord");
+    });
+
+    test("the census leaves out an unverified Discord account and one with no discordUserId", () => {
+      expect(
+        contactableChannelNames(
+          ruleItem(channelSpec("Discord").unverifiedMethod!()),
+        ),
+      ).not.toContain("Discord");
+
+      expect(
+        contactableChannelNames(
+          ruleItem({
+            userDiscord: {
+              id: METHOD_ID,
+              discordUserName: DISCORD_USER_NAME,
+              isVerified: true,
+            },
+          }),
+        ),
+      ).not.toContain("Discord");
+
+      expect(
+        contactableChannelNames(
+          ruleItem(channelSpec("Discord").verifiedMethod()),
+        ),
+      ).toEqual(["Discord"]);
     });
   });
 
@@ -1219,8 +1301,9 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         expect(channel.sender()).toHaveBeenCalledTimes(1);
 
         /*
-         * Slack and Microsoft Teams share that sender, so "the spy was called"
-         * alone cannot tell a Slack page from a Teams page. The workspaceType
+         * Slack, Microsoft Teams and Discord share that sender, so "the spy
+         * was called" alone cannot tell a Slack page from a Teams or Discord
+         * page. The workspaceType
          * argument can, and must name THIS channel.
          */
         if (channel.workspaceType) {
@@ -1244,10 +1327,10 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         }
 
         /*
-         * otherSenders cannot separate the two channels that share the
+         * otherSenders cannot separate the three channels that share the
          * workspace sender, so for those the "no other channel" claim is
          * finished by checking every call on the shared spy was for THIS
-         * workspace and not its sibling.
+         * workspace and not one of its siblings.
          */
         if (channel.workspaceType) {
           for (const call of channel.sender().mock.calls) {
@@ -1527,6 +1610,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         "Telegram",
         "Slack",
         "Microsoft Teams",
+        "Discord",
         "Call",
         "Push",
       ]),
@@ -1572,7 +1656,9 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       },
     );
 
-    test.each<[string, string]>(buildMatrix(["Slack", "Microsoft Teams"]))(
+    test.each<[string, string]>(
+      buildMatrix(["Slack", "Microsoft Teams", "Discord"]),
+    )(
       "%s links the incident episode it is paging about (%s is ignored unless it is the incident episode)",
       async (channelName: string, eventName: string): Promise<void> => {
         const channel: ChannelSpec = channelSpec(channelName);
@@ -1694,7 +1780,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
    * ----------------------------------------------------------------------- *
    * (G) The fell-through guard.
    *
-   * With all thirty six cells wired, no rule reaches this guard today - which
+   * With all forty cells wired, no rule reaches this guard today - which
    * is exactly the state it is meant to police, and exactly why it needs a test
    * of its own rather than incidental coverage. The precondition it fires on is
    * "the channel census found somebody reachable, and then no block claimed the
@@ -1774,6 +1860,19 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       // In getContactableChannelNames order: Email before SMS.
       expect(timelineRows[0]?.statusMessage).toBe(
         "No notification template for Alert Episode Created on Email, SMS.",
+      );
+    });
+
+    test("the guard names Discord right after Microsoft Teams", async () => {
+      const methods: Record<string, unknown> = {
+        ...channelSpec("Microsoft Teams").verifiedMethod(),
+        ...channelSpec("Discord").verifiedMethod(),
+      };
+
+      await runGuardScenario(methods, ["userMicrosoftTeams", "userDiscord"]);
+
+      expect(timelineRows[0]?.statusMessage).toBe(
+        "No notification template for Alert Episode Created on Microsoft Teams, Discord.",
       );
     });
 
@@ -1914,6 +2013,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       ["Telegram"],
       ["Slack"],
       ["Microsoft Teams"],
+      ["Discord"],
       ["Webhook"],
       ["Call"],
       ["Push"],

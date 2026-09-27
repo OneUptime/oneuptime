@@ -70,6 +70,8 @@ import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
 import CloudResourceLabelRule from "./CloudResourceLabelRule";
 import CloudResourceOwnerRule from "./CloudResourceOwnerRule";
 import DatabaseServer from "./DatabaseServer";
+import DiscordResourceThread from "./DiscordResourceThread";
+import DiscordReactionObservation from "./DiscordReactionObservation";
 import DatabaseServerEndpoint from "./DatabaseServerEndpoint";
 import DatabaseServerFeed from "./DatabaseServerFeed";
 import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
@@ -306,6 +308,7 @@ import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
+import UserDiscord from "./UserDiscord";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 // User Notification Rules
@@ -468,6 +471,8 @@ import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
+import DiscordInteractionReceipt from "./DiscordInteractionReceipt";
+import DiscordCreationDraft from "./DiscordCreationDraft";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
@@ -496,6 +501,8 @@ const AllModelTypes: Array<{
   User,
   WorkspaceUserAuthToken,
   WorkspaceProjectAuthToken,
+  DiscordInteractionReceipt,
+  DiscordCreationDraft,
   Probe,
   Project,
   EmailVerificationToken,
@@ -764,6 +771,7 @@ const AllModelTypes: Array<{
   UserWhatsApp,
   UserTelegram,
   UserSlack,
+  UserDiscord,
   UserMicrosoftTeams,
   UserWebhook,
   UserIncomingCallNumber,
@@ -977,6 +985,8 @@ const AllModelTypes: Array<{
   CloudResourceLabelRule,
   CloudResourceOwnerRule,
   DatabaseServer,
+  DiscordResourceThread,
+  DiscordReactionObservation,
   DatabaseServerEndpoint,
   DatabaseServerFeed,
   DatabaseServerOwnerTeam,

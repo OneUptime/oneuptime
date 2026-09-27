@@ -24,6 +24,11 @@ export function getUserSettingsBreadcrumbs(
       PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
       ["Project", "User Settings", "Incident On-Call Rules"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_DISCORD_INTEGRATION, [
+      "Project",
+      "User Settings",
+      "Discord Integration",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "User Settings",

@@ -107,6 +107,8 @@ import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import DatabaseServerService from "./DatabaseServerService";
+import DiscordResourceThreadService from "./DiscordResourceThreadService";
+import DiscordReactionObservationService from "./DiscordReactionObservationService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
@@ -307,6 +309,7 @@ import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
+import UserDiscordService from "./UserDiscordService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import WorkflowLogService from "./WorkflowLogService";
 import WorkflowOwnerRuleService from "./WorkflowOwnerRuleService";
@@ -414,6 +417,8 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
+import DiscordInteractionReceiptService from "./DiscordInteractionReceiptService";
+import DiscordCreationDraftService from "./DiscordCreationDraftService";
 
 import MonitorLogService from "./MonitorLogService";
 import NetworkFlowService from "./NetworkFlowService";
@@ -582,6 +587,8 @@ const services: Array<BaseService> = [
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
   DatabaseServerService,
+  DiscordResourceThreadService,
+  DiscordReactionObservationService,
   DatabaseServerEndpointService,
   DatabaseServerLabelRuleService,
   DatabaseServerOwnerRuleService,
@@ -718,6 +725,7 @@ const services: Array<BaseService> = [
   UserWhatsAppService,
   UserTelegramService,
   UserSlackService,
+  UserDiscordService,
   UserMicrosoftTeamsService,
   UserTotpAuthService,
   UserTwoFactorBackupCodeService,
@@ -848,6 +856,8 @@ const services: Array<BaseService> = [
   MonitorTestService,
 
   WorkspaceProjectAuthTokenService,
+  DiscordInteractionReceiptService,
+  DiscordCreationDraftService,
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,

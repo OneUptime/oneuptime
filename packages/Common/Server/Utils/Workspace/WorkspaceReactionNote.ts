@@ -31,9 +31,11 @@ import ScheduledMaintenanceInternalNoteService from "../../Services/ScheduledMai
 import ScheduledMaintenancePublicNoteService from "../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import WorkspaceNotificationLogService from "../../Services/WorkspaceNotificationLogService";
+import CreateByTx from "../../Types/Database/CreateByTx";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { EntityManager } from "typeorm";
 
 export enum WorkspaceNoteResourceType {
   Incident = "Incident",
@@ -407,19 +409,65 @@ export default class WorkspaceReactionNote {
       );
     }
 
-    if (
-      await this.hasNote({
-        resource: data.resource,
-        noteType: data.noteType,
-        sourceMessageKey: data.sourceMessageKey,
-      })
-    ) {
-      return WorkspaceNoteSaveResult.Duplicate;
+    /*
+     * hasNote and the insert run under one transaction-scoped advisory lock
+     * keyed on the source message, so two workers (two people pinning the
+     * same message, or a stolen claim replaying a save) cannot both pass
+     * hasNote and insert twice. The lock is released at commit, so a second
+     * worker's hasNote sees the committed row. The create success phase
+     * (hooks, workflows, realtime) is queued through CreateByTx.afterCommit
+     * and runs once the row is committed; a failure there propagates like it
+     * did for the inline create, with the note already saved.
+     */
+    const effects: Array<() => Promise<void>> = [];
+    const lockKey: string = [
+      "workspace-note",
+      data.resource.projectId.toString(),
+      data.resource.resourceType,
+      data.resource.resourceId.toString(),
+      data.noteType,
+      data.sourceMessageKey,
+    ].join(":");
+
+    const result: WorkspaceNoteSaveResult = await this.getResourceService(
+      data.resource.resourceType,
+    ).executeTransaction(
+      async (manager: EntityManager): Promise<WorkspaceNoteSaveResult> => {
+        await manager.query("SET LOCAL lock_timeout = '5s'");
+        await manager.query(
+          "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+          [lockKey],
+        );
+
+        if (
+          await this.hasNote({
+            resource: data.resource,
+            noteType: data.noteType,
+            sourceMessageKey: data.sourceMessageKey,
+          })
+        ) {
+          return WorkspaceNoteSaveResult.Duplicate;
+        }
+
+        await this.addNote({
+          ...data,
+          tx: {
+            manager: manager,
+            afterCommit: (effect: () => Promise<void>): void => {
+              effects.push(effect);
+            },
+          },
+        });
+
+        return WorkspaceNoteSaveResult.Saved;
+      },
+    );
+
+    for (const effect of effects) {
+      await effect();
     }
 
-    await this.addNote(data);
-
-    return WorkspaceNoteSaveResult.Saved;
+    return result;
   }
 
   // Whether a note of this type was already saved from the message.
@@ -476,6 +524,7 @@ export default class WorkspaceReactionNote {
     userId: ObjectID;
     note: string;
     sourceMessageKey: string;
+    tx?: CreateByTx;
   }): Promise<void> {
     const id: ObjectID = data.resource.resourceId;
     const isPublic: boolean = data.noteType === WorkspaceNoteType.Public;
@@ -484,11 +533,13 @@ export default class WorkspaceReactionNote {
       userId: ObjectID;
       note: string;
       postedFromSlackMessageId: string;
+      tx?: CreateByTx;
     } = {
       projectId: data.resource.projectId,
       userId: data.userId,
       note: data.note,
       postedFromSlackMessageId: data.sourceMessageKey,
+      ...(data.tx ? { tx: data.tx } : {}),
     };
 
     switch (data.resource.resourceType) {

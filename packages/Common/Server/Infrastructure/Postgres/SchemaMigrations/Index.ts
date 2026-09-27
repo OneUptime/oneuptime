@@ -13,6 +13,15 @@ import { AddIncidentAlert1794900000000 } from "./1794900000000-AddIncidentAlert"
 import { AddDatabaseServerTables1795000000000 } from "./1795000000000-AddDatabaseServerTables";
 import { AddUserProjectSsoConsent1795100000000 } from "./1795100000000-AddUserProjectSsoConsent";
 import { AddInventoryItemProjectEntityKeyIndex1795200000000 } from "./1795200000000-AddInventoryItemProjectEntityKeyIndex";
+import { AddUserDiscord1795300000000 } from "./1795300000000-AddUserDiscord";
+import { AddUserDiscordUniqueMethod1795300000001 } from "./1795300000001-AddUserDiscordUniqueMethod";
+import { AddDiscordResourceThread1795400000000 } from "./1795400000000-AddDiscordResourceThread";
+import { AddDiscordResourceThreadRetiredThreadIds1795400000001 } from "./1795400000001-AddDiscordResourceThreadRetiredThreadIds";
+import { AddDiscordStatusPageSubscribers1795500000000 } from "./1795500000000-AddDiscordStatusPageSubscribers";
+import { AddDiscordInteractionReceipt1795600000000 } from "./1795600000000-AddDiscordInteractionReceipt";
+import { CreateDiscordReactionObservation1795700000000 } from "./1795700000000-CreateDiscordReactionObservation";
+import { AddObservedAtToDiscordReactionObservation1795700000001 } from "./1795700000001-AddObservedAtToDiscordReactionObservation";
+import { AddDiscordCreationDraft1795700000002 } from "./1795700000002-AddDiscordCreationDraft";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1226,4 +1235,13 @@ export default [
   AddDatabaseServerTables1795000000000,
   AddUserProjectSsoConsent1795100000000,
   AddInventoryItemProjectEntityKeyIndex1795200000000,
+  AddUserDiscord1795300000000,
+  AddUserDiscordUniqueMethod1795300000001,
+  AddDiscordResourceThread1795400000000,
+  AddDiscordResourceThreadRetiredThreadIds1795400000001,
+  AddDiscordStatusPageSubscribers1795500000000,
+  AddDiscordInteractionReceipt1795600000000,
+  CreateDiscordReactionObservation1795700000000,
+  AddObservedAtToDiscordReactionObservation1795700000001,
+  AddDiscordCreationDraft1795700000002,
 ];

@@ -33,6 +33,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   Blue500,
   Green500,
+  Indigo500,
   Orange500,
   Purple500,
   Sky500,
@@ -47,6 +48,7 @@ type ChannelKey =
   | "alertByTelegram"
   | "alertBySlack"
   | "alertByMicrosoftTeams"
+  | "alertByDiscord"
   | "alertByWebhook";
 
 interface ChannelDef {
@@ -89,6 +91,12 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     label: "Teams",
     icon: IconProp.MicrosoftTeams,
     color: Blue500,
+  },
+  {
+    key: "alertByDiscord",
+    label: "Discord",
+    icon: IconProp.Chat,
+    color: Indigo500,
   },
   {
     key: "alertByWebhook",
@@ -462,6 +470,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               alertByTelegram: true,
               alertBySlack: true,
               alertByMicrosoftTeams: true,
+              alertByDiscord: true,
               alertByWebhook: true,
             },
             sort: {},

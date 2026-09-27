@@ -135,6 +135,12 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
           ),
         },
+        {
+          title: "Discord",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD,
+          ),
+        },
       ]);
     });
   });

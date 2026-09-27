@@ -11,6 +11,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserDiscordService from "./UserDiscordService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
@@ -258,6 +259,22 @@ export class UserNotificationRuleAdminService extends BaseService {
         ): Promise<ObjectID | undefined> => {
           return (
             await UserMicrosoftTeamsService.findOneById({
+              id: methodId,
+              select: { _id: true, userId: true },
+              props: { isRoot: true },
+            })
+          )?.userId;
+        },
+      },
+      {
+        idColumn: "userDiscordId",
+        relationColumn: "userDiscord",
+        label: "Discord",
+        findOwnerUserId: async (
+          methodId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          return (
+            await UserDiscordService.findOneById({
               id: methodId,
               select: { _id: true, userId: true },
               props: { isRoot: true },

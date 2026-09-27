@@ -530,6 +530,76 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortURL,
+    title: "Discord Incoming Webhook URL",
+    description:
+      "Discord incoming webhook URL to send notifications to a Discord channel",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortURL,
+    transformer: URL.getDatabaseTransformer(),
+  })
+  public discordIncomingWebhookUrl?: URL = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Discord Channel Name",
+    description:
+      "Label for the Discord channel, used to find and manage this subscription. It is a subscriber-supplied label, not a verified Discord identity.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public discordChannelName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageSubscriber,
     ],
     read: [
       Permission.ProjectOwner,
