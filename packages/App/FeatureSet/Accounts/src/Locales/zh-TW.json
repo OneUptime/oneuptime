@@ -118,7 +118,13 @@
     "verifyEmailSent": "我們已寄送驗證連結給您。",
     "verifyEmailInstructions": "開啟該郵件中的連結以啟用您的帳戶，然後登入。",
     "verifyEmailResendHint": "找不到郵件？請檢查垃圾郵件資料夾。該連結將在 24 小時後失效，使用您的電子郵件和密碼登入時，我們會寄送新的連結給您。",
-    "verifyEmailLoginLink": "前往登入"
+    "verifyEmailLoginLink": "前往登入",
+    "verifyEmailSpamHint": "找不到郵件？請檢查垃圾郵件資料夾。該連結將在 24 小時後失效。",
+    "verifyEmailOpenProvider": "開啟 {{provider}}",
+    "verifyEmailOpensInNewTab": "（在新分頁中開啟）",
+    "verifyEmailAlreadyVerifiedPrompt": "已經驗證過電子郵件？",
+    "verifyEmailWrongAddressPrompt": "電子郵件地址有誤？",
+    "verifyEmailUseDifferentEmail": "使用其他電子郵件註冊"
   },
   "forgotPassword": {
     "title": "忘記密碼",
@@ -159,7 +165,18 @@
     "errorTitle": "抱歉，發生錯誤！",
     "returnToSignIn": "返回登入？",
     "loginLink": "登入。",
-    "continueToSignIn": "繼續登入"
+    "continueToSignIn": "繼續登入",
+    "linkInvalidTitle": "此驗證連結已失效",
+    "requestNewLinkDescription": "如果您的連結已過期或無法使用，我們可以透過電子郵件寄送新的連結給您。",
+    "tryAgain": "重試"
+  },
+  "resendVerificationEmail": {
+    "button": "重新寄送驗證郵件",
+    "countdown": "您可以在 {{time}} 後再次要求寄送郵件。",
+    "sent": "我們已寄送新的驗證連結。郵件可能需要一兩分鐘才會送達。",
+    "wait": "驗證郵件剛剛已寄出。計時結束後，您可以再次要求寄送。",
+    "alreadyVerified": "您的電子郵件地址已驗證。您現在可以登入。",
+    "failed": "無法寄送新的驗證郵件。請稍後再試。"
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "密碼不能僅包含空白字元。",
   "Password is required.": "請輸入密碼。",
   "Password must be a string.": "密碼必須是字串。",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "此驗證要求已失效。請使用您的電子郵件和密碼登入，我們將寄送新的驗證連結給您。",
+  "Your account has been blocked. Please contact your administrator.": "您的帳戶已被封鎖。請聯絡您的管理員。",
   "Account details": "帳戶資訊",
   "Secure your account": "保護你的帳戶",
   "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 個字元",

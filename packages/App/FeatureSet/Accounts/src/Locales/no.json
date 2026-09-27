@@ -118,7 +118,13 @@
     "verifyEmailSent": "Vi har sendt deg en bekreftelseslenke.",
     "verifyEmailInstructions": "Åpne lenken i e-posten for å aktivere kontoen din, og logg deretter inn.",
     "verifyEmailResendHint": "Finner du den ikke? Sjekk søppelpostmappen. Lenken utløper etter 24 timer, og når du logger inn med e-postadressen og passordet ditt, sender vi deg en ny.",
-    "verifyEmailLoginLink": "Gå til innlogging"
+    "verifyEmailLoginLink": "Gå til innlogging",
+    "verifyEmailSpamHint": "Finner du den ikke? Sjekk søppelpostmappen eller mappen for uønsket e-post. Lenken utløper etter 24 timer.",
+    "verifyEmailOpenProvider": "Åpne {{provider}}",
+    "verifyEmailOpensInNewTab": "(åpnes i en ny fane)",
+    "verifyEmailAlreadyVerifiedPrompt": "Har du allerede bekreftet e-postadressen din?",
+    "verifyEmailWrongAddressPrompt": "Feil e-postadresse?",
+    "verifyEmailUseDifferentEmail": "Registrer deg med en annen e-postadresse"
   },
   "forgotPassword": {
     "title": "Glemt passord",
@@ -159,7 +165,18 @@
     "errorTitle": "Beklager, noe gikk galt!",
     "returnToSignIn": "Tilbake til pålogging?",
     "loginLink": "Logg inn.",
-    "continueToSignIn": "Fortsett til innlogging"
+    "continueToSignIn": "Fortsett til innlogging",
+    "linkInvalidTitle": "Denne bekreftelseslenken er ikke lenger gyldig",
+    "requestNewLinkDescription": "Hvis lenken din har utløpt eller har sluttet å fungere, kan vi sende deg en ny på e-post.",
+    "tryAgain": "Prøv igjen"
+  },
+  "resendVerificationEmail": {
+    "button": "Send bekreftelses-e-posten på nytt",
+    "countdown": "Du kan be om en ny e-post om {{time}}.",
+    "sent": "Vi har sendt en ny bekreftelseslenke. Det kan ta et minutt eller to før den kommer frem.",
+    "wait": "En bekreftelses-e-post ble sendt nylig. Du kan be om en ny når nedtellingen er ferdig.",
+    "alreadyVerified": "E-postadressen din er allerede bekreftet. Du kan logge inn nå.",
+    "failed": "Vi kunne ikke sende en ny bekreftelses-e-post. Prøv igjen om litt."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Passordet kan ikke bare inneholde mellomrom.",
   "Password is required.": "Passord er påkrevd.",
   "Password must be a string.": "Passordet må være en tekststreng.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Denne bekreftelsesforespørselen er ikke lenger gyldig. Logg inn med e-postadressen og passordet ditt, så sender vi deg en ny bekreftelseslenke.",
+  "Your account has been blocked. Please contact your administrator.": "Kontoen din er blokkert. Kontakt administratoren din.",
   "Account details": "Kontodetaljer",
   "Secure your account": "Sikre kontoen din",
   "Between {{minimum}} and {{maximum}} characters": "Mellom {{minimum}} og {{maximum}} tegn",

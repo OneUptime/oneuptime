@@ -118,7 +118,13 @@
     "verifyEmailSent": "Мы отправили вам ссылку для подтверждения.",
     "verifyEmailInstructions": "Откройте ссылку из письма, чтобы активировать учётную запись, а затем войдите.",
     "verifyEmailResendHint": "Не можете найти письмо? Проверьте папку «Спам». Ссылка действует 24 часа, а при входе с адресом электронной почты и паролем мы отправим вам новую.",
-    "verifyEmailLoginLink": "Перейти ко входу"
+    "verifyEmailLoginLink": "Перейти ко входу",
+    "verifyEmailSpamHint": "Не можете найти письмо? Проверьте папки «Спам» и «Нежелательная почта». Ссылка действует 24 часа.",
+    "verifyEmailOpenProvider": "Открыть {{provider}}",
+    "verifyEmailOpensInNewTab": "(откроется в новой вкладке)",
+    "verifyEmailAlreadyVerifiedPrompt": "Уже подтвердили адрес электронной почты?",
+    "verifyEmailWrongAddressPrompt": "Неверный адрес электронной почты?",
+    "verifyEmailUseDifferentEmail": "Зарегистрироваться с другим адресом"
   },
   "forgotPassword": {
     "title": "Забыли пароль",
@@ -159,7 +165,18 @@
     "errorTitle": "Извините, что-то пошло не так!",
     "returnToSignIn": "Вернуться к входу?",
     "loginLink": "Войти.",
-    "continueToSignIn": "Продолжить вход"
+    "continueToSignIn": "Продолжить вход",
+    "linkInvalidTitle": "Эта ссылка для подтверждения больше недействительна",
+    "requestNewLinkDescription": "Если срок действия ссылки истёк или она перестала работать, мы можем отправить вам новую по электронной почте.",
+    "tryAgain": "Попробовать снова"
+  },
+  "resendVerificationEmail": {
+    "button": "Отправить письмо для подтверждения ещё раз",
+    "countdown": "Запросить ещё одно письмо можно через {{time}}.",
+    "sent": "Мы отправили новую ссылку для подтверждения. Письмо может прийти в течение одной-двух минут.",
+    "wait": "Письмо для подтверждения было отправлено совсем недавно. Вы сможете запросить ещё одно, когда закончится отсчёт.",
+    "alreadyVerified": "Ваш адрес электронной почты уже подтверждён. Теперь вы можете войти.",
+    "failed": "Не удалось отправить новое письмо для подтверждения. Пожалуйста, попробуйте ещё раз чуть позже."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Пароль не может состоять только из пробелов.",
   "Password is required.": "Необходимо указать пароль.",
   "Password must be a string.": "Пароль должен быть строкой.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Этот запрос на подтверждение больше недействителен. Войдите с помощью адреса электронной почты и пароля, и мы отправим вам новую ссылку для подтверждения.",
+  "Your account has been blocked. Please contact your administrator.": "Ваша учётная запись заблокирована. Обратитесь к администратору.",
   "Account details": "Данные учетной записи",
   "Secure your account": "Защитите свою учетную запись",
   "Between {{minimum}} and {{maximum}} characters": "От {{minimum}} до {{maximum}} символов",

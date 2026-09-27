@@ -118,7 +118,13 @@
     "verifyEmailSent": "Te hemos enviado un enlace de verificación.",
     "verifyEmailInstructions": "Abre el enlace de ese correo para activar tu cuenta y, después, inicia sesión.",
     "verifyEmailResendHint": "¿No lo encuentras? Revisa tu carpeta de spam. El enlace caduca en 24 horas, y al iniciar sesión con tu correo y contraseña te enviaremos uno nuevo.",
-    "verifyEmailLoginLink": "Ir a iniciar sesión"
+    "verifyEmailLoginLink": "Ir a iniciar sesión",
+    "verifyEmailSpamHint": "¿No lo encuentras? Revisa tu carpeta de spam o de correo no deseado. El enlace caduca en 24 horas.",
+    "verifyEmailOpenProvider": "Abrir {{provider}}",
+    "verifyEmailOpensInNewTab": "(se abre en una pestaña nueva)",
+    "verifyEmailAlreadyVerifiedPrompt": "¿Ya has verificado tu correo electrónico?",
+    "verifyEmailWrongAddressPrompt": "¿Dirección de correo electrónico incorrecta?",
+    "verifyEmailUseDifferentEmail": "Regístrate con otro correo electrónico"
   },
   "forgotPassword": {
     "title": "Olvidó su contraseña",
@@ -159,7 +165,18 @@
     "errorTitle": "Lo sentimos, algo salió mal.",
     "returnToSignIn": "¿Volver al inicio de sesión?",
     "loginLink": "Iniciar sesión.",
-    "continueToSignIn": "Continuar para iniciar sesión"
+    "continueToSignIn": "Continuar para iniciar sesión",
+    "linkInvalidTitle": "Este enlace de verificación ya no es válido",
+    "requestNewLinkDescription": "Si tu enlace ha caducado o ha dejado de funcionar, podemos enviarte uno nuevo por correo electrónico.",
+    "tryAgain": "Volver a intentarlo"
+  },
+  "resendVerificationEmail": {
+    "button": "Reenviar correo de verificación",
+    "countdown": "Podrás solicitar otro correo en {{time}}.",
+    "sent": "Te hemos enviado un nuevo enlace de verificación. Puede tardar un par de minutos en llegar.",
+    "wait": "Hace poco se envió un correo de verificación. Podrás solicitar otro cuando termine la cuenta atrás.",
+    "alreadyVerified": "Tu dirección de correo electrónico ya está verificada. Ya puedes iniciar sesión.",
+    "failed": "No hemos podido enviar un nuevo correo de verificación. Inténtalo de nuevo en unos momentos."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "La contraseña no puede contener solo espacios.",
   "Password is required.": "La contraseña es obligatoria.",
   "Password must be a string.": "La contraseña debe ser una cadena de texto.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Esta solicitud de verificación ya no es válida. Inicia sesión con tu correo electrónico y tu contraseña y te enviaremos un nuevo enlace de verificación.",
+  "Your account has been blocked. Please contact your administrator.": "Tu cuenta ha sido bloqueada. Ponte en contacto con tu administrador.",
   "Account details": "Datos de la cuenta",
   "Secure your account": "Protege tu cuenta",
   "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} y {{maximum}} caracteres",

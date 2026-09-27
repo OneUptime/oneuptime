@@ -118,7 +118,13 @@
     "verifyEmailSent": "我们已向您发送了验证链接。",
     "verifyEmailInstructions": "打开该邮件中的链接以激活您的账户，然后登录。",
     "verifyEmailResendHint": "找不到邮件？请检查垃圾邮件文件夹。该链接将在 24 小时后失效，使用您的电子邮件和密码登录时，我们会向您发送新的链接。",
-    "verifyEmailLoginLink": "前往登录"
+    "verifyEmailLoginLink": "前往登录",
+    "verifyEmailSpamHint": "找不到邮件？请检查垃圾邮件文件夹。该链接将在 24 小时后失效。",
+    "verifyEmailOpenProvider": "打开 {{provider}}",
+    "verifyEmailOpensInNewTab": "（在新标签页中打开）",
+    "verifyEmailAlreadyVerifiedPrompt": "已经验证过电子邮件？",
+    "verifyEmailWrongAddressPrompt": "电子邮件地址有误？",
+    "verifyEmailUseDifferentEmail": "使用其他电子邮件注册"
   },
   "forgotPassword": {
     "title": "忘记密码",
@@ -159,7 +165,18 @@
     "errorTitle": "抱歉，出错了！",
     "returnToSignIn": "返回登录？",
     "loginLink": "登录。",
-    "continueToSignIn": "继续登录"
+    "continueToSignIn": "继续登录",
+    "linkInvalidTitle": "此验证链接已失效",
+    "requestNewLinkDescription": "如果您的链接已过期或无法使用，我们可以通过电子邮件向您发送新的链接。",
+    "tryAgain": "重试"
+  },
+  "resendVerificationEmail": {
+    "button": "重新发送验证邮件",
+    "countdown": "您可以在 {{time}} 后再次请求发送邮件。",
+    "sent": "我们已发送新的验证链接。邮件可能需要一两分钟才能送达。",
+    "wait": "验证邮件刚刚已发送。计时结束后，您可以再次请求。",
+    "alreadyVerified": "您的电子邮件地址已验证。您现在可以登录。",
+    "failed": "无法发送新的验证邮件。请稍后重试。"
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "密码不能仅包含空白字符。",
   "Password is required.": "请输入密码。",
   "Password must be a string.": "密码必须是字符串。",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "此验证请求已失效。请使用您的电子邮件和密码登录，我们将向您发送新的验证链接。",
+  "Your account has been blocked. Please contact your administrator.": "您的账户已被封禁。请联系您的管理员。",
   "Account details": "账户信息",
   "Secure your account": "保护你的账户",
   "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 个字符",
