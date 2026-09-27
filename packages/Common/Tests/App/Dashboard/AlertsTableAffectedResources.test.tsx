@@ -164,6 +164,11 @@ import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelOb
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import { getExportKeysFromColumn } from "../../../UI/Components/ModelTable/ExportFromColumns";
+/*
+ * Two different column types are in play, and getExportKeysFromColumn takes
+ * the ModelTable one: it reads `field`, which only ModelTable columns declare.
+ * The Table column below is what TableColumnsToCsv consumes.
+ */
 import ModelTableColumn from "../../../UI/Components/ModelTable/Column";
 import Column from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
