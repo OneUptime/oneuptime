@@ -32,6 +32,7 @@ import Permission, {
 import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRenotify";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberNotificationResend from "../../../Types/StatusPage/SubscriberNotificationResend";
 import StatusPageReadAccess from "../../../Server/Utils/StatusPage/StatusPageReadAccess";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
@@ -1473,24 +1474,42 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
     expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "a notification that is %s keeps its record",
-    async (status: StatusPageSubscriberNotificationStatus) => {
-      storedIncidents = [
-        storedIncident({
-          subscriberNotificationStatusOnIncidentCreated: status,
-          statusPagesNotifiedOnCreation: [PAGE_A],
-        }),
-      ];
+  test("a notification that is Pending keeps its record", async () => {
+    storedIncidents = [
+      storedIncident({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+    ];
 
-      const { data } = await runBeforeUpdate(resend());
+    const { data } = await runBeforeUpdate(resend());
 
-      expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
-    },
-  );
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
+
+  /*
+   * A user's resend of a notification being sent is refused outright
+   * (SubscriberNotificationInFlightRequeue.test.ts), so its record is never
+   * touched; a root caller's keeps it.
+   */
+  test("a notification that is InProgress is not sent again by a user, and a root caller keeps its record", async () => {
+    storedIncidents = [
+      storedIncident({
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+        statusPagesNotifiedOnCreation: [PAGE_A],
+      }),
+    ];
+
+    await expect(runBeforeUpdate(resend())).rejects.toThrow(
+      SubscriberNotificationResend.beingSentMessage,
+    );
+
+    const { data } = await runBeforeUpdate(resend({ isRoot: true }));
+
+    expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
+  });
 
   test("turning notifying on creation on (root) resends to every page", async () => {
     storedIncidents = [
@@ -1568,8 +1587,19 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
 
     await runBeforeUpdate(resend());
 
-    expect(incidentFindBy.mock.calls[0]![0].query["projectId"]).toBe(projectId);
-    expect(incidentFindBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    // The hook's own read, as root; the in-flight check reads as the caller.
+    const rootReads: Array<{ query: JSONObject; props: JSONObject }> =
+      incidentFindBy.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as { query: JSONObject; props: JSONObject };
+        })
+        .filter((read: { props: JSONObject }) => {
+          return read.props["isRoot"] === true;
+        });
+
+    expect(rootReads).toHaveLength(1);
+    expect(rootReads[0]!.query["projectId"]).toBe(projectId);
+    expect(rootReads[0]!.props).toEqual({ isRoot: true });
   });
 });
 

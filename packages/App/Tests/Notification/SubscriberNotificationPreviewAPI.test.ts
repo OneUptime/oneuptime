@@ -58,7 +58,7 @@ import {
  * it is stubbed, so what is pinned is the route's own job:
  *
  *   - both routes need a signed-in member of the project in the tenant
- *     header, and send-test sits behind its per-user rate limit;
+ *     header, and each sits behind its own per-user rate limit;
  *   - /preview renders each page's email with the mailer's own render, the
  *     one send() renders with, and answers with no address;
  *   - /send-test sends only to the caller's own verified account email -
@@ -67,6 +67,7 @@ import {
  */
 
 const RATE_LIMIT_MIDDLEWARE: () => void = jest.fn();
+const PREVIEW_RATE_LIMIT_MIDDLEWARE: () => void = jest.fn();
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -117,6 +118,20 @@ jest.mock(
       default: {
         getMiddleware: () => {
           return RATE_LIMIT_MIDDLEWARE;
+        },
+      },
+    };
+  },
+);
+
+jest.mock(
+  "Common/Server/Middleware/SubscriberNotificationPreviewRateLimit",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getMiddleware: () => {
+          return PREVIEW_RATE_LIMIT_MIDDLEWARE;
         },
       },
     };
@@ -357,7 +372,7 @@ afterEach(() => {
 });
 
 describe("the routes", () => {
-  test("both need a signed-in user; send-test is rate limited per user after that", () => {
+  test("both need a signed-in user, and each is rate limited per user after that", () => {
     const preview: ReturnType<typeof mockRouter.match> = mockRouter.match(
       "post",
       PREVIEW_ROUTE,
@@ -367,9 +382,14 @@ describe("the routes", () => {
       SEND_TEST_ROUTE,
     );
 
+    /*
+     * A preview renders an email for every page the caller can read: any
+     * audience role could otherwise ask for as much rendering as it liked.
+     */
     expect(preview.middlewares).toEqual([
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      PREVIEW_RATE_LIMIT_MIDDLEWARE,
     ]);
     expect(sendTest.middlewares).toEqual([
       UserMiddleware.getUserMiddleware,

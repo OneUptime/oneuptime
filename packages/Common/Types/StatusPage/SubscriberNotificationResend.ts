@@ -50,6 +50,12 @@ export default class SubscriberNotificationResend {
   public static readonly noPermissionToResendNoteMessage: string =
     "You do not have permission to send this note's notification again. Sending it again needs the permission to post public notes that notify subscribers, as well as the permission to edit public notes.";
 
+  public static readonly noPermissionToNotifyAboutEditMessage: string =
+    "You do not have permission to notify subscribers about this edit. Notifying them needs the permission to post public notes that notify subscribers, as well as the permission to edit public notes. Save the edit without notifying subscribers, or ask someone who can post notifying notes.";
+
+  public static readonly updateBeingSentMessage: string =
+    "This note's update notification is being sent right now. Wait until it has finished, then save your edit with Notify subscribers about this update ticked again - or save it without notifying subscribers.";
+
   /*
    * What a notification in `status` offers: Retry after a failure, and
    * Resend after a success where the caller supports resending one

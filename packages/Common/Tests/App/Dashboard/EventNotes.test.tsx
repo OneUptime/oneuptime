@@ -21,6 +21,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * The notes feed every incident, alert, scheduled maintenance and episode
@@ -2732,7 +2733,12 @@ describe("event notes: sending a note's notification again", () => {
       ).toBeNull();
     });
 
-    test("an editor who could not post a note is not offered the posted notification, but may retry an edit's", async () => {
+    /*
+     * Telling subscribers about an edit tells them what the note says now,
+     * and an editor can change the text first: it takes the permission to
+     * post a notifying note, like sending the posted notification again.
+     */
+    test("an editor who could not post a note is offered neither the posted notification nor an edit's", async () => {
       isMasterAdmin = false;
       currentPermissions = [
         Permission.EditIncidentPublicNote,
@@ -2752,6 +2758,68 @@ describe("event notes: sending a note's notification again", () => {
       ).toBeNull();
 
       fireEvent.click(within(screen.getByRole("dialog")).getByText("Close"));
+
+      fireEvent.click(
+        within(card("Investigating reports")).getByTestId(
+          "note-update-notification-status",
+        ),
+      );
+
+      expect(
+        within(
+          screen.getByRole("dialog", { name: "Update notification" }),
+        ).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+    });
+
+    test("that editor may still edit a note, without the checkbox to notify subscribers", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      const noteCard: HTMLElement = card("Monitoring.");
+      await openActions(noteCard);
+      fireEvent.click(
+        within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+      );
+      const composer: HTMLElement =
+        await within(noteCard).findByTestId("note-edit-composer");
+
+      expect(within(composer).queryByTestId("note-notify-checkbox")).toBeNull();
+      expect(
+        within(composer).queryByText("Notify subscribers about this update"),
+      ).toBeNull();
+
+      type(
+        within(composer).getByLabelText("Note text") as HTMLTextAreaElement,
+        "Monitoring. A fix is live everywhere.",
+      );
+      await act(async () => {
+        fireEvent.click(within(composer).getByTestId("note-submit"));
+      });
+
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(
+        (updateMock.mock.calls[0]![0] as { miscDataProps?: JSONObject })
+          .miscDataProps,
+      ).toEqual({});
+    });
+
+    test("a role that may post and edit notes may retry an edit's notification", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.CreateIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
 
       fireEvent.click(
         within(card("Investigating reports")).getByTestId(

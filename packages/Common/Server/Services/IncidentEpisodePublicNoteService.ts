@@ -186,7 +186,9 @@ export class Service extends DatabaseService<Model> {
    * Sending the note's 'posted' notification again - its status written back
    * to Pending, as the dashboard's Retry does - needs the permission to post
    * a note that notifies subscribers, and a note whose notification can go
-   * out again (see SubscriberNotificationResendAccess).
+   * out again (see SubscriberNotificationResendAccess). So does telling
+   * subscribers about an edit, which is also refused while that update
+   * notification is being sent.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -204,6 +206,20 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
         SubscriberUpdateNotification.queuedMessage;
     }
+
+    /*
+     * Telling subscribers about the edit - asked for above, or written as
+     * Pending directly (the dashboard's Retry of a failed update) - needs
+     * the permission to post a note that notifies subscribers too, and is
+     * refused while the update notification is being sent.
+     */
+    await SubscriberNotificationResendAccess.assertPublicNoteUpdateNotificationAllowed(
+      {
+        modelType: Model,
+        service: this,
+        updateBy: updateBy,
+      },
+    );
 
     return {
       updateBy: updateBy,

@@ -261,9 +261,22 @@ function EventNotes<TNote extends BaseModel>(
     canWrite("subscriberNotificationStatusOnNoteCreated", "update") &&
     canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create");
 
-  // Retry sends the edit's notification again: the note's edit permission.
+  /*
+   * Telling subscribers about an edit - the edit form's checkbox, and Retry
+   * of a failed update - tells them what the note says now, and an editor
+   * can change the text first. So it takes the permission to post a note
+   * that notifies subscribers as well as the note's edit permission, as
+   * sending the 'posted' notification again does. The server checks the
+   * same (SubscriberNotificationResendAccess).
+   */
+  const canNotifyAboutEdit: boolean =
+    isPublic &&
+    createGate.isAllowed &&
+    canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") &&
+    canWrite("subscriberNotificationStatusOnNoteUpdated", "update");
+
   const canResendUpdateNotification: boolean =
-    editGate.isShown && !editGate.isDisabled;
+    editGate.isShown && !editGate.isDisabled && canNotifyAboutEdit;
 
   const postedNotificationResendConfirmation:
     | NoteResendConfirmation
@@ -622,7 +635,7 @@ function EventNotes<TNote extends BaseModel>(
       modelType: props.modelType,
       formType: FormType.Update,
       miscDataProps:
-        isPublic && values.shouldNotify
+        canNotifyAboutEdit && values.shouldNotify
           ? SubscriberUpdateNotification.getMiscDataProps()
           : {},
     });
@@ -739,7 +752,7 @@ function EventNotes<TNote extends BaseModel>(
       }
     : undefined;
 
-  const updateNotifyOption: NotifyOption | undefined = isPublic
+  const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit
     ? {
         title: SubscriberUpdateNotification.formFieldTitle,
         checkedDescription:

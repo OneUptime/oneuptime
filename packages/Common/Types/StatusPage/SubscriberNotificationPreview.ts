@@ -156,6 +156,17 @@ export default class SubscriberNotificationPreview {
   // The longest title a preview takes.
   public static readonly maxTitleLength: number = 1000;
 
+  /*
+   * The most custom field values an incident being previewed carries, and
+   * how long they may be together, written out as JSON. Each value is
+   * rendered, Markdown included, and goes into every page's email, so
+   * without a bound one request could make the server render as much as it
+   * can be sent. A project's own fields fit many times over.
+   */
+  public static readonly maxCustomFieldCount: number = 250;
+
+  public static readonly maxCustomFieldsLength: number = 200000;
+
   // What a test email's subject starts with, so it reads as a test.
   public static readonly testEmailSubjectPrefix: string = "[Test] ";
 

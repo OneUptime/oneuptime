@@ -55,12 +55,22 @@ import IncidentStatusPageScope, {
  *   caller cannot see come back as one number;
  * - subscribers are counted, never read out. No address leaves the server.
  *
- * What that protects is which pages list an incident's monitors. The pages
- * an incident is limited to are part of the incident, like its monitors and
- * like a scheduled maintenance event's status pages: anyone who can read the
- * incident sees their names (the Status Page Scope card, and the incident
- * feed, which names the pages added to and removed from the scope), whether
- * or not they can read those status pages themselves.
+ * What that protects is which pages list an incident's monitors, looking
+ * ahead: this summary (and the notification preview built on it) is open to
+ * anyone who may declare an incident or post a note, before anything is
+ * sent. The pages an incident is limited to are part of the incident, like
+ * its monitors and like a scheduled maintenance event's status pages: anyone
+ * who can read the incident sees their names (the Status Page Scope card,
+ * and the incident feed, which names the pages added to and removed from
+ * the scope), whether or not they can read those status pages themselves.
+ *
+ * So is what a send reached, once it has gone out: the notification's
+ * status message and its feed item name every page it went to, with what
+ * was sent and failed on each (SubscriberNotificationDeliveryRecord), and
+ * everyone who can read the incident - or the note - reads them. That is
+ * the record of what the incident told whom, which is its purpose; the docs
+ * say so (One Status Page per Audience, Permissions). Only the look-ahead
+ * here keeps to the pages the caller can read.
  */
 
 export type IncidentSubscriberAudienceRequest =

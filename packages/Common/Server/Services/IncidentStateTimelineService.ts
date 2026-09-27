@@ -34,6 +34,7 @@ import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner
 import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -748,6 +749,18 @@ ${createdItem.rootCause}`,
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<OnUpdate<IncidentStateTimeline>> {
+    /*
+     * Retry - a user's Pending - over a state change notification that is
+     * being sent would let a second run send it alongside, or be overwritten
+     * when the send settles (SubscriberNotificationResendAccess).
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: IncidentStateTimeline,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatus"],
+    });
+
     const incidentIds: Array<ObjectID> =
       await this.getIncidentIdsForTimelineQuery(updateBy);
 

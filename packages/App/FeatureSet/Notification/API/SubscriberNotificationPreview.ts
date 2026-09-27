@@ -1,6 +1,7 @@
 import MailService, { RenderedEmail } from "../Services/MailService";
 import User from "Common/Models/DatabaseModels/User";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import SubscriberNotificationPreviewRateLimit from "Common/Server/Middleware/SubscriberNotificationPreviewRateLimit";
 import SubscriberNotificationTestSendRateLimit from "Common/Server/Middleware/SubscriberNotificationTestSendRateLimit";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
@@ -41,6 +42,7 @@ import SubscriberNotificationPreview, {
  *                 incident being declared, or a public note being written:
  *                 subject, HTML, which template and why, and the "up to"
  *                 counts. No address, ever.
+ *                 At most sixty times every ten minutes per user.
  * POST /send-test one page's email, sent to the caller's own verified account
  *                 email and nowhere else, at most a few times a quarter hour.
  *
@@ -123,6 +125,8 @@ router.post(
   SubscriberNotificationPreview.previewPath,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  // A preview renders an email per page: bounded per user.
+  SubscriberNotificationPreviewRateLimit.getMiddleware(),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const caller: {

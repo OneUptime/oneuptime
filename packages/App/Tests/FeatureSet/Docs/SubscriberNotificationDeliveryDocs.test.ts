@@ -7,6 +7,7 @@ import SubscriberNotificationPreviewCopy from "../../../FeatureSet/Dashboard/src
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import SubscriberNotificationPreviewRateLimit from "Common/Server/Middleware/SubscriberNotificationPreviewRateLimit";
 import SubscriberNotificationTestSendRateLimit from "Common/Server/Middleware/SubscriberNotificationTestSendRateLimit";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import SubscriberNotificationDeliveryRecord, {
@@ -954,6 +955,25 @@ describe("Subscriber notification delivery docs", () => {
       );
       expect(readPage(GUIDE_PAGE, "fa")).toContain(
         `${fa} بار در هر ${numberText(window, "fa")} دقیقه`,
+      );
+    });
+
+    it("quotes the per-person limit on previews", () => {
+      const config: { windowSeconds: number; perUserLimit: number } =
+        SubscriberNotificationPreviewRateLimit.getConfig();
+      const window: number = minutes(config.windowSeconds * 1000);
+
+      // The docs spell the limit and the window out in words.
+      const inWords: { [language: string]: { [count: number]: string } } = {
+        en: { 10: "ten", 60: "sixty" },
+        fa: { 10: "ده", 60: "شصت" },
+      };
+
+      expect(readPage(GUIDE_PAGE, "en")).toContain(
+        `at most ${inWords["en"]![config.perUserLimit]} times every ${inWords["en"]![window]} minutes`,
+      );
+      expect(readPage(GUIDE_PAGE, "fa")).toContain(
+        `حداکثر ${inWords["fa"]![config.perUserLimit]} بار در هر ${inWords["fa"]![window]} دقیقه`,
       );
     });
 

@@ -74,7 +74,10 @@ import SubscriberIncidentEmailBuilder, {
  *     being declared must all be the caller's project's;
  *   - only the pages the caller may read are previewed or named - in the
  *     preview, {{affectedStatusPages}} names only those pages too - and the
- *     others are one number (audience.hiddenStatusPageCount);
+ *     others are one number (audience.hiddenStatusPageCount). That bound is
+ *     for looking ahead: once a notification has gone out, its own record
+ *     names every page it reached to whoever can read the incident (see
+ *     IncidentSubscriberAudienceBuilder);
  *   - subscribers are counted, never read: no address leaves the server.
  *
  * Building a preview has no side effects: nothing is sent, and nothing about
@@ -343,11 +346,10 @@ export default class SubscriberNotificationPreviewBuilder {
           "incident.statusPageIds",
         ),
         labelIds: this.parseIds(incident["labelIds"], "incident.labelIds"),
-        customFields:
-          incident["customFields"] === undefined ||
-          incident["customFields"] === null
-            ? {}
-            : this.asObject(incident["customFields"], "incident.customFields"),
+        customFields: this.parseCustomFields(
+          incident["customFields"],
+          "incident.customFields",
+        ),
         isPrivate: incident["isPrivate"] === true,
         // On unless it is switched off, as it is on the form.
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
@@ -710,6 +712,45 @@ export default class SubscriberNotificationPreviewBuilder {
     }
 
     return value as JSONObject;
+  }
+
+  /*
+   * An incident's custom field values, bounded (see
+   * SubscriberNotificationPreview.maxCustomFieldCount): every value is
+   * rendered and goes into every page's email. Whether each value fits its
+   * field is checked with the field definitions, as declaring checks it.
+   */
+  private static parseCustomFields(value: unknown, name: string): JSONObject {
+    if (value === undefined || value === null) {
+      return {};
+    }
+
+    const customFields: JSONObject = this.asObject(value, name);
+
+    if (
+      Object.keys(customFields).length >
+      SubscriberNotificationPreview.maxCustomFieldCount
+    ) {
+      throw new BadDataException(
+        `${name} can have at most ${SubscriberNotificationPreview.maxCustomFieldCount} values.`,
+      );
+    }
+
+    let length: number = 0;
+
+    try {
+      length = JSON.stringify(customFields).length;
+    } catch {
+      throw new BadDataException(`${name} must be plain values.`);
+    }
+
+    if (length > SubscriberNotificationPreview.maxCustomFieldsLength) {
+      throw new BadDataException(
+        `${name} can be at most ${SubscriberNotificationPreview.maxCustomFieldsLength} characters long in all.`,
+      );
+    }
+
+    return customFields;
   }
 
   private static parseText(

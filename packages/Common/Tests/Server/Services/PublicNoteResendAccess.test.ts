@@ -427,21 +427,294 @@ describe.each(SERVICE_CASES)(
       expect(noteFindBy).not.toHaveBeenCalled();
     });
 
-    test("retrying the update notification is left to the note's edit permission", async () => {
-      /*
-       * An editor could already ask for an update notification on any edit,
-       * so its Retry needs nothing more.
-       */
+    test("retrying the update notification needs the permission to post notifying notes too", async () => {
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([
+              serviceCase.editPermission,
+              serviceCase.readPermission,
+            ]),
+            data: {
+              subscriberNotificationStatusOnNoteUpdated:
+                StatusPageSubscriberNotificationStatus.Pending,
+              subscriberNotificationStatusMessageOnNoteUpdated:
+                SubscriberUpdateNotification.resendQueuedMessage,
+            },
+          }),
+        ),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          SubscriberNotificationResend.noPermissionToNotifyAboutEditMessage,
+        ),
+      );
+      expect(noteFindBy).not.toHaveBeenCalled();
+    });
+  },
+);
+
+/*
+ * Telling subscribers about an edit - the edit carries the notify-on-edit
+ * request (SubscriberUpdateNotification), or writes Pending into the note's
+ * 'updated' status, as the dashboard's Retry of a failed update does - tells
+ * every subscriber what the note says now. An editor can change the text
+ * first, so it needs the permission to post a note that notifies
+ * subscribers, as sending the 'posted' notification again does; and it is
+ * refused while that update notification is being sent, whose send would
+ * otherwise run alongside a second one or overwrite the request.
+ */
+describe.each(SERVICE_CASES)(
+  "$name: telling subscribers about an edit",
+  (serviceCase: ServiceCase) => {
+    const NOTIFY_ON_EDIT: JSONObject =
+      SubscriberUpdateNotification.getMiscDataProps();
+    const EDIT: JSONObject = { note: "The fix is rolling out, ETA 14:00 UTC." };
+
+    beforeEach(() => {
+      storedNotes = [storedNote(serviceCase)];
+
+      noteFindBy = getJestMockFunction();
+      noteFindBy.mockImplementation(() => {
+        return Promise.resolve(storedNotes);
+      });
+      jest
+        .spyOn(serviceCase.service, "findBy")
+        .mockImplementation(noteFindBy as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("a member may, and the update notification is queued with the edit", async () => {
+      const result: OnUpdate<BaseModel> = await runBeforeUpdate(
+        serviceCase,
+        update({
+          props: makeProps([serviceCase.memberRole]),
+          data: { ...EDIT },
+          miscDataProps: NOTIFY_ON_EDIT,
+        }),
+      );
+
+      expect(result.updateBy.data).toEqual({
+        ...EDIT,
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.queuedMessage,
+      });
+    });
+
+    test("reads the update notification's state with the caller's own permissions", async () => {
+      const props: DatabaseCommonInteractionProps = makeProps([
+        serviceCase.memberRole,
+      ]);
+
+      await runBeforeUpdate(
+        serviceCase,
+        update({ props, data: { ...EDIT }, miscDataProps: NOTIFY_ON_EDIT }),
+      );
+
+      expect(noteFindBy).toHaveBeenCalledTimes(1);
+      const findBy: {
+        query: JSONObject;
+        select: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      } = noteFindBy.mock.calls[0]![0] as {
+        query: JSONObject;
+        select: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      };
+      expect(findBy.query).toEqual({ _id: NOTE_ID });
+      expect(findBy.props).toBe(props);
+      expect(findBy.select).toEqual({
+        _id: true,
+        subscriberNotificationStatusOnNoteUpdated: true,
+      });
+    });
+
+    test("a role that may edit notes but could not post one may not, and learns nothing about the note", async () => {
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([
+              serviceCase.editPermission,
+              serviceCase.readPermission,
+            ]),
+            data: { ...EDIT },
+            miscDataProps: NOTIFY_ON_EDIT,
+          }),
+        ),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          SubscriberNotificationResend.noPermissionToNotifyAboutEditMessage,
+        ),
+      );
+      expect(noteFindBy).not.toHaveBeenCalled();
+    });
+
+    test("that role may still save the edit without notifying subscribers", async () => {
+      const result: OnUpdate<BaseModel> = await runBeforeUpdate(
+        serviceCase,
+        update({
+          props: makeProps([
+            serviceCase.editPermission,
+            serviceCase.readPermission,
+          ]),
+          data: { ...EDIT },
+        }),
+      );
+
+      expect(result.updateBy.data).toEqual(EDIT);
+      expect(noteFindBy).not.toHaveBeenCalled();
+    });
+
+    test("a custom role that may post and edit notes may", async () => {
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([
+              serviceCase.createPermission,
+              serviceCase.editPermission,
+              serviceCase.readPermission,
+            ]),
+            data: { ...EDIT },
+            miscDataProps: NOTIFY_ON_EDIT,
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    test("is refused, with the reason, while the update notification is being sent", async () => {
+      storedNotes = [
+        storedNote(serviceCase, {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+        }),
+      ];
+
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([serviceCase.memberRole]),
+            data: { ...EDIT },
+            miscDataProps: NOTIFY_ON_EDIT,
+          }),
+        ),
+      ).rejects.toThrow(
+        new BadDataException(
+          SubscriberNotificationResend.updateBeingSentMessage,
+        ),
+      );
+    });
+
+    test("a Retry written straight into the column is refused while it is being sent too", async () => {
+      storedNotes = [
+        storedNote(serviceCase, {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+        }),
+      ];
+
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([serviceCase.memberRole]),
+            data: {
+              subscriberNotificationStatusOnNoteUpdated:
+                StatusPageSubscriberNotificationStatus.Pending,
+            },
+          }),
+        ),
+      ).rejects.toThrow(SubscriberNotificationResend.updateBeingSentMessage);
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.Success,
+      StatusPageSubscriberNotificationStatus.Failed,
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ])(
+      "is let through when the update notification is %s",
+      async (status: StatusPageSubscriberNotificationStatus) => {
+        storedNotes = [
+          storedNote(serviceCase, {
+            subscriberNotificationStatusOnNoteUpdated: status,
+          }),
+        ];
+
+        await expect(
+          runBeforeUpdate(
+            serviceCase,
+            update({
+              props: makeProps([serviceCase.memberRole]),
+              data: { ...EDIT },
+              miscDataProps: NOTIFY_ON_EDIT,
+            }),
+          ),
+        ).resolves.toBeDefined();
+      },
+    );
+
+    test("the 'posted' notification being sent does not stop an edit that notifies: the update waits for it", async () => {
+      storedNotes = [
+        storedNote(serviceCase, {
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+        }),
+      ];
+
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: makeProps([serviceCase.memberRole]),
+            data: { ...EDIT },
+            miscDataProps: NOTIFY_ON_EDIT,
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    test("a master admin skips the permission checks, not the check on the send", async () => {
+      storedNotes = [
+        storedNote(serviceCase, {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+        }),
+      ];
+
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({
+            props: { userId: USER_ID, isMasterAdmin: true },
+            data: { ...EDIT },
+            miscDataProps: NOTIFY_ON_EDIT,
+          }),
+        ),
+      ).rejects.toThrow(SubscriberNotificationResend.updateBeingSentMessage);
+    });
+
+    test("root - the workers - is never checked, and nothing is read", async () => {
+      storedNotes = [
+        storedNote(serviceCase, {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+        }),
+      ];
+
       await runBeforeUpdate(
         serviceCase,
         update({
-          props: makeProps([serviceCase.editPermission]),
-          data: {
-            subscriberNotificationStatusOnNoteUpdated:
-              StatusPageSubscriberNotificationStatus.Pending,
-            subscriberNotificationStatusMessageOnNoteUpdated:
-              SubscriberUpdateNotification.resendQueuedMessage,
-          },
+          props: { isRoot: true },
+          data: { ...EDIT },
+          miscDataProps: NOTIFY_ON_EDIT,
         }),
       );
 
@@ -671,6 +944,39 @@ describe("IncidentPublicNoteService.updateOneById: sending a note's notification
 
     expect(saveMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("a role that may edit notes but could not post one cannot tell subscribers about its edit, and nothing is written", async () => {
+    await expect(
+      IncidentPublicNoteService.updateOneById({
+        id: new ObjectID(NOTE_ID),
+        data: { note: "Everything is fine, ignore the last update." },
+        miscDataProps: SubscriberUpdateNotification.getMiscDataProps(),
+        props: makeProps([
+          Permission.EditIncidentPublicNote,
+          Permission.ReadIncidentPublicNote,
+        ]),
+      }),
+    ).rejects.toThrow(
+      SubscriberNotificationResend.noPermissionToNotifyAboutEditMessage,
+    );
+
+    expect(saveMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("an incident member's edit that notifies subscribers queues the update notification", async () => {
+    await IncidentPublicNoteService.updateOneById({
+      id: new ObjectID(NOTE_ID),
+      data: { note: "The fix is rolling out." },
+      miscDataProps: SubscriberUpdateNotification.getMiscDataProps(),
+      props: makeProps([Permission.IncidentMember]),
+    });
+
+    expect(written()["note"]).toBe("The fix is rolling out.");
+    expect(written()["subscriberNotificationStatusOnNoteUpdated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
   });
 
   test("that role can still edit the note itself", async () => {

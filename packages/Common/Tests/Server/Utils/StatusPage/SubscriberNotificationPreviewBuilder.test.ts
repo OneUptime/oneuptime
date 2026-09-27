@@ -1035,6 +1035,116 @@ describe("parsing requests", () => {
     }).toThrow("at most");
   });
 
+  /*
+   * Every custom field value is rendered, Markdown included, and goes into
+   * every page's email. The title and description were capped; the values
+   * were not, so one request could make the server render as much as it
+   * could be sent.
+   */
+  describe("an incident's custom field values are bounded", () => {
+    function draftWith(customFields: JSONObject): JSONObject {
+      return {
+        event: "IncidentCreated",
+        incident: { title: "Down", customFields: customFields },
+      };
+    }
+
+    test("values a project really has are taken as they are", () => {
+      const customFields: JSONObject = {
+        Impact: "High",
+        "Expected Resolution": "2026-09-27T14:00:00.000Z",
+        "Estimated Duration": 90,
+        Acknowledgement: true,
+        "Affected Locations": ["Site 03", "Site 07"],
+        "Additional Information": "x".repeat(20000),
+      };
+
+      const request: SubscriberNotificationPreviewRequest =
+        SubscriberNotificationPreviewBuilder.parseRequest(
+          draftWith(customFields),
+        );
+
+      expect(
+        (request as { incident: { customFields: JSONObject } }).incident
+          .customFields,
+      ).toEqual(customFields);
+    });
+
+    test("too many values are refused", () => {
+      const customFields: JSONObject = {};
+      for (
+        let index: number = 0;
+        index <= SubscriberNotificationPreview.maxCustomFieldCount;
+        index++
+      ) {
+        customFields[`Field ${index}`] = "x";
+      }
+
+      expect(() => {
+        return SubscriberNotificationPreviewBuilder.parseRequest(
+          draftWith(customFields),
+        );
+      }).toThrow(
+        `incident.customFields can have at most ${SubscriberNotificationPreview.maxCustomFieldCount} values.`,
+      );
+    });
+
+    test("one value too long is refused", () => {
+      expect(() => {
+        return SubscriberNotificationPreviewBuilder.parseRequest(
+          draftWith({
+            "Additional Information": "x".repeat(
+              SubscriberNotificationPreview.maxCustomFieldsLength,
+            ),
+          }),
+        );
+      }).toThrow(
+        `incident.customFields can be at most ${SubscriberNotificationPreview.maxCustomFieldsLength} characters long in all.`,
+      );
+    });
+
+    test("values too long together are refused, however they are split", () => {
+      const customFields: JSONObject = {};
+      const perField: number = Math.ceil(
+        SubscriberNotificationPreview.maxCustomFieldsLength / 10,
+      );
+      for (let index: number = 0; index < 11; index++) {
+        customFields[`Field ${index}`] = "x".repeat(perField);
+      }
+
+      expect(() => {
+        return SubscriberNotificationPreviewBuilder.parseRequest(
+          draftWith(customFields),
+        );
+      }).toThrow("characters long in all");
+    });
+
+    test("a nested value counts toward the length too", () => {
+      expect(() => {
+        return SubscriberNotificationPreviewBuilder.parseRequest(
+          draftWith({
+            "Affected Locations": new Array(
+              SubscriberNotificationPreview.maxCustomFieldsLength,
+            ).fill("x"),
+          }),
+        );
+      }).toThrow("characters long in all");
+    });
+
+    test("so does a test send's", () => {
+      expect(() => {
+        return SubscriberNotificationPreviewBuilder.parseSendTestRequest({
+          ...draftWith({
+            Notes: "x".repeat(
+              SubscriberNotificationPreview.maxCustomFieldsLength,
+            ),
+          }),
+          statusPageId: SITE_1,
+        });
+      }).toThrow("characters long in all");
+    });
+  });
+
   test("a test send names a status page, and no address is read from the body", () => {
     const request: SubscriberNotificationSendTestRequest =
       SubscriberNotificationPreviewBuilder.parseSendTestRequest({

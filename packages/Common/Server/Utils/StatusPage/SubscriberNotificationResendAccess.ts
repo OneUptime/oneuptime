@@ -26,6 +26,16 @@ import TablePermission from "../../Types/Database/Permissions/TablePermission";
  * poster. Sending a note's notification again tells every subscriber of the
  * incident's status pages what the note says, which is what posting it did,
  * so it also needs the permission to post a note that notifies subscribers.
+ * The same goes for telling subscribers about an edit (the note's 'updated'
+ * notification): an editor can change the text first, so with the edit
+ * permission alone it would be a way to message every subscriber.
+ *
+ * When: never while the notification is being sent. The send settles its
+ * own status when it finishes, so a Pending written over a running send
+ * either lets a second run send it at the same time - the same subscribers
+ * messaged twice, each run then overwriting the other's status - or is
+ * overwritten and lost without a word. That holds for every notification a
+ * user can send again (assertNotQueuedWhileBeingSent).
  *
  * These checks run in the services' onBeforeUpdate, before the update's own
  * check (DatabaseService runs that after the hooks), so each one checks
@@ -48,6 +58,17 @@ export default class SubscriberNotificationResendAccess {
       StatusPageSubscriberNotificationStatus.Pending,
     subscriberNotificationStatusMessage: "",
   };
+
+  /*
+   * The columns of a public note that telling subscribers about an edit
+   * writes.
+   */
+  private static readonly PUBLIC_NOTE_UPDATE_NOTIFICATION_COLUMNS: JSONObject =
+    {
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusMessageOnNoteUpdated: "",
+    };
 
   public static isPermissionChecked(
     props: DatabaseCommonInteractionProps,
@@ -193,6 +214,157 @@ export default class SubscriberNotificationResendAccess {
 
       if (refusal) {
         throw new BadDataException(refusal);
+      }
+    }
+  }
+
+  /*
+   * A user's or an API key's request to tell subscribers about an edit to a
+   * public note: the edit carries the notify-on-edit misc data prop
+   * (SubscriberUpdateNotification, which the service has turned into a
+   * Pending by now), or writes Pending into
+   * subscriberNotificationStatusOnNoteUpdated itself, as the dashboard's
+   * Retry of a failed update does. Shared by the incident, incident episode
+   * and scheduled maintenance public notes.
+   *
+   * - The caller must be able to write the update notification's status and
+   *   to post a note that notifies subscribers (see the header).
+   * - It is refused while the update notification is being sent
+   *   (assertNotQueuedWhileBeingSent): the edit can be saved without it.
+   *
+   * An update that does not ask for it is not looked at.
+   */
+  public static async assertPublicNoteUpdateNotificationAllowed<
+    TNote extends BaseModel,
+  >(data: {
+    modelType: { new (): TNote };
+    service: DatabaseService<TNote>;
+    updateBy: UpdateBy<TNote>;
+  }): Promise<void> {
+    const updateBy: UpdateBy<TNote> = data.updateBy;
+
+    if (
+      updateBy.props.isRoot ||
+      (updateBy.data as JSONObject)[
+        "subscriberNotificationStatusOnNoteUpdated"
+      ] !== StatusPageSubscriberNotificationStatus.Pending
+    ) {
+      return;
+    }
+
+    this.assertCallerMayUpdateColumns({
+      modelType: data.modelType,
+      columns: this.PUBLIC_NOTE_UPDATE_NOTIFICATION_COLUMNS,
+      props: updateBy.props,
+      refusal:
+        SubscriberNotificationResend.noPermissionToNotifyAboutEditMessage,
+    });
+
+    this.assertCallerMayPostNotifyingNote({
+      modelType: data.modelType,
+      props: updateBy.props,
+      refusal:
+        SubscriberNotificationResend.noPermissionToNotifyAboutEditMessage,
+    });
+
+    await this.assertNotQueuedWhileBeingSent({
+      modelType: data.modelType,
+      service: data.service,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatusOnNoteUpdated"],
+      refusal: SubscriberNotificationResend.updateBeingSentMessage,
+    });
+  }
+
+  /*
+   * A user's or an API key's update writing Pending into a notification's
+   * status column - Retry, Resend, or the API route of sending it again -
+   * while that notification is being sent (InProgress). Refused with
+   * `refusal` (SubscriberNotificationResend.beingSentMessage by default):
+   * see the header for why.
+   *
+   * Only the columns the update writes Pending into are looked at, so an
+   * edit that leaves the notification alone is never refused, and Pending
+   * written over Pending (queued already) changes nothing and is let
+   * through.
+   *
+   * Permission first: a caller who may not write those columns is left to
+   * the update's own check, which refuses them anyway, and never learns the
+   * notification's state from this one. The rows are then read with the
+   * caller's own permissions, so nothing they cannot read decides the
+   * answer. Root callers - the workers - are never checked.
+   */
+  public static async assertNotQueuedWhileBeingSent<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    service: DatabaseService<TBaseModel>;
+    updateBy: UpdateBy<TBaseModel>;
+    statusColumns: Array<string>;
+    refusal?: string | undefined;
+  }): Promise<void> {
+    const updateBy: UpdateBy<TBaseModel> = data.updateBy;
+
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const written: JSONObject = (updateBy.data || {}) as JSONObject;
+
+    const queuedColumns: Array<string> = data.statusColumns.filter(
+      (column: string): boolean => {
+        return (
+          written[column] === StatusPageSubscriberNotificationStatus.Pending
+        );
+      },
+    );
+
+    if (queuedColumns.length === 0) {
+      return;
+    }
+
+    const pendingColumns: JSONObject = {};
+    const select: JSONObject = { _id: true };
+
+    for (const column of queuedColumns) {
+      pendingColumns[column] = StatusPageSubscriberNotificationStatus.Pending;
+      select[column] = true;
+    }
+
+    try {
+      this.assertCallerMayUpdateColumns({
+        modelType: data.modelType,
+        columns: pendingColumns,
+        props: updateBy.props,
+        refusal: "",
+      });
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        return;
+      }
+
+      throw err;
+    }
+
+    const rows: Array<TBaseModel> = await data.service.findBy({
+      query: updateBy.query as Query<TBaseModel>,
+      select: select as unknown as Select<TBaseModel>,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: updateBy.props,
+    });
+
+    for (const row of rows) {
+      const record: JSONObject = row as unknown as JSONObject;
+
+      for (const column of queuedColumns) {
+        if (
+          record[column] === StatusPageSubscriberNotificationStatus.InProgress
+        ) {
+          throw new BadDataException(
+            data.refusal || SubscriberNotificationResend.beingSentMessage,
+          );
+        }
       }
     }
   }

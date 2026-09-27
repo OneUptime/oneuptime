@@ -659,6 +659,24 @@ export class Service extends DatabaseService<Model> {
       updateBy,
     );
 
+    /*
+     * Retry or Resend - a user's Pending - over a notification that is
+     * being sent would let a second run send it alongside, or be
+     * overwritten when the send settles (SubscriberNotificationResendAccess).
+     * 'Resend to all pages' above has refused that already, with its own
+     * reason; the hooks below queue their own Pending only from a settled
+     * state.
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: [
+        "subscriberNotificationStatusOnIncidentCreated",
+        "subscriberNotificationStatusOnPostmortemPublished",
+      ],
+    });
+
     await this.clearCreatedNotificationRecordOnResend({
       updateBy: updateBy,
       isResendRequested: isCreatedNotificationResendRequested,
