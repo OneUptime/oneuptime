@@ -228,13 +228,15 @@ describe("the other custom field definition tables", () => {
   ];
 
   test.each(
-    others.map((type: { new (): BaseModel }) => {
-      return [type.name, type];
-    }),
+    others.map(
+      (type: { new (): BaseModel }): [string, { new (): BaseModel }] => {
+        return [type.name, type];
+      },
+    ),
   )(
     "%s has none of the incident-only columns",
-    (_name: string, type: unknown) => {
-      const other: BaseModel = new (type as { new (): BaseModel })();
+    (_name: string, type: { new (): BaseModel }) => {
+      const other: BaseModel = new type();
 
       for (const column of [...SETTINGS_COLUMNS, "variableKey"]) {
         expect(other.hasColumn(column)).toBe(false);

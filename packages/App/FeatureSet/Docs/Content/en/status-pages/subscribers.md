@@ -186,11 +186,39 @@ The **Notification Templates** card on **Subscriber Settings** lists the templat
 
 Project-wide templates live one level up, at **Status Pages → Settings → Subscriber Templates**, next to **Announcement Templates**.
 
+### What a custom template needs
+
+On OneUptime Cloud, subscriber notification templates are a **Scale** plan feature; self-hosted installations have no plan limits. A template is used only once it is linked to a status page on that page's **Notification Templates** card, and two channels also need the page to send through your own provider:
+
+| Channel                            | A linked template is used when the page has                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| **Email**                          | a **Custom SMTP Config** (see [below](#email-footer-custom-smtp-and-twilio)) |
+| **SMS**                            | a **Twilio Config**                                                            |
+| **Slack** and **Microsoft Teams**  | nothing more                                                                   |
+
+Without them the page sends its default email or SMS, and the **Notification Templates** tab warns you with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
+
+None of this is needed to put incident custom fields into messages. Fields marked **Include in Subscriber Notifications** are in the default email, Slack, Microsoft Teams and webhook messages on every plan that has custom fields (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)). A custom template is for placing them yourself, anywhere in your own layout.
+
+### Incident variables
+
+Templates for the five incident event types — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** and **Subscriber Incident Postmortem Published** — can use these on top of their own variables:
+
+| Variable                   | Filled with                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `{{incidentLabels}}`       | The incident's labels, separated by commas.                                                                                          |
+| `{{affectedStatusPages}}`  | The names of every status page the incident is shown on, separated by commas.                                                        |
+| `{{customFields.<key>}}`   | An incident custom field's value, by the field's **Template Variable**, whether or not the field is marked **Include in Subscriber Notifications**. |
+
+The key is the field's **Template Variable**, which does not change when the field is renamed; the template form lists the project's incident custom fields and their keys under the variable reference. A field the incident has no value for is left empty. In an email body a plain field is escaped like any other value, while a rich text, long text or date and time field goes in as HTML: formatted Markdown, its lines, or a line per subscriber time zone. A rich text field's inline images are made viewable for the people it is sent to.
+
+**Two of them are internal data.** `{{affectedStatusPages}}` names every audience the incident reaches: with [one status page per audience](/docs/status-pages/one-status-page-per-audience), the subscribers of one site learn which other sites are affected, and one client learns the names of others. A custom field may hold notes meant for your team. The template form warns about both. Place them only in templates whose subscribers may see them.
+
+### Values in templates
+
 The body of an **Email** template is sent as HTML, so the values OneUptime puts into it are escaped: a title, a name, a severity or state and a URL read as the characters they hold, and markup in them (an incident titled `<a href="...">`, say) shows as text rather than becoming a link. Descriptions, notes, the postmortem and `{{resourcesAffected}}` are already HTML and go in as they are. The template's own HTML is sent as you wrote it. A subject, SMS, Slack and Microsoft Teams show text as written, so they get every value unchanged.
 
 Links and images in Markdown that reaches an email (descriptions, notes, announcements) are kept only for `http`, `https` and `mailto` addresses (`http` and `https` for images); any other link shows as its text.
-
-Templates for incident events can also use `{{incidentLabels}}` (the incident's labels), `{{affectedStatusPages}}` (every status page the incident is shown on) and `{{customFields.<key>}}` for any incident custom field, whether or not it is included in subscriber notifications. The key is the field's **Template Variable**, which does not change when the field is renamed; the template form lists the project's fields and their keys under the variable reference. A field the incident has no value for is left empty. In an email body a plain field is escaped like any other value, while a rich text, long text or date and time field goes in as HTML (formatted Markdown, its lines, or a line per time zone). Both are internal data: `{{affectedStatusPages}}` names every audience the incident reaches, and a custom field may hold notes meant for your team, so place them only in templates whose subscribers may see them.
 
 ## Email footer, custom SMTP and Twilio
 

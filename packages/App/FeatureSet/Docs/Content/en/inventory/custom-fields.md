@@ -58,7 +58,7 @@ Custom field columns are hidden by default and can be turned on from the column 
 
 ## Notes and Limits
 
-- Values are stored per item under the field's **name**. Renaming a field does not migrate the values already stored under the old name.
+- Values are stored per item under the field's **name**. Renaming a field does not migrate the values already stored under the old name. Incident custom fields are the exception: renaming one moves its values (see [Renaming a field](/docs/incidents/settings#renaming-a-field)).
 - There is no uniqueness constraint. Two items can carry the same serial number; nothing will stop you.
 - Dates are stored as ISO-8601 UTC timestamps and displayed in your own timezone.
 - Deleting a field definition removes it from the list and from the filter bar. The values already written stay in the underlying record.

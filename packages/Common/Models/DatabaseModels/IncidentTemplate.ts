@@ -1376,7 +1376,8 @@ export default class IncidentTemplate extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    description:
+      "The custom field values incidents declared from this template start with, keyed by each incident custom field's name. They are merged one field at a time under the values the request or the Declare Incident form supplies.",
     example: {
       priority: "high",
       category: "infrastructure",

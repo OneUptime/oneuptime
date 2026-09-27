@@ -565,7 +565,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
       await IncidentTemplateVariableBuilder.build({
         incident: (() => {
           const row: Incident = incident();
-          row.customFields = undefined;
+          delete row.customFields;
           return row;
         })(),
         statusPages: [SITE_03],
@@ -975,7 +975,7 @@ describe("IncidentTemplateVariableBuilder shared values", () => {
 
   test("an incident with no severity reads ' - '", async () => {
     const row: Incident = incident();
-    row.incidentSeverity = undefined;
+    delete row.incidentSeverity;
 
     const variables: IncidentTemplateVariables =
       await IncidentTemplateVariableBuilder.build({

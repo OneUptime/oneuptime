@@ -78,7 +78,7 @@ If your team writes the same three updates every outage, save them once. Both no
 
 Templates are shared between public and private notes: a single template list serves both, and the same template can be inserted into either kind of note.
 
-Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written.
+Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings#note-templates) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written. Read the filled-in note before posting a public one: `{{incident.affectedStatusPages}}` names every status page the incident reaches, and the subscribers of all of them read it.
 
 You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. If you click **Create from Template** before creating any, OneUptime tells you none exist yet; note that the message points at Project Settings, but the page actually lives under **Incidents → Settings → Note Templates**.
 
@@ -118,13 +118,13 @@ Click **more details** on the status to open **Notification Status Details**. Wh
 
 **Editing a public note is silent unless you ask.** The note's edit form has a **Notify subscribers about this update** checkbox, unticked every time. Tick it for a change subscribers need to know about and they receive the edited note, marked as an update; the note then shows an **Update Notification Status** alongside the original one, with its own **Retry**. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
 
-The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, and a per-subscriber unsubscribe link. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
+The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, the incident's labels, affected status pages and custom fields, and a per-subscriber unsubscribe link. The default email, Slack and Microsoft Teams messages also list the incident's custom fields marked **Include in Subscriber Notifications**, with their current values. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
 
 ## The incident feed
 
 The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
 
-Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages queued on each channel and the subject its email went out with. Those show a **More Information** button that opens a **More Information** panel.
+Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages queued on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
 
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 

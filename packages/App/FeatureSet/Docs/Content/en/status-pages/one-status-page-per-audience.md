@@ -49,7 +49,9 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 3. **Turn on Only Show Incidents Scoped to This Page** on each of those pages. It is on **Status Pages → your page → Advanced → Advanced Settings**, behind **Edit Settings** on the **Incident Settings** card. From then on, nothing reaches a site page unless someone picks it.
 4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
 5. **Let responders read status pages.** The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty, and says why.
-6. **Optionally, save incident templates with pages already picked.** A `Region East outage` template can carry the East site pages.
+6. **Decide what every message says.** At **Incidents → Settings → Custom Fields**, define the incident custom fields your team answers every time, for example `Impact` (a dropdown), `Expected Resolution` (a date and time) and `Acknowledgement` (a yes/no switch). Give them an **Order**, and turn on **Show on Create** so the declare form asks for them, **Required on Create** where an answer is a must, and **Include in Subscriber Notifications** for the ones every audience may read. Those are then in the default email of every page. See [Custom fields](/docs/incidents/settings#custom-fields).
+7. **Optionally, brand each page's email.** On the **Scale** plan, give each page a **Custom SMTP Config** and link custom templates for the incident events; they can place any field with `{{customFields.<key>}}`. See [What a custom template needs](/docs/status-pages/subscribers#what-a-custom-template-needs), and [What every message carries](#what-every-message-carries) before you use `{{affectedStatusPages}}`.
+8. **Optionally, save incident templates with pages already picked.** A `Region East outage` template can carry the East site pages, and default answers for the custom fields.
 
 ## Limiting an incident to status pages
 
@@ -62,6 +64,8 @@ The form warns you:
 - when a picked page lists none of the incident's monitors. The incident will not show on that page or notify its subscribers;
 - when you also set **Change Monitor Status to**. See [Monitor status is shared](#monitor-status-is-shared);
 - when you also tick **Private Incident** on the **More** step. Private incidents are hidden from all status pages, including the ones you picked.
+
+The **Details** step, right after **Resources Affected**, asks for the incident custom fields marked **Show on Create** (see [Declaring Incidents](/docs/incidents/declaring-incidents)). Its answers go to every page the incident reaches: custom field values belong to the incident, not to a status page.
 
 **Create from Template** fills the field from the template. A template's pages are set on its **Resources Affected** step when you create it, and on its **Status Page Scope** card afterwards (**Incidents → Settings → Incident Templates**). As with the other template fields, a list you set yourself wins. A template's pages are filled in even for a responder who cannot read status pages: whoever set up the template chose them for everyone who declares from it.
 
@@ -156,6 +160,15 @@ Webhook, Slack and Microsoft Teams messages are never merged. Their payloads nam
 
 This applies within one send only. Someone subscribed on `Site 03` and `Site 05` who got the 'created' email through `Site 03` gets it again when `Site 05` is added later. An incident that is not limited to any page sends one message per subscription, as it always has.
 
+## What every message carries
+
+Every page the incident reaches gets the same values: they belong to the incident, not to a status page.
+
+- **Custom fields in the default messages.** Incident custom fields with **Include in Subscriber Notifications** on are listed in the created, state change, public note and postmortem messages of every page, in their **Order**: email, Slack, Microsoft Teams and webhooks, but not SMS. This needs neither the Scale plan nor custom SMTP. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
+- **Updates.** Changing a custom field on its own tells nobody. The next public note or state change carries the current values, so to tell the sites that `Expected Resolution` moved, change the field and then post a public note.
+- **Note templates.** Picking a note template fills in placeholders such as `{{incident.title}}` and `{{customFields.<key>}}` with the incident's current values, and you can still edit the note before posting it. See [Note templates](/docs/incidents/settings#note-templates).
+- **The names of the other audiences.** `{{affectedStatusPages}}` in a custom subscriber template, and `{{incident.affectedStatusPages}}` in a note template, list the pages the incident reaches, and everyone the message goes to reads the list: the subscribers of `Site 03` learn that `Site 07` is affected too. Between sites of one organization that may be what you want. Between clients it tells one client about another, so leave both out of the templates and notes those pages get.
+
 ## How this differs from scheduled maintenance
 
 Scheduled maintenance events have a **Status Pages** list too, but it works differently:
@@ -174,7 +187,7 @@ A monitor has one status, and every status page that lists the monitor shows it.
 ## What is recorded
 
 - **The incident feed.** The 'created' entry of a limited incident lists the pages it is limited to. Every change to the list adds an entry listing the pages added and removed, and whether the added pages will be sent the 'created' notification.
-- **Each subscriber notification.** The **Subscriber Notification Sent** entry in the incident feed has a **More Information** panel listing each page the send went to: how many messages were queued on each channel, and the subject its email went out with. It also lists the pages it passed over and why (already told, or not showing incidents), the pages the scope left out, and whether email and SMS were sent once per address.
+- **Each subscriber notification.** The **Subscriber Notification Sent** entry in the incident feed has a **More Information** panel listing each page the send went to: how many messages were queued on each channel, and the subject its email went out with. It also lists the pages it passed over and why (already told, or not showing incidents), the pages the scope left out, and whether email and SMS were sent once per address. When the send put custom field values into a message, the panel ends with them, under **Custom fields sent**.
 - **Notification Logs** on each status page show every message that page sent.
 
 See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for the feed itself.
@@ -192,5 +205,6 @@ See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for t
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — putting monitors on a page.
 - [Status Pages Overview](/docs/status-pages/index) — private pages and the settings on **Advanced Settings**.
 - [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare form, step by step.
+- [Settings & Automation](/docs/incidents/settings) — incident custom fields and note templates.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what else keeps an incident off a status page.
 - [Manual Monitor](/docs/monitor/manual-monitor) — monitors whose status you set yourself.

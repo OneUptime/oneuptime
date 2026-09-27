@@ -130,6 +130,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Route from "../../../Types/API/Route";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import { getCustomFieldFormKey } from "../../../UI/Components/CustomFields/CustomFieldModelFormFields";
@@ -181,7 +182,7 @@ const SITE: IncidentCustomField = customField({
   name: "Site",
   showOnCreate: true,
   sortOrder: 4,
-  mapFromResourceType: "Monitor" as IncidentCustomField["mapFromResourceType"],
+  mapFromResourceType: CustomFieldMappingSourceResource.Monitor,
   mapFromCustomFieldName: "Site",
 });
 

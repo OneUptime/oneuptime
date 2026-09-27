@@ -15,7 +15,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
-import { DataSource } from "typeorm";
+import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * Incident custom field keys and renames against a migrated Postgres.
@@ -526,6 +526,20 @@ describePostgres(
         return id;
       };
 
+      /*
+       * The migration hands the backfill its own QueryRunner; so does this,
+       * one from the test's data source, on the test's schema.
+       */
+      const backfill: () => Promise<number> = async (): Promise<number> => {
+        const queryRunner: QueryRunner = database.createQueryRunner();
+
+        try {
+          return await backfillIncidentCustomFieldVariableKeys(queryRunner);
+        } finally {
+          await queryRunner.release();
+        }
+      };
+
       const newest: string = await seed("Impact", projectId, 1);
       const oldest: string = await seed("impact!", projectId, 5);
       const keyed: string = await seed("Region", projectId, 3, "impact_2");
@@ -538,8 +552,7 @@ describePostgres(
         many.push(await seed(`Field ${i % 3}`, otherProjectId, 10));
       }
 
-      const given: number =
-        await backfillIncidentCustomFieldVariableKeys(database);
+      const given: number = await backfill();
 
       expect(given).toBe(4 + 1200);
 
@@ -566,7 +579,7 @@ describePostgres(
       expect(manyKeys[0]!.count).toBe(1200);
 
       // A second run finds nothing to do and changes nothing.
-      expect(await backfillIncidentCustomFieldVariableKeys(database)).toBe(0);
+      expect(await backfill()).toBe(0);
       expect(await keyOf(newest)).toBe("impact_3");
     });
   },

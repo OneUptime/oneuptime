@@ -29,13 +29,26 @@ function read(language: string, page: string): string {
   );
 }
 
-const SECTION_HEADING: RegExp = /^#{2,3} /;
+/*
+ * The docs renderer gives every heading an id, whatever its level, so a link
+ * may point at an H4 such as "Incident custom fields in notifications". A
+ * `#` line inside a fenced block is a comment, not a heading.
+ */
+const HEADING: RegExp = /^#{1,6} /;
+const FENCE: RegExp = /^\s*```/;
 
 function headingSlugs(markdown: string): Array<string> {
+  let inFence: boolean = false;
+
   return markdown
     .split("\n")
     .filter((line: string): boolean => {
-      return SECTION_HEADING.test(line);
+      if (FENCE.test(line)) {
+        inFence = !inFence;
+        return false;
+      }
+
+      return !inFence && HEADING.test(line);
     })
     .map((line: string): string => {
       return slugify(line.replace(/^#+ /, "").trim());

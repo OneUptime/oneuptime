@@ -2105,7 +2105,8 @@ export default class Incident extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    description:
+      "The incident's custom field values, keyed by each incident custom field's name. When a user or an API key creates or updates an incident, each value it sets or changes must fit its field - a number for a Number field, true or false for a Boolean, one of the options for a Dropdown, and so on - or the request is refused. Values left as they were, keys that are not the name of a field and empty values are not checked. Required on Create is not enforced here: it applies to the dashboard's Declare Incident form only.",
   })
   @Column({
     type: ColumnType.JSON,

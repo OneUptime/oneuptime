@@ -98,21 +98,91 @@ You apply one from the incident, not from settings. Open an incident, choose **P
 
 ## Custom fields
 
-Custom fields let you carry your own metadata on every incident — an internal service name, a change ticket reference, a customer tier.
+Custom fields let you carry your own metadata on every incident — an internal service name, a change ticket reference, a customer tier — and ask the same questions every time an incident is declared, such as its impact and when it is expected to be resolved.
 
-Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields**. Each definition has:
+Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**. Each definition has:
 
 - **Field Name** — required, at least two characters. The placeholder suggests a slug-like name such as `internal-service`.
 - **Field Description** — optional.
-- **Field Type** — required. This chooses how data is entered. Dropdown types also need their options listed.
+- **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
-- **Order**, **Show on Create** and **Required on Create** — where the field appears, and whether the **Details** step asks for it when an incident is declared (see [Declaring Incidents](/docs/incidents/declaring-incidents)).
+- **Order** — where the field appears among the incident's custom fields, lowest first: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. Fields without an order come after the ones that have one.
+- **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not.
+- **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
 - **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
-- **Template Variable** — the key a template reaches the field by, `{{customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created and does not change when the field is renamed.
+- **Template Variable** — the key a template reaches the field by, `{{customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it.
 
-Definitions live in their own model; the values live on the incident itself in the `customFields` column. On a single incident you fill them in from **Custom Fields** in the incident side menu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
+**Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
+
+Definitions live in their own model; the values live on the incident itself in the `customFields` column. On a single incident you fill them in from **Custom Fields** in the incident side menu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), where the fields are listed in their **Order**. Incident templates keep values for the same fields in their own `customFields`.
 
 **One gap worth knowing.** Incident custom field definitions are the only part of the incident family with no workflow triggers — see the workflow section below.
+
+### Field types
+
+| Field type                   | Entered as                                           | Good for                                           |
+| ---------------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| **Text**                     | One line of text                                     | A change ticket reference, an internal service name |
+| **Number**                   | A number                                             | Estimated duration in minutes, users affected      |
+| **Boolean**                  | A yes/no switch                                      | An acknowledgement, "customer facing"              |
+| **Dropdown (single select)** | One option from a list                               | Impact, region                                     |
+| **Dropdown (multi-select)**  | Several options from a list                          | Affected systems                                   |
+| **Date**                     | A date                                               | A contract renewal date                            |
+| **Date and time**            | A date and a time of day                             | Expected resolution                                |
+| **Long text**                | Several lines of plain text                          | Affected users or systems, additional information  |
+| **Rich text (Markdown)**     | Formatted text, in the Markdown editor with its visual mode | A workaround with links and lists           |
+
+**Long text** and **Rich text (Markdown)** are available for the custom fields of every resource, not only incidents. A rich text value is stored as the Markdown it was written in. There is no radio button or checkbox group type: use a **Dropdown (single select)**, a **Dropdown (multi-select)** or a **Boolean**.
+
+### Required on Create is checked by the dashboard only
+
+**Required on Create** holds back the **Declare Incident** form, and nothing else. Incidents that a monitor, the API, Slack, Microsoft Teams or AI opens cannot fill in a form, so they are created with the field empty. Once an incident exists, every field stays optional on its **Custom Fields** page, so a responder fixing one value mid-outage is never asked for all the others. Treat it as a prompt for the people declaring incidents, not as a promise that every incident has a value.
+
+### Custom field values through the API
+
+On `POST /api/incident` and on updates to an incident, `customFields` is an object keyed by each field's **Field Name**:
+
+```json
+{
+  "customFields": {
+    "Impact": "Major",
+    "Estimated Duration": 90,
+    "Acknowledgement": true,
+    "Expected Resolution": "2026-10-01T14:30:00.000Z"
+  }
+}
+```
+
+When a user or an API key creates or updates an incident, each value the request sets or changes must fit its field, or the request is refused with a `400` error that names the field and the value it was sent:
+
+| Field type                                           | Accepts                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| **Text**, **Long text**, **Rich text (Markdown)**    | Text. A number, `true` or `false` is stored as sent.          |
+| **Number**                                           | A number, or text that is one, such as `"42"`.                |
+| **Boolean**                                          | `true` or `false`, or the text `"true"` or `"false"`.         |
+| **Date**, **Date and time**                          | A date, preferably as ISO 8601 text.                          |
+| **Dropdown (single select)**                         | One of its options.                                           |
+| **Dropdown (multi-select)**                          | A list of its options, or a single option on its own.         |
+
+What is not checked, so that existing integrations keep working:
+
+- **Values the request leaves as they are.** The **Custom Fields** card sends every value back when you save one of them, so a value stored before these checks existed, or a dropdown option removed since, never stops you saving the others. A multi-select keeps the entries it already had.
+- **Keys that are not the name of an incident custom field**, such as the `jiraIssueKey` that the [Jira integration](/docs/integrations/jira) writes.
+- **Empty values.** `null` or an empty string clears a field.
+- **Values copied from a monitor custom field**, and writes OneUptime makes itself.
+- **Required on Create.** The API never asks for a field.
+
+An incident created with `createdIncidentTemplateId` starts with the template's custom field values, merged one field at a time under the ones the request sends (see [How a template gets applied](#how-a-template-gets-applied)). Only the values the request sends are checked.
+
+### Renaming a field
+
+Values are stored under the field's name, so renaming a field has to move them. When you save a new **Field Name**, OneUptime moves the field's value to the new name on every incident and every incident template in the project, and updates the saved views of the incidents list that show or filter by the field. The move starts no **On Update Incident** workflow, and it does not change any incident's last-updated time. The field's **Template Variable** stays as it was, so note templates, custom subscriber notification templates and webhook integrations that use it keep working.
+
+Two renames are refused: one onto a name another incident custom field already has (compared without regard to case), and an API request that would rename several fields at once. Workflows and API clients that read or write a value by the field's old name need to be changed to the new one.
+
+### Terraform
+
+The settings are on the `oneuptime_incident_custom_field` resource as `sort_order`, `show_on_create`, `is_required_on_create` and `include_in_subscriber_notifications`. `variable_key` is read-only: the key OneUptime made when the field was created.
 
 ## Measurements
 

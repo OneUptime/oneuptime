@@ -45,14 +45,14 @@ Only the first step has required fields, plus any custom field your admins marke
 
 ### Details — your incident custom fields
 
-This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields**. It asks for those fields, in their **Order** (fields without one come last), with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor.
+This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields**. It asks for those fields, in their **Order** (fields without one come last), with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor. It is also left out for someone who cannot read the project's incident custom fields: on OneUptime Cloud they need the **Growth** plan or above, and a role that can view incident custom fields.
 
 - A field marked **Required on Create** must be filled in before you can declare. A required yes/no field — an acknowledgement, say — must be switched on.
 - A 0 or a switch left off is an answer, and is saved as one.
 - A field whose value is copied from a monitor custom field is not asked once the incident has a monitor, because the value is copied from the monitor when the incident is created.
 - Declaring from a template starts the step with the template's values, and the template's values for fields the step does not ask about are kept as they are. A value you clear on the step stays cleared. A template value that no longer fits its field — a dropdown option removed since — is left out rather than refusing the incident.
 
-**Required on Create** is checked by the dashboard only. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can leave a field empty, and every field stays optional on the incident's **Custom Fields** page afterwards, so fixing one value mid-outage never demands all the others.
+**Required on Create** is checked by the dashboard only. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can leave a field empty, and every field stays optional on the incident's **Custom Fields** page afterwards, so fixing one value mid-outage never demands all the others. See [Custom fields](/docs/incidents/settings#custom-fields) for the field types and settings.
 
 ### Step 3 — Incident Roles
 
@@ -149,7 +149,8 @@ Useful fields on the request body:
 - `declaredAt` — optional here even though the form requires it. Omit it and the server uses the current time.
 - `incidentSeverityId` and `currentIncidentStateId` — the server checks that both belong to the same project as the API key, and rejects the request if they do not. The same check applies to the monitor status behind **Change Monitor Status to**.
 - `statusPages` — the ids of the status pages to limit the incident to, all from the same project. Leave it out to reach every status page that lists the incident's monitors. `isScopedToStatusPages` is worked out from it, and a value you send for that is ignored. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
-- `createdIncidentTemplateId` — apply a saved template. Any field you leave out is filled from the template; any field you send is kept as-is.
+- `customFields` — the incident's custom field values, keyed by each field's name. Each value you send must fit its field — a number for a **Number** field, one of the options for a **Dropdown (single select)** — or the request is refused with a `400` error naming the field. **Required on Create** is not checked here. See [Custom field values through the API](/docs/incidents/settings#custom-field-values-through-the-api).
+- `createdIncidentTemplateId` — apply a saved template. Any field you leave out is filled from the template; any field you send is kept as-is. Custom field values merge one field at a time.
 
 Related endpoints are `/api/incident-state`, `/api/incident-severity` and `/api/incident-state-timeline`. The generated [API reference](/reference) has the exact request and response shapes for each, including how relation fields such as monitors are expressed.
 
