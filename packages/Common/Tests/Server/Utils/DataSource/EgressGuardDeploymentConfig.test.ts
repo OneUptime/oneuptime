@@ -188,29 +188,39 @@ describe("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES deployment wiring", () => {
       ),
       "utf8",
     );
-    const quote: RegExpMatchArray | null = docs.match(
-      /_"(LLM provider host [^"]+)"_/,
+    // The refused name first, then the same address typed as an IP.
+    const quotes: Array<string> = Array.from(
+      docs.matchAll(/_"(LLM provider host [^"]+)"_/g),
+      (match: RegExpMatchArray) => {
+        return match[1]!;
+      },
     );
-    expect(quote).not.toBeNull();
+    expect(quotes).toHaveLength(2);
 
     process.env["BILLING_ENABLED"] = "false";
     process.env[ENV_VAR_NAME] = "true";
 
-    let message: string = "";
-    try {
-      await DataSourceEgressGuard.assertUrlAllowedAndPin(
-        "http://ollama.internal:11434/v1/chat/completions",
-        {
+    const refusalFor: (url: string) => Promise<string> = async (
+      url: string,
+    ): Promise<string> => {
+      try {
+        await DataSourceEgressGuard.assertUrlAllowedAndPin(url, {
           targetLabel: "LLM provider",
           resolveFunction: async (): Promise<Array<ResolvedAddress>> => {
             return [{ address: "10.0.4.12", family: 4 }];
           },
-        },
-      );
-    } catch (err) {
-      message = (err as Error).message;
-    }
+        });
+      } catch (err) {
+        return (err as Error).message;
+      }
+      return "";
+    };
 
-    expect(message).toBe(quote![1]);
+    expect(
+      await refusalFor("http://ollama.internal:11434/v1/chat/completions"),
+    ).toBe(quotes[0]);
+    expect(await refusalFor("http://10.0.4.12:11434/v1/chat/completions")).toBe(
+      quotes[1],
+    );
   });
 });

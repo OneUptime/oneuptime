@@ -13,6 +13,7 @@ import OAuth2TokenClient, {
   OAuth2TokenHttpRequest,
 } from "Common/Server/Utils/Workflow/OAuth2TokenClient";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { generateKeyPairSync } from "crypto";
 import dns from "dns";
 import http from "http";
@@ -136,6 +137,12 @@ function makeOAuthConfig(tokenUrl: string): {
     providerType: OAuthProviderType.ClientCredentials,
   };
 }
+
+/*
+ * Refusals are asserted with the detail a self-hosted install shows; the
+ * SaaS wording is tested on its own below. CI exports BILLING_ENABLED=true.
+ */
+startEachTestOnSelfHostedEgressPolicy();
 
 beforeEach(() => {
   lookupSpy = jest.spyOn(dns.promises, "lookup") as unknown as LookupSpy;
@@ -346,5 +353,62 @@ describe("custom SMTP hosts are guarded before nodemailer dials them", () => {
     ).resolves.toBeDefined();
 
     expect(createTransportSpy).toHaveBeenCalled();
+  });
+
+  /*
+   * The refusal becomes EmailLog.statusMessage and the SMTP test endpoint's
+   * response, both readable by project members. On SaaS it must not say
+   * whether the name they typed exists inside OneUptime's network, or where
+   * it points; a self-hosted operator still gets the diagnosis.
+   */
+  describe("what the refusal says about the configured host", () => {
+    async function refusalFor(host: string): Promise<string> {
+      try {
+        await TransporterPool.getTransporter(makeProjectEmailServer(host), {});
+      } catch (err) {
+        return (err as Error).message;
+      }
+
+      throw new Error(`Expected ${host} to be refused.`);
+    }
+
+    async function refusalsForTheSameName(): Promise<Array<string>> {
+      lookupSpy.mockRejectedValue(new Error("getaddrinfo ENOTFOUND redis"));
+      const missing: string = await refusalFor("redis");
+
+      lookupSpy.mockResolvedValue([{ address: "10.96.0.9", family: 4 }]);
+      const internal: string = await refusalFor("redis");
+
+      lookupSpy.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+      const loopback: string = await refusalFor("redis");
+
+      return [missing, internal, loopback];
+    }
+
+    test("on SaaS a missing name and an internal name are refused identically", async () => {
+      process.env["BILLING_ENABLED"] = "true";
+
+      const refusals: Array<string> = await refusalsForTheSameName();
+
+      expect(refusals).toEqual([
+        "SMTP server host redis could not be reached.",
+        "SMTP server host redis could not be reached.",
+        "SMTP server host redis could not be reached.",
+      ]);
+      expect(createTransportSpy).not.toHaveBeenCalled();
+    });
+
+    test("on a self-hosted install the operator is told what went wrong", async () => {
+      // Private ranges are reachable here, so only DNS and loopback refuse.
+      lookupSpy.mockRejectedValue(new Error("getaddrinfo ENOTFOUND redis"));
+      expect(await refusalFor("redis")).toBe(
+        "Could not resolve smtp server host redis: getaddrinfo ENOTFOUND redis",
+      );
+
+      lookupSpy.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+      expect(await refusalFor("redis")).toBe(
+        "SMTP server host redis resolves to 127.0.0.1, which is not allowed: loopback address.",
+      );
+    });
   });
 });

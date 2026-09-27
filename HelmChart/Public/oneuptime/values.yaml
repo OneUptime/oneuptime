@@ -1087,8 +1087,11 @@ outboundConnections:
   # Refuse the private tier for these connections too — for example when
   # projects on this instance belong to people who should not reach your
   # internal network. Always on when billing.enabled is true, whatever this
-  # says. Does not affect webhooks (above) or
-  # probes.<key>.allowPrivateNetworkMonitors.
+  # says. Does not change which targets webhooks (above) or
+  # probes.<key>.allowPrivateNetworkMonitors allow. With it on, a refused host
+  # name (webhooks and workflow requests included) is reported as "... could
+  # not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG logs
+  # the reason.
   blockPrivateNetwork: false
 
 # VAPID Configuration for Web Push Notifications

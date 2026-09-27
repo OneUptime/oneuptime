@@ -104,7 +104,7 @@ webhooks:
 DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true
 ```
 
-فقط مقدار دقیق `true` آن را روشن می‌کند. روی نمونه‌ای با `BILLING_ENABLED=true` همیشه روشن است، هرچه تنظیم کنید. تنظیمات وب‌هوک بالا یا تنظیم پروب پایین را تغییر نمی‌دهد؛ هر دروازه جداگانه پیکربندی می‌شود.
+فقط مقدار دقیق `true` آن را روشن می‌کند. روی نمونه‌ای با `BILLING_ENABLED=true` همیشه روشن است، هرچه تنظیم کنید. تغییر نمی‌دهد که تنظیمات وب‌هوک بالا یا تنظیم پروب پایین به کدام هدف‌ها اجازه می‌دهند؛ هر دروازه جداگانه پیکربندی می‌شود. ولی شکل پیام‌های رد را، برای وب‌هوک‌ها و درخواست‌های گردش‌کار هم، تغییر می‌دهد: وقتی روشن باشد، نام میزبان ردشده بدون گفتن اینکه به چه نشانی‌ای تفکیک شده گزارش می‌شود (بخش [تأیید اینکه کار می‌کند](#تأیید-اینکه-کار-میکند) را ببینید).
 
 روی Docker Compose، فایل `config.env` خطی به شکل `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` دارد (اگر `config.env` شما قدیمی‌تر از آن است، اضافه‌اش کنید). به‌جای افزودن خطی دوم، همان خط را به `true` تغییر دهید، سپس `npm run start` را اجرا کنید تا کانتینرها با مقدار تازه از نو ساخته شوند؛ `docker compose restart` فایل `config.env` را دوباره نمی‌خواند.
 
@@ -115,7 +115,7 @@ outboundConnections:
   blockPrivateNetwork: true
 ```
 
-وقتی روشن باشد، اتصال ردشده چیزی را که پیکربندی می‌شود و نشانی‌ای را که به آن تفکیک شده نام می‌برد، برای نمونه _«LLM provider host ollama.internal resolves to 10.0.4.12, which is not allowed: private network address.»_
+وقتی روشن باشد، نام میزبان ردشده بدون گفتن اینکه به چه نشانی‌ای تفکیک شده گزارش می‌شود، برای نمونه _«LLM provider host ollama.internal could not be reached.»_ نامی که اصلاً تفکیک نشود هم همین پیام را می‌گیرد، تا اعضای پروژه نتوانند با این فیلدها بفهمند کدام نام‌های داخلی وجود دارند. نشانی‌ای که به‌صورت IP وارد شده همچنان همراه با دلیل نام برده می‌شود، برای نمونه _«LLM provider host 10.0.4.12 is not allowed: private network address.»_ با `LOG_LEVEL=DEBUG`، برنامه نشانی‌ای را که هر نام ردشده به آن تفکیک شده در لاگ ثبت می‌کند.
 
 ## پروب‌ها و مانیتورها
 
@@ -158,6 +158,8 @@ probes:
 - _«...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network.»_ — پروبی همراه (سراسری) مانیتور را اجرا کرده، و کلیدش خاموش است. اگر هر پروژه‌ای روی نمونه مجاز است به آن شبکه برسد، آن را همان‌طور که بالاتر آمد برای آن پروب روشن کنید؛ وگرنه روی مانیتور پروبی خصوصی برگزینید.
 - _«...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.»_ — پروبی سراسری با `BILLING_ENABLED=true` در محیطش مانیتور را اجرا کرده. پروب‌های سراسری خودثبت‌شونده آنجا، کلیدشان هر چه بگوید، فقط‌عمومی می‌مانند؛ پروبی خصوصی درون شبکه هدف مستقر کنید و روی مانیتور برگزینیدش.
 - _«Monitor target host ... could not be reached.»_ — مانیتور API، وب‌سایت یا صفحه وضعیت بیرونی‌ای که هدفش **نام میزبان** است، هم وقتی نام به نشانی ردشده‌ای تفکیک شود و هم وقتی DNS شکست بخورد، همین را گزارش می‌کند، تا نتوان با مانیتوری نقشه نام‌های داخلی موجود را کشید. جزئیات خطایی که همراهش نشان داده می‌شود در هر دو حالت از `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` نام می‌برد؛ نمی‌گوید کدام حالت رخ داده است. اگر نام به نشانی خصوصی اشاره دارد، لاگ راه‌اندازی پروب را برای سیاست شبکه خصوصی‌اش بررسی کنید؛ اگر خاموش است، راه‌حل همان راه‌حل پیام‌های بالاست. با `LOG_LEVEL=DEBUG`، پروب دلیل دقیق رد شدن هر نام را هم در لاگ ثبت می‌کند.
+- _«Request URL could not be reached.»_ — همین قاعده برای مانیتور **Custom JavaScript Code**: اسکریپتی که **نام میزبانی** را درخواست می‌کند، هم وقتی نام به نشانی ردشده‌ای تفکیک شود و هم وقتی DNS شکست بخورد، همین را دریافت می‌کند. با `LOG_LEVEL=DEBUG`، پروب دلیل دقیق را در لاگ ثبت می‌کند.
+- _«Webhook URL could not be reached.»_ یا، از گردش‌کار، _«Request URL could not be reached.»_ — نمونه با `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (یا `BILLING_ENABLED=true`) اجرا می‌شود، پس **نام میزبان** ردشده توضیح داده نمی‌شود: یا به نشانی ردشده‌ای تفکیک شده یا اصلاً تفکیک نشده است. با `LOG_LEVEL=DEBUG`، برنامه یا worker کدام‌یک را، همراه نشانی، در لاگ ثبت می‌کند.
 - _«...points to a private, loopback, or link-local address and is not allowed.»_ — هدف در رده ممنوع است. برای وب‌هوک، اگر واقعاً لازمش دارید میزبان یا CIDR دقیق را در `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` نام ببرید. برای مانیتور، بازنویسی‌ای وجود ندارد.
 - _«...hostname could not be resolved via DNS.»_ — کانتینر نمی‌تواند نام را تفکیک کند. بررسی کنید شبکه‌ای مشترک با هدف داشته باشد.
 

@@ -8,6 +8,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
 import { ClientRequest } from "http";
 import https from "https";
+import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
 
 /*
  * The egress guard is only half a control on its own: validating an address
@@ -62,6 +63,9 @@ const callLookup: CallLookup = (
     );
   });
 };
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("DataSourceEgressGuard.createPinnedLookup", () => {
   const addresses: Array<ResolvedAddress> = [

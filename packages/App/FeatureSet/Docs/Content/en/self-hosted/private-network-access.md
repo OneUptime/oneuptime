@@ -104,7 +104,7 @@ This guard works the other way round from the webhook settings. On a self-hosted
 DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true
 ```
 
-Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change the webhook settings above or the probe setting below; each gate is configured on its own.
+Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change which targets the webhook settings above or the probe setting below allow; each gate is configured on its own. It does change how refusals read, for webhooks and workflow requests too: with it on, a refused host name is reported without saying what it resolved to (see [Verifying it works](#verifying-it-works)).
 
 On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` line (add it if your `config.env` predates it). Change that line to `true` rather than adding a second one, then run `npm run start` so the containers are recreated with the new value; `docker compose restart` does not re-read `config.env`.
 
@@ -115,7 +115,7 @@ outboundConnections:
   blockPrivateNetwork: true
 ```
 
-With it on, a refused connection names the thing being configured and the address it resolved to, for example _"LLM provider host ollama.internal resolves to 10.0.4.12, which is not allowed: private network address."_
+With it on, a refused host name is reported without saying what it resolved to, for example _"LLM provider host ollama.internal could not be reached."_ A name that does not resolve at all gets the same message, so project members cannot use these fields to find out which internal names exist. An address typed as an IP is still named along with the reason, for example _"LLM provider host 10.0.4.12 is not allowed: private network address."_ With `LOG_LEVEL=DEBUG`, the app logs the address each refused name resolved to.
 
 ## Probes and monitors
 
@@ -158,6 +158,8 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — a bundled (global) probe ran the monitor, and its switch is off. Turn it on for that probe as described above if every project on the instance may reach that network; otherwise select a private probe on the monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — a global probe with `BILLING_ENABLED=true` in its environment ran the monitor. Auto-registered global probes stay public-only there, whatever their switch says; deploy a private probe inside the target's network and select it on the monitor.
 - _"Monitor target host ... could not be reached."_ — an API, Website or External Status Page monitor whose target is a **hostname** reports this when the name resolves to a refused address as well as when DNS fails, so a monitor cannot be used to map which internal names exist. The error details shown with it mention `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` either way; they do not say which case applied. If the name points at a private address, check the probe's startup log for its private-network policy; when it is off, the fix is the same as for the messages above. With `LOG_LEVEL=DEBUG`, the probe also logs the exact reason for each refused name.
+- _"Request URL could not be reached."_ — the same rule for a **Custom JavaScript Code** monitor: a script that requests a **hostname** gets this both when the name resolves to a refused address and when DNS fails. With `LOG_LEVEL=DEBUG`, the probe logs the exact reason.
+- _"Webhook URL could not be reached."_ or, from a workflow, _"Request URL could not be reached."_ — the instance runs with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (or `BILLING_ENABLED=true`), so a refused **hostname** is not explained: it either resolved to a refused address or did not resolve at all. With `LOG_LEVEL=DEBUG`, the app or worker logs which one, and the address.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — the target is in the forbidden tier. For a webhook, name the exact host or CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` if you really need it. For a monitor, there is no override.
 - _"...hostname could not be resolved via DNS."_ — the container cannot resolve the name. Check that it shares a network with the target.
 

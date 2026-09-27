@@ -316,10 +316,11 @@ describe("Email workflow component egress guard", () => {
     return sendMail;
   }
 
+  // Returns the error the workflow saw, for tests that compare refusals.
   async function expectRefused(
     args: JSONObject,
     reason: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const sendMail: ReturnType<typeof jest.fn> = mockSendMail();
     const fixture: OptionsFixture = makeOptions();
 
@@ -334,6 +335,8 @@ describe("Email workflow component egress guard", () => {
     expect(fixture.onError).not.toHaveBeenCalled();
     expect(createTransportMock).not.toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
+
+    return String(result.returnValues["error"]);
   }
 
   async function expectSent(args: JSONObject): Promise<SMTPTransport.Options> {
@@ -372,13 +375,15 @@ describe("Email workflow component egress guard", () => {
       },
     );
 
-    test("refuses a hostname that resolves to a private address", async () => {
+    test("refuses a hostname that resolves to a private address without saying where it points", async () => {
       lookupSpy.mockResolvedValue([{ address: "10.20.30.40", family: 4 }]);
 
-      await expectRefused(
+      const error: string = await expectRefused(
         { "smtp-host": "smtp.internal.example" },
-        "SMTP server host smtp.internal.example resolves to 10.20.30.40, which is not allowed: private network address.",
+        "SMTP server host smtp.internal.example could not be reached.",
       );
+      expect(error).not.toContain("10.20.30.40");
+      expect(error).not.toContain("private network");
       expect(lookupSpy).toHaveBeenCalledWith("smtp.internal.example", {
         all: true,
       });
@@ -390,10 +395,52 @@ describe("Email workflow component egress guard", () => {
         { address: "192.168.0.5", family: 4 },
       ]);
 
-      await expectRefused(
+      const error: string = await expectRefused(
         { "smtp-host": "smtp.mixed.example" },
-        "resolves to 192.168.0.5",
+        "SMTP server host smtp.mixed.example could not be reached.",
       );
+      expect(error).not.toContain("192.168.0.5");
+    });
+
+    /*
+     * The error lands in the workflow log, which every member who can read
+     * the workflow sees. If "no such name" and "that name is internal" read
+     * differently there, the SMTP host field is a free DNS oracle for the
+     * network the workflow worker runs in.
+     */
+    test("a missing name and an internal name produce the same error", async () => {
+      const host: string = "redis";
+
+      lookupSpy.mockRejectedValue(
+        Object.assign(new Error(`getaddrinfo ENOTFOUND ${host}`), {
+          code: "ENOTFOUND",
+        }) as never,
+      );
+      const missing: string = await expectRefused(
+        { "smtp-host": host },
+        "could not be reached",
+      );
+
+      lookupSpy.mockResolvedValue([]);
+      const empty: string = await expectRefused(
+        { "smtp-host": host },
+        "could not be reached",
+      );
+
+      lookupSpy.mockResolvedValue([{ address: "10.96.0.12", family: 4 }]);
+      const internal: string = await expectRefused(
+        { "smtp-host": host },
+        "could not be reached",
+      );
+
+      lookupSpy.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+      const loopback: string = await expectRefused(
+        { "smtp-host": host },
+        "could not be reached",
+      );
+
+      expect(missing).toBe("SMTP server host redis could not be reached.");
+      expect([empty, internal, loopback]).toEqual([missing, missing, missing]);
     });
 
     test("still sends through a public SMTP server", async () => {
@@ -470,6 +517,17 @@ describe("Email workflow component egress guard", () => {
       );
     });
 
+    test("stops saying where a refused name points once DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true", async () => {
+      process.env[BLOCK_PRIVATE_ENV] = "true";
+      lookupSpy.mockResolvedValue([{ address: "192.168.1.10", family: 4 }]);
+
+      const error: string = await expectRefused(
+        { "smtp-host": "postfix.corp.example" },
+        "SMTP server host postfix.corp.example could not be reached.",
+      );
+      expect(error).not.toContain("192.168.1.10");
+    });
+
     test.each([
       ["127.0.0.1", "loopback address"],
       ["127.1.2.3", "loopback address"],
@@ -485,10 +543,14 @@ describe("Email workflow component egress guard", () => {
       },
     );
 
-    test("still refuses a name that resolves to loopback", async () => {
+    test("still refuses a name that resolves to loopback, and says so", async () => {
       lookupSpy.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
 
-      await expectRefused({ "smtp-host": "localhost" }, "loopback address");
+      // The operator configured this network, so they get the diagnosis.
+      await expectRefused(
+        { "smtp-host": "localhost" },
+        "SMTP server host localhost resolves to 127.0.0.1, which is not allowed: loopback address.",
+      );
     });
 
     test("still refuses a name that resolves to the metadata endpoint", async () => {
@@ -563,7 +625,7 @@ describe("Email workflow component egress guard", () => {
       expect(options.host).toBe("smtp.example.com");
     });
 
-    test("routes a host that does not resolve to the Error port", async () => {
+    test("routes a host that does not resolve to the Error port, naming the resolver error on a self-hosted install", async () => {
       lookupSpy.mockRejectedValue(
         Object.assign(new Error("getaddrinfo ENOTFOUND smtp.typo.example"), {
           code: "ENOTFOUND",

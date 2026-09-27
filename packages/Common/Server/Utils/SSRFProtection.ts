@@ -1,5 +1,7 @@
 import URL from "../../Types/API/URL";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DataSourceEgressGuard from "./DataSource/EgressGuard";
+import logger from "./Logger";
 import PrivateNetworkWebhookConfig from "./PrivateNetworkWebhookConfig";
 import dns from "dns";
 import net from "net";
@@ -101,6 +103,21 @@ export interface WebhookTargetValidationOptions {
    * filing the bug this feature came from.
    */
   privateNetworkHint?: string | undefined;
+
+  /*
+   * Whether a refusal decided by DNS may say what DNS answered. "could not be
+   * resolved via DNS" next to "resolves to a private network address" tells
+   * whoever typed the URL which internal names exist, so without detail every
+   * such refusal is the one sentence "<label> could not be reached." and the
+   * precise cause goes to the debug log. Refusals of an IP literal or a
+   * well-known local name keep their detail: they only restate the URL.
+   *
+   * Undefined ⇒ DataSourceEgressGuard.shouldIncludeResolutionDetail(), the
+   * same default the egress guard uses: detail on a self-hosted install, none
+   * on SaaS or wherever the operator forced SaaS policy. A shared probe passes
+   * false whatever its deployment.
+   */
+  includeResolutionDetailInError?: boolean | undefined;
 }
 
 export interface ValidatedWebhookTargetAddress {
@@ -215,6 +232,10 @@ export default class SSRFProtection {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
     const privateNetworkHint: string =
       options?.privateNetworkHint ?? DEFAULT_PRIVATE_NETWORK_HINT;
+    const includeResolutionDetail: boolean =
+      DataSourceEgressGuard.shouldIncludeResolutionDetail(
+        options?.includeResolutionDetailInError,
+      );
 
     /*
      * URL.fromString only knows http/https/ws/wss/mongodb/mailto/tel/sms and
@@ -373,16 +394,24 @@ export default class SSRFProtection {
       let resolved: Array<{ address: string; family: number }> = [];
       try {
         resolved = await dns.promises.lookup(host, { all: true });
-      } catch {
-        throw new BadDataException(
-          `${label} hostname could not be resolved via DNS.`,
-        );
+      } catch (error) {
+        throw SSRFProtection.refuseResolvedHost({
+          label: label,
+          includeDetail: includeResolutionDetail,
+          detailedMessage: `${label} hostname could not be resolved via DNS.`,
+          cause: `${host} could not be resolved - ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        });
       }
 
       if (resolved.length === 0 && isConnectionHostname) {
-        throw new BadDataException(
-          `${label} hostname could not be resolved via DNS.`,
-        );
+        throw SSRFProtection.refuseResolvedHost({
+          label: label,
+          includeDetail: includeResolutionDetail,
+          detailedMessage: `${label} hostname could not be resolved via DNS.`,
+          cause: `${host} resolved to no addresses`,
+        });
       }
 
       const normalizedAddresses: Array<ValidatedWebhookTargetAddress> =
@@ -420,15 +449,21 @@ export default class SSRFProtection {
           SSRFProtection.classifyHostnameLiteral(address);
 
         if (tier === WebhookAddressTier.Forbidden) {
-          throw new BadDataException(
-            `${label} resolves to a private, loopback, or link-local address and is not allowed.`,
-          );
+          throw SSRFProtection.refuseResolvedHost({
+            label: label,
+            includeDetail: includeResolutionDetail,
+            detailedMessage: `${label} resolves to a private, loopback, or link-local address and is not allowed.`,
+            cause: `${host} resolved to ${address}, which is forbidden`,
+          });
         }
 
         if (tier === WebhookAddressTier.Private && !isPrivateTierAllowed) {
-          throw new BadDataException(
-            `${label} resolves to a private network address and is not allowed.${privateNetworkHint}`,
-          );
+          throw SSRFProtection.refuseResolvedHost({
+            label: label,
+            includeDetail: includeResolutionDetail,
+            detailedMessage: `${label} resolves to a private network address and is not allowed.${privateNetworkHint}`,
+            cause: `${host} resolved to ${address}, a private network address`,
+          });
         }
       }
     }
@@ -453,12 +488,37 @@ export default class SSRFProtection {
       resolvedAddressesByHostname.get(whatwgHostname);
 
     if (!addresses || addresses.length === 0) {
-      throw new BadDataException(
-        `${label} hostname could not be resolved via DNS.`,
-      );
+      throw SSRFProtection.refuseResolvedHost({
+        label: label,
+        includeDetail: includeResolutionDetail,
+        detailedMessage: `${label} hostname could not be resolved via DNS.`,
+        cause: `${whatwgHostname} resolved to no addresses`,
+      });
     }
 
     return { url: canonicalUrl, addresses: addresses };
+  }
+
+  /*
+   * The refusal for a hostname whose DNS answer decided the outcome. Without
+   * detail, a name that does not exist and a name that resolves somewhere
+   * internal produce the same sentence — that sameness is the whole point, so
+   * nothing about the cause may reach the message — and the operator learns
+   * the difference from the debug log instead.
+   */
+  private static refuseResolvedHost(data: {
+    label: string;
+    includeDetail: boolean;
+    detailedMessage: string;
+    cause: string;
+  }): BadDataException {
+    if (data.includeDetail) {
+      return new BadDataException(data.detailedMessage);
+    }
+
+    logger.debug(`SSRFProtection: ${data.cause}.`);
+
+    return new BadDataException(`${data.label} could not be reached.`);
   }
 
   /*

@@ -1,6 +1,5 @@
 import dns from "dns";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { IsBillingEnabled } from "../../../../Server/EnvironmentConfig";
 import DataSourceEgressGuard, {
   AddressVerdict,
   DEFAULT_DNS_RESOLVE_ATTEMPTS,
@@ -17,12 +16,22 @@ import EgressGuardException, {
 } from "../../../../Types/Exception/EgressGuardException";
 
 const ENV_VAR_NAME: string = "DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES";
+const BILLING_ENV_VAR_NAME: string = "BILLING_ENABLED";
 
 let savedEnvValue: string | undefined = undefined;
+let savedBillingValue: string | undefined = undefined;
 
+/*
+ * Every test starts on a self-hosted install. Both variables decide how much a
+ * refusal is allowed to say, and CI exports BILLING_ENABLED=true, so a test
+ * that inherited the environment would assert a different contract there than
+ * on a laptop. Tests about SaaS set BILLING_ENABLED themselves.
+ */
 beforeEach(() => {
   savedEnvValue = process.env[ENV_VAR_NAME];
+  savedBillingValue = process.env[BILLING_ENV_VAR_NAME];
   delete process.env[ENV_VAR_NAME];
+  delete process.env[BILLING_ENV_VAR_NAME];
 });
 
 afterEach(() => {
@@ -30,6 +39,11 @@ afterEach(() => {
     delete process.env[ENV_VAR_NAME];
   } else {
     process.env[ENV_VAR_NAME] = savedEnvValue;
+  }
+  if (savedBillingValue === undefined) {
+    delete process.env[BILLING_ENV_VAR_NAME];
+  } else {
+    process.env[BILLING_ENV_VAR_NAME] = savedBillingValue;
   }
   jest.restoreAllMocks();
 });
@@ -905,6 +919,33 @@ describe("DataSourceEgressGuard.assertHostnameAllowed - numeric hostname encodin
   }
 });
 
+describe("DataSourceEgressGuard.shouldIncludeResolutionDetail", () => {
+  test("defaults to detail on a self-hosted install", () => {
+    expect(DataSourceEgressGuard.shouldIncludeResolutionDetail()).toBe(true);
+  });
+
+  test("defaults to no detail on SaaS", () => {
+    process.env[BILLING_ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldIncludeResolutionDetail()).toBe(false);
+  });
+
+  test("defaults to no detail once an operator forces SaaS policy", () => {
+    process.env[ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldIncludeResolutionDetail()).toBe(false);
+  });
+
+  test("an explicit value wins in either deployment", () => {
+    expect(DataSourceEgressGuard.shouldIncludeResolutionDetail(false)).toBe(
+      false,
+    );
+
+    process.env[BILLING_ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldIncludeResolutionDetail(true)).toBe(
+      true,
+    );
+  });
+});
+
 describe("DataSourceEgressGuard.shouldBlockPrivateAddresses", () => {
   test("returns true when DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true", () => {
     process.env[ENV_VAR_NAME] = "true";
@@ -913,16 +954,18 @@ describe("DataSourceEgressGuard.shouldBlockPrivateAddresses", () => {
 
   test("falls back to the billing flag when the env var is unset", () => {
     delete process.env[ENV_VAR_NAME];
-    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(
-      IsBillingEnabled,
-    );
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(false);
+
+    process.env[BILLING_ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(true);
   });
 
   test("treats any value other than 'true' as unset", () => {
     process.env[ENV_VAR_NAME] = "false";
-    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(
-      IsBillingEnabled,
-    );
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(false);
+
+    process.env[BILLING_ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(true);
   });
 
   test("checkAddress derives the policy from the env var when options omit the flag", () => {
@@ -1174,7 +1217,7 @@ describe("DataSourceEgressGuard - typed failure reasons", () => {
   );
 
   test.each([undefined, true])(
-    "a resolver rejection is ResolutionFailed when includeResolvedAddressInError is %s",
+    "a resolver rejection is ResolutionFailed on a self-hosted install when includeResolvedAddressInError is %s",
     async (includeResolvedAddressInError: boolean | undefined) => {
       const error: Error = await captureRejection(
         DataSourceEgressGuard.assertHostnameAllowed("missing.example.com", {
@@ -1195,7 +1238,7 @@ describe("DataSourceEgressGuard - typed failure reasons", () => {
   );
 
   test.each([undefined, true])(
-    "an empty DNS answer is ResolutionFailed when includeResolvedAddressInError is %s",
+    "an empty DNS answer is ResolutionFailed on a self-hosted install when includeResolvedAddressInError is %s",
     async (includeResolvedAddressInError: boolean | undefined) => {
       const resolver: Resolver = makeResolver([]);
       const error: Error = await captureRejection(
@@ -1217,7 +1260,7 @@ describe("DataSourceEgressGuard - typed failure reasons", () => {
   );
 
   test.each([undefined, true])(
-    "a blocked resolved address is AddressBlocked when includeResolvedAddressInError is %s",
+    "a blocked resolved address is AddressBlocked on a self-hosted install when includeResolvedAddressInError is %s",
     async (includeResolvedAddressInError: boolean | undefined) => {
       const resolver: Resolver = makeResolver([
         { address: "10.23.45.67", family: 4 },
@@ -1541,6 +1584,199 @@ describe("DataSourceEgressGuard - the sanitized failure is one indistinguishable
     for (const line of loggedLines) {
       expect(line).toContain(ORACLE_HOSTNAME);
     }
+  });
+
+  /*
+   * Most callers never set includeResolvedAddressInError: the workflow Send
+   * Email step, a project's SMTP server, OAuth token URLs, LLM providers,
+   * data sources, Runbook HTTP steps. Each echoes the guard's message to
+   * project members, so on OneUptime Cloud the default itself has to be the
+   * sanitized path — a member typing `redis` or
+   * `kubernetes.default.svc.cluster.local` into any of those fields must not
+   * learn whether the name exists or what it points at.
+   */
+  describe("when the caller leaves includeResolvedAddressInError unset", () => {
+    const callerOptions: EgressGuardOptions = { targetLabel: "SMTP server" };
+
+    const resolverReturnsLoopback: EgressResolveFunction = makeResolver([
+      { address: "127.0.0.1", family: 4 },
+    ]).resolveFunction;
+
+    test.each([
+      ["on SaaS (BILLING_ENABLED=true)", BILLING_ENV_VAR_NAME],
+      [
+        "once an operator forces SaaS policy (DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true)",
+        ENV_VAR_NAME,
+      ],
+    ])(
+      "%s a DNS failure and a blocked resolution are indistinguishable",
+      async (_deployment: string, envVarName: string) => {
+        process.env[envVarName] = "true";
+
+        const errors: Array<Error> = [
+          await failWith(resolverRejects, callerOptions),
+          await failWith(resolverReturnsNothing, callerOptions),
+          await failWith(resolverReturnsPrivateAddress, callerOptions),
+          await failWith(resolverReturnsLoopback, callerOptions),
+        ];
+
+        const expectedFingerprint: EgressFailureFingerprint = fingerprint(
+          errors[0]!,
+        );
+        expect(expectedFingerprint.message).toBe(
+          `SMTP server host ${ORACLE_HOSTNAME} could not be reached.`,
+        );
+        expect(expectedFingerprint.reason).toBe(
+          EgressFailureReason.Unreachable,
+        );
+
+        for (const error of errors) {
+          expect(fingerprint(error)).toEqual(expectedFingerprint);
+          expect(Object.keys(error).sort()).toEqual(["_code", "reason"]);
+          expect(JSON.stringify(error)).not.toContain(SECRET_ADDRESS);
+          expect(error.message).not.toContain("127.0.0.1");
+          expect(error.message).not.toContain("ENOTFOUND");
+        }
+      },
+    );
+
+    test("on SaaS the URL entry points are sanitized too", async () => {
+      /*
+       * LLM providers, OAuth token URLs, Runbook HTTP steps and domain
+       * verification come in through the URL forms, not the hostname one.
+       */
+      process.env[BILLING_ENV_VAR_NAME] = "true";
+
+      const missingError: Error = await captureRejection(
+        DataSourceEgressGuard.assertUrlAllowedAndPin(
+          `https://${ORACLE_HOSTNAME}/v1/chat/completions`,
+          { targetLabel: "LLM provider", resolveFunction: resolverRejects },
+        ),
+      );
+      const internalError: Error = await captureRejection(
+        DataSourceEgressGuard.assertUrlAllowed(
+          `https://${ORACLE_HOSTNAME}/token`,
+          {
+            targetLabel: "LLM provider",
+            resolveFunction: resolverReturnsPrivateAddress,
+          },
+        ),
+      );
+
+      expect(fingerprint(internalError)).toEqual(fingerprint(missingError));
+      expect(missingError.message).toBe(
+        `LLM provider host ${ORACLE_HOSTNAME} could not be reached.`,
+      );
+    });
+
+    test("on SaaS a caller that loosens blockPrivateAddresses still gets no detail", async () => {
+      /*
+       * The default follows the deployment, not the per-call address policy:
+       * who typed the target is what makes the detail an oracle.
+       */
+      process.env[BILLING_ENV_VAR_NAME] = "true";
+      const loosenedOptions: EgressGuardOptions = {
+        ...callerOptions,
+        blockPrivateAddresses: false,
+      };
+
+      const missingError: Error = await failWith(
+        resolverRejects,
+        loosenedOptions,
+      );
+      const loopbackError: Error = await failWith(
+        resolverReturnsLoopback,
+        loosenedOptions,
+      );
+
+      expect(fingerprint(loopbackError)).toEqual(fingerprint(missingError));
+      expect(loopbackError.message).toBe(
+        `SMTP server host ${ORACLE_HOSTNAME} could not be reached.`,
+      );
+    });
+
+    test("on SaaS an explicit true still gets the detail", async () => {
+      process.env[BILLING_ENV_VAR_NAME] = "true";
+      const detailedOptions: EgressGuardOptions = {
+        ...callerOptions,
+        includeResolvedAddressInError: true,
+      };
+
+      const missingError: Error = await failWith(
+        resolverRejects,
+        detailedOptions,
+      );
+      const internalError: Error = await failWith(
+        resolverReturnsPrivateAddress,
+        detailedOptions,
+      );
+
+      expectEgressFailure(missingError, EgressFailureReason.ResolutionFailed);
+      expectEgressFailure(internalError, EgressFailureReason.AddressBlocked);
+      expect(internalError.message).toBe(
+        `SMTP server host ${ORACLE_HOSTNAME} resolves to ${SECRET_ADDRESS}, which is not allowed: private network address.`,
+      );
+    });
+
+    test("on SaaS a literal IP is still refused with its reason", async () => {
+      // It restates what the member typed and reveals nothing about DNS.
+      process.env[BILLING_ENV_VAR_NAME] = "true";
+
+      const error: Error = await captureRejection(
+        DataSourceEgressGuard.assertHostnameAllowed(SECRET_ADDRESS, {
+          ...callerOptions,
+        }),
+      );
+
+      expectEgressFailure(error, EgressFailureReason.AddressBlocked);
+      expect(error.message).toBe(
+        `SMTP server host ${SECRET_ADDRESS} is not allowed: private network address.`,
+      );
+    });
+
+    test("on SaaS the operator still gets the precise cause in the debug log", async () => {
+      process.env[BILLING_ENV_VAR_NAME] = "true";
+      const debugSpy: jest.SpyInstance = jest
+        .spyOn(logger, "debug")
+        .mockImplementation((): void => {
+          // Swallow the output; only the call itself is under test.
+        });
+
+      await failWith(resolverRejects, callerOptions);
+      await failWith(resolverReturnsNothing, callerOptions);
+      await failWith(resolverReturnsPrivateAddress, callerOptions);
+
+      const loggedLines: Array<string> = debugSpy.mock.calls.map(
+        (call: Array<unknown>) => {
+          return String(call[0]);
+        },
+      );
+
+      expect(loggedLines).toHaveLength(3);
+      expect(loggedLines[0]).toContain("ENOTFOUND");
+      expect(loggedLines[1]).toContain("no addresses");
+      expect(loggedLines[2]).toContain(SECRET_ADDRESS);
+      expect(loggedLines[2]).toContain("private network address");
+    });
+
+    test("a self-hosted install keeps the operator-friendly detail", async () => {
+      // Private ranges are reachable here, so loopback is the refused case.
+      const missingError: Error = await failWith(
+        resolverRejects,
+        callerOptions,
+      );
+      const loopbackError: Error = await failWith(
+        resolverReturnsLoopback,
+        callerOptions,
+      );
+
+      expect(missingError.message).toBe(
+        `Could not resolve smtp server host ${ORACLE_HOSTNAME}: getaddrinfo ENOTFOUND ${ORACLE_HOSTNAME} ${SECRET_ADDRESS}`,
+      );
+      expect(loopbackError.message).toBe(
+        `SMTP server host ${ORACLE_HOSTNAME} resolves to 127.0.0.1, which is not allowed: loopback address.`,
+      );
+    });
   });
 });
 

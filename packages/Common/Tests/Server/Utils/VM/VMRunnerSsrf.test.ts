@@ -16,6 +16,7 @@ import http from "http";
 import https from "https";
 import { AddressInfo } from "net";
 import { gzipSync } from "zlib";
+import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
 
 /*
  * Common's jsdom resolver selects Axios's browser bundle. VMRunner is a
@@ -46,6 +47,7 @@ jest.setTimeout(60000);
 interface SandboxPrivateNetworkOptions {
   allowPrivateNetworkRequests?: boolean | undefined;
   privateNetworkAccessIsAllowed?: boolean | undefined;
+  includeResolutionDetailInError?: boolean | undefined;
 }
 
 interface RunningLoopbackServer {
@@ -673,6 +675,79 @@ describe("VMRunner sandbox axios bridge — private network policy", () => {
       expect(message).toMatch(REFUSAL);
     },
   );
+});
+
+/*
+ * A script sees the guard's refusal verbatim. If "no such name" and "that name
+ * is internal" read differently, a script is a DNS oracle for the network the
+ * sandbox runs in: the API server's on SaaS, a shared probe's for the custom
+ * code monitor.
+ */
+describe("VMRunner sandbox axios bridge — DNS refusal detail", () => {
+  startEachTestOnSelfHostedEgressPolicy();
+
+  const internalNameRequest: string = `
+    try {
+      await axios.get('http://redis:6379/');
+      return 'request reached transport';
+    } catch (error) {
+      return 'request failed: ' + error.message;
+    }
+  `;
+
+  async function refusalsForMissingAndInternalName(
+    policy: SandboxPrivateNetworkOptions,
+  ): Promise<{ missing: string; internal: string }> {
+    const lookupSpy: ValidationLookupSpy = jest.spyOn(
+      dns.promises,
+      "lookup",
+    ) as unknown as ValidationLookupSpy;
+
+    lookupSpy.mockRejectedValue(new Error("getaddrinfo ENOTFOUND redis"));
+    const missing: string = await errorFromSandbox(internalNameRequest, policy);
+
+    lookupSpy.mockResolvedValue([{ address: "10.96.0.9", family: 4 }]);
+    const internal: string = await errorFromSandbox(
+      internalNameRequest,
+      policy,
+    );
+
+    return { missing, internal };
+  }
+
+  test("the probe's opt-out makes a missing and an internal name indistinguishable", async () => {
+    const { missing, internal } = await refusalsForMissingAndInternalName({
+      includeResolutionDetailInError: false,
+    });
+
+    expect(missing).toContain("Request URL could not be reached.");
+    expect(internal).toBe(missing);
+    expect(internal).not.toContain("10.96.0.9");
+  });
+
+  test("on SaaS a workflow script gets the same single refusal by default", async () => {
+    process.env["BILLING_ENABLED"] = "true";
+
+    const { missing, internal } = await refusalsForMissingAndInternalName({
+      allowPrivateNetworkRequests: true,
+    });
+
+    expect(missing).toContain("Request URL could not be reached.");
+    expect(internal).toBe(missing);
+  });
+
+  test("a self-hosted workflow script still gets the detailed refusal", async () => {
+    const { missing, internal } = await refusalsForMissingAndInternalName({
+      allowPrivateNetworkRequests: true,
+    });
+
+    expect(missing).toContain(
+      "Request URL hostname could not be resolved via DNS.",
+    );
+    expect(internal).toContain(
+      "Request URL resolves to a private network address and is not allowed.",
+    );
+  });
 });
 
 describe("VMRunner sandbox axios bridge — bounded host I/O", () => {

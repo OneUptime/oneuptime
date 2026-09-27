@@ -13,6 +13,7 @@ import DataSourceEgressGuard, {
   ResolvedAddress,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import dns from "dns";
 import net from "net";
 import nodemailer, {
@@ -284,6 +285,14 @@ function sendTestMail(
     html: "<p>Pinned</p>",
   });
 }
+
+/*
+ * The refusals asserted here name the address that was checked, which is what
+ * proves where a connection would have gone. That detail is self-hosted only
+ * (on SaaS every refusal of a name reads "could not be reached"), and CI
+ * exports BILLING_ENABLED=true, so pin the deployment.
+ */
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("project SMTP servers are dialed only at validated addresses (real nodemailer)", () => {
   let server: FakeSmtpServer | undefined;
