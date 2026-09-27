@@ -27,6 +27,21 @@ export interface EventStateAction {
 }
 
 /*
+ * A header action that is not a state change - "Declare Incident" on an
+ * alert, say. It sits in the same row as the state actions, with the same
+ * size and the neutral look, so the state action stays the one primary
+ * button. A disabled one can carry a tooltip saying why.
+ */
+export interface EventPanelAction {
+  id: string;
+  label: string;
+  icon?: IconProp | undefined;
+  onClick: () => void;
+  isDisabled?: boolean | undefined;
+  tooltip?: string | undefined;
+}
+
+/*
  * A short "label value" pair shown under the header pills, e.g.
  * { label: "Declared", value: "Sep 14, 18:01" } or
  * { label: "Monitor", value: <Link ...>checkout-api</Link> }.
@@ -56,6 +71,13 @@ export interface ComponentProps {
   durationEndsAt?: Date | undefined;
   actions: Array<EventStateAction>;
   onActionClick: (stateId: string) => void;
+  /*
+   * Non-state actions, shown after the state actions and before the "More
+   * actions" menu. They never change what that menu offers, and they are
+   * shown whatever the current state is - even when there is no state
+   * action left.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onStateSelect?: ((stateId: string) => void) | undefined;
   moreMenuTitle?: string | undefined;
   isDisabled?: boolean | undefined;
@@ -169,17 +191,27 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * On a phone the buttons grow from their own width (flex-auto), so two
+   * that do not both fit wrap onto rows of their own instead of being cut
+   * to an even share of the row and truncating their labels.
+   */
+  const actionBaseClassName: string =
+    "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+  const primaryActionClassName: string =
+    "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
+  const neutralActionClassName: string =
+    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
   ): ReactElement => {
     const isPrimary: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
-    const baseClassName: string =
-      "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
     const variantClassName: string = isPrimary
-      ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700"
-      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+      ? primaryActionClassName
+      : neutralActionClassName;
 
     return (
       <button
@@ -191,7 +223,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         onClick={() => {
           props.onActionClick(action.stateId);
         }}
-        className={`${baseClassName} ${variantClassName}`}
+        className={`${actionBaseClassName} ${variantClassName}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -201,47 +233,120 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // The action buttons + "change state" overflow menu, shared by both layouts.
-  const actionsCluster: ReactElement = (
-    <div
-      className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto"
-      role="group"
-      aria-label="Event actions"
-    >
-      {props.actions.map((action: EventStateAction) => {
-        return getActionButton(action);
-      })}
-      {props.onStateSelect && statesForMenu.length > 0 && (
-        <MoreMenu
-          text="More actions"
-          elementToBeShownInsteadOfButton={
-            <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+  const getSecondaryActionButton: (action: EventPanelAction) => ReactElement = (
+    action: EventPanelAction,
+  ): ReactElement => {
+    const translatedActionLabel: string =
+      translateString(action.label) || action.label;
+    const translatedTooltip: string | undefined = action.tooltip
+      ? translateString(action.tooltip) || action.tooltip
+      : undefined;
+    const isDisabled: boolean = Boolean(props.isDisabled || action.isDisabled);
+    /*
+     * A disabled <button> swallows the pointer, and tippy will not show a
+     * tooltip on a disabled trigger, so a disabled action with a reason hands
+     * the pointer (and keyboard focus) to a wrapper that carries the tooltip -
+     * the same arrangement as the shared Button.
+     */
+    const hasReachableTooltip: boolean =
+      isDisabled && Boolean(translatedTooltip);
+
+    const button: ReactElement = (
+      <button
+        key={action.id}
+        id={action.id}
+        type="button"
+        title={hasReachableTooltip ? undefined : translatedActionLabel}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        onClick={() => {
+          if (isDisabled) {
+            return;
           }
-          triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          isDisabled={props.isDisabled}
+
+          action.onClick();
+        }}
+        className={`${actionBaseClassName} ${neutralActionClassName}${
+          hasReachableTooltip ? " pointer-events-none w-full" : ""
+        }`}
+      >
+        {action.icon && (
+          <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+        )}
+        <span className="truncate">{translatedActionLabel}</span>
+      </button>
+    );
+
+    if (!hasReachableTooltip) {
+      return button;
+    }
+
+    return (
+      <Tooltip key={action.id} text={translatedTooltip}>
+        <span
+          className="inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
+          tabIndex={0}
+          data-testid={`${action.id}-disabled-wrapper`}
         >
-          {[
-            <MoreMenuSection
-              key="states"
-              title={props.moreMenuTitle || "Change state to"}
-            >
-              {statesForMenu.map((state: EventStateItem) => {
-                return (
-                  <MoreMenuItem
-                    key={state.id}
-                    text={state.name}
-                    onClick={() => {
-                      props.onStateSelect!(state.id);
-                    }}
-                  />
-                );
-              })}
-            </MoreMenuSection>,
-          ]}
-        </MoreMenu>
-      )}
-    </div>
-  );
+          {button}
+        </span>
+      </Tooltip>
+    );
+  };
+
+  /*
+   * The action buttons + "change state" overflow menu, shared by both
+   * layouts. `widthClassName` is where the cluster stops taking a full row
+   * of its own - the breakpoint at which its layout puts it beside the
+   * title or the pills.
+   */
+  const getActionsCluster: (widthClassName: string) => ReactElement = (
+    widthClassName: string,
+  ): ReactElement => {
+    return (
+      <div
+        className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}
+        role="group"
+        aria-label="Event actions"
+      >
+        {props.actions.map((action: EventStateAction) => {
+          return getActionButton(action);
+        })}
+        {(props.secondaryActions || []).map((action: EventPanelAction) => {
+          return getSecondaryActionButton(action);
+        })}
+        {props.onStateSelect && statesForMenu.length > 0 && (
+          <MoreMenu
+            text="More actions"
+            elementToBeShownInsteadOfButton={
+              <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+            }
+            triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            isDisabled={props.isDisabled}
+          >
+            {[
+              <MoreMenuSection
+                key="states"
+                title={props.moreMenuTitle || "Change state to"}
+              >
+                {statesForMenu.map((state: EventStateItem) => {
+                  return (
+                    <MoreMenuItem
+                      key={state.id}
+                      text={state.name}
+                      onClick={() => {
+                        props.onStateSelect!(state.id);
+                      }}
+                    />
+                  );
+                })}
+              </MoreMenuSection>,
+            ]}
+          </MoreMenu>
+        )}
+      </div>
+    );
+  };
 
   // The state / severity / private / duration pills, shared by both layouts.
   const metaItems: ReactElement = (
@@ -307,9 +412,15 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       {props.title ? (
-        /* Header layout: eyebrow number + prominent title, pills on the row below. */
+        /*
+         * Header layout: eyebrow number + prominent title, pills on the row
+         * below. The actions sit beside the title only from xl: next to a
+         * side menu, a narrower header squeezed the title down to a few
+         * characters and stacked the actions one per row. Beside it, the
+         * actions keep their width and a long title truncates instead.
+         */
         <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               {props.identifier && (
                 <span
@@ -325,7 +436,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 </h2>
               </Tooltip>
             </div>
-            {actionsCluster}
+            {getActionsCluster("xl:w-auto xl:shrink-0")}
           </div>
           {hasMeta && (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -378,7 +489,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             )}
             {metaItems}
           </div>
-          {actionsCluster}
+          {getActionsCluster("md:w-auto")}
         </div>
       )}
       {props.states.length > 1 && (

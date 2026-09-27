@@ -393,17 +393,34 @@ describe("the pages that mount the table", () => {
     expect(items).not.toContain("buildInventoryScopeQuery");
   });
 
-  test("the Overview folds one snapshot into both the tiles and the breakdown", () => {
+  test("the Overview renders one server snapshot into both the tiles and the breakdown", () => {
     /*
-     * Two fetches would let the strip and the breakdown be snapshots of
-     * different instants, and a per-tile count endpoint cannot express
-     * staleness at all.
+     * Two requests would let the strip and the breakdown be snapshots of
+     * different instants. Both come from one grouped count on the server.
      */
     const overview: string = readPage("Overview.tsx");
 
-    expect(overview).toContain("summarizeInventory");
-    expect(overview).toContain("buildInventoryBreakdown");
-    expect((overview.match(/ModelAPI\.getList/g) || []).length).toBe(1);
+    expect(overview).toContain(
+      "const overview: InventoryOverviewData = await fetchInventoryOverview();",
+    );
+    expect(overview).toContain("setCounts(overview.counts);");
+    expect(overview).toContain(
+      "setBreakdown(buildInventoryBreakdown(overview.countsByType));",
+    );
+    expect(overview).toContain("setRecent(overview.recentlyAdded);");
+  });
+
+  test("the Overview never counts a capped row list in the browser", () => {
+    /*
+     * It used to fetch up to LIMIT_PER_PROJECT rows and fold them here, and
+     * past that cap every number on the page described only part of the
+     * estate.
+     */
+    const overview: string = readPage("Overview.tsx");
+
+    expect(overview).not.toContain("ModelAPI");
+    expect(overview).not.toContain("LIMIT_PER_PROJECT");
+    expect(overview).not.toContain("summarizeInventory");
   });
 
   test("the Overview offers a way forward when the estate is empty", () => {

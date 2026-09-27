@@ -87,9 +87,20 @@ const FOREIGN_KEY_COLUMNS: Array<Array<string>> = [
   ["deletedByUserId"],
 ];
 
-type DeclaredIndexColumnsFunction = (
-  modelType: ModelClass,
-) => Array<Array<string>>;
+interface DeclaredIndex {
+  columns: Array<string>;
+  /*
+   * The name the model pins with `@Index("NAME", [...])`, when it pins one.
+   *
+   * Only TypeORM's derived names contain the table name and so had to be
+   * renamed. A pinned name reads the same before and after the rename, so the
+   * rename has nothing to do for it - and must not claim to, or it would try
+   * to rename a name that never existed.
+   */
+  name: string | undefined;
+}
+
+type DeclaredIndexesFunction = (modelType: ModelClass) => Array<DeclaredIndex>;
 
 /*
  * The indexes a model actually declares, read out of TypeORM's decorator
@@ -97,19 +108,19 @@ type DeclaredIndexColumnsFunction = (
  * `@Index([...])` carries its columns; a column-level `@Index()` records the
  * property it decorates instead.
  */
-const getDeclaredIndexColumns: DeclaredIndexColumnsFunction = (
+const getDeclaredIndexes: DeclaredIndexesFunction = (
   modelType: ModelClass,
-): Array<Array<string>> => {
+): Array<DeclaredIndex> => {
   return getMetadataArgsStorage()
     .indices.filter((index: IndexMetadataArgs): boolean => {
       return index.target === modelType;
     })
-    .map((index: IndexMetadataArgs): Array<string> => {
-      if (Array.isArray(index.columns)) {
-        return index.columns as Array<string>;
-      }
+    .map((index: IndexMetadataArgs): DeclaredIndex => {
+      const columns: Array<string> = Array.isArray(index.columns)
+        ? (index.columns as Array<string>)
+        : [String((index as { propertyName?: string }).propertyName)];
 
-      return [String((index as { propertyName?: string }).propertyName)];
+      return { columns: columns, name: index.name };
     });
 };
 
@@ -145,9 +156,10 @@ const MIGRATION_TIMESTAMP: number = 1786800000000;
  * yet. Read out of the migration directory rather than hand-listed, so a
  * future migration adding an index does not require editing this test.
  */
-function getIndexesCreatedAfterTheRename(): Set<string> {
+/** The source of every migration that runs after the rename. */
+function getMigrationSourcesAfterTheRename(): Array<string> {
   const directory: string = path.dirname(MIGRATION_PATH);
-  const created: Set<string> = new Set<string>();
+  const sources: Array<string> = [];
 
   for (const file of fs.readdirSync(directory)) {
     const timestamp: number = Number(file.split("-")[0]);
@@ -156,11 +168,27 @@ function getIndexesCreatedAfterTheRename(): Set<string> {
       continue;
     }
 
-    const source: string = fs.readFileSync(path.join(directory, file), "utf8");
+    sources.push(fs.readFileSync(path.join(directory, file), "utf8"));
+  }
 
+  return sources;
+}
+
+const MIGRATIONS_AFTER_THE_RENAME: Array<string> =
+  getMigrationSourcesAfterTheRename();
+
+function getIndexesCreatedAfterTheRename(): Set<string> {
+  const created: Set<string> = new Set<string>();
+
+  for (const source of MIGRATIONS_AFTER_THE_RENAME) {
     for (const table of ["InventoryItem", "InventoryItemRelationship"]) {
+      /*
+       * `IF NOT EXISTS` is allowed for: a migration that has to be safe to
+       * re-run still creates the index, and skipping it here would demand a
+       * rename pair for an index that did not exist when the rename ran.
+       */
       const pattern: RegExp = new RegExp(
-        `CREATE (?:UNIQUE )?INDEX "(IDX_[a-f0-9]+)" ON "${table}"`,
+        `CREATE (?:UNIQUE )?INDEX (?:IF NOT EXISTS )?"(IDX_[a-f0-9]+)" ON "${table}"`,
         "g",
       );
 
@@ -177,6 +205,23 @@ function getIndexesCreatedAfterTheRename(): Set<string> {
 }
 
 const INDEXES_ADDED_LATER: Set<string> = getIndexesCreatedAfterTheRename();
+
+type PinnedIndexCreatedFunction = (indexName: string) => boolean;
+
+/*
+ * Whether some migration after the rename creates the index a model pins by
+ * name. Matched by the name appearing anywhere in that migration rather than
+ * by a CREATE INDEX pattern: a pinned name is normally held in an exported
+ * constant and interpolated into the statement, so the statement itself
+ * carries `${THE_CONSTANT}` and only the declaration carries the literal.
+ */
+const isPinnedIndexCreatedAfterTheRename: PinnedIndexCreatedFunction = (
+  indexName: string,
+): boolean => {
+  return MIGRATIONS_AFTER_THE_RENAME.some((source: string): boolean => {
+    return source.includes(indexName);
+  });
+};
 
 type PairMapFunction = (prefix: string) => Map<string, string>;
 
@@ -228,15 +273,34 @@ describe("the data survives", () => {
 
 describe("index names match TypeORM's naming strategy", () => {
   for (const table of TABLES) {
-    const declared: Array<Array<string>> = getDeclaredIndexColumns(
-      table.modelType,
-    );
+    const declared: Array<DeclaredIndex> = getDeclaredIndexes(table.modelType);
 
     test(`${table.newTable} declares indexes to rename`, () => {
       expect(declared.length).toBeGreaterThan(0);
     });
 
-    for (const columns of declared) {
+    for (const index of declared) {
+      const columns: Array<string> = index.columns;
+      const pinnedName: string | undefined = index.name;
+
+      if (pinnedName) {
+        /*
+         * A pinned name carries no table name, so the rename had nothing to
+         * change and must not claim otherwise. What still has to hold is that
+         * a migration creates it - otherwise the model declares an index that
+         * only ever exists on a schema the builder synchronizes, and these are
+         * declared `synchronize: false` precisely so it does not.
+         */
+        test(`${table.newTable} (${columns.join(", ")}) is pinned by name, so the rename leaves it alone`, () => {
+          const indexPairs: Map<string, string> = pairsWithPrefix("IDX_");
+
+          expect(indexPairs.has(pinnedName)).toBe(false);
+          expect(Array.from(indexPairs.values())).not.toContain(pinnedName);
+          expect(isPinnedIndexCreatedAfterTheRename(pinnedName)).toBe(true);
+        });
+        continue;
+      }
+
       const oldName: string = namingStrategy.indexName(table.oldTable, columns);
       const newName: string = namingStrategy.indexName(table.newTable, columns);
 
@@ -263,16 +327,21 @@ describe("index names match TypeORM's naming strategy", () => {
     const expected: Set<string> = new Set<string>();
 
     for (const table of TABLES) {
-      for (const columns of getDeclaredIndexColumns(table.modelType)) {
+      for (const index of getDeclaredIndexes(table.modelType)) {
+        if (index.name) {
+          // Pinned name: table-independent, so the rename never touched it.
+          continue;
+        }
+
         if (
           INDEXES_ADDED_LATER.has(
-            namingStrategy.indexName(table.newTable, columns),
+            namingStrategy.indexName(table.newTable, index.columns),
           )
         ) {
           continue;
         }
 
-        expected.add(namingStrategy.indexName(table.oldTable, columns));
+        expected.add(namingStrategy.indexName(table.oldTable, index.columns));
       }
     }
 

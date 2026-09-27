@@ -3,7 +3,6 @@ import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
-import MonitorService from "../../../Server/Services/MonitorService";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import AlertWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Alert";
 import IncidentWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
@@ -26,6 +25,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * The same markdown is posted to Slack and Teams, and the feed renders it
  * without safe mode, so a hostile SLO name is checked end to end here too.
+ *
+ * The feed builders read those relations themselves, one per query, through
+ * LinkedAffectedResources; the fixtures below answer each of those reads the
+ * way the database would. Every other relation the section now lists is
+ * covered in LinkedAffectedResourcesCreatedFeed.test.ts.
  */
 
 const DASHBOARD: string = "https://oneuptime.example/dashboard";
@@ -52,8 +56,40 @@ type OnCreateSuccessFunction = (
   createdItem: Incident,
 ) => Promise<Incident>;
 
+/*
+ * Answers the feed builder's per-relation reads from `record`: one row
+ * carrying only the relation that was selected, as the database would.
+ */
+function answerRelationReads(
+  service: { findAllBy: unknown },
+  record: Incident | Alert,
+): jest.SpyInstance {
+  return jest
+    .spyOn(service as typeof IncidentService, "findAllBy")
+    .mockImplementation((async (findAllBy: {
+      select: JSONObject;
+    }): Promise<Array<JSONObject>> => {
+      const row: JSONObject = {
+        _id: record._id!,
+        projectId: record.projectId as unknown as JSONObject,
+      };
+
+      for (const column of Object.keys(findAllBy.select)) {
+        if (column !== "_id" && column !== "projectId") {
+          row[column] = (record as unknown as JSONObject)[column]!;
+        }
+      }
+
+      return [row];
+    }) as never);
+}
+
+let incidentRelationReads: jest.SpyInstance | undefined;
+
 // The feed writers are private; they are reached the way the create hooks reach them.
 function createIncidentFeed(incident: Incident): Promise<void> {
+  incidentRelationReads = answerRelationReads(IncidentService, incident);
+
   return (
     IncidentService as unknown as {
       createIncidentFeedAsync: CreateIncidentFeedAsyncFunction;
@@ -97,6 +133,8 @@ function buildMonitor(id: string, name: string): Monitor {
   const monitor: Monitor = new Monitor();
   monitor._id = id;
   monitor.name = name;
+  // The relation reads select it; a monitor of no known project is not named.
+  monitor.projectId = PROJECT_ID;
   return monitor;
 }
 
@@ -163,7 +201,6 @@ function resourcesAffectedLines(markdown: string): Array<string> | null {
 
 let incidentFeedItem: jest.SpyInstance;
 let alertFeedItem: jest.SpyInstance;
-let dashboardUrlLookup: jest.SpyInstance;
 
 function postedMarkdown(spy: jest.SpyInstance): string {
   expect(spy).toHaveBeenCalledTimes(1);
@@ -177,21 +214,11 @@ beforeEach(() => {
    * A fresh URL per call: URL.addRoute mutates, so a shared instance would
    * hide a builder that forgot to copy it.
    */
-  dashboardUrlLookup = jest
+  jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockImplementation(async (): Promise<URL> => {
       return URL.fromString(DASHBOARD);
     });
-
-  jest
-    .spyOn(MonitorService, "getMonitorLinkInDashboard")
-    .mockImplementation(
-      async (projectId: ObjectID, monitorId: ObjectID): Promise<URL> => {
-        return URL.fromString(
-          `${DASHBOARD}/${projectId.toString()}/monitors/${monitorId.toString()}`,
-        );
-      },
-    );
 
   jest
     .spyOn(IncidentWorkspaceMessages, "getIncidentCreateMessageBlocks")
@@ -246,7 +273,7 @@ describe("incident created feed item", () => {
     ]);
   });
 
-  test("a monitors-only incident reads exactly as before, without a dashboard lookup for SLOs", async () => {
+  test("a monitors-only incident reads exactly as before", async () => {
     await createIncidentFeed(
       buildIncident({ monitors: [buildMonitor(MONITOR_ID, "checkout-web")] }),
     );
@@ -254,7 +281,6 @@ describe("incident created feed item", () => {
     expect(resourcesAffectedLines(postedMarkdown(incidentFeedItem))).toEqual([
       `- [checkout-web](${monitorLink(MONITOR_ID)})`,
     ]);
-    expect(dashboardUrlLookup).not.toHaveBeenCalled();
   });
 
   test("an incident with neither monitors nor SLOs has no Resources Affected section", async () => {
@@ -328,7 +354,31 @@ describe("incident created feed item", () => {
     expect(resourcesAffectedLines(postedMarkdown(incidentFeedItem))).toBeNull();
   });
 
-  test("onCreateSuccess reads the incident's SLOs for the feed item", async () => {
+  test("reads the incident's SLOs with their project, as root", async () => {
+    await createIncidentFeed(buildIncident({}));
+
+    const sloRead: JSONObject | undefined = incidentRelationReads!.mock.calls
+      .map((call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      })
+      .find((findAllBy: JSONObject): boolean => {
+        return Boolean(
+          (findAllBy["select"] as JSONObject)["serviceLevelObjectives"],
+        );
+      });
+
+    /*
+     * projectId too: the read runs as root, and the feed names only SLOs of
+     * the record's own project.
+     */
+    expect(
+      (sloRead!["select"] as JSONObject)["serviceLevelObjectives"],
+    ).toEqual({ _id: true, name: true, projectId: true });
+    expect(sloRead!["props"]).toEqual({ isRoot: true });
+    expect((sloRead!["query"] as JSONObject)["projectId"]).toBe(PROJECT_ID);
+  });
+
+  test("onCreateSuccess leaves the relations to the feed builder's own reads", async () => {
     jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
       // no analytics in tests
     }) as never);
@@ -362,45 +412,52 @@ describe("incident created feed item", () => {
     ).select;
 
     /*
-     * projectId too: the read runs as root, and the feed names only SLOs of
-     * the record's own project.
+     * Joining every many-to-many relation into this one read would return
+     * the product of their sizes; LinkedAffectedResources reads them one at
+     * a time instead.
      */
-    expect(select["serviceLevelObjectives"]).toEqual({
-      name: true,
-      _id: true,
-      projectId: true,
-    });
-    // The monitors the section already listed are still read.
-    expect(select["monitors"]).toEqual({ name: true, _id: true });
+    expect(select["monitors"]).toBeUndefined();
+    expect(select["serviceLevelObjectives"]).toBeUndefined();
+    expect(select["projectId"]).toBe(true);
   });
 });
 
 describe("alert created feed item", () => {
+  let alertRelationReads: jest.SpyInstance;
+
   function mockAlertRow(alert: Alert): jest.SpyInstance {
+    alertRelationReads = answerRelationReads(AlertService, alert);
+
     return jest
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(alert as never);
   }
 
-  test("reads the alert's SLOs alongside its monitor", async () => {
-    const findOneById: jest.SpyInstance = mockAlertRow(buildAlert({}));
+  test("reads the alert's SLOs alongside its monitor, with their project", async () => {
+    mockAlertRow(buildAlert({}));
 
     await createAlertFeed(ALERT_ID);
 
-    const select: JSONObject = (
-      findOneById.mock.calls[0]![0] as { select: JSONObject }
-    ).select;
+    const selects: Array<JSONObject> = alertRelationReads.mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return (call[0] as { select: JSONObject }).select;
+      },
+    );
 
     /*
-     * projectId too: the read runs as root, and the feed names only SLOs of
-     * the record's own project.
+     * projectId too: the reads run as root, and the feed names only
+     * resources of the record's own project.
      */
-    expect(select["serviceLevelObjectives"]).toEqual({
-      name: true,
+    expect(selects).toContainEqual({
       _id: true,
       projectId: true,
+      serviceLevelObjectives: { _id: true, name: true, projectId: true },
     });
-    expect(select["monitor"]).toEqual({ name: true, _id: true });
+    expect(selects).toContainEqual({
+      _id: true,
+      projectId: true,
+      monitor: { _id: true, name: true, projectId: true },
+    });
   });
 
   test("a burn-rate alert with no monitor names its SLO under Resources Affected", async () => {
@@ -446,7 +503,6 @@ describe("alert created feed item", () => {
     expect(resourcesAffectedLines(postedMarkdown(alertFeedItem))).toEqual([
       `- [checkout-web](${monitorLink(MONITOR_ID)})`,
     ]);
-    expect(dashboardUrlLookup).not.toHaveBeenCalled();
   });
 
   test("an alert with neither monitor nor SLOs has no Resources Affected section", async () => {

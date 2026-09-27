@@ -102,6 +102,7 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
     },
@@ -178,6 +179,7 @@ import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendStateChangeNotifi
 
 interface IncidentServiceMock {
   findOneById: jest.Mock;
+  findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getIncidentLinkInDashboard: jest.Mock;
 }
@@ -285,8 +287,10 @@ function makeIncident(data: {
   incident.monitors = (
     data.monitorNames || ["web-server-1", "api-server-1"]
   ).map((name: string) => {
-    const monitor: Monitor = new Monitor();
+    // With an id and the project, or the affected-resource read leaves it out.
+    const monitor: Monitor = new Monitor(new ObjectID(`monitor-${name}`));
     monitor.name = name;
+    monitor.projectId = PROJECT_ID;
     return monitor;
   });
 
@@ -310,6 +314,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
   return user;
 }
 
+/*
+ * The job reads the incident's affected resources back through
+ * IncidentService.findAllBy, right after its own findOneById for the row; answer
+ * those reads with the incident that findOneById just returned.
+ */
+function answerRelationReadsWithFetchedIncident(): void {
+  incidentService.findAllBy.mockImplementation(async () => {
+    const results: Array<{ value: unknown }> =
+      incidentService.findOneById.mock.results;
+    const incident: unknown =
+      results.length > 0 ? await results[results.length - 1]!.value : null;
+
+    return incident ? [incident] : [];
+  });
+}
+
 function stubIncidents(incidents: Array<Incident>): void {
   const incidentsById: Record<string, Incident> = {};
 
@@ -320,6 +340,8 @@ function stubIncidents(incidents: Array<Incident>): void {
   incidentService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(incidentsById[args.id.toString()] || null);
   });
+
+  answerRelationReadsWithFetchedIncident();
 }
 
 interface FindOneByIdArgs {
@@ -464,10 +486,16 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
       title: true,
       description: true,
       projectId: true,
-      monitors: { name: true },
       incidentNumber: true,
       incidentNumberWithPrefix: true,
     });
+
+    /*
+     * The monitors are no longer joined here: the affected resources,
+     * monitors included, are read one relation at a time by
+     * LinkedAffectedResources.
+     */
+    expect(fetch.select["monitors"]).toBeUndefined();
 
     // The row still completes end to end off the merged fetch.
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);

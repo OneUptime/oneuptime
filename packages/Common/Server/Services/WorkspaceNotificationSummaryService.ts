@@ -18,6 +18,8 @@ import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTime
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
@@ -210,6 +212,18 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
   private static link(url: string, text: string): string {
     return `[${text}](${url})`;
+  }
+
+  /*
+   * Resource names are escaped: a host or cluster name can come from an
+   * agent rather than from someone typing it, and this text is markdown.
+   */
+  private static joinNames(names: Array<string>): string {
+    return names
+      .map((name: string): string => {
+        return escapeMarkdownInline(name);
+      })
+      .join(", ");
   }
 
   private static formatDuration(totalMinutes: number): string {
@@ -761,20 +775,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     if (
       Service.has(items, WorkspaceNotificationSummaryItem.ResourcesAffected)
     ) {
-      const names: Set<string> = new Set();
-      for (const inc of incidents) {
-        if (inc.monitors) {
-          for (const m of inc.monitors) {
-            if (m.name) {
-              names.add(m.name);
-            }
-          }
-        }
-      }
-      if (names.size > 0) {
+      // Every resource the period's incidents are linked to, not only monitors.
+      const names: Array<string> = LinkedAffectedResources.getNames({
+        resources: await LinkedAffectedResources.readForIncidents({
+          service: IncidentService,
+          projectId,
+          incidentIds: incidents.map((inc: Incident): ObjectID => {
+            return inc.id!;
+          }),
+        }),
+      });
+      if (names.length > 0) {
         blocks.push(
           Service.md(
-            `${Service.bold(`Resources Affected (${names.size}):`)}  ${Array.from(names).join(", ")}`,
+            `${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
           ),
         );
       }
@@ -1203,16 +1217,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     if (
       Service.has(items, WorkspaceNotificationSummaryItem.ResourcesAffected)
     ) {
-      const names: Set<string> = new Set();
-      for (const a of alerts) {
-        if (a.monitor?.name) {
-          names.add(a.monitor.name);
-        }
-      }
-      if (names.size > 0) {
+      // Every resource the period's alerts are linked to, not only monitors.
+      const names: Array<string> = LinkedAffectedResources.getNames({
+        resources: await LinkedAffectedResources.readForAlerts({
+          service: AlertService,
+          projectId,
+          alertIds: alerts.map((a: Alert): ObjectID => {
+            return a.id!;
+          }),
+        }),
+      });
+      if (names.length > 0) {
         blocks.push(
           Service.md(
-            `${Service.bold(`Resources Affected (${names.size}):`)}  ${Array.from(names).join(", ")}`,
+            `${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
           ),
         );
       }

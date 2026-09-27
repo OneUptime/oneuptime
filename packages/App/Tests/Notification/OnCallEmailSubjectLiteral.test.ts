@@ -200,6 +200,9 @@ beforeEach(() => {
   // An episode with no members yet, so no member resources are looked up.
   jest.spyOn(IncidentEpisodeMemberService, "findBy").mockResolvedValue([]);
   jest.spyOn(AlertEpisodeMemberService, "findBy").mockResolvedValue([]);
+  // Nothing linked: the Resources Affected row is covered in OnCallEmailResourcesAffected.
+  jest.spyOn(IncidentService, "findAllBy").mockResolvedValue([]);
+  jest.spyOn(AlertService, "findAllBy").mockResolvedValue([]);
 });
 
 afterEach(() => {

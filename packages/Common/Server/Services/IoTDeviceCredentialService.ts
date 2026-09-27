@@ -204,13 +204,22 @@ export class Service extends DatabaseService<Model> {
       return cached;
     }
 
-    let idObject: ObjectID;
-    try {
-      idObject = new ObjectID(credentialId);
-    } catch {
+    /*
+     * Validated rather than caught. ObjectID's constructor stores whatever
+     * string it is handed and never throws, so the try/catch this replaced
+     * caught nothing: a malformed id reached Postgres as an invalid uuid
+     * literal, which errors on every attempt AND skipped the negative cache
+     * below, because the row was never absent - the query failed. credentialId
+     * is an MQTT username, so it is attacker-controlled, and that made the
+     * negative cache bypassable with random garbage. Same guard, and the same
+     * reason for it, as ProjectAuthorization's API-key check.
+     */
+    if (!ObjectID.isValidUUID(credentialId)) {
       this.contextCache.set(credentialId, null, NEGATIVE_TTL_MS);
       return null;
     }
+
+    const idObject: ObjectID = new ObjectID(credentialId);
 
     const credential: Model | null = await this.findOneBy({
       query: { _id: idObject },

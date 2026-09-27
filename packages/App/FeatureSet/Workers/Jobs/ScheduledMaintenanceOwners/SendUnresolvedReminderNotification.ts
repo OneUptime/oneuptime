@@ -11,6 +11,7 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import ScheduledMaintenanceReminderRuleService from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
@@ -20,7 +21,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -62,9 +62,6 @@ RunCron(
             _id: true,
           },
           currentScheduledMaintenanceState: {
-            name: true,
-          },
-          monitors: {
             name: true,
           },
           scheduledMaintenanceNumber: true,
@@ -233,12 +230,15 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         ),
       );
 
-    const resourcesAffected: string =
-      scheduledMaintenance
-        .monitors!.map((monitor: Monitor) => {
-          return monitor.name!;
-        })
-        .join(", ") || "";
+    // Every resource the event's Affected Resources card lists.
+    const resourcesAffected: string = LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForScheduledMaintenance({
+        service: ScheduledMaintenanceService,
+        projectId: projectId,
+        scheduledMaintenanceId: scheduledMaintenanceId,
+      }),
+      fallback: "",
+    });
 
     const scheduledMaintenanceNumberStr: string =
       scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||

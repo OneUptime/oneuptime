@@ -17,7 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React, { ReactElement, ReactNode } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -318,6 +318,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import Route from "../../../Types/API/Route";
@@ -326,6 +327,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const EVENT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -1849,6 +1851,90 @@ describe.each([
   });
 });
 
+/*
+ * The Affected Resources card. CardModelDetail is stubbed, so the card's
+ * display field is read from its latest props and rendered here the way the
+ * real card renders it. AffectedResourcesDisplay is stubbed for the page too,
+ * so the element its getElement returns is re-rendered with the real
+ * display: what is asserted is what a reader of the card would see.
+ */
+interface ResourcesFormFieldProps {
+  field?: Record<string, unknown>;
+  fieldType?: FormFieldSchemaType;
+  showIf?: (values: unknown) => boolean;
+  getCustomElement?: (values: unknown, elementProps: unknown) => ReactElement;
+}
+
+interface ResourcesCardProps {
+  cardProps: { description?: string };
+  formFields: Array<ResourcesFormFieldProps>;
+  modelDetailProps: { fields: Array<DetailFieldProps> };
+}
+
+type ResourcesCardFunction = () => ResourcesCardProps;
+
+const resourcesCard: ResourcesCardFunction = (): ResourcesCardProps => {
+  return latestProps<ResourcesCardProps>("CardModelDetail:Affected Resources");
+};
+
+type ResourcesDisplayFieldFunction = () => DetailFieldProps;
+
+const resourcesDisplayField: ResourcesDisplayFieldFunction =
+  (): DetailFieldProps => {
+    const displayField: DetailFieldProps | undefined =
+      resourcesCard().modelDetailProps.fields.find(
+        (field: DetailFieldProps): boolean => {
+          return Boolean(field.getElement);
+        },
+      );
+
+    if (!displayField) {
+      throw new Error("The Affected Resources card has no display field");
+    }
+
+    return displayField;
+  };
+
+type RenderResourcesDisplayFunction = (item: Incident | Alert) => RenderResult;
+
+const renderResourcesDisplay: RenderResourcesDisplayFunction = (
+  item: Incident | Alert,
+): RenderResult => {
+  const RealAffectedResourcesDisplay: FunctionComponent<
+    Record<string, unknown>
+  > = (
+    jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesDisplay",
+    ) as { default: FunctionComponent<Record<string, unknown>> }
+  ).default;
+
+  const display: ReactElement = resourcesDisplayField().getElement!(item);
+
+  return render(
+    <RealAffectedResourcesDisplay
+      {...(display.props as Record<string, unknown>)}
+    />,
+  );
+};
+
+type NamedMonitorFunction = (name: string) => Monitor;
+
+const namedMonitor: NamedMonitorFunction = (name: string): Monitor => {
+  const monitor: Monitor = new Monitor();
+  monitor.id = new ObjectID(MONITOR_ID);
+  monitor.name = name;
+  return monitor;
+};
+
+type NamedSloFunction = (name: string) => ServiceLevelObjective;
+
+const namedSlo: NamedSloFunction = (name: string): ServiceLevelObjective => {
+  const slo: ServiceLevelObjective = new ServiceLevelObjective();
+  slo.id = new ObjectID("dddddddd-dddd-4ddd-8ddd-ddddddddddd1");
+  slo.name = name;
+  return slo;
+};
+
 describe("incident-only behaviour", () => {
   test("the header names who declared the incident once the details card has read it", async () => {
     serve(INCIDENT_CASE, {
@@ -2301,6 +2387,42 @@ describe("incident-only behaviour", () => {
       })?.value,
     ).toBe("Probe AP");
   });
+
+  /*
+   * The alert card's counterpart: Incident.monitors is ManyToMany and was
+   * always read and shown here, so the two cards agree on what an affected
+   * monitor looks like.
+   */
+  test("the Affected Resources card reads the incident's monitors and lists them under Monitors", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    expect(resourcesDisplayField().field?.["monitors"]).toEqual({
+      name: true,
+      _id: true,
+    });
+
+    const incident: Incident = new Incident();
+    incident.monitors = [namedMonitor("Developer portal")];
+
+    const view: RenderResult = renderResourcesDisplay(incident);
+    const grid: HTMLElement = within(view.container).getByTestId(
+      "affected-resources-grid",
+    );
+
+    expect(within(view.container).queryByText("No resources affected.")).toBe(
+      null,
+    );
+    expect(within(grid).getByText("Monitors")).toBeInTheDocument();
+    expect(within(grid).getByTestId("monitor-element")).toHaveTextContent(
+      "Developer portal",
+    );
+  });
 });
 
 describe("alert-only behaviour", () => {
@@ -2446,5 +2568,174 @@ describe("alert-only behaviour", () => {
         }),
       ).toEqual(["Created"]);
     }
+  });
+
+  /*
+   * An alert is raised on one monitor (Alert.monitor, singular, set when the
+   * alert is created), and the alert's "created" feed item lists that
+   * monitor under Resources Affected. The Affected Resources card used to
+   * hide monitors and never read the relation, so an alert raised on the
+   * "Developer portal" monitor said "No resources affected." right beside a
+   * feed item naming that monitor.
+   */
+  describe("the Affected Resources card", () => {
+    beforeEach(async () => {
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+    });
+
+    test("reads the alert's monitor alongside the other resources", () => {
+      const select: Record<string, unknown> =
+        resourcesDisplayField().field || {};
+
+      expect(select["monitor"]).toEqual({ name: true, _id: true });
+      expect(select).toEqual(
+        expect.objectContaining({
+          hosts: { name: true, _id: true },
+          services: { name: true, _id: true, serviceColor: true },
+          serviceLevelObjectives: { name: true, _id: true },
+        }),
+      );
+    });
+
+    test("lists the monitor an alert was raised on under Monitors, never 'No resources affected.'", () => {
+      const alert: Alert = new Alert();
+      alert.monitor = namedMonitor("Developer portal");
+
+      const view: RenderResult = renderResourcesDisplay(alert);
+
+      expect(
+        within(view.container).queryByText("No resources affected."),
+      ).toBeNull();
+
+      const grid: HTMLElement = within(view.container).getByTestId(
+        "affected-resources-grid",
+      );
+
+      expect(grid.children).toHaveLength(1);
+      expect(within(grid).getByText("Monitors")).toBeInTheDocument();
+      expect(
+        within(grid).getByTestId("affected-resource-item"),
+      ).toHaveAttribute("title", "Developer portal");
+      expect(within(grid).getByTestId("monitor-element")).toHaveTextContent(
+        "Developer portal",
+      );
+      expect(within(view.container).getByText("1 resource")).toBeVisible();
+    });
+
+    test("shows both the monitor and an SLO, the monitor first", () => {
+      const alert: Alert = new Alert();
+      alert.monitor = namedMonitor("Developer portal");
+      alert.serviceLevelObjectives = [namedSlo("Checkout availability")];
+
+      const view: RenderResult = renderResourcesDisplay(alert);
+      const grid: HTMLElement = within(view.container).getByTestId(
+        "affected-resources-grid",
+      );
+      const categories: Array<HTMLElement> = Array.from(
+        grid.children,
+      ) as Array<HTMLElement>;
+
+      expect(categories).toHaveLength(2);
+      expect(within(categories[0]!).getByText("Monitors")).toBeVisible();
+      expect(
+        within(categories[0]!).getByTestId("monitor-element"),
+      ).toHaveTextContent("Developer portal");
+      expect(within(categories[1]!).getByText("SLOs")).toBeVisible();
+      expect(
+        within(categories[1]!).getByText("Checkout availability"),
+      ).toBeVisible();
+      expect(within(view.container).getByText("2 resources")).toBeVisible();
+      expect(
+        within(view.container).getByText("across 2 categories"),
+      ).toBeVisible();
+    });
+
+    test("an alert with no monitor and nothing else is still 'No resources affected.'", () => {
+      const view: RenderResult = renderResourcesDisplay(new Alert());
+
+      expect(
+        within(view.container).getByText("No resources affected."),
+      ).toBeVisible();
+      expect(
+        within(view.container).queryByTestId("affected-resources-grid"),
+      ).toBeNull();
+      expect(within(view.container).queryByTestId("monitor-element")).toBe(
+        null,
+      );
+    });
+
+    /*
+     * The monitor is shown, never edited: ModelForm loads and saves only the
+     * fields registered here, so leaving the monitor out means saving the
+     * card can neither move the alert to another monitor nor clear it.
+     */
+    test("its edit form never loads the monitor, so saving cannot change or clear it", () => {
+      const formFields: Array<ResourcesFormFieldProps> =
+        resourcesCard().formFields;
+      const keysOf: (field: ResourcesFormFieldProps) => Array<string> = (
+        field: ResourcesFormFieldProps,
+      ): Array<string> => {
+        return Object.keys(field.field || {});
+      };
+
+      const formKeys: Array<string> = formFields.flatMap(keysOf);
+
+      expect(formKeys).not.toContain("monitor");
+      expect(formKeys).not.toContain("monitors");
+
+      const visibleFields: Array<ResourcesFormFieldProps> = formFields.filter(
+        (field: ResourcesFormFieldProps): boolean => {
+          return !field.showIf || field.showIf({});
+        },
+      );
+      const hiddenFields: Array<ResourcesFormFieldProps> = formFields.filter(
+        (field: ResourcesFormFieldProps): boolean => {
+          return Boolean(field.showIf) && !field.showIf!({});
+        },
+      );
+
+      // The one visible field is the resource picker, registered on hosts.
+      expect(visibleFields.map(keysOf)).toEqual([["hosts"]]);
+      expect(visibleFields[0]!.fieldType).toBe(
+        FormFieldSchemaType.CustomComponent,
+      );
+      // Hidden registrations so the form still loads the other relations.
+      expect(hiddenFields.flatMap(keysOf)).toEqual([
+        "kubernetesClusters",
+        "dockerHosts",
+        "podmanHosts",
+        "proxmoxClusters",
+        "vmwareVCenters",
+        "cephClusters",
+        "dockerSwarmClusters",
+        "iotFleets",
+        "databaseServers",
+        "services",
+      ]);
+
+      // The picker it renders offers no monitors to attach either.
+      render(visibleFields[0]!.getCustomElement!({}, {}));
+
+      const picker: { monitors?: unknown; resourceTypes?: Array<string> } =
+        latestProps<{ monitors?: unknown; resourceTypes?: Array<string> }>(
+          "AffectedResourcesPicker",
+        );
+
+      expect(picker.monitors).toBeUndefined();
+      expect(picker.resourceTypes).toContain("Host");
+      expect(picker.resourceTypes).not.toContain("Monitor");
+    });
+
+    test("says it covers monitors", () => {
+      expect(resourcesCard().cardProps.description).toBe(
+        "Monitors, services, infrastructure and SLOs this alert affects.",
+      );
+    });
   });
 });

@@ -25,6 +25,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
 import AffectedResourcesPicker, {
+  AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import ProjectUser from "../../Utils/ProjectUser";
@@ -47,7 +48,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
-import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import FetchTeams from "../../Components/Team/FetchTeams";
@@ -55,6 +55,22 @@ import FetchUsers from "../../Components/User/FetchUsers";
 import User from "Common/Models/DatabaseModels/User";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+
+/*
+ * Every resource type the "Resources Affected" step offers. The editor and
+ * the review step's read-only picker both take this list, so the summary
+ * names every type the editor lets the user pick.
+ */
+const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
+  "Monitor",
+  "Host",
+  "KubernetesCluster",
+  "DockerHost",
+  "PodmanHost",
+  "DatabaseServer",
+  "NetworkSite",
+  "Service",
+];
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
@@ -360,16 +376,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         networkSites={values.networkSites as Array<NetworkSite>}
                         services={values.services as Array<Service>}
-                        resourceTypes={[
-                          "Monitor",
-                          "Host",
-                          "KubernetesCluster",
-                          "DockerHost",
-                          "PodmanHost",
-                          "DatabaseServer",
-                          "NetworkSite",
-                          "Service",
-                        ]}
+                        resourceTypes={AFFECTED_RESOURCE_TYPES}
                         onChange={(payload: unknown) => {
                           /*
                            * Field.onChange below handles the split; we still
@@ -412,71 +419,29 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       });
                     }
                   },
+                  /*
+                   * The form holds bare IDs once the picker has written to
+                   * it, or {_id, name} objects from a template prefill the
+                   * user has not touched. The read-only picker takes both and
+                   * looks up any name it lacks, so the review step names
+                   * every resource the user picked instead of counting them.
+                   */
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
-                    const monitorIds: Array<ObjectID> = [];
-                    if (Array.isArray(item.monitors)) {
-                      for (const monitor of item.monitors) {
-                        if (typeof monitor === "string") {
-                          monitorIds.push(new ObjectID(monitor));
-                          continue;
-                        }
-                        if (monitor instanceof ObjectID) {
-                          monitorIds.push(monitor);
-                          continue;
-                        }
-                        if (monitor instanceof Monitor) {
-                          monitorIds.push(
-                            new ObjectID(monitor._id?.toString() || ""),
-                          );
-                          continue;
-                        }
-                        const anyMonitor: { _id?: unknown } = monitor as {
-                          _id?: unknown;
-                        };
-                        if (anyMonitor._id) {
-                          monitorIds.push(new ObjectID(String(anyMonitor._id)));
-                        }
-                      }
-                    }
-                    const hostsCount: number = Array.isArray(item.hosts)
-                      ? item.hosts.length
-                      : 0;
-                    const clustersCount: number = Array.isArray(
+                    const hasResources: boolean = [
+                      item.monitors,
+                      item.hosts,
                       item.kubernetesClusters,
-                    )
-                      ? item.kubernetesClusters.length
-                      : 0;
-                    const dockerCount: number = Array.isArray(item.dockerHosts)
-                      ? item.dockerHosts.length
-                      : 0;
-                    const podmanCount: number = Array.isArray(item.podmanHosts)
-                      ? item.podmanHosts.length
-                      : 0;
-                    const databasesCount: number = Array.isArray(
+                      item.dockerHosts,
+                      item.podmanHosts,
                       item.databaseServers,
-                    )
-                      ? item.databaseServers.length
-                      : 0;
-                    const servicesCount: number = Array.isArray(item.services)
-                      ? item.services.length
-                      : 0;
-                    const networkSitesCount: number = Array.isArray(
                       item.networkSites,
-                    )
-                      ? item.networkSites.length
-                      : 0;
-                    const totalCount: number =
-                      monitorIds.length +
-                      hostsCount +
-                      clustersCount +
-                      dockerCount +
-                      podmanCount +
-                      databasesCount +
-                      networkSitesCount +
-                      servicesCount;
-                    if (totalCount === 0) {
+                      item.services,
+                    ].some((resources: unknown): boolean => {
+                      return Array.isArray(resources) && resources.length > 0;
+                    });
+                    if (!hasResources) {
                       return (
                         <p>
                           No resources affected by this scheduled maintenance
@@ -484,58 +449,26 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         </p>
                       );
                     }
-                    const otherCounts: Array<string> = [];
-                    if (hostsCount > 0) {
-                      otherCounts.push(
-                        `${hostsCount} host${hostsCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (clustersCount > 0) {
-                      otherCounts.push(
-                        `${clustersCount} Kubernetes cluster${clustersCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (dockerCount > 0) {
-                      otherCounts.push(
-                        `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (podmanCount > 0) {
-                      otherCounts.push(
-                        `${podmanCount} Podman host${podmanCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (databasesCount > 0) {
-                      otherCounts.push(
-                        `${databasesCount} database${databasesCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (networkSitesCount > 0) {
-                      otherCounts.push(
-                        `${networkSitesCount} network site${networkSitesCount === 1 ? "" : "s"}`,
-                      );
-                    }
-                    if (servicesCount > 0) {
-                      otherCounts.push(
-                        `${servicesCount} service${servicesCount === 1 ? "" : "s"}`,
-                      );
-                    }
                     return (
-                      <div className="space-y-2">
-                        {monitorIds.length > 0 && (
-                          <div>
-                            <div className="text-xs uppercase tracking-wide text-gray-500">
-                              Monitors
-                            </div>
-                            <FetchMonitors monitorIds={monitorIds} />
-                          </div>
-                        )}
-                        {otherCounts.length > 0 && (
-                          <div className="text-sm text-gray-600">
-                            {otherCounts.join(", ")}
-                          </div>
-                        )}
-                      </div>
+                      <AffectedResourcesPicker
+                        readOnly={true}
+                        monitors={item.monitors as Array<Monitor>}
+                        hosts={item.hosts as Array<Host>}
+                        kubernetesClusters={
+                          item.kubernetesClusters as Array<KubernetesCluster>
+                        }
+                        dockerHosts={item.dockerHosts as Array<DockerHost>}
+                        podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                        databaseServers={
+                          item.databaseServers as Array<DatabaseServer>
+                        }
+                        networkSites={item.networkSites as Array<NetworkSite>}
+                        services={item.services as Array<Service>}
+                        resourceTypes={AFFECTED_RESOURCE_TYPES}
+                        onChange={() => {
+                          // Read-only: nothing to change.
+                        }}
+                      />
                     );
                   },
                 },

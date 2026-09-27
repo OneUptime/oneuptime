@@ -46,6 +46,8 @@ Archived items live under **Inventory → Archived**.
 
 Items are linked by a directed relationship graph — `runs-on`, `member-of`, `hosted-on`, `part-of`, `instance-of`, `depends-on` — built from telemetry as it is observed. **Inventory → Topology Map** draws it.
 
+An item's **Connections** tab lists its immediate neighbours in both directions, grouped into **Calls**, **Called by**, **Runs on**, and **Related**. Each group shows its total (an item with more than 100,000 connections shows "100,000+"), and **Show more** pages through the rest, so a busy cluster, namespace, or node shows every connection rather than a truncated list. The tab is not limited to a time range: it includes relationships you drew by hand and neighbours that have been archived. A neighbour that is no longer in the inventory is shown by its key.
+
 ## What You Can Do With an Item
 
 Open any item for its overview, its observed attributes, its connections, and its custom fields. Where the item corresponds to a richer record — a service, host, or Kubernetes cluster — its logs, traces, metrics, profiles, exceptions, incidents, alerts, and scheduled maintenance are on the same page.

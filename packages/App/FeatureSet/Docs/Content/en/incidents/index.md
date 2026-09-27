@@ -14,7 +14,7 @@ You can declare an incident by hand at 3am, or let a monitor declare it for you 
 - **Four ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, or `POST /api/incident`.
 - **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
-- **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from a selection of alerts. See [Linked Alerts](/docs/incidents/linked-alerts).
+- **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
 
 ## Key terms
@@ -83,7 +83,7 @@ Edit or add severities at **Incidents → Settings → Incident Severity**.
 
 Four routes lead to the same object:
 
-- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, five steps long: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**. **Declare Incident** on a selection of alerts opens the same wizard, prefilled from the alerts, and links them to the new incident — see [Linked Alerts](/docs/incidents/linked-alerts).
+- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, five steps long: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**. **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.

@@ -354,7 +354,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       parentModelType: Alert,
       // Alert's monitor relation is M2O — query against the FK column.
       monitorQueryField: "monitorId",
-      // Monitor has its own dedicated facet above; keep it out of this one.
+      /*
+       * The Affected Resources column lists the monitor, but filtering by it
+       * stays with the Monitor facet above. That one queries monitorId
+       * directly; routing it through here would list every monitor in two
+       * chips and filter via an ID lookup capped at LIMIT_PER_PROJECT
+       * alerts, which a noisy monitor can pass.
+       */
       excludeMonitor: true,
       // Burn rate alerts are linked to the SLO that raised them.
       includeServiceLevelObjective: true,
@@ -928,6 +934,20 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              /*
+               * The monitor the alert was raised on, listed first like on the
+               * overview's Affected Resources card. The Monitor column names
+               * it too, but left out here a monitor's alert read "No
+               * resources." in this column. Declared rather than borrowed
+               * from the Monitor column so the cell still gets it if that
+               * column is ever dropped, and as a secondary key so hosts stays
+               * the column's primary field.
+               */
+              monitor: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
             title: "Affected Resources",
             type: FieldType.EntityArray,
@@ -935,6 +955,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: Alert): ReactElement => {
               return (
                 <AffectedResourcesCell
+                  monitors={item.monitor ? [item.monitor] : []}
                   hosts={item.hosts || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}

@@ -42,6 +42,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
+import FetchAlertState from "../../Components/AlertState/FetchAlertState";
 
 const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [initialValuesForAlert, setInitialValuesForAlert] =
@@ -210,7 +211,13 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return <p>Will use first available state by priority</p>;
                   }
 
-                  return <p>Initial state will be set to selected state</p>;
+                  return (
+                    <FetchAlertState
+                      alertStateId={
+                        new ObjectID(item.currentAlertState.toString())
+                      }
+                    />
+                  );
                 },
               },
               {

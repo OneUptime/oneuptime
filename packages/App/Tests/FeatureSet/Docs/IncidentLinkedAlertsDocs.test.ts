@@ -12,6 +12,8 @@ import DocsNav, {
 } from "../../../FeatureSet/Docs/Utils/Nav";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
+import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -19,11 +21,16 @@ import Project from "Common/Models/DatabaseModels/Project";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { UniqueColumnsTogetherMetadata } from "Common/Types/Database/UniqueColumnsTogether";
 import {
+  INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
+import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
 import {
   FEED_OPTIONS_TEXT,
   getFeedEventTypeLabel,
@@ -80,6 +87,154 @@ const INCIDENT_ALERT_SERVICE_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Services/IncidentAlertService.ts",
 );
+
+// "Declare Incident" in the alert header, next to the alert's state buttons.
+const ALERT_CHANGE_STATE_FILE: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Components/Alert/ChangeState.tsx",
+);
+const DECLARE_FROM_ALERT_FILE: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Components/Alert/DeclareIncidentFromAlert.ts",
+);
+
+// The create page's "acknowledge the alerts" box and the words around it.
+const CREATE_INCIDENT_PAGE_FILE: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Pages/Incidents/Create.tsx",
+);
+const ACKNOWLEDGE_ON_DECLARE_FILE: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src/Components/Incident/AcknowledgeAlertsOnDeclare.ts",
+);
+
+// Declares an incident: carries the checked alerts to acknowledge to the acknowledgement.
+const INCIDENT_SERVICE_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/Server/Services/IncidentService.ts",
+);
+// The miscDataProps keys and the API contract they document.
+const INCIDENT_ALERT_LINK_TYPES_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/Types/Incident/IncidentAlertLink.ts",
+);
+// The dashboard's shared Link, which the create page's incident links use.
+const LINK_COMPONENT_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/UI/Components/Link/Link.tsx",
+);
+
+const DECLARING_FROM_ALERTS_HEADING: string =
+  "Declaring an incident from alerts";
+const ACKNOWLEDGING_HEADING: string = "Acknowledging the alerts as you declare";
+const DECLARING_THROUGH_API_HEADING: string = "Declaring through the API";
+const LINKED_ALERT_SWITCHES_HEADING: string =
+  "Keeping alert states in step with the incident";
+
+// The alert and incident used in the page's examples.
+const EXAMPLE_INCIDENT_NUMBER: string = "INC-42";
+const EXAMPLE_ALERT_COUNT: number = 3;
+
+// How each language says the acknowledge box starts ticked.
+const TICKED_BY_DEFAULT: Record<string, string> = {
+  en: "ticked by default",
+  fa: "به‌طور پیش‌فرض روشن",
+};
+
+// How each language refers to an alert episode.
+const EPISODE_WORD: Record<string, string> = {
+  en: "episode",
+  fa: "اپیزود",
+};
+
+// How each language says pages already sent are not taken back.
+const NOT_RECALLED: Record<string, string> = {
+  en: "Pages that already went out are not recalled.",
+  fa: "فراخوان‌هایی که از پیش فرستاده شده‌اند پس گرفته نمی‌شوند.",
+};
+
+/*
+ * Acknowledging needs permission only on the alerts it will write: those
+ * not acknowledged yet. How each language says so, and the wording it
+ * replaced ("every one of the alerts").
+ */
+const NOT_ACKNOWLEDGED_YET: Record<string, string> = {
+  en: "not acknowledged yet",
+  fa: "هنوز تصدیق نشده",
+};
+const ALREADY_ACKNOWLEDGED_NEED_NO_PERMISSION: Record<string, string> = {
+  en: "Alerts that are already acknowledged or resolved need no permission and never block the declaration.",
+  fa: "هشدارهایی که از پیش تصدیق یا برطرف شده‌اند به هیچ مجوزی نیاز ندارند و هرگز جلوی اعلام را نمی‌گیرند.",
+};
+const EVERY_ALERT_CHECKED: Record<string, ReadonlyArray<string>> = {
+  en: ["every one of the alerts", "every one of them"],
+  fa: ["تک‌تک"],
+};
+
+// How each language says the incident links on the create page open in a new tab.
+const OPENS_IN_NEW_TAB: Record<string, string> = {
+  en: "The incident links open in a new tab",
+  fa: "پیوندهای حادثه در زبانه‌ای تازه باز می‌شوند",
+};
+// The old advice for an already-linked alert, which cannot work for a lone alert.
+const RELINK_ADVICE: Record<string, string> = {
+  en: "link the alert to the existing incident",
+  fa: "هشدار را به حادثه موجود پیوند دهید",
+};
+
+/*
+ * When the linked-alert switches move the alerts instead of the box: how each
+ * language says the switch, not the declaring user, gets the credit, that the
+ * owners hear nothing, and that the switch's cause names even a private
+ * incident by its number.
+ */
+const NOT_CREDITED_TO_YOU: Record<string, string> = {
+  en: "they are not credited to you",
+  fa: "به نام شما ثبت نمی‌شوند",
+};
+const OWNERS_NOT_NOTIFIED: Record<string, string> = {
+  en: "their owners are not notified",
+  fa: "به مالکانشان اعلانی فرستاده نمی‌شود",
+};
+const NAMES_PRIVATE_INCIDENT_NUMBER: Record<string, string> = {
+  en: "names the incident by its number even when it is private",
+  fa: "حادثه را حتی وقتی خصوصی است با شماره‌اش نام می‌برد",
+};
+
+// How each language says the acknowledgements are written a few at a time, given how many at once.
+const A_FEW_AT_A_TIME: Record<string, (atOnce: number) => string> = {
+  en: (atOnce: number): string => {
+    return `in the background, just after they are linked, a few at a time — up to ${atOnce} at once`;
+  },
+  fa: (atOnce: number): string => {
+    return `در پس‌زمینه، درست پس از پیوند شدن، چندتا چندتا — حداکثر ${toPersianDigits(atOnce)} هشدار هم‌زمان`;
+  },
+};
+
+/*
+ * The sentences that say linking leaves an alert's state alone. Each must
+ * point at the acknowledge option, the one way declaring does change it.
+ */
+const LINKING_LEAVES_STATES_ALONE: Record<string, Array<string>> = {
+  en: [
+    "on its own it never acknowledges, resolves or silences an alert",
+    "By default, linking changes nothing about an alert's state.",
+  ],
+  fa: [
+    "به‌خودی‌خود هرگز هشداری را تصدیق، برطرف یا خاموش نمی‌کند",
+    "به‌طور پیش‌فرض، پیوند دادن هیچ‌چیز را در وضعیت هشدار تغییر نمی‌دهد.",
+  ],
+};
+
+// The old wording, from when declaring had two ways in.
+const TWO_WAYS_IN: Record<string, string> = {
+  en: "There are two ways in",
+  fa: "دو راه ورود هست",
+};
+const THREE_WAYS_IN: Record<string, string> = {
+  en: "There are three ways in:",
+  fa: "سه راه ورود هست:",
+};
 
 const INCIDENT_SIDE_MENU_FILE: string = path.join(
   REPO_ROOT,
@@ -550,6 +705,169 @@ const inPageLinks: InPageLinksFunction = (markdown: string): Array<string> => {
       return match[1] as string;
     },
   );
+};
+
+interface ProseHeading {
+  level: number;
+  text: string;
+  // Index into the page's prose lines.
+  at: number;
+}
+
+type ProseHeadingsFunction = (markdown: string) => Array<ProseHeading>;
+
+// Every H2 and H3 of a page, in order, with where it sits among the prose lines.
+const proseHeadings: ProseHeadingsFunction = (
+  markdown: string,
+): Array<ProseHeading> => {
+  const headings: Array<ProseHeading> = [];
+
+  splitMarkdown(markdown).prose.forEach((line: string, at: number): void => {
+    const match: RegExpMatchArray | null = line.match(/^(#{2,3}) (.+)$/);
+
+    if (match) {
+      headings.push({
+        level: (match[1] as string).length,
+        text: (match[2] as string).trim(),
+        at: at,
+      });
+    }
+  });
+
+  return headings;
+};
+
+type HeadingIndexFunction = (level: number, text: string) => number;
+
+// Where an English heading sits among the English page's headings: translations mirror it one for one.
+const englishHeadingIndex: HeadingIndexFunction = (
+  level: number,
+  text: string,
+): number => {
+  const index: number = proseHeadings(readPage(LINKED_ALERTS_PAGE)).findIndex(
+    (heading: ProseHeading): boolean => {
+      return heading.level === level && heading.text === text;
+    },
+  );
+
+  expect({ heading: text, found: index >= 0 }).toEqual({
+    heading: text,
+    found: true,
+  });
+
+  return index;
+};
+
+type SectionLinesFunction = (
+  markdown: string,
+  headingIndex: number,
+) => Array<string>;
+
+/*
+ * The prose lines under a heading, down to the next heading of the same or a
+ * higher level (so an H2's section includes its H3s).
+ */
+const sectionLines: SectionLinesFunction = (
+  markdown: string,
+  headingIndex: number,
+): Array<string> => {
+  const prose: Array<string> = splitMarkdown(markdown).prose;
+  const headings: Array<ProseHeading> = proseHeadings(markdown);
+  const heading: ProseHeading | undefined = headings[headingIndex];
+
+  if (!heading) {
+    throw new Error(`No heading #${headingIndex}`);
+  }
+
+  const next: ProseHeading | undefined = headings
+    .slice(headingIndex + 1)
+    .find((candidate: ProseHeading): boolean => {
+      return candidate.level <= heading.level;
+    });
+
+  return prose.slice(heading.at + 1, next ? next.at : prose.length);
+};
+
+type StringLiteralsFunction = (source: string) => Array<string>;
+
+// The double-quoted and template string literals of a source snippet, in order.
+const stringLiterals: StringLiteralsFunction = (
+  source: string,
+): Array<string> => {
+  return Array.from(source.matchAll(/"([^"\n]*)"|`([^`]*)`/g)).map(
+    (match: RegExpMatchArray): string => {
+      return (match[1] ?? match[2]) as string;
+    },
+  );
+};
+
+type SourceBetweenFunction = (
+  source: string,
+  start: string,
+  end: string,
+) => string;
+
+// The source between two markers; throws if either is missing, so a moved marker never passes vacuously.
+const sourceBetween: SourceBetweenFunction = (
+  source: string,
+  start: string,
+  end: string,
+): string => {
+  const from: number = source.indexOf(start);
+
+  if (from < 0) {
+    throw new Error(`Expected to find ${start}`);
+  }
+
+  const to: number = source.indexOf(end, from + start.length);
+
+  if (to < 0) {
+    throw new Error(`Expected to find ${end} after ${start}`);
+  }
+
+  return source.slice(from + start.length, to);
+};
+
+type RoleTitlesOfFunction = (permissions: Array<Permission>) => Array<string>;
+
+// The titles of the roles in an access list: granular permissions left out.
+const roleTitlesOf: RoleTitlesOfFunction = (
+  permissions: Array<Permission>,
+): Array<string> => {
+  const roles: Set<Permission> = new Set<Permission>(
+    PermissionHelper.getRolePermissionProps().map(
+      (props: PermissionProps): Permission => {
+        return props.permission;
+      },
+    ),
+  );
+
+  return permissions
+    .filter((permission: Permission): boolean => {
+      return roles.has(permission);
+    })
+    .map((permission: Permission): string => {
+      return PermissionHelper.getTitle(permission);
+    })
+    .sort();
+};
+
+type DeclareExampleBodyFunction = (markdown: string) => {
+  miscDataProps?: { [key: string]: unknown };
+};
+
+// The JSON body of the page's `POST /api/incident` example, parsed.
+const declareExampleBody: DeclareExampleBodyFunction = (
+  markdown: string,
+): { miscDataProps?: { [key: string]: unknown } } => {
+  const example: string =
+    splitMarkdown(markdown).codeBlocks.find((block: string): boolean => {
+      return block.includes("https://oneuptime.com/api/incident \\");
+    }) || "";
+
+  return JSON.parse(sourceBetween(example, "-d '", "'")) as {
+    miscDataProps?: { [key: string]: unknown };
+  };
 };
 
 describe("Incident Linked Alerts docs", () => {
@@ -1580,6 +1898,919 @@ describe("Incident Linked Alerts docs", () => {
             language: language,
             eventType: eventType,
             documented: true,
+          });
+        }
+      }
+    });
+  });
+
+  describe("declaring from the alert header and acknowledging the alerts", () => {
+    it("keeps the English heading sequence, level for level, in the Linked Alerts translation", () => {
+      const levels: (markdown: string) => Array<number> = (
+        markdown: string,
+      ): Array<number> => {
+        return proseHeadings(markdown).map((heading: ProseHeading): number => {
+          return heading.level;
+        });
+      };
+
+      for (const language of TRANSLATED_LANGUAGES) {
+        expect({
+          language: language,
+          levels: levels(readPage(LINKED_ALERTS_PAGE, language)),
+        }).toEqual({
+          language: language,
+          levels: levels(readPage(LINKED_ALERTS_PAGE)),
+        });
+      }
+    });
+
+    it("puts acknowledging under declaring from alerts, right before declaring through the API", () => {
+      const declaring: number = englishHeadingIndex(
+        2,
+        DECLARING_FROM_ALERTS_HEADING,
+      );
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+      const api: number = englishHeadingIndex(3, DECLARING_THROUGH_API_HEADING);
+
+      expect(acknowledging).toBeGreaterThan(declaring);
+      expect(api).toBe(acknowledging + 1);
+
+      // No other H2 in between: it is part of the declaring section.
+      expect(
+        proseHeadings(readPage(LINKED_ALERTS_PAGE))
+          .slice(declaring + 1, acknowledging)
+          .every((heading: ProseHeading): boolean => {
+            return heading.level === 3;
+          }),
+      ).toBe(true);
+    });
+
+    it("documents the alert header as one of three ways to declare, next to the header's state buttons, in every language", () => {
+      const header: string = readSource(ALERT_CHANGE_STATE_FILE);
+      const action: string = readSource(DECLARE_FROM_ALERT_FILE);
+
+      // The header's buttons, as the dashboard labels them.
+      expect(header).toMatch(
+        /getDeclareIncidentFromAlertAction\(\s*props\.alertId,?\s*\)/,
+      );
+      expect(action).toMatch(/label:\s*DECLARE_INCIDENT_ACTION_TITLE,/);
+      expect(readSource(BULK_LINK_ACTIONS_FILE)).toContain(
+        'DECLARE_INCIDENT_ACTION_TITLE: string = "Declare Incident"',
+      );
+
+      const stateButtons: Array<string> = Array.from(
+        sourceBetween(
+          header,
+          "const getActions:",
+          "const durationStartsAt:",
+        ).matchAll(/label:\s*"([^"]+)"/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect(Array.from(new Set<string>(stateButtons)).sort()).toEqual([
+        "Acknowledge",
+        "Resolve",
+      ]);
+
+      const declaring: number = englishHeadingIndex(
+        2,
+        DECLARING_FROM_ALERTS_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const section: Array<string> = sectionLines(markdown, declaring);
+        const tableAt: number = section.findIndex((line: string): boolean => {
+          return line.startsWith("|");
+        });
+        const waysIn: Array<string> = section
+          .slice(0, tableAt)
+          .filter((line: string): boolean => {
+            return line.startsWith("- ");
+          });
+
+        const headerWays: Array<string> = waysIn.filter(
+          (line: string): boolean => {
+            return stateButtons.every((label: string): boolean => {
+              return line.includes(`**${label}**`);
+            });
+          },
+        );
+
+        expect({
+          language: language,
+          introduced: section
+            .join("\n")
+            .includes(THREE_WAYS_IN[language] as string),
+          stale: markdown.includes(TWO_WAYS_IN[language] as string),
+          waysIn: waysIn.length,
+          allDeclare: waysIn.every((line: string): boolean => {
+            return line.includes("**Declare Incident**");
+          }),
+          headerWays: headerWays.length,
+          linkedIncidentsWays: waysIn.filter((line: string): boolean => {
+            return line.includes("**Linked Incidents**");
+          }).length,
+        }).toEqual({
+          language: language,
+          introduced: true,
+          stale: false,
+          waysIn: 3,
+          allDeclare: true,
+          headerWays: 1,
+          linkedIncidentsWays: 1,
+        });
+      }
+    });
+
+    it("sends acknowledgeAlertsToLink under the miscDataProps key the server reads, in a valid example, in every language", () => {
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const miscDataProps: { [key: string]: unknown } =
+          declareExampleBody(markdown).miscDataProps || {};
+
+        expect({
+          language: language,
+          alertIds: Array.isArray(
+            miscDataProps[INCIDENT_ALERT_IDS_TO_LINK_KEY],
+          ),
+          acknowledge: miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY],
+          keys: Object.keys(miscDataProps).sort(),
+          named: inlineCode(markdown).has(
+            INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+          ),
+        }).toEqual({
+          language: language,
+          alertIds: true,
+          acknowledge: true,
+          keys: [
+            INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
+            INCIDENT_ALERT_IDS_TO_LINK_KEY,
+          ].sort(),
+          named: true,
+        });
+      }
+    });
+
+    it("lists each case the server refuses acknowledgeAlertsToLink for, in every language", () => {
+      const service: string = readSource(INCIDENT_ALERT_SERVICE_FILE);
+      const validate: string = sourceBetween(
+        service,
+        "public async validateAcknowledgeAlertsForNewIncident(",
+        "public async acknowledgeAlertsDeclaredWithIncident(",
+      );
+
+      // The four refusals the page lists, in the order the server makes them.
+      const refusals: Array<RegExp> = [
+        /\$\{INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY\} must be true or false\./,
+        /\$\{INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY\} only applies when the incident is declared from alerts: send the alert ids in \$\{INCIDENT_ALERT_IDS_TO_LINK_KEY\}\./,
+        /This project has no Acknowledged alert state/,
+        /You do not have permission to acknowledge one or more of these alerts\./,
+      ];
+      const positions: Array<number> = refusals.map(
+        (refusal: RegExp): number => {
+          return validate.search(refusal);
+        },
+      );
+
+      expect(
+        positions.every((position: number): boolean => {
+          return position >= 0;
+        }),
+      ).toBe(true);
+      expect(
+        [...positions].sort((a: number, b: number): number => {
+          return a - b;
+        }),
+      ).toEqual(positions);
+
+      const permissionNames: Array<string> = [
+        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
+        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
+      ];
+
+      for (const language of ALL_LANGUAGES) {
+        const prose: Array<string> = splitMarkdown(
+          readPage(LINKED_ALERTS_PAGE, language),
+        ).prose;
+        const paragraphAt: number = prose.findIndex((line: string): boolean => {
+          return line.startsWith(
+            `\`${INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY}\``,
+          );
+        });
+        const after: Array<string> = prose.slice(paragraphAt + 1);
+        const firstBullet: number = after.findIndex((line: string): boolean => {
+          return line.startsWith("- ");
+        });
+        const cases: Array<string> = [];
+
+        for (const line of after.slice(firstBullet)) {
+          if (!line.startsWith("- ")) {
+            break;
+          }
+
+          cases.push(line);
+        }
+
+        expect({
+          language: language,
+          paragraphFound: paragraphAt >= 0,
+          // Straight after the paragraph, past one blank line.
+          listFollows: firstBullet === 1,
+          cases: cases.length,
+          notBoolean:
+            cases[0]?.includes("`true`") === true &&
+            cases[0]?.includes("`false`") === true,
+          withoutAlertIds:
+            cases[1]?.includes(`\`${INCIDENT_ALERT_IDS_TO_LINK_KEY}\``) ===
+            true,
+          noAcknowledgedState: cases[2]?.includes("Acknowledged") === true,
+          noPermission: permissionNames.every((name: string): boolean => {
+            return cases[3]?.includes(name) === true;
+          }),
+        }).toEqual({
+          language: language,
+          paragraphFound: true,
+          listFollows: true,
+          cases: refusals.length,
+          notBoolean: true,
+          withoutAlertIds: true,
+          noAcknowledgedState: true,
+          noPermission: true,
+        });
+      }
+    });
+
+    it("quotes the acknowledge box's label as the create page builds it, and says it starts ticked, in every language", () => {
+      const labels: Array<string> = stringLiterals(
+        sourceBetween(
+          readSource(ACKNOWLEDGE_ON_DECLARE_FILE),
+          "export const getAcknowledgeAlertsTitle:",
+          "export const getAcknowledgeAlertsDescription:",
+        ),
+      );
+
+      // One alert / several, each "every alert" or "only those not acknowledged yet".
+      expect(labels).toHaveLength(4);
+
+      const oneAlert: string = labels[0] as string;
+      const severalAlerts: string = (labels[2] as string).replace(
+        "${count}",
+        EXAMPLE_ALERT_COUNT.toString(),
+      );
+
+      expect(oneAlert).toBe("Acknowledge this alert to stop its escalation");
+      expect(severalAlerts).toBe(
+        `Acknowledge these ${EXAMPLE_ALERT_COUNT} alerts to stop their escalation`,
+      );
+
+      // The page shows that box, with that label, ticked until the user unticks it.
+      const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
+
+      expect(createPage).toMatch(
+        /\[shouldAcknowledgeAlerts, setShouldAcknowledgeAlerts\]\s*=\s*useState<boolean>\(true\);/,
+      );
+      expect(createPage).toMatch(
+        /dataTestId="incident-create-acknowledge-alerts-checkbox"\s*title=\{getAcknowledgeAlertsTitle\(/,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const section: string = sectionLines(
+          markdown,
+          englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
+        ).join("\n");
+
+        expect({
+          language: language,
+          oneAlert: section.includes(`**${oneAlert}**`),
+          severalAlerts: section.includes(`**${severalAlerts}**`),
+          tickedByDefault: section.includes(
+            TICKED_BY_DEFAULT[language] as string,
+          ),
+        }).toEqual({
+          language: language,
+          oneAlert: true,
+          severalAlerts: true,
+          tickedByDefault: true,
+        });
+      }
+    });
+
+    it("quotes the notes the create page shows about alerts that keep or stop paging, in every language", () => {
+      const source: string = readSource(ACKNOWLEDGE_ON_DECLARE_FILE);
+      const keepEscalating: string = stringLiterals(
+        sourceBetween(
+          source,
+          "export const getAlertsKeepEscalatingNote:",
+          "export const ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE:",
+        ),
+      )[0] as string;
+      const noOnCall: string = stringLiterals(
+        source.slice(
+          source.indexOf("export const ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE:"),
+        ),
+      )[0] as string;
+
+      expect(keepEscalating).toBe(
+        "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.",
+      );
+      /*
+       * Claims only what acknowledging does: the alerts' own escalation
+       * stops, an alert episode keeps paging, an incident on-call rule may.
+       */
+      expect(noOnCall).toBe(
+        "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.",
+      );
+
+      // Both are on the create page: the note under the box, the other on the On-Call step.
+      const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
+
+      expect(createPage).toContain("getAlertsKeepEscalatingNote(");
+      expect(createPage).toContain("${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}");
+
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const section: string = sectionLines(markdown, acknowledging).join(
+          "\n",
+        );
+
+        expect({
+          language: language,
+          keepEscalating: section.includes(keepEscalating),
+          noOnCall: section.includes(noOnCall),
+          // The note it replaced promised the alerts stop paging altogether.
+          stale: markdown.includes("so they stop paging"),
+        }).toEqual({
+          language: language,
+          keepEscalating: true,
+          noOnCall: true,
+          stale: false,
+        });
+      }
+    });
+
+    it("quotes the cause an acknowledged alert records, never naming a private incident, in every language", () => {
+      const service: string = readSource(INCIDENT_ALERT_SERVICE_FILE);
+      const causes: string = sourceBetween(
+        service,
+        "export function getDeclaredAlertAcknowledgementCause(",
+        "\n}\n",
+      );
+      const privateCause: string = stringLiterals(
+        sourceBetween(causes, "if (data.isIncidentPrivate) {", "}"),
+      )[0] as string;
+      const publicTemplate: string =
+        stringLiterals(causes).find((literal: string): boolean => {
+          return literal.includes("${withNumber(");
+        }) || "";
+
+      // "Incident INC-42": the label, a space and the number.
+      expect(service).toMatch(
+        /function withNumber\(label: string, number: string\): string \{\s*return number \? `\$\{label\} \$\{number\}` : label;\s*\}/,
+      );
+      expect(publicTemplate).toContain(
+        '${withNumber("Incident", data.incidentNumber)}',
+      );
+
+      const publicCause: string = publicTemplate.replace(
+        '${withNumber("Incident", data.incidentNumber)}',
+        `Incident ${EXAMPLE_INCIDENT_NUMBER}`,
+      );
+
+      expect(publicCause).toBe(
+        `Acknowledged because Incident ${EXAMPLE_INCIDENT_NUMBER} was declared from this alert.`,
+      );
+      expect(privateCause).toBe(
+        "Acknowledged because a private incident was declared from this alert.",
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const section: string = sectionLines(
+          readPage(LINKED_ALERTS_PAGE, language),
+          englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
+        ).join("\n");
+
+        expect({
+          language: language,
+          publicCause: section.includes(publicCause),
+          privateCause: section.includes(privateCause),
+        }).toEqual({
+          language: language,
+          publicCause: true,
+          privateCause: true,
+        });
+      }
+    });
+
+    it("names the permissions acknowledging takes, and exactly the roles that have them and that do not, in every language", () => {
+      const timelineCreators: Array<Permission> =
+        new AlertStateTimeline().getCreatePermissions();
+      const alertEditors: Array<Permission> =
+        new Alert().getUpdatePermissions();
+
+      // The granular permissions the docs name are the ones the two models grant.
+      expect(timelineCreators).toContain(Permission.CreateAlertStateTimeline);
+      expect(alertEditors).toContain(Permission.EditAlert);
+
+      // The dashboard gates the box on the same two models, in that order.
+      expect(readSource(ACKNOWLEDGE_ON_DECLARE_FILE)).toMatch(
+        /new AlertStateTimeline\(\),\s*ModelAction\.Create,[\s\S]*new Alert\(\),\s*ModelAction\.Update,/,
+      );
+
+      const acknowledgers: Array<string> = roleTitlesOf(
+        timelineCreators.filter((permission: Permission): boolean => {
+          return alertEditors.includes(permission);
+        }),
+      );
+      const linkers: Array<string> = roleTitlesOf(
+        new IncidentAlert().getCreatePermissions(),
+      );
+      const declareButCannotAcknowledge: Array<string> = linkers.filter(
+        (role: string): boolean => {
+          return !acknowledgers.includes(role);
+        },
+      );
+
+      // While some roles can declare but not acknowledge, the page has to say which.
+      expect(acknowledgers.length).toBeGreaterThan(0);
+      expect(declareButCannotAcknowledge.length).toBeGreaterThan(0);
+
+      const permissionNames: Array<string> = [
+        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
+        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
+      ];
+      const candidates: Array<string> = Array.from(
+        new Set<string>([...acknowledgers, ...linkers]),
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const roleLines: Array<string> = splitMarkdown(markdown).prose.filter(
+          (line: string): boolean => {
+            return (
+              permissionNames.every((name: string): boolean => {
+                return line.includes(name);
+              }) && permissionTitlesIn(line, candidates).length > 0
+            );
+          },
+        );
+
+        expect({
+          language: language,
+          roleLines: roleLines.length,
+          roles: permissionTitlesIn(roleLines[0] || "", candidates),
+          inAcknowledgingSection: sectionLines(
+            markdown,
+            englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
+          ).includes(roleLines[0] || ""),
+        }).toEqual({
+          language: language,
+          roleLines: 1,
+          roles: [...acknowledgers, ...declareButCannotAcknowledge].sort(),
+          inAcknowledgingSection: true,
+        });
+
+        // The permissions section and the API section name them too.
+        expect({
+          language: language,
+          mentions: splitMarkdown(markdown).prose.filter(
+            (line: string): boolean => {
+              return permissionNames.every((name: string): boolean => {
+                return line.includes(name);
+              });
+            },
+          ).length,
+        }).toEqual({ language: language, mentions: 3 });
+      }
+
+      expect(readPage(LINKED_ALERTS_PAGE)).toContain(
+        `${declareButCannotAcknowledge.join(" and ")}, who can declare incidents from alerts, have neither.`,
+      );
+    });
+
+    it("spells out what acknowledging stops and what it does not, in every language", () => {
+      const reminderRule: AlertReminderRule = new AlertReminderRule();
+      const stopWhen: string =
+        reminderRule.getTableColumnMetadata("stopRemindersOnState").title || "";
+
+      // Reminders stop on acknowledgement only when the rule says so; by default they run until resolved.
+      expect(stopWhen).toBe("Stop Reminders When");
+      expect(
+        reminderRule.getTableColumnMetadata("stopRemindersOnState")
+          .defaultValue,
+      ).toBe(ReminderStopState.Resolved);
+
+      for (const language of ALL_LANGUAGES) {
+        const section: string = sectionLines(
+          readPage(LINKED_ALERTS_PAGE, language),
+          englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
+        ).join("\n");
+
+        expect({
+          language: language,
+          reminders:
+            section.includes(`**${stopWhen}**`) &&
+            section.includes(`**${ReminderStopState.Acknowledged}**`),
+          notRecalled: section.includes(NOT_RECALLED[language] as string),
+          episode: section.includes(EPISODE_WORD[language] as string),
+          onCallStep: section.includes("**On-Call**"),
+        }).toEqual({
+          language: language,
+          reminders: true,
+          notRecalled: true,
+          episode: true,
+          onCallStep: true,
+        });
+      }
+    });
+
+    it("points at the acknowledge option wherever it says linking leaves alert states alone, in every language", () => {
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const anchor: string = slugify(
+          (proseHeadings(markdown)[acknowledging] as ProseHeading).text,
+        );
+
+        for (const sentence of LINKING_LEAVES_STATES_ALONE[
+          language
+        ] as Array<string>) {
+          const line: string =
+            markdown.split("\n").find((candidate: string): boolean => {
+              return candidate.includes(sentence);
+            }) || "";
+
+          expect({
+            language: language,
+            sentence: sentence,
+            found: line.length > 0,
+            pointsAtAcknowledging: inPageLinks(line).includes(anchor),
+          }).toEqual({
+            language: language,
+            sentence: sentence,
+            found: true,
+            pointsAtAcknowledging: true,
+          });
+        }
+      }
+    });
+
+    it("quotes each already-linked note as the create page chooses it, and says the incident links open in a new tab, in every language", () => {
+      const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
+      const chooser: string = sourceBetween(
+        createPage,
+        "const getAlreadyLinkedNote: GetAlreadyLinkedNoteFunction",
+        "type GetIncidentReferenceFunction",
+      );
+
+      // In branch order: every alert linked (one alert, then several), then only some.
+      const notes: Array<string> = stringLiterals(chooser).filter(
+        (literal: string): boolean => {
+          return literal.length > 0;
+        },
+      );
+
+      expect(notes).toEqual([
+        "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one.",
+        "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.",
+        "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.",
+      ]);
+      expect(chooser).toMatch(
+        /if \(isEveryAlertLinked\) \{\s*return alerts\.length === 1\s*\?/,
+      );
+      expect(createPage).toMatch(
+        /\{getAlreadyLinkedNote\(\s*alertsToLink,\s*incidentsLinkedToAlerts,?\s*\)\}/,
+      );
+
+      // "(already linked to Incident INC-42)": the page's wording around each incident reference.
+      expect(createPage).toMatch(/\(already linked to\{" "\}/);
+      expect(createPage).toContain(
+        "return `Incident ${incident.incidentNumberWithPrefix}`;",
+      );
+
+      // Each reference is a Link that opens in a new tab, which Link renders as target="_blank".
+      expect(
+        sourceBetween(
+          createPage,
+          'data-testid="incident-create-alert-already-linked"',
+          "</Link>",
+        ),
+      ).toMatch(
+        /<Link\s+className="font-medium underline"\s+openInNewTab=\{true\}/,
+      );
+      expect(readSource(LINK_COMPONENT_FILE)).toMatch(
+        /if \(props\.openInNewTab\) \{\s*linkProps\["target"\] = "_blank";\s*\}/,
+      );
+
+      const marker: string = `(already linked to Incident ${EXAMPLE_INCIDENT_NUMBER})`;
+      const declaring: number = englishHeadingIndex(
+        2,
+        DECLARING_FROM_ALERTS_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const section: Array<string> = sectionLines(markdown, declaring);
+        // One list item per note, in the chooser's order.
+        const noteItems: Array<number> = notes.map((note: string): number => {
+          return section.findIndex((line: string): boolean => {
+            return line.startsWith("- ") && line.includes(note);
+          });
+        });
+
+        expect({
+          language: language,
+          marker: section.join("\n").includes(marker),
+          notesListed: noteItems.every((at: number): boolean => {
+            return at >= 0;
+          }),
+          inOrder: [...noteItems].sort((a: number, b: number): number => {
+            return a - b;
+          }),
+          newTab: section
+            .join("\n")
+            .includes(OPENS_IN_NEW_TAB[language] as string),
+          staleAdvice: markdown.includes(RELINK_ADVICE[language] as string),
+        }).toEqual({
+          language: language,
+          marker: true,
+          notesListed: true,
+          inOrder: noteItems,
+          newTab: true,
+          staleAdvice: false,
+        });
+      }
+    });
+
+    it("says only the alerts not acknowledged yet need permission, and the others never block the declaration, in every language", () => {
+      const service: string = readSource(INCIDENT_ALERT_SERVICE_FILE);
+      const validate: string = sourceBetween(
+        service,
+        "public async validateAcknowledgeAlertsForNewIncident(",
+        "public async acknowledgeAlertsDeclaredWithIncident(",
+      );
+
+      // The server keeps the alerts before Acknowledged (by order), and checks only those.
+      expect(validate).toMatch(
+        /return order === undefined \|\| order < acknowledgedOrder;/,
+      );
+      expect(validate).toMatch(
+        /if \(\s*alertIdsToAcknowledge\.length > 0 &&\s*!data\.props\.isRoot &&\s*!data\.props\.isMasterAdmin\s*\)/,
+      );
+      expect(validate).toMatch(
+        /assertCanChangeStateOfAlerts\(\{\s*projectId: projectId,\s*alertIds: alertIdsToAcknowledge,/,
+      );
+      expect(validate).not.toMatch(/alertIds: data\.alertIds,\s*props:/);
+      // And only those are ever written.
+      expect(readSource(INCIDENT_SERVICE_FILE)).toMatch(
+        /acknowledgeAlertsDeclaredWithIncident\(\{\s*projectId: projectId,\s*incidentId: incidentId,\s*alertIds: alertIdsToAcknowledge,/,
+      );
+
+      const permissionNames: Array<string> = [
+        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
+        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
+      ];
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const prose: Array<string> = splitMarkdown(markdown).prose;
+        // The acknowledging section, the permissions section and the API refusals.
+        const permissionLines: Array<string> = prose.filter(
+          (line: string): boolean => {
+            return permissionNames.every((name: string): boolean => {
+              return line.includes(name);
+            });
+          },
+        );
+        const acknowledgingSection: Array<string> = sectionLines(
+          markdown,
+          acknowledging,
+        );
+
+        expect({
+          language: language,
+          permissionLines: permissionLines.length,
+          eachSaysNotYet: permissionLines.every((line: string): boolean => {
+            return line.includes(NOT_ACKNOWLEDGED_YET[language] as string);
+          }),
+          neverBlock: permissionLines.some((line: string): boolean => {
+            return (
+              acknowledgingSection.includes(line) &&
+              line.includes(
+                ALREADY_ACKNOWLEDGED_NEED_NO_PERMISSION[language] as string,
+              )
+            );
+          }),
+          staleEveryAlert: (
+            EVERY_ALERT_CHECKED[language] as ReadonlyArray<string>
+          ).filter((phrase: string): boolean => {
+            return markdown.includes(phrase);
+          }),
+        }).toEqual({
+          language: language,
+          permissionLines: 3,
+          eachSaysNotYet: true,
+          neverBlock: true,
+          staleEveryAlert: [],
+        });
+      }
+    });
+
+    it("says the linked-alert switches, not you, move alerts the incident is declared past, in every language", () => {
+      const service: string = readSource(INCIDENT_ALERT_SERVICE_FILE);
+
+      // The acknowledgement leaves to the switches the linked alerts they will move...
+      expect(
+        sourceBetween(
+          service,
+          "public async acknowledgeAlertsDeclaredWithIncident(",
+          "private async getLinkedAlertsTheSyncWillMove(",
+        ),
+      ).toMatch(
+        /if \(ownedBySync\.has\(key\)\) \{\s*result\.leftToLinkedAlertSyncAlertIds\.push\(alertId\);\s*continue;\s*\}/,
+      );
+
+      // ...which write them credited to nobody, telling no owner, naming the incident by number.
+      const switchWrite: string = sourceBetween(
+        service,
+        "private async applyLinkedAlertStatePlan(",
+        "\n  }\n",
+      );
+
+      expect(switchWrite).toMatch(
+        /await AlertService\.changeAlertState\(\{[^}]*notifyOwners: false,/,
+      );
+      expect(switchWrite).not.toContain("createdByUserId");
+      expect(switchWrite).not.toContain("isPrivate");
+      expect(switchWrite).toContain(
+        'const incidentLabel: string = withNumber("Incident", data.incidentNumber);',
+      );
+      expect(switchWrite).toMatch(
+        /`Acknowledged because linked \$\{incidentLabel\} was \$\{\s*plan\.incidentReachedResolved \? "resolved" : "acknowledged"\s*\}\.`/,
+      );
+
+      // The API contract states the same exception.
+      expect(readSource(INCIDENT_ALERT_LINK_TYPES_FILE)).toContain(
+        "not credited to the declaring user.",
+      );
+
+      const switchCause: string = `Acknowledged because linked Incident ${EXAMPLE_INCIDENT_NUMBER} was acknowledged.`;
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+      const switches: number = englishHeadingIndex(
+        2,
+        LINKED_ALERT_SWITCHES_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
+        const switchesAnchor: string = slugify(
+          (proseHeadings(markdown)[switches] as ProseHeading).text,
+        );
+        const exception: Array<string> = sectionLines(
+          markdown,
+          acknowledging,
+        ).filter((line: string): boolean => {
+          return line.includes(switchCause);
+        });
+
+        expect({
+          language: language,
+          lines: exception.length,
+          pointsAtSwitches: inPageLinks(exception[0] || "").includes(
+            switchesAnchor,
+          ),
+          notCredited: (exception[0] || "").includes(
+            NOT_CREDITED_TO_YOU[language] as string,
+          ),
+          ownersNotNotified: (exception[0] || "").includes(
+            OWNERS_NOT_NOTIFIED[language] as string,
+          ),
+          privateNumber: (exception[0] || "").includes(
+            NAMES_PRIVATE_INCIDENT_NUMBER[language] as string,
+          ),
+        }).toEqual({
+          language: language,
+          lines: 1,
+          pointsAtSwitches: true,
+          notCredited: true,
+          ownersNotNotified: true,
+          privateNumber: true,
+        });
+      }
+    });
+
+    it("says the alerts are acknowledged in the background a few at a time, as many at once as the server writes, in every language", () => {
+      const service: string = readSource(INCIDENT_ALERT_SERVICE_FILE);
+      const atOnce: number = Number(
+        service.match(
+          /const DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY: number = (\d+);/,
+        )?.[1],
+      );
+
+      // A few: more than one at a time, fewer than a full selection.
+      expect(atOnce).toBeGreaterThan(1);
+      expect(atOnce).toBeLessThan(MAX_ALERTS_PER_INCIDENT_LINK_ACTION);
+
+      // Each batch is written together, and the next waits for it.
+      expect(
+        sourceBetween(
+          service,
+          "public async acknowledgeAlertsDeclaredWithIncident(",
+          "private async getLinkedAlertsTheSyncWillMove(",
+        ),
+      ).toMatch(
+        /const batch: Array<ObjectID> = alertIdsToWrite\.slice\(\s*index,\s*index \+ DECLARED_ALERT_ACKNOWLEDGE_CONCURRENCY,?\s*\);\s*const outcomes: Array<string \| null> = await Promise\.all\(/,
+      );
+
+      // In the background: the declaration does not wait for it.
+      const incidentService: string = readSource(INCIDENT_SERVICE_FILE);
+
+      expect(incidentService).toMatch(
+        /\n\s*IncidentAlertService\.acknowledgeAlertsDeclaredWithIncident\(\{/,
+      );
+      expect(incidentService).not.toMatch(
+        /await\s+IncidentAlertService\.acknowledgeAlertsDeclaredWithIncident/,
+      );
+
+      const acknowledging: number = englishHeadingIndex(
+        3,
+        ACKNOWLEDGING_HEADING,
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        const section: string = sectionLines(
+          readPage(LINKED_ALERTS_PAGE, language),
+          acknowledging,
+        ).join("\n");
+
+        expect({
+          language: language,
+          aFewAtATime: section.includes(
+            (A_FEW_AT_A_TIME[language] as (atOnce: number) => string)(atOnce),
+          ),
+        }).toEqual({ language: language, aFewAtATime: true });
+      }
+    });
+
+    it("tells the overview and declaring pages about the header and the acknowledge box, in every language", () => {
+      const acknowledgeWords: Record<string, string> = {
+        en: "acknowledge",
+        fa: "تصدیق",
+      };
+      const headerWords: Record<string, string> = {
+        en: "header",
+        fa: "سرصفحه",
+      };
+
+      for (const language of ALL_LANGUAGES) {
+        for (const page of [OVERVIEW_PAGE, DECLARING_PAGE]) {
+          const lines: Array<string> = splitMarkdown(
+            readPage(page, language),
+          ).prose.filter((line: string): boolean => {
+            return (
+              line.includes("**Declare Incident**") &&
+              docsLinks(line).has(LINKED_ALERTS_URL)
+            );
+          });
+
+          expect({
+            language: language,
+            page: page,
+            lines: lines.length,
+            header: lines.some((line: string): boolean => {
+              return line.includes(headerWords[language] as string);
+            }),
+            acknowledge: lines.some((line: string): boolean => {
+              return line.includes(acknowledgeWords[language] as string);
+            }),
+          }).toEqual({
+            language: language,
+            page: page,
+            lines: 1,
+            header: true,
+            acknowledge: true,
           });
         }
       }

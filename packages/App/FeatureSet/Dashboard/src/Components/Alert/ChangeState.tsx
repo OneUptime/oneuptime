@@ -27,6 +27,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -40,6 +41,7 @@ import {
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
+import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -86,9 +88,11 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
               <div className="h-5 w-16 rounded-md bg-gray-100" />
               <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
             </div>
+            {/* Acknowledge, Resolve and Declare Incident. */}
             <div className="flex gap-2">
               <div className="h-9 w-28 rounded-md bg-gray-100" />
               <div className="h-9 w-24 rounded-md bg-gray-100" />
+              <div className="h-9 w-36 rounded-md bg-gray-100" />
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -419,6 +423,18 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
+  /*
+   * Declaring an incident from the alert sits beside Acknowledge / Resolve,
+   * and stays there once the alert is resolved (declaring after the fact is
+   * allowed everywhere else too). Gated on permissions only - no request.
+   */
+  const declareIncidentAction: EventPanelAction | null =
+    getDeclareIncidentFromAlertAction(props.alertId);
+
+  const secondaryActions: Array<EventPanelAction> = declareIncidentAction
+    ? [declareIncidentAction]
+    : [];
+
   const isAcknowledgeTarget: boolean =
     selectedAlertState?.isAcknowledgedState || false;
   const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
@@ -466,6 +482,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         onActionClick={(stateId: string) => {
           openModalForState(stateId);
         }}
+        secondaryActions={secondaryActions}
         onStateSelect={(stateId: string) => {
           openModalForState(stateId);
         }}

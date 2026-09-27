@@ -17,7 +17,7 @@ This page walks through all four, field by field, and then covers what the serve
 
 All four write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones.
 
-You can also declare an incident from a selection of alerts: **Declare Incident** on an alerts list opens the same wizard, prefilled from the alerts, and links them to the new incident. See [Linked Alerts](/docs/incidents/linked-alerts).
+You can also declare an incident from alerts: **Declare Incident** on an alerts list, in an alert's header or on an alert's **Linked Incidents** page opens the same wizard, prefilled from the alerts, and links them to the new incident. A box on the form, ticked by default, also acknowledges the alerts, so they stop escalating. See [Linked Alerts](/docs/incidents/linked-alerts).
 
 ## Declaring one by hand
 

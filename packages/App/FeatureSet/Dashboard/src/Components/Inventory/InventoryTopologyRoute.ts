@@ -9,6 +9,17 @@ export interface BuildInventoryTopologyRouteData {
 }
 
 /*
+ * Types drawn on the Service Map rather than in Infrastructure: services,
+ * and the databases and remote services they call (dependency nodes are
+ * discovered from service spans and never nest in the infrastructure tree).
+ */
+const SERVICE_MAP_TYPES: ReadonlySet<string> = new Set<string>([
+  EntityType.Service,
+  EntityType.Database,
+  EntityType.RemoteService,
+]);
+
+/*
  * Build the reverse link from Inventory into the existing full Topology map.
  * Pure by design: callers supply the populated base route, which leaves URL
  * policy testable without project globals or browser state.
@@ -18,7 +29,7 @@ export function buildInventoryTopologyRoute(
 ): Route {
   const query: URLSearchParams = new URLSearchParams();
 
-  if (data.entityType === EntityType.Service) {
+  if (data.entityType && SERVICE_MAP_TYPES.has(data.entityType)) {
     query.set("focus", data.entityKey);
   } else {
     query.set("tab", "Infrastructure");
