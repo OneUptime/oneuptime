@@ -3,6 +3,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import logger from "../../../../Server/Utils/Logger";
 import SubscriberNotificationClaim from "../../../../Server/Utils/StatusPage/SubscriberNotificationClaim";
 import ObjectID from "../../../../Types/ObjectID";
@@ -307,6 +308,194 @@ describePostgres("subscriber notification claims against Postgres", () => {
       expect((await readNote(id)).status).toBe(
         StatusPageSubscriberNotificationStatus.InProgress,
       );
+    });
+  });
+
+  /*
+   * The incident created notification is timed from its claim, not from
+   * updatedAt, which the owners' reminders and state changes keep moving
+   * while the incident is open. The claim stamps the column; the sweeper
+   * finds a row claimed before the cutoff even though the row was written
+   * since, and finds a row claimed before the column existed by updatedAt.
+   */
+  describe("the incident created notification's claimed-at time", () => {
+    async function insertIncident(data: {
+      status: StatusPageSubscriberNotificationStatus;
+      updatedAt: Date;
+      claimedAt?: Date | null;
+    }): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."Incident" ("_id", "version", "updatedAt", "subscriberNotificationStatusOnIncidentCreated", "subscriberNotificationClaimedAtOnIncidentCreated") VALUES ($1, 1, $2, $3, $4)`,
+        [id.toString(), data.updatedAt, data.status, data.claimedAt ?? null],
+      );
+      return id;
+    }
+
+    test("the claim stamps it with the time of the claim", async () => {
+      const id: ObjectID = await insertIncident({
+        status: StatusPageSubscriberNotificationStatus.Pending,
+        updatedAt: new Date(LONG_AGO),
+      });
+      const before: number = Date.now();
+
+      await expect(
+        SubscriberNotificationClaim.claim({
+          service: incidentService,
+          id: id,
+          statusColumn: "subscriberNotificationStatusOnIncidentCreated",
+          claimedAtColumn: "subscriberNotificationClaimedAtOnIncidentCreated",
+          version: 1,
+        }),
+      ).resolves.toBe(true);
+
+      const rows: Array<{ claimedAt: Date; status: string }> =
+        await database.query(
+          `SELECT "subscriberNotificationClaimedAtOnIncidentCreated" AS "claimedAt", "subscriberNotificationStatusOnIncidentCreated" AS "status" FROM "${schema}"."Incident" WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+      expect(rows[0]!.status).toBe(
+        StatusPageSubscriberNotificationStatus.InProgress,
+      );
+      expect(rows[0]!.claimedAt.getTime()).toBeGreaterThanOrEqual(
+        before - 1000,
+      );
+    });
+
+    test("the sweeper's queries find a send claimed long ago on a row written since, and a legacy row by updatedAt", async () => {
+      const cutoff: Date = new Date(Date.now() - 40 * 60 * 1000);
+      const claimedLongAgoWrittenNow: ObjectID = await insertIncident({
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: new Date(),
+        claimedAt: new Date(LONG_AGO),
+      });
+      const claimedJustNowWrittenLongAgo: ObjectID = await insertIncident({
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: new Date(LONG_AGO),
+        claimedAt: new Date(),
+      });
+      const legacy: ObjectID = await insertIncident({
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        updatedAt: new Date(LONG_AGO),
+      });
+
+      const byClaim: Array<Incident> = await incidentService.findBy({
+        query: {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+          subscriberNotificationClaimedAtOnIncidentCreated:
+            QueryHelper.lessThan(cutoff),
+        },
+        select: { _id: true },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true },
+      });
+      const byUpdatedAt: Array<Incident> = await incidentService.findBy({
+        query: {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.InProgress,
+          subscriberNotificationClaimedAtOnIncidentCreated:
+            QueryHelper.isNull(),
+          updatedAt: QueryHelper.lessThan(cutoff),
+        },
+        select: { _id: true },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const ids: (rows: Array<Incident>) => Array<string> = (
+        rows: Array<Incident>,
+      ): Array<string> => {
+        return rows.map((row: Incident): string => {
+          return row._id!.toString();
+        });
+      };
+
+      expect(ids(byClaim)).toEqual([claimedLongAgoWrittenNow.toString()]);
+      expect(ids(byUpdatedAt)).toEqual([legacy.toString()]);
+      expect([...ids(byClaim), ...ids(byUpdatedAt)]).not.toContain(
+        claimedJustNowWrittenLongAgo.toString(),
+      );
+    });
+  });
+
+  /*
+   * Claiming a note's posted notification also skips an update notification
+   * it read as Pending, in the same write - only while it is still Pending.
+   */
+  describe("claiming a posted note that covers a pending update", () => {
+    async function insertNoteWithUpdate(data: {
+      updateStatus: StatusPageSubscriberNotificationStatus;
+    }): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentPublicNote" ("_id", "subscriberNotificationStatusOnNoteCreated", "subscriberNotificationStatusOnNoteUpdated", "version", "updatedAt") VALUES ($1, $2, $3, 2, $4)`,
+        [
+          id.toString(),
+          StatusPageSubscriberNotificationStatus.Pending,
+          data.updateStatus,
+          new Date(LONG_AGO),
+        ],
+      );
+      return id;
+    }
+
+    function claimCovering(id: ObjectID): Promise<boolean> {
+      return SubscriberNotificationClaim.claim({
+        service: noteService,
+        id: id,
+        statusColumn: "subscriberNotificationStatusOnNoteCreated",
+        version: 2,
+        alsoSet: {
+          data: {
+            subscriberNotificationStatusOnNoteUpdated:
+              StatusPageSubscriberNotificationStatus.Skipped,
+          } as never,
+          expected: {
+            subscriberNotificationStatusOnNoteUpdated:
+              StatusPageSubscriberNotificationStatus.Pending,
+          } as never,
+        },
+      });
+    }
+
+    async function statuses(id: ObjectID): Promise<{
+      created: string;
+      updated: string;
+    }> {
+      const rows: Array<{ created: string; updated: string }> =
+        await database.query(
+          `SELECT "subscriberNotificationStatusOnNoteCreated" AS "created", "subscriberNotificationStatusOnNoteUpdated" AS "updated" FROM "${schema}"."IncidentPublicNote" WHERE "_id" = $1`,
+          [id.toString()],
+        );
+      return rows[0]!;
+    }
+
+    test("a pending update is skipped in the same write as the claim", async () => {
+      const id: ObjectID = await insertNoteWithUpdate({
+        updateStatus: StatusPageSubscriberNotificationStatus.Pending,
+      });
+
+      await expect(claimCovering(id)).resolves.toBe(true);
+      expect(await statuses(id)).toEqual({
+        created: StatusPageSubscriberNotificationStatus.InProgress,
+        updated: StatusPageSubscriberNotificationStatus.Skipped,
+      });
+    });
+
+    test("an update another run is sending is left alone, and so is the post, for a fresh read", async () => {
+      const id: ObjectID = await insertNoteWithUpdate({
+        updateStatus: StatusPageSubscriberNotificationStatus.InProgress,
+      });
+
+      await expect(claimCovering(id)).resolves.toBe(false);
+      expect(await statuses(id)).toEqual({
+        created: StatusPageSubscriberNotificationStatus.Pending,
+        updated: StatusPageSubscriberNotificationStatus.InProgress,
+      });
     });
   });
 

@@ -406,12 +406,25 @@ describePostgres(
         ]);
       });
 
-      test("the status page queries can filter on the scope flag by index", async () => {
-        const rows: Array<{ indexdef: string }> = await database.query(
+      /*
+       * The flag is false on nearly every row, so an index on it cannot help
+       * the queries that split on it; the scoped half reaches its incidents
+       * through the join table's statusPageId index. Building one in the
+       * migration that altered Incident would have held that ALTER's lock -
+       * reads included - for the whole build.
+       */
+      test("the scope flag is not indexed, and the join table is, by status page", async () => {
+        const flagIndexes: Array<{ indexdef: string }> = await database.query(
           `SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'Incident' AND indexdef LIKE '%("isScopedToStatusPages")%'`,
         );
 
-        expect(rows).toHaveLength(1);
+        expect(flagIndexes).toEqual([]);
+
+        const joinIndexes: Array<{ indexdef: string }> = await database.query(
+          `SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'IncidentStatusPage' AND indexdef LIKE '%("statusPageId")%'`,
+        );
+
+        expect(joinIndexes.length).toBeGreaterThanOrEqual(1);
       });
     });
 
