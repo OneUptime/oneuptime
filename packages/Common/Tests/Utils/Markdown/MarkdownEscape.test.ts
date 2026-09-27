@@ -1,5 +1,6 @@
 import escapeMarkdownInlineDefault, {
   escapeMarkdownInline,
+  escapeMarkdownValue,
 } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
 
@@ -357,5 +358,93 @@ describe("escapeMarkdownInline - idempotence (deliberately NOT idempotent)", () 
 describe("MarkdownEscape module shape", () => {
   test("the default export is the named export", () => {
     expect(escapeMarkdownInlineDefault).toBe(escapeMarkdownInline);
+  });
+});
+
+/*
+ * escapeMarkdownValue is for a value put into Markdown that a person reads
+ * and edits before posting it (a note template's {{placeholders}}). It
+ * escapes only what can turn a value into a link, an image or HTML, so the
+ * rest reads as typed even in the composer's visual mode, which shows a
+ * backslash escape as written.
+ */
+describe("escapeMarkdownValue", () => {
+  test("empty input becomes an empty string", () => {
+    expect(escapeMarkdownValue(null)).toBe("");
+    expect(escapeMarkdownValue(undefined)).toBe("");
+    expect(escapeMarkdownValue("")).toBe("");
+  });
+
+  test("everyday punctuation is left as typed", () => {
+    const untouched: string =
+      "Site 03 - payments (EU) #42 + 50% off! **really** _now_ `code` a|b ~x~ C:/ok";
+
+    expect(escapeMarkdownValue(untouched)).toBe(untouched);
+  });
+
+  test.each(["[", "]", "<", "\\"])(
+    "prefixes %s with a backslash",
+    (character: string) => {
+      expect(escapeMarkdownValue(character)).toBe(`\\${character}`);
+    },
+  );
+
+  test("a value cannot become a link", () => {
+    expect(
+      escapeMarkdownValue("[Reset your password](https://evil.example)"),
+    ).toBe("\\[Reset your password\\](https://evil.example)");
+  });
+
+  test("a value cannot become an image", () => {
+    expect(escapeMarkdownValue("![](https://tracker.example/p.png)")).toBe(
+      "!\\[\\](https://tracker.example/p.png)",
+    );
+  });
+
+  test("a value cannot become HTML or an autolink", () => {
+    expect(escapeMarkdownValue("<img src=x onerror=alert(1)>")).toBe(
+      "\\<img src=x onerror=alert(1)>",
+    );
+    expect(escapeMarkdownValue("<https://evil.example>")).toBe(
+      "\\<https://evil.example>",
+    );
+  });
+
+  test("a backslash in the value cannot undo the escape after it", () => {
+    /*
+     * Left alone, the value's backslash would pair with the one added before
+     * the bracket: a literal backslash, then a live bracket.
+     */
+    expect(escapeMarkdownValue("\\[x](https://evil.example)")).toBe(
+      "\\\\\\[x\\](https://evil.example)",
+    );
+  });
+
+  test("line breaks become spaces by default", () => {
+    expect(escapeMarkdownValue("one\ntwo\r\nthree\rfour")).toBe(
+      "one two three four",
+    );
+  });
+
+  test("line breaks are kept when asked, normalized to \\n", () => {
+    expect(
+      escapeMarkdownValue("one\r\ntwo\n[three]", { keepLineBreaks: true }),
+    ).toBe("one\ntwo\n\\[three\\]");
+  });
+
+  test("rendering the escapes gives back exactly what was typed", () => {
+    for (const name of HOSTILE_NAMES) {
+      expect(renderEscapes(escapeMarkdownValue(name))).toBe(
+        name.replace(/\r\n|\r|\n/g, " "),
+      );
+    }
+  });
+
+  test("no bracket, angle bracket or backslash is left unescaped", () => {
+    for (const name of HOSTILE_NAMES) {
+      expect(escapeMarkdownValue(name).replace(/\\[\\[\]<]/g, "")).not.toMatch(
+        /[\\[\]<]/,
+      );
+    }
   });
 });

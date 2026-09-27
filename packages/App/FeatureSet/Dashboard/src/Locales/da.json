@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "I abonnentnotifikationer",
   "Template Variable": "Skabelonvariabel",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Brug den i en brugerdefineret skabelon til abonnentnotifikationer for at vise feltets værdi. Den dannes ud fra feltets navn, når feltet oprettes, og ændres ikke, når feltet omdøbes.",
-  "{{field}} must be checked.": "{{field}} skal være markeret."
+  "{{field}} must be checked.": "{{field}} skal være markeret.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "De værdier i brugerdefinerede felter, som en hændelse erklæret fra denne skabelon starter med. Felter, der spørges om i Detaljer-trinnet, kan stadig ændres, når hændelsen erklæres.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Når denne skabelon bruges i en hændelses noter, udfyldes disse pladsholdere med hændelsens værdier. En pladsholder uden værdi forbliver, som den er skrevet.",
+  "Affected Status Pages": "Berørte statussider",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Et brugerdefineret felt på hændelsen, via skabelonvariablen vist i indstillingerne for brugerdefinerede hændelsesfelter"
 }

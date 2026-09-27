@@ -1,5 +1,6 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
 import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
+import { fetchIncidentNoteTemplateVariables } from "../../../Components/Incident/IncidentNoteTemplateVariables";
 import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
 import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
 import PageMap from "../../../Utils/PageMap";
@@ -77,6 +78,13 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
         settingsRoute: RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
         ),
+      }}
+      /*
+       * A template's {{incident.title}}-style placeholders are filled in with
+       * this incident's values when it is picked.
+       */
+      templateVariables={() => {
+        return fetchIncidentNoteTemplateVariables(modelId);
       }}
       ai={{
         title: "Generate Public Note with AI",

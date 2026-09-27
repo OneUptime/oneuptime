@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "Dans les notifications aux abonnés",
   "Template Variable": "Variable de modèle",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Utilisez-la dans un modèle personnalisé de notification aux abonnés pour afficher la valeur du champ. Elle est formée à partir du nom du champ lors de sa création et ne change pas lorsque le champ est renommé.",
-  "{{field}} must be checked.": "{{field}} doit être coché."
+  "{{field}} must be checked.": "{{field}} doit être coché.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "Les valeurs des champs personnalisés avec lesquelles commence un incident déclaré à partir de ce modèle. Les champs demandés à l'étape Détails peuvent encore être modifiés lors de la déclaration de l'incident.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Lorsque ce modèle est utilisé dans les notes d'un incident, ces espaces réservés sont remplis avec les valeurs de l'incident. Un espace réservé sans valeur reste tel qu'il est écrit.",
+  "Affected Status Pages": "Pages de statut concernées",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Un champ personnalisé de l'incident, par la variable de modèle indiquée dans les paramètres des champs personnalisés d'incident"
 }

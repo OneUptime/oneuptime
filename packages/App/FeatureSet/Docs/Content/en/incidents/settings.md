@@ -38,6 +38,7 @@ Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
 - **Owners** — **Owner - Teams** and **Owner - Users**.
 - **Labels** — **Labels**.
+- **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 
 A few quick rules:
 
@@ -52,7 +53,7 @@ There are two paths, and they behave the same way.
 - **From the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users.
 - **From the API** — pass `createdIncidentTemplateId` on `POST /api/incident` and the server fills the incident from the template.
 
-The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies, labels and status pages are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins.
+The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies, labels and status pages are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins. Custom field values merge one field at a time: the template fills in the fields the incident was declared without, and a value you set — `0`, `false` and `null` included — wins over the template's.
 
 **The empty-state dialog points at the wrong place.** If you have no templates yet, the **Create from Template** button shows a **No Incident Templates** dialog. Its text points at Project Settings, but the button routes to **Incidents → Settings → Incident Templates** — that is the real location.
 
@@ -66,6 +67,21 @@ Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/inc
 - **Note Details** — the note body itself, in Markdown, required.
 
 Like incident templates, rows are created and viewed rather than edited inline; open a template to change it.
+
+**Placeholders.** A note template can carry placeholders that are filled in with the incident's values when the template is picked, so the author sees — and can still change — the finished text before posting it:
+
+| Placeholder                         | Filled with                                                        |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| `{{incident.title}}`                | The incident's title.                                              |
+| `{{incident.number}}`               | Its number, for example `INC-42` or `#42`.                         |
+| `{{incident.severity}}`             | Its severity.                                                      |
+| `{{incident.state}}`                | Its current state.                                                 |
+| `{{incident.startedAt}}`            | When it was declared, in the author's time zone, with the zone named. |
+| `{{incident.labels}}`               | Its labels, separated by commas.                                   |
+| `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
+| `{{customFields.<key>}}`            | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
+
+A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into a link, an image or HTML in the posted note. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 

@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "구독자 알림 포함 여부",
   "Template Variable": "템플릿 변수",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "사용자 지정 구독자 알림 템플릿에서 이것을 사용하면 필드 값을 표시할 수 있습니다. 필드를 만들 때 필드 이름으로 만들어지며, 필드 이름을 바꿔도 변경되지 않습니다.",
-  "{{field}} must be checked.": "{{field}}을(를) 선택해야 합니다."
+  "{{field}} must be checked.": "{{field}}을(를) 선택해야 합니다.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "이 템플릿에서 선언된 인시던트가 처음에 갖는 사용자 정의 필드 값입니다. 세부 정보 단계에서 묻는 필드는 인시던트를 선언할 때 여전히 변경할 수 있습니다.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "이 템플릿을 인시던트의 노트에서 사용하면 이 자리 표시자가 인시던트의 값으로 채워집니다. 값이 없는 자리 표시자는 작성된 그대로 남습니다.",
+  "Affected Status Pages": "영향을 받는 상태 페이지",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "인시던트 사용자 정의 필드 설정에 표시된 템플릿 변수로 지정하는 인시던트의 사용자 정의 필드"
 }

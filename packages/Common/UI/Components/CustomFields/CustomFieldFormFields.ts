@@ -35,6 +35,13 @@ export interface CustomFieldFormDefinition extends CustomFieldDefinition {
   sortOrder?: number | null | undefined;
   showOnCreate?: boolean | undefined;
   isRequiredOnCreate?: boolean | undefined;
+  /*
+   * A field whose value is copied from a related resource (an incident field
+   * mapped from a monitor field). Only read by forms that decide whether to
+   * ask for it at all: see CustomFieldModelFormFields.
+   */
+  mapFromResourceType?: string | undefined;
+  mapFromCustomFieldName?: string | undefined;
 }
 
 export type ToCustomFieldFormDefinitionFunction = (
@@ -81,6 +88,16 @@ export const toCustomFieldFormDefinition: ToCustomFieldFormDefinitionFunction =
           : null,
       showOnCreate: row["showOnCreate"] === true,
       isRequiredOnCreate: row["isRequiredOnCreate"] === true,
+      mapFromResourceType:
+        typeof row["mapFromResourceType"] === "string" &&
+        row["mapFromResourceType"]
+          ? (row["mapFromResourceType"] as string)
+          : undefined,
+      mapFromCustomFieldName:
+        typeof row["mapFromCustomFieldName"] === "string" &&
+        row["mapFromCustomFieldName"]
+          ? (row["mapFromCustomFieldName"] as string)
+          : undefined,
     };
   };
 
@@ -155,6 +172,12 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
   };
 
 /*
+ * What a review step shows for a field left empty. The English text is its
+ * key in the locale files, and the Custom Fields card shows the same.
+ */
+export const CUSTOM_FIELD_NO_VALUE_PLACEHOLDER: string = "No data entered";
+
+/*
  * The error for a required yes/no field left unticked. The English template
  * is also its key in the locale files, like the form's other validation
  * messages.
@@ -185,6 +208,13 @@ export type BuildCustomFieldFormFieldsFunction = (data: {
   enforceRequiredOnCreate?: boolean | undefined;
   // Put every field on this step of a multi-step form.
   stepId?: string | undefined;
+  /*
+   * Where the form holds each field's value, when that is not simply the
+   * field's name: a record's own create form keys the values apart from its
+   * columns (see CustomFieldModelFormFields). The field then carries it as
+   * its overrideFieldKey, and its own validation reads the value from there.
+   */
+  getFormKey?: ((fieldName: string) => string) | undefined;
 }) => Array<Field<JSONObject>>;
 
 /**
@@ -196,12 +226,17 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
     definitions: Array<CustomFieldFormDefinition>;
     enforceRequiredOnCreate?: boolean | undefined;
     stepId?: string | undefined;
+    getFormKey?: ((fieldName: string) => string) | undefined;
   }): Array<Field<JSONObject>> => {
     return data.definitions.map(
       (definition: CustomFieldFormDefinition): Field<JSONObject> => {
         const isRequired: boolean = Boolean(
           data.enforceRequiredOnCreate && definition.isRequiredOnCreate,
         );
+
+        const formKey: string = data.getFormKey
+          ? data.getFormKey(definition.name)
+          : definition.name;
 
         const field: Field<JSONObject> = {
           field: {
@@ -216,6 +251,10 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
             ? getCustomFieldDropdownOptions(definition.dropdownOptions)
             : undefined,
         };
+
+        if (formKey !== definition.name) {
+          field.overrideFieldKey = formKey;
+        }
 
         if (definition.description) {
           field.description = definition.description;
@@ -239,7 +278,7 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
           field.customValidation = (
             values: FormValues<JSONObject>,
           ): string | null => {
-            return (values as JSONObject)[name] === true
+            return (values as JSONObject)[formKey] === true
               ? null
               : translateValidationMessage(
                   CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE,

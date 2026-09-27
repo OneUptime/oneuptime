@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "सब्सक्राइबर सूचनाओं में",
   "Template Variable": "टेम्पलेट वेरिएबल",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "फ़ील्ड का मान दिखाने के लिए इसे कस्टम सब्सक्राइबर सूचना टेम्पलेट में उपयोग करें। यह फ़ील्ड बनाते समय उसके नाम से बनता है और फ़ील्ड का नाम बदलने पर नहीं बदलता।",
-  "{{field}} must be checked.": "{{field}} पर टिक करना आवश्यक है।"
+  "{{field}} must be checked.": "{{field}} पर टिक करना आवश्यक है।",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "इस टेम्पलेट से घोषित घटना जिन कस्टम फ़ील्ड मानों के साथ शुरू होती है। विवरण चरण में पूछे जाने वाले फ़ील्ड घटना घोषित करते समय अभी भी बदले जा सकते हैं।",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "जब इस टेम्पलेट का उपयोग किसी घटना के नोट्स में किया जाता है, तो ये प्लेसहोल्डर घटना के मानों से भर दिए जाते हैं। बिना मान वाला प्लेसहोल्डर जैसा लिखा है वैसा ही रहता है।",
+  "Affected Status Pages": "प्रभावित स्थिति पृष्ठ",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "घटना का एक कस्टम फ़ील्ड, घटना कस्टम फ़ील्ड सेटिंग्स में दिखाए गए टेम्पलेट वेरिएबल के द्वारा"
 }

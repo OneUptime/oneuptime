@@ -52,11 +52,15 @@ import useStatusPagePickerAccess, {
   StatusPagePickerAccess,
 } from "../../../Components/Incident/useStatusPagePickerAccess";
 import User from "Common/Models/DatabaseModels/User";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   // Picking status pages needs status page read access (see the hint).
   const statusPagePickerAccess: StatusPagePickerAccess =
@@ -595,6 +599,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelId: modelId,
         }}
       />
+
+      {/*
+       * The custom field values incidents declared from this template start
+       * with. Nothing is shown to a project with no incident custom fields,
+       * or none on its plan.
+       */}
+      {currentProjectId ? (
+        <CustomFieldsDetail
+          title={IncidentCustomFieldsCopy.templateCustomFieldsCardTitle}
+          description={
+            IncidentCustomFieldsCopy.templateCustomFieldsCardDescription
+          }
+          modelType={IncidentTemplate}
+          customFieldType={IncidentCustomField}
+          name="Incident Template Custom Fields"
+          projectId={currentProjectId}
+          modelId={modelId}
+          hideIfEmpty={true}
+        />
+      ) : (
+        <></>
+      )}
 
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}

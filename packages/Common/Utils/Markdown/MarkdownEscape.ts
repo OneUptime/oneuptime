@@ -60,4 +60,69 @@ export const escapeMarkdownInline: EscapeMarkdownInlineFunction = (
     );
 };
 
+/*
+ * Escaping for a plain value placed into Markdown that a PERSON goes on to
+ * read and edit before it is posted - an incident's title or a custom field
+ * value filled into a note template's {{placeholders}}.
+ *
+ * escapeMarkdownInline above is the wrong tool there. The note composer opens
+ * in its visual mode, which shows a backslash escape exactly as written, so a
+ * title such as "Site 03 - payments (EU)" would appear to the author as
+ * "Site 03 \- payments \(EU\)". Restyling a value is harmless in a draft its
+ * author reviews; what must not happen is the value turning into something
+ * else once the note is rendered for subscribers. So only the characters that
+ * can make a value into a link, an image or HTML are escaped:
+ *
+ *   - `[` and `]`: every link and image, inline or by reference, is built
+ *     from brackets. `[Reset your password](https://evil.example)` in a title
+ *     would otherwise arrive in subscribers' email as a live link, and
+ *     `![](https://tracker.example/pixel)` as an image fetched on open. The
+ *     closing bracket matters too: a template may put the value inside a link
+ *     of its own, and a value must not be able to end that link's text.
+ *   - `<`: raw HTML and `<https://...>` autolinks both start with it. (The
+ *     renderers drop raw HTML as well; this keeps it readable as text.)
+ *   - `\`: a value ending in a backslash would otherwise undo the escape
+ *     that follows it.
+ *
+ * A bare address in a value ("https://example.com") is still made a link by
+ * the renderers, as it is when someone types one into a note - but such a
+ * link shows the address it goes to. No value can make link text that hides
+ * its destination.
+ *
+ * Line breaks become spaces unless `keepLineBreaks` is set (a long text
+ * value): a newline could start a heading or a list, which a single-line
+ * value has no business doing.
+ *
+ * Like escapeMarkdownInline, escape once, where the value is placed.
+ */
+
+const MARKDOWN_LINK_OR_HTML_CHARACTER_PATTERN: RegExp = /[\\[\]<]/g;
+
+export type EscapeMarkdownValueFunction = (
+  value: string | undefined | null,
+  options?: { keepLineBreaks?: boolean | undefined },
+) => string;
+
+export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
+  value: string | undefined | null,
+  options?: { keepLineBreaks?: boolean | undefined },
+): string => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  let text: string = String(value).replace(
+    MARKDOWN_LINK_OR_HTML_CHARACTER_PATTERN,
+    (character: string): string => {
+      return `\\${character}`;
+    },
+  );
+
+  text = options?.keepLineBreaks
+    ? text.replace(LINE_BREAK_PATTERN, "\n")
+    : text.replace(LINE_BREAK_PATTERN, " ");
+
+  return text;
+};
+
 export default escapeMarkdownInline;

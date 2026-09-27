@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "در اعلان‌های مشترکان",
   "Template Variable": "متغیر قالب",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "از این در قالب سفارشی اعلان مشترکان استفاده کنید تا مقدار فیلد نمایش داده شود. این هنگام ایجاد فیلد از نام آن ساخته می‌شود و با تغییر نام فیلد تغییر نمی‌کند.",
-  "{{field}} must be checked.": "{{field}} باید علامت بخورد."
+  "{{field}} must be checked.": "{{field}} باید علامت بخورد.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "مقادیر فیلدهای سفارشی که حادثه‌ای که از این قالب اعلام می‌شود با آن‌ها شروع می‌شود. فیلدهایی که در مرحله جزئیات پرسیده می‌شوند هنگام اعلام حادثه همچنان قابل تغییر هستند.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "وقتی این قالب در یادداشت‌های یک حادثه استفاده شود، این جای‌نگهدارها با مقادیر حادثه پر می‌شوند. جای‌نگهداری که مقداری ندارد همان‌طور که نوشته شده باقی می‌ماند.",
+  "Affected Status Pages": "صفحات وضعیت تحت تأثیر",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "یک فیلد سفارشی حادثه، با متغیر قالبی که در تنظیمات فیلدهای سفارشی حادثه نشان داده می‌شود"
 }

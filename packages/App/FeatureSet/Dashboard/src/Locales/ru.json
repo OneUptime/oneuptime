@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "В уведомлениях подписчикам",
   "Template Variable": "Переменная шаблона",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Используйте её в пользовательском шаблоне уведомлений подписчикам, чтобы показать значение поля. Она создаётся из названия поля при его создании и не меняется при переименовании поля.",
-  "{{field}} must be checked.": "Поле «{{field}}» должно быть отмечено."
+  "{{field}} must be checked.": "Поле «{{field}}» должно быть отмечено.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "Значения пользовательских полей, с которыми начинается инцидент, объявленный из этого шаблона. Поля, запрашиваемые на шаге «Подробности», ещё можно изменить при объявлении инцидента.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Когда этот шаблон используется в заметках инцидента, эти заполнители заполняются значениями инцидента. Заполнитель без значения остаётся в том виде, в каком он написан.",
+  "Affected Status Pages": "Затронутые страницы состояния",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Пользовательское поле инцидента по переменной шаблона, указанной в настройках пользовательских полей инцидентов"
 }

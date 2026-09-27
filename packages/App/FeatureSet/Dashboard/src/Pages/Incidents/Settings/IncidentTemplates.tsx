@@ -35,12 +35,28 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  buildCustomFieldModelFormFields,
+  packCustomFieldFormValues,
+  removeCustomFieldFormKeys,
+} from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import {
+  fetchIncidentCustomFieldDefinitions,
+  IncidentCustomFieldDefinition,
+  INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+  INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
+  isAskedOnIncidentForm,
+} from "../../../Components/Incident/IncidentCustomFieldDefinitions";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -52,6 +68,51 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   // Picking status pages needs status page read access (see the hint).
   const statusPagePickerAccess: StatusPagePickerAccess =
     useStatusPagePickerAccess();
+
+  /*
+   * The project's incident custom fields, so a new template can set the
+   * values its incidents start with - every field, not only the ones the
+   * Details step asks for: a template can quietly fill in the rest.
+   */
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<
+    Array<IncidentCustomFieldDefinition>
+  >([]);
+
+  const loadCustomFieldDefinitions: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setCustomFieldDefinitions(await fetchIncidentCustomFieldDefinitions());
+      } catch {
+        // No custom fields on this plan, or no permission to read them.
+        setCustomFieldDefinitions([]);
+      }
+    };
+
+  /*
+   * Never required here: "Required on Create" is asked of the person
+   * declaring the incident, who can still fill in what the template leaves
+   * empty. A mapped field is left out while the template has a monitor to
+   * copy it from, as the template's Custom Fields card does.
+   */
+  const customFieldFormFields: Array<ModelField<IncidentTemplate>> =
+    useMemo(() => {
+      return buildCustomFieldModelFormFields<IncidentTemplate>({
+        definitions: customFieldDefinitions,
+        enforceRequiredOnCreate: false,
+        stepId: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+        isShown: isAskedOnIncidentForm,
+      });
+    }, [customFieldDefinitions]);
+
+  const customFieldSteps: Array<FormStep<IncidentTemplate>> =
+    customFieldDefinitions.length > 0
+      ? [
+          {
+            title: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
+            id: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+          },
+        ]
+      : [];
 
   const fetchFirstIncidentState: () => Promise<void> =
     async (): Promise<void> => {
@@ -89,6 +150,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
 
   useEffect(() => {
     fetchFirstIncidentState();
+    loadCustomFieldDefinitions();
   }, []);
 
   return (
@@ -118,6 +180,30 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         }}
         showViewIdButton={true}
         createInitialValues={createInitialValues}
+        onBeforeCreate={async (
+          item: IncidentTemplate,
+          miscDataProps: JSONObject,
+          formValues: JSONObject,
+        ): Promise<IncidentTemplate> => {
+          /*
+           * From the values the form submitted, so a Number of 0 and a box
+           * left unticked are kept; they travel in customFields only.
+           */
+          const customFields: JSONObject | undefined =
+            packCustomFieldFormValues({
+              definitions: customFieldDefinitions,
+              formValues: formValues,
+              isShown: isAskedOnIncidentForm,
+            });
+
+          removeCustomFieldFormKeys(miscDataProps);
+
+          if (customFields) {
+            item.customFields = customFields;
+          }
+
+          return item;
+        }}
         formSteps={[
           {
             title: "Template Info",
@@ -131,6 +217,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             title: "Resources Affected",
             id: "resources-affected",
           },
+          ...customFieldSteps,
           {
             title: "On-Call",
             id: "on-call",
@@ -391,6 +478,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               return false;
             },
           },
+          ...customFieldFormFields,
           {
             field: {
               onCallDutyPolicies: true,

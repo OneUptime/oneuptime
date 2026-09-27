@@ -1694,6 +1694,140 @@ describe("event notes: templates", () => {
   });
 });
 
+describe("event notes: template placeholders", () => {
+  const PLACEHOLDER_TEMPLATE: string =
+    "**Incident**: {{incident.title}}\n**Impact**: {{customFields.impact}}\n**Owner**: {{incident.owner}}";
+
+  function seedPlaceholderTemplate(): void {
+    tableOf(IncidentNoteTemplate).push({
+      _id: "71000000-0000-4000-8000-000000000099",
+      templateName: "Status update",
+      note: PLACEHOLDER_TEMPLATE,
+    });
+  }
+
+  async function pickTemplate(): Promise<void> {
+    fireEvent.click(screen.getByTestId("note-template-menu-button"));
+    fireEvent.click(
+      (await screen.findAllByText("Status update"))[0]!.closest("button")!,
+    );
+  }
+
+  function variablesLoader(): MockFunction {
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockResolvedValue({
+      "incident.title": "Payments are failing",
+      "customFields.impact": "High",
+    } as never);
+    return loader;
+  }
+
+  test("a picked template's placeholders are filled with the event's values; unknown ones stay", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
+  test("the values are asked for each time a template is picked, not once per page", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    // Nothing is read until a template is picked.
+    expect(loader).not.toHaveBeenCalled();
+
+    await pickTemplate();
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+
+    loader.mockResolvedValue({
+      "incident.title": "Payments are recovering",
+    } as never);
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are recovering");
+    });
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  test("when the values cannot be read, the template still goes in, as written", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockRejectedValue(new Error("No access to the incident.") as never);
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("only the template is filled: braces already typed are left alone", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+    await openComposer();
+    type(editor(), "We saw {{incident.title}} in the logs.");
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "We saw {{incident.title}} in the logs.\n\n**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+  });
+
+  test("the private notes feed fills them too", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPrivate({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+  });
+
+  test("a feed given no values puts the template in as written", async () => {
+    seedPlaceholderTemplate();
+    await renderPublic();
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("an AI draft is not a template: nothing is read for it", async () => {
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    fireEvent.click(screen.getByTestId("note-ai-button"));
+    fireEvent.click(screen.getByText("Use AI draft"));
+
+    expect(await screen.findByTestId("note-composer")).toBeInTheDocument();
+    expect(editor()).toHaveValue("Drafted by AI.");
+    expect(loader).not.toHaveBeenCalled();
+  });
+});
+
 describe("event notes: drafting with AI", () => {
   test("hands the dialog this page's generator and puts the draft in the composer", async () => {
     await renderPublic();

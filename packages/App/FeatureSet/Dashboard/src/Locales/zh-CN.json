@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "在订阅者通知中",
   "Template Variable": "模板变量",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "在自定义订阅者通知模板中使用它来显示字段的值。它在字段创建时根据字段名称生成，字段重命名时不会改变。",
-  "{{field}} must be checked.": "必须勾选 {{field}}。"
+  "{{field}} must be checked.": "必须勾选 {{field}}。",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "从此模板声明的事件一开始具有的自定义字段值。在“详情”步骤中要求填写的字段，在声明事件时仍可更改。",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "在事件的备注中使用此模板时，这些占位符会填入事件的值。没有值的占位符会按原样保留。",
+  "Affected Status Pages": "受影响的状态页面",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "事件的自定义字段，使用事件自定义字段设置中显示的模板变量"
 }

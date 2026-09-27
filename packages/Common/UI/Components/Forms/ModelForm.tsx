@@ -77,6 +77,24 @@ export enum FormType {
   Update,
 }
 
+/*
+ * Runs on a Create form just before the request goes out, with the model built
+ * from the form's model columns and the misc data the request will carry (the
+ * same object: what the hook adds or removes there is what is sent).
+ *
+ * `formValues` is every value the form holds, exactly as submitted - the
+ * inputs that are not model columns included. Read those values from here
+ * rather than from `miscDataProps`, which keeps only the truthy ones: a
+ * number input holding 0 or a switch left off would otherwise vanish.
+ */
+export type ModelFormOnBeforeCreate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = (
+  item: TBaseModel,
+  miscDataProps: JSONObject,
+  formValues: JSONObject,
+) => Promise<TBaseModel>;
+
 export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
   extends Field<TBaseModel> {
   overrideField?:
@@ -125,9 +143,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
@@ -1066,7 +1082,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
       ) as TBaseModel;
 
       if (props.onBeforeCreate && props.formType === FormType.Create) {
-        tBaseModel = await props.onBeforeCreate(tBaseModel, miscDataProps);
+        tBaseModel = await props.onBeforeCreate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
       }
 
       result = await modelAPI.createOrUpdate<TBaseModel>({

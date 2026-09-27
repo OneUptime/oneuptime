@@ -41,6 +41,7 @@ type RecordedFeedProps = {
     generate: (data: { template?: string }) => Promise<string>;
   };
   siblingRoute?: { toString: () => string };
+  templateVariables?: () => Promise<Record<string, string>>;
 };
 
 let feedRenders: Array<RecordedFeedProps> = [];
@@ -136,6 +137,7 @@ import ScheduledMaintenanceInternalNote from "../../../Models/DatabaseModels/Sch
 import ScheduledMaintenanceNoteTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -169,6 +171,8 @@ interface NotePageCase {
       }
     | undefined;
   siblingPath?: string | undefined;
+  // Fills a picked template's {{incident.title}}-style placeholders.
+  fillsIncidentPlaceholders?: boolean | undefined;
 }
 
 const INCIDENTS: string = `/dashboard/${PROJECT_ID}/incidents`;
@@ -193,6 +197,7 @@ const PAGES: Array<NotePageCase> = [
       templates: PUBLIC_NOTE_TEMPLATES,
     },
     siblingPath: `${INCIDENTS}/${EVENT_ID}/internal-notes`,
+    fillsIncidentPlaceholders: true,
   },
   {
     name: "incident private notes",
@@ -211,6 +216,7 @@ const PAGES: Array<NotePageCase> = [
       templates: INTERNAL_NOTE_TEMPLATES,
     },
     siblingPath: `${INCIDENTS}/${EVENT_ID}/public-notes`,
+    fillsIncidentPlaceholders: true,
   },
   {
     name: "alert private notes",
@@ -434,6 +440,76 @@ describe.each(PAGES)("$name", (page: NotePageCase) => {
       await renderPage();
 
       expect(feed().ai).toBeUndefined();
+    });
+  }
+
+  if (page.fillsIncidentPlaceholders) {
+    test("fills a picked template's placeholders from this incident", async () => {
+      await renderPage();
+
+      getItemMock.mockImplementation(async (...args: Array<unknown>) => {
+        const request: { modelType: unknown; id: ObjectID } = args[0] as {
+          modelType: unknown;
+          id: ObjectID;
+        };
+
+        if (request.modelType !== Incident) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = request.id.toString();
+        incident.title = `Incident ${request.id.toString()}`;
+        return incident;
+      });
+      // The status pages and custom fields cannot be read here.
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValue(
+          new HTTPErrorResponse(403, { message: "No access." }, {}),
+        );
+
+      expect(typeof feed().templateVariables).toBe("function");
+
+      const variables: Record<string, string> =
+        await feed().templateVariables!();
+
+      expect(variables["incident.title"]).toBe(`Incident ${EVENT_ID}`);
+
+      const incidentRequest: { select: Record<string, unknown> } =
+        getItemMock.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as {
+              modelType: unknown;
+              id: ObjectID;
+              select: Record<string, unknown>;
+            };
+          })
+          .find(
+            (request: {
+              modelType: unknown;
+              id: ObjectID;
+              select: Record<string, unknown>;
+            }) => {
+              return (
+                request.modelType === Incident &&
+                request.id.toString() === EVENT_ID &&
+                Boolean(request.select["title"])
+              );
+            },
+          )!;
+
+      expect(incidentRequest.select).toMatchObject({
+        title: true,
+        customFields: true,
+        labels: { name: true },
+      });
+    });
+  } else {
+    test("leaves template placeholders as written", async () => {
+      await renderPage();
+
+      expect(feed().templateVariables).toBeUndefined();
     });
   }
 

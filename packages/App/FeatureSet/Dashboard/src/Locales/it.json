@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "Nelle notifiche agli iscritti",
   "Template Variable": "Variabile del modello",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Usala in un modello personalizzato di notifica agli iscritti per mostrare il valore del campo. Viene ricavata dal nome del campo quando il campo viene creato e non cambia quando il campo viene rinominato.",
-  "{{field}} must be checked.": "{{field}} deve essere spuntato."
+  "{{field}} must be checked.": "{{field}} deve essere spuntato.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "I valori dei campi personalizzati con cui inizia un incidente dichiarato da questo modello. I campi richiesti nel passaggio Dettagli possono ancora essere modificati quando l'incidente viene dichiarato.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Quando questo modello viene usato nelle note di un incidente, questi segnaposto vengono compilati con i valori dell'incidente. Un segnaposto senza valore resta come è scritto.",
+  "Affected Status Pages": "Pagine di stato interessate",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Un campo personalizzato dell'incidente, tramite la variabile del modello mostrata nelle impostazioni dei campi personalizzati degli incidenti"
 }

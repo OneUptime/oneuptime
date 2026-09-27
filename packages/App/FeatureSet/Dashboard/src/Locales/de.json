@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "In Abonnentenbenachrichtigungen",
   "Template Variable": "Vorlagenvariable",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Verwenden Sie dies in einer benutzerdefinierten Vorlage für Abonnentenbenachrichtigungen, um den Wert des Feldes anzuzeigen. Es wird beim Erstellen des Feldes aus seinem Namen gebildet und ändert sich nicht, wenn das Feld umbenannt wird.",
-  "{{field}} must be checked.": "{{field}} muss angehakt sein."
+  "{{field}} must be checked.": "{{field}} muss angehakt sein.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "Die Werte der benutzerdefinierten Felder, mit denen ein aus dieser Vorlage gemeldeter Vorfall beginnt. Felder, die im Schritt „Details“ abgefragt werden, können beim Melden des Vorfalls noch geändert werden.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Wenn diese Vorlage in den Notizen eines Vorfalls verwendet wird, werden diese Platzhalter mit den Werten des Vorfalls ausgefüllt. Ein Platzhalter ohne Wert bleibt so stehen, wie er geschrieben ist.",
+  "Affected Status Pages": "Betroffene Statusseiten",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Ein benutzerdefiniertes Feld des Vorfalls, über die Vorlagenvariable aus den Einstellungen der benutzerdefinierten Vorfallfelder"
 }

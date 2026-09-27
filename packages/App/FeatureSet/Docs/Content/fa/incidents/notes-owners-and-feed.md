@@ -76,6 +76,8 @@
 
 قالب‌ها میان یادداشت‌های عمومی و خصوصی مشترک‌اند: یک فهرست قالب به هر دو خدمت می‌کند، و همان قالب را می‌توان در هر نوعی از یادداشت درج کرد.
 
+جای‌نگهدارهای یک قالب — `{{incident.title}}`، `{{incident.state}}`، `{{customFields.impact}}` و دیگرانی که زیر [قالب‌های یادداشت](/docs/incidents/settings) فهرست شده‌اند — هنگام برگزیدن قالب با مقادیر فعلی حادثه پر می‌شوند، هم در صفحه‌های یادداشت و هم در پنجره‌های **Acknowledge** و **Resolve**. آنچه پیش‌تر تایپ کرده بودید هرگز تغییر نمی‌کند، و جای‌نگهدار بی‌مقدار همان‌طور که نوشته شده باقی می‌ماند.
+
 آن‌ها را در **Incidents → Settings → Note Templates** مدیریت می‌کنید — کارت با عنوان **Public or Private Note Templates for Incidents** است و فرمش گام **Template Info** (‏**Template Name** و **Template Description**، هر دو الزامی) و گام **Note Details** برای بدنه دارد. اگر پیش از ساختن هیچ‌کدام **Create from Template** را بزنید، OneUptime می‌گوید هنوز هیچ‌کدام وجود ندارد؛ توجه کنید پیام به Project Settings اشاره می‌کند، اما صفحه واقعاً زیر **Incidents → Settings → Note Templates** زندگی می‌کند.
 
 ## انتشار یادداشت از Slack یا Microsoft Teams

@@ -78,6 +78,8 @@ If your team writes the same three updates every outage, save them once. Both no
 
 Templates are shared between public and private notes: a single template list serves both, and the same template can be inserted into either kind of note.
 
+Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written.
+
 You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. If you click **Create from Template** before creating any, OneUptime tells you none exist yet; note that the message points at Project Settings, but the page actually lives under **Incidents → Settings → Note Templates**.
 
 ## Posting notes from Slack or Microsoft Teams

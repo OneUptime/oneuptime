@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "In meldingen aan abonnees",
   "Template Variable": "Sjabloonvariabele",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Gebruik dit in een aangepast sjabloon voor abonneemeldingen om de waarde van het veld te tonen. Het wordt bij het aanmaken van het veld uit de naam gemaakt en verandert niet wanneer het veld wordt hernoemd.",
-  "{{field}} must be checked.": "{{field}} moet aangevinkt zijn."
+  "{{field}} must be checked.": "{{field}} moet aangevinkt zijn.",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "De waarden van de aangepaste velden waarmee een incident dat vanuit dit sjabloon wordt gemeld begint. Velden die in de stap Details worden gevraagd, kunnen bij het melden van het incident nog worden gewijzigd.",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "Wanneer dit sjabloon in de notities van een incident wordt gebruikt, worden deze tijdelijke aanduidingen ingevuld met de waarden van het incident. Een tijdelijke aanduiding zonder waarde blijft staan zoals die is geschreven.",
+  "Affected Status Pages": "Getroffen statuspagina's",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "Een aangepast veld van het incident, via de sjabloonvariabele uit de instellingen voor aangepaste incidentvelden"
 }

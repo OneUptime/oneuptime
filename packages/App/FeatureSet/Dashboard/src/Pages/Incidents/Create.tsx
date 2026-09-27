@@ -10,10 +10,14 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
@@ -112,6 +116,22 @@ import {
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import Link from "Common/UI/Components/Link/Link";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  buildCustomFieldModelFormFields,
+  getCustomFieldFormInitialValues,
+  packCustomFieldFormValues,
+  removeCustomFieldFormKeys,
+} from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
+import { keepValidCustomFieldValues } from "Common/Types/CustomField/CustomFieldValueValidator";
+import {
+  fetchIncidentCustomFieldDefinitions,
+  getDetailsStepDefinitions,
+  IncidentCustomFieldDefinition,
+  INCIDENT_DETAILS_STEP_ID,
+  INCIDENT_DETAILS_STEP_TITLE,
+  isAskedOnIncidentForm,
+} from "../../Components/Incident/IncidentCustomFieldDefinitions";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -309,6 +329,24 @@ const IncidentCreate: FunctionComponent<
     useState<JSONObject>({});
 
   /*
+   * The project's incident custom fields. The ones marked "Show on Create"
+   * are asked for in the Details step; the form waits for them, because it
+   * latches its steps and initial values on first render. A project that
+   * cannot read them (no custom fields on its plan, or no permission) simply
+   * gets no Details step.
+   */
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<
+    Array<IncidentCustomFieldDefinition>
+  >([]);
+  const [isLoadingCustomFieldDefinitions, setIsLoadingCustomFieldDefinitions] =
+    useState<boolean>(true);
+
+  // The custom field values of the template the incident is declared from.
+  const [templateCustomFields, setTemplateCustomFields] = useState<JSONObject>(
+    {},
+  );
+
+  /*
    * The alerts this incident is being declared from (`?alertIds=`), in the
    * order the link listed them. Only alerts that could be read are kept: the
    * server refuses the whole declaration over an alert it cannot find, so an
@@ -350,6 +388,8 @@ const IncidentCreate: FunctionComponent<
   >(new Map());
 
   useEffect(() => {
+    loadCustomFieldDefinitions();
+
     const incidentTemplateId: string | null =
       Navigation.getQueryStringByName("incidentTemplateId");
 
@@ -371,6 +411,18 @@ const IncidentCreate: FunctionComponent<
       setIsLoading(false);
     }
   }, []);
+
+  const loadCustomFieldDefinitions: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setCustomFieldDefinitions(await fetchIncidentCustomFieldDefinitions());
+      } catch {
+        // Declaring an incident never waits on its custom fields.
+        setCustomFieldDefinitions([]);
+      }
+
+      setIsLoadingCustomFieldDefinitions(false);
+    };
 
   const getFirstIncidentStateId: () => Promise<
     string | null
@@ -731,8 +783,18 @@ const IncidentCreate: FunctionComponent<
           // Declaring from a template that has status pages scopes the incident.
           statusPages: true,
           isScopedToStatusPages: true,
+          // Its custom field values: the Details step starts from them.
+          customFields: true,
         },
       });
+
+    setTemplateCustomFields(
+      incidentTemplate?.customFields &&
+        typeof incidentTemplate.customFields === "object" &&
+        !Array.isArray(incidentTemplate.customFields)
+        ? incidentTemplate.customFields
+        : {},
+    );
 
     /*
      * A template limited to status pages that have all been deleted since:
@@ -858,6 +920,14 @@ const IncidentCreate: FunctionComponent<
         ),
       };
 
+      /*
+       * The template's custom field values reach the form through the
+       * Details step's own inputs (see formInitialValues), and the incident
+       * through onBeforeCreate, which merges them - not as a bag the form
+       * would carry along unseen.
+       */
+      delete initialValue["customFields"];
+
       return initialValue;
     }
 
@@ -880,6 +950,77 @@ const IncidentCreate: FunctionComponent<
     acknowledgeGate.isAllowed &&
     shouldAcknowledgeAlerts;
 
+  // The fields the Details step asks for.
+  const detailsStepDefinitions: Array<IncidentCustomFieldDefinition> =
+    useMemo(() => {
+      return getDetailsStepDefinitions(customFieldDefinitions);
+    }, [customFieldDefinitions]);
+
+  /*
+   * What the incident's custom fields start as: the template's values, less
+   * any that no longer fit their field (an option removed since, say). Sent
+   * as they are, one stale value would refuse the declaration over a field
+   * the person may not even be asked about.
+   */
+  const startingCustomFields: JSONObject = useMemo(() => {
+    return keepValidCustomFieldValues({
+      definitions: customFieldDefinitions,
+      customFields: templateCustomFields,
+    }) as JSONObject;
+  }, [customFieldDefinitions, templateCustomFields]);
+
+  /*
+   * One identity per load: the form latches its initial values once, and a
+   * new object on every render would only make it look again.
+   */
+  const formInitialValues: JSONObject = useMemo(() => {
+    return {
+      ...initialValuesForIncident,
+      ...getCustomFieldFormInitialValues({
+        definitions: detailsStepDefinitions,
+        customFields: startingCustomFields,
+      }),
+    };
+  }, [initialValuesForIncident, detailsStepDefinitions, startingCustomFields]);
+
+  /*
+   * The Details step: each "Show on Create" field, in its order, required
+   * where it is "Required on Create" - a required yes/no field must be
+   * ticked. A field mapped from a monitor field is not asked once the
+   * incident has a monitor, since the value is copied from the monitor.
+   */
+  const detailsStepFields: Array<ModelField<Incident>> = useMemo(() => {
+    return buildCustomFieldModelFormFields<Incident>({
+      definitions: detailsStepDefinitions,
+      enforceRequiredOnCreate: true,
+      stepId: INCIDENT_DETAILS_STEP_ID,
+      isShown: isAskedOnIncidentForm,
+    });
+  }, [detailsStepDefinitions]);
+
+  // No step at all when there is nothing to ask.
+  const detailsSteps: Array<FormStep<Incident>> =
+    detailsStepDefinitions.length > 0
+      ? [
+          {
+            title: INCIDENT_DETAILS_STEP_TITLE,
+            id: INCIDENT_DETAILS_STEP_ID,
+            showIf: (values: FormValues<Incident>): boolean => {
+              return detailsStepDefinitions.some(
+                (definition: IncidentCustomFieldDefinition): boolean => {
+                  return isAskedOnIncidentForm(
+                    definition,
+                    (values || {}) as JSONObject,
+                  );
+                },
+              );
+            },
+          },
+        ]
+      : [];
+
+  const isPageLoading: boolean = isLoading || isLoadingCustomFieldDefinitions;
+
   return (
     <Fragment>
       <Card
@@ -890,9 +1031,9 @@ const IncidentCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !error && alertsToLink.length > 0 && (
+          {!isPageLoading && !error && alertsToLink.length > 0 && (
             <AlertBanner
               className="mb-5"
               dataTestId="incident-create-alerts-to-link"
@@ -1047,7 +1188,7 @@ const IncidentCreate: FunctionComponent<
               }
             />
           )}
-          {!isLoading &&
+          {!isPageLoading &&
             !error &&
             alertsToLink.length === 0 &&
             missingAlertCount > 0 && (
@@ -1059,16 +1200,37 @@ const IncidentCreate: FunctionComponent<
                 title="None of the alerts this incident was being declared from could be found, so none will be linked. They may have been deleted, or you may not have access to them."
               />
             )}
-          {!isLoading && !error && (
+          {!isPageLoading && !error && (
             <ModelForm<Incident>
               modelType={Incident}
-              initialValues={initialValuesForIncident}
+              initialValues={formInitialValues}
               name="Create New Incident"
               id="create-incident-form"
               onBeforeCreate={async (
                 item: Incident,
                 miscDataProps: JSONObject,
+                formValues: JSONObject,
               ): Promise<Incident> => {
+                /*
+                 * The Details step's answers, from the values the form
+                 * submitted - a Number of 0 and an unticked box included -
+                 * over the template's values, which fill in every field the
+                 * step does not ask about. They travel in customFields only.
+                 */
+                const customFields: JSONObject | undefined =
+                  packCustomFieldFormValues({
+                    definitions: detailsStepDefinitions,
+                    formValues: formValues,
+                    startingCustomFields: startingCustomFields,
+                    isShown: isAskedOnIncidentForm,
+                  });
+
+                removeCustomFieldFormKeys(miscDataProps);
+
+                if (customFields) {
+                  item.customFields = customFields;
+                }
+
                 /*
                  * ModelForm sends this same object as the request's
                  * miscDataProps. The server checks the ids before it creates
@@ -1474,6 +1636,7 @@ const IncidentCreate: FunctionComponent<
                     return false;
                   },
                 },
+                ...detailsStepFields,
                 {
                   overrideField: {
                     incidentRoles: true,
@@ -1747,6 +1910,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Resources Affected",
                   id: "resources-affected",
                 },
+                ...detailsSteps,
                 {
                   title: "Incident Roles",
                   id: "incident-roles",

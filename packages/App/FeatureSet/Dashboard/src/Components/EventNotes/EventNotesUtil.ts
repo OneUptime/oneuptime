@@ -10,6 +10,10 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import {
+  fillNoteTemplate,
+  NoteTemplateVariables,
+} from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 
 /*
  * Everything the notes feed decides without React: which date a note is
@@ -275,16 +279,24 @@ export function isNoteBlank(text: string | undefined | null): boolean {
 /*
  * Picking a template never throws away what someone already typed: an empty
  * draft takes the template, anything else gets it appended after a blank line.
+ *
+ * With `variables`, the template's {{placeholders}} are filled in first
+ * ({{incident.title}}, {{customFields.impact}}...; see
+ * IncidentNoteTemplateVariables). Only the template's: what was already typed
+ * is left exactly as it is. A placeholder with no value stays as written.
  */
 export function applyTemplateToDraft(
   draft: string | undefined | null,
   templateNote: string,
+  variables?: NoteTemplateVariables | null | undefined,
 ): string {
+  const note: string = fillNoteTemplate(templateNote, variables);
+
   if (isNoteBlank(draft)) {
-    return templateNote;
+    return note;
   }
 
-  return `${(draft || "").trimEnd()}\n\n${templateNote}`;
+  return `${(draft || "").trimEnd()}\n\n${note}`;
 }
 
 export function buildNotesQuery(data: {

@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { NoteTemplateVariables } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 import GenerateFromAIModal, {
   AITemplate,
   GenerateAIRequestData,
@@ -115,6 +116,14 @@ export interface ComponentProps<TNote extends BaseModel> {
   attachmentApiPath?: string | undefined;
   subscriberNotifications?: EventNotesSubscriberConfig | undefined;
   templates?: EventNotesTemplatesConfig | undefined;
+  /*
+   * The values for the {{placeholders}} in a picked template
+   * ({{incident.title}}, {{customFields.impact}}...), read each time a
+   * template is picked so they are the event's values at that moment. A
+   * placeholder with no value - or every one, when this is left out or the
+   * values cannot be read - is put in the draft as written.
+   */
+  templateVariables?: (() => Promise<NoteTemplateVariables>) | undefined;
   ai?: EventNotesAIConfig | undefined;
   // The other kind of note's page for the same event.
   siblingRoute?: Route | undefined;
@@ -412,14 +421,44 @@ function EventNotes<TNote extends BaseModel>(
     setIsComposerOpen(options.isOpen);
   };
 
-  const insertIntoDraft: (text: string) => void = (text: string): void => {
+  const insertIntoDraft: (
+    text: string,
+    variables?: NoteTemplateVariables | undefined,
+  ) => void = (
+    text: string,
+    variables?: NoteTemplateVariables | undefined,
+  ): void => {
     setDraft((current: NoteComposerValues) => {
-      return { ...current, note: applyTemplateToDraft(current.note, text) };
+      return {
+        ...current,
+        note: applyTemplateToDraft(current.note, text, variables),
+      };
     });
     setComposerRevision((revision: number) => {
       return revision + 1;
     });
     setIsComposerOpen(true);
+  };
+
+  /*
+   * A template goes in with its placeholders filled. Reading the values must
+   * never cost the author the template: if it fails, the template goes in as
+   * written and they fill the placeholders in by hand.
+   */
+  const insertTemplateIntoDraft: (
+    templateNote: string,
+  ) => Promise<void> = async (templateNote: string): Promise<void> => {
+    let variables: NoteTemplateVariables | undefined = undefined;
+
+    if (props.templateVariables) {
+      try {
+        variables = await props.templateVariables();
+      } catch {
+        variables = undefined;
+      }
+    }
+
+    insertIntoDraft(templateNote, variables);
   };
 
   const postNote: () => Promise<void> = async (): Promise<void> => {
@@ -660,7 +699,7 @@ function EventNotes<TNote extends BaseModel>(
           settingsRoute={props.templates.settingsRoute}
           isOpeningUpwards={isComposerOpen}
           onPick={(template: NoteTemplateOption) => {
-            insertIntoDraft(template.note);
+            void insertTemplateIntoDraft(template.note);
           }}
         />
       )}

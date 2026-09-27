@@ -439,3 +439,50 @@ export const formatCustomFieldValueValidationErrors: FormatCustomFieldValueValid
       })
       .join(" ");
   };
+
+export type KeepValidCustomFieldValuesFunction = (data: {
+  definitions: Array<CustomFieldDefinition>;
+  customFields: unknown;
+}) => Record<string, unknown>;
+
+/**
+ * The values of a bag that a create would accept, each judged on its own as
+ * if it were new: an option since removed from a dropdown, or a word in a
+ * Number field, is left out.
+ *
+ * For a bag copied onto a new record from elsewhere - an incident template's
+ * values, when an incident is declared from it. Those were written long
+ * before the incident and may no longer fit their fields; sent as they are,
+ * one stale value would refuse the whole declaration over a field the person
+ * declaring may not even be shown. Keys with no definition, and empty values,
+ * are kept, as validateCustomFieldValues passes them.
+ */
+export const keepValidCustomFieldValues: KeepValidCustomFieldValuesFunction =
+  (data: {
+    definitions: Array<CustomFieldDefinition>;
+    customFields: unknown;
+  }): Record<string, unknown> => {
+    if (!isPlainObject(data.customFields)) {
+      return {};
+    }
+
+    const invalidFieldNames: Set<string> = new Set<string>(
+      validateCustomFieldValues({
+        definitions: data.definitions,
+        customFields: data.customFields,
+        storedCustomFields: {},
+      }).map((error: CustomFieldValueValidationError) => {
+        return error.fieldName;
+      }),
+    );
+
+    const result: Record<string, unknown> = {};
+
+    for (const [fieldName, value] of Object.entries(data.customFields)) {
+      if (!invalidFieldNames.has(fieldName)) {
+        result[fieldName] = value;
+      }
+    }
+
+    return result;
+  };

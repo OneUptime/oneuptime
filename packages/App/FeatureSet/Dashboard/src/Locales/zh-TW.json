@@ -6588,5 +6588,9 @@
   "In Subscriber Notifications": "在訂閱者通知中",
   "Template Variable": "範本變數",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "在自訂訂閱者通知範本中使用它來顯示欄位的值。它在欄位建立時依欄位名稱產生，欄位重新命名時不會改變。",
-  "{{field}} must be checked.": "必須勾選 {{field}}。"
+  "{{field}} must be checked.": "必須勾選 {{field}}。",
+  "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "從此範本宣告的事件一開始具有的自訂欄位值。在「詳細資料」步驟中要求填寫的欄位，在宣告事件時仍可變更。",
+  "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "在事件的備註中使用此範本時，這些預留位置會填入事件的值。沒有值的預留位置會按原樣保留。",
+  "Affected Status Pages": "受影響的狀態頁面",
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "事件的自訂欄位，使用事件自訂欄位設定中顯示的範本變數"
 }

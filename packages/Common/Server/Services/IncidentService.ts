@@ -12,6 +12,7 @@ import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
+import { mergeTemplateCustomFields } from "../../Types/CustomField/CustomFieldTemplateMerge";
 import {
   CustomFieldValueValidationError,
   formatCustomFieldValueValidationErrors,
@@ -2066,6 +2067,7 @@ export class Service extends DatabaseService<Model> {
             labels: { _id: true },
             statusPages: { _id: true },
             isScopedToStatusPages: true,
+            customFields: true,
           },
           props: {
             isRoot: true,
@@ -2234,6 +2236,24 @@ export class Service extends DatabaseService<Model> {
              */
             isScopedToNothingByTemplate = true;
           }
+        }
+
+        /*
+         * The template's custom field values fill in the fields the caller
+         * left out; a value the caller sent always wins. Merged, not
+         * replaced, so the caller's own values are never dropped. They are
+         * the template's, so the value check above (the caller's values
+         * only) does not see them, and the mapping below still has the last
+         * word on a mapped field.
+         */
+        const customFieldsWithTemplate: JSONObject | undefined =
+          mergeTemplateCustomFields({
+            templateCustomFields: incidentTemplate.customFields,
+            customFields: createBy.data.customFields,
+          });
+
+        if (customFieldsWithTemplate) {
+          createBy.data.customFields = customFieldsWithTemplate;
         }
       }
     }

@@ -346,6 +346,49 @@ describe("applyTemplateToDraft", () => {
       "We saw errors.\n\nInvestigating.",
     );
   });
+
+  describe("with values for the template's placeholders", () => {
+    const TEMPLATE: string =
+      "**Incident**: {{incident.title}} ({{incident.severity}})\n**Impact**: {{customFields.impact}}\n**Owner**: {{incident.owner}}";
+
+    const VARIABLES: Record<string, string> = {
+      "incident.title": "Payments are failing",
+      "incident.severity": "Critical",
+      "customFields.impact": "High",
+    };
+
+    test("fills the known placeholders and leaves the unknown ones as written", () => {
+      expect(applyTemplateToDraft("", TEMPLATE, VARIABLES)).toBe(
+        "**Incident**: Payments are failing (Critical)\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+
+    test("fills only the template, never what was already typed", () => {
+      expect(
+        applyTemplateToDraft(
+          "Seen as {{incident.title}} in the logs.",
+          "Update: {{incident.title}}",
+          VARIABLES,
+        ),
+      ).toBe(
+        "Seen as {{incident.title}} in the logs.\n\nUpdate: Payments are failing",
+      );
+    });
+
+    test("a placeholder whose value is empty is filled with nothing", () => {
+      expect(
+        applyTemplateToDraft("", "Labels: {{incident.labels}}.", {
+          "incident.labels": "",
+        }),
+      ).toBe("Labels: .");
+    });
+
+    test("no values, or none at all, leave the template as written", () => {
+      expect(applyTemplateToDraft("", TEMPLATE, {})).toBe(TEMPLATE);
+      expect(applyTemplateToDraft("", TEMPLATE, undefined)).toBe(TEMPLATE);
+      expect(applyTemplateToDraft("", TEMPLATE, null)).toBe(TEMPLATE);
+    });
+  });
 });
 
 describe("buildNotesQuery", () => {

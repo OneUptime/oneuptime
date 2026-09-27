@@ -21,9 +21,9 @@ You can also declare an incident from alerts: **Declare Incident** on an alerts 
 
 ## Declaring one by hand
 
-Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. The submit button at the end also reads **Declare Incident**.
+Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. When your project asks for some of its incident custom fields on create, a sixth step, **Details**, comes right after **Resources Affected**. The submit button at the end also reads **Declare Incident**.
 
-Only the first step has required fields. If you are in a hurry, fill in **Incident Details** and submit — you can attach resources, assign roles and add on-call policies from the incident's own pages afterwards.
+Only the first step has required fields, plus any custom field your admins marked **Required on Create**. If you are in a hurry, fill in **Incident Details** and submit — you can attach resources, assign roles and add on-call policies from the incident's own pages afterwards.
 
 ### Step 1 — Incident Details
 
@@ -42,6 +42,17 @@ Only the first step has required fields. If you are in a hurry, fill in **Incide
 - **Change Monitor Status to** — optional. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. A monitor's status is shared by every status page that lists it, so with status pages picked above, the form reminds you that the change also shows on the pages you did not pick.
 
 **Attach monitors even when it feels redundant.** The link between an incident and a status page runs through the incident's monitors: a status page shows an incident, and notifies its subscribers about it, when one of its resources is one of the incident's monitors. **Limit to these status pages** can only narrow that list, never add to it, and a status page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. An incident with no monitors attached notifies no status page subscriber at all. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups).
+
+### Details — your incident custom fields
+
+This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields**. It asks for those fields, in their **Order** (fields without one come last), with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor.
+
+- A field marked **Required on Create** must be filled in before you can declare. A required yes/no field — an acknowledgement, say — must be switched on.
+- A 0 or a switch left off is an answer, and is saved as one.
+- A field whose value is copied from a monitor custom field is not asked once the incident has a monitor, because the value is copied from the monitor when the incident is created.
+- Declaring from a template starts the step with the template's values, and the template's values for fields the step does not ask about are kept as they are. A value you clear on the step stays cleared. A template value that no longer fits its field — a dropdown option removed since — is left out rather than refusing the incident.
+
+**Required on Create** is checked by the dashboard only. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can leave a field empty, and every field stays optional on the incident's **Custom Fields** page afterwards, so fixing one value mid-outage never demands all the others.
 
 ### Step 3 — Incident Roles
 
@@ -71,7 +82,7 @@ If you keep declaring the same shape of incident — the same title pattern, the
 
 Click **Create from Template** (the outline button next to **Declare Incident**) and a **Create Incident from Template** modal opens, with a **Select Incident Template** dropdown. Pick a template and the create form opens pre-filled; you can still change anything before submitting. If your project has no templates yet, you get a **No Incident Templates** modal instead, with a **Create Template** button that takes you to **Incidents → Settings → Incident Templates**.
 
-Templates are built with their own six-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call**, **Owners**, **Labels** — with these fields:
+Templates are built with their own six-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call**, **Owners**, **Labels** — plus a **Custom Fields** step after **Resources Affected** when your project has incident custom fields. These are the fields:
 
 | Field                           | Purpose                                                |
 | ------------------------------- | ------------------------------------------------------ |
@@ -88,11 +99,14 @@ Templates are built with their own six-step wizard — **Template Info**, **Inci
 | **Owner - Teams**               | Teams that own incidents created from this template.   |
 | **Owner - Users**               | Users that own incidents created from this template.   |
 | **Labels**                      | Labels applied to the incident.                        |
+| **Custom Fields**               | Values for the incident's custom fields.               |
 
 A few quick rules:
 
 - Templates are not editable from the templates list — you create one, then open it to change it.
 - A template only fills a field you left empty. On the create page the template is applied as a pre-fill you can overwrite; on the API, the server fills a field from the template only when the request left that field `undefined`. Whatever the caller supplied always wins.
+- Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
+- An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
 
 ## Declaring automatically from monitor criteria
 
