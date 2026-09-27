@@ -88,15 +88,26 @@ Envía un mensaje a un chat de Telegram usando un token de bot y un ID de chat.
 
 ## Correo electrónico
 
-Envía un correo a través de OneUptime.
+Envía un correo a través de un servidor SMTP que introduces en el bloque.
 
 **Settings**:
 
-- **Para** — la dirección de correo del destinatario.
-- **Asunto** — la línea de asunto.
-- **Body** — el mensaje, en Markdown o HTML.
+- **From Email** — el remitente, por ejemplo `Alerts <alerts@company.com>`.
+- **To Email** — la dirección de correo del destinatario. Separa varias direcciones con comas o puntos y coma.
+- **Subject** — la línea de asunto.
+- **Email Body** — el mensaje, que se envía como HTML.
+- **SMTP Host** y **SMTP Port** — el servidor de correo al que conectarse.
+- **SMTP Username** y **SMTP Password** — opcionales. Rellena los dos o ninguno.
+- **Use Implicit TLS** — actívalo para TLS implícito, normalmente en el puerto 465. Déjalo desactivado para STARTTLS, normalmente en el puerto 587.
 
-El correo sale desde el remitente configurado en tu proyecto — consulta [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Success** — se activa cuando el servidor SMTP aceptó el mensaje.
+- **Error** — se activa cuando se rechaza el host SMTP, no se puede contactar con el servidor o este rechaza el mensaje. Pasa adelante el mensaje de error. En cambio, si falta **To Email**, **From Email**, **SMTP Host** o **SMTP Port**, la ejecución se detiene.
+
+El bloque se conecta directamente al servidor indicado en su configuración. No usa los ajustes de [SMTP](/docs/emails/smtp) de tu proyecto ni el propio servidor de correo de OneUptime, y los correos que envía no aparecen en Registros de notificación. Para comprobar qué hizo, consulta las [Ejecuciones y registros](/docs/workflows/runs-and-logs) del flujo de trabajo.
+
+Las conexiones a direcciones de loopback (`localhost`, `127.0.0.1`), link-local y de metadatos de nube se rechazan. En OneUptime Cloud también se rechaza un host SMTP en una dirección de red privada, o un nombre que se resuelva a una. Las instalaciones autoalojadas pueden llegar a un servidor de correo de su propia red, salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esté establecido en `true`. Un host rechazado toma la salida **Error**, y no se envía nada.
 
 ## Custom Code
 

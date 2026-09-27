@@ -88,15 +88,26 @@ Stuur een bericht naar een Telegram-chat met een bottoken en een chat-ID.
 
 ## E-mail
 
-Verstuur een e-mail via OneUptime.
+Verstuur een e-mail via een SMTP-server die je in het blok invult.
 
 **Instellingen**:
 
-- **Aan** — het e-mailadres van de ontvanger.
-- **Onderwerp** — de onderwerpregel.
-- **Body** — het bericht in Markdown of HTML.
+- **From Email** — de afzender, bijvoorbeeld `Alerts <alerts@company.com>`.
+- **To Email** — het e-mailadres van de ontvanger. Scheid meerdere adressen met komma's of puntkomma's.
+- **Subject** — de onderwerpregel.
+- **Email Body** — het bericht, verstuurd als HTML.
+- **SMTP Host** en **SMTP Port** — de mailserver waarmee verbinding wordt gemaakt.
+- **SMTP Username** en **SMTP Password** — optioneel. Vul ze allebei in of geen van beide.
+- **Use Implicit TLS** — zet dit aan voor impliciete TLS, meestal op poort 465. Laat het uit voor STARTTLS, meestal op poort 587.
 
-De e-mail vertrekt vanaf de afzender die voor je project is ingesteld — zie [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Succes** — gaat af wanneer de SMTP-server het bericht accepteerde.
+- **Fout** — gaat af wanneer de SMTP-host wordt geweigerd, de server niet bereikbaar is of de server het bericht afwijst. Geeft de foutmelding door. Ontbreekt **To Email**, **From Email**, **SMTP Host** of **SMTP Port**, dan stopt in plaats daarvan de run.
+
+Het blok maakt rechtstreeks verbinding met de server uit zijn instellingen. Het gebruikt niet de [SMTP](/docs/emails/smtp)-instellingen van je project en ook niet de eigen mailserver van OneUptime, en de e-mails die het verstuurt, verschijnen niet in de Meldingslogboeken. Wil je nagaan wat het deed, kijk dan bij de [uitvoeringen en logboeken](/docs/workflows/runs-and-logs) van de workflow.
+
+Verbindingen met loopback-adressen (`localhost`, `127.0.0.1`), link-local-adressen en cloud-metadata-adressen worden geweigerd. Op OneUptime Cloud wordt ook een SMTP-host op een privénetwerkadres geweigerd, of een naam die naar zo'n adres wordt omgezet. Zelf gehoste installaties kunnen een mailserver in hun eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat. Een geweigerde host gaat naar de **Fout**-output, en er wordt niets verstuurd.
 
 ## Custom Code
 
