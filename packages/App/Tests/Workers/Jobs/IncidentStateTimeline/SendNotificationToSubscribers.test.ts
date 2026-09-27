@@ -34,13 +34,16 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -69,7 +72,12 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/IncidentStateTimelineService", () => {
   return {
     __esModule: true,
-    default: { findBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -305,6 +313,15 @@ import {
   incidentLabels,
 } from "../Fixtures/IncidentCustomFieldFixtures";
 import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -545,12 +562,17 @@ function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
 function statusWrites(): Array<JSONObject> {
-  return mock(IncidentStateTimelineService.updateOneById).mock.calls.map(
-    (call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    },
-  );
+  return statusWritesInOrder({
+    claim: IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentStateTimelineService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function sentMail(): Array<JSONObject> {
@@ -858,6 +880,10 @@ beforeEach(() => {
   mock(IncidentStateTimelineService.updateOneById).mockResolvedValue(
     1 as never,
   );
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
 
   mock(IncidentService.findOneById).mockImplementation(
     async (args: unknown): Promise<Incident | null> => {
@@ -1730,7 +1756,8 @@ describe("IncidentStateTimeline default messages", () => {
         subscriberNotificationStatus:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessage:
-          "Notifications sent successfully to all subscribers",
+          // What was sent on each status page follows (see the delivery tests).
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
     expect(feedItems()).toHaveLength(1);
@@ -1950,7 +1977,7 @@ describe("IncidentStateTimeline errors", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        "Notifications sent successfully to all subscribers",
+        "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
     });
     expect(sentMail()).toHaveLength(1);
   });
@@ -2107,7 +2134,7 @@ describe("IncidentStateTimeline:SendNotificationToSubscribers, with a status pag
     expect(sentSms()).toHaveLength(2);
   });
 
-  test("the feed item lists each page, the subject used and what was queued", async () => {
+  test("the feed item lists each page, the subject used and what was sent", async () => {
     subscribers = [
       siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
       siteSubscriber({ site: 3, index: 2, phone: "+15555550100" }),
@@ -2122,8 +2149,8 @@ describe("IncidentStateTimeline:SendNotificationToSubscribers, with a status pag
       [
         "**Status pages:**",
         "",
-        `- **Site 03**: 1 email, 1 SMS queued. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
-        "- **Site 07**: nothing queued. Not sent again to 1 email address already sent it through another status page.",
+        `- **Site 03**: 1 email, 1 SMS sent. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
+        "- **Site 07**: nothing sent. Not sent again to 1 email address already sent it through another status page.",
         "",
         "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
         "",
@@ -2417,7 +2444,7 @@ ${IMPACT_DETAILS}
       [
         "**Status pages:**",
         "",
-        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook queued. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
         "",
         EXPECTED_INCLUDED_FIELDS_FEED,
       ].join("\n"),
@@ -2499,4 +2526,54 @@ ${IMPACT_DETAILS}
       "- **Internal Ticket:** OPS\\-4411",
     );
   });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "IncidentStateTimeline:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingTimelines = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: IncidentStateTimeline = stateTimeline(
+        index > 0 ? { id: ObjectID.generate() } : undefined,
+      );
+      row.version = PENDING_ROW_VERSION;
+      pendingTimelines.push(row);
+    }
+
+    return pendingTimelines.map((row: IncidentStateTimeline): ObjectID => {
+      return row.id!;
+    });
+  },
+  statusColumn: "subscriberNotificationStatus",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claim: IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentStateTimelineService.updateOneById,
+  feed: IncidentFeedService.createIncidentFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
 });

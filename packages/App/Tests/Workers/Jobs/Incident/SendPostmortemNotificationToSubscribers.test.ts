@@ -29,13 +29,16 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -70,6 +73,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       findBy: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -299,6 +304,11 @@ import {
   renderImpactDetails,
 } from "../Fixtures/IncidentCustomFieldFixtures";
 import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -605,6 +615,10 @@ beforeEach(() => {
     }) as never,
   );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+  // This run wins every claim unless a test says otherwise.
+  mock(IncidentService.compareAndSetColumnsByIdWithoutHooks).mockResolvedValue(
+    true as never,
+  );
   mock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
     URL.fromString(DASHBOARD_URL) as never,
   );
@@ -1036,7 +1050,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers, with a status page s
     expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
   });
 
-  test("the feed item lists each page, the subject used and what was queued", async () => {
+  test("the feed item lists each page, the subject used and what was sent", async () => {
     subscribers = [
       siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
       siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
@@ -1050,8 +1064,8 @@ describe("Incident:SendPostmortemNotificationToSubscribers, with a status page s
       [
         "**Status pages:**",
         "",
-        `- **Site 03**: 1 email queued. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
-        `- **Site 07**: 1 email queued. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
+        `- **Site 03**: 1 email sent. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
+        `- **Site 07**: 1 email sent. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Postmortem\\] ${INCIDENT_TITLE}".`,
         "",
         "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
         "",
@@ -1434,4 +1448,57 @@ ${IMPACT_DETAILS}
       "- **Internal Ticket:** OPS\\-4411",
     );
   });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "Incident:SendPostmortemNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingIncidents = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: Incident = incident();
+      row.version = PENDING_ROW_VERSION;
+
+      if (index > 0) {
+        row._id = ObjectID.generate().toString();
+      }
+
+      pendingIncidents.push(row);
+    }
+
+    return pendingIncidents.map((row: Incident): ObjectID => {
+      return row.id!;
+    });
+  },
+  statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
+  messageColumn: "subscriberNotificationStatusMessageOnPostmortemPublished",
+  claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentService.updateOneById,
+  feed: IncidentFeedService.createIncidentFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
 });

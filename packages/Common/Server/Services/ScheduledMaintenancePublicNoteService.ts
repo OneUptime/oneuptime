@@ -246,8 +246,9 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           {
             scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
             projectId: updatedItem.projectId!,
+            // An edit to a public note is a public note event, not a private one.
             scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.PrivateNote,
+              ScheduledMaintenanceFeedEventType.PublicNote,
             displayColor: Blue500,
             userId: userId || undefined,
 

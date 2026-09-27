@@ -32,13 +32,16 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -67,7 +70,12 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/IncidentEpisodeStateTimelineService", () => {
   return {
     __esModule: true,
-    default: { findBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -271,6 +279,15 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -481,12 +498,18 @@ function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
 function statusWrites(): Array<JSONObject> {
-  return mock(IncidentEpisodeStateTimelineService.updateOneById).mock.calls.map(
-    (call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    },
-  );
+  return statusWritesInOrder({
+    claim:
+      IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentEpisodeStateTimelineService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function sentMail(): Array<JSONObject> {
@@ -734,6 +757,10 @@ beforeEach(() => {
   mock(IncidentEpisodeStateTimelineService.updateOneById).mockResolvedValue(
     1 as never,
   );
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
 
   mock(IncidentEpisodeService.findOneById).mockImplementation(async () => {
     return storedEpisode;
@@ -956,7 +983,7 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
         subscriberNotificationStatus:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessage:
-          "Notifications sent successfully to all subscribers",
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
     expect(feedItems()).toHaveLength(1);
@@ -1216,7 +1243,8 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        "Notifications sent successfully to all subscribers",
+        // Every page hides episodes: nothing was sent, so no page follows.
+        "Notifications sent successfully to all subscribers.",
     });
   });
 });
@@ -1599,22 +1627,27 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
     );
 
     /*
-     * Subscribers are sent to one after another, five templates each, the
-     * SMS first - which, from this public page, carries the subscriber's
-     * manage link (see smsManageLinkFor).
+     * Five templates for each subscriber, the SMS one carrying - from this
+     * public page - the subscriber's manage link (see smsManageLinkFor).
+     * Subscribers are sent to a bounded number at a time, so their compiles
+     * interleave; each still carries its own subscriber's link.
      */
-    expect(unsubscribeUrls).toEqual([
-      SMS_UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-    ]);
+    expect([...unsubscribeUrls].sort()).toEqual(
+      [
+        SMS_UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+      ].sort(),
+    );
+    // The first subscriber's templates start first.
+    expect(unsubscribeUrls[0]).toBe(SMS_UNSUBSCRIBE_URL);
   });
 
   test("a template using every advertised variable renders completely on every channel", async () => {
@@ -1903,13 +1936,14 @@ describe("IncidentEpisodeStateTimeline errors", () => {
   const SECOND_TIMELINE_ID: string = "abababab-abab-4bab-8bab-abababababab";
 
   function writesFor(timelineId: string): Array<JSONObject> {
-    return mock(IncidentEpisodeStateTimelineService.updateOneById)
-      .mock.calls.filter((call: Array<unknown>): boolean => {
-        return (call[0] as { id: ObjectID }).id.toString() === timelineId;
-      })
-      .map((call: Array<unknown>): JSONObject => {
-        return (call[0] as { data: JSONObject }).data;
-      });
+    return statusWritesInOrder({
+      claim:
+        IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      update: IncidentEpisodeStateTimelineService.updateOneById,
+      id: timelineId,
+    }).map((write: StatusWrite): JSONObject => {
+      return write.data;
+    });
   }
 
   test("an error while sending marks the state change Failed with the reason, not InProgress", async () => {
@@ -1965,7 +1999,7 @@ describe("IncidentEpisodeStateTimeline errors", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        "Notifications sent successfully to all subscribers",
+        "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
     });
     expect(sentMail()).toHaveLength(1);
   });
@@ -2137,7 +2171,7 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers, with statu
     expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
   });
 
-  test("the feed item lists each page, the subject used and what was queued", async () => {
+  test("the feed item lists each page, the subject used and what was sent", async () => {
     subscribers = [
       siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
       siteSubscriber({ site: 7, index: 1, email: "b@acme.com" }),
@@ -2151,8 +2185,8 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers, with statu
       [
         "**Status pages:**",
         "",
-        `- **Site 03**: 1 email queued. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
-        `- **Site 07**: 1 email queued. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
+        `- **Site 03**: 1 email sent. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
+        `- **Site 07**: 1 email sent. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
         "",
         "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
         "",
@@ -2310,4 +2344,57 @@ describe("IncidentEpisodeStateTimeline unsubscribe links", () => {
       StatusPageSubscriberService.getUnsubscribeLink,
     );
   });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingTimelines = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: IncidentEpisodeStateTimeline = stateTimeline(
+        index > 0 ? { id: ObjectID.generate().toString() } : undefined,
+      );
+      row.version = PENDING_ROW_VERSION;
+      pendingTimelines.push(row);
+    }
+
+    return pendingTimelines.map(
+      (row: IncidentEpisodeStateTimeline): ObjectID => {
+        return row.id!;
+      },
+    );
+  },
+  statusColumn: "subscriberNotificationStatus",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claim:
+    IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentEpisodeStateTimelineService.updateOneById,
+  feed: IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
 });

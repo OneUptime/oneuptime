@@ -2,12 +2,18 @@ import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import { StatusPageExclusionReason } from "../../../../Server/Utils/StatusPage/StatusPageExclusion";
 import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
+  SubscriberNotificationRetryScope,
 } from "../../../../Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberNotificationTiming from "../../../../Server/Utils/StatusPage/SubscriberNotificationTiming";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../../Types/JSON";
+import logger from "../../../../Server/Utils/Logger";
 import Email from "../../../../Types/Email";
 import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The per-send record the incident and episode subscriber jobs keep: it
@@ -147,38 +153,39 @@ describe("SubscriberNotificationDeliveryRecord email and SMS dedupe", () => {
 });
 
 describe("SubscriberNotificationDeliveryRecord counts", () => {
-  test("counts what was queued on each page and channel", () => {
+  test("counts what was sent on each page and channel", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 
     record.startStatusPage(site03);
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: "[Incident] Checkout down",
     });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: "[Incident] Something else",
     });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Webhook,
     });
 
-    expect(record.getQueuedCount(SITE_03)).toBe(3);
-    expect(record.getQueuedCount(new ObjectID(SITE_03.toUpperCase()))).toBe(3);
+    expect(record.getSentCount(SITE_03)).toBe(3);
+    expect(record.getSentCount(new ObjectID(SITE_03.toUpperCase()))).toBe(3);
     expect(
-      record.getQueuedCountForMethod(
+      record.getSentCount(
         SITE_03,
         StatusPageSubscriberNotificationMethod.Email,
       ),
     ).toBe(2);
-    // The first subject queued on the page is the one recorded.
+    // The first subject sent on the page is the one recorded.
     expect(record.getSubject(SITE_03)).toBe("[Incident] Checkout down");
-    expect(record.getQueuedCount(SITE_07)).toBe(0);
-    expect(record.hasQueuedAny()).toBe(true);
+    expect(record.getSentCount(SITE_07)).toBe(0);
+    expect(record.getFailedCount(SITE_03)).toBe(0);
+    expect(record.hasAttemptedAny()).toBe(true);
   });
 
   test("a subject carrying a subscriber's unsubscribe link is recorded with its token redacted", () => {
@@ -194,7 +201,7 @@ describe("SubscriberNotificationDeliveryRecord counts", () => {
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 
     record.startStatusPage(site03);
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: `Checkout down - stop: https://status.acme.com/unsubscribe/${subscriberId}-${token}`,
@@ -206,39 +213,39 @@ describe("SubscriberNotificationDeliveryRecord counts", () => {
     expect(record.toMarkdown()).not.toContain(token);
   });
 
-  test("a record with nothing queued says so", () => {
+  test("a record with nothing sent or tried says so", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
 
     record.startStatusPage(site03);
 
-    expect(record.hasQueuedAny()).toBe(false);
+    expect(record.hasAttemptedAny()).toBe(false);
   });
 });
 
 describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
-  test("lists each page with what was queued and the subject, in the order visited", () => {
+  test("lists each page with what was sent and the subject, in the order visited", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 
     record.startStatusPage(site07);
     for (let i: number = 0; i < 18; i++) {
-      record.recordQueued({
+      record.recordSent({
         statusPage: site07,
         method: StatusPageSubscriberNotificationMethod.Email,
         subject: "[Incident] Checkout down",
       });
     }
     record.startStatusPage(site03);
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.SMS,
     });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Slack,
     });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
     });
@@ -247,8 +254,8 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
       [
         "**Status pages:**",
         "",
-        '- **Site 07**: 18 email queued. Subject: "\\[Incident\\] Checkout down".',
-        "- **Site 03**: 1 SMS, 1 Slack, 1 Microsoft Teams queued.",
+        '- **Site 07**: 18 email sent. Subject: "\\[Incident\\] Checkout down".',
+        "- **Site 03**: 1 SMS, 1 Slack, 1 Microsoft Teams sent.",
       ].join("\n"),
     );
   });
@@ -259,13 +266,13 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
 
     record.startStatusPage(site03);
     record.shouldSendEmail({ statusPage: site03, email: "a@acme.com" });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: "Down",
     });
     record.shouldSendSms({ statusPage: site03, phone: "+15555550100" });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.SMS,
     });
@@ -274,7 +281,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     record.shouldSendEmail({ statusPage: site07, email: "a@acme.com" });
     record.shouldSendSms({ statusPage: site07, phone: "+15555550100" });
     // The webhook on the same page is not deduplicated.
-    record.recordQueued({
+    record.recordSent({
       statusPage: site07,
       method: StatusPageSubscriberNotificationMethod.Webhook,
     });
@@ -282,7 +289,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     const markdown: string = record.toMarkdown();
 
     expect(markdown).toContain(
-      "- **Site 07**: 1 webhook queued. Not sent again to 1 email address and 1 phone number already sent it through another status page.",
+      "- **Site 07**: 1 webhook sent. Not sent again to 1 email address and 1 phone number already sent it through another status page.",
     );
     expect(markdown).toContain(
       "Email and SMS were sent once per address across these status pages",
@@ -313,7 +320,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 
     record.startStatusPage(site03);
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: "Down",
@@ -325,19 +332,19 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     const markdown: string = record.toMarkdown();
 
     expect(markdown).toContain(
-      '- **Site 03**: 1 email queued. Sending to this status page failed part-way, so some of its subscribers may not have been sent it. Subject: "Down".',
+      '- **Site 03**: 1 email sent. Sending to this status page failed part-way, so some of its subscribers may not have been sent it. Subject: "Down".',
     );
     expect(markdown).toContain(
-      "- **Site 07**: nothing queued. Sending to this status page failed part-way",
+      "- **Site 07**: nothing sent. Sending to this status page failed part-way",
     );
   });
 
-  test("a page whose every address was already sent it says nothing new was queued", () => {
+  test("a page whose every address was already sent it says nothing new was sent", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
 
     record.shouldSendEmail({ statusPage: site03, email: "a@acme.com" });
-    record.recordQueued({
+    record.recordSent({
       statusPage: site03,
       method: StatusPageSubscriberNotificationMethod.Email,
     });
@@ -345,7 +352,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     record.shouldSendEmail({ statusPage: site07, email: "a@acme.com" });
 
     expect(record.toMarkdown()).toContain(
-      "- **Site 07**: nothing queued. Not sent again to 1 email address already sent it through another status page.",
+      "- **Site 07**: nothing sent. Not sent again to 1 email address already sent it through another status page.",
     );
   });
 
@@ -356,7 +363,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     record.startStatusPage(site09);
 
     expect(record.toMarkdown()).toContain(
-      "- **Site 09**: nothing queued, no subscriber matched.",
+      "- **Site 09**: nothing sent, no subscriber matched.",
     );
   });
 
@@ -416,7 +423,7 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
 
     const tricky: StatusPage = page(SITE_03, "*Internal* [ops]");
     record.startStatusPage(tricky);
-    record.recordQueued({
+    record.recordSent({
       statusPage: tricky,
       method: StatusPageSubscriberNotificationMethod.Email,
       subject: "Line one\nLine _two_ <b>",
@@ -451,5 +458,510 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
         dedupeEmailAndSms: true,
       }).toMarkdown(),
     ).toBe("");
+  });
+});
+
+/*
+ * Delivery: each message is awaited and counted sent or failed. A send
+ * fails when it throws, when it answers with an HTTPErrorResponse (the
+ * Notification service's email and SMS endpoints, and the Slack and webhook
+ * senders, return one rather than throw), when it throws the response itself
+ * (the Microsoft Teams sender does), or when it does not answer in time.
+ */
+describe("SubscriberNotificationDeliveryRecord.deliver", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  function quietLogger(): jest.SpiedFunction<typeof logger.error> {
+    return jest.spyOn(logger, "error").mockImplementation((): void => {});
+  }
+
+  const failures: Array<[string, () => Promise<unknown>]> = [
+    [
+      "throws an error",
+      (): Promise<unknown> => {
+        return Promise.reject(new Error("connect ECONNREFUSED"));
+      },
+    ],
+    [
+      "answers with an HTTPErrorResponse",
+      (): Promise<unknown> => {
+        return Promise.resolve(
+          new HTTPErrorResponse(500, { message: "SMTP rejected" }, {}),
+        );
+      },
+    ],
+    [
+      "throws an HTTPErrorResponse",
+      (): Promise<unknown> => {
+        return Promise.reject(
+          new HTTPErrorResponse(400, { message: "Bad Request" }, {}),
+        );
+      },
+    ],
+    [
+      "rejects with nothing at all",
+      (): Promise<unknown> => {
+        return Promise.reject(null);
+      },
+    ],
+    [
+      "throws before it starts",
+      (): Promise<unknown> => {
+        throw new Error("Slack Webhook URL must start with https://");
+      },
+    ],
+  ];
+
+  for (const [label, send] of failures) {
+    test(`a send that ${label} is counted failed, and logged as the subscriber's side of the wire`, async () => {
+      const error: jest.SpiedFunction<typeof logger.error> = quietLogger();
+      const record: SubscriberNotificationDeliveryRecord =
+        new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+      record.startStatusPage(site03);
+
+      await expect(
+        record.deliver({
+          statusPage: site03,
+          method: StatusPageSubscriberNotificationMethod.Webhook,
+          send: send,
+          logAttributes: { projectId: "p1" },
+        }),
+      ).resolves.toBe(false);
+
+      expect(record.getFailedCount(SITE_03)).toBe(1);
+      expect(
+        record.getFailedCount(
+          SITE_03,
+          StatusPageSubscriberNotificationMethod.Webhook,
+        ),
+      ).toBe(1);
+      expect(record.getSentCount(SITE_03)).toBe(0);
+      expect(record.hasFailures()).toBe(true);
+      expect(record.hasAttemptedAny()).toBe(true);
+
+      expect(error).toHaveBeenCalledTimes(1);
+      const attributes: JSONObject = error.mock.calls[0]![1] as JSONObject;
+      expect(attributes["projectId"]).toBe("p1");
+      // Tagged a user error: a subscriber's dead endpoint is not our defect.
+      expect(Object.keys(attributes).length).toBeGreaterThan(1);
+    });
+  }
+
+  test("a send that answers is counted sent, whatever it answers with", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+
+    for (const answer of [
+      undefined,
+      new HTTPResponse(200, {}, {}),
+      new HTTPResponse(202, { queued: true }, {}),
+    ]) {
+      await expect(
+        record.deliver({
+          statusPage: site03,
+          method: StatusPageSubscriberNotificationMethod.Email,
+          send: (): Promise<unknown> => {
+            return Promise.resolve(answer);
+          },
+        }),
+      ).resolves.toBe(true);
+    }
+
+    expect(record.getSentCount(SITE_03)).toBe(3);
+    expect(record.getFailedCount(SITE_03)).toBe(0);
+    expect(record.hasFailures()).toBe(false);
+  });
+
+  test("a send that does not answer in time is counted failed, and stops being waited for", async () => {
+    quietLogger();
+    jest.useFakeTimers();
+
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({
+        dedupeEmailAndSms: false,
+        sendTimeoutInMs: 1000,
+      });
+
+    record.startStatusPage(site03);
+
+    const delivered: Promise<boolean> = record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Webhook,
+      send: (): Promise<unknown> => {
+        return new Promise(() => {});
+      },
+    });
+
+    jest.advanceTimersByTime(1000);
+
+    await expect(delivered).resolves.toBe(false);
+    expect(record.getFailedCount(SITE_03)).toBe(1);
+  });
+
+  test("waits the send timeout by default: longer than any sender's own retries", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    expect(
+      (record as unknown as { sendTimeoutInMs: number }).sendTimeoutInMs,
+    ).toBe(SubscriberNotificationTiming.SEND_TIMEOUT_IN_MS);
+  });
+
+  test("an email's subject is recorded whether it was sent or failed", async () => {
+    quietLogger();
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    await record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      subject: "[Incident] Checkout down",
+      send: (): Promise<unknown> => {
+        return Promise.reject(new Error("no"));
+      },
+    });
+
+    expect(record.getSubject(SITE_03)).toBe("[Incident] Checkout down");
+  });
+});
+
+describe("SubscriberNotificationDeliveryRecord pages sent in full", () => {
+  function recordWith(): SubscriberNotificationDeliveryRecord {
+    return new SubscriberNotificationDeliveryRecord({
+      dedupeEmailAndSms: false,
+    });
+  }
+
+  test("a page whose every subscriber was reached, with nothing failed, succeeded", () => {
+    const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+    record.startStatusPage(site03);
+    record.recordSent({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+    });
+    record.finishStatusPage(site03);
+
+    expect(record.didStatusPageSucceed(SITE_03)).toBe(true);
+    expect(record.hasFailures()).toBe(false);
+  });
+
+  test("a page with no matching subscriber that was read in full succeeded: nobody is owed it", () => {
+    const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+    record.startStatusPage(site03);
+    record.finishStatusPage(site03);
+
+    expect(record.didStatusPageSucceed(SITE_03)).toBe(true);
+  });
+
+  test("one failed message means the page was not sent in full", () => {
+    const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+    record.startStatusPage(site03);
+    record.recordSent({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+    });
+    record.recordFailed({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Webhook,
+    });
+    record.finishStatusPage(site03);
+
+    expect(record.didStatusPageSucceed(SITE_03)).toBe(false);
+    expect(record.hasFailures()).toBe(true);
+  });
+
+  test.each([
+    StatusPageDeliverySkipReason.Failed,
+    StatusPageDeliverySkipReason.OutOfTime,
+  ])(
+    "a page the send stopped part-way through (%s) was not sent in full",
+    (reason: StatusPageDeliverySkipReason) => {
+      const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+      record.startStatusPage(site03);
+      record.recordSent({
+        statusPage: site03,
+        method: StatusPageSubscriberNotificationMethod.Email,
+      });
+      record.skipStatusPage(site03, reason);
+
+      expect(record.didStatusPageSucceed(SITE_03)).toBe(false);
+      expect(record.hasFailures()).toBe(true);
+    },
+  );
+
+  test("a page not read to the end did not succeed", () => {
+    const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+    record.startStatusPage(site03);
+    record.recordSent({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+    });
+
+    expect(record.didStatusPageSucceed(SITE_03)).toBe(false);
+  });
+
+  test.each([
+    StatusPageDeliverySkipReason.HidesIncidents,
+    StatusPageDeliverySkipReason.HidesEpisodes,
+    StatusPageDeliverySkipReason.AlreadyNotified,
+  ])(
+    "a page passed over (%s) neither succeeded nor counts as a shortfall",
+    (reason: StatusPageDeliverySkipReason) => {
+      const record: SubscriberNotificationDeliveryRecord = recordWith();
+
+      record.skipStatusPage(site03, reason);
+
+      expect(record.didStatusPageSucceed(SITE_03)).toBe(false);
+      expect(record.hasFailures()).toBe(false);
+    },
+  );
+
+  test("a page never started is unknown to the record", () => {
+    expect(recordWith().didStatusPageSucceed(SITE_09)).toBe(false);
+  });
+});
+
+describe("SubscriberNotificationDeliveryRecord sent and failed, in the feed and the status message", () => {
+  function sent(
+    record: SubscriberNotificationDeliveryRecord,
+    statusPage: StatusPage,
+    method: StatusPageSubscriberNotificationMethod,
+    count: number,
+  ): void {
+    for (let i: number = 0; i < count; i++) {
+      record.recordSent({ statusPage, method });
+    }
+  }
+
+  function failed(
+    record: SubscriberNotificationDeliveryRecord,
+    statusPage: StatusPage,
+    method: StatusPageSubscriberNotificationMethod,
+    count: number,
+  ): void {
+    for (let i: number = 0; i < count; i++) {
+      record.recordFailed({ statusPage, method });
+    }
+  }
+
+  // Site 03: 41 email sent. Site 07: 16 email sent, 2 failed, 3 webhook sent.
+  function partlyFailedSend(): SubscriberNotificationDeliveryRecord {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    sent(record, site03, StatusPageSubscriberNotificationMethod.Email, 41);
+    record.finishStatusPage(site03);
+
+    record.startStatusPage(site07);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.Email, 16);
+    failed(record, site07, StatusPageSubscriberNotificationMethod.Email, 2);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.Webhook, 3);
+    record.finishStatusPage(site07);
+
+    // Passed over: not in the status message, only in the feed.
+    record.skipStatusPage(site09, StatusPageDeliverySkipReason.HidesIncidents);
+
+    return record;
+  }
+
+  test("the feed lists each page with what was sent and what failed", () => {
+    expect(partlyFailedSend().toMarkdown()).toBe(
+      [
+        "**Status pages:**",
+        "",
+        "- **Site 03**: 41 email sent.",
+        "- **Site 07**: 16 email, 3 webhook sent; 2 email failed.",
+        "- **Site 09**: not sent, this status page does not show incidents.",
+      ].join("\n"),
+    );
+  });
+
+  test("a page where every message failed says nothing was sent", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    failed(record, site03, StatusPageSubscriberNotificationMethod.SMS, 2);
+    record.finishStatusPage(site03);
+
+    expect(record.toMarkdown()).toContain(
+      "- **Site 03**: nothing sent; 2 SMS failed.",
+    );
+  });
+
+  test("the totals add up across pages", () => {
+    expect(partlyFailedSend().getTotals()).toEqual({ sent: 60, failed: 2 });
+  });
+
+  test("a send that reached everyone: the job's line, then each page's counts", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    sent(record, site03, StatusPageSubscriberNotificationMethod.Email, 41);
+    record.finishStatusPage(site03);
+    record.startStatusPage(site07);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.Email, 18);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.SMS, 2);
+    record.finishStatusPage(site07);
+    record.skipStatusPage(site09, StatusPageDeliverySkipReason.AlreadyNotified);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Notifications sent successfully to all subscribers.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe(
+      "Notifications sent successfully to all subscribers. Site 03: 41 email sent. Site 07: 18 email, 2 SMS sent.",
+    );
+  });
+
+  test("a send that fell short says how many failed, each page's counts, and that Retry sends to every page", () => {
+    expect(
+      partlyFailedSend().toStatusMessage({
+        sentMessage: "Notifications sent successfully to all subscribers.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe(
+      "Not every subscriber was sent this notification: 2 of 62 messages failed. Site 03: 41 email sent. Site 07: 16 email, 3 webhook sent; 2 email failed. Retry sends it again to every status page, including the subscribers who already got it.",
+    );
+  });
+
+  test("for the created notification, Retry names the pages it will send to", () => {
+    expect(
+      partlyFailedSend().toStatusMessage({
+        sentMessage: "Notifications sent successfully to all subscribers.",
+        retryScope: SubscriberNotificationRetryScope.PagesNotYetSent,
+      }),
+    ).toBe(
+      "Not every subscriber was sent this notification: 2 of 62 messages failed. Site 03: 41 email sent. Site 07: 16 email, 3 webhook sent; 2 email failed. Retry sends it again only to the status pages that were not sent it in full: Site 07.",
+    );
+  });
+
+  test("a send that ran out of time says so, for the pages it stopped on and the ones it never reached", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    sent(record, site03, StatusPageSubscriberNotificationMethod.Email, 5);
+    record.finishStatusPage(site03);
+    record.startStatusPage(site07);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.Email, 3);
+    record.skipStatusPage(site07, StatusPageDeliverySkipReason.OutOfTime);
+    record.skipStatusPage(site09, StatusPageDeliverySkipReason.OutOfTime);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.PagesNotYetSent,
+      }),
+    ).toBe(
+      "Not every subscriber was sent this notification. The send ran out of time before it reached every subscriber. Site 03: 5 email sent. Site 07: 3 email sent, then the send ran out of time. Site 09: not sent, the send ran out of time before it reached this status page. Retry sends it again only to the status pages that were not sent it in full: Site 07 and Site 09.",
+    );
+
+    expect(record.toMarkdown()).toBe(
+      [
+        "**Status pages:**",
+        "",
+        "- **Site 03**: 5 email sent.",
+        "- **Site 07**: 3 email sent. The send ran out of time part-way through this status page, so some of its subscribers were not sent it.",
+        "- **Site 09**: not sent, the send ran out of time before it reached this status page.",
+      ].join("\n"),
+    );
+  });
+
+  test("a page that failed part-way says so in the status message", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    sent(record, site03, StatusPageSubscriberNotificationMethod.Email, 2);
+    record.skipStatusPage(site03, StatusPageDeliverySkipReason.Failed);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe(
+      "Not every subscriber was sent this notification. Sending to a status page failed part-way. Site 03: 2 email sent, then sending failed part-way. Retry sends it again to every status page, including the subscribers who already got it.",
+    );
+  });
+
+  test("a long list of pages is cut short in the status message", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    for (let i: number = 1; i <= 30; i++) {
+      const site: StatusPage = page(
+        `b0000000-0000-4000-8000-0000000002${i.toString().padStart(2, "0")}`,
+        `Site ${i}`,
+      );
+      record.startStatusPage(site);
+      sent(record, site, StatusPageSubscriberNotificationMethod.Email, 1);
+      record.finishStatusPage(site);
+    }
+
+    const message: string = record.toStatusMessage({
+      sentMessage: "Sent.",
+      retryScope: SubscriberNotificationRetryScope.EveryPage,
+    });
+
+    expect(message).toContain("Site 25: 1 email sent.");
+    expect(message).not.toContain("Site 26:");
+    expect(message).toContain("And 5 more status pages.");
+  });
+
+  test("the status message is plain text on one line, page names as written", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+    const tricky: StatusPage = page(SITE_03, "*Internal*\nops");
+
+    record.startStatusPage(tricky);
+    sent(record, tricky, StatusPageSubscriberNotificationMethod.Email, 1);
+    record.finishStatusPage(tricky);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe("Sent. *Internal* ops: 1 email sent.");
+  });
+
+  test("with nothing to report, the status message is the job's line alone", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.skipStatusPage(site03, StatusPageDeliverySkipReason.HidesIncidents);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe("Sent.");
+  });
+
+  test("records whether any subscriber's preferences let the send through", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    expect(record.hasMatchedAnySubscriber()).toBe(false);
+    record.recordSubscriberMatched();
+    expect(record.hasMatchedAnySubscriber()).toBe(true);
   });
 });

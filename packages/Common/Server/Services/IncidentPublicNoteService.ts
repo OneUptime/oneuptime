@@ -300,7 +300,8 @@ ${(createdItem.note || "") + attachmentsMarkdown}
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: updatedItem.incidentId!,
           projectId: updatedItem.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+          // An edit to a public note is a public note event, not a private one.
+          incidentFeedEventType: IncidentFeedEventType.PublicNote,
           displayColor: Blue500,
           userId: userId || undefined,
 

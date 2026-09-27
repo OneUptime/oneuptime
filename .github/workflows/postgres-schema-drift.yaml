@@ -291,6 +291,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StatusPageSubscriberUnsubscribePostgres.test.ts --forceExit
 
+      # Clones the migrated IncidentPublicNote and Incident tables into an
+      # isolated schema. A subscriber job claims a Pending notification with
+      # one compare-and-set UPDATE, and the sweeper fails an interrupted one
+      # the same way; each must say whether it wrote (of racing runs exactly
+      # one wins, and a send that settled keeps its outcome), and the raw
+      # write of the status pages told so far must round-trip its JSON.
+      - name: Test subscriber notification claims on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_NOTIFICATION_CLAIM_TESTS: "true"
+          SUBSCRIBER_NOTIFICATION_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_NOTIFICATION_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_NOTIFICATION_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/StatusPage/SubscriberNotificationClaimPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentCustomField (with its unique
       # (projectId, variableKey) index), Incident, IncidentTemplate and
       # TableView tables into an isolated schema. Renaming an incident custom

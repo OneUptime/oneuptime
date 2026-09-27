@@ -9,6 +9,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -1830,10 +1831,26 @@ Stay informed about service availability! 🚀`;
     return confirmSubscriptionLink;
   }
 
+  /*
+   * The confirmed, still-subscribed subscribers of a status page, in _id
+   * order, at most `limit` (LIMIT_MAX by default) of them.
+   *
+   * One read stops at the limit, so a page with more subscribers than that
+   * is read in batches: pass the _id of the last subscriber of one batch as
+   * `afterId` to read the next, until a batch comes back smaller than the
+   * limit (SubscriberNotificationFanOut does this for the subscriber jobs).
+   * The cursor is an _id rather than an offset, so a subscriber who
+   * unsubscribes while a send is part-way through cannot shift the rows
+   * after it into a batch already read, and nobody is skipped.
+   */
   @CaptureSpan()
   public async getSubscribersByStatusPage(
     statusPageId: ObjectID,
     props: DatabaseCommonInteractionProps,
+    options?: {
+      afterId?: ObjectID | undefined;
+      limit?: number | undefined;
+    },
   ): Promise<Array<Model>> {
     logger.debug("getSubscribersByStatusPage called with statusPageId:", {
       statusPageId: statusPageId?.toString(),
@@ -1853,6 +1870,9 @@ Stay informed about service availability! 🚀`;
         statusPageId: statusPageId,
         isUnsubscribed: false,
         isSubscriptionConfirmed: true,
+        ...(options?.afterId
+          ? { _id: QueryHelper.greaterThan(options.afterId) }
+          : {}),
       },
       select: {
         _id: true,
@@ -1874,8 +1894,12 @@ Stay informed about service availability! 🚀`;
         isAddedByTeam: true,
         createdByUserId: true,
       },
+      // A stable order, which the afterId cursor reads on from.
+      sort: {
+        _id: SortOrder.Ascending,
+      },
       skip: 0,
-      limit: LIMIT_MAX,
+      limit: options?.limit || LIMIT_MAX,
       props: props,
     });
 

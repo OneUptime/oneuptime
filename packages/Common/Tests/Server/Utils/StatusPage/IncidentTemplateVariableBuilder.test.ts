@@ -1107,6 +1107,59 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
     expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
   });
 
+  /*
+   * A send awaits several subscribers' messages at once
+   * (SubscriberNotificationFanOut). The second message to carry a field must
+   * wait for the images the first one is making public, not go out while
+   * they are still private - and the images are still made public once.
+   */
+  test.each([
+    ["a default message", "included"],
+    ["a custom template", "placed"],
+  ])(
+    "messages sent at once through %s all wait for the one sync of its images",
+    async (_label: string, how: string) => {
+      const variables: IncidentTemplateVariables = await build({
+        definitions: definitions(how === "included"),
+        customFields: { Impact: RICH_TEXT_WITH_IMAGE },
+      });
+
+      let finishSync: () => void = (): void => {};
+      mock(syncIsPublicForMarkdownImages).mockImplementation(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finishSync = resolve;
+        });
+      });
+
+      const record: () => Promise<void> = (): Promise<void> => {
+        return how === "included"
+          ? variables.recordIncludedFieldsSent()
+          : variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+      };
+
+      const done: Array<string> = [];
+      const first: Promise<void> = record().then(() => {
+        done.push("first");
+      });
+      const second: Promise<void> = record().then(() => {
+        done.push("second");
+      });
+
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+
+      // Neither message may go out while the images are still private.
+      expect(done).toEqual([]);
+
+      finishSync();
+      await Promise.all([first, second]);
+
+      expect(done.sort()).toEqual(["first", "second"]);
+      expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
+    },
+  );
+
   test("a field not included stays private when a default message goes out", async () => {
     const variables: IncidentTemplateVariables = await build({
       definitions: definitions(false),

@@ -34,13 +34,16 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -69,7 +72,12 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/IncidentPublicNoteService", () => {
   return {
     __esModule: true,
-    default: { findBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -306,6 +314,15 @@ import {
   renderImpactDetails,
 } from "../Fixtures/IncidentCustomFieldFixtures";
 import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -526,22 +543,27 @@ function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
 function statusWrites(): Array<JSONObject> {
-  return mock(IncidentPublicNoteService.updateOneById).mock.calls.map(
-    (call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    },
-  );
+  return statusWritesInOrder({
+    claim: IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentPublicNoteService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function writesFor(id: ObjectID): Array<JSONObject> {
-  return mock(IncidentPublicNoteService.updateOneById)
-    .mock.calls.filter((call: Array<unknown>): boolean => {
-      return (call[0] as { id: ObjectID }).id.toString() === id.toString();
-    })
-    .map((call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    });
+  return statusWritesInOrder({
+    claim: IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentPublicNoteService.updateOneById,
+    id: id,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function sentMail(): Array<JSONObject> {
@@ -802,6 +824,10 @@ beforeEach(() => {
     },
   );
   mock(IncidentPublicNoteService.updateOneById).mockResolvedValue(1 as never);
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
 
   mock(IncidentService.findOneById).mockImplementation(async () => {
     return storedIncident;
@@ -1048,7 +1074,8 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
         subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessageOnNoteUpdated:
-          SubscriberUpdateNotification.sentMessage,
+          // Then what was sent on each status page (see the delivery tests).
+          `${SubscriberUpdateNotification.sentMessage} Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.`,
       },
     ]);
   });
@@ -1306,7 +1333,7 @@ describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
         subscriberNotificationStatusOnNoteCreated:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessage:
-          "Notifications sent successfully to all subscribers",
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
   });
@@ -2138,7 +2165,7 @@ describe("IncidentPublicNote subscriber notifications, with a status page scope"
   );
 
   test.each(TRIGGERS)(
-    "$name: the feed item keeps the note, then lists each page, the subject used and what was queued",
+    "$name: the feed item keeps the note, then lists each page, the subject used and what was sent",
     async (trigger: TriggerCase) => {
       queueNote(trigger.job);
       subscribers = [
@@ -2168,8 +2195,8 @@ describe("IncidentPublicNote subscriber notifications, with a status page scope"
           "",
           "**Status pages:**",
           "",
-          `- **Site 03**: 1 email queued. Subject: "${subject}".`,
-          `- **Site 07**: 1 email, 1 webhook queued. Subject: "${subject}".`,
+          `- **Site 03**: 1 email sent. Subject: "${subject}".`,
+          `- **Site 07**: 1 email, 1 webhook sent. Subject: "${subject}".`,
           "",
           "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
           "",
@@ -2583,3 +2610,81 @@ ${NOTE}
     },
   );
 });
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+// The same contract for the "posted" and the "updated" notification.
+function describeNoteDelivery(trigger: "created" | "updated"): void {
+  const job: string = trigger === "created" ? CREATED_JOB : UPDATED_JOB;
+
+  describeSubscriberDelivery({
+    title: job,
+    jobName: job,
+    runJob: (): Promise<void> => {
+      return runJob(job);
+    },
+    cronOptions: (): JSONObject | undefined => {
+      return mockCapturedOptions[job] as JSONObject | undefined;
+    },
+    pendRows: (count: number): Array<ObjectID> => {
+      const rows: Array<IncidentPublicNote> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        // An updated note whose original notification went out.
+        const row: IncidentPublicNote = publicNote(
+          index > 0 ? { id: ObjectID.generate() } : undefined,
+        );
+        row.version = PENDING_ROW_VERSION;
+        rows.push(row);
+      }
+
+      if (trigger === "created") {
+        createdNotes = rows;
+      } else {
+        updatedNotes = rows;
+      }
+
+      return rows.map((row: IncidentPublicNote): ObjectID => {
+        return row.id!;
+      });
+    },
+    statusColumn:
+      trigger === "created"
+        ? "subscriberNotificationStatusOnNoteCreated"
+        : "subscriberNotificationStatusOnNoteUpdated",
+    messageColumn:
+      trigger === "created"
+        ? "subscriberNotificationStatusMessage"
+        : "subscriberNotificationStatusMessageOnNoteUpdated",
+    claim: IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentPublicNoteService.updateOneById,
+    feed: IncidentFeedService.createIncidentFeedItem,
+    subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+    emailSubscriber: (id: string): StatusPageSubscriber => {
+      const row: StatusPageSubscriber = new StatusPageSubscriber();
+      row._id = id;
+      row.subscriberEmail = new Email(
+        `subscriber-${id.slice(-12)}@example.com`,
+      );
+      return withUnsubscribeToken(row);
+    },
+    senders: {
+      email: MailService.sendMail,
+      sms: SmsService.sendSms,
+      slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+      teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+      webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+    },
+    sentMessage:
+      trigger === "created"
+        ? "Notifications sent successfully to all subscribers."
+        : SubscriberUpdateNotification.sentMessage,
+    retryScope: SubscriberNotificationRetryScope.EveryPage,
+  });
+}
+
+describeNoteDelivery("created");
+describeNoteDelivery("updated");

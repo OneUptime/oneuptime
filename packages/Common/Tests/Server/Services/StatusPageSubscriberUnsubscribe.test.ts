@@ -34,6 +34,8 @@ import StatusPageSubscriberUnsubscribe, {
 } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import crypto from "crypto";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import { FindOperator } from "typeorm";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -678,6 +680,61 @@ describe("StatusPageSubscriberService.getUnsubscribeLink", () => {
 });
 
 describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
+  /*
+   * A page is read in batches: one read stopped at LIMIT_MAX without a word,
+   * so the 10,001st subscriber of a page was never told. The subscriber
+   * jobs read on after the last _id of each batch
+   * (SubscriberNotificationFanOut), which needs a stable _id order.
+   */
+  test("reads in _id order, at most LIMIT_MAX by default, from the start", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([subscriberRow()] as never);
+
+    await StatusPageSubscriberService.getSubscribersByStatusPage(
+      STATUS_PAGE_ID,
+      { isRoot: true, ignoreHooks: true },
+    );
+
+    const read: JSONObject = findBy.mock.calls[0]![0] as unknown as JSONObject;
+
+    expect(read["sort"]).toEqual({ _id: "ASC" });
+    expect(read["limit"]).toBe(LIMIT_MAX);
+    expect(read["skip"]).toBe(0);
+    expect((read["query"] as JSONObject)["_id"]).toBeUndefined();
+    expect((read["query"] as JSONObject)["isUnsubscribed"]).toBe(false);
+    expect((read["query"] as JSONObject)["isSubscriptionConfirmed"]).toBe(true);
+  });
+
+  test("reads the next batch after the _id given, as many as asked", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([] as never);
+    const afterId: ObjectID = new ObjectID(
+      "00000000-0000-4000-8000-000000010000",
+    );
+
+    await StatusPageSubscriberService.getSubscribersByStatusPage(
+      STATUS_PAGE_ID,
+      { isRoot: true, ignoreHooks: true },
+      { afterId: afterId, limit: 500 },
+    );
+
+    const read: JSONObject = findBy.mock.calls[0]![0] as unknown as JSONObject;
+    const cursor: FindOperator<unknown> = (read["query"] as JSONObject)[
+      "_id"
+    ] as unknown as FindOperator<unknown>;
+
+    expect(read["limit"]).toBe(500);
+    expect(read["sort"]).toEqual({ _id: "ASC" });
+    expect(Object.values(cursor.objectLiteralParameters || {})).toEqual([
+      afterId.toString(),
+    ]);
+    // Strictly after it: the cursor row itself was in the last batch.
+    expect(cursor.type).toBe("raw");
+    expect(cursor.getSql!("alias")).toMatch(/^\(alias > :\w+\)$/);
+  });
+
   test("reads each subscriber's token and creator, for the links and the team notice", async () => {
     const findBy: jest.SpyInstance = jest
       .spyOn(StatusPageSubscriberService, "findBy")

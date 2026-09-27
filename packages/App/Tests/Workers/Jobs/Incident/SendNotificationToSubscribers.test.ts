@@ -32,13 +32,16 @@ import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/Inciden
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -73,6 +76,9 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       findBy: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
+      // The claim (SubscriberNotificationClaim) and the pages told so far.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      updateColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -253,7 +259,7 @@ import {
   statusPagesByIdFake,
   subscribersByPageFake,
 } from "../Fixtures/IncidentStatusPageScopeFixtures";
-import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
@@ -296,6 +302,15 @@ import {
   renderImpactDetails,
 } from "../Fixtures/IncidentCustomFieldFixtures";
 import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
+import {
+  failSends,
+  statusesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -613,6 +628,13 @@ beforeEach(() => {
     }) as never,
   );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+  // This run wins every claim unless a test says otherwise.
+  mock(IncidentService.compareAndSetColumnsByIdWithoutHooks).mockResolvedValue(
+    true as never,
+  );
+  mock(IncidentService.updateColumnsByIdWithoutHooks).mockResolvedValue(
+    undefined as never,
+  );
   mock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
     URL.fromString(DASHBOARD_URL) as never,
   );
@@ -1002,15 +1024,17 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
       });
   }
 
-  // The status each write set, leaving out the notified-pages record writes.
+  /*
+   * The status each write set, the claim to InProgress included, leaving out
+   * the notified-pages record writes.
+   */
   function statusesWritten(incidentId: ObjectID): Array<unknown> {
-    return statusWritesFor(incidentId)
-      .filter((data: JSONObject): boolean => {
-        return "subscriberNotificationStatusOnIncidentCreated" in data;
-      })
-      .map((data: JSONObject): unknown => {
-        return data["subscriberNotificationStatusOnIncidentCreated"];
-      });
+    return statusesInOrder({
+      claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      update: IncidentService.updateOneById,
+      statusColumn: "subscriberNotificationStatusOnIncidentCreated",
+      id: incidentId,
+    });
   }
 
   test("marks the 'created' notification Skipped with the reason, and never InProgress", async () => {
@@ -1405,7 +1429,7 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
     ["scoped to two of ten pages", scopedTo([3, 7])],
     ["reaching all ten pages", undefined],
   ])(
-    "writes the incident twice per send, %s: every write fires its update workflows, realtime events and audit log",
+    "writes the incident once per send through its service, %s: every such write fires its update workflows, realtime events and audit log",
     async (_label: string, scope: StoredIncidentScope | undefined) => {
       storedScopes = scope ? { [INCIDENT_ID.toString()]: scope } : {};
       everySiteHasOneEmailSubscriber();
@@ -1415,6 +1439,18 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       expect(
         incidentWrites().map((data: JSONObject): unknown => {
           return data["subscriberNotificationStatusOnIncidentCreated"];
+        }),
+      ).toEqual([StatusPageSubscriberNotificationStatus.Success]);
+
+      /*
+       * The claim to InProgress and the pages told so far are hook-free
+       * writes, which fire none of them.
+       */
+      expect(
+        statusesInOrder({
+          claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
+          update: IncidentService.updateOneById,
+          statusColumn: "subscriberNotificationStatusOnIncidentCreated",
         }),
       ).toEqual([
         StatusPageSubscriberNotificationStatus.InProgress,
@@ -1507,8 +1543,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
 
       const writes: Array<JSONObject> = incidentWrites();
 
-      expect(writes).toHaveLength(3);
-      expect(writes[1]).toEqual(
+      expect(writes).toHaveLength(2);
+      expect(writes[0]).toEqual(
         expect.objectContaining({
           subscriberNotificationStatusOnIncidentCreated:
             StatusPageSubscriberNotificationStatus.Success,
@@ -1516,7 +1552,7 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       );
       expect(notifiedPageRecords()).toEqual([[3, 7]]);
       // Settled first, then queued again: the next run reads the new scope.
-      expect(writes[2]).toEqual({
+      expect(writes[1]).toEqual({
         subscriberNotificationStatusOnIncidentCreated:
           StatusPageSubscriberNotificationStatus.Pending,
         subscriberNotificationStatusMessage:
@@ -1563,7 +1599,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
 
       await runJob();
 
-      expect(incidentWrites()).toHaveLength(2);
+      // Only the settled status: nothing queued it again.
+      expect(incidentWrites()).toHaveLength(1);
     });
 
     test("a page added during the send that does not show incidents queues nothing", async () => {
@@ -1573,7 +1610,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
 
       await runJob();
 
-      expect(incidentWrites()).toHaveLength(2);
+      // Only the settled status: nothing queued it again.
+      expect(incidentWrites()).toHaveLength(1);
     });
 
     test("a page this send skipped does not queue it again", async () => {
@@ -1583,7 +1621,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
 
       await runJob();
 
-      expect(incidentWrites()).toHaveLength(2);
+      // Only the settled status: nothing queued it again.
+      expect(incidentWrites()).toHaveLength(1);
     });
 
     test("a failure checking the scope again leaves the send settled as Success", async () => {
@@ -1702,11 +1741,11 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
     expect(emailsSentTo()).toEqual(["site7@acme.com"]);
     expect(notifiedPageRecords().pop()).toEqual([7]);
     expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
-      "- **Site 03**: nothing queued. Sending to this status page failed part-way",
+      "- **Site 03**: nothing sent. Sending to this status page failed part-way",
     );
   });
 
-  test("the feed item lists each page, the subject used and what was queued", async () => {
+  test("the feed item lists each page, the subject used and what was sent", async () => {
     subscribers = [
       siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
       siteSubscriber({ site: 3, index: 2, email: "b@acme.com" }),
@@ -1727,8 +1766,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       [
         "**Status pages:**",
         "",
-        `- **Site 03**: 2 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
-        `- **Site 07**: 1 email, 1 webhook queued. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 03**: 2 email sent. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 07**: 1 email, 1 webhook sent. Not sent again to 1 email address already sent it through another status page. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
         "",
         "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
         "",
@@ -1751,8 +1790,8 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       [
         "**Status pages:**",
         "",
-        `- **Site 01**: 1 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
-        `- **Site 02**: 1 email queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 01**: 1 email sent. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Site 02**: 1 email sent. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
       ].join("\n"),
     );
   });
@@ -2123,7 +2162,7 @@ ${IMPACT_DETAILS}
       [
         "**Status pages:**",
         "",
-        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
         "",
         EXPECTED_INCLUDED_FIELDS_FEED,
       ].join("\n"),
@@ -2428,5 +2467,281 @@ ${IMPACT_DETAILS}
         ].join("\n"),
       );
     });
+  });
+});
+
+/*
+ * How the created notification sends (SubscriberDeliveryContract): every
+ * message awaited and counted, failures of every kind on every channel,
+ * every subscriber past LIMIT_MAX, and the send window and the run's latest
+ * claim.
+ */
+describeSubscriberDelivery({
+  title: "Incident:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingIncidents = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: Incident = incident();
+      row.version = PENDING_ROW_VERSION;
+
+      if (index > 0) {
+        row._id = ObjectID.generate().toString();
+      }
+
+      pendingIncidents.push(row);
+    }
+
+    return pendingIncidents.map((row: Incident): ObjectID => {
+      return row.id!;
+    });
+  },
+  statusColumn: "subscriberNotificationStatusOnIncidentCreated",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentService.updateOneById,
+  feed: IncidentFeedService.createIncidentFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.PagesNotYetSent,
+});
+
+/*
+ * A send that reached some status pages in full and fell short on others.
+ * The created notification records only the pages sent in full as told
+ * (statusPagesNotifiedOnCreation), so Retry sends to the others and nobody
+ * on a finished page is sent it twice.
+ */
+describe("Incident:SendNotificationToSubscribers, when a send falls short", () => {
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function notifiedPageRecords(): Array<Array<number>> {
+    return mock(IncidentService.updateOneById)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      })
+      .filter((data: JSONObject): boolean => {
+        return "statusPagesNotifiedOnCreation" in data;
+      })
+      .map((data: JSONObject): Array<number> => {
+        return (data["statusPagesNotifiedOnCreation"] as Array<string>).map(
+          siteOf,
+        );
+      });
+  }
+
+  // The pages told so far, as the send wrote them page by page.
+  function progressRecords(): Array<Array<number>> {
+    return mock(IncidentService.updateColumnsByIdWithoutHooks).mock.calls.map(
+      (call: Array<unknown>): Array<number> => {
+        return (
+          (call[0] as { data: JSONObject }).data[
+            "statusPagesNotifiedOnCreation"
+          ] as Array<string>
+        ).map(siteOf);
+      },
+    );
+  }
+
+  function settledWrite(): JSONObject {
+    const writes: Array<JSONObject> = mock(
+      IncidentService.updateOneById,
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return (call[0] as { data: JSONObject }).data;
+    });
+
+    return writes[writes.length - 1]!;
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function feedItems(): Array<JSONObject> {
+    return mock(IncidentFeedService.createIncidentFeedItem).mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    // Site 03 and Site 07 each have an email subscriber; Site 07 also a webhook.
+    subscribers = [
+      siteSubscriber({ site: 3, email: "site3@acme.com" }),
+      siteSubscriber({
+        site: 7,
+        email: "site7@acme.com",
+        webhook: "https://hooks.acme.com/site7",
+      }),
+    ];
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([3, 7]) };
+  });
+
+  test("records only the pages sent in full, and settles as Failed with each page's counts", async () => {
+    failSends(
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+      "returned HTTPErrorResponse",
+    );
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(notifiedPageRecords()).toEqual([[3]]);
+    expect(settledWrite()).toEqual({
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage:
+        "Not every subscriber was sent this notification: 1 of 3 messages failed. Site 03: 1 email sent. Site 07: 1 email sent; 1 webhook failed. Retry sends it again only to the status pages that were not sent it in full: Site 07.",
+      statusPagesNotifiedOnCreation: [sitePageId(3).toString()],
+    });
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Red500);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toContain(
+      "Subscriber Incident Created Notification Failed for some subscribers",
+    );
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 07**: 1 email sent; 1 webhook failed.",
+    );
+  });
+
+  test("Retry resumes after the pages sent in full: only the page that fell short is sent it again", async () => {
+    failSends(
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+      "thrown error",
+    );
+
+    await runJob();
+
+    const told: Array<number> = notifiedPageRecords().pop()!;
+    expect(told).toEqual([3]);
+
+    // Retry: the dashboard puts the row back to Pending; the webhook answers now.
+    jest.clearAllMocks();
+    mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+    mock(
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+    ).mockResolvedValue(undefined as never);
+    const retried: Incident = incident();
+    retried.statusPagesNotifiedOnCreation = told.map((site: number): string => {
+      return sitePageId(site).toString();
+    });
+    pendingIncidents = [retried];
+
+    await runJob();
+
+    // Site 03 is not sent it twice.
+    expect(emailsSentTo()).toEqual(["site7@acme.com"]);
+    expect(sentWebhooks()).toHaveLength(1);
+    expect(notifiedPageRecords().pop()).toEqual([3, 7]);
+    expect(
+      settledWrite()["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBe(StatusPageSubscriberNotificationStatus.Success);
+  });
+
+  test("writes the pages told so far as each finishes, without hooks, so an interrupted send keeps them", async () => {
+    await runJob();
+
+    expect(progressRecords()).toEqual([[3], [3, 7]]);
+
+    for (const call of mock(IncidentService.updateColumnsByIdWithoutHooks).mock
+      .calls) {
+      expect((call[0] as { id: ObjectID }).id.toString()).toBe(
+        INCIDENT_ID.toString(),
+      );
+    }
+  });
+
+  test("a page that fell short is never written as told, not even part-way", async () => {
+    failSends(MailService.sendMail, "thrown HTTPErrorResponse");
+
+    await runJob();
+
+    expect(progressRecords()).toEqual([]);
+    expect(notifiedPageRecords()).toEqual([[]]);
+  });
+
+  test("a failure writing the progress does not stop the send", async () => {
+    mock(IncidentService.updateColumnsByIdWithoutHooks).mockRejectedValue(
+      new Error("database hiccup") as never,
+    );
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(notifiedPageRecords()).toEqual([[3, 7]]);
+    expect(
+      settledWrite()["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBe(StatusPageSubscriberNotificationStatus.Success);
+  });
+
+  test("a send that fell short does not queue itself again for pages added meanwhile: its Retry covers them", async () => {
+    failSends(MailService.sendMail, "thrown error");
+    let reads: number = 0;
+    mock(IncidentService.findBy).mockImplementation(((args: unknown) => {
+      reads++;
+      const scope: StoredIncidentScope =
+        reads === 1 ? scopedTo([3, 7]) : scopedTo([3, 7, 9]);
+
+      return incidentScopeFindBy(() => {
+        return { [INCIDENT_ID.toString()]: scope };
+      })(args);
+    }) as never);
+
+    await runJob();
+
+    expect(
+      mock(IncidentService.updateOneById).mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return (call[0] as { data: JSONObject }).data[
+            "subscriberNotificationStatusOnIncidentCreated"
+          ];
+        },
+      ),
+    ).toEqual([StatusPageSubscriberNotificationStatus.Failed]);
   });
 });

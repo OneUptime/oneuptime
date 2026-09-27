@@ -30,7 +30,7 @@ import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -41,7 +41,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
-import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -51,12 +51,28 @@ import IncidentStatusPageScope, {
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
 import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
+  SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberNotificationTiming, {
+  SubscriberNotificationRunClock,
+  SubscriberNotificationSendWindow,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
+import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
+import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import Email from "Common/Types/Email";
 
 RunCron(
   "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+    // Sized to one notification's send window (SubscriberNotificationTiming).
+    timeoutInMS: SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS,
+  },
   async () => {
+    const runClock: SubscriberNotificationRunClock =
+      SubscriberNotificationTiming.startRun();
+
     // First, mark state timelines as Skipped if they should not be notified
     const timelinesToSkip: Array<IncidentEpisodeStateTimeline> =
       await IncidentEpisodeStateTimelineService.findBy({
@@ -116,6 +132,8 @@ RunCron(
         skip: 0,
         select: {
           _id: true,
+          // What the claim checks the row against (SubscriberNotificationClaim).
+          version: true,
           projectId: true,
           incidentEpisodeId: true,
           incidentStateId: true,
@@ -134,6 +152,17 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const episodeStateTimeline of episodeStateTimelines) {
+      if (!runClock.canClaimAnotherNotification()) {
+        /*
+         * Whatever this run claims now might not finish before its timeout.
+         * The rest stay Pending for the runs that follow.
+         */
+        logger.debug(
+          "Leaving the remaining episode state timelines for the next run.",
+        );
+        break;
+      }
+
       try {
         logger.debug(
           `Processing episode state timeline ${episodeStateTimeline.id}.`,
@@ -143,18 +172,27 @@ RunCron(
               episodeStateTimeline.incidentEpisodeId?.toString(),
           },
         );
-        // Set to InProgress at the start of processing
-        await IncidentEpisodeStateTimelineService.updateOneById({
+        /*
+         * Set to InProgress at the start of processing: Pending to
+         * InProgress, only if no other run has claimed it and it has not
+         * changed since this run read it (SubscriberNotificationClaim).
+         */
+        const claimed: boolean = await SubscriberNotificationClaim.claim({
+          service: IncidentEpisodeStateTimelineService,
           id: episodeStateTimeline.id!,
-          data: {
-            subscriberNotificationStatus:
-              StatusPageSubscriberNotificationStatus.InProgress,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
+          statusColumn: "subscriberNotificationStatus",
+          version: episodeStateTimeline.version,
         });
+
+        if (!claimed) {
+          logger.debug(
+            `Episode state timeline ${episodeStateTimeline.id} was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
+
+        const sendWindow: SubscriberNotificationSendWindow =
+          SubscriberNotificationTiming.startSendWindow();
 
         if (
           !episodeStateTimeline.incidentEpisodeId ||
@@ -333,7 +371,12 @@ RunCron(
           resolvedStatusPages.excludedStatusPages,
         );
 
-        let notificationSentToAtLeastOneSubscriber: boolean = false;
+        const logAttributes: LogAttributes = {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        };
+        const episodeStateName: string =
+          episodeStateTimeline.incidentState.name;
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
@@ -359,16 +402,16 @@ RunCron(
             continue;
           }
 
-          deliveryRecord.startStatusPage(statuspage);
-
-          const subscribers: Array<StatusPageSubscriber> =
-            await StatusPageSubscriberService.getSubscribersByStatusPage(
-              statuspage.id!,
-              {
-                isRoot: true,
-                ignoreHooks: true,
-              },
+          if (!sendWindow.isOpen()) {
+            // Out of time before this page (SubscriberNotificationTiming).
+            deliveryRecord.skipStatusPage(
+              statuspage,
+              StatusPageDeliverySkipReason.OutOfTime,
             );
+            continue;
+          }
+
+          deliveryRecord.startStatusPage(statuspage);
 
           const statusPageURL: string =
             await StatusPageService.getStatusPageURL(statuspage.id);
@@ -388,14 +431,6 @@ RunCron(
                   .addRoute(`/incidents/${episode.id.toString()}`)
                   .toString()
               : statusPageURL;
-
-          logger.debug(
-            `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for episode state timeline ${episodeStateTimeline.id}.`,
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
-          );
 
           // Fetch custom templates for this status page (if any)
           const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
@@ -470,7 +505,7 @@ RunCron(
             detailsUrl: episodeDetailsUrl,
             episodeSeverity: episode.incidentSeverity?.name || " - ",
             episodeTitle: episode.title || "",
-            episodeState: episodeStateTimeline.incidentState.name,
+            episodeState: episodeStateName,
           };
 
           /*
@@ -498,425 +533,442 @@ RunCron(
 
           // Send email to Email subscribers.
 
-          for (const subscriber of subscribers) {
-            if (!subscriber._id) {
-              logger.debug(
-                "Encountered a subscriber without an _id; skipping.",
+          /*
+           * Every subscriber of the page, read in batches past LIMIT_MAX, a
+           * bounded number at a time, each message awaited and counted sent or
+           * failed (SubscriberNotificationFanOut).
+           */
+          await SubscriberNotificationFanOut.forEachSubscriber({
+            statusPage: statuspage,
+            record: deliveryRecord,
+            sendWindow: sendWindow,
+            logAttributes: logAttributes,
+            handler: async (
+              subscriber: StatusPageSubscriber,
+            ): Promise<void> => {
+              if (!subscriber._id) {
+                logger.debug(
+                  "Encountered a subscriber without an _id; skipping.",
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
+                return;
+              }
+
+              const shouldNotifySubscriber: boolean =
+                StatusPageSubscriberService.shouldSendNotification({
+                  subscriber: subscriber,
+                  statusPageResources:
+                    statusPageToResources[statuspage._id!] || [],
+                  statusPage: statuspage,
+                  eventType: StatusPageEventType.Incident, // Episodes use incident event type
+                });
+
+              if (!shouldNotifySubscriber) {
+                logger.debug(
+                  `Skipping subscriber ${subscriber._id} based on preferences for state timeline ${episodeStateTimeline.id}.`,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
+                return;
+              }
+
+              deliveryRecord.recordSubscriberMatched();
+
+              const unsubscribeUrl: string =
+                StatusPageSubscriberService.getUnsubscribeLink(
+                  URL.fromString(statusPageURL),
+                  subscriber,
+                ).toString();
+
+              const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
                 {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-              continue;
-            }
-
-            const shouldNotifySubscriber: boolean =
-              StatusPageSubscriberService.shouldSendNotification({
-                subscriber: subscriber,
-                statusPageResources:
-                  statusPageToResources[statuspage._id!] || [],
-                statusPage: statuspage,
-                eventType: StatusPageEventType.Incident, // Episodes use incident event type
-              });
-
-            if (!shouldNotifySubscriber) {
-              logger.debug(
-                `Skipping subscriber ${subscriber._id} based on preferences for state timeline ${episodeStateTimeline.id}.`,
-                {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-              continue;
-            }
-
-            notificationSentToAtLeastOneSubscriber = true;
-
-            const unsubscribeUrl: string =
-              StatusPageSubscriberService.getUnsubscribeLink(
-                URL.fromString(statusPageURL),
-                subscriber,
-              ).toString();
-
-            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
-              {
-                ...emailBodyTemplateVariables,
-                unsubscribeUrl: unsubscribeUrl,
-              };
-            const subscriberPlainTextTemplateVariables: Record<string, string> =
-              {
+                  ...emailBodyTemplateVariables,
+                  unsubscribeUrl: unsubscribeUrl,
+                };
+              const subscriberPlainTextTemplateVariables: Record<
+                string,
+                string
+              > = {
                 ...plainTextTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
               };
 
-            /*
-             * An email address or phone number already sent this in this
-             * send, through an earlier page, is not sent it again (only when
-             * an incident of the episode is scoped; see
-             * SubscriberNotificationDeliveryRecord).
-             */
-            if (
-              subscriber.subscriberPhone &&
-              deliveryRecord.shouldSendSms({
-                statusPage: statuspage,
-                phone: subscriber.subscriberPhone,
-              })
-            ) {
-              const phoneStr: string = subscriber.subscriberPhone.toString();
-              const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
-              logger.debug(
-                `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for episode state timeline ${episodeStateTimeline.id}.`,
-                {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-
               /*
-               * On a public status page the SMS keeps the shorter manage link,
-               * which works there without signing in: an SMS is billed by the
-               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+               * An email address or phone number already sent this in this
+               * send, through an earlier page, is not sent it again (only when
+               * an incident of the episode is scoped; see
+               * SubscriberNotificationDeliveryRecord).
                */
-              const smsUnsubscribeUrl: string =
-                StatusPageSubscriberUnsubscribe.buildSmsLink({
-                  isPublicStatusPage: statuspage.isPublicStatusPage,
-                  statusPageUrl: statusPageURL,
-                  subscriberId: subscriber.id!,
-                  unsubscribeUrl: unsubscribeUrl,
-                });
+              if (
+                subscriber.subscriberPhone &&
+                deliveryRecord.shouldSendSms({
+                  statusPage: statuspage,
+                  phone: subscriber.subscriberPhone,
+                })
+              ) {
+                const phoneStr: string = subscriber.subscriberPhone.toString();
+                const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
+                logger.debug(
+                  `Sending SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for episode state timeline ${episodeStateTimeline.id}.`,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
 
-              let smsMessage: string;
-              if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
-                // Use custom template only when custom Twilio is configured
-                smsMessage =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                    smsTemplate.templateBody,
-                    {
-                      ...subscriberPlainTextTemplateVariables,
-                      unsubscribeUrl: smsUnsubscribeUrl,
-                    },
-                  );
-              } else {
-                // Use default hard-coded template
-                smsMessage = `Incident ${episode.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}. Details: ${episodeDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
-              }
-
-              const sms: SMS = {
-                message: smsMessage,
-                to: subscriber.subscriberPhone,
-              };
-
-              deliveryRecord.recordQueued({
-                statusPage: statuspage,
-                method: StatusPageSubscriberNotificationMethod.SMS,
-              });
-
-              // send sms here.
-              SmsService.sendSms(sms, {
-                projectId: statuspage.projectId,
-                customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                  statuspage.callSmsConfig,
-                ),
-                statusPageId: statuspage.id!,
-              }).catch((err: Error) => {
                 /*
-                 * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
-                 * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
-                 * 404 on a deleted webhook or an unreachable host is their side of the
-                 * wire, not a OneUptime defect — and one status page can fan out to
-                 * thousands of subscribers, so leaving these at ERROR buries real
-                 * failures under a single tenant's dead webhook.
+                 * On a public status page the SMS keeps the shorter manage link,
+                 * which works there without signing in: an SMS is billed by the
+                 * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
                  */
-                logger.error(err, {
-                  ...EXTERNAL_FAULT,
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                });
-              });
-            }
-
-            let emailTitle: string = `Incident `;
-
-            if (resourcesAffectedPlainText) {
-              emailTitle += `on ${resourcesAffectedPlainText} `;
-            }
-
-            emailTitle += `is ${episodeStateTimeline.incidentState.name}`;
-
-            if (
-              subscriber.subscriberEmail &&
-              deliveryRecord.shouldSendEmail({
-                statusPage: statuspage,
-                email: subscriber.subscriberEmail,
-              })
-            ) {
-              // send email here.
-              logger.debug(
-                `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for episode state timeline ${episodeStateTimeline.id}.`,
-                {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-
-              if (emailTemplate?.templateBody && statuspage.smtpConfig) {
-                // Use custom template with BlankTemplate only when custom SMTP is configured
-                const compiledBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
-                    emailTemplate.templateBody,
-                    subscriberEmailBodyTemplateVariables,
-                  );
-                const compiledSubject: string = emailTemplate.emailSubject
-                  ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                      emailTemplate.emailSubject,
-                      subscriberPlainTextTemplateVariables,
-                    )
-                  : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title || ""}`;
-
-                deliveryRecord.recordQueued({
-                  statusPage: statuspage,
-                  method: StatusPageSubscriberNotificationMethod.Email,
-                  subject: compiledSubject,
-                });
-
-                MailService.sendMail(
-                  {
-                    toEmail: subscriber.subscriberEmail,
-                    templateType: EmailTemplateType.BlankTemplate,
-                    vars: {
-                      body: compiledBody,
-                    },
-                    subject: compiledSubject,
-                    isSubjectLiteral: true,
-                  },
-                  {
-                    mailServer: ProjectSMTPConfigService.toEmailServer(
-                      statuspage.smtpConfig,
-                    ),
-                    projectId: statuspage.projectId,
-                    statusPageId: statuspage.id!,
-                  },
-                ).catch((err: Error) => {
-                  logger.error(err, {
-                    ...EXTERNAL_FAULT,
-                    projectId: episode.projectId?.toString(),
-                    incidentEpisodeId: episode.id?.toString(),
+                const smsUnsubscribeUrl: string =
+                  StatusPageSubscriberUnsubscribe.buildSmsLink({
+                    isPublicStatusPage: statuspage.isPublicStatusPage,
+                    statusPageUrl: statusPageURL,
+                    subscriberId: subscriber.id!,
+                    unsubscribeUrl: unsubscribeUrl,
                   });
-                });
-              } else {
-                const subject: string = `[${Text.uppercaseFirstLetter(
-                  episodeStateTimeline.incidentState.name,
-                )} Incident] ${episode.title || ""}`;
 
-                deliveryRecord.recordQueued({
+                let smsMessage: string;
+                if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                  // Use custom template only when custom Twilio is configured
+                  smsMessage =
+                    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      smsTemplate.templateBody,
+                      {
+                        ...subscriberPlainTextTemplateVariables,
+                        unsubscribeUrl: smsUnsubscribeUrl,
+                      },
+                    );
+                } else {
+                  // Use default hard-coded template
+                  smsMessage = `Incident ${episode.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(episodeStateName)}. Details: ${episodeDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+                }
+
+                const sms: SMS = {
+                  message: smsMessage,
+                  to: subscriber.subscriberPhone,
+                };
+
+                // send sms here.
+                await deliveryRecord.deliver({
                   statusPage: statuspage,
-                  method: StatusPageSubscriberNotificationMethod.Email,
-                  subject: subject,
-                });
-
-                // Use default hard-coded template
-                MailService.sendMail(
-                  {
-                    toEmail: subscriber.subscriberEmail,
-                    templateType:
-                      EmailTemplateType.SubscriberEpisodeStateChanged,
-                    vars: {
-                      emailTitle: emailTitle,
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      detailsUrl: episodeDetailsUrl,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
-                      isPublicStatusPage: statuspage.isPublicStatusPage
-                        ? "true"
-                        : "false",
-                      resourcesAffected: resourcesAffectedHtml || "None",
-                      episodeSeverity: episode.incidentSeverity?.name || " - ",
-                      episodeTitle: episode.title || "",
-                      episodeState: episodeStateTimeline.incidentState.name,
-                      unsubscribeUrl: unsubscribeUrl,
-                      subscriberEmailNotificationFooterText:
-                        StatusPageServiceType.getSubscriberEmailFooterText(
-                          statuspage,
+                  method: StatusPageSubscriberNotificationMethod.SMS,
+                  logAttributes: logAttributes,
+                  send: () => {
+                    return SmsService.sendSms(sms, {
+                      projectId: statuspage.projectId,
+                      customTwilioConfig:
+                        ProjectCallSMSConfigService.toTwilioConfig(
+                          statuspage.callSmsConfig,
                         ),
-                    },
-                    subject: subject,
-                    isSubjectLiteral: true,
+                      statusPageId: statuspage.id!,
+                    });
                   },
+                });
+              }
+
+              let emailTitle: string = `Incident `;
+
+              if (resourcesAffectedPlainText) {
+                emailTitle += `on ${resourcesAffectedPlainText} `;
+              }
+
+              emailTitle += `is ${episodeStateName}`;
+
+              if (
+                subscriber.subscriberEmail &&
+                deliveryRecord.shouldSendEmail({
+                  statusPage: statuspage,
+                  email: subscriber.subscriberEmail,
+                })
+              ) {
+                const subscriberEmail: Email = subscriber.subscriberEmail;
+                // send email here.
+                logger.debug(
+                  `Sending email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for episode state timeline ${episodeStateTimeline.id}.`,
                   {
-                    mailServer: ProjectSMTPConfigService.toEmailServer(
-                      statuspage.smtpConfig,
-                    ),
-                    projectId: statuspage.projectId,
-                    statusPageId: statuspage.id!,
-                  },
-                ).catch((err: Error) => {
-                  logger.error(err, {
-                    ...EXTERNAL_FAULT,
                     projectId: episode.projectId?.toString(),
                     incidentEpisodeId: episode.id?.toString(),
-                  });
-                });
-              }
-            }
-
-            if (subscriber.slackIncomingWebhookUrl) {
-              let slackTitle: string;
-              if (slackTemplate?.templateBody) {
-                // Use custom template
-                slackTitle =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                    slackTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
-                  );
-              } else {
-                // Use default hard-coded template
-                slackTitle = `🚨 ## Incident - ${episode.title || " - "}
-
-`;
-
-                if (resourcesAffectedPlainText) {
-                  slackTitle += `
-**Resources Affected:** ${resourcesAffectedPlainText}`;
-                }
-
-                slackTitle += `
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Status:** ${episodeStateTimeline.incidentState.name}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
-              }
-
-              deliveryRecord.recordQueued({
-                statusPage: statuspage,
-                method: StatusPageSubscriberNotificationMethod.Slack,
-              });
-
-              SlackUtil.sendMessageToChannelViaIncomingWebhook({
-                url: subscriber.slackIncomingWebhookUrl,
-                text: SlackUtil.convertMarkdownToSlackRichText(slackTitle),
-              }).catch((err: Error) => {
-                logger.error(err, {
-                  ...EXTERNAL_FAULT,
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                });
-              });
-              logger.debug(
-                `Slack notification queued for subscriber ${subscriber._id} for episode state timeline ${episodeStateTimeline.id}.`,
-                {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-            }
-
-            if (subscriber.microsoftTeamsIncomingWebhookUrl) {
-              let teamsTitle: string;
-              if (teamsTemplate?.templateBody) {
-                // Use custom template
-                teamsTitle =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                    teamsTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
-                  );
-              } else {
-                // Use default hard-coded template
-                teamsTitle = `🚨 ## Incident - ${episode.title || " - "}
-
-`;
-
-                if (resourcesAffectedPlainText) {
-                  teamsTitle += `
-**Resources Affected:** ${resourcesAffectedPlainText}`;
-                }
-
-                teamsTitle += `
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Status:** ${episodeStateTimeline.incidentState.name}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
-              }
-
-              deliveryRecord.recordQueued({
-                statusPage: statuspage,
-                method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-              });
-
-              MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
-                url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                text: teamsTitle,
-              }).catch((err: Error) => {
-                logger.error(err, {
-                  ...EXTERNAL_FAULT,
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                });
-              });
-              logger.debug(
-                `Microsoft Teams notification queued for subscriber ${subscriber._id} for episode state timeline ${episodeStateTimeline.id}.`,
-                {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                },
-              );
-            }
-
-            if (subscriber.subscriberWebhook) {
-              deliveryRecord.recordQueued({
-                statusPage: statuspage,
-                method: StatusPageSubscriberNotificationMethod.Webhook,
-              });
-
-              StatusPageSubscriberWebhookUtil.sendWebhookNotification({
-                webhookUrl: subscriber.subscriberWebhook,
-                payload: {
-                  eventType: "EpisodeStateChanged",
-                  statusPageId: statuspage.id!.toString(),
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  unsubscribeUrl: unsubscribeUrl,
-                  data: {
-                    episodeId: episode.id?.toString() || "",
-                    episodeTitle: episode.title || "",
-                    incidentSeverity: episode.incidentSeverity?.name || "",
-                    incidentState:
-                      episodeStateTimeline.incidentState?.name || "",
-                    resourcesAffected: resourcesAffectedPlainText || "",
-                    detailsUrl: episodeDetailsUrl,
                   },
-                },
-              }).catch((err: Error) => {
-                logger.error(err, {
-                  ...EXTERNAL_FAULT,
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
+                );
+
+                if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                  // Use custom template with BlankTemplate only when custom SMTP is configured
+                  const compiledBody: string =
+                    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
+                      emailTemplate.templateBody,
+                      subscriberEmailBodyTemplateVariables,
+                    );
+                  const compiledSubject: string = emailTemplate.emailSubject
+                    ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        emailTemplate.emailSubject,
+                        subscriberPlainTextTemplateVariables,
+                      )
+                    : `[Incident ${Text.uppercaseFirstLetter(episodeStateName)}] ${episode.title || ""}`;
+
+                  await deliveryRecord.deliver({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Email,
+                    subject: compiledSubject,
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return MailService.sendMail(
+                        {
+                          toEmail: subscriberEmail,
+                          templateType: EmailTemplateType.BlankTemplate,
+                          vars: {
+                            body: compiledBody,
+                          },
+                          subject: compiledSubject,
+                          isSubjectLiteral: true,
+                        },
+                        {
+                          mailServer: ProjectSMTPConfigService.toEmailServer(
+                            statuspage.smtpConfig,
+                          ),
+                          projectId: statuspage.projectId,
+                          statusPageId: statuspage.id!,
+                        },
+                      );
+                    },
+                  });
+                } else {
+                  const subject: string = `[${Text.uppercaseFirstLetter(
+                    episodeStateName,
+                  )} Incident] ${episode.title || ""}`;
+
+                  // Use default hard-coded template
+                  await deliveryRecord.deliver({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Email,
+                    subject: subject,
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return MailService.sendMail(
+                        {
+                          toEmail: subscriberEmail,
+                          templateType:
+                            EmailTemplateType.SubscriberEpisodeStateChanged,
+                          vars: {
+                            emailTitle: emailTitle,
+                            statusPageName: statusPageName,
+                            statusPageUrl: statusPageURL,
+                            detailsUrl: episodeDetailsUrl,
+                            logoUrl:
+                              statuspage.logoFileId && statusPageIdString
+                                ? new URL(httpProtocol, host)
+                                    .addRoute(StatusPageApiRoute)
+                                    .addRoute(`/logo/${statusPageIdString}`)
+                                    .toString()
+                                : "",
+                            isPublicStatusPage: statuspage.isPublicStatusPage
+                              ? "true"
+                              : "false",
+                            resourcesAffected: resourcesAffectedHtml || "None",
+                            episodeSeverity:
+                              episode.incidentSeverity?.name || " - ",
+                            episodeTitle: episode.title || "",
+                            episodeState: episodeStateName,
+                            unsubscribeUrl: unsubscribeUrl,
+                            subscriberEmailNotificationFooterText:
+                              StatusPageServiceType.getSubscriberEmailFooterText(
+                                statuspage,
+                              ),
+                          },
+                          subject: subject,
+                          isSubjectLiteral: true,
+                        },
+                        {
+                          mailServer: ProjectSMTPConfigService.toEmailServer(
+                            statuspage.smtpConfig,
+                          ),
+                          projectId: statuspage.projectId,
+                          statusPageId: statuspage.id!,
+                        },
+                      );
+                    },
+                  });
+                }
+              }
+
+              if (subscriber.slackIncomingWebhookUrl) {
+                const slackIncomingWebhookUrl: URL =
+                  subscriber.slackIncomingWebhookUrl;
+                let slackTitle: string;
+                if (slackTemplate?.templateBody) {
+                  // Use custom template
+                  slackTitle =
+                    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      slackTemplate.templateBody,
+                      subscriberPlainTextTemplateVariables,
+                    );
+                } else {
+                  // Use default hard-coded template
+                  slackTitle = `🚨 ## Incident - ${episode.title || " - "}
+
+`;
+
+                  if (resourcesAffectedPlainText) {
+                    slackTitle += `
+**Resources Affected:** ${resourcesAffectedPlainText}`;
+                  }
+
+                  slackTitle += `
+**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Status:** ${episodeStateName}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                }
+
+                await deliveryRecord.deliver({
+                  statusPage: statuspage,
+                  method: StatusPageSubscriberNotificationMethod.Slack,
+                  logAttributes: logAttributes,
+                  send: () => {
+                    return SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                      url: slackIncomingWebhookUrl,
+                      text: SlackUtil.convertMarkdownToSlackRichText(
+                        slackTitle,
+                      ),
+                    });
+                  },
                 });
-              });
-            }
-          }
+                logger.debug(
+                  `Slack notification sent to subscriber ${subscriber._id} for episode state timeline ${episodeStateTimeline.id}.`,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
+              }
+
+              if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+                const microsoftTeamsIncomingWebhookUrl: URL =
+                  subscriber.microsoftTeamsIncomingWebhookUrl;
+                let teamsTitle: string;
+                if (teamsTemplate?.templateBody) {
+                  // Use custom template
+                  teamsTitle =
+                    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      teamsTemplate.templateBody,
+                      subscriberPlainTextTemplateVariables,
+                    );
+                } else {
+                  // Use default hard-coded template
+                  teamsTitle = `🚨 ## Incident - ${episode.title || " - "}
+
+`;
+
+                  if (resourcesAffectedPlainText) {
+                    teamsTitle += `
+**Resources Affected:** ${resourcesAffectedPlainText}`;
+                  }
+
+                  teamsTitle += `
+**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Status:** ${episodeStateName}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                }
+
+                await deliveryRecord.deliver({
+                  statusPage: statuspage,
+                  method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                  logAttributes: logAttributes,
+                  send: () => {
+                    return MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook(
+                      {
+                        url: microsoftTeamsIncomingWebhookUrl,
+                        text: teamsTitle,
+                      },
+                    );
+                  },
+                });
+                logger.debug(
+                  `Microsoft Teams notification sent to subscriber ${subscriber._id} for episode state timeline ${episodeStateTimeline.id}.`,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
+              }
+
+              if (subscriber.subscriberWebhook) {
+                const subscriberWebhook: URL = subscriber.subscriberWebhook;
+
+                await deliveryRecord.deliver({
+                  statusPage: statuspage,
+                  method: StatusPageSubscriberNotificationMethod.Webhook,
+                  logAttributes: logAttributes,
+                  send: () => {
+                    return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
+                      {
+                        webhookUrl: subscriberWebhook,
+                        payload: {
+                          eventType: "EpisodeStateChanged",
+                          statusPageId: statuspage.id!.toString(),
+                          statusPageName: statusPageName,
+                          statusPageUrl: statusPageURL,
+                          unsubscribeUrl: unsubscribeUrl,
+                          data: {
+                            episodeId: episode.id?.toString() || "",
+                            episodeTitle: episode.title || "",
+                            incidentSeverity:
+                              episode.incidentSeverity?.name || "",
+                            incidentState: episodeStateName || "",
+                            resourcesAffected: resourcesAffectedPlainText || "",
+                            detailsUrl: episodeDetailsUrl,
+                          },
+                        },
+                      },
+                    );
+                  },
+                });
+              }
+            },
+          });
         }
 
         const deliveryMarkdown: string = deliveryRecord.toMarkdown();
 
-        if (notificationSentToAtLeastOneSubscriber) {
+        const episodeNumber: string =
+          episode.episodeNumber?.toString() || " - ";
+        const projectId: ObjectID = episode.projectId!;
+        const episodeId: ObjectID = episode.id!;
+
+        /*
+         * Fell short when a message failed, or the send stopped before it
+         * reached every subscriber: the notification settles as Failed.
+         */
+        const sendFellShort: boolean = deliveryRecord.hasFailures();
+
+        if (sendFellShort) {
           logger.debug(
-            "Notification sent to subscribers for episode state change",
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
+            "Not every subscriber was sent the episode state change notification",
+            logAttributes,
           );
 
-          const episodeNumber: string =
-            episode.episodeNumber?.toString() || " - ";
-          const projectId: ObjectID = episode.projectId!;
-          const episodeId: ObjectID = episode.id!;
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: episode.id!,
+            projectId: episode.projectId!,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+            displayColor: Red500,
+            feedInfoInMarkdown: `📧 **Not every Status Page Subscriber was notified** about the state change of the [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateName}**`,
+            // Each status page with what was sent and what failed, and its subject.
+            moreInformationInMarkdown: deliveryMarkdown || undefined,
+          });
+        } else if (deliveryRecord.hasMatchedAnySubscriber()) {
+          logger.debug(
+            "Notification sent to subscribers for episode state change",
+            logAttributes,
+          );
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
             incidentEpisodeId: episode.id!,
@@ -924,28 +976,17 @@ RunCron(
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.SubscriberNotificationSent,
             displayColor: Blue500,
-            feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateTimeline.incidentState.name}**`,
-            // Each status page, the subject its email went out with, and what was queued.
+            feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateName}**`,
+            // Each status page, the subject its email went out with, and what was sent.
             moreInformationInMarkdown: deliveryMarkdown || undefined,
           });
 
-          logger.debug("Episode Feed created", {
-            projectId: episode.projectId?.toString(),
-            incidentEpisodeId: episode.id?.toString(),
-          });
+          logger.debug("Episode Feed created", logAttributes);
         } else {
           logger.debug(
             `No subscribers were notified for episode state change. All status pages either hide episodes or had no matching subscribers.`,
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
+            logAttributes,
           );
-
-          const episodeNumber: string =
-            episode.episodeNumber?.toString() || " - ";
-          const projectId: ObjectID = episode.projectId!;
-          const episodeId: ObjectID = episode.id!;
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
             incidentEpisodeId: episode.id!,
@@ -953,7 +994,7 @@ RunCron(
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.SubscriberNotificationSent,
             displayColor: Yellow500,
-            feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateTimeline.incidentState.name}**`,
+            feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateName}**`,
             moreInformationInMarkdown: [
               "Subscriber notifications were skipped because every associated status page either hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
               deliveryMarkdown,
@@ -963,14 +1004,20 @@ RunCron(
           });
         }
 
-        // Mark Success at the end
+        // Settle: Success, or Failed with what was sent and failed per page.
         await IncidentEpisodeStateTimelineService.updateOneById({
           id: episodeStateTimeline.id!,
           data: {
-            subscriberNotificationStatus:
-              StatusPageSubscriberNotificationStatus.Success,
-            subscriberNotificationStatusMessage:
-              "Notifications sent successfully to all subscribers",
+            subscriberNotificationStatus: sendFellShort
+              ? StatusPageSubscriberNotificationStatus.Failed
+              : StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage: deliveryRecord.toStatusMessage(
+              {
+                sentMessage:
+                  "Notifications sent successfully to all subscribers.",
+                retryScope: SubscriberNotificationRetryScope.EveryPage,
+              },
+            ),
           },
           props: { isRoot: true, ignoreHooks: true },
         });

@@ -22,7 +22,7 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
-import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -34,7 +34,7 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -48,12 +48,28 @@ import IncidentStatusPageScope, {
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
 import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
+  SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberNotificationTiming, {
+  SubscriberNotificationRunClock,
+  SubscriberNotificationSendWindow,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
+import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
+import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import Email from "Common/Types/Email";
 
 RunCron(
   "Incident:SendPostmortemNotificationToSubscribers",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+    // Sized to one notification's send window (SubscriberNotificationTiming).
+    timeoutInMS: SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS,
+  },
   async () => {
+    const runClock: SubscriberNotificationRunClock =
+      SubscriberNotificationTiming.startRun();
+
     // get all scheduled events of all the projects.
     const incidents: Array<Incident> = await IncidentService.findAllBy({
       query: {
@@ -65,6 +81,8 @@ RunCron(
       },
       skip: 0,
       select: {
+        // What the claim checks the row against (SubscriberNotificationClaim).
+        version: true,
         showPostmortemOnStatusPage: true,
         notifySubscribersOnPostmortemPublished: true,
         _id: true,
@@ -100,6 +118,17 @@ RunCron(
     );
 
     for (const incident of incidents) {
+      if (!runClock.canClaimAnotherNotification()) {
+        /*
+         * Whatever this run claims now might not finish before its timeout.
+         * The rest stay Pending for the runs that follow.
+         */
+        logger.debug(
+          "Leaving the remaining incidents' postmortem notifications for the next run.",
+        );
+        break;
+      }
+
       try {
         if (!incident.showPostmortemOnStatusPage) {
           logger.debug(
@@ -181,17 +210,30 @@ RunCron(
           continue;
         }
 
-        await IncidentService.updateOneById({
+        /*
+         * Pending to InProgress, only if no other run has claimed it and it
+         * has not changed since this run read it (SubscriberNotificationClaim).
+         */
+        const claimed: boolean = await SubscriberNotificationClaim.claim({
+          service: IncidentService,
           id: incident.id!,
-          data: {
-            subscriberNotificationStatusOnPostmortemPublished:
-              StatusPageSubscriberNotificationStatus.InProgress,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
+          statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
+          version: incident.version,
         });
+
+        if (!claimed) {
+          logger.debug(
+            `Incident ${incident.id}'s postmortem notification was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
+
+        const sendWindow: SubscriberNotificationSendWindow =
+          SubscriberNotificationTiming.startSendWindow();
+        const logAttributes: LogAttributes = {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        };
 
         logger.debug(
           `Incident ${incident.id} status set to InProgress for subscriber postmortem notifications.`,
@@ -305,15 +347,16 @@ RunCron(
               continue; // Do not send notification to subscribers if incidents are not visible on status page.
             }
 
-            deliveryRecord.startStatusPage(statuspage);
-
-            const subscribers: Array<StatusPageSubscriber> =
-              await StatusPageSubscriberService.getSubscribersByStatusPage(
-                statuspage.id!,
-                {
-                  isRoot: true,
-                },
+            if (!sendWindow.isOpen()) {
+              // Out of time before this page (SubscriberNotificationTiming).
+              deliveryRecord.skipStatusPage(
+                statuspage,
+                StatusPageDeliverySkipReason.OutOfTime,
               );
+              continue;
+            }
+
+            deliveryRecord.startStatusPage(statuspage);
 
             // Fetch custom notification templates for this status page
             const emailTemplate: StatusPageSubscriberNotificationTemplate | null =
@@ -374,14 +417,6 @@ RunCron(
                     .toString()
                 : statusPageURL;
 
-            logger.debug(
-              `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s).`,
-              {
-                projectId: incident.projectId?.toString(),
-                incidentId: incident.id?.toString(),
-              },
-            );
-
             /*
              * Everything this page's messages are filled with, in the format
              * each channel renders (IncidentTemplateVariableBuilder). The
@@ -423,8 +458,19 @@ RunCron(
               },
             );
 
-            for (const subscriber of subscribers) {
-              try {
+            /*
+             * Every subscriber of the page, read in batches past LIMIT_MAX,
+             * a bounded number at a time, each message awaited and counted
+             * sent or failed (SubscriberNotificationFanOut).
+             */
+            await SubscriberNotificationFanOut.forEachSubscriber({
+              statusPage: statuspage,
+              record: deliveryRecord,
+              sendWindow: sendWindow,
+              logAttributes: logAttributes,
+              handler: async (
+                subscriber: StatusPageSubscriber,
+              ): Promise<void> => {
                 if (!subscriber._id) {
                   logger.debug(
                     "Encountered a subscriber without an _id; skipping.",
@@ -433,7 +479,7 @@ RunCron(
                       incidentId: incident.id?.toString(),
                     },
                   );
-                  continue;
+                  return;
                 }
 
                 const shouldNotifySubscriber: boolean =
@@ -453,8 +499,10 @@ RunCron(
                       incidentId: incident.id?.toString(),
                     },
                   );
-                  continue;
+                  return;
                 }
+
+                deliveryRecord.recordSubscriberMatched();
 
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
@@ -484,8 +532,9 @@ RunCron(
                   })
                 ) {
                   // send email here.
+                  const subscriberEmail: Email = subscriber.subscriberEmail;
                   logger.debug(
-                    `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
+                    `Sending email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -522,113 +571,98 @@ RunCron(
                           subjectTemplateVars,
                         )
                       : "[Postmortem] " + incident.title || "";
-
-                    deliveryRecord.recordQueued({
-                      statusPage: statuspage,
-                      method: StatusPageSubscriberNotificationMethod.Email,
-                      subject: compiledSubject,
-                    });
                     await incidentTemplateVariables.recordFieldsUsedBy([
                       emailTemplate.templateBody,
                       emailTemplate.emailSubject,
                     ]);
 
-                    MailService.sendMail(
-                      {
-                        toEmail: subscriber.subscriberEmail,
-                        templateType: EmailTemplateType.BlankTemplate,
-                        vars: {
-                          body: compiledBody,
-                        },
-                        subject: compiledSubject,
-                        isSubjectLiteral: true,
+                    await deliveryRecord.deliver({
+                      statusPage: statuspage,
+                      method: StatusPageSubscriberNotificationMethod.Email,
+                      subject: compiledSubject,
+                      logAttributes: logAttributes,
+                      send: () => {
+                        return MailService.sendMail(
+                          {
+                            toEmail: subscriberEmail,
+                            templateType: EmailTemplateType.BlankTemplate,
+                            vars: {
+                              body: compiledBody,
+                            },
+                            subject: compiledSubject,
+                            isSubjectLiteral: true,
+                          },
+                          {
+                            mailServer: ProjectSMTPConfigService.toEmailServer(
+                              statuspage.smtpConfig,
+                            ),
+                            projectId: statuspage.projectId,
+                            statusPageId: statuspage.id!,
+                            incidentId: incident.id!,
+                          },
+                        );
                       },
-                      {
-                        mailServer: ProjectSMTPConfigService.toEmailServer(
-                          statuspage.smtpConfig,
-                        ),
-                        projectId: statuspage.projectId,
-                        statusPageId: statuspage.id!,
-                        incidentId: incident.id!,
-                      },
-                    ).catch((err: Error) => {
-                      /*
-                       * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
-                       * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
-                       * 404 on a deleted webhook or an unreachable host is their side of the
-                       * wire, not a OneUptime defect — and one status page can fan out to
-                       * thousands of subscribers, so leaving these at ERROR buries real
-                       * failures under a single tenant's dead webhook.
-                       */
-                      logger.error(err, {
-                        ...EXTERNAL_FAULT,
-                        projectId: incident.projectId?.toString(),
-                        incidentId: incident.id?.toString(),
-                      });
                     });
                   } else {
-                    deliveryRecord.recordQueued({
+                    await incidentTemplateVariables.recordIncludedFieldsSent();
+
+                    await deliveryRecord.deliver({
                       statusPage: statuspage,
                       method: StatusPageSubscriberNotificationMethod.Email,
                       subject: "[Postmortem] " + incident.title || "",
-                    });
-                    await incidentTemplateVariables.recordIncludedFieldsSent();
+                      logAttributes: logAttributes,
+                      send: () => {
+                        return MailService.sendMail(
+                          {
+                            toEmail: subscriberEmail,
+                            templateType:
+                              EmailTemplateType.SubscriberIncidentPostmortemCreated,
+                            vars: {
+                              statusPageName: statusPageName,
+                              statusPageUrl: statusPageURL,
+                              detailsUrl: incidentDetailsUrl,
+                              logoUrl:
+                                statuspage.logoFileId && statusPageIdString
+                                  ? new URL(httpProtocol, host)
+                                      .addRoute(StatusPageApiRoute)
+                                      .addRoute(`/logo/${statusPageIdString}`)
+                                      .toString()
+                                  : "",
+                              isPublicStatusPage: statuspage.isPublicStatusPage
+                                ? "true"
+                                : "false",
+                              resourcesAffected: resourcesAffectedString,
+                              incidentSeverity:
+                                incident.incidentSeverity?.name || " - ",
+                              incidentTitle: incident.title || "",
+                              postmortemNote: postmortemNoteHtml,
+                              // The fields marked "Include in Subscriber Notifications".
+                              customFieldRows:
+                                pageTemplateVariables.customFieldRows as unknown as JSONObject,
+                              unsubscribeUrl: unsubscribeUrl,
 
-                    MailService.sendMail(
-                      {
-                        toEmail: subscriber.subscriberEmail,
-                        templateType:
-                          EmailTemplateType.SubscriberIncidentPostmortemCreated,
-                        vars: {
-                          statusPageName: statusPageName,
-                          statusPageUrl: statusPageURL,
-                          detailsUrl: incidentDetailsUrl,
-                          logoUrl:
-                            statuspage.logoFileId && statusPageIdString
-                              ? new URL(httpProtocol, host)
-                                  .addRoute(StatusPageApiRoute)
-                                  .addRoute(`/logo/${statusPageIdString}`)
-                                  .toString()
-                              : "",
-                          isPublicStatusPage: statuspage.isPublicStatusPage
-                            ? "true"
-                            : "false",
-                          resourcesAffected: resourcesAffectedString,
-                          incidentSeverity:
-                            incident.incidentSeverity?.name || " - ",
-                          incidentTitle: incident.title || "",
-                          postmortemNote: postmortemNoteHtml,
-                          // The fields marked "Include in Subscriber Notifications".
-                          customFieldRows:
-                            pageTemplateVariables.customFieldRows as unknown as JSONObject,
-                          unsubscribeUrl: unsubscribeUrl,
-
-                          subscriberEmailNotificationFooterText:
-                            StatusPageServiceType.getSubscriberEmailFooterText(
-                              statuspage,
+                              subscriberEmailNotificationFooterText:
+                                StatusPageServiceType.getSubscriberEmailFooterText(
+                                  statuspage,
+                                ),
+                            },
+                            subject: "[Postmortem] " + incident.title || "",
+                            isSubjectLiteral: true,
+                          },
+                          {
+                            mailServer: ProjectSMTPConfigService.toEmailServer(
+                              statuspage.smtpConfig,
                             ),
-                        },
-                        subject: "[Postmortem] " + incident.title || "",
-                        isSubjectLiteral: true,
+                            projectId: statuspage.projectId,
+                            statusPageId: statuspage.id!,
+                            incidentId: incident.id!,
+                          },
+                        );
                       },
-                      {
-                        mailServer: ProjectSMTPConfigService.toEmailServer(
-                          statuspage.smtpConfig,
-                        ),
-                        projectId: statuspage.projectId,
-                        statusPageId: statuspage.id!,
-                        incidentId: incident.id!,
-                      },
-                    ).catch((err: Error) => {
-                      logger.error(err, {
-                        ...EXTERNAL_FAULT,
-                        projectId: incident.projectId?.toString(),
-                        incidentId: incident.id?.toString(),
-                      });
                     });
                   }
                   logger.debug(
-                    `Email notification queued for subscriber ${subscriber._id}.`,
+                    `Email notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -647,7 +681,7 @@ RunCron(
                     subscriber.subscriberPhone.toString();
                   const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
                   logger.debug(
-                    `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
+                    `Sending SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -696,29 +730,25 @@ RunCron(
                     to: subscriber.subscriberPhone,
                   };
 
-                  deliveryRecord.recordQueued({
+                  // send sms here.
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method: StatusPageSubscriberNotificationMethod.SMS,
-                  });
-
-                  // send sms here.
-                  SmsService.sendSms(sms, {
-                    projectId: statuspage.projectId,
-                    customTwilioConfig:
-                      ProjectCallSMSConfigService.toTwilioConfig(
-                        statuspage.callSmsConfig,
-                      ),
-                    statusPageId: statuspage.id!,
-                    incidentId: incident.id!,
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return SmsService.sendSms(sms, {
+                        projectId: statuspage.projectId,
+                        customTwilioConfig:
+                          ProjectCallSMSConfigService.toTwilioConfig(
+                            statuspage.callSmsConfig,
+                          ),
+                        statusPageId: statuspage.id!,
+                        incidentId: incident.id!,
+                      });
+                    },
                   });
                   logger.debug(
-                    `SMS notification queued for subscriber ${subscriber._id}.`,
+                    `SMS notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -727,8 +757,11 @@ RunCron(
                 }
 
                 if (subscriber.slackIncomingWebhookUrl) {
+                  const slackIncomingWebhookUrl: URL =
+                    subscriber.slackIncomingWebhookUrl;
+
                   logger.debug(
-                    `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    `Sending Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -765,26 +798,22 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                     await incidentTemplateVariables.recordIncludedFieldsSent();
                   }
 
-                  deliveryRecord.recordQueued({
+                  // send Slack notification with markdown conversion
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method: StatusPageSubscriberNotificationMethod.Slack,
-                  });
-
-                  // send Slack notification with markdown conversion
-                  SlackUtil.sendMessageToChannelViaIncomingWebhook({
-                    url: subscriber.slackIncomingWebhookUrl,
-                    text: SlackUtil.convertMarkdownToSlackRichText(
-                      markdownMessage,
-                    ),
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                        url: slackIncomingWebhookUrl,
+                        text: SlackUtil.convertMarkdownToSlackRichText(
+                          markdownMessage,
+                        ),
+                      });
+                    },
                   });
                   logger.debug(
-                    `Slack notification queued for subscriber ${subscriber._id}.`,
+                    `Slack notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -793,8 +822,11 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                 }
 
                 if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+                  const microsoftTeamsIncomingWebhookUrl: URL =
+                    subscriber.microsoftTeamsIncomingWebhookUrl;
+
                   logger.debug(
-                    `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    `Sending Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -827,25 +859,23 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                     await incidentTemplateVariables.recordIncludedFieldsSent();
                   }
 
-                  deliveryRecord.recordQueued({
+                  // send Teams notification
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method:
                       StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-                  });
-
-                  // send Teams notification
-                  MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
-                    url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                    text: teamsMarkdownMessage,
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook(
+                        {
+                          url: microsoftTeamsIncomingWebhookUrl,
+                          text: teamsMarkdownMessage,
+                        },
+                      );
+                    },
                   });
                   logger.debug(
-                    `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
+                    `Microsoft Teams notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: incident.projectId?.toString(),
                       incidentId: incident.id?.toString(),
@@ -854,49 +884,46 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                 }
 
                 if (subscriber.subscriberWebhook) {
-                  deliveryRecord.recordQueued({
-                    statusPage: statuspage,
-                    method: StatusPageSubscriberNotificationMethod.Webhook,
-                  });
+                  const subscriberWebhook: URL = subscriber.subscriberWebhook;
+
                   await incidentTemplateVariables.recordIncludedFieldsSent();
 
-                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
-                    webhookUrl: subscriber.subscriberWebhook,
-                    payload: {
-                      eventType: "IncidentPostmortemPublished",
-                      statusPageId: statuspage.id!.toString(),
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      unsubscribeUrl: unsubscribeUrl,
-                      data: {
-                        incidentId: incident.id?.toString() || "",
-                        incidentNumber:
-                          incident.incidentNumber?.toString() || "",
-                        incidentTitle: incident.title || "",
-                        incidentSeverity: incident.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedPlainText,
-                        postmortemNote: incident.postmortemNote || "",
-                        detailsUrl: incidentDetailsUrl,
-                        // The fields marked "Include in Subscriber Notifications", by key.
-                        customFields:
-                          incidentTemplateVariables.getWebhookCustomFields(),
-                      },
+                  await deliveryRecord.deliver({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Webhook,
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
+                        {
+                          webhookUrl: subscriberWebhook,
+                          payload: {
+                            eventType: "IncidentPostmortemPublished",
+                            statusPageId: statuspage.id!.toString(),
+                            statusPageName: statusPageName,
+                            statusPageUrl: statusPageURL,
+                            unsubscribeUrl: unsubscribeUrl,
+                            data: {
+                              incidentId: incident.id?.toString() || "",
+                              incidentNumber:
+                                incident.incidentNumber?.toString() || "",
+                              incidentTitle: incident.title || "",
+                              incidentSeverity:
+                                incident.incidentSeverity?.name || "",
+                              resourcesAffected: resourcesAffectedPlainText,
+                              postmortemNote: incident.postmortemNote || "",
+                              detailsUrl: incidentDetailsUrl,
+                              // The fields marked "Include in Subscriber Notifications", by key.
+                              customFields:
+                                incidentTemplateVariables.getWebhookCustomFields(),
+                            },
+                          },
+                        },
+                      );
                     },
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    });
                   });
                 }
-              } catch (err) {
-                logger.error(err, {
-                  projectId: incident.projectId?.toString(),
-                  incidentId: incident.id?.toString(),
-                });
-              }
-            }
+              },
+            });
           } catch (err) {
             logger.error(err, {
               projectId: incident.projectId?.toString(),
@@ -915,27 +942,45 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
         });
 
         const deliveryMarkdown: string = deliveryRecord.toMarkdown();
-        const queuedAny: boolean = deliveryRecord.hasQueuedAny();
+        const attemptedAny: boolean = deliveryRecord.hasAttemptedAny();
+        /*
+         * Fell short when a message failed, or the send stopped before it
+         * reached every subscriber: the notification settles as Failed.
+         */
+        const sendFellShort: boolean = deliveryRecord.hasFailures();
         // The custom field values that went out, as they were sent.
         const customFieldsSentMarkdown: string =
           incidentTemplateVariables.getSentCustomFieldsMarkdown();
 
+        const incidentLink: string = (
+          await IncidentService.getIncidentLinkInDashboard(
+            incident.projectId!,
+            incident.id!,
+          )
+        ).toString();
+
         /*
          * Each status page, the subject its email went out with, and what was
-         * queued. When nothing was queued at all - every page hides
-         * incidents, is left out by the incident's status page scope, or has
-         * no matching subscriber - the item says so instead of claiming a
-         * send.
+         * sent and what failed. When nothing was sent at all - every page
+         * hides incidents, is left out by the incident's status page scope,
+         * or has no matching subscriber - the item says so instead of
+         * claiming a send.
          */
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incident.id!,
           projectId: incident.projectId!,
           incidentFeedEventType:
             IncidentFeedEventType.SubscriberNotificationSent,
-          displayColor: queuedAny ? Blue500 : Yellow500,
-          feedInfoInMarkdown: queuedAny
-            ? incidentFeedText
-            : `📧 **No postmortem notification sent to subscribers** for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+          displayColor: sendFellShort
+            ? Red500
+            : attemptedAny
+              ? Blue500
+              : Yellow500,
+          feedInfoInMarkdown: sendFellShort
+            ? `📧 **Not every subscriber was sent the postmortem notification** for [Incident ${incidentNumberDisplay}](${incidentLink}).`
+            : attemptedAny
+              ? incidentFeedText
+              : `📧 **No postmortem notification sent to subscribers** for [Incident ${incidentNumberDisplay}](${incidentLink}).`,
           moreInformationInMarkdown:
             [deliveryMarkdown, customFieldsSentMarkdown]
               .filter(Boolean)
@@ -945,19 +990,21 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
           },
         });
 
-        logger.debug("Incident Feed created", {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
-        });
+        logger.debug("Incident Feed created", logAttributes);
 
-        // If we get here, the notification was successful
+        // Settle: Success, or Failed with what was sent and failed per page.
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {
-            subscriberNotificationStatusOnPostmortemPublished:
-              StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusOnPostmortemPublished: sendFellShort
+              ? StatusPageSubscriberNotificationStatus.Failed
+              : StatusPageSubscriberNotificationStatus.Success,
             subscriberNotificationStatusMessageOnPostmortemPublished:
-              "Notifications sent successfully to all subscribers",
+              deliveryRecord.toStatusMessage({
+                sentMessage:
+                  "Notifications sent successfully to all subscribers.",
+                retryScope: SubscriberNotificationRetryScope.EveryPage,
+              }),
           },
           props: {
             isRoot: true,
@@ -965,11 +1012,8 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
           },
         });
         logger.debug(
-          `Incident ${incident.id} marked as Success for subscriber postmortem notifications.`,
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
+          `Incident ${incident.id} marked as ${sendFellShort ? "Failed" : "Success"} for subscriber postmortem notifications.`,
+          logAttributes,
         );
       } catch (err) {
         // If there was an error, mark as failed
@@ -977,7 +1021,7 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
           projectId: incident.projectId?.toString(),
           incidentId: incident.id?.toString(),
         });
-        IncidentService.updateOneById({
+        await IncidentService.updateOneById({
           id: incident.id!,
           data: {
             subscriberNotificationStatusOnPostmortemPublished:

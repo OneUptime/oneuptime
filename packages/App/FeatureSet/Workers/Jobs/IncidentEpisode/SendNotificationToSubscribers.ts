@@ -28,7 +28,7 @@ import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseMode
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
-import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -38,7 +38,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
-import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -48,12 +48,28 @@ import IncidentStatusPageScope, {
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
 import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
+  SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberNotificationTiming, {
+  SubscriberNotificationRunClock,
+  SubscriberNotificationSendWindow,
+} from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
+import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
+import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import Email from "Common/Types/Email";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+    // Sized to one notification's send window (SubscriberNotificationTiming).
+    timeoutInMS: SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS,
+  },
   async () => {
+    const runClock: SubscriberNotificationRunClock =
+      SubscriberNotificationTiming.startRun();
+
     // First, mark episodes as Skipped if they should not be notified
     const episodesToSkip: Array<IncidentEpisode> =
       await IncidentEpisodeService.findAllBy({
@@ -111,6 +127,8 @@ RunCron(
         skip: 0,
         select: {
           _id: true,
+          // What the claim checks the row against (SubscriberNotificationClaim).
+          version: true,
           title: true,
           description: true,
           projectId: true,
@@ -133,6 +151,17 @@ RunCron(
     );
 
     for (const episode of episodes) {
+      if (!runClock.canClaimAnotherNotification()) {
+        /*
+         * Whatever this run claims now might not finish before its timeout.
+         * The rest stay Pending for the runs that follow.
+         */
+        logger.debug(
+          "Leaving the remaining episodes' created notifications for the next run.",
+        );
+        break;
+      }
+
       try {
         logger.debug(
           `Processing episode ${episode.id} (project: ${episode.projectId}) for subscriber notifications.`,
@@ -192,17 +221,30 @@ RunCron(
           continue;
         }
 
-        await IncidentEpisodeService.updateOneById({
+        /*
+         * Pending to InProgress, only if no other run has claimed it and it
+         * has not changed since this run read it (SubscriberNotificationClaim).
+         */
+        const claimed: boolean = await SubscriberNotificationClaim.claim({
+          service: IncidentEpisodeService,
           id: episode.id!,
-          data: {
-            subscriberNotificationStatusOnEpisodeCreated:
-              StatusPageSubscriberNotificationStatus.InProgress,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
+          statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
+          version: episode.version,
         });
+
+        if (!claimed) {
+          logger.debug(
+            `Episode ${episode.id}'s created notification was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
+
+        const sendWindow: SubscriberNotificationSendWindow =
+          SubscriberNotificationTiming.startSendWindow();
+        const logAttributes: LogAttributes = {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        };
         logger.debug(
           `Episode ${episode.id} status set to InProgress for subscriber notifications.`,
           {
@@ -281,8 +323,6 @@ RunCron(
           episode.description || "",
         );
 
-        let notificationSentToAtLeastOneSubscriber: boolean = false;
-
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
@@ -311,16 +351,16 @@ RunCron(
               continue;
             }
 
-            deliveryRecord.startStatusPage(statuspage);
-
-            const subscribers: Array<StatusPageSubscriber> =
-              await StatusPageSubscriberService.getSubscribersByStatusPage(
-                statuspage.id!,
-                {
-                  isRoot: true,
-                  ignoreHooks: true,
-                },
+            if (!sendWindow.isOpen()) {
+              // Out of time before this page (SubscriberNotificationTiming).
+              deliveryRecord.skipStatusPage(
+                statuspage,
+                StatusPageDeliverySkipReason.OutOfTime,
               );
+              continue;
+            }
+
+            deliveryRecord.startStatusPage(statuspage);
 
             const statusPageURL: string =
               await StatusPageService.getStatusPageURL(statuspage.id);
@@ -340,14 +380,6 @@ RunCron(
                     .addRoute(`/incidents/${episode.id.toString()}`)
                     .toString()
                 : statusPageURL;
-
-            logger.debug(
-              `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s).`,
-              {
-                projectId: episode.projectId?.toString(),
-                incidentEpisodeId: episode.id?.toString(),
-              },
-            );
 
             /*
              * Send email to Email subscribers. The HTML list (escaped names,
@@ -472,8 +504,19 @@ RunCron(
               episodeDescription: episode.description || "",
             };
 
-            for (const subscriber of subscribers) {
-              try {
+            /*
+             * Every subscriber of the page, read in batches past LIMIT_MAX, a
+             * bounded number at a time, each message awaited and counted sent or
+             * failed (SubscriberNotificationFanOut).
+             */
+            await SubscriberNotificationFanOut.forEachSubscriber({
+              statusPage: statuspage,
+              record: deliveryRecord,
+              sendWindow: sendWindow,
+              logAttributes: logAttributes,
+              handler: async (
+                subscriber: StatusPageSubscriber,
+              ): Promise<void> => {
                 if (!subscriber._id) {
                   logger.debug(
                     "Encountered a subscriber without an _id; skipping.",
@@ -482,7 +525,7 @@ RunCron(
                       incidentEpisodeId: episode.id?.toString(),
                     },
                   );
-                  continue;
+                  return;
                 }
 
                 const shouldNotifySubscriber: boolean =
@@ -502,10 +545,10 @@ RunCron(
                       incidentEpisodeId: episode.id?.toString(),
                     },
                   );
-                  continue;
+                  return;
                 }
 
-                notificationSentToAtLeastOneSubscriber = true;
+                deliveryRecord.recordSubscriberMatched();
 
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
@@ -551,9 +594,10 @@ RunCron(
                     email: subscriber.subscriberEmail,
                   })
                 ) {
+                  const subscriberEmail: Email = subscriber.subscriberEmail;
                   // send email here.
                   logger.debug(
-                    `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
+                    `Sending email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -574,103 +618,87 @@ RunCron(
                         )
                       : "[Incident] " + (episode.title || "");
 
-                    deliveryRecord.recordQueued({
+                    await deliveryRecord.deliver({
                       statusPage: statuspage,
                       method: StatusPageSubscriberNotificationMethod.Email,
                       subject: compiledSubject,
-                    });
-
-                    MailService.sendMail(
-                      {
-                        toEmail: subscriber.subscriberEmail,
-                        templateType: EmailTemplateType.BlankTemplate,
-                        vars: {
-                          body: compiledBody,
-                        },
-                        subject: compiledSubject,
-                        isSubjectLiteral: true,
+                      logAttributes: logAttributes,
+                      send: () => {
+                        return MailService.sendMail(
+                          {
+                            toEmail: subscriberEmail,
+                            templateType: EmailTemplateType.BlankTemplate,
+                            vars: {
+                              body: compiledBody,
+                            },
+                            subject: compiledSubject,
+                            isSubjectLiteral: true,
+                          },
+                          {
+                            mailServer: ProjectSMTPConfigService.toEmailServer(
+                              statuspage.smtpConfig,
+                            ),
+                            projectId: statuspage.projectId,
+                            statusPageId: statuspage.id!,
+                          },
+                        );
                       },
-                      {
-                        mailServer: ProjectSMTPConfigService.toEmailServer(
-                          statuspage.smtpConfig,
-                        ),
-                        projectId: statuspage.projectId,
-                        statusPageId: statuspage.id!,
-                      },
-                    ).catch((err: Error) => {
-                      /*
-                       * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
-                       * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
-                       * 404 on a deleted webhook or an unreachable host is their side of the
-                       * wire, not a OneUptime defect — and one status page can fan out to
-                       * thousands of subscribers, so leaving these at ERROR buries real
-                       * failures under a single tenant's dead webhook.
-                       */
-                      logger.error(err, {
-                        ...EXTERNAL_FAULT,
-                        projectId: episode.projectId?.toString(),
-                        incidentEpisodeId: episode.id?.toString(),
-                      });
                     });
                   } else {
-                    deliveryRecord.recordQueued({
+                    // Use default hard-coded template
+                    await deliveryRecord.deliver({
                       statusPage: statuspage,
                       method: StatusPageSubscriberNotificationMethod.Email,
                       subject: "[Incident] " + (episode.title || ""),
-                    });
+                      logAttributes: logAttributes,
+                      send: () => {
+                        return MailService.sendMail(
+                          {
+                            toEmail: subscriberEmail,
+                            templateType:
+                              EmailTemplateType.SubscriberEpisodeCreated,
+                            vars: {
+                              statusPageName: statusPageName,
+                              statusPageUrl: statusPageURL,
+                              detailsUrl: episodeDetailsUrl,
+                              logoUrl:
+                                statuspage.logoFileId && statusPageIdString
+                                  ? new URL(httpProtocol, host)
+                                      .addRoute(StatusPageApiRoute)
+                                      .addRoute(`/logo/${statusPageIdString}`)
+                                      .toString()
+                                  : "",
+                              isPublicStatusPage: statuspage.isPublicStatusPage
+                                ? "true"
+                                : "false",
+                              resourcesAffected: resourcesAffectedString,
+                              episodeSeverity:
+                                episode.incidentSeverity?.name || " - ",
+                              episodeTitle: episode.title || "",
+                              episodeDescription: episodeDescriptionHtml,
+                              unsubscribeUrl: unsubscribeUrl,
 
-                    // Use default hard-coded template
-                    MailService.sendMail(
-                      {
-                        toEmail: subscriber.subscriberEmail,
-                        templateType:
-                          EmailTemplateType.SubscriberEpisodeCreated,
-                        vars: {
-                          statusPageName: statusPageName,
-                          statusPageUrl: statusPageURL,
-                          detailsUrl: episodeDetailsUrl,
-                          logoUrl:
-                            statuspage.logoFileId && statusPageIdString
-                              ? new URL(httpProtocol, host)
-                                  .addRoute(StatusPageApiRoute)
-                                  .addRoute(`/logo/${statusPageIdString}`)
-                                  .toString()
-                              : "",
-                          isPublicStatusPage: statuspage.isPublicStatusPage
-                            ? "true"
-                            : "false",
-                          resourcesAffected: resourcesAffectedString,
-                          episodeSeverity:
-                            episode.incidentSeverity?.name || " - ",
-                          episodeTitle: episode.title || "",
-                          episodeDescription: episodeDescriptionHtml,
-                          unsubscribeUrl: unsubscribeUrl,
-
-                          subscriberEmailNotificationFooterText:
-                            StatusPageServiceType.getSubscriberEmailFooterText(
-                              statuspage,
+                              subscriberEmailNotificationFooterText:
+                                StatusPageServiceType.getSubscriberEmailFooterText(
+                                  statuspage,
+                                ),
+                            },
+                            subject: "[Incident] " + (episode.title || ""),
+                            isSubjectLiteral: true,
+                          },
+                          {
+                            mailServer: ProjectSMTPConfigService.toEmailServer(
+                              statuspage.smtpConfig,
                             ),
-                        },
-                        subject: "[Incident] " + (episode.title || ""),
-                        isSubjectLiteral: true,
+                            projectId: statuspage.projectId,
+                            statusPageId: statuspage.id!,
+                          },
+                        );
                       },
-                      {
-                        mailServer: ProjectSMTPConfigService.toEmailServer(
-                          statuspage.smtpConfig,
-                        ),
-                        projectId: statuspage.projectId,
-                        statusPageId: statuspage.id!,
-                      },
-                    ).catch((err: Error) => {
-                      logger.error(err, {
-                        ...EXTERNAL_FAULT,
-                        projectId: episode.projectId?.toString(),
-                        incidentEpisodeId: episode.id?.toString(),
-                      });
                     });
                   }
                   logger.debug(
-                    `Email notification queued for subscriber ${subscriber._id}.`,
+                    `Email notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -689,7 +717,7 @@ RunCron(
                     subscriber.subscriberPhone.toString();
                   const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
                   logger.debug(
-                    `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
+                    `Sending SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -730,28 +758,24 @@ RunCron(
                     to: subscriber.subscriberPhone,
                   };
 
-                  deliveryRecord.recordQueued({
+                  // send sms here.
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method: StatusPageSubscriberNotificationMethod.SMS,
-                  });
-
-                  // send sms here.
-                  SmsService.sendSms(sms, {
-                    projectId: statuspage.projectId,
-                    customTwilioConfig:
-                      ProjectCallSMSConfigService.toTwilioConfig(
-                        statuspage.callSmsConfig,
-                      ),
-                    statusPageId: statuspage.id!,
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: episode.projectId?.toString(),
-                      incidentEpisodeId: episode.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return SmsService.sendSms(sms, {
+                        projectId: statuspage.projectId,
+                        customTwilioConfig:
+                          ProjectCallSMSConfigService.toTwilioConfig(
+                            statuspage.callSmsConfig,
+                          ),
+                        statusPageId: statuspage.id!,
+                      });
+                    },
                   });
                   logger.debug(
-                    `SMS notification queued for subscriber ${subscriber._id}.`,
+                    `SMS notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -760,8 +784,10 @@ RunCron(
                 }
 
                 if (subscriber.slackIncomingWebhookUrl) {
+                  const slackIncomingWebhookUrl: URL =
+                    subscriber.slackIncomingWebhookUrl;
                   logger.debug(
-                    `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    `Sending Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -789,26 +815,22 @@ RunCron(
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                   }
 
-                  deliveryRecord.recordQueued({
+                  // send Slack notification with markdown conversion
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method: StatusPageSubscriberNotificationMethod.Slack,
-                  });
-
-                  // send Slack notification with markdown conversion
-                  SlackUtil.sendMessageToChannelViaIncomingWebhook({
-                    url: subscriber.slackIncomingWebhookUrl,
-                    text: SlackUtil.convertMarkdownToSlackRichText(
-                      markdownMessage,
-                    ),
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: episode.projectId?.toString(),
-                      incidentEpisodeId: episode.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                        url: slackIncomingWebhookUrl,
+                        text: SlackUtil.convertMarkdownToSlackRichText(
+                          markdownMessage,
+                        ),
+                      });
+                    },
                   });
                   logger.debug(
-                    `Slack notification queued for subscriber ${subscriber._id}.`,
+                    `Slack notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -817,8 +839,10 @@ RunCron(
                 }
 
                 if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+                  const microsoftTeamsIncomingWebhookUrl: URL =
+                    subscriber.microsoftTeamsIncomingWebhookUrl;
                   logger.debug(
-                    `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    `Sending Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -842,25 +866,23 @@ RunCron(
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                   }
 
-                  deliveryRecord.recordQueued({
+                  // send Teams notification
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method:
                       StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-                  });
-
-                  // send Teams notification
-                  MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
-                    url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                    text: markdownMessage,
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: episode.projectId?.toString(),
-                      incidentEpisodeId: episode.id?.toString(),
-                    });
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook(
+                        {
+                          url: microsoftTeamsIncomingWebhookUrl,
+                          text: markdownMessage,
+                        },
+                      );
+                    },
                   });
                   logger.debug(
-                    `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
+                    `Microsoft Teams notification sent to subscriber ${subscriber._id}.`,
                     {
                       projectId: episode.projectId?.toString(),
                       incidentEpisodeId: episode.id?.toString(),
@@ -869,43 +891,39 @@ RunCron(
                 }
 
                 if (subscriber.subscriberWebhook) {
-                  deliveryRecord.recordQueued({
+                  const subscriberWebhook: URL = subscriber.subscriberWebhook;
+
+                  await deliveryRecord.deliver({
                     statusPage: statuspage,
                     method: StatusPageSubscriberNotificationMethod.Webhook,
-                  });
-
-                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
-                    webhookUrl: subscriber.subscriberWebhook,
-                    payload: {
-                      eventType: "EpisodeCreated",
-                      statusPageId: statuspage.id!.toString(),
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      unsubscribeUrl: unsubscribeUrl,
-                      data: {
-                        episodeId: episode.id?.toString() || "",
-                        episodeTitle: episode.title || "",
-                        episodeDescription: episode.description || "",
-                        incidentSeverity: episode.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedPlainText,
-                        detailsUrl: episodeDetailsUrl,
-                      },
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
+                        {
+                          webhookUrl: subscriberWebhook,
+                          payload: {
+                            eventType: "EpisodeCreated",
+                            statusPageId: statuspage.id!.toString(),
+                            statusPageName: statusPageName,
+                            statusPageUrl: statusPageURL,
+                            unsubscribeUrl: unsubscribeUrl,
+                            data: {
+                              episodeId: episode.id?.toString() || "",
+                              episodeTitle: episode.title || "",
+                              episodeDescription: episode.description || "",
+                              incidentSeverity:
+                                episode.incidentSeverity?.name || "",
+                              resourcesAffected: resourcesAffectedPlainText,
+                              detailsUrl: episodeDetailsUrl,
+                            },
+                          },
+                        },
+                      );
                     },
-                  }).catch((err: Error) => {
-                    logger.error(err, {
-                      ...EXTERNAL_FAULT,
-                      projectId: episode.projectId?.toString(),
-                      incidentEpisodeId: episode.id?.toString(),
-                    });
                   });
                 }
-              } catch (err) {
-                logger.error(err, {
-                  projectId: episode.projectId?.toString(),
-                  incidentEpisodeId: episode.id?.toString(),
-                });
-              }
-            }
+              },
+            });
           } catch (err) {
             logger.error(err, {
               projectId: episode.projectId?.toString(),
@@ -920,11 +938,33 @@ RunCron(
 
         const deliveryMarkdown: string = deliveryRecord.toMarkdown();
 
-        if (notificationSentToAtLeastOneSubscriber) {
-          logger.debug("Creating episode feed for subscriber notification", {
-            projectId: episode.projectId?.toString(),
-            incidentEpisodeId: episode.id?.toString(),
+        /*
+         * Fell short when a message failed, or the send stopped before it
+         * reached every subscriber: the notification settles as Failed.
+         */
+        const sendFellShort: boolean = deliveryRecord.hasFailures();
+
+        if (sendFellShort) {
+          logger.debug(
+            `Not every subscriber was sent the created notification of episode ${episode.id}.`,
+            logAttributes,
+          );
+
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: episode.id!,
+            projectId: episode.projectId!,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+            displayColor: Red500,
+            feedInfoInMarkdown: `📧 **Not every subscriber was sent the notification** that [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`,
+            // Each status page with what was sent and what failed, and its subject.
+            moreInformationInMarkdown: deliveryMarkdown || undefined,
           });
+        } else if (deliveryRecord.hasMatchedAnySubscriber()) {
+          logger.debug(
+            "Creating episode feed for subscriber notification",
+            logAttributes,
+          );
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
             incidentEpisodeId: episode.id!,
@@ -933,21 +973,15 @@ RunCron(
               IncidentEpisodeFeedEventType.SubscriberNotificationSent,
             displayColor: Blue500,
             feedInfoInMarkdown: episodeFeedText,
-            // Each status page, the subject its email went out with, and what was queued.
+            // Each status page, the subject its email went out with, and what was sent.
             moreInformationInMarkdown: deliveryMarkdown || undefined,
           });
 
-          logger.debug("Episode Feed created", {
-            projectId: episode.projectId?.toString(),
-            incidentEpisodeId: episode.id?.toString(),
-          });
+          logger.debug("Episode Feed created", logAttributes);
         } else {
           logger.debug(
             `No subscribers were notified for episode created: ${episode.id}. All status pages either hide episodes or had no matching subscribers.`,
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
+            logAttributes,
           );
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -966,14 +1000,20 @@ RunCron(
           });
         }
 
-        // If we get here, the notification was successful
+        // Settle: Success, or Failed with what was sent and failed per page.
         await IncidentEpisodeService.updateOneById({
           id: episode.id!,
           data: {
-            subscriberNotificationStatusOnEpisodeCreated:
-              StatusPageSubscriberNotificationStatus.Success,
-            subscriberNotificationStatusMessage:
-              "Notifications sent successfully to all subscribers",
+            subscriberNotificationStatusOnEpisodeCreated: sendFellShort
+              ? StatusPageSubscriberNotificationStatus.Failed
+              : StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage: deliveryRecord.toStatusMessage(
+              {
+                sentMessage:
+                  "Notifications sent successfully to all subscribers.",
+                retryScope: SubscriberNotificationRetryScope.EveryPage,
+              },
+            ),
           },
           props: {
             isRoot: true,
@@ -981,11 +1021,8 @@ RunCron(
           },
         });
         logger.debug(
-          `Episode ${episode.id} marked as Success for subscriber notifications.`,
-          {
-            projectId: episode.projectId?.toString(),
-            incidentEpisodeId: episode.id?.toString(),
-          },
+          `Episode ${episode.id} marked as ${sendFellShort ? "Failed" : "Success"} for subscriber notifications.`,
+          logAttributes,
         );
       } catch (err) {
         // If there was an error, mark as failed
@@ -993,7 +1030,7 @@ RunCron(
           projectId: episode.projectId?.toString(),
           incidentEpisodeId: episode.id?.toString(),
         });
-        IncidentEpisodeService.updateOneById({
+        await IncidentEpisodeService.updateOneById({
           id: episode.id!,
           data: {
             subscriberNotificationStatusOnEpisodeCreated:

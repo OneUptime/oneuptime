@@ -128,7 +128,7 @@ Subscribers of a page hear that an incident was created once. So when you add pa
 
 The checkbox only appears when ticking it would send something: at least one page you add was not told yet, and the incident was declared with **Notify Status Page Subscribers** on, is visible on status pages and is not private. Some cases are handled for you:
 
-- **The notification is still queued, or being sent right now.** A queued send reads the pages when it goes out, and a send that is running reads them again when it finishes and then tells the pages added meanwhile. So there is no checkbox: the pages you add are told either way.
+- **The notification is still queued, or being sent right now.** A queued send reads the pages when it goes out, and a send that is running reads them again when it finishes and then tells the pages added meanwhile. So there is no checkbox: the pages you add are told either way. (If that send fails, the pages added meanwhile are among the ones its **Retry** sends to.)
 - **Every page you add was told already**, for example a page you removed and add back, or an incident that reached every site and is now narrowed to two of them. Nobody is told again, so there is no checkbox.
 - **The incident was never announced.** When it was published without **Notify subscribers that this incident was created**, or declared without monitors, nobody was told. Ticking the checkbox tells only the pages you add, not the pages it was already limited to.
 - **The incident was declared before this feature was released.** Its 'created' notification went out to every page that listed its monitors, and there is no record of those pages. Adding pages does not send it again, so the checkbox is not offered.
@@ -136,7 +136,7 @@ The checkbox only appears when ticking it would send something: at least one pag
 
 A page added later hears about what happens next: later public notes, state changes and the postmortem. It is not sent the notes and state changes that went out before it was added. If it needs to catch up, post a public note.
 
-The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped.
+The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped. A page counts as told only when every one of its subscribers was sent the message; a page where a message failed, or that the send stopped part-way through, is sent it again in full. The record is written as each page finishes, so this holds even for a send that was interrupted.
 
 Through the API, send `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` with the update that changes `statusPages`. Setting `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself still resends the 'created' notification to every page the incident reaches, as it always did: the record is emptied with it. After a failure it resumes where the failed send stopped instead.
 
@@ -187,7 +187,7 @@ A monitor has one status, and every status page that lists the monitor shows it.
 ## What is recorded
 
 - **The incident feed.** The 'created' entry of a limited incident lists the pages it is limited to. Every change to the list adds an entry listing the pages added and removed, and whether the added pages will be sent the 'created' notification.
-- **Each subscriber notification.** The **Subscriber Notification Sent** entry in the incident feed has a **More Information** panel listing each page the send went to: how many messages were queued on each channel, and the subject its email went out with. It also lists the pages it passed over and why (already told, or not showing incidents), the pages the scope left out, and whether email and SMS were sent once per address. When the send put custom field values into a message, the panel ends with them, under **Custom fields sent**.
+- **Each subscriber notification.** The **Subscriber Notification Sent** entry in the incident feed has a **More Information** panel listing each page the send went to: how many messages were sent and how many failed on each channel, and the subject its email went out with. It also lists the pages it passed over and why (already told, or not showing incidents), the pages the scope left out, and whether email and SMS were sent once per address. When the send put custom field values into a message, the panel ends with them, under **Custom fields sent**.
 - **Notification Logs** on each status page show every message that page sent.
 
 See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for the feed itself.

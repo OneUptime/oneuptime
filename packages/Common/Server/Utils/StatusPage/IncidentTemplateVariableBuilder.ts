@@ -159,11 +159,21 @@ export class IncidentTemplateVariables {
   private readonly incidentLabels: string;
   private readonly affectedStatusPages: string;
 
-  // Fields whose images have been made public in this send.
-  private readonly publishedImageFields: Set<string> = new Set<string>();
+  /*
+   * Fields whose images are being or have been made public in this send, by
+   * name, with the sync that does it. A send awaits several subscribers'
+   * messages at once (SubscriberNotificationFanOut), so a second message
+   * that carries a field waits for the sync the first one started rather
+   * than going out before it has finished.
+   */
+  private readonly publishedImageFields: Map<string, Promise<void>> = new Map<
+    string,
+    Promise<void>
+  >();
 
   // What went out, for the feed.
   private includedFieldsSent: boolean = false;
+  private includedFieldsPublished: Promise<void> | null = null;
   private readonly fieldKeysSent: Set<string> = new Set<string>();
 
   public constructor(data: {
@@ -319,17 +329,19 @@ export class IncidentTemplateVariables {
    * them. Never throws.
    */
   public async recordIncludedFieldsSent(): Promise<void> {
-    if (this.includedFieldsSent) {
-      return;
+    if (!this.includedFieldsPublished) {
+      this.includedFieldsSent = true;
+
+      this.includedFieldsPublished = (async (): Promise<void> => {
+        for (const field of this.customFields) {
+          if (field.isIncludedInSubscriberNotifications && field.hasValue) {
+            await this.publishImages(field);
+          }
+        }
+      })();
     }
 
-    this.includedFieldsSent = true;
-
-    for (const field of this.customFields) {
-      if (field.isIncludedInSubscriberNotifications && field.hasValue) {
-        await this.publishImages(field);
-      }
-    }
+    await this.includedFieldsPublished;
   }
 
   /**
@@ -429,21 +441,28 @@ export class IncidentTemplateVariables {
   }
 
   private async publishImages(field: PreparedCustomField): Promise<void> {
-    if (
-      !field.markdown ||
-      !field.markdown.source ||
-      this.publishedImageFields.has(field.name)
-    ) {
+    if (!field.markdown || !field.markdown.source) {
       return;
     }
 
-    this.publishedImageFields.add(field.name);
-
-    await syncIsPublicForMarkdownImages(
-      field.markdown.source,
-      true,
-      `incident ${this.incident.id?.toString() || ""} custom field "${field.name}"`,
+    let published: Promise<void> | undefined = this.publishedImageFields.get(
+      field.name,
     );
+
+    if (!published) {
+      // Never rejects: syncIsPublicForMarkdownImages logs and swallows.
+      published = Promise.resolve(
+        syncIsPublicForMarkdownImages(
+          field.markdown.source,
+          true,
+          `incident ${this.incident.id?.toString() || ""} custom field "${field.name}"`,
+        ),
+      );
+
+      this.publishedImageFields.set(field.name, published);
+    }
+
+    await published;
   }
 
   private formatValue(

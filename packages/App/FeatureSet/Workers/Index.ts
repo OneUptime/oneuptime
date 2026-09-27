@@ -177,6 +177,13 @@ import "./Jobs/Workflow/TimeoutJobs";
  */
 import "./Jobs/Runbook/TimeoutStuckExecutions";
 
+/*
+ * Status page subscriber notifications are sent inside a single queue job
+ * too. This fails the ones a dead Worker left In progress, so a notification
+ * can never hang in "being sent" and can always be retried.
+ */
+import "./Jobs/StatusPageSubscriber/TimeoutStuckNotifications";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";

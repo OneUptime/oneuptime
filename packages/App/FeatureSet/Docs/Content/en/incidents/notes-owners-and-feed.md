@@ -106,15 +106,19 @@ Creating a public note with **Notify Status Page Subscribers** on does not by it
 
 The **Subscriber Notification Status** column tracks the whole journey:
 
-| Status                       | What it means                                          |
-| ---------------------------- | ------------------------------------------------------ |
-| **Notifications skipped.**   | One of the gates above closed. The reason is recorded. |
-| **Sending Soon**             | Queued, waiting for the next run of the send job.      |
-| **Notifications Being Sent** | The job is working through the subscriber list.        |
-| **Notifications Sent**       | Every subscriber notification went out.                |
-| **Failed**                   | The job threw; the error is stored with the note.      |
+| Status                       | What it means                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Notifications skipped.**   | One of the gates above closed. The reason is recorded.                                                         |
+| **Sending Soon**             | Queued, waiting for the next run of the send job.                                                              |
+| **Notifications Being Sent** | The job is working through the subscriber list.                                                                |
+| **Notifications Sent**       | Every subscriber's message was sent. The status message lists, per status page, how many went on each channel. |
+| **Failed**                   | Not every subscriber was sent it, or the job stopped with an error. The status message says which.             |
 
-Click **more details** on the status to open **Notification Status Details**. Where a resend makes sense, that modal's button is **Retry**, which puts the note back in the pending state so the next run picks it up again.
+**Sent means sent.** The job waits for every message: an email or text message counts as sent once the mail server or SMS provider has taken it, and a Slack, Microsoft Teams or webhook message once the other end has answered. A message that is refused, that errors, or that gets no answer within 4 minutes counts as failed, and one failure makes the notification **Failed**. The status message then reads like `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Sent" is as far as OneUptime can see: a mail server can still bounce an email later.
+
+**Big pages and long sends.** A status page's subscribers are read 10,000 at a time until every one has been reached, and 20 messages are in flight at once. One notification stops starting new messages after 20 minutes: what it did not reach by then is listed, and it is marked **Failed**. A send that was interrupted part-way — its server restarted or stopped responding — is marked **Failed** too, with a message starting `Interrupted:`, once it has been **Notifications Being Sent** for 40 minutes, so it never sits there forever.
+
+Click **more details** on the status to open **Notification Status Details**. Where a resend makes sense, that modal's button is **Retry**, which puts the note back in the pending state so the next run picks it up again. **Retry** sends the note to every status page again, including the subscribers who already got it. Only the incident's 'created' notification resumes where it stopped: it keeps a record of the status pages it sent to in full, and **Retry** skips them. A page it stopped part-way through is sent it again in full.
 
 **Editing a public note is silent unless you ask.** The note's edit form has a **Notify subscribers about this update** checkbox, unticked every time. Tick it for a change subscribers need to know about and they receive the edited note, marked as an update; the note then shows an **Update Notification Status** alongside the original one, with its own **Retry**. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
 
@@ -124,7 +128,7 @@ The actual message subscribers get is templated per status page and per channel 
 
 The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
 
-Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages queued on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
+Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages sent and failed on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
 
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
