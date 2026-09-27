@@ -278,6 +278,11 @@ here would override the image's own marker.
   value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}
 - name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
   value: {{ default "" (($.Values.webhooks).privateNetworkAllowlist) | quote }}
+# Egress policy for everything that is not a webhook (data sources, LLM
+# providers, SMTP, OIDC, runbook HTTP steps). Off by default, so private ranges
+# stay reachable on a self-hosted install. See values.yaml.
+- name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+  value: {{ ternary "true" "false" (default false (($.Values.outboundConnections).blockPrivateNetwork)) | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT

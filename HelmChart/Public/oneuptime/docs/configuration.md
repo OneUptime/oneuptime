@@ -402,6 +402,25 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
 | `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
 
+## Private network access
+
+Two instance-wide gates decide whether outbound requests a project member
+configures may reach private ranges (RFC-1918, CGNAT, IPv6 unique-local).
+Loopback, link-local and the cloud metadata endpoint stay blocked under both.
+They point in opposite directions: webhooks are refused private targets unless
+you open them, while data sources, LLM providers, SMTP, OAuth token URLs, OIDC
+discovery and runbook HTTP steps are allowed them unless you close them. Probe
+monitors have their own per-probe switch, `probes.<key>.allowPrivateNetworkMonitors`
+(see [Probes](#probes)). See
+[Private Network Access](https://oneuptime.com/docs/self-hosted/private-network-access)
+for the full picture.
+
+| Parameter                                 | Description                                                                                                                         | Default |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges. Status page subscriber webhooks are never covered.   | `false` |
+| `webhooks.privateNetworkAllowlist`        | Comma-separated hosts, wildcards, IPs and CIDRs webhooks may reach regardless of range. Never list `169.254.169.254`.                | `""`    |
+| `outboundConnections.blockPrivateNetwork` | Refuse private ranges for everything that is not a webhook, too (`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`). Always on when `billing.enabled` is `true`. | `false` |
+
 ## Update check
 
 Once a day the worker asks GitHub which OneUptime version is the latest
