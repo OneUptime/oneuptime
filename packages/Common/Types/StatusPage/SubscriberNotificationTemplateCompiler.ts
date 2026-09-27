@@ -43,7 +43,29 @@ export type SubscriberNotificationEmailBodyTemplateVariables = Record<
 
 type RenderValueFunction = (name: string) => string | null;
 
+/*
+ * What may sit between the braces of a placeholder: ASCII letters, digits,
+ * underscores and dots, and nothing else (`\w` without the `u` flag is ASCII
+ * only). Written once so that the fill below and isPlaceholderName, which
+ * the custom field template keys are generated against, cannot disagree.
+ */
+const PLACEHOLDER_NAME_SOURCE: string = "[\\w.]+";
+
+const PLACEHOLDER_NAME_PATTERN: RegExp = new RegExp(
+  `^${PLACEHOLDER_NAME_SOURCE}$`,
+);
+
 export default class SubscriberNotificationTemplateCompiler {
+  /**
+   * Whether `{{name}}` is a placeholder these templates fill in. A name with
+   * any other character (a hyphen, a space, a non-ASCII letter) is left in
+   * the message as written, so anything that hands out variable names -
+   * incident custom field keys, for one - has to produce names this accepts.
+   */
+  public static isPlaceholderName(name: string): boolean {
+    return PLACEHOLDER_NAME_PATTERN.test(name);
+  }
+
   /**
    * Compile a template for a channel that does not render HTML: an email
    * subject, SMS, Slack or Microsoft Teams. Each {{variableName}} is replaced
@@ -116,7 +138,7 @@ export default class SubscriberNotificationTemplateCompiler {
     renderValue: RenderValueFunction,
   ): string {
     return template.replace(
-      /{{\s*([\w.]+)\s*}}/g,
+      new RegExp(`{{\\s*(${PLACEHOLDER_NAME_SOURCE})\\s*}}`, "g"),
       (placeholder: string, name: string): string => {
         const rendered: string | null = renderValue(name);
 

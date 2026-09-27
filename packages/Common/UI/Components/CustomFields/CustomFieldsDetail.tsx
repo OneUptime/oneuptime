@@ -8,24 +8,26 @@ import { ButtonStyleType } from "../Button/Button";
 import Card, { CardButtonSchema, CardHeaderLayout } from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
-import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
+import {
+  buildCustomFieldFormFields,
+  CustomFieldFormDefinition,
+  getCustomFieldDropdownOptions,
+  sortCustomFieldDefinitions,
+  toCustomFieldFormDefinition,
+} from "./CustomFieldFormFields";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
-import {
-  CustomFieldDropdownOption,
-  parseCustomFieldDropdownOptions,
-} from "../../../Types/CustomField/CustomFieldDropdownOption";
 import {
   CustomFieldMappingSourceInfo,
   getCustomFieldMappingRelationSelect,
   getCustomFieldMappingSources,
   hasCustomFieldMappingSource,
 } from "../../../Types/CustomField/CustomFieldMappingCatalog";
-import Color from "../../../Types/Color";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -33,25 +35,6 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
-
-const parseDropdownOptions: (value: unknown) => Array<DropdownOption> = (
-  value: unknown,
-): Array<DropdownOption> => {
-  return parseCustomFieldDropdownOptions(value).map(
-    (option: CustomFieldDropdownOption): DropdownOption => {
-      const dropdownOption: DropdownOption = {
-        label: option.value,
-        value: option.value,
-      };
-
-      if (option.color) {
-        dropdownOption.color = Color.fromString(option.color);
-      }
-
-      return dropdownOption;
-    },
-  );
-};
 
 export interface ComponentProps {
   title: string;
@@ -125,6 +108,16 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
    */
   const mappingSources: Array<CustomFieldMappingSourceInfo> =
     getCustomFieldMappingSources(new props.customFieldType().tableName!);
+
+  /*
+   * Only incident fields have an order today. The column is asked for only
+   * where the definition model has it: this card issues one select for
+   * whichever definition model it is handed, and a column missing from the
+   * model would fail that read for every other resource.
+   */
+  const hasSortOrder: boolean = new props.customFieldType().hasColumn(
+    "sortOrder",
+  );
 
   /*
    * A mapped field is a derived value, so it is shown rather than edited — but
@@ -207,8 +200,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
             dropdownOptions: true,
             mapFromResourceType: true,
             mapFromCustomFieldName: true,
+            ...(hasSortOrder ? { sortOrder: true } : {}),
           } as any,
-          sort: {},
+          sort: (hasSortOrder ? { sortOrder: SortOrder.Ascending } : {}) as any,
         });
 
       /*
@@ -234,7 +228,19 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         select: itemSelect as any,
       });
 
-      setSchemaList(schemaList.data);
+      /*
+       * Sorted here as well as by the query: the order has to hold for fields
+       * with no order too (last, in the order the server listed them).
+       */
+      setSchemaList(
+        hasSortOrder
+          ? sortCustomFieldDefinitions(
+              schemaList.data as Array<
+                BaseModel & { sortOrder?: number | null | undefined }
+              >,
+            )
+          : schemaList.data,
+      );
       setModel(item);
 
       if (props.onValuesLoaded) {
@@ -403,7 +409,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                 fieldType: (schemaItem as any).customFieldType,
                 placeholder: "No data entered",
                 dropdownOptions: isDropdown
-                  ? parseDropdownOptions((schemaItem as any).dropdownOptions)
+                  ? getCustomFieldDropdownOptions(
+                      (schemaItem as any).dropdownOptions,
+                    )
                   : undefined,
               };
             })}
@@ -432,32 +440,29 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                * from the record's existing bag — and the server re-applies the
                * mapping on update either way.
                */
-              fields: schemaList
-                .filter((schemaItem: BaseModel) => {
-                  return !isMappedAndInherited(schemaItem);
-                })
-                .map((schemaItem: BaseModel) => {
-                  const isDropdown: boolean =
-                    (schemaItem as any).customFieldType ===
-                      CustomFieldType.Dropdown ||
-                    (schemaItem as any).customFieldType ===
-                      CustomFieldType.MultiSelectDropdown;
-                  return {
-                    field: {
-                      [(schemaItem as any).name]: true,
+              /*
+               * Every field optional, "Required on create" included: that
+               * applies when an incident is declared, and fixing one field on
+               * an incident a monitor opened mid-outage must not demand all
+               * the others first.
+               */
+              fields: buildCustomFieldFormFields({
+                definitions: schemaList
+                  .filter((schemaItem: BaseModel) => {
+                    return !isMappedAndInherited(schemaItem);
+                  })
+                  .map((schemaItem: BaseModel) => {
+                    return toCustomFieldFormDefinition(schemaItem);
+                  })
+                  .filter(
+                    (
+                      definition: CustomFieldFormDefinition | null,
+                    ): definition is CustomFieldFormDefinition => {
+                      return definition !== null;
                     },
-                    title: (schemaItem as any).name,
-                    description: (schemaItem as any).description,
-                    fieldType: (schemaItem as any).customFieldType,
-                    required: false,
-                    placeholder: "",
-                    dropdownOptions: isDropdown
-                      ? parseDropdownOptions(
-                          (schemaItem as any).dropdownOptions,
-                        )
-                      : undefined,
-                  };
-                }),
+                  ),
+                enforceRequiredOnCreate: false,
+              }),
             }}
           />
         )}

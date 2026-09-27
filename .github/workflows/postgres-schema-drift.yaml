@@ -290,3 +290,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StatusPageSubscriberUnsubscribePostgres.test.ts --forceExit
+
+      # Clones the migrated IncidentCustomField (with its unique
+      # (projectId, variableKey) index), Incident, IncidentTemplate and
+      # TableView tables into an isolated schema. Renaming an incident custom
+      # field as a project admin must move its values in incidents and
+      # templates and rewrite the incidents list's saved views - that project
+      # only, with raw SQL that starts no "On Update" workflow and leaves
+      # version and updatedAt alone - and a rename onto another field's name
+      # moves nothing. New fields get unique template keys, and the migration's
+      # backfill keys every existing field, oldest first, once.
+      - name: Test incident custom field keys and renames on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INCIDENT_CUSTOM_FIELD_TESTS: "true"
+          INCIDENT_CUSTOM_FIELD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INCIDENT_CUSTOM_FIELD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INCIDENT_CUSTOM_FIELD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit

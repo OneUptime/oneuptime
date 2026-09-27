@@ -21,6 +21,8 @@ Go to **Inventory → Settings → Custom Fields** and add a field. Each one has
 | **Dropdown (multi-select)** | Compliance scopes, tags — several answers from a fixed list |
 | **Date** | Purchase date, warranty expiry, end-of-life date |
 | **Date and time** | Last audited at, decommissioned at |
+| **Long text** | Access instructions, notes — several lines of plain text |
+| **Rich text (Markdown)** | Notes with formatting and links, written in the Markdown editor |
 
 Dropdown options can each carry a colour, which is used consistently in the table cell and in the filter chip.
 

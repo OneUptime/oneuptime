@@ -10,6 +10,13 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
+import IncidentCustomFieldService from "./IncidentCustomFieldService";
+import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
+import {
+  CustomFieldValueValidationError,
+  formatCustomFieldValueValidationErrors,
+  validateCustomFieldValues,
+} from "../../Types/CustomField/CustomFieldValueValidator";
 import AIRunService from "./AIRunService";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
@@ -528,6 +535,13 @@ export class Service extends DatabaseService<Model> {
 
     this.stripServiceOwnedScopeColumns(updateBy);
 
+    /*
+     * Before anything below adds values of its own to customFields (the
+     * mapped values copied from monitors), so only what the caller wrote is
+     * checked.
+     */
+    await this.validateCustomFieldValuesOnUpdate(updateBy);
+
     // Before the hooks below add a Pending of their own.
     const isCreatedNotificationResendRequested: boolean =
       this.isCreatedNotificationResendRequested(updateBy);
@@ -703,6 +717,155 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * CUSTOM FIELD VALUES must fit their fields: a Number field holds a number,
+   * a Dropdown one of its options (CustomFieldValueValidator has the rules).
+   *
+   * Only for writes a user or an API key makes. Root writes - the server's
+   * own, such as values copied from monitors or an incident template - are
+   * trusted, and the mapped values are added after this runs, so they never
+   * reach it. Only the keys a write changes are checked, so a value stored
+   * before these checks, or a dropdown option removed since, does not stop
+   * someone saving the rest of the card.
+   *
+   * "Required on create" is not enforced here: incidents created by
+   * monitors, the API, Slack, Microsoft Teams or AI cannot fill in a form.
+   */
+  private async getCustomFieldDefinitionsForValidation(
+    projectId: ObjectID,
+  ): Promise<Array<CustomFieldDefinition>> {
+    const definitions: Array<IncidentCustomField> =
+      await IncidentCustomFieldService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+          customFieldType: true,
+          dropdownOptions: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const result: Array<CustomFieldDefinition> = [];
+
+    for (const definition of definitions) {
+      if (typeof definition.name !== "string") {
+        continue;
+      }
+
+      result.push({
+        name: definition.name,
+        customFieldType: definition.customFieldType,
+        dropdownOptions: definition.dropdownOptions,
+      });
+    }
+
+    return result;
+  }
+
+  private hasCustomFieldValuesToValidate(customFields: unknown): boolean {
+    return (
+      customFields !== null &&
+      typeof customFields === "object" &&
+      !Array.isArray(customFields) &&
+      Object.keys(customFields as JSONObject).length > 0
+    );
+  }
+
+  private throwIfCustomFieldValuesInvalid(
+    errors: Array<CustomFieldValueValidationError>,
+  ): void {
+    if (errors.length > 0) {
+      throw new BadDataException(
+        formatCustomFieldValueValidationErrors(errors),
+      );
+    }
+  }
+
+  private async validateCustomFieldValuesOnCreate(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const customFields: unknown = data.createBy.data.customFields;
+
+    if (
+      data.createBy.props.isRoot ||
+      !data.projectId ||
+      !this.hasCustomFieldValuesToValidate(customFields)
+    ) {
+      return;
+    }
+
+    this.throwIfCustomFieldValuesInvalid(
+      validateCustomFieldValues({
+        definitions: await this.getCustomFieldDefinitionsForValidation(
+          data.projectId,
+        ),
+        customFields: customFields,
+        storedCustomFields: {},
+      }),
+    );
+  }
+
+  /*
+   * Checked against each incident the update writes, because what counts as
+   * changed depends on what that incident already holds.
+   */
+  private async validateCustomFieldValuesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const customFields: unknown = updateBy.data.customFields;
+
+    if (
+      updateBy.props.isRoot ||
+      !this.hasCustomFieldValuesToValidate(customFields)
+    ) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        projectId: true,
+        customFields: true,
+      },
+    });
+
+    const definitionsByProject: Map<
+      string,
+      Array<CustomFieldDefinition>
+    > = new Map<string, Array<CustomFieldDefinition>>();
+
+    for (const incident of incidents) {
+      if (!incident.projectId) {
+        continue;
+      }
+
+      const projectKey: string = incident.projectId.toString();
+
+      if (!definitionsByProject.has(projectKey)) {
+        definitionsByProject.set(
+          projectKey,
+          await this.getCustomFieldDefinitionsForValidation(incident.projectId),
+        );
+      }
+
+      this.throwIfCustomFieldValuesInvalid(
+        validateCustomFieldValues({
+          definitions: definitionsByProject.get(projectKey)!,
+          customFields: customFields,
+          storedCustomFields: incident.customFields,
+        }),
+      );
+    }
   }
 
   /*
@@ -1750,6 +1913,15 @@ export class Service extends DatabaseService<Model> {
 
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
+
+    /*
+     * The values the caller sent, before a template or a mapping adds any:
+     * those are not the caller's to get wrong.
+     */
+    await this.validateCustomFieldValuesOnCreate({
+      createBy: createBy,
+      projectId: projectId,
+    });
 
     /*
      * Status pages the caller picked, as opposed to ones copied from a

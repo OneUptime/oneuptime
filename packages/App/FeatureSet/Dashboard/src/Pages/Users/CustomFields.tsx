@@ -1,4 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
+import {
+  CustomFieldTypeOption,
+  getCustomFieldTypeOptions,
+} from "../../Components/CustomFields/CustomFieldSettingsCopy";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -78,11 +82,15 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Please select field type.",
-            dropdownOptions: Object.keys(CustomFieldType).map(
-              (item: string) => {
+            /*
+             * The same labels as every other custom field settings page,
+             * Long text and Rich text (Markdown) included.
+             */
+            dropdownOptions: getCustomFieldTypeOptions().map(
+              (option: CustomFieldTypeOption) => {
                 return {
-                  label: item,
-                  value: item,
+                  label: option.label,
+                  value: option.value,
                 };
               },
             ),

@@ -7,6 +7,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../Types/Date";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
+import { CUSTOM_FIELD_COLUMN_ID_PREFIX } from "../../../Types/CustomField/CustomFieldSavedViews";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
@@ -343,7 +344,11 @@ export const getCustomFieldColumns: GetCustomFieldColumnsFunction = <
   return (data.definitions || []).map(
     (definition: CustomFieldDefinition): Column<TBaseModel> => {
       return {
-        id: `${CustomFieldsColumnKey}.${definition.name}`,
+        /*
+         * The prefix is shared with renaming a field, which rewrites saved
+         * views' column lists (CustomFieldSavedViews).
+         */
+        id: `${CUSTOM_FIELD_COLUMN_ID_PREFIX}${definition.name}`,
         field: {
           [CustomFieldsColumnKey]: true,
         } as Column<TBaseModel>["field"],
