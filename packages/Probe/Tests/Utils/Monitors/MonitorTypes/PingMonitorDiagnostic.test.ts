@@ -227,6 +227,49 @@ describe("runDiagnosticPing — a host that does not answer", () => {
     expect(result.failureCause).toContain("ICMP ping is not usable");
     expect(result.failureCause).toContain("Operation not permitted");
   });
+
+  /*
+   * Somebody clicked "Ping" on an IPv6 device and is reading the answer.
+   * On a probe with no IPv6 the honest answer is about the probe, and it
+   * must match what the Ping monitor and the device poll say.
+   */
+  test("an IPv6 device on a probe with no IPv6 gets a probe-side cause, still with the statistics", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult({
+        output: "ping6: connect: Cannot assign requested address\n",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const result: NetworkDeviceDiagnosticPingResult =
+      await PingMonitor.runDiagnosticPing({
+        host: new IPv6("2001:518:2800:9::2"),
+      });
+
+    expect(result.isOnline).toBe(false);
+    expect(result.failureCause).toBe(
+      "This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so 2001:518:2800:9::2 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:518:2800:9::2 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.",
+    );
+    expect(result.failureCause).not.toContain("No ICMP echo reply");
+    expect(result.pingResponse?.packetsReceived).toBe(0);
+    expect(probeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("the same output for an IPv4 device makes no IPv6 claim", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult({
+        output: "ping: connect: Network is unreachable\n",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const result: NetworkDeviceDiagnosticPingResult =
+      await PingMonitor.runDiagnosticPing({ host: new IPv4("10.0.0.5") });
+
+    expect(result.failureCause).toBe(
+      "This probe has no route to 10.0.0.5: ping: connect: Network is unreachable.",
+    );
+  });
 });
 
 describe("runDiagnosticPing — never throws", () => {

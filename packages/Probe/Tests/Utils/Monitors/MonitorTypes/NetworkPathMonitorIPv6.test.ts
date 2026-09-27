@@ -7,6 +7,7 @@ import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import NetworkPathMonitor from "../../../../Utils/Monitors/MonitorTypes/NetworkPathMonitor";
 import NetworkPathTrace, {
+  TraceRoute,
   TraceRouteHop,
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 
@@ -37,6 +38,12 @@ interface Internals {
     output: string,
     isWindows: boolean,
   ) => Array<TraceRouteHop>;
+  getTracerouteFailureMessage: (err: unknown, destination: string) => string;
+  performTraceroute: (
+    destination: string,
+    maxHops: number,
+    timeout: number,
+  ) => Promise<TraceRoute>;
 }
 
 const internals: Internals = NetworkPathMonitor as unknown as Internals;
@@ -254,5 +261,151 @@ describe("NetworkPathMonitor traceroute parsing — IPv6 output", () => {
     const [hop]: Array<TraceRouteHop> = parseUnix(" 4  * * *");
 
     expect(hop!.isTimeout).toBe(true);
+  });
+});
+
+describe("NetworkPathMonitor.getTracerouteFailureMessage — a traceroute that could not run", () => {
+  /*
+   * An execFile rejection, shaped the way node builds one: the message is
+   * "Command failed: <argv>\n<stderr>" and the OS's own words are also on
+   * err.stderr.
+   */
+  function execFileError(data: {
+    argv: string;
+    stdout: string;
+    stderr: string;
+  }): Error & { code: number; stdout: string; stderr: string; cmd: string } {
+    return Object.assign(
+      new Error(`Command failed: ${data.argv}\n${data.stderr}`),
+      {
+        code: 1,
+        killed: false,
+        signal: null,
+        cmd: data.argv,
+        stdout: data.stdout,
+        stderr: data.stderr,
+      },
+    );
+  }
+
+  it("the customer's exact traceroute failure says the probe cannot send IPv6", () => {
+    /*
+     * Reproduced in node:26-bookworm-slim (traceroute 2.1.2) with IPv6
+     * switched off on the loopback. The dashboard showed "Route did not
+     * reach the destination. Command failed: traceroute -6 -m 20 -w 3
+     * 2001:518:2800:9::2 connect: Cannot assign requested address" — a
+     * verdict on a route no packet ever took.
+     */
+    const error: Error = execFileError({
+      argv: `traceroute -6 -m 20 -w 3 ${CUSTOMER_ADDRESS}`,
+      stdout: `traceroute to ${CUSTOMER_ADDRESS} (${CUSTOMER_ADDRESS}), 20 hops max, 80 byte packets\n`,
+      stderr: "\nconnect: Cannot assign requested address\n",
+    });
+
+    expect(error.message).toBe(
+      `Command failed: traceroute -6 -m 20 -w 3 ${CUSTOMER_ADDRESS}\n\nconnect: Cannot assign requested address\n`,
+    );
+
+    const message: string = internals.getTracerouteFailureMessage(
+      error,
+      CUSTOMER_ADDRESS,
+    );
+
+    expect(message).toBe(
+      "Traceroute could not run: this probe cannot send IPv6 traffic (connect: Cannot assign requested address).",
+    );
+    expect(message).not.toContain("Command failed");
+  });
+
+  it("no IPv6 route on the probe is the same probe-side cause", () => {
+    expect(
+      internals.getTracerouteFailureMessage(
+        execFileError({
+          argv: `traceroute -6 -m 20 -w 3 ${CUSTOMER_ADDRESS}`,
+          stdout: "",
+          stderr: "\nconnect: Network is unreachable\n",
+        }),
+        CUSTOMER_ADDRESS,
+      ),
+    ).toBe(
+      "Traceroute could not run: this probe cannot send IPv6 traffic (connect: Network is unreachable).",
+    );
+  });
+
+  it("an IPv4 destination with no route makes no IPv6 claim", () => {
+    expect(
+      internals.getTracerouteFailureMessage(
+        execFileError({
+          argv: "traceroute -m 20 -w 3 192.0.2.1",
+          stdout: "",
+          stderr: "\nconnect: Network is unreachable\n",
+        }),
+        "192.0.2.1",
+      ),
+    ).toBe(
+      "Traceroute could not run: this probe has no route to 192.0.2.1 (connect: Network is unreachable).",
+    );
+  });
+
+  it("any other traceroute error shows the OS's words without the argv", () => {
+    expect(
+      internals.getTracerouteFailureMessage(
+        execFileError({
+          argv: "traceroute -m 20 -w 3 rs1.example.net",
+          stdout: "",
+          stderr:
+            'rs1.example.net: Name or service not known\nCannot handle "host" cmdline arg `rs1.example.net\' on position 1 (argc 5)\n',
+        }),
+        "rs1.example.net",
+      ),
+    ).toBe(
+      'rs1.example.net: Name or service not known\nCannot handle "host" cmdline arg `rs1.example.net\' on position 1 (argc 5)',
+    );
+  });
+
+  it("a missing binary, which has no stderr, falls back to the message", () => {
+    const error: Error = Object.assign(new Error("spawn traceroute ENOENT"), {
+      code: "ENOENT",
+      stdout: "",
+      stderr: "",
+    });
+
+    expect(internals.getTracerouteFailureMessage(error, CUSTOMER_ADDRESS)).toBe(
+      "spawn traceroute ENOENT",
+    );
+  });
+
+  it.each([
+    "Traceroute timed out",
+    `Invalid destination: x. Must be a valid hostname or IP address.`,
+  ])("our own %j is left exactly as it was", (text: string) => {
+    expect(
+      internals.getTracerouteFailureMessage(new Error(text), CUSTOMER_ADDRESS),
+    ).toBe(text);
+  });
+
+  it("a thrown non-Error is shown as text", () => {
+    expect(
+      internals.getTracerouteFailureMessage("boom", CUSTOMER_ADDRESS),
+    ).toBe("boom");
+  });
+
+  it("an invalid destination that happens to read like an OS error is not classified", async () => {
+    /*
+     * Only stderr is classified. The "Invalid destination" message quotes
+     * the destination, and that must never be mistaken for the kernel
+     * saying the probe has no route. Nothing is exec'd: validation refuses
+     * it first.
+     */
+    const traceRoute: TraceRoute = await internals.performTraceroute(
+      "network is unreachable",
+      1,
+      1000,
+    );
+
+    expect(traceRoute.failureMessage).toBe(
+      "Invalid destination: network is unreachable. Must be a valid hostname or IP address.",
+    );
+    expect(traceRoute.hops).toEqual([]);
   });
 });
