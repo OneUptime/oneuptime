@@ -77,7 +77,22 @@ const OTHER_FLEET_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
 
-const findOneFleetById: jest.Mock<() => Promise<IoTFleet | null>> = jest.fn();
+/*
+ * Typed loosely on purpose, and in one place: jest.fn()'s Mock and
+ * jest.spyOn()'s SpiedFunction each disagree with this repo's @types/jest
+ * about whether mock.lastCall is optional, so the narrow generic forms do not
+ * assign. Nothing below needs more than these members, and `unknown`
+ * arguments keep every call site free of a cast.
+ */
+type MockLike = {
+  mockReset: () => void;
+  mockResolvedValue: (value: unknown) => unknown;
+  mockRejectedValue: (value: unknown) => unknown;
+  mockResolvedValueOnce: (value: unknown) => unknown;
+  mock: { calls: Array<Array<unknown>> };
+};
+
+const findOneFleetById: MockLike = jest.fn() as unknown as MockLike;
 
 jest.mock("../../../Server/Services/IoTFleetService", () => {
   return {
@@ -88,8 +103,8 @@ jest.mock("../../../Server/Services/IoTFleetService", () => {
   };
 });
 
-const cacheGetString: jest.Mock<() => Promise<string | null>> = jest.fn();
-const cacheSetString: jest.Mock<() => Promise<void>> = jest.fn();
+const cacheGetString: MockLike = jest.fn() as unknown as MockLike;
+const cacheSetString: MockLike = jest.fn() as unknown as MockLike;
 
 jest.mock("../../../Server/Infrastructure/GlobalCache", () => {
   return {
@@ -135,16 +150,8 @@ type ServiceInternals = {
   };
 };
 
-/*
- * Typed loosely on purpose: jest.spyOn's SpiedFunction and this repo's
- * @types/jest disagree about the optionality of mock.lastCall, and nothing
- * below needs more than mockResolvedValue and the recorded calls.
- */
-type Spy = {
-  mockResolvedValue: (value: never) => unknown;
-  mockRejectedValue: (value: never) => unknown;
-  mock: { calls: Array<Array<unknown>> };
-};
+/* The spies use the same loose shape; see MockLike above. */
+type Spy = MockLike;
 
 interface Harness {
   service: IoTDeviceCredentialServiceType;
@@ -160,19 +167,19 @@ function buildService(): Harness {
     new IoTDeviceCredentialServiceType();
 
   const findOneBy: Spy = jest.spyOn(service, "findOneBy") as unknown as Spy;
-  findOneBy.mockResolvedValue(null as never);
+  findOneBy.mockResolvedValue(null);
 
   const findBy: Spy = jest.spyOn(service, "findBy") as unknown as Spy;
-  findBy.mockResolvedValue([] as never);
+  findBy.mockResolvedValue([]);
 
   const countBy: Spy = jest.spyOn(service, "countBy") as unknown as Spy;
-  countBy.mockResolvedValue(new PositiveNumber(0) as never);
+  countBy.mockResolvedValue(new PositiveNumber(0));
 
   const updateWithoutHooks: Spy = jest.spyOn(
     service,
     "updateColumnsByIdWithoutHooks",
   ) as unknown as Spy;
-  updateWithoutHooks.mockResolvedValue(undefined as never);
+  updateWithoutHooks.mockResolvedValue(undefined);
 
   return {
     service: service,
@@ -387,7 +394,7 @@ describe("a credential cannot be attached to another project's fleet", () => {
 describe("a device id is unique within its fleet, byte-exact", () => {
   test("a second registration of the same id is refused", async () => {
     const harness: Harness = buildService();
-    harness.countBy.mockResolvedValue(new PositiveNumber(1) as never);
+    harness.countBy.mockResolvedValue(new PositiveNumber(1));
 
     await expect(
       harness.internals.onBeforeCreate(
@@ -464,7 +471,7 @@ describe("a device id is unique within its fleet, byte-exact", () => {
 describe("resolving a credential to an auth context", () => {
   test("a complete, enabled credential resolves", async () => {
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(credentialRow() as never);
+    harness.findOneBy.mockResolvedValue(credentialRow());
 
     const context: IoTDeviceCredentialContext | null =
       await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
@@ -487,7 +494,7 @@ describe("resolving a credential to an auth context", () => {
      * without it would be worse.
      */
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(credentialRow() as never);
+    harness.findOneBy.mockResolvedValue(credentialRow());
 
     const context: IoTDeviceCredentialContext | null =
       await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
@@ -497,7 +504,7 @@ describe("resolving a credential to an auth context", () => {
 
   test("an unknown credential resolves to null", async () => {
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(null as never);
+    harness.findOneBy.mockResolvedValue(null);
 
     await expect(
       harness.service.getCredentialContext(CREDENTIAL_ID.toString()),
@@ -507,9 +514,7 @@ describe("resolving a credential to an auth context", () => {
   test("a DISABLED credential resolves to null", async () => {
     // This is revocation-by-toggle: the broker must stop accepting it.
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(
-      credentialRow({ isEnabled: false }) as never,
-    );
+    harness.findOneBy.mockResolvedValue(credentialRow({ isEnabled: false }));
 
     await expect(
       harness.service.getCredentialContext(CREDENTIAL_ID.toString()),
@@ -528,7 +533,7 @@ describe("resolving a credential to an auth context", () => {
      * topic scope the broker then trusts, and an undefined one would widen it.
      */
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(credentialRow(overrides) as never);
+    harness.findOneBy.mockResolvedValue(credentialRow(overrides));
 
     await expect(
       harness.service.getCredentialContext(CREDENTIAL_ID.toString()),
@@ -550,7 +555,7 @@ describe("resolving a credential to an auth context", () => {
 
   test("a resolved credential is cached, so the hot path reads once", async () => {
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(credentialRow() as never);
+    harness.findOneBy.mockResolvedValue(credentialRow());
 
     await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
     await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
@@ -560,7 +565,7 @@ describe("resolving a credential to an auth context", () => {
 
   test("a MISS is cached too, so invalid credentials cannot flood Postgres", async () => {
     const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(null as never);
+    harness.findOneBy.mockResolvedValue(null);
 
     await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
     await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
@@ -709,7 +714,7 @@ describe("the lastConnectedAt heartbeat is throttled but never skipped", () => {
       harness.service,
       "updateOneById",
     ) as unknown as Spy;
-    withHooks.mockResolvedValue(undefined as never);
+    withHooks.mockResolvedValue(undefined);
 
     await harness.service.markConnected(CREDENTIAL_ID);
 
@@ -722,7 +727,13 @@ describe("the expected-device set for a fleet", () => {
   function enabledRows(ids: Array<string | undefined>): Array<Model> {
     return ids.map((externalId: string | undefined): Model => {
       const row: Model = new Model();
-      row.externalId = externalId;
+      /*
+       * Assigned through the record rather than the property: externalId is
+       * deliberately `string | undefined` here - a row that came back without
+       * one is the case under test - and exactOptionalPropertyTypes refuses
+       * `undefined` on an optional property.
+       */
+      (row as unknown as Record<string, unknown>)["externalId"] = externalId;
       return row;
     });
   }
@@ -757,7 +768,7 @@ describe("the expected-device set for a fleet", () => {
      */
     const harness: Harness = buildService();
     harness.findBy.mockResolvedValue(
-      enabledRows(["Device-01", "device-01", " padded "]) as never,
+      enabledRows(["Device-01", "device-01", " padded "]),
     );
 
     await expect(
@@ -775,7 +786,7 @@ describe("the expected-device set for a fleet", () => {
      */
     const harness: Harness = buildService();
     harness.findBy.mockResolvedValue(
-      enabledRows(["Device-01", undefined, "Device-02"]) as never,
+      enabledRows(["Device-01", undefined, "Device-02"]),
     );
 
     await expect(
@@ -788,7 +799,7 @@ describe("the expected-device set for a fleet", () => {
 
   test("a fleet with no registered devices is an empty set, not an error", async () => {
     const harness: Harness = buildService();
-    harness.findBy.mockResolvedValue([] as never);
+    harness.findBy.mockResolvedValue([]);
 
     await expect(
       harness.service.getExpectedDeviceExternalIds({

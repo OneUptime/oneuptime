@@ -62,11 +62,13 @@ type ServiceInternals = {
 
 /*
  * Typed loosely on purpose: jest.spyOn's SpiedFunction and this repo's
- * @types/jest disagree about the optionality of mock.lastCall, and nothing
- * below needs more than mockResolvedValue and the recorded calls.
+ * @types/jest disagree about whether mock.lastCall is optional, so the narrow
+ * generic form does not assign. Nothing below needs more than these members,
+ * and `unknown` arguments keep the call sites free of casts.
  */
 type Spy = {
-  mockResolvedValue: (value: never) => unknown;
+  mockResolvedValue: (value: unknown) => unknown;
+  mockResolvedValueOnce: (value: unknown) => unknown;
   mock: { calls: Array<Array<unknown>> };
 };
 
@@ -86,14 +88,14 @@ beforeEach(() => {
    * zone file.
    */
   verifyTxtRecord = jest.spyOn(Domain, "verifyTxtRecord") as unknown as Spy;
-  verifyTxtRecord.mockResolvedValue(true as never);
+  verifyTxtRecord.mockResolvedValue(true);
 });
 
 function buildService(rows: Array<Model> = []): Harness {
   const service: DomainServiceType = new DomainServiceType();
 
   const findBy: Spy = jest.spyOn(service, "findBy") as unknown as Spy;
-  findBy.mockResolvedValue(rows as never);
+  findBy.mockResolvedValue(rows);
 
   return {
     internals: service as unknown as ServiceInternals,
@@ -357,7 +359,7 @@ describe("marking a domain verified requires the TXT record to be there", () => 
     const harness: Harness = buildService([
       existingRow("status.acme.com", VERIFICATION_TEXT),
     ]);
-    verifyTxtRecord.mockResolvedValue(false as never);
+    verifyTxtRecord.mockResolvedValue(false);
 
     await expect(
       harness.internals.onBeforeUpdate(updateBy({ isVerified: true })),
@@ -376,17 +378,9 @@ describe("marking a domain verified requires the TXT record to be there", () => 
       existingRow("owned.acme.com", VERIFICATION_TEXT),
       existingRow("not-owned.acme.com", VERIFICATION_TEXT),
     ]);
-    verifyTxtRecord.mockResolvedValue(true as never);
-    (
-      verifyTxtRecord as unknown as {
-        mockResolvedValueOnce: (v: unknown) => unknown;
-      }
-    ).mockResolvedValueOnce(true);
-    (
-      verifyTxtRecord as unknown as {
-        mockResolvedValueOnce: (v: unknown) => unknown;
-      }
-    ).mockResolvedValueOnce(false);
+    // The first domain verifies, the second does not.
+    verifyTxtRecord.mockResolvedValueOnce(true);
+    verifyTxtRecord.mockResolvedValueOnce(false);
 
     await expect(
       harness.internals.onBeforeUpdate(updateBy({ isVerified: true })),
