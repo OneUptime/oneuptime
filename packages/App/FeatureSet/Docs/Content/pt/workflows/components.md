@@ -88,15 +88,26 @@ Envia uma mensagem para um chat do Telegram usando um token de bot e o ID do cha
 
 ## Email
 
-Envia um e-mail pelo OneUptime.
+Envia um e-mail por meio de um servidor SMTP que você informa no bloco.
 
 **Settings**:
 
-- **Para** — o endereço de e-mail de quem recebe.
-- **Assunto** — a linha de assunto.
-- **Body** — a mensagem em Markdown ou HTML.
+- **From Email** — o remetente, por exemplo `Alerts <alerts@company.com>`.
+- **To Email** — o endereço de e-mail de quem recebe. Separe vários endereços com vírgulas ou pontos e vírgulas.
+- **Subject** — a linha de assunto.
+- **Email Body** — a mensagem, enviada como HTML.
+- **SMTP Host** e **SMTP Port** — o servidor de e-mail ao qual se conectar.
+- **SMTP Username** e **SMTP Password** — opcionais. Preencha os dois ou nenhum.
+- **Use Implicit TLS** — ative para TLS implícito, normalmente na porta 465. Deixe desativado para STARTTLS, normalmente na porta 587.
 
-O e-mail sai do remetente configurado do seu projeto — veja [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Sucesso** — dispara quando o servidor SMTP aceitou a mensagem.
+- **Erro** — dispara quando o host SMTP é recusado, quando o servidor não pode ser alcançado ou quando ele rejeita a mensagem. Repassa a mensagem de erro. Já a falta de **To Email**, **From Email**, **SMTP Host** ou **SMTP Port** interrompe a execução em vez disso.
+
+O bloco se conecta diretamente ao servidor definido nas configurações dele. Ele não usa as configurações de [SMTP](/docs/emails/smtp) do seu projeto nem o servidor de e-mail do próprio OneUptime, e os e-mails que ele envia não aparecem nos Logs de notificação. Para conferir o que ele fez, veja as [Execuções e registros](/docs/workflows/runs-and-logs) do workflow.
+
+Conexões com endereços de loopback (`localhost`, `127.0.0.1`), link-local e de metadados de nuvem são recusadas. No OneUptime Cloud, um host SMTP em um endereço de rede privada, ou um nome que resolva para um endereço desse tipo, também é recusado. Instalações self-hosted podem alcançar um servidor de e-mail na própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esteja definido como `true`. Um host recusado segue pela saída **Erro**, e nada é enviado.
 
 ## Custom Code
 

@@ -15,9 +15,10 @@ import logger from "../Logger";
  * It started life guarding external Data Source connections — hence the
  * file's home — but the same policy now covers every sink where a project
  * member picks the host and a self-hosted install may legitimately point at
- * something internal: LLM providers (self-hosted Ollama/vLLM), SMTP OAuth
- * token endpoints, status page / dashboard domain verification, OIDC
- * discovery and Runbook HTTP steps. Sinks that can only ever be third-party
+ * something internal: LLM providers (self-hosted Ollama/vLLM), SMTP servers
+ * (project SMTP settings and the workflow Send Email step), SMTP OAuth token
+ * endpoints, status page / dashboard domain verification, OIDC discovery and
+ * Runbook HTTP steps. Sinks that can only ever be third-party
  * SaaS (Slack, Teams, subscriber webhooks) use SSRFProtection instead, which
  * blocks private ranges unconditionally.
  *

@@ -88,15 +88,26 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## Email
 
-OneUptime을 통해 이메일을 보냅니다.
+블록에 입력한 SMTP 서버를 통해 이메일을 보냅니다.
 
 **설정**:
 
-- **받는 사람** — 수신자의 이메일 주소.
-- **제목** — 제목 줄.
-- **Body** — Markdown 또는 HTML로 작성한 메시지.
+- **From Email** — 발신자. 예를 들면 `Alerts <alerts@company.com>`.
+- **To Email** — 수신자의 이메일 주소. 여러 주소는 쉼표나 세미콜론으로 구분하세요.
+- **Subject** — 제목 줄.
+- **Email Body** — HTML로 보내지는 메시지.
+- **SMTP Host**와 **SMTP Port** — 연결할 메일 서버.
+- **SMTP Username**과 **SMTP Password** — 선택 항목. 둘 다 입력하거나 둘 다 비워 두세요.
+- **Use Implicit TLS** — 암묵적 TLS를 쓰려면 켜세요(보통 포트 465). STARTTLS를 쓰려면 꺼 두세요(보통 포트 587).
 
-이메일은 프로젝트에 설정된 발신자 주소로 나갑니다 — [SMTP](/docs/emails/smtp)를 보세요.
+**Outputs**:
+
+- **Success** — SMTP 서버가 메시지를 수락했을 때 발생합니다.
+- **Error** — SMTP 호스트가 거부되었거나, 서버에 연결할 수 없거나, 서버가 메시지를 거부했을 때 발생합니다. 오류 메시지를 함께 넘깁니다. **To Email**, **From Email**, **SMTP Host**, **SMTP Port** 중 하나라도 비어 있으면 대신 실행 자체가 중지됩니다.
+
+이 블록은 설정에 있는 서버에 바로 연결합니다. 프로젝트의 [SMTP](/docs/emails/smtp) 설정이나 OneUptime 자체 메일 서버를 사용하지 않으며, 이 블록이 보낸 이메일은 알림 로그에 나타나지 않습니다. 블록이 한 일을 확인하려면 워크플로의 [실행 및 로그](/docs/workflows/runs-and-logs)를 보세요.
+
+루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소로의 연결은 거부됩니다. OneUptime Cloud에서는 사설 네트워크 주소에 있는 SMTP 호스트나, 그런 주소로 해석되는 이름도 거부됩니다. 셀프 호스팅 설치는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`로 설정되어 있지 않다면 자체 네트워크의 메일 서버에 연결할 수 있습니다. 거부된 호스트는 **Error** 출력으로 이어지며, 아무것도 전송되지 않습니다.
 
 ## Custom Code
 

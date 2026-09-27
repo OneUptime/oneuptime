@@ -88,15 +88,26 @@ API 元件的簡化版，適合「送出去就不管」的情況。把一段 JSO
 
 ## Email
 
-透過 OneUptime 寄出一封電子郵件。
+透過你在區塊上填入的 SMTP 伺服器寄出一封電子郵件。
 
 **設定**：
 
-- **收件者**——收件人的電子郵件地址。
-- **主旨**——主旨列。
-- **Body**——用 Markdown 或 HTML 寫的郵件內容。
+- **From Email**——寄件者，例如 `Alerts <alerts@company.com>`。
+- **To Email**——收件人的電子郵件地址。多個地址請用逗號或分號隔開。
+- **Subject**——主旨列。
+- **Email Body**——郵件內容，以 HTML 格式寄出。
+- **SMTP Host** 和 **SMTP Port**——要連線的郵件伺服器。
+- **SMTP Username** 和 **SMTP Password**——選填。兩個都填，或兩個都不填。
+- **Use Implicit TLS**——使用隱含式 TLS 時開啟，通常是 465 連接埠。使用 STARTTLS 時保持關閉，通常是 587 連接埠。
 
-郵件會從你專案設定好的寄件者送出——請見 [SMTP](/docs/emails/smtp)。
+**輸出**：
+
+- **成功**——SMTP 伺服器接受了這封郵件時觸發。
+- **錯誤**——SMTP 主機遭到拒絕、伺服器無法連線，或伺服器拒收這封郵件時觸發。會把錯誤訊息傳下去。如果缺少 **To Email**、**From Email**、**SMTP Host** 或 **SMTP Port**，則會改為直接停止這次執行。
+
+這個區塊會直接連到它設定裡的那台伺服器。它不會使用你專案的 [SMTP](/docs/emails/smtp) 設定，也不會使用 OneUptime 自己的郵件伺服器，它寄出的郵件也不會出現在通知日誌裡。想知道它做了什麼，請查看這個工作流程的[執行與日誌](/docs/workflows/runs-and-logs)。
+
+連到回送位址（`localhost`、`127.0.0.1`）、連結本機位址與雲端中繼資料位址的連線會被拒絕。在 OneUptime Cloud 上，位於私有網路位址的 SMTP 主機，或解析到私有網路位址的名稱，也會被拒絕。自架部署可以連到自己網路裡的郵件伺服器，除非把 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 設為 `true`。被拒絕的主機會走 **錯誤** 輸出，什麼都不會寄出。
 
 ## Custom Code
 

@@ -88,15 +88,26 @@ Eine Nachricht mit einem Bot-Token und einer Chat-ID an einen Telegram-Chat send
 
 ## Email
 
-Eine E-Mail über OneUptime versenden.
+Eine E-Mail über einen SMTP-Server versenden, den Sie im Baustein angeben.
 
 **Einstellungen**:
 
-- **An** – die E-Mail-Adresse des Empfängers.
-- **Betreff** – die Betreffzeile.
-- **Body** – die Nachricht in Markdown oder HTML.
+- **From Email** – der Absender, zum Beispiel `Alerts <alerts@company.com>`.
+- **To Email** – die E-Mail-Adresse des Empfängers. Mehrere Adressen trennen Sie mit Kommas oder Semikolons.
+- **Subject** – die Betreffzeile.
+- **Email Body** – die Nachricht, versendet als HTML.
+- **SMTP Host** und **SMTP Port** – der Mailserver, mit dem sich der Baustein verbindet.
+- **SMTP Username** und **SMTP Password** – optional. Füllen Sie beide aus oder keines von beiden.
+- **Use Implicit TLS** – für implizites TLS einschalten, meist auf Port 465. Für STARTTLS, meist auf Port 587, ausgeschaltet lassen.
 
-Die E-Mail geht von dem in Ihrem Projekt konfigurierten Absender raus – siehe [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Erfolg** – feuert, wenn der SMTP-Server die Nachricht angenommen hat.
+- **Fehler** – feuert, wenn der SMTP-Host abgelehnt wird, der Server nicht erreichbar ist oder der Server die Nachricht zurückweist. Reicht die Fehlermeldung weiter. Fehlt **To Email**, **From Email**, **SMTP Host** oder **SMTP Port**, wird stattdessen die Ausführung gestoppt.
+
+Der Baustein verbindet sich direkt mit dem Server aus seinen Einstellungen. Er verwendet weder die [SMTP](/docs/emails/smtp)-Einstellungen Ihres Projekts noch den eigenen Mailserver von OneUptime, und die E-Mails, die er versendet, erscheinen nicht in den Benachrichtigungsprotokollen. Um nachzusehen, was er getan hat, schauen Sie in die [Ausführungen & Protokolle](/docs/workflows/runs-and-logs) des Workflows.
+
+Verbindungen zu Loopback-Adressen (`localhost`, `127.0.0.1`), Link-Local-Adressen und Cloud-Metadaten-Adressen werden abgelehnt. In OneUptime Cloud wird außerdem ein SMTP-Host auf einer privaten Netzwerkadresse abgelehnt, ebenso ein Name, der zu einer solchen Adresse aufgelöst wird. Selbst gehostete Installationen können einen Mailserver in ihrem eigenen Netzwerk erreichen, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt. Ein abgelehnter Host führt zum Output **Fehler**, und es wird nichts gesendet.
 
 ## Custom Code
 
