@@ -106,16 +106,29 @@ class Service extends DatabaseService<ProjectToken> {
     return await this.locked(
       projectId,
       async (manager: EntityManager): Promise<DiscordBindingSnapshot> => {
-        const rows: BindingRows = await this.rows(manager, projectId, userId);
-        return {
-          fingerprint: this.fingerprint(rows),
-          workspaceProjectId:
-            rows.project && !rows.project.deletedAt
-              ? rows.project.workspaceProjectId
-              : undefined,
-        };
+        return this.snapshotWithManager(projectId, userId, manager);
       },
     );
+  }
+
+  /*
+   * Internal transaction primitive. The caller must already hold this project's
+   * discord-binding advisory lock in the supplied active transaction. Reusing
+   * that manager avoids taking the same lock in a nested transaction.
+   */
+  public async snapshotWithManager(
+    projectId: ObjectID,
+    userId: ObjectID | undefined,
+    manager: EntityManager,
+  ): Promise<DiscordBindingSnapshot> {
+    const rows: BindingRows = await this.rows(manager, projectId, userId);
+    return {
+      fingerprint: this.fingerprint(rows),
+      workspaceProjectId:
+        rows.project && !rows.project.deletedAt
+          ? rows.project.workspaceProjectId
+          : undefined,
+    };
   }
 
   private assertSnapshot(

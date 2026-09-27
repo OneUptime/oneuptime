@@ -17,6 +17,13 @@ export class DiscordAPIError extends BadDataException {
 export default class DiscordClient {
   public static readonly BASE_URL: string = "https://discord.com/api/v10";
 
+  public static encodePathSegment(value: string): string {
+    if (!value || value.length > 1024) {
+      throw new BadDataException("Invalid Discord path segment.");
+    }
+    return encodeURIComponent(value);
+  }
+
   public static snowflake(value: string): string {
     const pattern: RegExp = /^[0-9]{17,20}$/;
     if (!pattern.test(value)) {
@@ -32,8 +39,40 @@ export default class DiscordClient {
     body?: JSONObject | JSONArray;
     params?: { before?: string; limit?: string };
   }): Promise<JSONObject | JSONArray> {
-    const pathPattern: RegExp = /^\/[a-z0-9_/@-]+(?:\?[a-z0-9_=&.-]+)?$/i;
-    if (!data.authToken || !pathPattern.test(data.path)) {
+    if (!data.authToken) {
+      throw new BadDataException("Invalid Discord API request.");
+    }
+
+    return await this.requestWithHeaders({
+      method: data.method,
+      path: data.path,
+      body: data.body,
+      params: data.params,
+      headers: { Authorization: `Bot ${data.authToken}` },
+    });
+  }
+
+  private static async requestWithHeaders(data: {
+    method: HTTPMethod;
+    path: string;
+    body?: JSONObject | JSONArray | undefined;
+    params?: { before?: string; limit?: string } | undefined;
+    headers?: Record<string, string> | undefined;
+  }): Promise<JSONObject | JSONArray> {
+    const pathPattern: RegExp =
+      /^\/(?:[a-z0-9_@.-]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9_@.-]|%[0-9a-f]{2})+)*(?:\?[a-z0-9_=&.-]+)?$/i;
+    const pathSegments: Array<string> = data.path
+      .split("?", 1)[0]!
+      .split("/")
+      .slice(1);
+    if (
+      data.path.length > 4096 ||
+      !pathPattern.test(data.path) ||
+      pathSegments.some((segment: string): boolean => {
+        const decoded: string = decodeURIComponent(segment);
+        return decoded === "." || decoded === "..";
+      })
+    ) {
       throw new BadDataException("Invalid Discord API request.");
     }
 
@@ -44,7 +83,7 @@ export default class DiscordClient {
           method: data.method,
           url: URL.fromString(this.BASE_URL + data.path),
           ...(data.body ? { data: data.body } : {}),
-          headers: { Authorization: `Bot ${data.authToken}` },
+          ...(data.headers ? { headers: data.headers } : {}),
           ...(data.params ? { params: data.params } : {}),
           /*
            * Retrying an ambiguous network failure could duplicate a message or
@@ -108,5 +147,110 @@ export default class DiscordClient {
       body: { recipient_id: this.snowflake(data.userId) },
     })) as JSONObject;
     return this.snowflake(String(response["id"] || ""));
+  }
+
+  public static async editOriginalInteractionResponse(data: {
+    applicationId: string;
+    interactionToken: string;
+    message: JSONObject;
+  }): Promise<void> {
+    await this.requestWithHeaders({
+      method: HTTPMethod.PATCH,
+      path:
+        `/webhooks/${this.snowflake(data.applicationId)}/` +
+        `${this.encodePathSegment(data.interactionToken)}/messages/@original`,
+      body: data.message,
+    });
+  }
+
+  public static async sendInteractionFollowup(data: {
+    applicationId: string;
+    interactionToken: string;
+    message: JSONObject;
+  }): Promise<void> {
+    await this.requestWithHeaders({
+      method: HTTPMethod.POST,
+      path:
+        `/webhooks/${this.snowflake(data.applicationId)}/` +
+        this.encodePathSegment(data.interactionToken),
+      body: data.message,
+    });
+  }
+
+  public static async upsertGuildCommands(data: {
+    authToken: string;
+    applicationId: string;
+    guildId: string;
+    commands: JSONArray;
+  }): Promise<void> {
+    if (
+      !Array.isArray(data.commands) ||
+      data.commands.length > 100 ||
+      JSON.stringify(data.commands).length > 1_000_000
+    ) {
+      throw new BadDataException("Invalid Discord command registration.");
+    }
+
+    const names: Set<string> = new Set<string>();
+    const commandNamePattern: RegExp = /^[a-z0-9_-]{1,32}$/;
+    for (const value of data.commands) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new BadDataException("Invalid Discord command registration.");
+      }
+      const command: JSONObject = value as JSONObject;
+      const name: unknown = command["name"];
+      const description: unknown = command["description"];
+      if (
+        command["type"] !== 1 ||
+        typeof name !== "string" ||
+        !commandNamePattern.test(name) ||
+        typeof description !== "string" ||
+        description.length < 1 ||
+        description.length > 100 ||
+        names.has(name)
+      ) {
+        throw new BadDataException("Invalid Discord command registration.");
+      }
+      names.add(name);
+    }
+
+    const path: string =
+      `/applications/${this.snowflake(data.applicationId)}/guilds/` +
+      `${this.snowflake(data.guildId)}/commands`;
+    const existingResponse: JSONObject | JSONArray = await this.request({
+      authToken: data.authToken,
+      method: HTTPMethod.GET,
+      path,
+    });
+    if (!Array.isArray(existingResponse)) {
+      throw new BadDataException("Discord returned invalid command data.");
+    }
+
+    for (const value of data.commands) {
+      const command: JSONObject = value as JSONObject;
+      const matches: Array<JSONObject> = existingResponse.filter(
+        (existingValue: unknown): boolean => {
+          return Boolean(
+            existingValue &&
+              typeof existingValue === "object" &&
+              !Array.isArray(existingValue) &&
+              (existingValue as JSONObject)["type"] === 1 &&
+              (existingValue as JSONObject)["name"] === command["name"],
+          );
+        },
+      ) as Array<JSONObject>;
+      if (matches.length > 1) {
+        throw new BadDataException("Discord returned ambiguous command data.");
+      }
+      const existingId: string | undefined = matches[0]
+        ? this.snowflake(String(matches[0]["id"] || ""))
+        : undefined;
+      await this.request({
+        authToken: data.authToken,
+        method: existingId ? HTTPMethod.PATCH : HTTPMethod.POST,
+        path: existingId ? `${path}/${existingId}` : path,
+        body: command,
+      });
+    }
   }
 }

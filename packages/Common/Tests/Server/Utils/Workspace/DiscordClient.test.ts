@@ -50,6 +50,17 @@ describe("Discord API transport", () => {
     expect(API.fetch).not.toHaveBeenCalled();
   });
 
+  test("rejects dot-segment traversal in a prebuilt bot path", async () => {
+    await expect(
+      DiscordClient.request({
+        authToken,
+        method: HTTPMethod.GET,
+        path: "/channels/../users/@me",
+      }),
+    ).rejects.toThrow("Invalid Discord API request");
+    expect(API.fetch).not.toHaveBeenCalled();
+  });
+
   test("does not retry a forbidden request or expose provider response data", async () => {
     (API.fetch as jest.Mock).mockResolvedValue(
       new HTTPErrorResponse(403, { message: "sensitive-provider-detail" }, {}),
@@ -90,5 +101,105 @@ describe("Discord API transport", () => {
       DiscordClient.openDirectMessage({ authToken, userId: channelId }),
     ).rejects.toThrow("HTTP 429");
     expect(API.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("encodes arbitrary UTF-8 path segments exactly once", () => {
+    expect(DiscordClient.encodePathSegment("🔥/incident%2Fstate")).toBe(
+      "%F0%9F%94%A5%2Fincident%252Fstate",
+    );
+    expect((): string => {
+      return DiscordClient.encodePathSegment("");
+    }).toThrow("path segment");
+  });
+
+  test("edits a deferred interaction through its encoded webhook token without bot authorization", async () => {
+    (API.fetch as jest.Mock).mockResolvedValue(new HTTPResponse(200, {}, {}));
+    await DiscordClient.editOriginalInteractionResponse({
+      applicationId: channelId,
+      interactionToken: "token/🔥%2Fpart",
+      message: {
+        content: "done",
+        allowed_mentions: { parse: [], replied_user: false },
+      },
+    });
+    const request: APIFetchOptions = (API.fetch as jest.Mock).mock.calls[0]![0];
+    expect(request.method).toBe(HTTPMethod.PATCH);
+    expect(request.url.toString()).toBe(
+      `https://discord.com/api/v10/webhooks/${channelId}/token%2F%F0%9F%94%A5%252Fpart/messages/@original`,
+    );
+    expect(request.headers?.["Authorization"]).toBeUndefined();
+    expect(request.options).toMatchObject({
+      retries: 0,
+      doNotFollowRedirects: true,
+    });
+  });
+
+  test("upserts owned guild commands without replacing unrelated commands", async () => {
+    (API.fetch as jest.Mock)
+      .mockResolvedValueOnce(
+        new HTTPResponse(
+          200,
+          [
+            {
+              id: "666666666666666666",
+              name: "unrelated",
+              description: "Another integration owns this",
+              type: 1,
+            },
+            {
+              id: "777777777777777777",
+              name: "incident-state",
+              description: "Old description",
+              type: 1,
+            },
+          ],
+          {},
+        ),
+      )
+      .mockResolvedValue(new HTTPResponse(200, {}, {}));
+    await DiscordClient.upsertGuildCommands({
+      authToken,
+      applicationId: channelId,
+      guildId: "987654321098765432",
+      commands: [
+        {
+          name: "incident-state",
+          description: "Change an incident state",
+          type: 1,
+          options: [],
+        },
+        {
+          name: "incident-note",
+          description: "Add an incident note",
+          type: 1,
+          options: [],
+        },
+      ],
+    });
+    const requests: Array<APIFetchOptions> = (
+      API.fetch as jest.Mock
+    ).mock.calls.map((call: Array<APIFetchOptions>): APIFetchOptions => {
+      return call[0]!;
+    });
+    expect(requests[0]!.method).toBe(HTTPMethod.GET);
+    expect(requests[0]!.url.toString()).toBe(
+      `https://discord.com/api/v10/applications/${channelId}/guilds/987654321098765432/commands`,
+    );
+    expect(requests[1]!.method).toBe(HTTPMethod.PATCH);
+    expect(requests[1]!.url.toString()).toContain(
+      "/commands/777777777777777777",
+    );
+    expect(requests[2]!.method).toBe(HTTPMethod.POST);
+    expect(
+      requests.every((request: APIFetchOptions): boolean => {
+        return request.method !== HTTPMethod.PUT;
+      }),
+    ).toBe(true);
+    expect(
+      requests.some((request: APIFetchOptions): boolean => {
+        return request.url.toString().includes("666666666666666666");
+      }),
+    ).toBe(false);
+    expect(requests[1]!.headers?.["Authorization"]).toBe(`Bot ${authToken}`);
   });
 });

@@ -153,10 +153,9 @@ function makeVectors(seed: number): Array<Vector> {
   }
 
   /*
-   * Type 3 (component/button) is a supported interaction since HOM-35: it is
-   * handled (200) so the clicker gets the card's response in the channel
-   * instead of "This interaction failed". Every other unsupported type must
-   * still be a 400.
+   * Types 2 to 5 are dispatched, but only as complete envelopes: a signed body
+   * missing its identifiers, token, or custom_id/name is a 400 before any
+   * receipt is claimed. Every other type is unsupported and also a 400.
    */
   for (const type of [0, 2, 4, 5, -1, 99999, "1", null, {}]) {
     add({
@@ -171,7 +170,21 @@ function makeVectors(seed: number): Array<Vector> {
       type: 3,
       application_id: identities.applicationId,
     }),
-    expected: [200],
+    expected: [400],
+  });
+  // A complete envelope still needs its custom_id before any receipt is claimed.
+  add({
+    name: "complete-component-without-custom-id",
+    body: JSON.stringify({
+      id: "100000000000000099",
+      token: "adversarial-token",
+      type: 3,
+      application_id: identities.applicationId,
+      guild_id: identities.guildId,
+      member: { user: { id: identities.userId } },
+      data: { component_type: 2 },
+    }),
+    expected: [400],
   });
   for (const app of [
     identities.otherGuildId,

@@ -10,6 +10,7 @@
   "threadChannelId": "100000000000000009",
   "deniedChannelId": "100000000000000010",
   "botRoleId": "100000000000000011",
+  "secondUserId": "100000000000000012",
   "guildName": "Discord E2E guild",
   "username": "discord-e2e-user"
 }

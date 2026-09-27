@@ -35,12 +35,27 @@ import DiscordBindingService, {
   DiscordBindingSnapshot,
 } from "../Services/DiscordBindingService";
 import IncidentService from "../Services/IncidentService";
-import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import WorkspaceResourceUpdateAuthorization from "../Utils/Workspace/WorkspaceResourceUpdateAuthorization";
+import DiscordInteractionDispatcher, {
+  DiscordPreparedInteraction,
+} from "../Utils/Workspace/Discord/DiscordInteractionDispatcher";
+import { DiscordIncidentActionModule } from "../Utils/Workspace/Discord/Actions/Incident";
+import { DiscordAlertActionModule } from "../Utils/Workspace/Discord/Actions/Alert";
+import { DiscordIncidentEpisodeActionModule } from "../Utils/Workspace/Discord/Actions/IncidentEpisode";
+import { DiscordAlertEpisodeActionModule } from "../Utils/Workspace/Discord/Actions/AlertEpisode";
+import { DiscordScheduledMaintenanceActionModule } from "../Utils/Workspace/Discord/Actions/ScheduledMaintenance";
+import { DiscordMonitorActionModule } from "../Utils/Workspace/Discord/Actions/Monitor";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
   PublicDashboardRateLimitDecision,
   PublicDashboardRateLimitOutcome,
 } from "../Middleware/PublicDashboardRateLimit";
+
+// PING (1) is answered inline; these are the types the dispatcher owns.
+const DISPATCHED_INTERACTION_TYPES: ReadonlySet<unknown> = new Set<unknown>([
+  2, 3, 4, 5,
+]);
 
 export default class DiscordAPI {
   private static async rateLimit(
@@ -134,25 +149,47 @@ export default class DiscordAPI {
     }
   }
 
-  public static async authorizeIncidentActionActor(
-    projectId: ObjectID,
-    userId: ObjectID,
-  ): Promise<void> {
+  public static async authorizeIncidentActionActor(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    incidentId: ObjectID;
+    action: "acknowledge" | "resolve";
+  }): Promise<void> {
     const databaseProps: DatabaseCommonInteractionProps =
-      await WorkspaceActionAuthorization.getProjectMemberProps({
-        projectId,
-        userId,
+      await WorkspaceActionAuthorization.authorize({
+        projectId: data.projectId,
+        userId: data.userId,
+        modelType: IncidentStateTimeline,
+        action: `${data.action} this incident`,
+        resources: [{ service: IncidentService, id: data.incidentId }],
       });
-    CommonAPI.assertPermittedInProject({
-      databaseProps,
-      allowedPermissions: new Incident().getUpdatePermissions(),
-      errorMessage:
-        "You do not have permission to update incidents from Discord.",
+
+    await WorkspaceResourceUpdateAuthorization.assertCanUpdateIncident({
+      incidentId: data.incidentId,
+      projectId: data.projectId,
+      props: databaseProps,
     });
   }
 
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
+    // Built on first use so a router with Discord disabled never loads the modules.
+    let cachedDispatcher: DiscordInteractionDispatcher | undefined;
+    const dispatcher: () => DiscordInteractionDispatcher =
+      (): DiscordInteractionDispatcher => {
+        cachedDispatcher ||= new DiscordInteractionDispatcher({
+          applicationId: DiscordAppClientId!,
+          modules: [
+            DiscordIncidentActionModule,
+            DiscordAlertActionModule,
+            DiscordIncidentEpisodeActionModule,
+            DiscordAlertEpisodeActionModule,
+            DiscordScheduledMaintenanceActionModule,
+            DiscordMonitorActionModule,
+          ],
+        });
+        return cachedDispatcher;
+      };
     router.use(
       "/discord",
       async (
@@ -313,6 +350,13 @@ export default class DiscordAPI {
               await DiscordOAuth.assertInstaller(accessToken, guildId);
               const context: DiscordGuildContext =
                 await DiscordOAuth.guildContext(guildId);
+              // A binding without its commands would advertise actions Discord cannot deliver.
+              await DiscordClient.upsertGuildCommands({
+                authToken: DiscordBotToken!,
+                applicationId: DiscordAppClientId!,
+                guildId,
+                commands: dispatcher().commandPayloads(),
+              });
               await DiscordBindingService.install({
                 state,
                 guildId,
@@ -465,143 +509,28 @@ export default class DiscordAPI {
             res.json({ type: 1 });
             return;
           }
-          if (interaction["type"] === 3) {
-            await DiscordAPI.handleComponentInteraction(res, interaction);
+          if (!DISPATCHED_INTERACTION_TYPES.has(interaction["type"])) {
+            res
+              .status(400)
+              .json({ error: "Discord interaction is not supported." });
             return;
           }
-          res
-            .status(400)
-            .json({ error: "Discord interaction is not supported." });
+          const prepared: DiscordPreparedInteraction =
+            await dispatcher().prepare(interaction);
+          res.json(prepared.initialResponse);
+          if (prepared.runAfterResponse) {
+            /*
+             * Deferred work must start only after the initial callback is
+             * committed; Discord fails the interaction if it waits on it.
+             */
+            prepared.runAfterResponse().catch((): void => {});
+          }
         } catch {
           res.status(400).json({ error: "Invalid Discord interaction." });
         }
       },
     );
     return router;
-  }
-
-  /*
-   * Component interactions carry a custom_id of the form
-   * <SlackActionType>:<incidentId>, signed by Discord and scoped to the guild
-   * that owns the project binding. The clicker must be a project member with a
-   * verified Discord link before any state transition runs. Responses are
-   * always 200: on the Interactions endpoint Discord does not retry a non-2xx
-   * or slow response (the user just sees "This interaction failed"), so
-   * refusals ride back as the interaction callback body where the user sees
-   * them in the channel.
-   */
-  private static async handleComponentInteraction(
-    res: ExpressResponse,
-    interaction: JSONObject,
-  ): Promise<void> {
-    const customId: string = String(
-      (interaction["data"] as JSONObject | undefined)?.["custom_id"] || "",
-    );
-    const parts: Array<string> = customId.split(":");
-    const action: string = parts[0] || "";
-    const guildId: string = String(interaction["guild_id"] || "");
-    const discordUserId: string = String(
-      ((interaction["user"] as JSONObject | undefined) ||
-        ((interaction["member"] as JSONObject | undefined)?.["user"] as
-          | JSONObject
-          | undefined))?.["id"] || "",
-    );
-    const acknowledge: () => void = (): void => {
-      res.status(200).json({ type: 6 });
-    };
-
-    if (action !== "AcknowledgeIncident" && action !== "ResolveIncident") {
-      acknowledge();
-      return;
-    }
-
-    const member: { projectId: ObjectID; userId: ObjectID } | null =
-      await DiscordBindingService.resolveLinkedMember({
-        guildId,
-        discordUserId,
-      });
-    if (!member) {
-      res.status(200).json({
-        type: 4,
-        data: {
-          content:
-            "Your Discord account is not linked to a member of this project. Link it in user settings to act on incidents.",
-          flags: 64,
-        },
-      });
-      return;
-    }
-
-    try {
-      await DiscordAPI.authorizeIncidentActionActor(
-        member.projectId,
-        member.userId,
-      );
-    } catch {
-      res.status(200).json({
-        type: 4,
-        data: {
-          content:
-            "You do not have permission to update incidents from Discord.",
-          flags: 64,
-        },
-      });
-      return;
-    }
-
-    let incidentId: ObjectID;
-    try {
-      incidentId = new ObjectID(parts[1]!);
-    } catch {
-      acknowledge();
-      return;
-    }
-
-    const incident: Incident | null = await IncidentService.findOneById({
-      id: incidentId,
-      select: {
-        projectId: true,
-        currentIncidentState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-    if (
-      !incident ||
-      !incident.projectId ||
-      incident.projectId.toString() !== member.projectId.toString()
-    ) {
-      acknowledge();
-      return;
-    }
-
-    try {
-      if (action === "AcknowledgeIncident") {
-        await IncidentService.acknowledgeIncident(incidentId, member.userId);
-      } else if (action === "ResolveIncident") {
-        await IncidentService.resolveIncident(incidentId, member.userId);
-      } else {
-        acknowledge();
-        return;
-      }
-      res.status(200).json({
-        type: 4,
-        data: {
-          content: `Incident updated (${action}) by <@${discordUserId}>.`,
-          flags: 64,
-        },
-      });
-    } catch (error) {
-      const message: string =
-        error instanceof BadDataException
-          ? error.message
-          : "The incident could not be updated.";
-      res.status(200).json({
-        type: 4,
-        data: { content: message, flags: 64 },
-      });
-    }
   }
 
   private static settingsUrl(
