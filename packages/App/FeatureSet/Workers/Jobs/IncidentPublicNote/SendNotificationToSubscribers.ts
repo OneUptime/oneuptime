@@ -22,7 +22,6 @@ import StatusPageService, {
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
-import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -35,7 +34,6 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
-import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -45,7 +43,11 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
-import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import IncidentTemplateVariableBuilder, {
+  IncidentStatusPageTemplateVariables,
+  IncidentTemplateVariables,
+} from "Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder";
+import { JSONObject } from "Common/Types/JSON";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
@@ -199,6 +201,11 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         isVisibleOnStatusPage: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
+        // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
+        labels: {
+          name: true,
+        },
+        customFields: true,
       },
     });
 
@@ -303,19 +310,6 @@ const notifySubscribersOfIncidentPublicNote: (data: {
     );
 
     /*
-     * Pre-compute markdown conversions for the note once per public note.
-     * These values do not vary per status page or per subscriber, so
-     * memoizing here avoids N redundant markdown parses during fan-out.
-     */
-    const noteHtml: string = await Markdown.convertToHTML(
-      incidentPublicNote.note || "",
-      MarkdownContentType.Email,
-    );
-    const notePlainText: string = Markdown.convertToPlainText(
-      incidentPublicNote.note || "",
-    );
-
-    /*
      * {{postedAt}} is when the note says it was posted, which the author can
      * edit, so an update notification reads it fresh from the row. Only a
      * legacy row with no postedAt falls back to the time of sending.
@@ -324,6 +318,27 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       OneUptimeDate.getDateAsUserFriendlyFormattedString(
         incidentPublicNote.postedAt || OneUptimeDate.getCurrentDate(),
       );
+
+    /*
+     * The values every message is filled with, read once per public note:
+     * the note is converted once rather than once per subscriber, and the
+     * incident's labels and custom fields are read once. What varies per
+     * status page is added per page below.
+     */
+    const incidentTemplateVariables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incident,
+        statusPages: statusPages,
+        markdownVariables: {
+          note: incidentPublicNote.note,
+        },
+        textVariables: {
+          incidentState: incident.currentIncidentState?.name || "",
+          postedAt: notePostedAt,
+        },
+      });
+    const noteHtml: string =
+      incidentTemplateVariables.getMarkdownVariable("note").html;
 
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
@@ -423,61 +438,58 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         ),
       ]);
 
-      const resourcesAffectedString: string =
-        StatusPageResourceUtil.getResourcesGroupedByGroupName(
-          statusPageToResources[statuspage._id!] || [],
-        );
-      const resourcesAffectedPlainText: string =
-        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
-          statusPageToResources[statuspage._id!] || [],
-        );
-
       /*
        * Every variable SubscriberNotificationTemplateVariables advertises for
-       * the incident note events, built once per status page. The base object
-       * holds the values that read the same on every channel; the three
-       * objects below add the format-dependent ones (note, resourcesAffected)
-       * in the format each channel renders: HTML for the email body (it is
-       * wrapped only by BlankTemplate), plain text for SMS and the email
-       * subject, and Markdown for Slack and Teams. The note conversions are
-       * the memoized ones computed once per public note above. Every channel
-       * then adds the subscriber's unsubscribeUrl, so no channel can miss a
-       * variable the others have.
+       * the incident note events, built once per status page
+       * (IncidentTemplateVariableBuilder) in the format each channel
+       * renders: HTML for the email body (it is wrapped only by
+       * BlankTemplate), plain text for SMS and the email subject, and
+       * Markdown for Slack and Teams. Every channel then adds the
+       * subscriber's unsubscribeUrl, so no channel can miss a variable the
+       * others have.
        *
-       * The base values are plain text on every channel: the email body
+       * The plain values are plain text on every channel: the email body
        * escapes them (compileEmailBodyTemplate), and only the values wrapped
        * in SafeHtml go into it as HTML. The HTML resource list (escaped
        * names, "<br/>" between groups) is for email bodies alone; every text
        * channel gets the plain-text one.
        */
-      const templateVariables: Record<string, string> = {
-        statusPageName: statusPageName,
-        statusPageUrl: statusPageURL,
-        detailsUrl: incidentDetailsUrl,
-        incidentSeverity: incident.incidentSeverity?.name || " - ",
-        incidentTitle: incident.title || "",
-        incidentState: incident.currentIncidentState?.name || "",
-        postedAt: notePostedAt,
-      };
+      const pageTemplateVariables: IncidentStatusPageTemplateVariables =
+        incidentTemplateVariables.forStatusPage({
+          statusPage: statuspage,
+          statusPageUrl: statusPageURL,
+          detailsUrl: incidentDetailsUrl,
+          resources: statusPageToResources[statuspage._id!] || [],
+        });
+      const resourcesAffectedString: string =
+        pageTemplateVariables.resourcesAffectedHtml;
+      const resourcesAffectedPlainText: string =
+        pageTemplateVariables.resourcesAffectedPlainText;
 
       const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
-        {
-          ...templateVariables,
-          resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedString),
-          note: SafeHtml.fromTrustedHtml(noteHtml),
-        };
+        pageTemplateVariables.emailBody;
+      const plainTextTemplateVariables: Record<string, string> =
+        pageTemplateVariables.plainText;
+      const markdownTemplateVariables: Record<string, string> =
+        pageTemplateVariables.markdown;
 
-      const plainTextTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedPlainText,
-        note: notePlainText,
-      };
+      // A Rich text field a custom template places goes out: its images must load.
+      await incidentTemplateVariables.publishImagesUsedBy([
+        emailTemplate?.templateBody,
+        smsTemplate?.templateBody,
+        slackTemplate?.templateBody,
+        teamsTemplate?.templateBody,
+      ]);
 
-      const markdownTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedPlainText,
-        note: incidentPublicNote.note || "",
-      };
+      /*
+       * The fields marked "Include in Subscriber Notifications", for the
+       * default Slack and Teams messages, one per line. The default SMS
+       * carries none: it is billed by the segment.
+       */
+      const chatCustomFields: string =
+        pageTemplateVariables.customFieldsMarkdownLines.length > 0
+          ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}\n`
+          : "";
 
       // Send email to Email subscribers.
 
@@ -586,6 +598,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   unsubscribeUrl: smsUnsubscribeUrl,
                 },
               );
+            incidentTemplateVariables.recordFieldsUsedBy([
+              smsTemplate.templateBody,
+            ]);
           } else {
             // Use default hard-coded template
             smsMessage = `Incident update: ${incident.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
@@ -661,6 +676,10 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               method: StatusPageSubscriberNotificationMethod.Email,
               subject: compiledSubject,
             });
+            incidentTemplateVariables.recordFieldsUsedBy([
+              emailTemplate.templateBody,
+              emailTemplate.emailSubject,
+            ]);
 
             MailService.sendMail(
               {
@@ -693,6 +712,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               method: StatusPageSubscriberNotificationMethod.Email,
               subject: copy.emailSubjectPrefix + incident.title,
             });
+            incidentTemplateVariables.recordIncludedFieldsSent();
 
             // Use default hard-coded template
             MailService.sendMail(
@@ -717,6 +737,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   resourcesAffected: resourcesAffectedString,
                   incidentSeverity: incident.incidentSeverity?.name || " - ",
                   incidentTitle: incident.title || "",
+                  // The fields marked "Include in Subscriber Notifications".
+                  customFieldRows:
+                    pageTemplateVariables.customFieldRows as unknown as JSONObject,
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     StatusPageServiceType.getSubscriberEmailFooterText(
@@ -769,6 +792,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 slackTemplate.templateBody,
                 subscriberMarkdownTemplateVariables,
               );
+            incidentTemplateVariables.recordFieldsUsedBy([
+              slackTemplate.templateBody,
+            ]);
           } else {
             // Use default hard-coded template
             markdownMessage = `## Incident - ${incident.title || ""}
@@ -777,11 +803,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
 
 **Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
-
+${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+            incidentTemplateVariables.recordIncludedFieldsSent();
           }
 
           deliveryRecord.recordQueued({
@@ -826,6 +853,9 @@ ${incidentPublicNote.note || ""}
                 teamsTemplate.templateBody,
                 subscriberMarkdownTemplateVariables,
               );
+            incidentTemplateVariables.recordFieldsUsedBy([
+              teamsTemplate.templateBody,
+            ]);
           } else {
             // Use default hard-coded template
             markdownMessage = `## Incident - ${incident.title || ""}
@@ -834,11 +864,12 @@ ${incidentPublicNote.note || ""}
 
 **Resources Affected:** ${resourcesAffectedPlainText}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
-
+${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+            incidentTemplateVariables.recordIncludedFieldsSent();
           }
 
           deliveryRecord.recordQueued({
@@ -878,6 +909,7 @@ ${incidentPublicNote.note || ""}
             statusPage: statuspage,
             method: StatusPageSubscriberNotificationMethod.Webhook,
           });
+          incidentTemplateVariables.recordIncludedFieldsSent();
 
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
@@ -895,6 +927,9 @@ ${incidentPublicNote.note || ""}
                 resourcesAffected: resourcesAffectedPlainText,
                 note: incidentPublicNote.note || "",
                 detailsUrl: incidentDetailsUrl,
+                // The fields marked "Include in Subscriber Notifications", by key.
+                customFields:
+                  incidentTemplateVariables.getWebhookCustomFields(),
               },
             },
           }).catch((err: Error) => {
@@ -909,6 +944,9 @@ ${incidentPublicNote.note || ""}
     }
 
     const deliveryMarkdown: string = deliveryRecord.toMarkdown();
+    // The custom field values that went out, as they were sent.
+    const customFieldsSentMarkdown: string =
+      incidentTemplateVariables.getSentCustomFieldsMarkdown();
 
     if (notificationSentToAtLeastOneSubscriber) {
       logger.debug(
@@ -925,12 +963,16 @@ ${incidentPublicNote.note || ""}
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
-        // The note, then each status page, its subject and what was queued.
+        /*
+         * The note, then each status page, its subject and what was queued,
+         * then the custom field values sent.
+         */
         moreInformationInMarkdown: [
           `**Public Note:**
 
 ${incidentPublicNote.note}`,
           deliveryMarkdown,
+          customFieldsSentMarkdown,
         ]
           .filter(Boolean)
           .join("\n\n"),

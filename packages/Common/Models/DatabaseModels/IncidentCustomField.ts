@@ -507,7 +507,7 @@ export default class IncidentCustomField extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Include in Subscriber Notifications",
     description:
-      "When on, this field and its value appear in the emails status page subscribers get about an incident. Subscribers are usually people outside your team, so turn this on only for fields that are safe to share with them.",
+      "When on, this field and its value appear in the messages status page subscribers get about an incident: the default email, Slack and Microsoft Teams messages, and webhooks (under customFields, by the field's template variable key). The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so turn this on only for fields that are safe to share with them.",
     defaultValue: false,
     example: false,
   })

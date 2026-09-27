@@ -1,5 +1,11 @@
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import { isCustomFieldValueEmpty } from "../../Types/CustomField/CustomFieldValueMapping";
+import {
+  customFieldValueToDate,
+  customFieldValueToText,
+  formatCustomFieldBoolean,
+  formatCustomFieldCalendarDate,
+} from "../../Types/CustomField/CustomFieldValueFormat";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import SubscriberNotificationTemplateCompiler from "../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
@@ -106,56 +112,9 @@ const defaultFormatDateTime: FormatDateTimeFunction = (date: Date): string => {
   return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
 };
 
-type ToDateFunction = (value: unknown) => Date | null;
-
-const toDate: ToDateFunction = (value: unknown): Date | null => {
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? null : value;
-  }
-
-  if (typeof value === "string" && value.trim().length > 0) {
-    const date: Date = new Date(value.trim());
-    return isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-};
-
-const ISO_DATE_PREFIX: RegExp = /^(\d{4}-\d{2}-\d{2})/;
-
-type ToTextFunction = (value: unknown) => string;
-
-// Plain text for a value of no particular type.
-const toText: ToTextFunction = (value: unknown): string => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (Array.isArray(value)) {
-    return value
-      .filter((entry: unknown) => {
-        return !isCustomFieldValueEmpty(entry);
-      })
-      .map((entry: unknown) => {
-        return toText(entry);
-      })
-      .join(", ");
-  }
-
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? "" : value.toISOString();
-  }
-
-  if (typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-
-  return String(value);
-};
+// How a value reads is shared with the subscriber messages.
+const toDate: (value: unknown) => Date | null = customFieldValueToDate;
+const toText: (value: unknown) => string = customFieldValueToText;
 
 export type FormatCustomFieldValueForNoteFunction = (data: {
   customFieldType?: CustomFieldType | null | undefined;
@@ -192,15 +151,7 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
         return escapeMarkdownValue(toText(value), { keepLineBreaks: true });
 
       case CustomFieldType.Boolean:
-        if (value === true || value === "true") {
-          return "Yes";
-        }
-
-        if (value === false || value === "false") {
-          return "No";
-        }
-
-        return escapeMarkdownValue(toText(value));
+        return escapeMarkdownValue(formatCustomFieldBoolean(value));
 
       case CustomFieldType.DateTime: {
         const date: Date | null = toDate(value);
@@ -212,22 +163,8 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
        * A calendar date: the day that was picked, with no time zone to shift
        * it into the day before for a reader west of UTC.
        */
-      case CustomFieldType.Date: {
-        const match: RegExpMatchArray | null =
-          typeof value === "string"
-            ? value.trim().match(ISO_DATE_PREFIX)
-            : null;
-
-        if (match) {
-          return match[1]!;
-        }
-
-        const date: Date | null = toDate(value);
-
-        return escapeMarkdownValue(
-          date ? date.toISOString().slice(0, 10) : toText(value),
-        );
-      }
+      case CustomFieldType.Date:
+        return escapeMarkdownValue(formatCustomFieldCalendarDate(value));
 
       default:
         return escapeMarkdownValue(toText(value));

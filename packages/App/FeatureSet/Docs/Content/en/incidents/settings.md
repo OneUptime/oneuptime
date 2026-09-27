@@ -106,6 +106,9 @@ Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/inci
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
+- **Order**, **Show on Create** and **Required on Create** — where the field appears, and whether the **Details** step asks for it when an incident is declared (see [Declaring Incidents](/docs/incidents/declaring-incidents)).
+- **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
+- **Template Variable** — the key a template reaches the field by, `{{customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created and does not change when the field is renamed.
 
 Definitions live in their own model; the values live on the incident itself in the `customFields` column. On a single incident you fill them in from **Custom Fields** in the incident side menu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 

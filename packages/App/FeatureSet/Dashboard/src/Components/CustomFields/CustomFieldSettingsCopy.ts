@@ -79,7 +79,7 @@ export const IncidentCustomFieldSettingsCopy: {
     "An incident cannot be declared from the dashboard until this field is filled in. For a Boolean field this means the box must be ticked. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can still leave it empty, and it stays optional when an incident is edited later.",
   includeInSubscriberNotificationsTitle: "Include in Subscriber Notifications",
   includeInSubscriberNotificationsDescription:
-    "Show this field and its value in the emails status page subscribers get about an incident. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.",
+    "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.",
   includeInSubscriberNotificationsColumnTitle: "In Subscriber Notifications",
   variableKeyColumnTitle: "Template Variable",
   variableKeyColumnDescription:

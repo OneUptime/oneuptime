@@ -122,6 +122,18 @@ Events created from a template take **Event Created: Notify Status Page Subscrib
 
 An incident's messages — created, state changed, public note and postmortem — go to the subscribers of every status page that lists one of its monitors. Two settings narrow that. **Limit to these status pages** on the incident keeps it to the pages you pick among those, and **Only Show Incidents Scoped to This Page** on a status page keeps away every incident that is not limited to it. For an incident limited to specific pages, an email address or phone number subscribed on several of them gets one email or text message per send, not one per page; webhook, Slack and Microsoft Teams messages are never merged. The declare form and the **Public Notes** page show who will be notified before anything is sent. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
+#### Incident custom fields in notifications
+
+Incident custom fields with **Include in Subscriber Notifications** turned on (at **Incidents → Settings → Custom Fields**) go out with the incident's messages — created, state changed, public note posted or updated, and postmortem. This works on every plan that has custom fields; it needs neither a custom template nor custom SMTP.
+
+- **Email** lists them in the details box, below the incident's own rows, in the fields' **Order**. A field the incident has no value for is left out. A yes/no field reads **Yes** or **No**, a date is the day that was picked, a date and time is shown in the status page's subscriber time zones, long text keeps its lines, and rich text is shown formatted, with the same link rules as notes. Its inline images are made viewable for the people it is sent to.
+- **Slack** and **Microsoft Teams** list them the same way, one per line.
+- **Webhook** payloads carry them in `data.customFields`, keyed by each field's **Template Variable**: `{ "name": ..., "type": ..., "value": ... }`, with the value as stored (`null` when the incident has none). Keys do not change when a field is renamed.
+- **SMS** leaves them out. A text message is billed by the segment and the default one is already close to one; a custom SMS template can place any field with `{{customFields.<key>}}`.
+- **Incident episode** notifications carry no custom fields: an episode groups incidents that each have their own values. Each member incident's own notifications carry its fields.
+
+The **Subscriber Notification Sent** entry in the incident feed lists, under **Custom fields sent**, the values each send put into a message. Subscribers are usually outside your team, so turn the setting on only for fields that are safe to share with them.
+
 The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
 
 ### Incident episodes
@@ -178,6 +190,8 @@ The body of an **Email** template is sent as HTML, so the values OneUptime puts 
 
 Links and images in Markdown that reaches an email (descriptions, notes, announcements) are kept only for `http`, `https` and `mailto` addresses (`http` and `https` for images); any other link shows as its text.
 
+Templates for incident events can also use `{{incidentLabels}}` (the incident's labels), `{{affectedStatusPages}}` (every status page the incident is shown on) and `{{customFields.<key>}}` for any incident custom field, whether or not it is included in subscriber notifications. The key is the field's **Template Variable**, which does not change when the field is renamed; the template form lists the project's fields and their keys under the variable reference. A field the incident has no value for is left empty. In an email body a plain field is escaped like any other value, while a rich text, long text or date and time field goes in as HTML (formatted Markdown, its lines, or a line per time zone). Both are internal data: `{{affectedStatusPages}}` names every audience the incident reaches, and a custom field may hold notes meant for your team, so place them only in templates whose subscribers may see them.
+
 ## Email footer, custom SMTP and Twilio
 
 Three more cards on **Subscriber Settings** control how subscriber messages leave your project:
@@ -223,7 +237,7 @@ If you post the same kind of notice repeatedly — a monthly maintenance heads-u
 
 ## Webhook subscribers and SSRF protection
 
-Webhook subscribers receive a JSON `POST` request on each status page event, which makes them the easiest way to pipe status page updates into a system of your own — a chatbot, an internal dashboard, a ticketing queue.
+Webhook subscribers receive a JSON `POST` request on each status page event, which makes them the easiest way to pipe status page updates into a system of your own — a chatbot, an internal dashboard, a ticketing queue. Incident payloads include `data.customFields`, the incident's custom fields marked **Include in Subscriber Notifications** (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)).
 
 Because subscribing is a public operation on a public page, OneUptime guards the target:
 

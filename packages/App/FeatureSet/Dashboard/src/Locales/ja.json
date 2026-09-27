@@ -6584,7 +6584,7 @@
   "Required on Create": "作成時に必須",
   "An incident cannot be declared from the dashboard until this field is filled in. For a Boolean field this means the box must be ticked. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can still leave it empty, and it stays optional when an incident is edited later.": "このフィールドが入力されるまで、ダッシュボードからインシデントを宣言できません。ブール値フィールドの場合は、チェックボックスをオンにする必要があります。モニター、API、Slack、Microsoft Teams、AI によって作成されたインシデントは引き続き空のままにでき、後でインシデントを編集するときは任意のままです。",
   "Include in Subscriber Notifications": "購読者への通知に含める",
-  "Show this field and its value in the emails status page subscribers get about an incident. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "ステータスページの購読者がインシデントについて受け取るメールに、このフィールドとその値を表示します。購読者は通常チーム外の人なので、共有しても問題のないフィールドにのみ有効にしてください。",
+  "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "ステータスページの購読者がインシデントについて受け取るメッセージ（メール、Slack、Microsoft Teams、Webhook）に、このフィールドとその値を表示します。既定の SMS は短く保つため含めません。購読者は通常チーム外の人なので、共有しても問題のないフィールドにのみ有効にしてください。",
   "In Subscriber Notifications": "購読者への通知",
   "Template Variable": "テンプレート変数",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "カスタムの購読者通知テンプレートでこれを使うと、フィールドの値を表示できます。フィールド作成時にその名前から作られ、フィールド名を変更しても変わりません。",
@@ -6592,5 +6592,10 @@
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "このテンプレートから宣言されたインシデントが最初に持つカスタムフィールドの値です。詳細ステップで入力を求めるフィールドは、インシデントの宣言時にまだ変更できます。",
   "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "このテンプレートをインシデントのノートで使用すると、これらのプレースホルダーにインシデントの値が入力されます。値のないプレースホルダーは書かれたまま残ります。",
   "Affected Status Pages": "影響を受けるステータスページ",
-  "An incident custom field, by the Template Variable shown in the incident custom field settings": "インシデントのカスタムフィールド。インシデントのカスタムフィールド設定に表示されるテンプレート変数で指定します"
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "インシデントのカスタムフィールド。インシデントのカスタムフィールド設定に表示されるテンプレート変数で指定します",
+  "Internal data": "内部データ",
+  "Custom field values and the list of affected status pages come from your team's incident records. The subscribers of a status page are usually outside your team, and the affected status pages name every audience the incident reaches. Place them only in templates whose subscribers may see them.": "カスタムフィールドの値と影響を受けるステータスページの一覧は、チームのインシデント記録から取得されます。ステータスページの購読者は通常チーム外の人であり、影響を受けるステータスページの一覧はインシデントが届くすべての対象者を示します。購読者が見てもよいテンプレートにのみ配置してください。",
+  "Place a field's value in this template with its template variable. A field the incident has no value for is left empty. Fields with Include in Subscriber Notifications turned on are already in the default email, Slack, Microsoft Teams and webhook messages; the default SMS is kept short and leaves them out.": "フィールドの値は、そのテンプレート変数を使ってこのテンプレートに配置します。インシデントに値がないフィールドは空になります。「購読者への通知に含める」がオンのフィールドは、メール、Slack、Microsoft Teams、Webhook の既定のメッセージにすでに含まれています。既定の SMS は短く保つため含めません。",
+  "This project has no incident custom fields.": "このプロジェクトにはインシデントのカスタムフィールドがありません。",
+  "The project's incident custom fields could not be loaded. Reading them needs permission to view incident custom fields and a plan that includes custom fields.": "プロジェクトのインシデントのカスタムフィールドを読み込めませんでした。読み込むには、インシデントのカスタムフィールドを表示する権限と、カスタムフィールドを含むプランが必要です。"
 }

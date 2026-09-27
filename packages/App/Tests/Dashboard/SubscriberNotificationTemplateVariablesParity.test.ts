@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
+import SubscriberNotificationTemplateVariables, {
+  SubscriberNotificationTemplateDynamicVariable,
+} from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateVariables";
 import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 
@@ -19,6 +21,12 @@ import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashb
  * The uptime report is rendered through Handlebars with a structured `report`
  * object and loop-scoped `this.*` fields, so its reference is richer than a
  * flat list and is left out of the exact comparison.
+ *
+ * Some variables come in families listed by prefix rather than by name - an
+ * incident's {{customFields.<key>}}, one per custom field of the project. The
+ * reference documents a family as one row with its key left open
+ * (`{{customFields.<key>}}`), and a starter may use any member of a family
+ * the event offers.
  */
 
 const FLAT_EVENTS: Array<StatusPageSubscriberNotificationEventType> =
@@ -58,6 +66,37 @@ function documented(
   ).sort();
 }
 
+// The families the reference documents, as "prefix<placeholder>".
+function documentedFamilies(
+  event: StatusPageSubscriberNotificationEventType,
+): Array<string> {
+  const markdown: string =
+    getSubscriberNotificationTemplateVariablesDocumentation(event);
+
+  return Array.from(
+    new Set(
+      Array.from(
+        markdown.matchAll(/^\|\s*`\{\{([\w.]+<\w+>)\}\}`\s*\|/gm),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ).sort();
+}
+
+function listedFamilies(
+  event: StatusPageSubscriberNotificationEventType,
+): Array<string> {
+  return SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+    event,
+  )
+    .map((family: SubscriberNotificationTemplateDynamicVariable): string => {
+      return `${family.prefix}${family.placeholder}`;
+    })
+    .sort();
+}
+
 function usedByStarters(
   event: StatusPageSubscriberNotificationEventType,
 ): Array<string> {
@@ -90,15 +129,47 @@ describe("subscriber template variables agree across the list, the reference and
   );
 
   test.each(FLAT_EVENTS)(
+    "the template form documents exactly the variable families %s offers",
+    (event: StatusPageSubscriberNotificationEventType) => {
+      expect(documentedFamilies(event)).toEqual(listedFamilies(event));
+    },
+  );
+
+  test.each(FLAT_EVENTS)(
     "the %s starters only use offered variables",
     (event: StatusPageSubscriberNotificationEventType) => {
-      const offered: Array<string> = listed(event);
-
       for (const variable of usedByStarters(event)) {
-        expect(offered).toContain(variable);
+        expect({
+          variable,
+          offered: SubscriberNotificationTemplateVariables.isVariableOffered(
+            event,
+            variable,
+          ),
+        }).toEqual({ variable, offered: true });
       }
     },
   );
+
+  test("the incident events document their custom fields, labels and pages", () => {
+    for (const event of [
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+    ]) {
+      expect(documentedFamilies(event)).toEqual(["customFields.<key>"]);
+      expect(documented(event)).toEqual(
+        expect.arrayContaining(["incidentLabels", "affectedStatusPages"]),
+      );
+    }
+
+    expect(
+      documentedFamilies(
+        StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated,
+      ),
+    ).toEqual([]);
+  });
 
   test("the parser finds variables, so the comparison cannot pass on empty input", () => {
     expect(

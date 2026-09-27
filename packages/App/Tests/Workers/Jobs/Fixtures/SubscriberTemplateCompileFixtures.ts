@@ -182,6 +182,11 @@ export function htmlVariableNames(
  * marks as HTML in an email body (rendered Markdown and the escaped resource
  * list); every title, name, state, time and URL must reach it as plain text,
  * to be escaped.
+ *
+ * A family of variables listed by prefix - an incident's
+ * {{customFields.<key>}} - may be HTML when the family says so (a Rich text
+ * field's rendered Markdown, say): those are left out of the comparison,
+ * and any other family's members must be plain text.
  */
 export function expectOnlyTheListedHtmlVariables(
   variables: SubscriberNotificationEmailBodyTemplateVariables,
@@ -192,7 +197,18 @@ export function expectOnlyTheListedHtmlVariables(
       eventType,
     );
 
-  expect(htmlVariableNames(variables)).toEqual([...listed].sort());
+  const html: Array<string> = htmlVariableNames(variables).filter(
+    (name: string): boolean => {
+      return (
+        SubscriberNotificationTemplateVariables.getDynamicVariableForName(
+          eventType,
+          name,
+        )?.mayBeHtmlInEmailBody !== true
+      );
+    },
+  );
+
+  expect(html).toEqual([...listed].sort());
 }
 
 // Text channels show values as written: no HTML entity may reach them.

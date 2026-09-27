@@ -15,6 +15,7 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
+import IncidentCustomFieldTemplateVariables from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
 import {
   DefaultSubscriberNotificationTemplate,
   getDefaultSubscriberNotificationTemplate,
@@ -279,6 +280,8 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                       )}
                     />
                   </div>
+                  {/* An incident event: the project's custom fields and their keys. */}
+                  <IncidentCustomFieldTemplateVariables eventType={eventType} />
                 </div>
               );
             },

@@ -11,6 +11,7 @@
 {{> DetailBoxField title="Current State" plainText=incidentState  }}
 {{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> IncidentCustomFieldRows this }}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}

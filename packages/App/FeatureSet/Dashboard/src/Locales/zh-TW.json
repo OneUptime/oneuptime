@@ -6584,7 +6584,7 @@
   "Required on Create": "建立時必填",
   "An incident cannot be declared from the dashboard until this field is filled in. For a Boolean field this means the box must be ticked. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can still leave it empty, and it stays optional when an incident is edited later.": "在填寫此欄位之前，無法從儀表板宣告事件。對於布林欄位，必須勾選該核取方塊。由監測器、API、Slack、Microsoft Teams 或 AI 建立的事件仍可將其留空，之後編輯事件時它仍為選填。",
   "Include in Subscriber Notifications": "包含在訂閱者通知中",
-  "Show this field and its value in the emails status page subscribers get about an incident. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "在狀態頁面訂閱者收到的事件相關電子郵件中顯示此欄位及其值。訂閱者通常是團隊以外的人，因此只對可以安全分享給他們的欄位開啟此選項。",
+  "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "在狀態頁面訂閱者收到的事件相關訊息（電子郵件、Slack、Microsoft Teams 和 Webhook）中顯示此欄位及其值。預設簡訊保持簡短，不包含此欄位。訂閱者通常是團隊以外的人，因此只對可以安全分享給他們的欄位開啟此選項。",
   "In Subscriber Notifications": "在訂閱者通知中",
   "Template Variable": "範本變數",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "在自訂訂閱者通知範本中使用它來顯示欄位的值。它在欄位建立時依欄位名稱產生，欄位重新命名時不會改變。",
@@ -6592,5 +6592,10 @@
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "從此範本宣告的事件一開始具有的自訂欄位值。在「詳細資料」步驟中要求填寫的欄位，在宣告事件時仍可變更。",
   "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "在事件的備註中使用此範本時，這些預留位置會填入事件的值。沒有值的預留位置會按原樣保留。",
   "Affected Status Pages": "受影響的狀態頁面",
-  "An incident custom field, by the Template Variable shown in the incident custom field settings": "事件的自訂欄位，使用事件自訂欄位設定中顯示的範本變數"
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "事件的自訂欄位，使用事件自訂欄位設定中顯示的範本變數",
+  "Internal data": "內部資料",
+  "Custom field values and the list of affected status pages come from your team's incident records. The subscribers of a status page are usually outside your team, and the affected status pages name every audience the incident reaches. Place them only in templates whose subscribers may see them.": "自訂欄位的值和受影響的狀態頁面清單來自團隊的事件記錄。狀態頁面的訂閱者通常不屬於您的團隊，而受影響的狀態頁面清單會列出該事件觸及的每一類受眾。只在其訂閱者可以看到這些內容的範本中使用它們。",
+  "Place a field's value in this template with its template variable. A field the incident has no value for is left empty. Fields with Include in Subscriber Notifications turned on are already in the default email, Slack, Microsoft Teams and webhook messages; the default SMS is kept short and leaves them out.": "使用欄位的範本變數將其值放入此範本。事件中沒有值的欄位將留空。已開啟「包含在訂閱者通知中」的欄位已出現在預設的電子郵件、Slack、Microsoft Teams 和 Webhook 訊息中；預設簡訊保持簡短，不包含這些欄位。",
+  "This project has no incident custom fields.": "此專案沒有事件自訂欄位。",
+  "The project's incident custom fields could not be loaded. Reading them needs permission to view incident custom fields and a plan that includes custom fields.": "無法載入此專案的事件自訂欄位。讀取它們需要檢視事件自訂欄位的權限，以及包含自訂欄位的方案。"
 }

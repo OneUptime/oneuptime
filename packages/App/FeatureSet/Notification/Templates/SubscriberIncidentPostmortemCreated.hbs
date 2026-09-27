@@ -10,6 +10,7 @@
 {{> DetailBoxField title="Incident" plainText=incidentTitle }}
 {{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> IncidentCustomFieldRows this }}
 {{#if postmortemNote}}
 {{> DetailBoxField title="Postmortem Summary" text=postmortemNote  }}
 {{/if}}

@@ -6584,7 +6584,7 @@
   "Required on Create": "생성 시 필수",
   "An incident cannot be declared from the dashboard until this field is filled in. For a Boolean field this means the box must be ticked. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can still leave it empty, and it stays optional when an incident is edited later.": "이 필드를 채우기 전에는 대시보드에서 인시던트를 선언할 수 없습니다. 불리언 필드의 경우 확인란을 선택해야 합니다. 모니터, API, Slack, Microsoft Teams 또는 AI가 생성한 인시던트는 여전히 비워 둘 수 있으며, 나중에 인시던트를 편집할 때는 선택 사항으로 유지됩니다.",
   "Include in Subscriber Notifications": "구독자 알림에 포함",
-  "Show this field and its value in the emails status page subscribers get about an incident. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "상태 페이지 구독자가 인시던트에 대해 받는 이메일에 이 필드와 값을 표시합니다. 구독자는 보통 팀 외부 사람이므로 공유해도 안전한 필드에만 켜세요.",
+  "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "상태 페이지 구독자가 인시던트에 대해 받는 메시지(이메일, Slack, Microsoft Teams, 웹훅)에 이 필드와 값을 표시합니다. 기본 SMS는 짧게 유지하기 위해 이를 넣지 않습니다. 구독자는 보통 팀 외부 사람이므로 공유해도 안전한 필드에만 켜세요.",
   "In Subscriber Notifications": "구독자 알림 포함 여부",
   "Template Variable": "템플릿 변수",
   "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "사용자 지정 구독자 알림 템플릿에서 이것을 사용하면 필드 값을 표시할 수 있습니다. 필드를 만들 때 필드 이름으로 만들어지며, 필드 이름을 바꿔도 변경되지 않습니다.",
@@ -6592,5 +6592,10 @@
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "이 템플릿에서 선언된 인시던트가 처음에 갖는 사용자 정의 필드 값입니다. 세부 정보 단계에서 묻는 필드는 인시던트를 선언할 때 여전히 변경할 수 있습니다.",
   "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.": "이 템플릿을 인시던트의 노트에서 사용하면 이 자리 표시자가 인시던트의 값으로 채워집니다. 값이 없는 자리 표시자는 작성된 그대로 남습니다.",
   "Affected Status Pages": "영향을 받는 상태 페이지",
-  "An incident custom field, by the Template Variable shown in the incident custom field settings": "인시던트 사용자 정의 필드 설정에 표시된 템플릿 변수로 지정하는 인시던트의 사용자 정의 필드"
+  "An incident custom field, by the Template Variable shown in the incident custom field settings": "인시던트 사용자 정의 필드 설정에 표시된 템플릿 변수로 지정하는 인시던트의 사용자 정의 필드",
+  "Internal data": "내부 데이터",
+  "Custom field values and the list of affected status pages come from your team's incident records. The subscribers of a status page are usually outside your team, and the affected status pages name every audience the incident reaches. Place them only in templates whose subscribers may see them.": "사용자 정의 필드 값과 영향을 받는 상태 페이지 목록은 팀의 인시던트 기록에서 가져옵니다. 상태 페이지 구독자는 대개 팀 외부 사람이며, 영향을 받는 상태 페이지 목록에는 인시던트가 도달하는 모든 대상이 나타납니다. 구독자가 보아도 되는 템플릿에만 넣으세요.",
+  "Place a field's value in this template with its template variable. A field the incident has no value for is left empty. Fields with Include in Subscriber Notifications turned on are already in the default email, Slack, Microsoft Teams and webhook messages; the default SMS is kept short and leaves them out.": "필드 값은 해당 템플릿 변수로 이 템플릿에 넣습니다. 인시던트에 값이 없는 필드는 비어 있게 됩니다. '구독자 알림에 포함'이 켜진 필드는 이미 이메일, Slack, Microsoft Teams, 웹훅 기본 메시지에 들어갑니다. 기본 SMS는 짧게 유지하기 위해 이를 넣지 않습니다.",
+  "This project has no incident custom fields.": "이 프로젝트에는 인시던트 사용자 정의 필드가 없습니다.",
+  "The project's incident custom fields could not be loaded. Reading them needs permission to view incident custom fields and a plan that includes custom fields.": "프로젝트의 인시던트 사용자 정의 필드를 불러오지 못했습니다. 읽으려면 인시던트 사용자 정의 필드를 볼 권한과 사용자 정의 필드가 포함된 요금제가 필요합니다."
 }

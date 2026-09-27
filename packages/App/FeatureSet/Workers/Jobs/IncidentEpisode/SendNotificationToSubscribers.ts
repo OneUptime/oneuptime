@@ -434,6 +434,12 @@ RunCron(
              * The base values are plain text on every channel: the email body
              * escapes them (compileEmailBodyTemplate), and only the values
              * wrapped in SafeHtml go into it as HTML.
+             *
+             * No incident custom fields here, on purpose: an episode groups
+             * incidents that each hold their own values (Site 03 on one,
+             * Site 07 on another), and one list of fields cannot say whose
+             * is whose. Each member incident's own notifications carry its
+             * fields (IncidentTemplateVariableBuilder).
              */
             const templateVariables: Record<string, string> = {
               statusPageName: statusPageName,

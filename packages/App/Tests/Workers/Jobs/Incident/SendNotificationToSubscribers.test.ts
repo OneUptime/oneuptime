@@ -207,6 +207,19 @@ jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
   return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
 });
 
+/*
+ * The project's incident custom fields (IncidentTemplateVariableBuilder):
+ * none unless a test gives it some (see IncidentCustomFieldFixtures), and the
+ * visibility of a Rich text field's inline images, recorded.
+ */
+jest.mock("Common/Server/Services/IncidentCustomFieldService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Utils/InlineImageAccessTokenSync", () => {
+  return { __esModule: true, syncIsPublicForMarkdownImages: jest.fn() };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import IncidentService from "Common/Server/Services/IncidentService";
@@ -260,6 +273,28 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
+import { IncidentTemplateCustomFieldDefinition } from "Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder";
+import {
+  AFFECTED_LOCATION,
+  AFFECTED_LOCATION_HTML,
+  CUSTOM_FIELD_DEFINITIONS,
+  CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+  CUSTOM_FIELD_VALUES,
+  EXPECTED_CUSTOM_FIELD_ROWS,
+  EXPECTED_INCLUDED_FIELDS_FEED,
+  EXPECTED_WEBHOOK_CUSTOM_FIELDS,
+  IMPACT_DETAILS,
+  IMPACT_DETAILS_HTML,
+  IMPACT_DETAILS_TEXT,
+  INCIDENT_LABELS,
+  INTERNAL_TICKET,
+  expectOnlyOfferedVariables,
+  incidentLabels,
+  plainTextOfImpactDetails,
+  renderImpactDetails,
+} from "../Fixtures/IncidentCustomFieldFixtures";
+import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -341,6 +376,9 @@ function incident(): Incident {
   const monitor: Monitor = new Monitor();
   monitor._id = MONITOR_ID.toString();
   row.monitors = [monitor];
+
+  // {{incidentLabels}} reads them alphabetically (INCIDENT_LABELS).
+  row.labels = incidentLabels();
 
   return row;
 }
@@ -546,6 +584,10 @@ async function runJob(): Promise<void> {
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  // No incident custom fields unless a test gives the project some.
+  mock(IncidentCustomFieldService.findBy).mockResolvedValue([] as never);
+  mock(syncIsPublicForMarkdownImages).mockResolvedValue(undefined as never);
 
   pendingIncidents = [incident()];
   storedScopes = {};
@@ -789,6 +831,9 @@ describe("Incident:SendNotificationToSubscribers, with custom templates and grou
       unsubscribeUrl: UNSUBSCRIBE_URL,
       incidentSeverity: "Critical",
       incidentTitle: INCIDENT_TITLE,
+      // Its labels, alphabetically; it is on this one page.
+      incidentLabels: INCIDENT_LABELS,
+      affectedStatusPages: "Acme Status",
     };
     const html: Record<string, string> = {
       ...shared,
@@ -829,6 +874,8 @@ describe("Incident:SendNotificationToSubscribers, with custom templates and grou
       incidentSeverity: "Critical",
       resourcesAffected: GROUPED_RESOURCES_TEXT,
       detailsUrl: DETAILS_URL,
+      // The project has no fields included in subscriber notifications.
+      customFields: {},
     });
   });
 });
@@ -1918,5 +1965,327 @@ describe("Incident unsubscribe links", () => {
     expectEveryUnsubscribeLinkToCarryAToken(
       StatusPageSubscriberService.getUnsubscribeLink,
     );
+  });
+});
+
+/*
+ * Incident custom fields. The project has four; three are marked "Include in
+ * Subscriber Notifications" (see IncidentCustomFieldFixtures). Those reach
+ * the default email, Slack, Teams and webhook messages, in their order; the
+ * default SMS stays as it was. Every field is offered to custom templates as
+ * {{customFields.<key>}}, escaped in an email body and as written elsewhere.
+ * The feed item records the values that went out.
+ */
+describe("Incident:SendNotificationToSubscribers with incident custom fields", () => {
+  function feedItem(): JSONObject {
+    const items: Array<JSONObject> = mock(
+      IncidentFeedService.createIncidentFeedItem,
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    });
+
+    expect(items).toHaveLength(1);
+    return items[0]!;
+  }
+
+  beforeEach(() => {
+    mock(IncidentCustomFieldService.findBy).mockResolvedValue(
+      CUSTOM_FIELD_DEFINITIONS as never,
+    );
+
+    const row: Incident = incident();
+    row.customFields = CUSTOM_FIELD_VALUES;
+    pendingIncidents = [row];
+
+    mock(Markdown.convertToHTML).mockImplementation((async (
+      markdown: unknown,
+    ): Promise<string> => {
+      return renderImpactDetails(() => {
+        return DESCRIPTION_HTML;
+      })(markdown);
+    }) as never);
+    mock(Markdown.convertToPlainText).mockImplementation(
+      plainTextOfImpactDetails(() => {
+        return DESCRIPTION_TEXT;
+      }) as never,
+    );
+  });
+
+  test("reads the incident's labels and custom fields, and the fields of its own project", async () => {
+    await runJob();
+
+    const notifyQuery: JSONObject = mock(IncidentService.findAllBy)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      })
+      .find((args: JSONObject): boolean => {
+        return (
+          (args["query"] as JSONObject)[
+            "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+          ] === true
+        );
+      })!;
+
+    expect(notifyQuery["select"]).toEqual(
+      expect.objectContaining({
+        labels: { name: true },
+        customFields: true,
+      }),
+    );
+
+    expect(IncidentCustomFieldService.findBy).toHaveBeenCalledTimes(1);
+    expect(
+      (mock(IncidentCustomFieldService.findBy).mock.calls[0]![0] as JSONObject)[
+        "query"
+      ],
+    ).toEqual({ projectId: PROJECT_ID });
+  });
+
+  test("the default email lists the included fields, in their order", async () => {
+    await runJob();
+
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentCreated,
+    );
+    expect((sentMail()[0]!["vars"] as JSONObject)["customFieldRows"]).toEqual(
+      EXPECTED_CUSTOM_FIELD_ROWS,
+    );
+    // The description is still the description.
+    expect((sentMail()[0]!["vars"] as JSONObject)["incidentDescription"]).toBe(
+      DESCRIPTION_HTML,
+    );
+  });
+
+  test("the default Slack and Teams messages list them after the description", async () => {
+    await runJob();
+
+    expect(sentSlack()).toEqual([
+      `## 🚨 Incident - ${INCIDENT_TITLE}
+
+**Severity:** Critical
+
+**Resources Affected:** Checkout API
+
+**Description:** ${DESCRIPTION}
+
+**Affected Location:** ${AFFECTED_LOCATION}
+
+**Acknowledgement:** No
+
+**Impact Details:**
+${IMPACT_DETAILS}
+
+[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`,
+    ]);
+    expect(sentTeams()).toEqual([
+      `## 🚨 Incident - ${INCIDENT_TITLE}
+**Severity:** Critical
+**Resources Affected:** Checkout API
+**Description:** ${DESCRIPTION}
+**Affected Location:** ${AFFECTED_LOCATION}
+**Acknowledgement:** No
+**Impact Details:**
+${IMPACT_DETAILS}
+[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`,
+    ]);
+
+    // The field left out of subscriber notifications stays out.
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expect(message).not.toContain(INTERNAL_TICKET);
+    }
+  });
+
+  test("the default SMS stays short and carries no field", async () => {
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident ${INCIDENT_TITLE} (Critical) on Acme Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+  });
+
+  test("webhooks get the included fields by key, with their values as stored", async () => {
+    await runJob();
+
+    expect((sentWebhooks()[0]!["data"] as JSONObject)["customFields"]).toEqual(
+      EXPECTED_WEBHOOK_CUSTOM_FIELDS,
+    );
+  });
+
+  test("the feed item records the values sent", async () => {
+    await runJob();
+
+    const moreInformation: string = feedItem()[
+      "moreInformationInMarkdown"
+    ] as string;
+
+    expect(moreInformation).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook queued. Subject: "\\[Incident\\] ${INCIDENT_TITLE}".`,
+        "",
+        EXPECTED_INCLUDED_FIELDS_FEED,
+      ].join("\n"),
+    );
+  });
+
+  test("an included Rich text field's images are made public for the recipients", async () => {
+    await runJob();
+
+    expect(syncIsPublicForMarkdownImages).toHaveBeenCalledTimes(1);
+    expect(
+      mock(syncIsPublicForMarkdownImages).mock.calls[0]!.slice(0, 2),
+    ).toEqual([IMPACT_DETAILS, true]);
+  });
+
+  test("a project with no field marked for subscribers sends what it always did", async () => {
+    mock(IncidentCustomFieldService.findBy).mockResolvedValue(
+      CUSTOM_FIELD_DEFINITIONS.map(
+        (
+          definition: IncidentTemplateCustomFieldDefinition,
+        ): IncidentTemplateCustomFieldDefinition => {
+          return { ...definition, includeInSubscriberNotifications: false };
+        },
+      ) as never,
+    );
+
+    await runJob();
+
+    expect((sentMail()[0]!["vars"] as JSONObject)["customFieldRows"]).toEqual(
+      [],
+    );
+    expect(sentSlack()[0]).toBe(
+      dashboardDefault(
+        StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+        StatusPageSubscriberNotificationMethod.Slack,
+      ),
+    );
+    expect((sentWebhooks()[0]!["data"] as JSONObject)["customFields"]).toEqual(
+      {},
+    );
+    expect(feedItem()["moreInformationInMarkdown"]).not.toContain(
+      "Custom fields sent",
+    );
+    expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
+  });
+
+  describe("in custom templates", () => {
+    const SUBJECT: string = "Subject {{customFields.affected_location}}";
+
+    beforeEach(() => {
+      const page: StatusPage = statusPage();
+      (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+      (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([page] as never);
+
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return {
+          templateBody: `${method}\n${CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE}`,
+          emailSubject:
+            method === StatusPageSubscriberNotificationMethod.Email
+              ? SUBJECT
+              : undefined,
+        };
+      });
+    });
+
+    test("every field is placed by its key: escaped in the email body, as written elsewhere", async () => {
+      await runJob();
+
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        [
+          StatusPageSubscriberNotificationMethod.Email,
+          `location=[${AFFECTED_LOCATION_HTML}]`,
+          "ack=[No]",
+          `impact=[${IMPACT_DETAILS_HTML}]`,
+          `ticket=[${INTERNAL_TICKET}]`,
+        ].join("\n"),
+      );
+      expect(sentMail()[0]!["subject"]).toBe(`Subject ${AFFECTED_LOCATION}`);
+      expect(sentSms()).toEqual([
+        [
+          StatusPageSubscriberNotificationMethod.SMS,
+          `location=[${AFFECTED_LOCATION}]`,
+          "ack=[No]",
+          `impact=[${IMPACT_DETAILS_TEXT}]`,
+          `ticket=[${INTERNAL_TICKET}]`,
+        ].join("\n"),
+      ]);
+
+      for (const [method, message] of [
+        [StatusPageSubscriberNotificationMethod.Slack, sentSlack()[0]],
+        [StatusPageSubscriberNotificationMethod.MicrosoftTeams, sentTeams()[0]],
+      ] as Array<[string, string]>) {
+        expect(message).toBe(
+          [
+            method,
+            `location=[${AFFECTED_LOCATION}]`,
+            "ack=[No]",
+            `impact=[${IMPACT_DETAILS}]`,
+            `ticket=[${INTERNAL_TICKET}]`,
+          ].join("\n"),
+        );
+      }
+
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+    });
+
+    test("every compile carries only offered variables, and only listed or custom field HTML reaches the email body", async () => {
+      await runJob();
+
+      for (const call of compileCalls()) {
+        expectOnlyOfferedVariables(
+          StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+          call.rawVariables,
+        );
+      }
+
+      const emailBody: RecordedCompile = compileCalls().find(
+        (call: RecordedCompile): boolean => {
+          return call.emailBody;
+        },
+      )!;
+
+      expectOnlyTheListedHtmlVariables(
+        emailBody.rawVariables,
+        StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+      );
+      // A plain field is plain text there, for the compile to escape.
+      expect(emailBody.rawVariables["customFields.affected_location"]).toBe(
+        AFFECTED_LOCATION,
+      );
+    });
+
+    test("the feed item records every field a template placed, included or not", async () => {
+      await runJob();
+
+      expect(feedItem()["moreInformationInMarkdown"]).toContain(
+        [
+          "**Custom fields sent:**",
+          "",
+          "- **Affected Location:** \\<b\\>Site 03\\</b\\> & Site 07",
+          "- **Acknowledgement:** No",
+          "- **Internal Ticket:** OPS\\-4411",
+          "",
+          "**Impact Details:**",
+          "",
+          IMPACT_DETAILS,
+        ].join("\n"),
+      );
+    });
   });
 });

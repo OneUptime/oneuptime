@@ -26,6 +26,7 @@ import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
+import IncidentCustomFieldTemplateVariables from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
 
 const SubscriberNotificationTemplateView: FunctionComponent<
   PageComponentProps
@@ -280,13 +281,15 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             : "Available variables you can use in your template body based on the selected event type."
         }
       >
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           <MarkdownViewer
             text={getSubscriberNotificationTemplateVariablesDocumentation(
               eventType,
               notificationMethod,
             )}
           />
+          {/* An incident event: the project's custom fields and their keys. */}
+          <IncidentCustomFieldTemplateVariables eventType={eventType} />
         </div>
       </Card>
 

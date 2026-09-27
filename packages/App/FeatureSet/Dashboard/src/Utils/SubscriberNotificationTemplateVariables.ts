@@ -22,6 +22,18 @@ export const getSubscriberNotificationTemplateVariablesDocumentation: (
 | \`{{resourcesAffected}}\` | List of affected resources/monitors |`;
 
   /*
+   * Every incident event also offers the incident's labels, the status pages
+   * it is on, and its custom fields (see SubscriberNotificationTemplateVariables).
+   * The custom fields are a family of variables, one per field, so they are
+   * one row here with the key left open; the template form lists the
+   * project's fields and their keys under this reference
+   * (IncidentCustomFieldTemplateVariables).
+   */
+  const incidentVariablesRows: string = `| \`{{incidentLabels}}\` | Labels of the incident, separated by commas |
+| \`{{affectedStatusPages}}\` | Names of every status page the incident is shown on, separated by commas. Internal: it names the status pages of every audience the incident reaches |
+| \`{{customFields.<key>}}\` | The value of an incident custom field, by the field's Template Variable key. Internal: any custom field can be placed, whether or not it is marked to be included in subscriber notifications |`;
+
+  /*
    * Messages about the subscription itself are not about any resource, so
    * they do not offer {{resourcesAffected}} (see
    * SubscriberNotificationTemplateVariables).
@@ -63,7 +75,8 @@ ${commonVariablesRows}`;
       eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
 | \`{{incidentDescription}}\` | Description of the incident |
 | \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
+| \`{{detailsUrl}}\` | URL to view incident details |
+${incidentVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
@@ -71,7 +84,8 @@ ${commonVariablesRows}`;
 | \`{{incidentDescription}}\` | Description of the incident |
 | \`{{incidentSeverity}}\` | Severity level of the incident |
 | \`{{incidentState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
+| \`{{detailsUrl}}\` | URL to view incident details |
+${incidentVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
@@ -81,14 +95,16 @@ ${commonVariablesRows}`;
 | \`{{incidentState}}\` | Current state of the incident |
 | \`{{postedAt}}\` | Date and time when the note was posted |
 | \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
+| \`{{detailsUrl}}\` | URL to view incident details |
+${incidentVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
       eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
 | \`{{incidentSeverity}}\` | Severity level of the incident |
 | \`{{postmortemNote}}\` | Postmortem summary content |
-| \`{{detailsUrl}}\` | URL to view the postmortem |`;
+| \`{{detailsUrl}}\` | URL to view the postmortem |
+${incidentVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
