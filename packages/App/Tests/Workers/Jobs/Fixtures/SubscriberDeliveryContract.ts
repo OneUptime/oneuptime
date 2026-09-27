@@ -17,7 +17,12 @@ import {
   pagedSubscribersFake,
   statusWritesInOrder,
 } from "./SubscriberNotificationSendFixtures";
-import { describe, expect, test } from "@jest/globals";
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+  SemaphorePermit,
+} from "Common/Server/Infrastructure/Semaphore";
+import SubscriberNotificationRunLimit from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * What every incident and episode subscriber job must do when it sends,
@@ -153,6 +158,74 @@ export function describeSubscriberDelivery(
         SubscriberNotificationTiming.LATEST_CLAIM_IN_MS +
           SubscriberNotificationTiming.NOTIFICATION_MAX_IN_MS,
       ).toBeLessThanOrEqual(SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS);
+    });
+
+    /*
+     * The runs overlap, and each can send for minutes on the Worker queue
+     * every other cron shares: a run sends only while it holds one of the
+     * job's few permits (SubscriberNotificationRunLimit).
+     */
+    test("sends only while holding one of the job's run permits, and gives it back", async () => {
+      harness.pendRows(1);
+
+      const permit: SemaphorePermit = {
+        identifier: "permit",
+      } as unknown as SemaphorePermit;
+      const acquire: jest.Mock = jest
+        .spyOn(Semaphore, "acquirePermit")
+        .mockResolvedValue(permit as never) as unknown as jest.Mock;
+      const release: jest.Mock = jest
+        .spyOn(Semaphore, "releasePermit")
+        .mockResolvedValue(undefined as never) as unknown as jest.Mock;
+
+      try {
+        await harness.runJob();
+
+        expect(acquire).toHaveBeenCalledTimes(1);
+        expect(acquire.mock.calls[0]![0]).toEqual(
+          expect.objectContaining({
+            key: harness.jobName,
+            namespace: SubscriberNotificationRunLimit.NAMESPACE,
+            limit: SubscriberNotificationRunLimit.MAX_CONCURRENT_RUNS_PER_JOB,
+          }),
+        );
+        expect(release).toHaveBeenCalledWith(permit);
+
+        // Taken before the first claim, given back after the settle.
+        const claimOrder: number | undefined = mock(harness.claim).mock
+          .invocationCallOrder[0];
+        const updateOrders: Array<number> = mock(harness.update).mock
+          .invocationCallOrder;
+        expect(acquire.mock.invocationCallOrder[0]!).toBeLessThan(claimOrder!);
+        expect(release.mock.invocationCallOrder[0]!).toBeGreaterThan(
+          updateOrders[updateOrders.length - 1]!,
+        );
+      } finally {
+        acquire.mockRestore();
+        release.mockRestore();
+      }
+    });
+
+    test("a run that finds every permit taken sends and claims nothing", async () => {
+      harness.pendRows(1);
+
+      const acquire: jest.Mock = jest
+        .spyOn(Semaphore, "acquirePermit")
+        .mockRejectedValue(
+          new SemaphoreLockTimeoutError("Acquire semaphore timeout") as never,
+        ) as unknown as jest.Mock;
+
+      try {
+        await harness.runJob();
+      } finally {
+        acquire.mockRestore();
+      }
+
+      for (const channel of CHANNELS) {
+        expect(harness.senders[channel]).not.toHaveBeenCalled();
+      }
+      expect(harness.claim).not.toHaveBeenCalled();
+      expect(harness.update).not.toHaveBeenCalled();
     });
 
     test("claims the notification at the version it read", async () => {

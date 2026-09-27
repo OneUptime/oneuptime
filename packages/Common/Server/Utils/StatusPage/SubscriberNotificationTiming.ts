@@ -44,7 +44,10 @@ import OneUptimeDate from "../../../Types/Date";
  *   never cancelled, and would otherwise carry on sending untracked. The
  *   notifications it leaves Pending are claimed by the runs that follow, one
  *   a minute, which can run alongside it: a claim is atomic
- *   (SubscriberNotificationClaim), so each notification is sent once.
+ *   (SubscriberNotificationClaim), so each notification is sent once. How
+ *   many runs of a job may be sending at once, across every worker, is
+ *   bounded too (SubscriberNotificationRunLimit), so slow sends cannot fill
+ *   the Worker queue every other cron shares.
  * - STUCK_AFTER_IN_MS is when the sweeper
  *   (StatusPageSubscriber:TimeoutStuckNotifications) takes a notification
  *   still In progress to have been interrupted - its worker crashed, was

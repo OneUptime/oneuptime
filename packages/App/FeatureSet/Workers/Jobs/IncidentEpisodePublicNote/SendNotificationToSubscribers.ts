@@ -58,6 +58,7 @@ import SubscriberNotificationTiming, {
   SubscriberNotificationSendWindow,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
 import SubscriberNotificationClaim from "Common/Server/Utils/StatusPage/SubscriberNotificationClaim";
+import SubscriberNotificationRunLimit from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
@@ -1110,105 +1111,108 @@ RunCron(
     // Sized to one notification's send window (SubscriberNotificationTiming).
     timeoutInMS: SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS,
   },
-  async () => {
-    const runClock: SubscriberNotificationRunClock =
-      SubscriberNotificationTiming.startRun();
+  SubscriberNotificationRunLimit.limit(
+    "IncidentEpisodePublicNote:SendNotificationToSubscribers",
+    async () => {
+      const runClock: SubscriberNotificationRunClock =
+        SubscriberNotificationTiming.startRun();
 
-    // First, mark public notes as Skipped if they should not be notified
-    const notesToSkip: Array<IncidentEpisodePublicNote> =
-      await IncidentEpisodePublicNoteService.findBy({
-        query: {
-          subscriberNotificationStatusOnNoteCreated:
-            StatusPageSubscriberNotificationStatus.Pending,
-          shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        select: {
-          _id: true,
-        },
-      });
+      // First, mark public notes as Skipped if they should not be notified
+      const notesToSkip: Array<IncidentEpisodePublicNote> =
+        await IncidentEpisodePublicNoteService.findBy({
+          query: {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          select: {
+            _id: true,
+          },
+        });
 
-    logger.debug(
-      `Found ${notesToSkip.length} episode public note(s) to mark as Skipped (subscribers should not be notified).`,
-    );
-
-    for (const note of notesToSkip) {
       logger.debug(
-        `Marking episode public note ${note.id} as Skipped for subscriber notifications.`,
+        `Found ${notesToSkip.length} episode public note(s) to mark as Skipped (subscribers should not be notified).`,
       );
-      await IncidentEpisodePublicNoteService.updateOneById({
-        id: note.id!,
-        data: {
-          subscriberNotificationStatusOnNoteCreated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessage:
-            "Notifications skipped as subscribers are not to be notified for this note.",
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-      logger.debug(
-        `Episode public note ${note.id} marked as Skipped for subscriber notifications.`,
-      );
-    }
 
-    // get all episode public notes that need notification
-
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const episodePublicNotes: Array<IncidentEpisodePublicNote> =
-      await IncidentEpisodePublicNoteService.findBy({
-        query: {
-          subscriberNotificationStatusOnNoteCreated:
-            StatusPageSubscriberNotificationStatus.Pending,
-          shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        select: {
-          _id: true,
-          // What the claim checks the row against (SubscriberNotificationClaim).
-          version: true,
-          note: true,
-          incidentEpisodeId: true,
-          projectId: true,
-        },
-      });
-
-    logger.debug(
-      `Found ${episodePublicNotes.length} episode public note(s) to notify subscribers for.`,
-    );
-
-    for (const episodePublicNote of episodePublicNotes) {
-      if (!runClock.canClaimAnotherNotification()) {
-        /*
-         * Whatever this run claims now might not finish before its timeout.
-         * The rest stay Pending for the runs that follow.
-         */
+      for (const note of notesToSkip) {
         logger.debug(
-          "Leaving the remaining episode public notes for the next run.",
+          `Marking episode public note ${note.id} as Skipped for subscriber notifications.`,
         );
-        break;
+        await IncidentEpisodePublicNoteService.updateOneById({
+          id: note.id!,
+          data: {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Notifications skipped as subscribers are not to be notified for this note.",
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+        logger.debug(
+          `Episode public note ${note.id} marked as Skipped for subscriber notifications.`,
+        );
       }
 
-      await notifySubscribersOfEpisodePublicNote({
-        episodePublicNote: episodePublicNote,
-        trigger: SubscriberNotificationTrigger.Created,
-        host: host,
-        httpProtocol: httpProtocol,
-      });
-    }
-  },
+      // get all episode public notes that need notification
+
+      const host: Hostname = await DatabaseConfig.getHost();
+      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+      const episodePublicNotes: Array<IncidentEpisodePublicNote> =
+        await IncidentEpisodePublicNoteService.findBy({
+          query: {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          select: {
+            _id: true,
+            // What the claim checks the row against (SubscriberNotificationClaim).
+            version: true,
+            note: true,
+            incidentEpisodeId: true,
+            projectId: true,
+          },
+        });
+
+      logger.debug(
+        `Found ${episodePublicNotes.length} episode public note(s) to notify subscribers for.`,
+      );
+
+      for (const episodePublicNote of episodePublicNotes) {
+        if (!runClock.canClaimAnotherNotification()) {
+          /*
+           * Whatever this run claims now might not finish before its timeout.
+           * The rest stay Pending for the runs that follow.
+           */
+          logger.debug(
+            "Leaving the remaining episode public notes for the next run.",
+          );
+          break;
+        }
+
+        await notifySubscribersOfEpisodePublicNote({
+          episodePublicNote: episodePublicNote,
+          trigger: SubscriberNotificationTrigger.Created,
+          host: host,
+          httpProtocol: httpProtocol,
+        });
+      }
+    },
+  ),
 );
 
 /*
@@ -1225,89 +1229,92 @@ RunCron(
     // Sized to one notification's send window (SubscriberNotificationTiming).
     timeoutInMS: SubscriberNotificationTiming.JOB_TIMEOUT_IN_MS,
   },
-  async () => {
-    const runClock: SubscriberNotificationRunClock =
-      SubscriberNotificationTiming.startRun();
+  SubscriberNotificationRunLimit.limit(
+    "IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers",
+    async () => {
+      const runClock: SubscriberNotificationRunClock =
+        SubscriberNotificationTiming.startRun();
 
-    const updatedNotes: Array<IncidentEpisodePublicNote> =
-      await IncidentEpisodePublicNoteService.findBy({
-        query: {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Pending,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        select: {
-          _id: true,
-          // What the claim checks the row against (SubscriberNotificationClaim).
-          version: true,
-          note: true,
-          incidentEpisodeId: true,
-          projectId: true,
-          subscriberNotificationStatusOnNoteCreated: true,
-        },
-      });
+      const updatedNotes: Array<IncidentEpisodePublicNote> =
+        await IncidentEpisodePublicNoteService.findBy({
+          query: {
+            subscriberNotificationStatusOnNoteUpdated:
+              StatusPageSubscriberNotificationStatus.Pending,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          select: {
+            _id: true,
+            // What the claim checks the row against (SubscriberNotificationClaim).
+            version: true,
+            note: true,
+            incidentEpisodeId: true,
+            projectId: true,
+            subscriberNotificationStatusOnNoteCreated: true,
+          },
+        });
 
-    logger.debug(
-      `Found ${updatedNotes.length} updated episode public note(s) to notify subscribers about.`,
-    );
+      logger.debug(
+        `Found ${updatedNotes.length} updated episode public note(s) to notify subscribers about.`,
+      );
 
-    if (updatedNotes.length === 0) {
-      return;
-    }
-
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    for (const episodePublicNote of updatedNotes) {
-      if (!runClock.canClaimAnotherNotification()) {
-        // As above: the rest stay Pending for the runs that follow.
-        logger.debug(
-          "Leaving the remaining updated episode public notes for the next run.",
-        );
-        break;
+      if (updatedNotes.length === 0) {
+        return;
       }
 
-      try {
-        /*
-         * The note's 'posted' notification is being sent right now, with the
-         * note as it was read before this edit. Left Pending, untouched: a
-         * later run sends the update once that has settled
-         * (SubscriberUpdateNotification).
-         */
-        if (
-          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
-            episodePublicNote.subscriberNotificationStatusOnNoteCreated,
-          )
-        ) {
+      const host: Hostname = await DatabaseConfig.getHost();
+      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+      for (const episodePublicNote of updatedNotes) {
+        if (!runClock.canClaimAnotherNotification()) {
+          // As above: the rest stay Pending for the runs that follow.
           logger.debug(
-            `Episode public note ${episodePublicNote.id}'s posted notification is being sent; its update notification waits for it.`,
-            {
-              projectId: episodePublicNote.projectId?.toString(),
-              incidentEpisodeId:
-                episodePublicNote.incidentEpisodeId?.toString(),
-            },
+            "Leaving the remaining updated episode public notes for the next run.",
           );
-          continue;
+          break;
         }
 
-        await notifySubscribersOfEpisodePublicNote({
-          episodePublicNote: episodePublicNote,
-          trigger: SubscriberNotificationTrigger.Updated,
-          host: host,
-          httpProtocol: httpProtocol,
-          // Settled as Skipped once claimed (see the function).
-          skipReason:
-            SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
+        try {
+          /*
+           * The note's 'posted' notification is being sent right now, with the
+           * note as it was read before this edit. Left Pending, untouched: a
+           * later run sends the update once that has settled
+           * (SubscriberUpdateNotification).
+           */
+          if (
+            SubscriberUpdateNotification.isOriginalNotificationBeingSent(
               episodePublicNote.subscriberNotificationStatusOnNoteCreated,
-            ),
-        });
-      } catch (err) {
-        logger.error(err);
+            )
+          ) {
+            logger.debug(
+              `Episode public note ${episodePublicNote.id}'s posted notification is being sent; its update notification waits for it.`,
+              {
+                projectId: episodePublicNote.projectId?.toString(),
+                incidentEpisodeId:
+                  episodePublicNote.incidentEpisodeId?.toString(),
+              },
+            );
+            continue;
+          }
+
+          await notifySubscribersOfEpisodePublicNote({
+            episodePublicNote: episodePublicNote,
+            trigger: SubscriberNotificationTrigger.Updated,
+            host: host,
+            httpProtocol: httpProtocol,
+            // Settled as Skipped once claimed (see the function).
+            skipReason:
+              SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
+                episodePublicNote.subscriberNotificationStatusOnNoteCreated,
+              ),
+          });
+        } catch (err) {
+          logger.error(err);
+        }
       }
-    }
-  },
+    },
+  ),
 );
