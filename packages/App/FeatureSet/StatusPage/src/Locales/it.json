@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Conferma iscrizione",
       "success": "Iscrizione confermata con successo"
+    },
+    "unsubscribe": {
+      "title": "Annulla iscrizione",
+      "titleWithName": "Annulla l'iscrizione a {{statusPageName}}",
+      "confirmPrompt": "Vuoi smettere di ricevere notifiche da questa pagina di stato?",
+      "channelEmail": "Indirizzo email",
+      "channelSms": "Numero di telefono",
+      "channelSlack": "Workspace Slack",
+      "channelMicrosoftTeams": "Workspace Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Questa iscrizione è stata aggiunta dal team che gestisce questa pagina di stato. Se si tratta di un indirizzo condiviso, come una mailing list, annullandola queste notifiche non arriveranno più a nessuno di chi le riceve, e il team ne sarà informato.",
+      "confirmButton": "Annulla iscrizione",
+      "manageInstead": "Scegli invece quali notifiche ricevere",
+      "manageSubscription": "Gestisci la tua iscrizione",
+      "success": "La tua iscrizione è stata annullata. Non riceverai più notifiche da questa pagina di stato.",
+      "alreadyUnsubscribed": "Questa iscrizione è già stata annullata. Non ricevi notifiche da questa pagina di stato.",
+      "outOfDateLink": "Questo link per annullare l'iscrizione non è più valido. Per annullare l'iscrizione, usa il link in un messaggio recente di questa pagina di stato.",
+      "invalidLink": "Questo link per annullare l'iscrizione non è valido. Potrebbe essere incompleto, oppure l'iscrizione potrebbe essere stata rimossa. Per annullare l'iscrizione, usa il link in un messaggio recente di questa pagina di stato.",
+      "failed": "Impossibile annullare l'iscrizione. Riprova.",
+      "loadFailed": "Impossibile caricare questo link per annullare l'iscrizione. Riprova più tardi."
     }
   },
   "accounts": {

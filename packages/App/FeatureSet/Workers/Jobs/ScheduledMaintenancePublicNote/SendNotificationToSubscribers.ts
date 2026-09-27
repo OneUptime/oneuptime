@@ -21,9 +21,12 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -457,13 +460,19 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
        * text for SMS and the email subject, and Markdown for Slack and Teams.
        * The conversions are the memoized ones computed once per public note
        * above.
+       *
+       * The shared values above are plain text: the email body escapes them
+       * (compileEmailBodyTemplate), and only the values wrapped in SafeHtml
+       * go into it as HTML.
        */
-      const emailBodyTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedString,
-        scheduledMaintenanceDescription: descriptionHtml,
-        note: noteHtml,
-      };
+      const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+        {
+          ...templateVariables,
+          resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedString),
+          scheduledMaintenanceDescription:
+            SafeHtml.fromTrustedHtml(descriptionHtml),
+          note: SafeHtml.fromTrustedHtml(noteHtml),
+        };
 
       const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
@@ -507,7 +516,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
-            subscriber.id!,
+            subscriber,
           ).toString();
 
         logger.debug(
@@ -515,10 +524,11 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-          ...emailBodyTemplateVariables,
-          unsubscribeUrl: unsubscribeUrl,
-        };
+        const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
         const subscriberPlainTextTemplateVariables: Dictionary<string> = {
           ...plainTextTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
@@ -535,17 +545,33 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
           );
 
+          /*
+           * On a public status page the SMS keeps the shorter manage link,
+           * which works there without signing in: an SMS is billed by the
+           * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+           */
+          const smsUnsubscribeUrl: string =
+            StatusPageSubscriberUnsubscribe.buildSmsLink({
+              isPublicStatusPage: statuspage.isPublicStatusPage,
+              statusPageUrl: statusPageURL,
+              subscriberId: subscriber.id!,
+              unsubscribeUrl: unsubscribeUrl,
+            });
+
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberPlainTextTemplateVariables,
+                {
+                  ...subscriberPlainTextTemplateVariables,
+                  unsubscribeUrl: smsUnsubscribeUrl,
+                },
               );
           } else {
             // Use default hard-coded template
-            smsMessage = `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+            smsMessage = `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}. Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
           }
 
           const sms: SMS = {
@@ -676,7 +702,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           if (emailTemplate?.templateBody && statuspage.smtpConfig) {
             // Use custom template with BlankTemplate only when custom SMTP is configured
             const compiledBody: string =
-              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                 emailTemplate.templateBody,
                 subscriberEmailBodyTemplateVariables,
               );
@@ -732,7 +758,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   resourcesAffected: resourcesAffectedString,
                   scheduledAt: scheduledAtString,
                   eventTitle: event.title || "",
-                  eventDescription: event.description || "",
+                  /*
+                   * The template shows this in DetailBoxField's raw-HTML
+                   * slot, so it is the rendered Markdown. It used to be the
+                   * Markdown as written, which put any HTML the author typed
+                   * into the email live.
+                   */
+                  eventDescription: descriptionHtml,
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     StatusPageServiceType.getSubscriberEmailFooterText(
@@ -906,6 +938,23 @@ RunCron(
 
     for (const publicNote of updatedNotes) {
       try {
+        /*
+         * The note's 'posted' notification is being sent right now, with the
+         * note as it was read before this edit. Left Pending, untouched: a
+         * later run sends the update once that has settled
+         * (SubscriberUpdateNotification).
+         */
+        if (
+          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+            publicNote.subscriberNotificationStatusOnNoteCreated,
+          )
+        ) {
+          logger.debug(
+            `Scheduled maintenance public note ${publicNote.id}'s posted notification is being sent; its update notification waits for it.`,
+          );
+          continue;
+        }
+
         const skipReason: string | null =
           SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
             publicNote.subscriberNotificationStatusOnNoteCreated,

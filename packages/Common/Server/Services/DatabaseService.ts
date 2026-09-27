@@ -109,6 +109,15 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasNoneOf,
   ]);
 
+// A hook-free write to one row by id, ready to run (see buildColumnsByIdUpdateStatement).
+interface ColumnsByIdUpdateStatement {
+  tableName: string;
+  primaryColumnName: string;
+  setSql: string;
+  whereSql: string;
+  params: Array<unknown>;
+}
+
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
@@ -3821,6 +3830,78 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      */
     skipUpdateDateColumn?: boolean;
   }): Promise<void> {
+    const statement: ColumnsByIdUpdateStatement | null =
+      this.buildColumnsByIdUpdateStatement(
+        input,
+        "updateColumnsByIdWithoutHooks",
+      );
+
+    if (!statement) {
+      return;
+    }
+
+    const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE ${statement.whereSql}`;
+
+    await this.getRepository().manager.query(sql, statement.params);
+  }
+
+  /*
+   * The same single-statement, hook-free, no-version-bump write as
+   * `updateColumnsByIdWithoutHooks` with its `expectedData` guard, which
+   * also says whether it happened: true when the row matched every expected
+   * value and was written, false when another writer had changed it first
+   * (or it no longer exists).
+   *
+   * This is what lets two workers race for one row and have exactly one of
+   * them win - a job claiming a Pending notification by moving it to
+   * InProgress, say, where both would otherwise send it. The check and the
+   * write are one statement, so there is no window between them.
+   *
+   * The UPDATE sits in a CTE so the statement is a SELECT of the rows it
+   * wrote (see updateColumnsByIdIfUnlockedWithoutHooks for why a bare
+   * UPDATE ... RETURNING cannot tell the two cases apart through TypeORM).
+   */
+  @CaptureSpan()
+  public async compareAndSetColumnsByIdWithoutHooks(input: {
+    id: ObjectID;
+    data: PartialEntity<TBaseModel>;
+    expectedData: PartialEntity<TBaseModel>;
+    skipUpdateDateColumn?: boolean;
+  }): Promise<boolean> {
+    const statement: ColumnsByIdUpdateStatement | null =
+      this.buildColumnsByIdUpdateStatement(
+        input,
+        "compareAndSetColumnsByIdWithoutHooks",
+      );
+
+    if (!statement) {
+      return false;
+    }
+
+    const sql: string = `WITH "updated" AS (UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE ${statement.whereSql} RETURNING "${statement.primaryColumnName}") SELECT "${statement.primaryColumnName}" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      statement.params,
+    );
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * The SET and WHERE clauses of a hook-free write to one row by id, with
+   * every value bound as a parameter. Null when there is nothing to set.
+   * `methodName` is the public method the errors are reported under.
+   */
+  private buildColumnsByIdUpdateStatement(
+    input: {
+      id: ObjectID;
+      data: PartialEntity<TBaseModel>;
+      expectedData?: PartialEntity<TBaseModel> | undefined;
+      skipUpdateDateColumn?: boolean | undefined;
+    },
+    methodName: string,
+  ): ColumnsByIdUpdateStatement | null {
     if (!input.id) {
       throw new BadDataException("id is required");
     }
@@ -3846,7 +3927,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
         throw new BadDataException(
-          `updateColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+          `${methodName}: unknown column "${propertyName}" on "${metadata.tableName}"`,
         );
       }
       /*
@@ -3857,7 +3938,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        */
       if (typeof value === "function") {
         throw new BadDataException(
-          `updateColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+          `${methodName}: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
       /*
@@ -3872,7 +3953,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (setClauses.length === 0) {
-      return;
+      return null;
     }
 
     // The raw path has no entity machinery to touch updateDate — do it here.
@@ -3898,13 +3979,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       if (!column) {
         throw new BadDataException(
-          `updateColumnsByIdWithoutHooks: unknown expected column "${propertyName}" on "${metadata.tableName}"`,
+          `${methodName}: unknown expected column "${propertyName}" on "${metadata.tableName}"`,
         );
       }
 
       if (typeof value === "function") {
         throw new BadDataException(
-          `updateColumnsByIdWithoutHooks: SQL-expression expected values are not supported (column "${propertyName}"); pass a literal value.`,
+          `${methodName}: SQL-expression expected values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
 
@@ -3914,11 +3995,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
-    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
-      ", ",
-    )} WHERE ${whereClauses.join(" AND ")}`;
-
-    await repository.manager.query(sql, params);
+    return {
+      tableName: metadata.tableName,
+      primaryColumnName: primaryColumnName,
+      setSql: setClauses.join(", "),
+      whereSql: whereClauses.join(" AND "),
+      params: params,
+    };
   }
 
   /*

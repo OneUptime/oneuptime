@@ -1,5 +1,6 @@
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../Types/Dictionary";
+import SafeHtml from "../../Types/SafeHtml";
 
 export interface GetResourcesGroupedByGroupNameOptions {
   resources: Array<StatusPageResource>;
@@ -16,6 +17,12 @@ export const HTML_RESOURCE_GROUP_SEPARATOR: string = "<br/>";
  */
 export const PLAIN_TEXT_RESOURCE_GROUP_SEPARATOR: string = "; ";
 
+type FormatNameFunction = (name: string) => string;
+
+const asWritten: FormatNameFunction = (name: string): string => {
+  return name;
+};
+
 export default class StatusPageResourceUtil {
   /**
    * Formats an array of StatusPageResource items into an HTML string grouped by their resource group.
@@ -24,8 +31,18 @@ export default class StatusPageResourceUtil {
    * If resources are grouped, returns one group per line, like:
    * "EU: Infrastructure, Website<br/>UK: Infrastructure, API"
    *
+   * The result is HTML: every resource name, group name and the default
+   * value is HTML-escaped before it is joined, and the only markup is the
+   * "<br/>" between groups. A project member names resources and groups, and
+   * the default subscriber emails put this list into their raw-HTML slot, so
+   * a name such as `<a href="https://evil.example">Checkout</a>` would
+   * otherwise arrive as a live link. That is also what makes it safe to hand
+   * a custom email template as SafeHtml.
+   *
    * Use this only where the value is rendered as HTML (email bodies). Use
-   * getResourcesGroupedByGroupNameAsPlainText everywhere else.
+   * getResourcesGroupedByGroupNameAsPlainText everywhere else: it is not
+   * escaped, because SMS, Slack, Teams, subjects and webhooks show text as
+   * written.
    *
    * @param resources - Array of StatusPageResource items with displayName, statusPageGroupId, and optionally statusPageGroup.name
    * @param defaultValue - Value to return if no resources (defaults to "")
@@ -35,11 +52,12 @@ export default class StatusPageResourceUtil {
     resources: Array<StatusPageResource>,
     defaultValue: string = "",
   ): string {
-    return StatusPageResourceUtil.formatResourcesGroupedByGroupName(
-      resources,
-      defaultValue,
-      HTML_RESOURCE_GROUP_SEPARATOR,
-    );
+    return StatusPageResourceUtil.formatResourcesGroupedByGroupName({
+      resources: resources,
+      defaultValue: defaultValue,
+      groupSeparator: HTML_RESOURCE_GROUP_SEPARATOR,
+      formatName: SafeHtml.escape,
+    });
   }
 
   /**
@@ -55,18 +73,28 @@ export default class StatusPageResourceUtil {
     resources: Array<StatusPageResource>,
     defaultValue: string = "",
   ): string {
-    return StatusPageResourceUtil.formatResourcesGroupedByGroupName(
-      resources,
-      defaultValue,
-      PLAIN_TEXT_RESOURCE_GROUP_SEPARATOR,
-    );
+    return StatusPageResourceUtil.formatResourcesGroupedByGroupName({
+      resources: resources,
+      defaultValue: defaultValue,
+      groupSeparator: PLAIN_TEXT_RESOURCE_GROUP_SEPARATOR,
+      formatName: asWritten,
+    });
   }
 
-  private static formatResourcesGroupedByGroupName(
-    resources: Array<StatusPageResource>,
-    defaultValue: string,
-    groupSeparator: string,
-  ): string {
+  /*
+   * Groups are keyed by the name as written, so two groups are merged only
+   * when their names really are the same; formatName (the HTML escaping, for
+   * the HTML form) is applied to each piece of text as it is written out.
+   */
+  private static formatResourcesGroupedByGroupName(data: {
+    resources: Array<StatusPageResource>;
+    defaultValue: string;
+    groupSeparator: string;
+    formatName: FormatNameFunction;
+  }): string {
+    const { resources, groupSeparator, formatName } = data;
+    const defaultValue: string = formatName(data.defaultValue);
+
     if (!resources || resources.length === 0) {
       return defaultValue;
     }
@@ -83,9 +111,10 @@ export default class StatusPageResourceUtil {
           .map((r: StatusPageResource) => {
             return r.displayName;
           })
-          .filter((name: string | undefined) => {
-            return name;
+          .filter((name: string | undefined): name is string => {
+            return Boolean(name);
           })
+          .map(formatName)
           .join(", ") || ""
       );
     }
@@ -119,13 +148,15 @@ export default class StatusPageResourceUtil {
     // Add grouped resources
     for (const groupName in resourcesByGroup) {
       const groupResources: Array<string> = resourcesByGroup[groupName]!;
-      formattedGroups.push(`${groupName}: ${groupResources.join(", ")}`);
+      formattedGroups.push(
+        `${formatName(groupName)}: ${groupResources.map(formatName).join(", ")}`,
+      );
     }
 
     // Add ungrouped resources on separate lines (without "Other" label)
     if (ungroupedResources.length > 0) {
       for (const resourceName of ungroupedResources) {
-        formattedGroups.push(resourceName);
+        formattedGroups.push(formatName(resourceName));
       }
     }
 

@@ -362,6 +362,11 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
       .spyOn(StatusPageSubscriberService, "findBy")
       .mockImplementation(findByFake as never);
 
+    // Their unsubscribe tokens are topped up in the database; nothing to top up here.
+    jest
+      .spyOn(StatusPageSubscriberService, "ensureUnsubscribeTokens")
+      .mockResolvedValue(undefined as never);
+
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockImplementation((): Promise<Array<StatusPage>> => {
@@ -610,8 +615,12 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
       expect(lookup.query["statusPageId"]?.toString()).toBe(
         statusPageId.toString(),
       );
+      /*
+       * The contact for this channel only, and the unsubscribe token for the
+       * link that works without signing in.
+       */
       expect(Object.keys(lookup.select).sort()).toEqual(
-        ["_id", "subscriberPhone"].sort(),
+        ["_id", "subscriberPhone", "unsubscribeToken"].sort(),
       );
       expect(lookup.sort).toEqual({ createdAt: SortOrder.Ascending });
       expect(lookup.skip).toBe(0);

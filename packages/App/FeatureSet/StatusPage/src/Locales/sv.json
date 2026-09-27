@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Bekräfta prenumeration",
       "success": "Prenumeration bekräftad"
+    },
+    "unsubscribe": {
+      "title": "Avsluta prenumeration",
+      "titleWithName": "Avsluta prenumerationen på {{statusPageName}}",
+      "confirmPrompt": "Vill du sluta ta emot aviseringar från den här statussidan?",
+      "channelEmail": "E-postadress",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-arbetsyta",
+      "channelMicrosoftTeams": "Microsoft Teams-arbetsyta",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Den här prenumerationen lades till av teamet som driver den här statussidan. Om det är en delad adress, till exempel en e-postlista, slutar aviseringarna att komma till alla som tar emot dem när du avslutar, och teamet meddelas.",
+      "confirmButton": "Avsluta prenumeration",
+      "manageInstead": "Välj i stället vilka aviseringar du får",
+      "manageSubscription": "Hantera din prenumeration",
+      "success": "Din prenumeration har avslutats. Du kommer inte att få fler aviseringar från den här statussidan.",
+      "alreadyUnsubscribed": "Den här prenumerationen har redan avslutats. Du får inga aviseringar från den här statussidan.",
+      "outOfDateLink": "Den här avregistreringslänken är inaktuell. Använd avregistreringslänken i ett nyligen skickat meddelande från den här statussidan för att avsluta prenumerationen.",
+      "invalidLink": "Den här avregistreringslänken är ogiltig. Den kan vara ofullständig, eller så kan prenumerationen ha tagits bort. Använd avregistreringslänken i ett nyligen skickat meddelande från den här statussidan för att avsluta prenumerationen.",
+      "failed": "Det gick inte att avsluta prenumerationen. Försök igen.",
+      "loadFailed": "Det gick inte att läsa in den här avregistreringslänken. Försök igen senare."
     }
   },
   "accounts": {

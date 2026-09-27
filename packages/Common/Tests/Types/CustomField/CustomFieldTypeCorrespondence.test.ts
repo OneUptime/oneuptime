@@ -92,6 +92,54 @@ describe("CustomFieldType member set", () => {
   });
 });
 
+describe("CustomFieldType long and rich text", () => {
+  test("includes LongText and Markdown, spelled as the Detail and form types", () => {
+    /*
+     * Incident fields such as "Additional Information" need several lines,
+     * and a note-like field needs the Markdown editor. Both reuse existing
+     * render and input types, so a definition saved with either must name
+     * FieldType.LongText / FieldType.Markdown and
+     * FormFieldSchemaType.LongText / FormFieldSchemaType.Markdown by value.
+     */
+    expect(CustomFieldType.LongText).toEqual("LongText");
+    expect(CustomFieldType.Markdown).toEqual("Markdown");
+    expect(FieldType.LongText as string).toEqual(CustomFieldType.LongText);
+    expect(FieldType.Markdown as string).toEqual(CustomFieldType.Markdown);
+    expect(FormFieldSchemaType.LongText as string).toEqual(
+      CustomFieldType.LongText,
+    );
+    expect(FormFieldSchemaType.Markdown as string).toEqual(
+      CustomFieldType.Markdown,
+    );
+  });
+
+  test("keeps every member that definitions may already store", () => {
+    /*
+     * A stored definition keeps its type string forever; removing or
+     * respelling a member would make it fall through every switch.
+     */
+    expect(Object.values(CustomFieldType).sort()).toEqual(
+      [
+        "Boolean",
+        "Date",
+        "DateTime",
+        "Dropdown",
+        "LongText",
+        "Markdown",
+        "MultiSelectDropdown",
+        "Number",
+        "Text",
+      ].sort(),
+    );
+  });
+
+  test("keys equal values, so pickers built from either agree", () => {
+    for (const [key, value] of customFieldTypeEntries) {
+      expect(key).toEqual(value);
+    }
+  });
+});
+
 describe("CustomFieldType correspondence is by value, not by key", () => {
   test("Boolean reaches the form as Toggle, which is only visible by value", () => {
     /*

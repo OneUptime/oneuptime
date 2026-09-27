@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Bekreft abonnement",
       "success": "Abonnement bekreftet"
+    },
+    "unsubscribe": {
+      "title": "Avslutt abonnement",
+      "titleWithName": "Avslutt abonnementet på {{statusPageName}}",
+      "confirmPrompt": "Vil du slutte å motta varsler fra denne statussiden?",
+      "channelEmail": "E-postadresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-arbeidsområde",
+      "channelMicrosoftTeams": "Microsoft Teams-arbeidsområde",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dette abonnementet ble lagt til av teamet som driver denne statussiden. Hvis det er en delt adresse, for eksempel en e-postliste, stopper avslutning disse varslene for alle som mottar dem, og teamet blir varslet.",
+      "confirmButton": "Avslutt abonnement",
+      "manageInstead": "Velg heller hvilke varsler du mottar",
+      "manageSubscription": "Administrer abonnementet ditt",
+      "success": "Abonnementet ditt er avsluttet. Du vil ikke motta flere varsler fra denne statussiden.",
+      "alreadyUnsubscribed": "Dette abonnementet er allerede avsluttet. Du mottar ikke varsler fra denne statussiden.",
+      "outOfDateLink": "Denne lenken for å avslutte abonnementet er utdatert. Bruk lenken i en nylig melding fra denne statussiden for å avslutte abonnementet.",
+      "invalidLink": "Denne lenken for å avslutte abonnementet er ugyldig. Den kan være ufullstendig, eller abonnementet kan være fjernet. Bruk lenken i en nylig melding fra denne statussiden for å avslutte abonnementet.",
+      "failed": "Vi kunne ikke avslutte abonnementet. Prøv igjen.",
+      "loadFailed": "Vi kunne ikke laste inn denne lenken for å avslutte abonnementet. Prøv igjen senere."
     }
   },
   "accounts": {

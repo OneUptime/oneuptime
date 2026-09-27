@@ -6,10 +6,10 @@
 {{> InfoBlock info="A note on this incident has been updated. Here is the latest version:"}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title" text=episodeTitle }}
+{{> DetailBoxField title="Incident Title" plainText=episodeTitle }}
 {{> DetailBoxField title="Resources Affected" text=resourcesAffected  }}
 {{#if episodeSeverity}}
-{{> DetailBoxField title="Severity" text=episodeSeverity  }}
+{{> DetailBoxField title="Severity" plainText=episodeSeverity  }}
 {{/if}}
 {{> DetailBoxField title="Updated Note" text=note  }}
 {{> DetailBoxEnd this }}

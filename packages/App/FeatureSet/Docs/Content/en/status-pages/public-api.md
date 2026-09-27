@@ -254,7 +254,7 @@ This is the example response from the API:
 
 ## Incident API
 
-This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a POST request to the following endpoint:
+This API will fetch all the incidents that are on the status page: the incidents on the page's monitors, less the ones limited to other status pages, and less every incident not limited to this page if the page only shows incidents scoped to it (see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience)). Which pages an incident is limited to is never part of the response. To get all the incidents on the status page, you can make a POST request to the following endpoint:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId

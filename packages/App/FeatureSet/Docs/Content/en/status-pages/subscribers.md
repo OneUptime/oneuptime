@@ -61,17 +61,37 @@ There is no toggle to turn email confirmation off — it is unconditional for an
 
 ## Managing and canceling a subscription
 
-Every subscriber email carries an unsubscribe link of the form `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`. That page is titled **Update Subscription** and tells the visitor they can update their preferences or unsubscribe there. It holds:
+Every message a subscriber gets carries an unsubscribe link of the form `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-{token}`: at the bottom of an email, in the text of an SMS, Slack or Microsoft Teams message, and as `unsubscribeUrl` in a webhook payload. The token is a random secret that belongs to that one subscription, so the link works without signing in. That includes a private status page, where everything else needs a signed-in visitor.
+
+The one exception is an SMS from a **public** status page, which carries the subscriber's **Update Subscription** link instead (see below). That page works on a public status page without signing in, and its link is 57 characters shorter. An SMS is billed per 160-character segment, so the longer link would put most default texts into another segment. A custom SMS template's `{{unsubscribeUrl}}` follows the same rule. An SMS from a private status page carries the unsubscribe link.
+
+The SMS log (the **SMS** tab of **Notification Logs**, on the status page and in the project's settings) keeps the text of every SMS, and more project members can read it than can manage subscribers. So the log shows an unsubscribe link with its token replaced by `[redacted]`, for example `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Only the subscriber's own phone gets the working link. A new subscriber's token is never returned by the API either, not even in the response to the request that created it.
+
+**Opening the link changes nothing.** The page shows the status page's name and logo and the subscription the link belongs to: an email address in full, a phone number masked to its last four digits, a Slack or Microsoft Teams workspace name, or a webhook's host. It asks *Do you want to stop receiving notifications from this status page?* and only pressing **Unsubscribe** cancels the subscription, so mail scanners and link previewers that open every link in a message cannot unsubscribe anyone. Nothing else about the page is shown, and none of its custom JavaScript runs. Confirming twice, or opening the link of a subscription that is already cancelled, just says it is cancelled. On a public status page the unsubscribe page also links to the subscriber's **Update Subscription** page, to choose which notifications they receive instead.
+
+The **Update Subscription** page, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, is titled **Update Subscription** and tells the visitor they can update their preferences or unsubscribe there. It holds:
 
 - Whatever resource and event-type pickers the page allows.
 - An **Unsubscribe** toggle, described as unsubscribing from all resources. It writes **Is Unsubscribed** (`isUnsubscribed`, default false).
 - A submit button reading **Update Subscription**; saving shows *Your changes have been saved.*
 
-Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. OneUptime replies that an email with the link has been sent and to check the spam folder if it does not arrive.
+On a private status page it needs a signed-in visitor, like the rest of the page. Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. OneUptime replies that an email with the link has been sent and to check the spam folder if it does not arrive. That message links to the **Update Subscription** page, and hands a custom template both links: `manageSubscriptionUrl` and `unsubscribeUrl`.
 
-The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` and `PUT .../update-subscription/:statusPageId/:subscriberId`.
+The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId`, `PUT .../update-subscription/:statusPageId/:subscriberId`, and `GET` and `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. The unsubscribe `GET` only describes the link. The `POST` cancels the subscription whatever its body, including the `List-Unsubscribe=One-Click` body of a one-click unsubscribe request. Both give the same answer for a wrong token, a deleted subscriber and a subscriber of another status page, so they cannot be used to find out who is subscribed.
 
-Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail.
+Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail. It also records **Unsubscribed At** (`unsubscribedAt`), whoever cancelled the subscription: the subscriber through the link or the **Update Subscription** page, or a teammate on the dashboard or through the API. Each subscriber list has an **Unsubscribed At** column and filter. Turning **Is Unsubscribed** off again clears it. Subscriptions cancelled before OneUptime recorded this have no date.
+
+Links in messages sent before the unsubscribe page existed keep working: an **Update Subscription** link still opens that page. Very old messages carried `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, which used to unsubscribe as soon as it was opened. It no longer changes anything: it leads to the unsubscribe page, which says the link is out of date and to use the one in a recent message.
+
+### Shared addresses and mailing lists
+
+Anyone who can read a mailbox can unsubscribe it. For an address somebody signed up themselves, that is the point. For one your team added, such as a site's mailing list like `site03-all@`, it means one reader can take everyone on the list off the page before the next outage. So:
+
+- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so.
+- **The team is told.** A subscriber your team added is one added from the dashboard, with an API key (the REST API, Terraform, a script) or by a workflow; the API reads it as **Is Added By Team** (`isAddedByTeam`). When one unsubscribes, through its link or the **Update Subscription** page, the status page's owners (its owner users, and the members of its owner teams) each get one email naming the subscriber, with a link to the page's subscriber list. So does the teammate who added it, when a teammate did. A page with no owners emails only that teammate, so a subscriber an API key or a workflow added to a page with no owners is not reported. People who signed up themselves on the status page are never reported. Subscribers that an API key or a workflow added before OneUptime recorded this cannot be told apart from sign-ups, and are not reported either.
+- **The subscriber lists show it.** Above each list, a notice names the subscribers your team added that unsubscribed in the last 30 days.
+
+The unsubscribe page warns a reader of such a subscription before they confirm: if it is a shared address, unsubscribing stops the notifications for everyone who receives them, and the team will be told.
 
 ## What subscribers get notified about
 
@@ -100,6 +120,32 @@ Events created from a template take **Event Created: Notify Status Page Subscrib
 
 `Incident` is the third event type. What makes an incident reach a status page in the first place — which resources it touches and which states keep it visible — is covered in [Incident States & Severities](/docs/incidents/states-and-severities). Public notes on an incident declared without notifying subscribers start with **Notify Status Page Subscribers** off; see [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed#posting-a-public-note).
 
+An incident's messages — created, state changed, public note and postmortem — go to the subscribers of every status page that lists one of its monitors. Two settings narrow that. **Limit to these status pages** on the incident keeps it to the pages you pick among those, and **Only Show Incidents Scoped to This Page** on a status page keeps away every incident that is not limited to it. For an incident limited to specific pages, an email address or phone number subscribed on several of them gets one email or text message per send, not one per page; webhook, Slack and Microsoft Teams messages are never merged. The declare form and the **Public Notes** page show who will be notified before anything is sent. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+
+#### Previewing the email before it is sent
+
+**Preview notification** is on the last step of **Declare New Incident**, under **Notify Status Page Subscribers**, and under the **Notify Status Page Subscribers** checkbox while you write a public note. It shows the email each status page's subscribers will get, built and rendered by the same code, template and settings the notification is sent with, so what you see is what they receive:
+
+- pick a status page to see its email, with its subject and its "up to" counts per channel;
+- a line says which template is used and why, for example that the page's custom template is not used because the page has no **Custom SMTP Config**;
+- when nothing will be sent (no monitors, a private or hidden incident, **Notify Status Page Subscribers** switched off, or no status page that shows the incident) it says so instead of showing an email.
+
+Only the status pages you can see are previewed; the others are counted. The email is shown in a sandboxed frame that runs no scripts. Its unsubscribe link is a sample, because each subscriber's email carries their own.
+
+**Send test to me** sends the shown page's email to your own account email, with `[Test]` at the start of the subject, through the page's **Custom SMTP Config** when it has one. It never sends to any other address, it needs your account email to be verified, and each person can send ten test emails every 15 minutes.
+
+#### Incident custom fields in notifications
+
+Incident custom fields with **Include in Subscriber Notifications** turned on (at **Incidents → Settings → Custom Fields**) go out with the incident's messages — created, state changed, public note posted or updated, and postmortem. This works on every plan that has custom fields; it needs neither a custom template nor custom SMTP.
+
+- **Email** lists them in the details box, below the incident's own rows, in the fields' **Order**. A field the incident has no value for is left out. A yes/no field reads **Yes** or **No**, a date is the day that was picked (the same day for every recipient, wherever they are, for a date picked in any time zone from UTC−10:59 to UTC+13), a date and time is shown in the status page's subscriber time zones, long text keeps its lines, and rich text is shown formatted, with the same link rules as notes. Its inline images are made viewable for the people it is sent to, when the first message that carries it is sent.
+- **Slack** and **Microsoft Teams** list them the same way, one per line.
+- **Webhook** payloads carry them in `data.customFields`, keyed by each field's **Template Variable**: `{ "name": ..., "type": ..., "value": ... }`, with the value as stored (`null` when the incident has none). Keys do not change when a field is renamed.
+- **SMS** leaves them out. A text message is billed by the segment and the default one is already close to one; a custom SMS template can place any field with `{{customFields.<key>}}`.
+- **Incident episode** notifications carry no custom fields: an episode groups incidents that each have their own values. Each member incident's own notifications carry its fields.
+
+The **Subscriber Notification Sent** entry in the incident feed lists, under **Custom fields sent**, the values each send put into a message. Subscribers are usually outside your team, so turn the setting on only for fields that are safe to share with them.
+
 The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
 
 ### Incident episodes
@@ -126,7 +172,7 @@ The update goes to the same people the original would reach today: the same chan
 
 Two cases send nothing on purpose, and record why:
 
-- **The original notification has not gone out yet.** If an announcement or note is still waiting to be announced, that notification reads the item when it is sent and already carries your edit, so a separate "updated" message would only confuse people.
+- **The original notification has not gone out yet.** If an announcement or note is still waiting to be announced, that notification reads the item when it is sent and already carries your edit, so a separate "updated" message would only confuse people. If the original is being sent at that moment, the update waits instead and goes out once the original has finished: that send read the item before your edit, so subscribers may have been sent the text from before it.
 - **The announcement is scheduled for later.** Until **Start Showing Announcement At** passes, it is not on any status page, and whoever is notified when it goes live sees the edited version.
 
 The edited item shows an **Update Notification Status** next to the original one, with the same states (**Sending Soon**, **Notifications Sent**, **Failed** and so on). **Retry** on a failed update notification re-sends the update, never the original "posted" message. Each status page can customize these messages with the **Subscriber Announcement Updated**, **Subscriber Incident Note Updated**, **Subscriber Scheduled Maintenance Note Updated** and **Subscriber Episode Note Updated** template event types; without a custom template the built-in update wording is used.
@@ -146,11 +192,91 @@ Through the API, send the choice next to the fields you change, in `miscDataProp
 
 as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
 
+## Checking what was sent
+
+Every subscriber notification has a status of its own, next to what it is about. For an incident, that is its 'created' notification on the incident's **Overview**, each row of its **State Timeline**, each public note and its **Postmortem**. Scheduled maintenance events and announcements show theirs the same way, and incident episodes on their public notes. Click the status to read its message, which says what happened. Public notes show the status as a badge with wording of their own:
+
+| Status                       | On a public note               | What it means                                                                                                     |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Sending Soon**             | **Notifying subscribers soon** | Queued. The job that sends it runs every minute.                                                                  |
+| **Notifications Being Sent** | **Notifying subscribers**      | The job is working through the subscribers.                                                                       |
+| **Notifications Sent**       | **Subscribers notified**       | It went out. See below for what that means.                                                                       |
+| **Failed**                   | **Notification failed**        | Not every subscriber was sent it, or the send stopped. The message says what was sent and what **Retry** does.    |
+| **Notifications skipped.**   | **Subscribers not notified**   | Nothing was meant to be sent, for example because the incident is hidden from status pages. The message says why. |
+
+### How a send is counted
+
+The notifications of incidents and incident episodes — created, state changed, public note posted or updated, and postmortem — are counted message by message:
+
+- **A message counts as sent** once the mail server or SMS provider has taken it, or once the Slack, Microsoft Teams or webhook endpoint has answered. "Sent" is as far as OneUptime can see: a mail server can still bounce an email later.
+- **A message counts as failed** when it is refused, when sending it errors, or when it gets no answer within 4 minutes. One failure makes the notification **Failed**; the other subscribers are still sent it.
+- **Every subscriber is reached.** A status page's subscribers are read 10,000 at a time until the last one, with 20 messages in flight at once. A notification stops starting new messages 20 minutes after it started: the status pages and subscribers it did not reach by then are listed as not sent, and it is marked **Failed**.
+- **The counts are recorded per status page.** The status message lists, for each status page, how many messages were sent and failed on each channel, for example `Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` The **Subscriber Notification Sent** entry in the incident's feed lists the same counts with the subject each page's email went out with. **Notification Logs** on each status page shows every message.
+
+Scheduled maintenance and announcement notifications are not counted this way yet. Their messages are handed to the senders without waiting for an answer, so **Notifications Sent** means they were handed over, and one send reaches at most 10,000 subscribers of each status page.
+
+### Sends that were interrupted
+
+A send whose server restarts or stops responding part-way cannot finish, and nothing else would settle it. So a notification still **Notifications Being Sent** after 40 minutes, longer than any send is allowed to take, is marked **Failed**, with a message that starts `Interrupted:` and says what **Retry** will do. This covers every notification above, scheduled maintenance and announcements included. The check runs every 5 minutes.
+
+### Retry and Resend
+
+**Retry** is offered on a notification that **Failed**. It puts the notification back in the queue, and the next run of the send job, within a minute, sends it again. On an incident, sending again after a notification went out is offered too: **Resend notification** on a public note, and **Resend** on the incident's 'created' notification, on its **Overview**. Both ask first, listing the status pages it would reach now with an "up to" count per channel. None of these is offered on a notification that was skipped, or while one is still queued or being sent. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed#when-a-public-note-actually-reaches-subscribers).
+
+A notification sent again is sent as things stand when it goes out: to the status pages it reaches then, and to their subscribers then. For an incident, that means the pages added to or removed from its scope since count, and so do the people who subscribed or unsubscribed since.
+
+**Progress is kept per status page, not per subscriber.**
+
+- **The incident's 'created' notification** records each status page once every one of its subscribers has been sent it, and **Retry** skips those pages. A page where a message failed, or that the send stopped part-way through, is sent it again in full, so the subscribers of that page who already got it get it a second time. To send it to every page again, use **Resend to all pages** (see [Adding status pages](/docs/status-pages/one-status-page-per-audience#adding-status-pages)).
+- **Every other notification** — a state change, a public note, a postmortem, and those of episodes, scheduled maintenance events and announcements — keeps no such record. **Retry** sends it again to every status page, including the subscribers who already got it.
+
+For an incident limited to specific status pages, one email or text message per person applies within each send, so a retry, which is a send of its own, can reach someone who got the first one. See [One email per person](/docs/status-pages/one-status-page-per-audience#one-email-per-person).
+
 ## Customizing notification templates
 
 The **Notification Templates** card on **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.
 
 Project-wide templates live one level up, at **Status Pages → Settings → Subscriber Templates**, next to **Announcement Templates**.
+
+### What a custom template needs
+
+On OneUptime Cloud, subscriber notification templates are a **Scale** plan feature; self-hosted installations have no plan limits. A template is used only once it is linked to a status page on that page's **Notification Templates** card, and two channels also need the page to send through your own provider:
+
+| Channel                            | A linked template is used when the page has                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| **Email**                          | a **Custom SMTP Config** (see [below](#email-footer-custom-smtp-and-twilio)) |
+| **SMS**                            | a **Twilio Config**                                                            |
+| **Slack** and **Microsoft Teams**  | nothing more                                                                   |
+
+Without them the page sends its default email or SMS, and the **Notification Templates** tab warns you with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
+
+None of this is needed to put incident custom fields into messages. Fields marked **Include in Subscriber Notifications** are in the default email, Slack, Microsoft Teams and webhook messages on every plan that has custom fields (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)). A custom template is for placing them yourself, anywhere in your own layout.
+
+### Incident variables
+
+Templates for the five incident event types — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** and **Subscriber Incident Postmortem Published** — can use these on top of their own variables:
+
+| Variable                   | Filled with                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `{{incidentLabels}}`       | The incident's labels, separated by commas.                                                                                          |
+| `{{affectedStatusPages}}`  | The names of every status page the incident is shown on, separated by commas.                                                        |
+| `{{customFields.<key>}}`   | An incident custom field's value, by the field's **Template Variable**, whether or not the field is marked **Include in Subscriber Notifications**. |
+
+The key is the field's **Template Variable**, which does not change when the field is renamed; the template form lists the project's incident custom fields and their keys under the variable reference. A field the incident has no value for is left empty. In an email body a plain field is escaped like any other value, while a rich text, long text or date and time field goes in as HTML: formatted Markdown, its lines, or a line per subscriber time zone. A rich text field's inline images are made viewable for the people it is sent to.
+
+**Two of them are internal data.** `{{affectedStatusPages}}` names every audience the incident reaches: with [one status page per audience](/docs/status-pages/one-status-page-per-audience), the subscribers of one site learn which other sites are affected, and one client learns the names of others. A custom field may hold notes meant for your team. The template form warns about both. Place them only in templates whose subscribers may see them.
+
+**Placing labels and custom fields needs incident access.** `{{incidentLabels}}` and `{{customFields.<key>}}` read your team's incident records, which the status page does not show. So a template that places them can be saved only by someone who can read every incident and its custom fields — **Project Owner**, **Project Admin**, **Project Member** or **Viewer**, or **Incident Admin**, **Incident Member** or **Incident Viewer**, without a limit to some labels or to incidents they own. **Status Page Admin** and **Status Page Member** on their own can write templates, but not add these placeholders; they can still edit the rest of a template that already has them. `{{affectedStatusPages}}` needs no more than the template does.
+
+### Values in templates
+
+The body of an **Email** template is sent as HTML, so the values OneUptime puts into it are escaped: a title, a name, a severity or state and a URL read as the characters they hold, and markup in them (an incident titled `<a href="...">`, say) shows as text rather than becoming a link. Descriptions, notes, the postmortem and `{{resourcesAffected}}` are already HTML and go in as they are. The template's own HTML is sent as you wrote it. A subject, SMS, Slack and Microsoft Teams show text as written, so they get every value unchanged.
+
+Links and images in Markdown that reaches an email (descriptions, notes, announcements) are kept only for `http`, `https` and `mailto` addresses (`http` and `https` for images); any other link shows as its text.
+
+### Live preview
+
+While you write a template, **Live preview** under the template body fills it in with sample values, the way each notification is filled in with real ones. An email template shows as the email would look, in a sandboxed frame, with HTML values as HTML and every other value escaped; the other channels show the text they would send. Placeholders the template's event does not offer are listed under the preview: they are sent as written. Report templates have no preview, because they are filled in with the report's own data when the report is sent.
 
 ## Email footer, custom SMTP and Twilio
 
@@ -197,7 +323,7 @@ If you post the same kind of notice repeatedly — a monthly maintenance heads-u
 
 ## Webhook subscribers and SSRF protection
 
-Webhook subscribers receive a JSON `POST` request on each status page event, which makes them the easiest way to pipe status page updates into a system of your own — a chatbot, an internal dashboard, a ticketing queue.
+Webhook subscribers receive a JSON `POST` request on each status page event, which makes them the easiest way to pipe status page updates into a system of your own — a chatbot, an internal dashboard, a ticketing queue. Incident payloads include `data.customFields`, the incident's custom fields marked **Include in Subscriber Notifications** (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)).
 
 Because subscribing is a public operation on a public page, OneUptime guards the target:
 
@@ -210,6 +336,7 @@ If a webhook subscription is rejected at signup, an internal or malformed URL is
 
 - [Status Pages Overview](/docs/status-pages/index) — what a status page is and how it is put together.
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — the monitors and groups subscribers can choose between.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to the status pages whose subscribers should hear about it.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — custom domains, logos and the look of the page your emails link to.
 - [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what puts an incident on a status page and what takes it off.

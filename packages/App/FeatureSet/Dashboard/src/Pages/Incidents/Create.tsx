@@ -10,10 +10,14 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
@@ -83,6 +87,25 @@ import IncidentFromAlerts, {
   SeverityForMapping,
 } from "Common/Utils/Incident/IncidentFromAlerts";
 import IconProp from "Common/Types/Icon/IconProp";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import SubscriberAudienceSummary from "../../Components/Incident/SubscriberAudienceSummary";
+import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
+import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
+import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
+import {
+  StatusPagePickerAccessHint,
+  StatusPagesNotListingMonitorsWarning,
+  TranslatedScopeNotice,
+  TranslatedScopeText,
+} from "../../Components/Incident/IncidentStatusPageScopeNotices";
+import {
+  getIdsFromFormValue,
+  isScopedToDeletedStatusPages,
+} from "../../Components/Incident/IncidentStatusPageScopeForm";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../Components/Incident/useStatusPagePickerAccess";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import {
@@ -95,6 +118,22 @@ import {
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import Link from "Common/UI/Components/Link/Link";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  buildCustomFieldModelFormFields,
+  getCustomFieldFormInitialValues,
+  packCustomFieldFormValues,
+  removeCustomFieldFormKeys,
+} from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
+import { keepValidCustomFieldValues } from "Common/Types/CustomField/CustomFieldValueValidator";
+import {
+  fetchIncidentCustomFieldDefinitions,
+  getDetailsStepDefinitions,
+  IncidentCustomFieldDefinition,
+  INCIDENT_DETAILS_STEP_ID,
+  INCIDENT_DETAILS_STEP_TITLE,
+  isAskedOnIncidentForm,
+} from "../../Components/Incident/IncidentCustomFieldDefinitions";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -155,6 +194,56 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
     name: severity.name,
     order: severity.order,
   };
+};
+
+/*
+ * Why no status page subscriber will hear about the incident being declared,
+ * whatever pages it reaches - or undefined when they may.
+ */
+type GetAudienceQuietReasonFunction = (
+  values: FormValues<Incident>,
+) => string | undefined;
+
+const getAudienceQuietReason: GetAudienceQuietReasonFunction = (
+  values: FormValues<Incident>,
+): string | undefined => {
+  const formValues: Record<string, unknown> = values as Record<string, unknown>;
+
+  if (formValues["isPrivate"] === true) {
+    return IncidentStatusPageScopeCopy.audiencePrivateIncident;
+  }
+
+  if (
+    formValues["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"] ===
+    false
+  ) {
+    return IncidentStatusPageScopeCopy.audienceNotifyOff;
+  }
+
+  return undefined;
+};
+
+/*
+ * "Will notify: ..." for the incident as the form stands: its monitors and
+ * the status pages it is limited to.
+ */
+type GetAudienceSummaryFunction = (
+  values: FormValues<Incident>,
+) => ReactElement;
+
+const getAudienceSummary: GetAudienceSummaryFunction = (
+  values: FormValues<Incident>,
+): ReactElement => {
+  return (
+    <SubscriberAudienceSummary
+      dataTestId="incident-create-subscriber-audience"
+      request={{
+        monitorIds: values.monitors,
+        statusPageIds: values.statusPages,
+      }}
+      quietReason={getAudienceQuietReason(values)}
+    />
+  );
 };
 
 /*
@@ -223,12 +312,41 @@ const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * Whether the status page picker has anything to offer: picking status
+   * pages needs status page read access, which incident roles do not have.
+   */
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
+  // Declaring from a template whose status pages have all been deleted.
+  const [
+    isTemplateScopedToDeletedStatusPages,
+    setIsTemplateScopedToDeletedStatusPages,
+  ] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
     useRef<Array<RoleAssignment>>([]);
 
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
+
+  /*
+   * The project's incident custom fields. The ones marked "Show on Create"
+   * are asked for in the Details step; the form waits for them, because it
+   * latches its steps and initial values on first render. A project that
+   * cannot read them (no custom fields on its plan, or no permission) simply
+   * gets no Details step.
+   */
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<
+    Array<IncidentCustomFieldDefinition>
+  >([]);
+  const [isLoadingCustomFieldDefinitions, setIsLoadingCustomFieldDefinitions] =
+    useState<boolean>(true);
+
+  // The custom field values of the template the incident is declared from.
+  const [templateCustomFields, setTemplateCustomFields] = useState<JSONObject>(
+    {},
+  );
 
   /*
    * The alerts this incident is being declared from (`?alertIds=`), in the
@@ -272,6 +390,8 @@ const IncidentCreate: FunctionComponent<
   >(new Map());
 
   useEffect(() => {
+    loadCustomFieldDefinitions();
+
     const incidentTemplateId: string | null =
       Navigation.getQueryStringByName("incidentTemplateId");
 
@@ -293,6 +413,18 @@ const IncidentCreate: FunctionComponent<
       setIsLoading(false);
     }
   }, []);
+
+  const loadCustomFieldDefinitions: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setCustomFieldDefinitions(await fetchIncidentCustomFieldDefinitions());
+      } catch {
+        // Declaring an incident never waits on its custom fields.
+        setCustomFieldDefinitions([]);
+      }
+
+      setIsLoadingCustomFieldDefinitions(false);
+    };
 
   const getFirstIncidentStateId: () => Promise<
     string | null
@@ -650,8 +782,35 @@ const IncidentCreate: FunctionComponent<
           onCallDutyPolicies: true,
           labels: true,
           changeMonitorStatusToId: true,
+          // Declaring from a template that has status pages scopes the incident.
+          statusPages: true,
+          isScopedToStatusPages: true,
+          // Its custom field values: the Details step starts from them.
+          customFields: true,
         },
       });
+
+    setTemplateCustomFields(
+      incidentTemplate?.customFields &&
+        typeof incidentTemplate.customFields === "object" &&
+        !Array.isArray(incidentTemplate.customFields)
+        ? incidentTemplate.customFields
+        : {},
+    );
+
+    /*
+     * A template limited to status pages that have all been deleted since:
+     * there is nothing to prefill, so the picker says why it is empty.
+     */
+    setIsTemplateScopedToDeletedStatusPages(
+      Boolean(
+        incidentTemplate &&
+          isScopedToDeletedStatusPages({
+            isScopedToStatusPages: incidentTemplate.isScopedToStatusPages,
+            statusPages: incidentTemplate.statusPages,
+          }),
+      ),
+    );
 
     const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
       await ModelAPI.getList<IncidentTemplateOwnerTeam>({
@@ -739,6 +898,11 @@ const IncidentCreate: FunctionComponent<
         labels: incidentTemplate.labels?.map((label: Label) => {
           return label.id!.toString();
         }),
+        statusPages: incidentTemplate.statusPages?.map(
+          (statusPage: StatusPage) => {
+            return statusPage.id!.toString();
+          },
+        ),
         changeMonitorStatusTo:
           incidentTemplate.changeMonitorStatusToId?.toString(),
         onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
@@ -757,6 +921,14 @@ const IncidentCreate: FunctionComponent<
           },
         ),
       };
+
+      /*
+       * The template's custom field values reach the form through the
+       * Details step's own inputs (see formInitialValues), and the incident
+       * through onBeforeCreate, which merges them - not as a bag the form
+       * would carry along unseen.
+       */
+      delete initialValue["customFields"];
 
       return initialValue;
     }
@@ -780,6 +952,77 @@ const IncidentCreate: FunctionComponent<
     acknowledgeGate.isAllowed &&
     shouldAcknowledgeAlerts;
 
+  // The fields the Details step asks for.
+  const detailsStepDefinitions: Array<IncidentCustomFieldDefinition> =
+    useMemo(() => {
+      return getDetailsStepDefinitions(customFieldDefinitions);
+    }, [customFieldDefinitions]);
+
+  /*
+   * What the incident's custom fields start as: the template's values, less
+   * any that no longer fit their field (an option removed since, say). Sent
+   * as they are, one stale value would refuse the declaration over a field
+   * the person may not even be asked about.
+   */
+  const startingCustomFields: JSONObject = useMemo(() => {
+    return keepValidCustomFieldValues({
+      definitions: customFieldDefinitions,
+      customFields: templateCustomFields,
+    }) as JSONObject;
+  }, [customFieldDefinitions, templateCustomFields]);
+
+  /*
+   * One identity per load: the form latches its initial values once, and a
+   * new object on every render would only make it look again.
+   */
+  const formInitialValues: JSONObject = useMemo(() => {
+    return {
+      ...initialValuesForIncident,
+      ...getCustomFieldFormInitialValues({
+        definitions: detailsStepDefinitions,
+        customFields: startingCustomFields,
+      }),
+    };
+  }, [initialValuesForIncident, detailsStepDefinitions, startingCustomFields]);
+
+  /*
+   * The Details step: each "Show on Create" field, in its order, required
+   * where it is "Required on Create" - a required yes/no field must be
+   * ticked. A field mapped from a monitor field is not asked once the
+   * incident has a monitor, since the value is copied from the monitor.
+   */
+  const detailsStepFields: Array<ModelField<Incident>> = useMemo(() => {
+    return buildCustomFieldModelFormFields<Incident>({
+      definitions: detailsStepDefinitions,
+      enforceRequiredOnCreate: true,
+      stepId: INCIDENT_DETAILS_STEP_ID,
+      isShown: isAskedOnIncidentForm,
+    });
+  }, [detailsStepDefinitions]);
+
+  // No step at all when there is nothing to ask.
+  const detailsSteps: Array<FormStep<Incident>> =
+    detailsStepDefinitions.length > 0
+      ? [
+          {
+            title: INCIDENT_DETAILS_STEP_TITLE,
+            id: INCIDENT_DETAILS_STEP_ID,
+            showIf: (values: FormValues<Incident>): boolean => {
+              return detailsStepDefinitions.some(
+                (definition: IncidentCustomFieldDefinition): boolean => {
+                  return isAskedOnIncidentForm(
+                    definition,
+                    (values || {}) as JSONObject,
+                  );
+                },
+              );
+            },
+          },
+        ]
+      : [];
+
+  const isPageLoading: boolean = isLoading || isLoadingCustomFieldDefinitions;
+
   return (
     <Fragment>
       <Card
@@ -790,9 +1033,9 @@ const IncidentCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !error && alertsToLink.length > 0 && (
+          {!isPageLoading && !error && alertsToLink.length > 0 && (
             <AlertBanner
               className="mb-5"
               dataTestId="incident-create-alerts-to-link"
@@ -947,7 +1190,7 @@ const IncidentCreate: FunctionComponent<
               }
             />
           )}
-          {!isLoading &&
+          {!isPageLoading &&
             !error &&
             alertsToLink.length === 0 &&
             missingAlertCount > 0 && (
@@ -959,16 +1202,37 @@ const IncidentCreate: FunctionComponent<
                 title="None of the alerts this incident was being declared from could be found, so none will be linked. They may have been deleted, or you may not have access to them."
               />
             )}
-          {!isLoading && !error && (
+          {!isPageLoading && !error && (
             <ModelForm<Incident>
               modelType={Incident}
-              initialValues={initialValuesForIncident}
+              initialValues={formInitialValues}
               name="Create New Incident"
               id="create-incident-form"
               onBeforeCreate={async (
                 item: Incident,
                 miscDataProps: JSONObject,
+                formValues: JSONObject,
               ): Promise<Incident> => {
+                /*
+                 * The Details step's answers, from the values the form
+                 * submitted - a Number of 0 and an unticked box included -
+                 * over the template's values, which fill in every field the
+                 * step does not ask about. They travel in customFields only.
+                 */
+                const customFields: JSONObject | undefined =
+                  packCustomFieldFormValues({
+                    definitions: detailsStepDefinitions,
+                    formValues: formValues,
+                    startingCustomFields: startingCustomFields,
+                    isShown: isAskedOnIncidentForm,
+                  });
+
+                removeCustomFieldFormKeys(miscDataProps);
+
+                if (customFields) {
+                  item.customFields = customFields;
+                }
+
                 /*
                  * ModelForm sends this same object as the request's
                  * miscDataProps. The server checks the ids before it creates
@@ -1240,6 +1504,76 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 /*
+                 * The status pages this incident is limited to. Left empty,
+                 * it shows on and notifies every status page that lists its
+                 * monitors, as always; picked, only those pages among them.
+                 * The entity dropdown gives it a Labels tab, so every page
+                 * with a label ('Region East') is one click.
+                 */
+                {
+                  field: {
+                    statusPages: true,
+                  },
+                  title: IncidentStatusPageScopeCopy.pickerTitle,
+                  stepId: "resources-affected",
+                  description: IncidentStatusPageScopeCopy.pickerDescription,
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: StatusPage,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return (
+                      <>
+                        <StatusPagePickerAccessHint
+                          access={statusPagePickerAccess}
+                        />
+                        <StatusPagesNotListingMonitorsWarning
+                          monitorIds={values.monitors}
+                          statusPageIds={values.statusPages}
+                        />
+                        {isTemplateScopedToDeletedStatusPages &&
+                        getIdsFromFormValue(values.statusPages).length === 0 ? (
+                          <TranslatedScopeNotice
+                            text={
+                              IncidentStatusPageScopeCopy.declaringFromTemplateScopedToDeletedPagesWarning
+                            }
+                            dataTestId="incident-create-template-scoped-to-deleted-pages"
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </>
+                    );
+                  },
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    const statusPageIds: Array<string> = getIdsFromFormValue(
+                      item.statusPages,
+                    );
+
+                    if (statusPageIds.length === 0) {
+                      return (
+                        <TranslatedScopeText
+                          text={IncidentStatusPageScopeCopy.noScopeSummary}
+                        />
+                      );
+                    }
+
+                    return (
+                      <FetchStatusPages
+                        statusPageIds={statusPageIds.map(
+                          (id: string): ObjectID => {
+                            return new ObjectID(id);
+                          },
+                        )}
+                      />
+                    );
+                  },
+                },
+                /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * hosts/kubernetesClusters/dockerHosts/podmanHosts/
                  * databaseServers/services on load and submit.
@@ -1304,6 +1638,7 @@ const IncidentCreate: FunctionComponent<
                     return false;
                   },
                 },
+                ...detailsStepFields,
                 {
                   overrideField: {
                     incidentRoles: true,
@@ -1424,6 +1759,27 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitor Status",
+                  /*
+                   * Monitor status is not scoped: every status page that
+                   * lists the monitor shows it.
+                   */
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (
+                      !values.changeMonitorStatusTo ||
+                      getIdsFromFormValue(values.statusPages).length === 0
+                    ) {
+                      return undefined;
+                    }
+
+                    return (
+                      <TranslatedScopeNotice
+                        text={
+                          IncidentStatusPageScopeCopy.changeMonitorStatusWarning
+                        }
+                        dataTestId="incident-create-monitor-status-scope-warning"
+                      />
+                    );
+                  },
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.changeMonitorStatusTo) {
                       return (
@@ -1507,6 +1863,35 @@ const IncidentCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
+                  // Who that is, before anything is sent.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return getAudienceSummary(values);
+                  },
+                  /*
+                   * On the last step, also what they will be sent: each
+                   * status page's email, from the incident as declared here.
+                   */
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    return (
+                      <>
+                        {getAudienceSummary(item)}
+                        <SubscriberNotificationPreviewButton
+                          dataTestId="incident-create-preview-notification"
+                          getRequest={() => {
+                            return getIncidentCreatedPreviewRequest({
+                              values: item as Record<string, unknown>,
+                              customFields: packCustomFieldFormValues({
+                                definitions: detailsStepDefinitions,
+                                formValues: item as JSONObject,
+                                startingCustomFields: startingCustomFields,
+                                isShown: isAskedOnIncidentForm,
+                              }),
+                            });
+                          }}
+                        />
+                      </>
+                    );
+                  },
                 },
                 {
                   field: {
@@ -1519,6 +1904,25 @@ const IncidentCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,
+                  // Private wins over the status pages it is limited to.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (
+                      (values as Record<string, unknown>)["isPrivate"] !==
+                        true ||
+                      getIdsFromFormValue(values.statusPages).length === 0
+                    ) {
+                      return undefined;
+                    }
+
+                    return (
+                      <TranslatedScopeNotice
+                        text={
+                          IncidentStatusPageScopeCopy.privateIncidentWarning
+                        }
+                        dataTestId="incident-create-private-scope-warning"
+                      />
+                    );
+                  },
                 },
               ]}
               steps={[
@@ -1530,6 +1934,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Resources Affected",
                   id: "resources-affected",
                 },
+                ...detailsSteps,
                 {
                   title: "Incident Roles",
                   id: "incident-roles",

@@ -69,6 +69,7 @@ jobs:
       BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
       RUN_POSTGRES_EVENT_OVERLAY_TESTS: "true"
       RUN_POSTGRES_MONITOR_DESCRIPTION_MIGRATION_TESTS: "true"
+      RUN_POSTGRES_HIDDEN_INCIDENT_NOTIFICATION_MIGRATION_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

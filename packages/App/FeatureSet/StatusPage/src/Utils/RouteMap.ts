@@ -21,6 +21,13 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
   [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
   [PageMap.CONFIRM_SUBSCRIPTION]: new Route(`/confirm-subscription/:id`),
+  /*
+   * The unsubscribe link in every subscriber notification. Its last segment
+   * is a credential ({subscriberId}-{token}) that SensitiveUrlToken takes out
+   * of the address bar before the page loads, so App also routes the
+   * token-free /unsubscribe here.
+   */
+  [PageMap.UNSUBSCRIBE]: new Route(`/unsubscribe/:token`),
 
   [PageMap.LOGIN]: new Route(`/login`),
   [PageMap.SSO]: new Route(`/sso`),
@@ -110,6 +117,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]: new Route(
     `/status-page/${RouteParams.StatusPageId}/confirm-subscription/:id`,
+  ),
+
+  [PageMap.PREVIEW_UNSUBSCRIBE]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/unsubscribe/:token`,
   ),
 };
 

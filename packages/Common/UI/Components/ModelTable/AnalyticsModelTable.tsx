@@ -13,6 +13,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import RequestOptions from "../../Utils/API/RequestOptions";
+import { ModelFormOnBeforeCreate } from "../Forms/ModelForm";
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>
   extends BaseTableProps<TBaseModel> {
@@ -47,12 +48,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
         showCreateEditModal: (_data: {
           modalType: ModalType;
           modelIdToEdit?: ObjectID | undefined;
-          onBeforeCreate?:
-            | ((
-                item: TBaseModel,
-                miscDataProps: JSONObject,
-              ) => Promise<TBaseModel>)
-            | undefined;
+          onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
           onSuccess?: ((item: TBaseModel) => void) | undefined;
           onClose?: (() => void) | undefined;
         }): ReactElement => {

@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Confirmer l'abonnement",
       "success": "Abonnement confirmé avec succès"
+    },
+    "unsubscribe": {
+      "title": "Se désabonner",
+      "titleWithName": "Se désabonner de {{statusPageName}}",
+      "confirmPrompt": "Voulez-vous ne plus recevoir de notifications de cette page de statut ?",
+      "channelEmail": "Adresse e-mail",
+      "channelSms": "Numéro de téléphone",
+      "channelSlack": "Espace de travail Slack",
+      "channelMicrosoftTeams": "Espace de travail Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Cet abonnement a été ajouté par l'équipe qui gère cette page de statut. S'il s'agit d'une adresse partagée, comme une liste de diffusion, le désabonnement arrête ces notifications pour toutes les personnes qui les reçoivent, et l'équipe en sera informée.",
+      "confirmButton": "Se désabonner",
+      "manageInstead": "Choisir plutôt les notifications que vous recevez",
+      "manageSubscription": "Gérer votre abonnement",
+      "success": "Vous avez été désabonné. Vous ne recevrez plus de notifications de cette page de statut.",
+      "alreadyUnsubscribed": "Cet abonnement a déjà été annulé. Vous ne recevez pas de notifications de cette page de statut.",
+      "outOfDateLink": "Ce lien de désabonnement est obsolète. Pour vous désabonner, utilisez le lien de désabonnement d'un message récent de cette page de statut.",
+      "invalidLink": "Ce lien de désabonnement n'est pas valide. Il est peut-être incomplet, ou l'abonnement a été supprimé. Pour vous désabonner, utilisez le lien de désabonnement d'un message récent de cette page de statut.",
+      "failed": "Le désabonnement a échoué. Veuillez réessayer.",
+      "loadFailed": "Impossible de charger ce lien de désabonnement. Veuillez réessayer plus tard."
     }
   },
   "accounts": {

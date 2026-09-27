@@ -282,13 +282,20 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Pages shown on their own, without the page's header, navigation and
+   * footer: the sign-in pages, and the unsubscribe page, which a subscriber
+   * of a private status page reaches without signing in and which must show
+   * them nothing of the page but its name and logo.
+   */
   if (
     Navigation.getCurrentRoute().toString().includes("login") ||
     Navigation.getCurrentRoute().toString().includes("forgot-password") ||
     Navigation.getCurrentRoute().toString().includes("reset-password") ||
     Navigation.getCurrentRoute().toString().includes("sso") ||
     Navigation.getCurrentRoute().toString().includes("forbidden") ||
-    Navigation.getCurrentRoute().toString().includes("master-password")
+    Navigation.getCurrentRoute().toString().includes("master-password") ||
+    Navigation.getCurrentRoute().toString().includes("/unsubscribe")
   ) {
     return <div className="flex min-h-screen flex-col">{props.children}</div>;
   }

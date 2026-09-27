@@ -123,10 +123,29 @@ describe("the sensitive-URL-token partial", () => {
      * added to one and not the other either leaks (stripped nowhere) or breaks
      * the flow (stripped, then unreadable).
      */
-    const routeList: string = `["reset-password", "verify-email"]`;
+    const routeListOf: (file: string) => Array<string> = (
+      file: string,
+    ): Array<string> => {
+      const match: RegExpMatchArray | null = fs
+        .readFileSync(file, "utf8")
+        .match(/TOKEN_ROUTES(?::\s*Array<string>)?\s*=\s*\[([^\]]*)\]/);
 
-    expect(fs.readFileSync(PARTIAL_PATH, "utf8")).toContain(routeList);
-    expect(fs.readFileSync(CLIENT_UTIL_PATH, "utf8")).toContain(routeList);
+      expect(match).not.toBeNull();
+
+      return (match![1]!.match(/"[^"]+"/g) || []).map((entry: string) => {
+        return entry.slice(1, -1);
+      });
+    };
+
+    const expectedRoutes: Array<string> = [
+      "reset-password",
+      "verify-email",
+      // A status page subscriber's unsubscribe link: .../unsubscribe/<id>-<token>.
+      "unsubscribe",
+    ];
+
+    expect(routeListOf(PARTIAL_PATH)).toEqual(expectedRoutes);
+    expect(routeListOf(CLIENT_UTIL_PATH)).toEqual(expectedRoutes);
   });
 
   it("agrees with the client on the storage key", () => {
@@ -250,6 +269,48 @@ describe("accounts: email verification tokens", () => {
     expect(page.window.location.pathname).toBe("/accounts/reset-password");
     expect(page.window.location.search).toBe("?utm_source=email");
     expect(page.window.location.hash).toBe("#top");
+
+    page.window.close();
+  });
+});
+
+describe("status page: unsubscribe links", () => {
+  const statusPage: Origin = ORIGINS[1]!;
+
+  /*
+   * The link in every subscriber notification. Its last segment is the
+   * subscriber id and its unsubscribe token together; the token is what lets
+   * anyone holding the link unsubscribe without signing in, so it must never
+   * reach an analytics tag a status page loads.
+   */
+  const CREDENTIAL: string = `${TOKEN}-${"ab".repeat(32)}`;
+
+  it("strips the credential from a custom-domain unsubscribe link", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://status.example/unsubscribe/${CREDENTIAL}`,
+    );
+
+    expect(page.window.location.pathname).toBe("/unsubscribe");
+    expect(page.window.location.href).not.toContain(CREDENTIAL);
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
+    expect((page.window as any).__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__).toBe(
+      false,
+    );
+
+    page.window.close();
+  });
+
+  it("strips it from a status page's own address too", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://oneuptime.com/status-page/${TOKEN}/unsubscribe/${CREDENTIAL}`,
+    );
+
+    expect(page.window.location.pathname).toBe(
+      `/status-page/${TOKEN}/unsubscribe`,
+    );
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
 
     page.window.close();
   });

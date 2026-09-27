@@ -48,6 +48,11 @@ type RecordedFeedProps = {
   subscriberNotifications?: {
     isNotifyingByDefault: boolean;
     quietDescription: string;
+    audienceSummary?: ReactElement | undefined;
+    renderPreview?:
+      | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+      | undefined;
+    resend?: { audience?: ReactElement | undefined } | undefined;
   };
 };
 
@@ -155,6 +160,12 @@ interface PublicNotePageCase {
   parentIdField: string;
   eventNoun: string;
   attachmentApiPath: string;
+  /*
+   * Whether a new note shows who it will reach. Only incidents have the
+   * audience summary (SubscriberAudienceSummary): the status pages their scope
+   * lets through.
+   */
+  hasAudienceSummary: boolean;
 }
 
 const PAGES: Array<PublicNotePageCase> = [
@@ -169,6 +180,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "incidentId",
     eventNoun: "incident",
     attachmentApiPath: "/incident-public-note/attachment",
+    hasAudienceSummary: true,
   },
   {
     name: "scheduled maintenance event",
@@ -181,6 +193,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "scheduledMaintenanceId",
     eventNoun: "scheduled maintenance event",
     attachmentApiPath: "/scheduled-maintenance-public-note/attachment",
+    hasAudienceSummary: false,
   },
   {
     name: "incident episode",
@@ -193,6 +206,7 @@ const PAGES: Array<PublicNotePageCase> = [
     parentIdField: "incidentEpisodeId",
     eventNoun: "episode",
     attachmentApiPath: "/incident-episode-public-note/attachment",
+    hasAudienceSummary: false,
   },
 ];
 
@@ -300,6 +314,15 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
     });
     const view: RenderResult = render(element());
     await screen.findByTestId("event-notes-feed");
+    /*
+     * The feed is in the DOM as soon as React commits it, but its mount
+     * effect is passive and runs on a later tick - later still on a loaded
+     * machine. Wait for it, so a test that reads feedMounts reads it after
+     * the mount rather than racing it.
+     */
+    await waitFor(() => {
+      expect(feedMounts).toContain(currentEventId);
+    });
     return view;
   }
 
@@ -354,10 +377,99 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
     test("an event created without notifying subscribers starts it unticked, with the reason", async () => {
       await renderFor(false);
 
-      expect(feed().subscriberNotifications).toEqual({
+      const settings: Record<string, unknown> = {
+        ...feed().subscriberNotifications,
+      };
+      delete settings["audienceSummary"];
+      delete settings["renderPreview"];
+      delete settings["resend"];
+
+      expect(settings).toEqual({
         isNotifyingByDefault: false,
         quietDescription: page.quietDescription,
       });
+    });
+
+    test("a new note shows who it will reach where the event has a scope", async () => {
+      await renderFor(true);
+
+      const audience: ReactElement | undefined =
+        feed().subscriberNotifications?.audienceSummary;
+
+      if (!page.hasAudienceSummary) {
+        expect(audience).toBeUndefined();
+        return;
+      }
+
+      expect(audience).toBeDefined();
+      expect(
+        (
+          audience!.props as { request: { incidentId: ObjectID } }
+        ).request.incidentId.toString(),
+      ).toBe(EVENT_ID);
+    });
+
+    test("a note whose notification went out can be sent again where the event has a scope, confirmed with its audience", async () => {
+      await renderFor(true);
+
+      const resend: { audience?: ReactElement | undefined } | undefined =
+        feed().subscriberNotifications?.resend;
+
+      if (!page.hasAudienceSummary) {
+        // Episode and scheduled maintenance notes keep Retry only.
+        expect(resend).toBeUndefined();
+        return;
+      }
+
+      expect(resend).toBeDefined();
+      expect(
+        (
+          resend!.audience!.props as { request: { incidentId: ObjectID } }
+        ).request.incidentId.toString(),
+      ).toBe(EVENT_ID);
+    });
+
+    test("a new note offers a preview of its notification where the event has a scope", async () => {
+      await renderFor(true);
+
+      const renderPreview:
+        | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+        | undefined = feed().subscriberNotifications?.renderPreview;
+
+      if (!page.hasAudienceSummary) {
+        expect(renderPreview).toBeUndefined();
+        return;
+      }
+
+      expect(renderPreview).toBeDefined();
+
+      const postedAt: Date = new Date("2026-09-27T10:30:00.000Z");
+      const button: ReactElement = renderPreview!({
+        note: "Rolling back.",
+        postedAt: postedAt,
+      });
+      const buttonProps: {
+        getRequest: () => unknown;
+        isDisabled: boolean;
+      } = button.props as {
+        getRequest: () => unknown;
+        isDisabled: boolean;
+      };
+
+      expect(buttonProps.isDisabled).toBe(false);
+      expect(buttonProps.getRequest()).toEqual({
+        event: "IncidentPublicNoteCreated",
+        incidentId: EVENT_ID,
+        note: "Rolling back.",
+        postedAt: postedAt,
+      });
+
+      // A blank note has nothing to preview yet.
+      const blank: ReactElement = renderPreview!({
+        note: "  ",
+        postedAt: null,
+      });
+      expect((blank.props as { isDisabled: boolean }).isDisabled).toBe(true);
     });
 
     test.each([

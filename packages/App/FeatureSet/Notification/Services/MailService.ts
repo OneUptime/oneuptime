@@ -12,7 +12,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
-import EmailMessage from "Common/Types/Email/EmailMessage";
+import EmailMessage, { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import MailTransportType from "Common/Types/Email/MailTransportType";
@@ -23,6 +23,7 @@ import { JSONObject } from "Common/Types/JSON";
 import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import EmailLogService from "Common/Server/Services/EmailLogService";
@@ -48,6 +49,12 @@ import nodemailer, {
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
+
+// An email as it is sent: its final subject and HTML body.
+export interface RenderedEmail {
+  subject: string;
+  body: string;
+}
 
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
@@ -845,6 +852,44 @@ export default class MailService {
     return subjectHandlebars(vars).toString();
   }
 
+  /**
+   * The subject and HTML body an email is sent with, exactly as send()
+   * sends them: its template (or its body, when it names none) compiled
+   * with its variables and the defaults every email gets, and its subject
+   * compiled too unless it is literal.
+   *
+   * send() renders through this, so anything that shows an email before it
+   * goes out - the status page subscriber notification preview - shows
+   * byte for byte what a recipient gets. Nothing is sent or logged, and the
+   * envelope is not changed.
+   */
+  public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
+    // The defaults every email gets.
+    const vars: Dictionary<string | JSONObject> = { ...(mail.vars || {}) };
+
+    if (!vars["year"]) {
+      vars["year"] = OneUptimeDate.getCurrentYear().toString();
+    }
+
+    const body: string = mail.templateType
+      ? await this.compileEmailBody(mail.templateType, vars)
+      : this.compileText(mail.body || "", vars);
+
+    /*
+     * A literal subject was rendered by the sender, often from user-authored
+     * text; compiling it again would read any "{{" in that text as template
+     * syntax.
+     */
+    const subject: string = mail.isSubjectLiteral
+      ? mail.subject
+      : this.compileText(mail.subject, vars);
+
+    return {
+      subject: subject,
+      body: body,
+    };
+  }
+
   private static async createMailer(
     emailServer: EmailServer,
     options: {
@@ -1037,7 +1082,17 @@ export default class MailService {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
       emailLog.toEmail = mail.toEmail;
-      emailLog.subject = mail.subject;
+      /*
+       * A status page's custom subject template can put {{unsubscribeUrl}}
+       * in the subject, and the token in that link lets whoever holds it
+       * cancel the subscription without signing in. The email log is
+       * readable by project members who may not touch subscribers, so it
+       * keeps the link with its token redacted (see
+       * StatusPageSubscriberUnsubscribe.redactCredentials).
+       */
+      emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
+        mail.subject,
+      );
 
       if (options.emailServer?.id) {
         emailLog.projectSmtpConfigId = options.emailServer?.id;
@@ -1090,7 +1145,7 @@ export default class MailService {
       }
     }
 
-    // default vars.
+    // default vars, on the message itself as they always were.
     if (!mail.vars) {
       mail.vars = {};
     }
@@ -1102,18 +1157,14 @@ export default class MailService {
     try {
       const emailServerType: EmailServerType = await getEmailServerType();
 
-      mail.body = mail.templateType
-        ? await this.compileEmailBody(mail.templateType, mail.vars)
-        : this.compileText(mail.body || "", mail.vars);
-
       /*
-       * A literal subject was rendered by the sender, often from user-authored
-       * text; compiling it again would read any "{{" in that text as template
-       * syntax.
+       * Rendered as render() renders it, so a preview of an email shows what
+       * this sends.
        */
-      if (!mail.isSubjectLiteral) {
-        mail.subject = this.compileText(mail.subject, mail.vars);
-      }
+      const rendered: RenderedEmail = await this.render(mail);
+
+      mail.body = rendered.body;
+      mail.subject = rendered.subject;
 
       if (
         (!options || !options.emailServer) &&

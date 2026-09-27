@@ -315,6 +315,13 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/scheduled-maintenance/generate-note-from-ai/:scheduledMaintenanceId",
     registeredBy: "ScheduledMaintenanceAPI",
   },
+
+  // "Will notify": the audience summary on declaring an incident and on notes.
+  {
+    method: "POST",
+    uri: "/incident/subscriber-audience",
+    registeredBy: "IncidentAPI",
+  },
 ];
 
 type RecordedRoute = ReturnType<typeof mockRouter.match>;

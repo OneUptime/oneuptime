@@ -80,6 +80,8 @@ router.post(
           undefined,
         onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
         teamId: (body["teamId"] as ObjectID) || undefined,
+        // Only a real yes: an SMS not sent then answers with an error.
+        failIfNotSent: body["failIfNotSent"] === true,
       });
 
       return Response.sendEmptySuccessResponse(req, res);

@@ -1,5 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  CustomFieldTypeOption,
+  getCustomFieldTypeOptions,
+  IncidentCustomFieldSettingsCopy,
+  SORT_ORDER_PLACEHOLDER,
+} from "../../../Components/CustomFields/CustomFieldSettingsCopy";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import { getCustomFieldTemplateVariableName } from "Common/Types/CustomField/CustomFieldVariableKey";
 import {
   CustomFieldMappingSourceInfo,
   getCustomFieldMappingSource,
@@ -28,21 +36,6 @@ import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-
-/*
- * Typed as a total Record so adding a member to CustomFieldType fails the
- * compile here rather than shipping a picker entry labelled with its own raw
- * enum key.
- */
-const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
-  [CustomFieldType.Text]: "Text",
-  [CustomFieldType.Number]: "Number",
-  [CustomFieldType.Boolean]: "Boolean",
-  [CustomFieldType.Dropdown]: "Dropdown (single select)",
-  [CustomFieldType.MultiSelectDropdown]: "Dropdown (multi-select)",
-  [CustomFieldType.Date]: "Date",
-  [CustomFieldType.DateTime]: "Date and time",
-};
 
 const isDropdownType: (value: unknown) => boolean = (
   value: unknown,
@@ -261,6 +254,144 @@ const CustomFieldsPageBase: (
     : [];
 
   /*
+   * The settings only incident fields have: where a field sits, whether it is
+   * asked for (and required) when an incident is declared, whether it goes
+   * out in subscriber emails, and the key templates reach it by. Offered for
+   * any definition model that has the columns - today only
+   * IncidentCustomField - rather than by name, because the form and the
+   * table's select would fail for a model without them.
+   */
+  const definitionModel: CustomFieldsBaseModels = new props.modelType();
+
+  const hasIncidentFieldSettings: boolean =
+    definitionModel.hasColumn("sortOrder") &&
+    definitionModel.hasColumn("showOnCreate") &&
+    definitionModel.hasColumn("isRequiredOnCreate") &&
+    definitionModel.hasColumn("includeInSubscriberNotifications");
+
+  const hasVariableKey: boolean = definitionModel.hasColumn("variableKey");
+
+  const incidentSettingsFormFields: Array<Field<CustomFieldsBaseModels>> =
+    hasIncidentFieldSettings
+      ? [
+          {
+            field: {
+              sortOrder: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
+            description: IncidentCustomFieldSettingsCopy.sortOrderDescription,
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: SORT_ORDER_PLACEHOLDER,
+          },
+          {
+            field: {
+              showOnCreate: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
+            description:
+              IncidentCustomFieldSettingsCopy.showOnCreateDescription,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              isRequiredOnCreate: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
+            description:
+              IncidentCustomFieldSettingsCopy.isRequiredOnCreateDescription,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            /*
+             * Required only means something for a field that is asked for.
+             * Hidden rather than cleared: turning Show on Create back on
+             * brings the setting back as it was.
+             */
+            showIf: (item: FormValues<CustomFieldsBaseModels>) => {
+              return Boolean((item as any).showOnCreate);
+            },
+          },
+          {
+            field: {
+              includeInSubscriberNotifications: true,
+            } as any,
+            title:
+              IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsTitle,
+            description:
+              IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsDescription,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]
+      : [];
+
+  const incidentSettingsColumns: Columns<CustomFieldsBaseModels> = [
+    ...(hasIncidentFieldSettings
+      ? [
+          {
+            field: {
+              sortOrder: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
+            type: FieldType.Number,
+            noValueMessage: "-",
+          },
+          {
+            field: {
+              showOnCreate: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
+            type: FieldType.Boolean,
+          },
+          {
+            field: {
+              isRequiredOnCreate: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
+            type: FieldType.Boolean,
+            isHiddenByDefault: true,
+          },
+          {
+            field: {
+              includeInSubscriberNotifications: true,
+            } as any,
+            title:
+              IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsColumnTitle,
+            type: FieldType.Boolean,
+          },
+        ]
+      : []),
+    ...(hasVariableKey
+      ? [
+          {
+            field: {
+              variableKey: true,
+            } as any,
+            title: IncidentCustomFieldSettingsCopy.variableKeyColumnTitle,
+            description:
+              IncidentCustomFieldSettingsCopy.variableKeyColumnDescription,
+            type: FieldType.Element,
+            noValueMessage: "-",
+            getElement: (item: CustomFieldsBaseModels): ReactElement => {
+              const variableKey: unknown = (item as any).variableKey;
+
+              if (typeof variableKey !== "string" || !variableKey) {
+                return <span className="text-gray-400">-</span>;
+              }
+
+              return (
+                <code className="text-xs text-gray-700">{`{{${getCustomFieldTemplateVariableName(
+                  variableKey,
+                )}}}`}</code>
+              );
+            },
+          },
+        ]
+      : []),
+  ];
+
+  /*
    * A field whose value is copied from somewhere else is not editable on the
    * record, so the settings table is the only place that says where it comes
    * from. Without this column a renamed or deleted source field is invisible
@@ -309,6 +440,13 @@ const CustomFieldsPageBase: (
                * comes back undefined and the column reads as unmapped.
                */
               selectMoreFields: { mapFromResourceType: true } as any,
+            }
+          : {})}
+        {...(hasIncidentFieldSettings
+          ? {
+              // Listed in the order the fields appear on an incident.
+              sortBy: "sortOrder" as any,
+              sortOrder: SortOrder.Ascending,
             }
           : {})}
         userPreferencesKey="custom-fields-table"
@@ -373,14 +511,14 @@ const CustomFieldsPageBase: (
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Please select field type.",
-            dropdownOptions: (
-              Object.keys(CustomFieldType) as Array<CustomFieldType>
-            ).map((item: CustomFieldType) => {
-              return {
-                label: FIELD_TYPE_LABELS[item] || item,
-                value: item,
-              };
-            }),
+            dropdownOptions: getCustomFieldTypeOptions().map(
+              (option: CustomFieldTypeOption) => {
+                return {
+                  label: option.label,
+                  value: option.value,
+                };
+              },
+            ),
           },
           {
             field: {
@@ -423,6 +561,7 @@ const CustomFieldsPageBase: (
             },
           },
           ...mappingFormFields,
+          ...incidentSettingsFormFields,
         ]}
         showRefreshButton={true}
         filters={[
@@ -472,6 +611,7 @@ const CustomFieldsPageBase: (
             type: FieldType.Text,
           },
           ...mappingColumns,
+          ...incidentSettingsColumns,
         ]}
       />
     </Fragment>

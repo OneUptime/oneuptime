@@ -38,6 +38,10 @@ const RESOLVED_INCIDENT_STATE_ID: string = uuid("21000000", 3);
 const ACKNOWLEDGED_ALERT_STATE_ID: string = uuid("31000000", 2);
 
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
+
+// The Retry confirmation of the incident-created notification (SubscriberNotificationResendCopy).
+const INCIDENT_CREATED_RETRY_DESCRIPTION: string =
+  "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.";
 const INCIDENT_PATH: string = `${DASHBOARD}/incidents/${INCIDENT_ID}`;
 const ALERT_PATH: string = `${DASHBOARD}/alerts/${ALERT_ID}`;
 const SCHEDULED_MAINTENANCE_PATH: string = `${DASHBOARD}/scheduled-maintenance-events/${SCHEDULED_MAINTENANCE_ID}`;
@@ -108,6 +112,7 @@ interface RecordedWrite {
   modelName: string;
   id?: string;
   data?: Record<string, unknown>;
+  miscDataProps?: Record<string, unknown>;
 }
 
 interface UnhandledRequest {
@@ -226,6 +231,8 @@ const INCIDENT_PAGE: EventPage = {
     "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
+    // The status pages the incident is limited to, read only.
+    "Status Page Scope",
     "Labels",
     "Incident Number",
     "Incident ID",
@@ -3240,6 +3247,29 @@ test.describe("incident and alert overview", () => {
     );
     await dialog.getByRole("button", { name: "Retry" }).click();
 
+    /*
+     * Retry asks first: it resumes after the pages already reached, and
+     * says who it reaches now - without them.
+     */
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Retry this notification?",
+    });
+    await expect(
+      confirm.getByTestId("subscriber-notification-resend-description"),
+    ).toHaveText(INCIDENT_CREATED_RETRY_DESCRIPTION);
+    const retryAudience: Locator = confirm.getByTestId(
+      "incident-created-retry-audience",
+    );
+    await expect(retryAudience).toContainText(
+      "Acme EU (up to 1284 email, 3 webhook)",
+    );
+    await expect(retryAudience).toContainText(
+      "Acme US (already sent this notification in full)",
+    );
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
     await expect(details.getByRole("alert")).toHaveText(
       "Could not resend notifications: Notifications cannot be resent while the email provider is rate limiting this project.",
     );
@@ -3250,6 +3280,91 @@ test.describe("incident and alert overview", () => {
       id: INCIDENT_ID,
     });
     await expect(hero(page)).toContainText(INCIDENT_PAGE.title);
+  });
+
+  test("Retry with every status page ticked resends to all pages, through the server's request", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "fail=resend");
+
+    const details: Locator = card(page, "Incident Details");
+    await details.getByRole("button", { name: "more details" }).click();
+    await page
+      .getByRole("dialog", { name: "Notification Status Details" })
+      .getByRole("button", { name: "Retry" })
+      .click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Retry this notification?",
+    });
+    await confirm
+      .getByText(
+        "Send it to every status page again, including the pages already reached",
+      )
+      .click();
+
+    // Every page it reaches now, the ones already reached included.
+    await expect(
+      confirm.getByTestId("incident-created-resend-audience"),
+    ).toContainText("Acme US (up to 1284 email, 3 webhook)");
+    await expect(
+      confirm.getByTestId("incident-created-retry-audience"),
+    ).toHaveCount(0);
+
+    await confirm.getByRole("button", { name: "Resend to all pages" }).click();
+    await expect(confirm).toHaveCount(0);
+
+    const resends: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      },
+    );
+    expect(resends).toHaveLength(1);
+    expect(
+      resends[0]!.data!["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBe("Pending");
+    expect(resends[0]!.miscDataProps).toEqual({
+      resendIncidentCreatedToAllStatusPages: true,
+    });
+    // Not the plain Retry.
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("a notification that went out can be resent to every page, after confirming", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const details: Locator = card(page, "Incident Details");
+    await expect(details).toContainText("Notifications Sent");
+    await details.getByRole("button", { name: "more details" }).click();
+    await page
+      .getByRole("dialog", { name: "Notification Status Details" })
+      .getByRole("button", { name: "Resend" })
+      .click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Send this notification again?",
+    });
+    await expect(
+      confirm.getByTestId("incident-created-resend-audience"),
+    ).toContainText("Acme US (up to 1284 email, 3 webhook)");
+    await confirm.getByRole("button", { name: "Resend", exact: true }).click();
+    await expect(confirm).toHaveCount(0);
+
+    const resends: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      },
+    );
+    expect(resends).toHaveLength(1);
+    expect(resends[0]!.miscDataProps).toEqual({
+      resendIncidentCreatedToAllStatusPages: true,
+    });
   });
 });
 

@@ -7,7 +7,11 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
-import { FormType, ModelField } from "../Forms/ModelForm";
+import {
+  FormType,
+  ModelField,
+  ModelFormOnBeforeCreate,
+} from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, {
   BaseTableProps,
@@ -260,12 +264,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
           showCreateEditModal: (data: {
             modalType: ModalType;
             modelIdToEdit?: ObjectID | undefined;
-            onBeforeCreate?:
-              | ((
-                  item: TBaseModel,
-                  miscDataProps: JSONObject,
-                ) => Promise<TBaseModel>)
-              | undefined;
+            onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
           }): ReactElement => {

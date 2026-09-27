@@ -27,6 +27,17 @@ function uuid(prefix: string, suffix: number): string {
   return `${prefix}-0000-4000-8000-${String(suffix).padStart(12, "0")}`;
 }
 
+/*
+ * The Retry and Resend confirmations of a public note's notification
+ * (SubscriberNotificationResendCopy in the Dashboard).
+ */
+const RETRY_CONFIRM_TITLE: string = "Retry this notification?";
+const RESEND_CONFIRM_TITLE: string = "Send this notification again?";
+const NOTE_RETRY_DESCRIPTION: string =
+  "Retry sends this note again to the subscribers of every status page this incident reaches now, including the pages that were sent it before: notes and state changes do not resume where they stopped, only the incident-created notification does. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.";
+const NOTE_RESEND_DESCRIPTION: string =
+  "This note is sent again to the subscribers of every status page this incident reaches now, including the pages that were sent it before. Notes and state changes are always sent to every page again; only a retry of the incident-created notification resumes where it stopped. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.";
+
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
 const INCIDENT: string = `${DASHBOARD}/incidents/${uuid("20000000", 1042)}`;
 const ALERT: string = `${DASHBOARD}/alerts/${uuid("30000000", 311)}`;
@@ -567,6 +578,69 @@ test.describe("writing a note", () => {
 });
 
 /*
+ * The notification preview opens from the composer, portalled out of it. Its
+ * keys used to be stopped at the body so the composer would not see them,
+ * which also kept them from the dialog's own document-level handler: Escape
+ * did nothing and Tab walked out of the dialog. Now the dialog closes on
+ * Escape and keeps Tab inside, and the composer ignores keys from outside
+ * itself, so the draft survives.
+ */
+test.describe("previewing the notification", () => {
+  test("the preview closes on Escape, keeps Tab inside it, and leaves the draft", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    await composer
+      .getByRole("button", { name: "Preview notification" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Preview notification",
+    });
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-subject"),
+    ).toHaveText("[Update Incident] Card payments failing in the EU");
+
+    // Tab from the dialog's last control comes back round inside it.
+    const footerClose: Locator = dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" });
+    await footerClose.focus();
+    await page.keyboard.press("Tab");
+    expect(
+      await dialog.evaluate((element: Element): boolean => {
+        return element.contains(document.activeElement);
+      }),
+    ).toBe(true);
+    await page.keyboard.press("Shift+Tab");
+    expect(
+      await dialog.evaluate((element: Element): boolean => {
+        return element.contains(document.activeElement);
+      }),
+    ).toBe(true);
+
+    // Escape closes the dialog, not the draft.
+    await dialog
+      .getByTestId("subscriber-notification-preview-page-select")
+      .focus();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(composer).toBeVisible();
+    await expect(composer.locator('[contenteditable="true"]')).toContainText(
+      "Rolling back the edge config.",
+    );
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+});
+
+/*
  * ---------------------------------------------------------------------------
  * Editing, deleting and notifications
  * ---------------------------------------------------------------------------
@@ -648,6 +722,23 @@ test.describe("managing notes", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Retry notification" }).click();
 
+    // It asks first: what Retry does, and who it reaches now.
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await expect(confirm).toBeVisible();
+    await expect(
+      confirm.getByTestId("note-notification-resend-description"),
+    ).toHaveText(NOTE_RETRY_DESCRIPTION);
+    await expect(
+      confirm.getByTestId("incident-public-note-resend-audience"),
+    ).toContainText("Acme Status (up to 1284 email, 3 webhook)");
+    // Nothing is written until it is confirmed.
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
+    await expect(confirm).toHaveCount(0);
     await expect(badge).not.toHaveText("Notification failed");
     const retry: RecordedWrite = (await fixture(page)).updates[0]!;
     expect(retry.id).toBe(uuid("70000000", 2));
@@ -655,6 +746,61 @@ test.describe("managing notes", () => {
       subscriberNotificationStatusOnNoteCreated: "Pending",
       subscriberNotificationStatusMessage: null,
     });
+  });
+
+  test("a note that went out can be resent, after confirming who it reaches", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const badge: Locator = card(page, "Monitoring.").getByTestId(
+      "note-notification-status",
+    );
+    await expect(badge).toHaveText("Subscribers notified");
+
+    await badge.click();
+    await page.getByRole("button", { name: "Resend notification" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RESEND_CONFIRM_TITLE,
+    });
+    await expect(
+      confirm.getByTestId("note-notification-resend-description"),
+    ).toHaveText(NOTE_RESEND_DESCRIPTION);
+    await expect(
+      confirm.getByTestId("incident-public-note-resend-audience"),
+    ).toContainText("Acme Status (up to 1284 email, 3 webhook)");
+
+    await confirm.getByRole("button", { name: "Resend", exact: true }).click();
+
+    await expect(confirm).toHaveCount(0);
+    const resend: RecordedWrite = (await fixture(page)).updates[0]!;
+    expect(resend.id).toBe(uuid("70000000", 1));
+    expect(resend.data).toEqual({
+      subscriberNotificationStatusOnNoteCreated: "Pending",
+      subscriberNotificationStatusMessage: null,
+    });
+  });
+
+  test("cancelling the confirmation sends nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    await card(page, "rotating it now")
+      .getByTestId("note-notification-status")
+      .click();
+    await page.getByRole("button", { name: "Retry notification" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(confirm).toHaveCount(0);
+    expect((await fixture(page)).updates).toEqual([]);
   });
 
   test("a refused retry keeps the dialog open with the reason", async ({
@@ -668,11 +814,20 @@ test.describe("managing notes", () => {
       .click();
     await page.getByRole("button", { name: "Retry notification" }).click();
 
+    const confirm: Locator = page.getByRole("dialog", {
+      name: RETRY_CONFIRM_TITLE,
+    });
+    await confirm.getByRole("button", { name: "Retry", exact: true }).click();
+
     await expect(
-      page.getByText(
+      confirm.getByText(
         "Notifications cannot be resent while the SMTP relay is down.",
       ),
     ).toBeVisible();
+    // The note is left as it was.
+    await expect(
+      card(page, "rotating it now").getByTestId("note-notification-status"),
+    ).toHaveText("Notification failed");
   });
 });
 

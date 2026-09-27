@@ -75,6 +75,13 @@ export interface PublicNotesTabCase {
   helperCall: string;
   // e.g. "PublicNoteSubscriberNotificationDefault.quietIncidentDescription".
   quietDescriptionReference: string;
+  /*
+   * The "who will be notified" element the tab hands the feed, as written in
+   * the source - the incident tab's SubscriberAudienceSummary, which counts
+   * the status pages the incident's scope lets through. Left out for a tab
+   * that shows no audience, which then must not hand the feed one.
+   */
+  audienceSummary?: string | undefined;
   // A neighbour's helper call and wording, easy to copy over by mistake.
   foreignReferences?: Array<string> | undefined;
 }
@@ -135,9 +142,23 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
       expect(feed).toContain('visibility="public"');
       expect(feed).toContain(`parentIdField="${tab.parentIdField}"`);
       expect(feed).toContain("parentId={modelId}");
-      expect(feed).toContain(
-        `subscriberNotifications={{ isNotifyingByDefault, quietDescription: ${tab.quietDescriptionReference}, }}`,
-      );
+
+      const settings: string = `subscriberNotifications={{ isNotifyingByDefault, quietDescription: ${tab.quietDescriptionReference},`;
+
+      if (tab.audienceSummary) {
+        /*
+         * `feed` stops at the first "/>", which is then the audience
+         * summary's own closing tag - so this also pins that the summary is
+         * the last setting handed over.
+         */
+        expect(feed).toContain(
+          `${settings} audienceSummary: ${tab.audienceSummary}`,
+        );
+        expect(feed.endsWith(tab.audienceSummary)).toBe(true);
+      } else {
+        expect(feed).toContain(`${settings} }}`);
+        expect(source).not.toContain("audienceSummary");
+      }
     });
 
     test(`starts a new feed per ${tab.eventName}, so a draft never follows you to the next one`, () => {

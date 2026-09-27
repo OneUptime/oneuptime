@@ -41,6 +41,7 @@ type RecordedFeedProps = {
     generate: (data: { template?: string }) => Promise<string>;
   };
   siblingRoute?: { toString: () => string };
+  templateVariables?: () => Promise<Record<string, string>>;
 };
 
 let feedRenders: Array<RecordedFeedProps> = [];
@@ -136,6 +137,7 @@ import ScheduledMaintenanceInternalNote from "../../../Models/DatabaseModels/Sch
 import ScheduledMaintenanceNoteTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -169,6 +171,14 @@ interface NotePageCase {
       }
     | undefined;
   siblingPath?: string | undefined;
+  // Fills a picked template's {{incident.title}}-style placeholders.
+  fillsIncidentPlaceholders?: boolean | undefined;
+  /*
+   * Offers Resend for a note whose notification went out, confirmed with
+   * the incident's audience. Only the incident's public notes do; the
+   * episode and scheduled maintenance ones keep Retry after a failure only.
+   */
+  offersResend?: boolean | undefined;
 }
 
 const INCIDENTS: string = `/dashboard/${PROJECT_ID}/incidents`;
@@ -193,6 +203,8 @@ const PAGES: Array<NotePageCase> = [
       templates: PUBLIC_NOTE_TEMPLATES,
     },
     siblingPath: `${INCIDENTS}/${EVENT_ID}/internal-notes`,
+    fillsIncidentPlaceholders: true,
+    offersResend: true,
   },
   {
     name: "incident private notes",
@@ -211,6 +223,7 @@ const PAGES: Array<NotePageCase> = [
       templates: INTERNAL_NOTE_TEMPLATES,
     },
     siblingPath: `${INCIDENTS}/${EVENT_ID}/public-notes`,
+    fillsIncidentPlaceholders: true,
   },
   {
     name: "alert private notes",
@@ -397,6 +410,42 @@ describe.each(PAGES)("$name", (page: NotePageCase) => {
     }
   });
 
+  if (page.offersResend) {
+    test("offers Resend, confirmed with who this incident's notes reach now", async () => {
+      await renderPage();
+
+      const resend: { audience?: ReactElement | undefined } | undefined = (
+        feed().subscriberNotifications as
+          | { resend?: { audience?: ReactElement | undefined } }
+          | undefined
+      )?.resend;
+
+      expect(resend).toBeDefined();
+
+      // The audience summary for this incident's current scope.
+      const audience: ReactElement = resend!.audience!;
+      const props: {
+        request: { incidentId: { toString: () => string } };
+        dataTestId?: string;
+      } = audience.props as {
+        request: { incidentId: { toString: () => string } };
+        dataTestId?: string;
+      };
+
+      expect(props.request.incidentId.toString()).toBe(EVENT_ID);
+      expect(props.dataTestId).toBe("incident-public-note-resend-audience");
+    });
+  } else if (page.visibility === "public") {
+    test("keeps Retry after a failure only: no Resend setting", async () => {
+      await renderPage();
+
+      expect(
+        (feed().subscriberNotifications as { resend?: unknown } | undefined)
+          ?.resend,
+      ).toBeUndefined();
+    });
+  }
+
   if (page.ai) {
     const ai: NonNullable<NotePageCase["ai"]> = page.ai;
 
@@ -434,6 +483,76 @@ describe.each(PAGES)("$name", (page: NotePageCase) => {
       await renderPage();
 
       expect(feed().ai).toBeUndefined();
+    });
+  }
+
+  if (page.fillsIncidentPlaceholders) {
+    test("fills a picked template's placeholders from this incident", async () => {
+      await renderPage();
+
+      getItemMock.mockImplementation(async (...args: Array<unknown>) => {
+        const request: { modelType: unknown; id: ObjectID } = args[0] as {
+          modelType: unknown;
+          id: ObjectID;
+        };
+
+        if (request.modelType !== Incident) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = request.id.toString();
+        incident.title = `Incident ${request.id.toString()}`;
+        return incident;
+      });
+      // The status pages and custom fields cannot be read here.
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValue(
+          new HTTPErrorResponse(403, { message: "No access." }, {}),
+        );
+
+      expect(typeof feed().templateVariables).toBe("function");
+
+      const variables: Record<string, string> =
+        await feed().templateVariables!();
+
+      expect(variables["incident.title"]).toBe(`Incident ${EVENT_ID}`);
+
+      const incidentRequest: { select: Record<string, unknown> } =
+        getItemMock.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as {
+              modelType: unknown;
+              id: ObjectID;
+              select: Record<string, unknown>;
+            };
+          })
+          .find(
+            (request: {
+              modelType: unknown;
+              id: ObjectID;
+              select: Record<string, unknown>;
+            }) => {
+              return (
+                request.modelType === Incident &&
+                request.id.toString() === EVENT_ID &&
+                Boolean(request.select["title"])
+              );
+            },
+          )!;
+
+      expect(incidentRequest.select).toMatchObject({
+        title: true,
+        customFields: true,
+        labels: { name: true },
+      });
+    });
+  } else {
+    test("leaves template placeholders as written", async () => {
+      await renderPage();
+
+      expect(feed().templateVariables).toBeUndefined();
     });
   }
 

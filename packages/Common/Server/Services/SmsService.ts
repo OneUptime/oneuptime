@@ -41,6 +41,15 @@ export class SmsService extends BaseService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Answer with an error, not success, when the Notification service
+       * deliberately does not send the SMS: the project has SMS notifications
+       * turned off, or too little SMS balance. The status page subscriber
+       * sends that count what they delivered pass it
+       * (SubscriberNotificationDeliveryRecord), so such an SMS counts as
+       * failed rather than sent.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -74,6 +83,7 @@ export class SmsService extends BaseService {
         options.onCallDutyPolicyExecutionLogTimelineId?.toString(),
       onCallScheduleId: options.onCallScheduleId?.toString(),
       teamId: options.teamId?.toString(),
+      ...(options.failIfNotSent ? { failIfNotSent: true } : {}),
     };
 
     return await API.post<EmptyResponseData>({

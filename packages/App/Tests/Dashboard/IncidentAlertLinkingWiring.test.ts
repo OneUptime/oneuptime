@@ -562,7 +562,7 @@ describe("the create-incident page", () => {
     const code: string = dense(CREATE_PAGE);
 
     expect(code).toContain(
-      "onBeforeCreate={async(item:Incident,miscDataProps:JSONObject,):Promise<Incident>=>{",
+      "onBeforeCreate={async(item:Incident,miscDataProps:JSONObject,formValues:JSONObject,):Promise<Incident>=>{",
     );
     expect(code).toContain(
       "miscDataProps[INCIDENT_ALERT_IDS_TO_LINK_KEY]=alertsToLink.map(",

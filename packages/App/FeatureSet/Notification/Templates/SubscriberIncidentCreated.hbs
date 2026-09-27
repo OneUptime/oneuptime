@@ -7,9 +7,10 @@
 {{> InfoBlock info="A new incident has been reported that may affect the services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" text=incidentTitle }}
-{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Incident" plainText=incidentTitle }}
+{{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> IncidentCustomFieldRows this }}
 {{#if incidentDescription}}
 {{> DetailBoxField title="Description" blockText=incidentDescription  }}
 {{/if}}

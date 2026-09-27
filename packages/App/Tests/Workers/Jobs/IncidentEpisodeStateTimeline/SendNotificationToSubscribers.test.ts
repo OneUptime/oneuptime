@@ -32,13 +32,16 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -67,7 +70,12 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/IncidentEpisodeStateTimelineService", () => {
   return {
     __esModule: true,
-    default: { findBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -79,6 +87,11 @@ jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeMemberService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+// IncidentStatusPageScope reads the member incidents' status page scope.
+jest.mock("Common/Server/Services/IncidentService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
@@ -128,6 +141,27 @@ jest.mock(
          * The real substitution, wrapped in a mock so tests can read the
          * variables each channel handed to its template.
          */
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
         compileTemplate: jest.fn(
           (template: string, variables: Record<string, string>): string => {
             let compiled: string = template;
@@ -209,6 +243,51 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import IncidentService from "Common/Server/Services/IncidentService";
+import Dictionary from "Common/Types/Dictionary";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  sharedMonitor,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  smsManageLinkFor,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -249,7 +328,15 @@ const STATUS_PAGE_URL: string = "https://status.acme.com";
 const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
 // The status page shows an episode on its incident detail route.
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${EPISODE_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/episode/3";
 
 const EPISODE_TITLE: string = "Regional network interruption";
@@ -261,6 +348,13 @@ let pendingTimelines: Array<IncidentEpisodeStateTimeline> = [];
 let skipTimelines: Array<IncidentEpisodeStateTimeline> = [];
 let storedEpisode: IncidentEpisode | null = null;
 let memberMonitors: Array<Monitor> = [];
+// The episode's one member incident, unless a test sets memberIncidents.
+const MEMBER_INCIDENT_ID: ObjectID = new ObjectID(
+  "12121212-1212-4121-8121-121212121212",
+);
+let memberIncidents: Array<Incident> | null = null;
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 let subscribersByPage: Record<string, Array<StatusPageSubscriber>> = {};
 
 function stateTimeline(overrides?: {
@@ -325,6 +419,7 @@ function statusPage(overrides?: {
   page.pageTitle = overrides?.pageTitle || "Acme Status";
   page.isPublicStatusPage = true;
   page.showEpisodesOnStatusPage = overrides?.showEpisodesOnStatusPage !== false;
+  page.onlyShowScopedIncidents = false;
   if (overrides?.withCustomSmtpAndSms) {
     (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
     (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
@@ -396,19 +491,25 @@ function subscriber(overrides?: {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
 function statusWrites(): Array<JSONObject> {
-  return mock(IncidentEpisodeStateTimelineService.updateOneById).mock.calls.map(
-    (call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    },
-  );
+  return statusWritesInOrder({
+    claim:
+      IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentEpisodeStateTimelineService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function sentMail(): Array<JSONObject> {
@@ -474,6 +575,9 @@ function nothingSent(): void {
   expect(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
   ).not.toHaveBeenCalled();
+  expect(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).not.toHaveBeenCalled();
 }
 
 // The dashboard's starter template for a channel, filled with the fixtures.
@@ -486,7 +590,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     episodeTitle: EPISODE_TITLE,
     episodeSeverity: EPISODE_SEVERITY,
     episodeState: STATE_NAME,
@@ -511,12 +618,14 @@ interface CompileCall {
 }
 
 function compileCalls(): Array<CompileCall> {
-  return mock(
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.map((call: Array<unknown>): CompileCall => {
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileCall => {
     return {
-      template: call[0] as string,
-      variables: call[1] as Record<string, string>,
+      template: call.template,
+      variables: call.variables,
     };
   });
 }
@@ -618,6 +727,15 @@ beforeEach(() => {
   skipTimelines = [];
   storedEpisode = episode();
   memberMonitors = [monitor()];
+  memberIncidents = null;
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
+
   subscribersByPage = {
     [STATUS_PAGE_ID.toString()]: [subscriber()],
     [SECOND_STATUS_PAGE_ID.toString()]: [
@@ -639,6 +757,10 @@ beforeEach(() => {
   mock(IncidentEpisodeStateTimelineService.updateOneById).mockResolvedValue(
     1 as never,
   );
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
 
   mock(IncidentEpisodeService.findOneById).mockImplementation(async () => {
     return storedEpisode;
@@ -647,9 +769,20 @@ beforeEach(() => {
     URL.fromString(DASHBOARD_URL) as never,
   );
   mock(IncidentEpisodeMemberService.findBy).mockImplementation(async () => {
+    if (memberIncidents) {
+      return memberIncidents.map((incident: Incident) => {
+        const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+        member.incidentId = incident.id!;
+        member.incident = incident;
+        return member;
+      });
+    }
+
     const incident: Incident = new Incident();
+    incident._id = MEMBER_INCIDENT_ID.toString();
     incident.monitors = memberMonitors;
     const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+    member.incidentId = MEMBER_INCIDENT_ID;
     member.incident = incident;
     return [member];
   });
@@ -680,11 +813,7 @@ beforeEach(() => {
     true,
   );
   mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
-    (pageUrl: unknown, subscriberId: unknown): URL => {
-      return URL.fromString((pageUrl as URL).toString()).addRoute(
-        `/update-subscription/${(subscriberId as ObjectID).toString()}`,
-      );
-    },
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockImplementation(
     async (statusPageId: unknown): Promise<string> => {
@@ -749,7 +878,7 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
     expect(compileCalls()).toHaveLength(0);
 
     expect(sentSms()).toEqual([
-      `Incident ${EPISODE_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident ${EPISODE_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
@@ -854,7 +983,7 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
         subscriberNotificationStatus:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessage:
-          "Notifications sent successfully to all subscribers",
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
     expect(feedItems()).toHaveLength(1);
@@ -1076,8 +1205,11 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       expect(call.variables["statusPageName"]).toBe("Beta Status");
       expect(call.variables["statusPageUrl"]).toBe(SECOND_STATUS_PAGE_URL);
       expect(call.variables["resourcesAffected"]).toBe("DNS resolvers");
+      // An SMS from a public page carries the manage link (see smsManageLinkFor).
       expect(call.variables["unsubscribeUrl"]).toBe(
-        `${SECOND_STATUS_PAGE_URL}/update-subscription/${SECOND_SUBSCRIBER_ID.toString()}`,
+        call.template === templateUsingEveryVariable("sms")
+          ? smsManageLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)
+          : unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
       );
     }
 
@@ -1111,7 +1243,11 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        "Notifications sent successfully to all subscribers",
+        /*
+         * Every page hides episodes: nothing was sent, and the message says
+         * so rather than that everyone was sent it.
+         */
+        "Not sent to any subscriber: no status page was sent this notification. Acme: not sent, this status page does not show episodes.",
     });
   });
 });
@@ -1207,7 +1343,7 @@ describe("IncidentEpisodeStateTimeline custom templates need the page's own SMTP
         expect(sentSms()[0]).toContain("channel=sms");
       } else {
         expect(sentSms()[0]).toBe(
-          `Incident ${EPISODE_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+          `Incident ${EPISODE_TITLE} on Acme Status is ${STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
         );
       }
 
@@ -1488,21 +1624,33 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
         return call.variables["unsubscribeUrl"] as string;
       },
     );
-    const secondUnsubscribeUrl: string = `${STATUS_PAGE_URL}/update-subscription/${SECOND_SUBSCRIBER_ID.toString()}`;
+    const secondUnsubscribeUrl: string = unsubscribeLinkFor(
+      STATUS_PAGE_URL,
+      SECOND_SUBSCRIBER_ID,
+    );
 
-    // Subscribers are sent to one after another, five templates each.
-    expect(unsubscribeUrls).toEqual([
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      UNSUBSCRIBE_URL,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-      secondUnsubscribeUrl,
-    ]);
+    /*
+     * Five templates for each subscriber, the SMS one carrying - from this
+     * public page - the subscriber's manage link (see smsManageLinkFor).
+     * Subscribers are sent to a bounded number at a time, so their compiles
+     * interleave; each still carries its own subscriber's link.
+     */
+    expect([...unsubscribeUrls].sort()).toEqual(
+      [
+        SMS_UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        UNSUBSCRIBE_URL,
+        smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+        secondUnsubscribeUrl,
+      ].sort(),
+    );
+    // The first subscriber's templates start first.
+    expect(unsubscribeUrls[0]).toBe(SMS_UNSUBSCRIBE_URL);
   });
 
   test("a template using every advertised variable renders completely on every channel", async () => {
@@ -1549,7 +1697,11 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
       expect(message).not.toMatch(/{{|}}/);
 
       for (const name of names) {
-        const value: string = expectedValues[name]!;
+        // An SMS from this public page carries the manage link.
+        const value: string =
+          name === "unsubscribeUrl" && channel === "sms"
+            ? SMS_UNSUBSCRIBE_URL
+            : expectedValues[name]!;
 
         expect(value).not.toBe("");
         expect(message).toContain(`${name}=[${value}]`);
@@ -1622,8 +1774,12 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
     expect(sentMail()[0]!["subject"]).toBe(
       `${EPISODE_TITLE} is ${STATE_NAME} (${GROUPED_RESOURCES_TEXT})`,
     );
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
     expect(sentSms()).toEqual([
-      renderedWithEveryVariable("sms", PLAIN_TEXT_VALUES),
+      renderedWithEveryVariable("sms", {
+        ...PLAIN_TEXT_VALUES,
+        unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+      }),
     ]);
     expect(sentSlack()).toEqual([
       renderedWithEveryVariable("slack", PLAIN_TEXT_VALUES),
@@ -1660,7 +1816,7 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
       variablesCompiledInto(
         bodies[StatusPageSubscriberNotificationMethod.SMS]!,
       ),
-    ).toEqual(PLAIN_TEXT_VALUES);
+    ).toEqual({ ...PLAIN_TEXT_VALUES, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
     expect(
       variablesCompiledInto(
         bodies[StatusPageSubscriberNotificationMethod.Slack]!,
@@ -1688,7 +1844,13 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
     });
   });
 
-  test("the default email still gets HTML for the resource list", async () => {
+  /*
+   * The resource list row is raw HTML, so it gets the HTML list. The heading
+   * is escaped by the template (EmailTitle's {{title}}), so it gets the
+   * plain-text list: with the HTML one, the reader saw a literal "<br/>"
+   * between the groups, and an "&amp;" for every ampersand in a name.
+   */
+  test("the default email gets HTML for the resource list, and plain text in its heading", async () => {
     await runJob();
 
     expect(compileCalls()).toHaveLength(0);
@@ -1698,7 +1860,7 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
     );
     expect(sentMail()[0]!["vars"]).toEqual(
       expect.objectContaining({
-        emailTitle: `Incident on ${GROUPED_RESOURCES_HTML} is ${STATE_NAME}`,
+        emailTitle: `Incident on ${GROUPED_RESOURCES_TEXT} is ${STATE_NAME}`,
         resourcesAffected: GROUPED_RESOURCES_HTML,
       }),
     );
@@ -1765,4 +1927,477 @@ describe("IncidentEpisodeStateTimeline email subjects are sent as written", () =
     );
     expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
   });
+});
+
+/*
+ * A state change is marked InProgress before anything is sent, and the cron
+ * only ever picks up Pending rows. So an error part-way through must settle
+ * the row as Failed: uncaught, it left the row "being sent" forever, and it
+ * also ended the run before the remaining state changes were looked at.
+ */
+describe("IncidentEpisodeStateTimeline errors", () => {
+  const SECOND_TIMELINE_ID: string = "abababab-abab-4bab-8bab-abababababab";
+
+  function writesFor(timelineId: string): Array<JSONObject> {
+    return statusWritesInOrder({
+      claim:
+        IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      update: IncidentEpisodeStateTimelineService.updateOneById,
+      id: timelineId,
+    }).map((write: StatusWrite): JSONObject => {
+      return write.data;
+    });
+  }
+
+  test("an error while sending marks the state change Failed with the reason, not InProgress", async () => {
+    pendingTimelines = [stateTimeline()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Failed,
+        subscriberNotificationStatusMessage: "database unavailable",
+      },
+    ]);
+  });
+
+  test("one failing state change does not stop the others in the same run", async () => {
+    pendingTimelines = [
+      stateTimeline(),
+      stateTimeline({ id: SECOND_TIMELINE_ID }),
+    ];
+
+    let episodeReads: number = 0;
+    mock(IncidentEpisodeService.findOneById).mockImplementation(async () => {
+      episodeReads += 1;
+
+      if (episodeReads === 1) {
+        throw new Error("episode could not be read");
+      }
+
+      return storedEpisode;
+    });
+
+    await runJob();
+
+    const first: Array<JSONObject> = writesFor(TIMELINE_ID.toString());
+    const second: Array<JSONObject> = writesFor(SECOND_TIMELINE_ID);
+
+    expect(first[first.length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "episode could not be read",
+    });
+    expect(second[second.length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessage:
+        "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
+    });
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("a failure to record Failed is logged, not thrown", async () => {
+    pendingTimelines = [stateTimeline()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+    mock(IncidentEpisodeStateTimelineService.updateOneById).mockImplementation(
+      async (args: unknown): Promise<number> => {
+        const data: JSONObject = (args as { data: JSONObject }).data;
+
+        if (
+          data["subscriberNotificationStatus"] ===
+          StatusPageSubscriberNotificationStatus.Failed
+        ) {
+          throw new Error("write failed");
+        }
+
+        return 1;
+      },
+    );
+
+    await expect(runJob()).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * An episode reaches the union of the status pages its incidents reach, each
+ * through its own status page scope (Incident.statusPages). Ten site pages
+ * all list the shared monitor the incidents are on.
+ */
+describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers, with status page scope on its incidents", () => {
+  const INCIDENT_A: ObjectID = new ObjectID(
+    "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1",
+  );
+  const INCIDENT_B: ObjectID = new ObjectID(
+    "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
+  );
+
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function memberOnSharedMonitor(id: ObjectID): Incident {
+    const incident: Incident = new Incident();
+    incident._id = id.toString();
+    incident.monitors = [sharedMonitor()];
+    return incident;
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function sitesLookedUp(): Array<number> {
+    return mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return siteOf(call[0]);
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    pendingTimelines = [stateTimeline()];
+    memberIncidents = [memberOnSharedMonitor(INCIDENT_A)];
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("a shared monitor on ten pages, with its incident scoped to two, tells only those two", async () => {
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(sitesLookedUp()).toEqual([3, 7]);
+  });
+
+  test("reaches the union of its incidents' pages, each through its own scope", async () => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: site <= 3 });
+    });
+    memberIncidents = [
+      memberOnSharedMonitor(INCIDENT_A),
+      memberOnSharedMonitor(INCIDENT_B),
+    ];
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([3, 4]) };
+
+    await runJob();
+
+    expect(sitesLookedUp()).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(IncidentService.findBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("an episode of unscoped incidents reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+
+    await runJob();
+
+    nothingSent();
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:**",
+    );
+  });
+
+  test("someone on two reached pages gets one email and one SMS, but each page's webhook, Slack and Teams message", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("an episode of unscoped incidents sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: "shared@acme.com" });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+  });
+
+  test("the feed item lists each page, the subject used and what was sent", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 1, email: "b@acme.com" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 1 email sent. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
+        `- **Site 07**: 1 email sent. Subject: "\\[${STATE_NAME} Incident\\] ${EPISODE_TITLE}".`,
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
+  });
+});
+
+/*
+ * Escaping. The episode title, state and severity, the status page's name
+ * and the names of its resources and groups are plain text a project member
+ * typed. In an email they must read as those characters; text channels (a
+ * subject, SMS, Slack, Teams, webhooks) show text as written, so they must
+ * get no HTML entities at all.
+ */
+describe("IncidentEpisodeStateTimeline escapes plain values in email", () => {
+  const HOSTILE_STATE: string = "Mitigated <mostly> & 'mostly'";
+  const HOSTILE_STATE_HTML: string =
+    "Mitigated &lt;mostly&gt; &amp; &#39;mostly&#39;";
+
+  const ESCAPING_EMAIL_BODY: string =
+    '<h1>{{episodeTitle}}</h1><p>{{statusPageName}} / {{episodeState}} / {{episodeSeverity}}</p><div>{{resourcesAffected}}</div><a href="{{detailsUrl}}">Details</a>';
+  const ESCAPING_TEXT: string =
+    "{{episodeTitle}} on {{statusPageName}} is {{episodeState}}: {{resourcesAffected}}";
+
+  beforeEach(() => {
+    pendingTimelines = [stateTimeline({ stateName: HOSTILE_STATE })];
+    const row: IncidentEpisode = episode();
+    row.title = HOSTILE_TITLE;
+    storedEpisode = row;
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      hostileResources(STATUS_PAGE_ID) as never,
+    );
+  });
+
+  describe("with custom templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({
+          withCustomSmtpAndSms: true,
+          pageTitle: HOSTILE_PAGE_NAME,
+        }),
+      ] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Email
+          ? { templateBody: ESCAPING_EMAIL_BODY, emailSubject: ESCAPING_TEXT }
+          : { templateBody: `${method}: ${ESCAPING_TEXT}` };
+      });
+    });
+
+    test("the email body escapes the plain values and keeps the resource list as HTML", async () => {
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / ${HOSTILE_STATE_HTML} / ${EPISODE_SEVERITY}</p><div>${HOSTILE_RESOURCES_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+      );
+
+      const emailBody: Array<RecordedCompile> = recordedCompiles(
+        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+        StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+      ).filter((call: RecordedCompile): boolean => {
+        return call.emailBody;
+      });
+      expect(emailBody).toHaveLength(1);
+      expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, EVENT);
+    });
+
+    test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+      await runJob();
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} is ${HOSTILE_STATE}: ${HOSTILE_RESOURCES_TEXT}`;
+
+      expect(sentMail()[0]!["subject"]).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+      ]);
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({
+          episodeTitle: HOSTILE_TITLE,
+          incidentState: HOSTILE_STATE,
+          resourcesAffected: HOSTILE_RESOURCES_TEXT,
+        }),
+      );
+    });
+  });
+
+  test("the default email gets the resource list escaped and a plain heading, and the chat defaults get it as written", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ pageTitle: HOSTILE_PAGE_NAME }),
+    ] as never);
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        resourcesAffected: HOSTILE_RESOURCES_HTML,
+        emailTitle: `Incident on ${HOSTILE_RESOURCES_TEXT} is ${HOSTILE_STATE}`,
+        episodeTitle: HOSTILE_TITLE,
+        episodeState: HOSTILE_STATE,
+        statusPageName: HOSTILE_PAGE_NAME,
+      }),
+    );
+    expect(sentSlack()[0]).toContain(
+      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+    );
+    expect(sentTeams()[0]).toContain(
+      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+    );
+    for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+      expectNoHtmlEntities(message);
+      expect(message).not.toContain("<br/>");
+    }
+  });
+});
+
+describe("IncidentEpisodeStateTimeline unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    pendingTimelines = [stateTimeline()];
+
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingTimelines = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: IncidentEpisodeStateTimeline = stateTimeline(
+        index > 0 ? { id: ObjectID.generate().toString() } : undefined,
+      );
+      row.version = PENDING_ROW_VERSION;
+      pendingTimelines.push(row);
+    }
+
+    return pendingTimelines.map(
+      (row: IncidentEpisodeStateTimeline): ObjectID => {
+        return row.id!;
+      },
+    );
+  },
+  statusColumn: "subscriberNotificationStatus",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claim:
+    IncidentEpisodeStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentEpisodeStateTimelineService.updateOneById,
+  feed: IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
 });

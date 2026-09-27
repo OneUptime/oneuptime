@@ -4,10 +4,10 @@
 
 {{> EmailTitle title=(concat "Announcement: " announcementTitle) }}
 
-{{> InfoBlock info=(concat "A new announcement has been posted for " statusPageName ".") }}
+{{> InfoBlock plainInfo=(concat "A new announcement has been posted for " statusPageName ".") }}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Announcement" text=announcementTitle }}
+{{> DetailBoxField title="Announcement" plainText=announcementTitle }}
 {{#if announcementDescription}}
 {{> DetailBoxField title="Details" text=announcementDescription  }}
 {{/if}}

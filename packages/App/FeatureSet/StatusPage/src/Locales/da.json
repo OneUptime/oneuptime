@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Bekræft abonnement",
       "success": "Abonnement bekræftet"
+    },
+    "unsubscribe": {
+      "title": "Afmeld",
+      "titleWithName": "Afmeld {{statusPageName}}",
+      "confirmPrompt": "Vil du stoppe med at modtage notifikationer fra denne statusside?",
+      "channelEmail": "E-mailadresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dette abonnement blev tilføjet af det team, der driver denne statusside. Hvis det er en delt adresse, f.eks. en mailingliste, stopper afmelding disse notifikationer for alle, der modtager dem, og teamet får besked.",
+      "confirmButton": "Afmeld",
+      "manageInstead": "Vælg i stedet, hvilke notifikationer du modtager",
+      "manageSubscription": "Administrer dit abonnement",
+      "success": "Du er blevet afmeldt. Du modtager ikke flere notifikationer fra denne statusside.",
+      "alreadyUnsubscribed": "Dette abonnement er allerede opsagt. Du modtager ikke notifikationer fra denne statusside.",
+      "outOfDateLink": "Dette afmeldingslink er forældet. Brug afmeldingslinket i en nylig besked fra denne statusside for at afmelde dig.",
+      "invalidLink": "Dette afmeldingslink er ugyldigt. Det kan være ufuldstændigt, eller abonnementet kan være fjernet. Brug afmeldingslinket i en nylig besked fra denne statusside for at afmelde dig.",
+      "failed": "Vi kunne ikke afmelde dig. Prøv igen.",
+      "loadFailed": "Vi kunne ikke indlæse dette afmeldingslink. Prøv igen senere."
     }
   },
   "accounts": {

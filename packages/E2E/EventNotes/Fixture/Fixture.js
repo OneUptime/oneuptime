@@ -74,6 +74,7 @@ import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEp
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -567,6 +568,13 @@ for (const modelType of [
   IncidentNoteTemplate,
   AlertNoteTemplate,
   ScheduledMaintenanceNoteTemplate,
+  /*
+   * An incident note template's placeholders ({{incident.title}},
+   * {{customFields.<key>}}) are filled in from the incident when it is
+   * inserted, which reads the project's incident custom fields. This
+   * workspace has none.
+   */
+  IncidentCustomField,
 ]) {
   table(modelType);
 }
@@ -820,10 +828,78 @@ ModelAPI.deleteItem = async (options) => {
 const AI_DRAFT =
   "**Update.** We have identified the cause of the elevated error rates and a fix is being deployed. We will post another update within 30 minutes.";
 
+/*
+ * Who an incident's status page notifications reach
+ * (POST /incident/subscriber-audience): the public note composer's "Will
+ * notify" line under Notify Status Page Subscribers, and the confirmation of
+ * a note's Retry and Resend, ask it. Incident #1042's monitors reach one
+ * status page.
+ */
+const SUBSCRIBER_AUDIENCE = {
+  hasMonitors: true,
+  isScoped: false,
+  isHiddenFromStatusPages: false,
+  statusPages: [
+    {
+      statusPageId: "90000000-0000-4000-8000-000000000001",
+      name: "Acme Status",
+      subscriberCounts: {
+        email: 1284,
+        sms: 0,
+        slack: 0,
+        microsoftTeams: 0,
+        webhook: 3,
+      },
+    },
+  ],
+  hiddenStatusPageCount: 0,
+  excludedStatusPages: [],
+  selectedStatusPagesNotListingMonitors: [],
+};
+
+/*
+ * 'Preview notification' under the public note composer
+ * (POST /notification/subscriber-notification-preview/preview): each status
+ * page's email as the server would render it. Two pages, so the dialog has
+ * its page picker.
+ */
+function subscriberNotificationPreview(body) {
+  return {
+    event: body.event || "IncidentPublicNoteCreated",
+    nothingSentReason: null,
+    statusPages: [
+      ["90000000-0000-4000-8000-000000000001", "Acme Status"],
+      ["90000000-0000-4000-8000-000000000002", "Acme EU"],
+    ].map(([statusPageId, name]) => {
+      return {
+        statusPageId,
+        name,
+        subscriberCounts: SUBSCRIBER_AUDIENCE.statusPages[0].subscriberCounts,
+        subject: "[Update Incident] Card payments failing in the EU",
+        html: `<html><body><h1>${name}</h1><p>A new note was posted.</p><a href="https://status.acme.example">View status page</a></body></html>`,
+        templateChoice: {
+          usesCustomTemplate: false,
+          reason: "NoCustomTemplate",
+          customTemplateName: null,
+        },
+      };
+    }),
+    audience: SUBSCRIBER_AUDIENCE,
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
   fixture.apiRequests.push({ method, url, body });
+
+  if (url.includes("/incident/subscriber-audience")) {
+    return ok(SUBSCRIBER_AUDIENCE);
+  }
+
+  if (url.includes("/subscriber-notification-preview/preview")) {
+    return ok(subscriberNotificationPreview(body));
+  }
 
   if (url.includes("/generate-note-from-ai/")) {
     if (failures.has("ai")) {

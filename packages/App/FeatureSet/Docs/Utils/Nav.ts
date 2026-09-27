@@ -588,6 +588,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/status-pages/subscribers",
       },
       {
+        title: "One Status Page per Audience",
+        url: "/docs/status-pages/one-status-page-per-audience",
+      },
+      {
         title: "Public API",
         url: "/docs/status-pages/public-api",
       },

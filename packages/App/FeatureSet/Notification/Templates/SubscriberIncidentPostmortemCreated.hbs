@@ -7,9 +7,10 @@
 {{> InfoBlock info="A postmortem report has been published for an incident that affected services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" text=incidentTitle }}
-{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Incident" plainText=incidentTitle }}
+{{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> IncidentCustomFieldRows this }}
 {{#if postmortemNote}}
 {{> DetailBoxField title="Postmortem Summary" text=postmortemNote  }}
 {{/if}}

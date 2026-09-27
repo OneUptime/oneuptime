@@ -45,7 +45,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
-import { ModelField } from "../Forms/ModelForm";
+import { ModelField, ModelFormOnBeforeCreate } from "../Forms/ModelForm";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
 import List from "../List/List";
@@ -186,9 +186,7 @@ export interface BaseTableCallbacks<
   showCreateEditModal: (data: {
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
-    onBeforeCreate?:
-      | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-      | undefined;
+    onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
     onSuccess?: ((item: TBaseModel) => void) | undefined;
     onClose?: (() => void) | undefined;
   }) => ReactElement;
@@ -283,9 +281,7 @@ export interface BaseTableProps<
   groupBy?: GroupBy<TBaseModel> | undefined;
   onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
   createInitialValues?: FormValues<TBaseModel> | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   // Runs after both create and edit; modalType identifies which form was saved.
   onCreateSuccess?:
     | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
@@ -4764,6 +4760,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onBeforeCreate: async (
             item: TBaseModel,
             miscDataProps: JSONObject,
+            formValues: JSONObject,
           ) => {
             if (
               showAs === ShowAs.OrderedStatesList &&
@@ -4777,7 +4774,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }
 
             if (props.onBeforeCreate) {
-              item = await props.onBeforeCreate(item, miscDataProps);
+              item = await props.onBeforeCreate(
+                item,
+                miscDataProps,
+                formValues,
+              );
             }
 
             return item;

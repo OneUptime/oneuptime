@@ -23,6 +23,7 @@ import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
 import ServiceLevelObjective from "./ServiceLevelObjective";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1947,6 +1948,37 @@ export default class Incident extends BaseModel {
   })
   public subscriberNotificationStatusMessage?: string = undefined;
 
+  /*
+   * When a subscriber job last claimed the 'incident created' notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Incident Created",
+    description:
+      "When a subscriber notification job last started sending the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnIncidentCreated?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2036,6 +2068,38 @@ export default class Incident extends BaseModel {
   public subscriberNotificationStatusMessageOnPostmortemPublished?: string =
     undefined;
 
+  /*
+   * When a subscriber job last claimed the postmortem notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row on a
+   * schedule while the incident is open - the owners' reminders, state
+   * changes, scope and field edits - so updatedAt could keep an interrupted
+   * send from ever looking stuck, and Retry, Resend and the added-pages
+   * notification all wait for it to settle. Written by the claim only;
+   * nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Postmortem Published",
+    description:
+      "When a subscriber notification job last started sending the notification about this incident's postmortem.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnPostmortemPublished?: Date =
+    undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2104,7 +2168,8 @@ export default class Incident extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    description:
+      "The incident's custom field values, keyed by each incident custom field's name. When a user or an API key creates or updates an incident, each value it sets or changes must fit its field - a number for a Number field, true or false for a Boolean, one of the options for a Dropdown, and so on - or the request is refused. Values left as they were, keys that are not the name of a field and empty values are not checked. Required on Create is not enforced here: it applies to the dashboard's Declare Incident form only.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -2881,6 +2946,207 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public isVisibleOnStatusPage?: boolean = undefined;
+
+  /*
+   * The status pages this incident is limited to. An incident reaches a
+   * status page through its monitors: every page that lists one of them shows
+   * it and notifies its subscribers. So a monitor shared by ten site pages
+   * used to tell all ten sites about an outage that affects two. Picking
+   * pages here narrows that: a scoped incident shows on, and notifies, only
+   * the selected pages among those its monitors already reach (the two sets
+   * intersect - a scope never puts an incident on a page that does not list
+   * its monitors). Empty means unscoped: every page its monitors reach, as
+   * before. Status pages that only show scoped incidents
+   * (StatusPage.onlyShowScopedIncidents) never show an unscoped one.
+   *
+   * Shaped like ScheduledMaintenance.statusPages, with the access control of
+   * the monitors list above. Whether an incident is scoped is kept separately
+   * in isScopedToStatusPages, so the status page queries can filter on it.
+   *
+   * Like the monitors list, the pages are part of the incident: anyone who
+   * can read it sees their names (StatusPage.name is readable on a relation
+   * query), whether or not they can read those status pages. Picking a page
+   * needs read access to it (StatusPageReadAccess).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPage,
+    title: "Status Pages",
+    description:
+      "Limit this incident to these status pages. When set, the incident is shown on, and notifies the subscribers of, only these pages among the status pages that list its monitors. Leave empty to reach every status page that lists its monitors.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPage;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStatusPage",
+    inverseJoinColumn: {
+      name: "statusPageId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public statusPages?: Array<StatusPage> = undefined;
+
+  /*
+   * Whether this incident is limited to the status pages in statusPages. The
+   * status page queries split on it (unscoped incidents by monitor, scoped
+   * ones by monitor AND page), which keeps the scope in SQL rather than in a
+   * post-filter that a LIMIT could silently cut.
+   *
+   * IncidentService derives it from writes to statusPages and ignores any
+   * value a client sends. It is deliberately never recomputed when join rows
+   * disappear: deleting the only status page an incident is scoped to
+   * cascades its join row away, and the incident stays scoped - to nothing -
+   * so it is hidden everywhere rather than widened to every page its monitors
+   * reach.
+   *
+   * Computed, so a client cannot set it on create. Its update access control
+   * matches statusPages all the same: the service writes it into the caller's
+   * own update, and the column check that runs after the hook exempts computed
+   * columns only on create.
+   *
+   * Not indexed. It is false on nearly every row, so an index cannot help the
+   * unscoped half of those queries, and the scoped half reaches its incidents
+   * through the IncidentStatusPage join table's statusPageId index. Building
+   * one would also have held the lock of the migration's ALTER TABLE on
+   * Incident - reads included - for as long as it took on a large table.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Scoped To Status Pages",
+    description:
+      "Whether this incident is limited to the status pages in Status Pages. Derived from Status Pages; any value sent for it is ignored.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isScopedToStatusPages?: boolean = undefined;
+
+  /*
+   * The ids of the status pages whose subscribers were sent this incident's
+   * 'created' notification. A status page added to the scope later can then
+   * be told exactly once, without telling the pages that already heard.
+   *
+   * The Incident:SendNotificationToSubscribers job writes it as root, once per
+   * send, with the status it settles on. It is computed and never taken from
+   * a client; its update access control matches
+   * subscriberNotificationStatusOnIncidentCreated so IncidentService can write
+   * it inside the caller's own update: it empties it when the update resends
+   * the notification to every page (the status set back to Pending), and when
+   * pages are added to an incident whose notification was skipped, it lists
+   * the pages the incident was limited to before, which were deliberately not
+   * told, so only the added ones are (see IncidentScopeAddedPagesNotification).
+   *
+   * Null means no send has settled since the column was added: an incident
+   * whose notification went out before then has no record, and pages added to
+   * it are not sent the notification again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.JSON,
+    title: "Status Pages Notified On Creation",
+    description:
+      "IDs of the status pages whose subscribers were sent the notification that this incident was created.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public statusPagesNotifiedOnCreation?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -6,6 +6,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -48,6 +49,21 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
+          /*
+           * For a page on a monitor shared with other pages: incidents that
+           * are not limited to any page - including the ones monitors,
+           * Slack, Teams, the API and AI create - never reach it.
+           */
+          {
+            field: {
+              onlyShowScopedIncidents: true,
+            },
+            title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
+            description:
+              IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -75,6 +91,16 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Show Incident Labels",
+              placeholder: "No",
+            },
+            {
+              field: {
+                onlyShowScopedIncidents: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
+              description:
+                IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
               placeholder: "No",
             },
           ],

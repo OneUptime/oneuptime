@@ -22,9 +22,12 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -282,6 +285,11 @@ RunCron(
                   .toString()
               : statusPageURL;
 
+          /*
+           * The HTML list (escaped names, "<br/>" between groups) is only for
+           * email bodies; SMS, Slack, Teams, subjects and webhooks get the
+           * plain-text list.
+           */
           const resourcesAffectedString: string =
             StatusPageResourceUtil.getResourcesGroupedByGroupName(
               statusPageToResources[statuspage._id!] || [],
@@ -367,12 +375,20 @@ RunCron(
            * BlankTemplate), plain text for SMS and the email subject, and
            * the Markdown as written for Slack and Teams. Only the email body
            * gets the "<br/>"-joined resource list.
+           *
+           * The shared values above are plain text: the email body escapes
+           * them (compileEmailBodyTemplate), and only the values wrapped in
+           * SafeHtml go into it as HTML.
            */
-          const emailBodyTemplateVariables: Record<string, string> = {
-            ...templateVariables,
-            resourcesAffected: resourcesAffectedString,
-            scheduledMaintenanceDescription: descriptionHtml,
-          };
+          const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+            {
+              ...templateVariables,
+              resourcesAffected: SafeHtml.fromTrustedHtml(
+                resourcesAffectedString,
+              ),
+              scheduledMaintenanceDescription:
+                SafeHtml.fromTrustedHtml(descriptionHtml),
+            };
 
           const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
@@ -411,11 +427,11 @@ RunCron(
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
                 URL.fromString(statusPageURL),
-                subscriber.id!,
+                subscriber,
               ).toString();
 
             // Add unsubscribeUrl to template variables for this subscriber
-            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
               {
                 ...emailBodyTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
@@ -432,17 +448,33 @@ RunCron(
               };
 
             if (subscriber.subscriberPhone) {
+              /*
+               * On a public status page the SMS keeps the shorter manage link,
+               * which works there without signing in: an SMS is billed by the
+               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+               */
+              const smsUnsubscribeUrl: string =
+                StatusPageSubscriberUnsubscribe.buildSmsLink({
+                  isPublicStatusPage: statuspage.isPublicStatusPage,
+                  statusPageUrl: statusPageURL,
+                  subscriberId: subscriber.id!,
+                  unsubscribeUrl: unsubscribeUrl,
+                });
+
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
+                    {
+                      ...subscriberPlainTextTemplateVariables,
+                      unsubscribeUrl: smsUnsubscribeUrl,
+                    },
                   );
               } else {
                 // Use default hard-coded template
-                smsMessage = `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
               }
 
               const sms: SMS = {
@@ -488,7 +520,7 @@ RunCron(
 
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
               }
@@ -516,7 +548,7 @@ RunCron(
                 markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
 **Event:** ${event.title || ""}
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
-**Resources Affected:** ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedPlainText}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
               }
 
@@ -561,7 +593,7 @@ RunCron(
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const compiledBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );

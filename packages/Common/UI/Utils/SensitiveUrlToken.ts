@@ -19,12 +19,17 @@
 const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
 
 /*
- * Route segments whose NEXT path segment is a single-use bearer token. Matched
- * against the second-to-last segment, so this covers
- * /accounts/reset-password/<token>, /reset-password/<token> and
- * /status-page/<id>/reset-password/<token> alike.
+ * Route segments whose NEXT path segment is a bearer token. Matched against
+ * the second-to-last segment, so this covers /accounts/reset-password/<token>,
+ * /reset-password/<token> and /status-page/<id>/reset-password/<token> alike.
+ * "unsubscribe" is a status page subscriber's unsubscribe link, whose last
+ * segment is <subscriberId>-<token> (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
  */
-const TOKEN_ROUTES: Array<string> = ["reset-password", "verify-email"];
+const TOKEN_ROUTES: Array<string> = [
+  "reset-password",
+  "verify-email",
+  "unsubscribe",
+];
 
 interface HandoffWindow extends Window {
   __ONEUPTIME_SENSITIVE_URL_TOKEN__?: string | undefined;

@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Abonnement bevestigen",
       "success": "Abonnement succesvol bevestigd"
+    },
+    "unsubscribe": {
+      "title": "Afmelden",
+      "titleWithName": "Afmelden voor {{statusPageName}}",
+      "confirmPrompt": "Wilt u geen meldingen meer ontvangen van deze statuspagina?",
+      "channelEmail": "E-mailadres",
+      "channelSms": "Telefoonnummer",
+      "channelSlack": "Slack-workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dit abonnement is toegevoegd door het team dat deze statuspagina beheert. Als het een gedeeld adres is, zoals een mailinglijst, stopt afmelden deze meldingen voor iedereen die ze ontvangt, en wordt het team op de hoogte gebracht.",
+      "confirmButton": "Afmelden",
+      "manageInstead": "Kies in plaats daarvan welke meldingen u ontvangt",
+      "manageSubscription": "Uw abonnement beheren",
+      "success": "U bent afgemeld. U ontvangt geen meldingen meer van deze statuspagina.",
+      "alreadyUnsubscribed": "Dit abonnement is al opgezegd. U ontvangt geen meldingen van deze statuspagina.",
+      "outOfDateLink": "Deze afmeldlink is verouderd. Gebruik om u af te melden de afmeldlink in een recent bericht van deze statuspagina.",
+      "invalidLink": "Deze afmeldlink is ongeldig. Hij is mogelijk onvolledig, of het abonnement is verwijderd. Gebruik om u af te melden de afmeldlink in een recent bericht van deze statuspagina.",
+      "failed": "Afmelden is mislukt. Probeer het opnieuw.",
+      "loadFailed": "Deze afmeldlink kon niet worden geladen. Probeer het later opnieuw."
     }
   },
   "accounts": {

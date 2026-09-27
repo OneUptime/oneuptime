@@ -32,13 +32,16 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 type CronHandler = () => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
         mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
       },
     ),
   };
@@ -67,7 +70,12 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/IncidentEpisodePublicNoteService", () => {
   return {
     __esModule: true,
-    default: { findBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -79,6 +87,11 @@ jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeMemberService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+// IncidentStatusPageScope reads the member incidents' status page scope.
+jest.mock("Common/Server/Services/IncidentService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
@@ -128,6 +141,27 @@ jest.mock(
          * The real substitution, wrapped in a mock so tests can read the
          * variables each channel handed to its template.
          */
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
         compileTemplate: jest.fn(
           (template: string, variables: Record<string, string>): string => {
             let compiled: string = template;
@@ -218,6 +252,51 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import IncidentService from "Common/Server/Services/IncidentService";
+import Dictionary from "Common/Types/Dictionary";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  sharedMonitor,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  smsManageLinkFor,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -249,7 +328,15 @@ const SECOND_STATUS_PAGE_ID: ObjectID = new ObjectID(
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 // The status page shows an episode on its incident detail route.
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${EPISODE_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/episode/1";
 
 const EPISODE_TITLE: string = "Regional network interruption";
@@ -269,6 +356,13 @@ let updatedNotes: Array<IncidentEpisodePublicNote> = [];
 let skipNotes: Array<IncidentEpisodePublicNote> = [];
 let storedEpisode: IncidentEpisode | null = null;
 let memberMonitors: Array<Monitor> = [];
+// The episode's one member incident, unless a test sets memberIncidents.
+const MEMBER_INCIDENT_ID: ObjectID = new ObjectID(
+  "12121212-1212-4121-8121-121212121212",
+);
+let memberIncidents: Array<Incident> | null = null;
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 function publicNote(overrides?: {
   subscriberNotificationStatusOnNoteCreated?: StatusPageSubscriberNotificationStatus;
@@ -330,6 +424,7 @@ function statusPage(overrides?: {
   page.pageTitle = overrides?.pageTitle || "Acme Status";
   page.isPublicStatusPage = true;
   page.showEpisodesOnStatusPage = overrides?.showEpisodesOnStatusPage !== false;
+  page.onlyShowScopedIncidents = false;
   if (overrides?.withCustomSmtpAndSms) {
     (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
     (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
@@ -390,19 +485,25 @@ function subscriber(): StatusPageSubscriber {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
 function statusWrites(): Array<JSONObject> {
-  return mock(IncidentEpisodePublicNoteService.updateOneById).mock.calls.map(
-    (call: Array<unknown>): JSONObject => {
-      return (call[0] as { data: JSONObject }).data;
-    },
-  );
+  return statusWritesInOrder({
+    claim:
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentEpisodePublicNoteService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
 }
 
 function sentMail(): Array<JSONObject> {
@@ -477,7 +578,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     episodeTitle: EPISODE_TITLE,
     episodeSeverity: "Major",
     resourcesAffected: "Edge network",
@@ -500,12 +604,14 @@ interface CompileCall {
 }
 
 function compileCalls(): Array<CompileCall> {
-  return mock(
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.map((call: Array<unknown>): CompileCall => {
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileCall => {
     return {
-      template: call[0] as string,
-      variables: call[1] as Record<string, string>,
+      template: call.template,
+      variables: call.variables,
     };
   });
 }
@@ -658,6 +764,14 @@ beforeEach(() => {
   skipNotes = [];
   storedEpisode = episode();
   memberMonitors = [monitor()];
+  memberIncidents = null;
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
 
   mock(IncidentEpisodePublicNoteService.findBy).mockImplementation(
     async (args: unknown): Promise<Array<IncidentEpisodePublicNote>> => {
@@ -679,6 +793,10 @@ beforeEach(() => {
   mock(IncidentEpisodePublicNoteService.updateOneById).mockResolvedValue(
     1 as never,
   );
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
 
   mock(IncidentEpisodeService.findOneById).mockImplementation(async () => {
     return storedEpisode;
@@ -687,9 +805,20 @@ beforeEach(() => {
     URL.fromString(DASHBOARD_URL) as never,
   );
   mock(IncidentEpisodeMemberService.findBy).mockImplementation(async () => {
+    if (memberIncidents) {
+      return memberIncidents.map((incident: Incident) => {
+        const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+        member.incidentId = incident.id!;
+        member.incident = incident;
+        return member;
+      });
+    }
+
     const incident: Incident = new Incident();
+    incident._id = MEMBER_INCIDENT_ID.toString();
     incident.monitors = memberMonitors;
     const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+    member.incidentId = MEMBER_INCIDENT_ID;
     member.incident = incident;
     return [member];
   });
@@ -717,8 +846,8 @@ beforeEach(() => {
   mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
     true,
   );
-  mock(StatusPageSubscriberService.getUnsubscribeLink).mockReturnValue(
-    URL.fromString(UNSUBSCRIBE_URL),
+  mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockResolvedValue(
     STATUS_PAGE_URL as never,
@@ -771,32 +900,95 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
     expect(DatabaseConfig.getHost).not.toHaveBeenCalled();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the note's original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedNotes = [
-        publicNote({
-          subscriberNotificationStatusOnNoteCreated: originalStatus,
-        }),
-      ];
+  /*
+   * The 'posted' notification is still queued: the run that claims it reads
+   * the note afresh, so it carries the edit. The update is skipped - once
+   * claimed, so a decision from an old read never overwrites anything.
+   */
+  test("skips while the note's original notification is Pending, once it has claimed the update", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(IncidentEpisodeService.findOneById).not.toHaveBeenCalled();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnNoteUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(IncidentEpisodeService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  test("a skip decided from an old read is not written when the note changed since", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    mock(
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      IncidentEpisodePublicNoteService.updateOneById,
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The 'posted' notification is being sent right now, with the note as it
+   * was before the edit: the update waits for it, then goes out.
+   */
+  test("waits, untouched, while the note's original notification is being sent, then sends the edit", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).not.toHaveBeenCalled();
+    expect(
+      IncidentEpisodePublicNoteService.updateOneById,
+    ).not.toHaveBeenCalled();
+
+    // A later run, once the original has gone out.
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()).toHaveLength(1);
+    expect(
+      statusWrites()[statusWrites().length - 1]![
+        "subscriberNotificationStatusOnNoteUpdated"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Success);
+  });
 
   test("emails the updated-note template with an update subject", async () => {
     updatedNotes = [publicNote()];
@@ -830,7 +1022,7 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
       StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated;
 
     expect(sentSms()).toEqual([
-      `Incident update: ${EPISODE_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${EPISODE_TITLE} on Acme Status. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(event, StatusPageSubscriberNotificationMethod.SMS),
@@ -893,7 +1085,8 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
         subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessageOnNoteUpdated:
-          SubscriberUpdateNotification.sentMessage,
+          // Then what was sent on each status page (see the delivery tests).
+          `${SubscriberUpdateNotification.sentMessage} Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.`,
       },
     ]);
   });
@@ -923,6 +1116,10 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
     expect(statusWrites()).toEqual([
       {
         subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Skipped,
         subscriberNotificationStatusMessageOnNoteUpdated:
           "Related episode not found. Skipping notifications to subscribers.",
@@ -938,6 +1135,10 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
 
     nothingSent();
     expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
       {
         subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Skipped,
@@ -981,6 +1182,66 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
 });
 
 describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", () => {
+  /*
+   * As for incident notes: the posted notification carries an edit made
+   * before it was claimed, so its claim skips the Pending update
+   * notification in the same write, and only while it is still Pending.
+   */
+  test("claiming a note's posted notification skips an update notification it covers, in the same write", async () => {
+    const note: IncidentEpisodePublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+    note.version = 4;
+    note.subscriberNotificationStatusOnNoteUpdated =
+      StatusPageSubscriberNotificationStatus.Pending;
+    createdNotes = [note];
+
+    await runJob(CREATED_JOB);
+
+    const claim: JSONObject = (
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
+    ).mock.calls[0]![0] as JSONObject;
+
+    expect(claim["data"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.InProgress,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        SubscriberUpdateNotification.notYetNotifiedMessage,
+    });
+    expect(claim["expectedData"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Pending,
+      version: 4,
+    });
+  });
+
+  test("a posted notification with no update pending claims its own column only", async () => {
+    const note: IncidentEpisodePublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+    note.version = 4;
+    note.subscriberNotificationStatusOnNoteUpdated =
+      StatusPageSubscriberNotificationStatus.Success;
+    createdNotes = [note];
+
+    await runJob(CREATED_JOB);
+
+    const claim: JSONObject = (
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
+    ).mock.calls[0]![0] as JSONObject;
+
+    expect(claim["data"]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.InProgress,
+    });
+  });
+
   test("still marks notes that should not notify as Skipped on the original columns", async () => {
     skipNotes = [publicNote()];
 
@@ -1008,7 +1269,7 @@ describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", ()
       `[Update Incident] ${EPISODE_TITLE}`,
     );
     expect(sentSms()[0]).toBe(
-      `Incident update: ${EPISODE_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Incident update: ${EPISODE_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
     expect(sentSlack()[0]).toContain(
       "**New note has been added to an incident**",
@@ -1049,7 +1310,7 @@ describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", ()
         subscriberNotificationStatusOnNoteCreated:
           StatusPageSubscriberNotificationStatus.Success,
         subscriberNotificationStatusMessage:
-          "Notifications sent successfully to all subscribers",
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
   });
@@ -1582,8 +1843,13 @@ describe("IncidentEpisodePublicNote custom template variable values", () => {
         expect(message).not.toMatch(/{{|}}/);
 
         for (const name of names) {
-          const value: string =
+          let value: string =
             name === "note" ? noteByChannel[channel]! : expectedValues[name]!;
+
+          // An SMS from this public page carries the manage link.
+          if (name === "unsubscribeUrl" && channel === "sms") {
+            value = SMS_UNSUBSCRIBE_URL;
+          }
 
           expect(value).not.toBe("");
           expect(message).toContain(`${name}=[${value}]`);
@@ -1661,8 +1927,12 @@ describe.each(TRIGGERS)(
       expect(sentMail()[0]!["subject"]).toBe(
         `${EPISODE_TITLE}: ${NOTE_TEXT} (${GROUPED_RESOURCES_TEXT})`,
       );
+      // An SMS from this public page carries the manage link (see smsManageLinkFor).
       expect(sentSms()).toEqual([
-        renderedEveryVariable("sms", trigger.eventType, plainTextVariables),
+        renderedEveryVariable("sms", trigger.eventType, {
+          ...plainTextVariables,
+          unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+        }),
       ]);
       expect(sentSlack()).toEqual([
         renderedEveryVariable("slack", trigger.eventType, markdownVariables),
@@ -1725,7 +1995,7 @@ describe.each(TRIGGERS)(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.SMS]!,
         ),
-      ).toEqual(plainTextVariables);
+      ).toEqual({ ...plainTextVariables, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
       expect(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.Slack]!,
@@ -1926,3 +2196,451 @@ describe("IncidentEpisodePublicNote email subjects are sent as written", () => {
     },
   );
 });
+
+/*
+ * An episode reaches the union of the status pages its incidents reach, each
+ * through its own status page scope (Incident.statusPages). Ten site pages
+ * all list the shared monitor the incidents are on.
+ */
+describe("IncidentEpisodePublicNote subscriber notifications, with status page scope on its incidents", () => {
+  const INCIDENT_A: ObjectID = new ObjectID(
+    "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1",
+  );
+  const INCIDENT_B: ObjectID = new ObjectID(
+    "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
+  );
+
+  const DEFAULT_SUBJECT_PREFIX: Record<string, string> = {
+    [CREATED_JOB]: "[Update Incident] ",
+    [UPDATED_JOB]: "[Incident Note Updated] ",
+  };
+
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function memberOnSharedMonitor(id: ObjectID): Incident {
+    const incident: Incident = new Incident();
+    incident._id = id.toString();
+    incident.monitors = [sharedMonitor()];
+    return incident;
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function sitesLookedUp(): Array<number> {
+    return mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return siteOf(call[0]);
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    memberIncidents = [memberOnSharedMonitor(INCIDENT_A)];
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([7, 3]) };
+  });
+
+  test.each(TRIGGERS)(
+    "$name: a shared monitor on ten pages, with its incident scoped to two, tells only those two",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+      expect(sitesLookedUp()).toEqual([3, 7]);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: reaches the union of its incidents' pages, each through its own scope",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      pages = allSites().map((site: number): StatusPage => {
+        return sitePage(site, { onlyShowScopedIncidents: site <= 3 });
+      });
+      memberIncidents = [
+        memberOnSharedMonitor(INCIDENT_A),
+        memberOnSharedMonitor(INCIDENT_B),
+      ];
+      storedScopes = { [INCIDENT_A.toString()]: scopedTo([3, 4]) };
+
+      await runJob(trigger.job);
+
+      expect(sitesLookedUp()).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: an episode of unscoped incidents reaches none of ten pages that only show scoped incidents",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedScopes = {};
+      pages = allSites().map((site: number): StatusPage => {
+        return sitePage(site, { onlyShowScopedIncidents: true });
+      });
+
+      await runJob(trigger.job);
+
+      nothingSent();
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+        "**Not sent to 10 status pages that only show incidents limited to them:**",
+      );
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: someone on two reached pages gets one email and one SMS, but each page's webhook, Slack and Teams message",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+        return siteSubscriber({
+          site: site,
+          email: "shared@acme.com",
+          phone: "+15555550100",
+          webhook: "https://hooks.acme.com/status",
+          slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+          teams: "https://outlook.office.com/webhook/abc",
+        });
+      });
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+      expect(sentSms()).toHaveLength(1);
+      expect(
+        sentWebhooks().map((payload: JSONObject): number => {
+          return siteOf(payload["statusPageId"]);
+        }),
+      ).toEqual([3, 7]);
+      expect(sentSlack()).toHaveLength(2);
+      expect(sentTeams()).toHaveLength(2);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: an episode of unscoped incidents sends every subscription its email, as before",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedScopes = {};
+      subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+        return siteSubscriber({ site: site, email: "shared@acme.com" });
+      });
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: the feed item keeps the note, then lists each page, the subject used and what was sent",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      subscribers = [
+        siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+        siteSubscriber({ site: 7, index: 1, email: "b@acme.com" }),
+      ];
+
+      await runJob(trigger.job);
+
+      const subject: string =
+        `${DEFAULT_SUBJECT_PREFIX[trigger.job]}${EPISODE_TITLE}`
+          .replace("[", "\\[")
+          .replace("]", "\\]");
+
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+        [
+          "**Public Note:**",
+          "",
+          NOTE,
+          "",
+          "**Status pages:**",
+          "",
+          `- **Site 03**: 1 email sent. Subject: "${subject}".`,
+          `- **Site 07**: 1 email sent. Subject: "${subject}".`,
+          "",
+          "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+          "",
+          "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+        ].join("\n"),
+      );
+    },
+  );
+});
+
+/*
+ * Escaping, for the created and the updated note alike. The episode title
+ * and severity, the status page's name and the names of its resources and
+ * groups are plain text a project member typed. In an email they must read
+ * as those characters; the note is Markdown rendered to HTML and stays HTML.
+ * Text channels (a subject, SMS, Slack, Teams, webhooks) show text as
+ * written, so they must get no HTML entities at all.
+ */
+describe("IncidentEpisodePublicNote escapes plain values in email", () => {
+  const HOSTILE_SEVERITY: string = "Major <b>&</b>";
+
+  const ESCAPING_EMAIL_BODY: string =
+    '<h1>{{episodeTitle}}</h1><p>{{statusPageName}} / {{episodeSeverity}}</p><div>{{resourcesAffected}}</div><div>{{note}}</div><a href="{{detailsUrl}}">Details</a>';
+  const ESCAPING_TEXT: string =
+    "{{episodeTitle}} on {{statusPageName}} ({{episodeSeverity}}): {{resourcesAffected}}";
+
+  beforeEach(() => {
+    const row: IncidentEpisode = episode();
+    row.title = HOSTILE_TITLE;
+    row.incidentSeverity!.name = HOSTILE_SEVERITY;
+    storedEpisode = row;
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      hostileResources(STATUS_PAGE_ID) as never,
+    );
+  });
+
+  function useEscapingTemplates(): void {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ withCustomSmtpAndSms: true, pageTitle: HOSTILE_PAGE_NAME }),
+    ] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return method === StatusPageSubscriberNotificationMethod.Email
+        ? { templateBody: ESCAPING_EMAIL_BODY, emailSubject: ESCAPING_TEXT }
+        : { templateBody: `${method}: ${ESCAPING_TEXT}` };
+    });
+  }
+
+  test.each(TRIGGERS)(
+    "$name: a custom email body escapes the plain values and keeps the note and the resource list as HTML",
+    async ({ job, eventType }: TriggerCase) => {
+      useEscapingTemplates();
+      queueNote(job);
+
+      await runJob(job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / Major &lt;b&gt;&amp;&lt;/b&gt;</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${NOTE_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+      );
+
+      const emailBody: Array<RecordedCompile> = recordedCompiles(
+        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+        StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+      ).filter((call: RecordedCompile): boolean => {
+        return call.emailBody;
+      });
+      expect(emailBody).toHaveLength(1);
+      expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, eventType);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: the subject, SMS, Slack, Teams and webhooks get every value as written",
+    async ({ job }: TriggerCase) => {
+      useEscapingTemplates();
+      queueNote(job);
+
+      await runJob(job);
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+
+      expect(sentMail()[0]!["subject"]).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+      ]);
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({
+          episodeTitle: HOSTILE_TITLE,
+          resourcesAffected: HOSTILE_RESOURCES_TEXT,
+        }),
+      );
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: the default email gets the resource list escaped, and the chat defaults get it as written",
+    async ({ job }: TriggerCase) => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ pageTitle: HOSTILE_PAGE_NAME }),
+      ] as never);
+      queueNote(job);
+
+      await runJob(job);
+
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: HOSTILE_RESOURCES_HTML,
+          note: NOTE_HTML,
+          episodeTitle: HOSTILE_TITLE,
+          statusPageName: HOSTILE_PAGE_NAME,
+        }),
+      );
+      // The note email shows no description; it carries none, raw or not.
+      expect(sentMail()[0]!["vars"]).not.toHaveProperty("episodeDescription");
+
+      expect(sentSlack()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+      expect(sentTeams()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+        expect(message).not.toContain("<br/>");
+      }
+    },
+  );
+});
+
+describe("IncidentEpisodePublicNote unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    queueNote(UPDATED_JOB);
+
+    await runJob(UPDATED_JOB);
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+// The same contract for the "posted" and the "updated" notification.
+function describeNoteDelivery(trigger: "created" | "updated"): void {
+  const job: string = trigger === "created" ? CREATED_JOB : UPDATED_JOB;
+
+  describeSubscriberDelivery({
+    title: job,
+    jobName: job,
+    runJob: (): Promise<void> => {
+      return runJob(job);
+    },
+    cronOptions: (): JSONObject | undefined => {
+      return mockCapturedOptions[job] as JSONObject | undefined;
+    },
+    pendRows: (count: number): Array<ObjectID> => {
+      const rows: Array<IncidentEpisodePublicNote> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        // An updated note whose original notification went out.
+        const row: IncidentEpisodePublicNote = publicNote();
+        row.version = PENDING_ROW_VERSION;
+
+        if (index > 0) {
+          row._id = ObjectID.generate().toString();
+        }
+
+        rows.push(row);
+      }
+
+      if (trigger === "created") {
+        createdNotes = rows;
+      } else {
+        updatedNotes = rows;
+      }
+
+      return rows.map((row: IncidentEpisodePublicNote): ObjectID => {
+        return row.id!;
+      });
+    },
+    statusColumn:
+      trigger === "created"
+        ? "subscriberNotificationStatusOnNoteCreated"
+        : "subscriberNotificationStatusOnNoteUpdated",
+    messageColumn:
+      trigger === "created"
+        ? "subscriberNotificationStatusMessage"
+        : "subscriberNotificationStatusMessageOnNoteUpdated",
+    claim:
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentEpisodePublicNoteService.updateOneById,
+    feed: IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+    subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+    emailSubscriber: (id: string): StatusPageSubscriber => {
+      const row: StatusPageSubscriber = new StatusPageSubscriber();
+      row._id = id;
+      row.subscriberEmail = new Email(
+        `subscriber-${id.slice(-12)}@example.com`,
+      );
+      return withUnsubscribeToken(row);
+    },
+    senders: {
+      email: MailService.sendMail,
+      sms: SmsService.sendSms,
+      slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+      teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+      webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+    },
+    sentMessage:
+      trigger === "created"
+        ? "Notifications sent successfully to all subscribers."
+        : SubscriberUpdateNotification.sentMessage,
+    retryScope: SubscriberNotificationRetryScope.EveryPage,
+  });
+}
+
+describeNoteDelivery("created");
+describeNoteDelivery("updated");

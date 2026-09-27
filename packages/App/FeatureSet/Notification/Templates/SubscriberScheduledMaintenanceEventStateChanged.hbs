@@ -10,8 +10,8 @@
 
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Event Title: " text=eventTitle }}
-{{> DetailBoxField title="Event State: " text=eventState }}
+{{> DetailBoxField title="Event Title: " plainText=eventTitle }}
+{{> DetailBoxField title="Event State: " plainText=eventState }}
 {{#if resourcesAffected}}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
 {{/if}}

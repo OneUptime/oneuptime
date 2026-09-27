@@ -26,6 +26,9 @@ import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
+import IncidentCustomFieldTemplateVariables from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
+import SubscriberTemplateLivePreview from "../../../Components/StatusPage/SubscriberTemplateLivePreview";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const SubscriberNotificationTemplateView: FunctionComponent<
   PageComponentProps
@@ -200,6 +203,25 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                   required: true,
                   placeholder:
                     "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
+                  // The subject and body as typed, filled in with sample values.
+                  getFooterElement: (
+                    values: FormValues<StatusPageSubscriberNotificationTemplate>,
+                  ): ReactElement => {
+                    return (
+                      <div className="mt-4">
+                        <SubscriberTemplateLivePreview
+                          eventType={eventType}
+                          notificationMethod={notificationMethod}
+                          templateBody={
+                            values.templateBody as string | undefined
+                          }
+                          emailSubject={
+                            values.emailSubject as string | undefined
+                          }
+                        />
+                      </div>
+                    );
+                  },
                 },
               ]
             : [
@@ -220,6 +242,22 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                     StatusPageSubscriberNotificationMethod.SMS
                       ? "{{statusPageName}}: {{incidentTitle}} - {{incidentDescription}}"
                       : "**{{incidentTitle}}**\n{{incidentDescription}}",
+                  // The body as typed, filled in with sample values.
+                  getFooterElement: (
+                    values: FormValues<StatusPageSubscriberNotificationTemplate>,
+                  ): ReactElement => {
+                    return (
+                      <div className="mt-4">
+                        <SubscriberTemplateLivePreview
+                          eventType={eventType}
+                          notificationMethod={notificationMethod}
+                          templateBody={
+                            values.templateBody as string | undefined
+                          }
+                        />
+                      </div>
+                    );
+                  },
                 },
               ]
         }
@@ -280,13 +318,15 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             : "Available variables you can use in your template body based on the selected event type."
         }
       >
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           <MarkdownViewer
             text={getSubscriberNotificationTemplateVariablesDocumentation(
               eventType,
               notificationMethod,
             )}
           />
+          {/* An incident event: the project's custom fields and their keys. */}
+          <IncidentCustomFieldTemplateVariables eventType={eventType} />
         </div>
       </Card>
 

@@ -37,9 +37,13 @@ Open **Notes → Public Notes** in the incident side menu and create a note. The
 
 **Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created; making an episode private does not affect it.
 
+**See who the note will reach.** While **Notify Status Page Subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+
+**See what they will get.** Under the same checkbox, **Preview notification** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
+
 **Posted At is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, set **Posted At** to when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
-The list shows who wrote each note, its **Posted At**, the rendered Markdown with its attachments, and a **Subscriber Notification Status** column. You can filter by **Created By**, **Note**, and **Created At**.
+Each note shows who wrote it, its **Posted At**, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
 
 ## Posting a private note
 
@@ -76,6 +80,8 @@ If your team writes the same three updates every outage, save them once. Both no
 
 Templates are shared between public and private notes: a single template list serves both, and the same template can be inserted into either kind of note.
 
+Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings#note-templates) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written. Read the filled-in note before posting a public one: `{{incident.affectedStatusPages}}` names every status page the incident reaches, and the subscribers of all of them read it.
+
 You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. If you click **Create from Template** before creating any, OneUptime tells you none exist yet; note that the message points at Project Settings, but the page actually lives under **Incidents → Settings → Note Templates**.
 
 ## Posting notes from Slack or Microsoft Teams
@@ -95,32 +101,40 @@ Creating a public note with **Notify Status Page Subscribers** on does not by it
 2. The note must belong to an incident that still exists.
 3. The incident must have at least one monitor attached — with no monitors there is no status page resource to route the note to.
 4. The incident's **Visible on Status Page** flag (`isVisibleOnStatusPage`) must be true.
-5. Each status page the incident reaches must have **Show Incidents** (`showIncidentsOnStatusPage`) turned on.
+5. Each status page the incident reaches must have **Show Incidents** (`showIncidentsOnStatusPage`) turned on. The pages it reaches are the ones that list its monitors, narrowed to the pages the incident is limited to, if any. An incident that is not limited to any page skips the pages that only show incidents limited to them. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 6. Each subscriber must pass their own preferences — not unsubscribed, and subscribed to this resource and to the `Incident` event type where the page lets subscribers choose.
 
 **Notifications are not instant.** The job that sends them runs once a minute, so expect up to about a minute between saving the note and mail leaving. That is what the **Sending Soon** label means.
 
-The **Subscriber Notification Status** column tracks the whole journey:
+A public note's header tracks the whole journey with a badge. Click it for the notification's status message, which says what happened:
 
-| Status                       | What it means                                          |
-| ---------------------------- | ------------------------------------------------------ |
-| **Notifications skipped.**   | One of the gates above closed. The reason is recorded. |
-| **Sending Soon**             | Queued, waiting for the next run of the send job.      |
-| **Notifications Being Sent** | The job is working through the subscriber list.        |
-| **Notifications Sent**       | Every subscriber notification went out.                |
-| **Failed**                   | The job threw; the error is stored with the note.      |
+| Badge                          | What it means                                                                                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Subscribers not notified**   | Nothing was sent: the note was posted with **Notify Status Page Subscribers** unticked, or one of the gates above closed. The reason is recorded. |
+| **Notifying subscribers soon** | Queued, waiting for the next run of the send job.                                                                                                 |
+| **Notifying subscribers**      | The job is working through the subscriber list.                                                                                                   |
+| **Subscribers notified**       | Every subscriber's message was sent. The status message lists, per status page, how many went on each channel.                                    |
+| **Notification failed**        | Not every subscriber was sent it, or the job stopped with an error. The status message says which.                                                |
 
-Click **more details** on the status to open **Notification Status Details**. Where a resend makes sense, that modal's button is **Retry**, which puts the note back in the pending state so the next run picks it up again.
+**Sent means sent.** The job waits for every message: an email or text message counts as sent once the mail server or SMS provider has taken it, and a Slack, Microsoft Teams or webhook message once the other end has answered. A message that is refused, that errors, or that gets no answer within 4 minutes counts as failed, and one failure turns the badge to **Notification failed**; the other subscribers are still sent it. The status message then reads like `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Sent" is as far as OneUptime can see: a mail server can still bounce an email later.
 
-**Editing a public note is silent unless you ask.** The note's edit form has a **Notify subscribers about this update** checkbox, unticked every time. Tick it for a change subscribers need to know about and they receive the edited note, marked as an update; the note then shows an **Update Notification Status** alongside the original one, with its own **Retry**. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
+**Big pages and long sends.** A status page's subscribers are read 10,000 at a time until every one has been reached, and 20 messages are in flight at once. One notification stops starting new messages after 20 minutes: what it did not reach by then is listed, and it is marked **Notification failed**. A send that was interrupted part-way — its server restarted or stopped responding — is marked **Notification failed** too, with a message starting `Interrupted:`, once it has been **Notifying subscribers** for 40 minutes, so it never sits there forever. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 
-The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, and a per-subscriber unsubscribe link. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
+Click a note's notification badge to see what happened. A note whose notification failed offers **Retry notification**, and one whose notification went out offers **Resend notification**. Both ask first: the confirmation lists the status pages the note would reach now, with an "up to" count per channel, and says what happens. Either one puts the note back in the pending state so the next run picks it up, and sends it to every status page the incident reaches now, including the subscribers who already got it. If you changed the pages the incident is limited to since the note was posted, it goes to the pages it is limited to now. A note posted with **Notify Status Page Subscribers** unticked offers neither, because it was never meant to be sent, and neither is offered while a notification is still queued or being sent. Public notes on scheduled maintenance events and incident episodes keep **Retry notification** after a failure only.
+
+Sending a note's notification again tells every subscriber what the note says, just as posting it did, so it needs the permission to post public notes that notify subscribers as well as the permission to edit public notes. Through the API it is the same update the dashboard makes, setting `subscriberNotificationStatusOnNoteCreated` back to `Pending`; it is refused for a caller without those permissions, for a note posted without notifying subscribers, and while the note's notification is being sent.
+
+Only the incident's 'created' notification resumes where it stopped: it keeps a record of the status pages it sent to in full, and **Retry** on the incident's **Overview** skips them. The record is kept per status page, not per subscriber, so a page it stopped part-way through is sent it again in full, including to the subscribers of that page who already got it. The **Retry** confirmation offers **Send it to every status page again, including the pages already reached**, which turns it into **Resend to all pages**, and **Resend** after a success sends it to every page again. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience#adding-status-pages).
+
+**Editing a public note is silent unless you ask.** The note's edit form has a **Notify subscribers about this update** checkbox, unticked every time. Tick it for a change subscribers need to know about and they receive the edited note, marked as an update; the note then shows a second badge for the update (**Update queued**, **Update sent**, **Update failed** and so on) alongside the original one, with its own **Retry notification** after a failure. A sent update is not offered again: edit the note with the checkbox ticked to send the latest text, or resend the note itself. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. If it is being sent right then, the update waits for it to finish and then goes out. The checkbox and the update's **Retry notification** need the same permissions as sending the note's notification again; without them you can still edit the note, without notifying anyone. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
+
+The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, the incident's labels, affected status pages and custom fields, and a per-subscriber unsubscribe link. The default email, Slack and Microsoft Teams messages also list the incident's custom fields marked **Include in Subscriber Notifications**, with their current values. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
 
 ## The incident feed
 
 The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
 
-Some items carry extra detail — an owner notification lists everyone who was mailed, for example. Those show a **More Information** button that opens a **More Information** panel.
+Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages sent and failed on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
 
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
@@ -137,7 +151,7 @@ Next to it, **Refresh** re-fetches the feed.
 
 Feed items are written by the incident service itself, by both note services, by the state timeline, by owner and member changes, by linking and unlinking alerts, by the rule engines, by on-call execution, by the AI investigation and postmortem runners, and by the notification cron jobs. The event types cover:
 
-- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`.
+- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry also records the status pages added to or removed from the incident's scope.
 - **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`.
 - **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
@@ -207,4 +221,5 @@ Each notification is built for email, SMS, voice call, push and WhatsApp and han
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state machine that drives half the feed.
 - [Incident Settings & Automation](/docs/incidents/settings) — owner rules, note templates, and the rest of the automation.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — where public notes end up and who receives them.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — which status pages an incident's notes reach.
 - [Status Pages Overview](/docs/status-pages/index) — the customer-facing side of an incident.
