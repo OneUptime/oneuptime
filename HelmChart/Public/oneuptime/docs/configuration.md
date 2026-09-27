@@ -228,6 +228,8 @@ probes:
 
 > **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
 
+> **IPv6 targets.** Chart probes run on the cluster's pod network, so they can reach IPv6 destinations only on a dual-stack or IPv6-only cluster. On an IPv4-only cluster, checks of IPv6 destinations fail on these probes (a Ping monitor's failure reason then says the probe cannot send IPv6 traffic). To check a probe, run `kubectl exec -n <namespace> deploy/<release>-probe-<key> -- ping -6 -c 1 2001:4860:4860::8888`: `1 received` means it has IPv6, and `Network is unreachable` means the pod has no IPv6 route. To monitor IPv6 destinations from an IPv4-only cluster, use a [custom probe](https://oneuptime.com/docs/probe/custom-probe#monitoring-ipv6-destinations) on a machine that has IPv6.
+
 ## Incidents & alerts
 
 | Parameter                            | Description                                                                          | Default |
@@ -399,6 +401,25 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
 | `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
 | `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
+
+## Private network access
+
+Two instance-wide gates decide whether outbound requests a project member
+configures may reach private ranges (RFC-1918, CGNAT, IPv6 unique-local).
+Loopback, link-local and the cloud metadata endpoint stay blocked under both.
+They point in opposite directions: webhooks are refused private targets unless
+you open them, while data sources, LLM providers, SMTP, OAuth token URLs, OIDC
+discovery and runbook HTTP steps are allowed them unless you close them. Probe
+monitors have their own per-probe switch, `probes.<key>.allowPrivateNetworkMonitors`
+(see [Probes](#probes)). See
+[Private Network Access](https://oneuptime.com/docs/self-hosted/private-network-access)
+for the full picture.
+
+| Parameter                                 | Description                                                                                                                         | Default |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges. Status page subscriber webhooks are never covered.   | `false` |
+| `webhooks.privateNetworkAllowlist`        | Comma-separated hosts, wildcards, IPs and CIDRs webhooks may reach regardless of range. Never list `169.254.169.254`.                | `""`    |
+| `outboundConnections.blockPrivateNetwork` | Refuse private ranges for everything that is not a webhook, too (`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`). Always on when `billing.enabled` is `true`. | `false` |
 
 ## Update check
 

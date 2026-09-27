@@ -18,6 +18,10 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkFailure,
+  ProbeNetworkOperation,
+} from "Common/Utils/ProbeNetworkFailureUtil";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 
@@ -63,7 +67,7 @@ const DEFAULT_PING_RETRIES_WHEN_UNSET: number = 4;
  * library does not reject in that case — it resolves alive=false with the
  * OS error in `output` — so without this a probe container that lost
  * NET_RAW would report its whole fleet as down with no hint why. The list
- * mirrors SubnetScanner.PING_INFRA_FAILURE_MARKERS.
+ * mirrors PING_FAILURE_MARKERS in Probe/Utils/Discovery/DiscoveryPing.ts.
  */
 const PING_INFRA_FAILURE_MARKERS: Array<string> = [
   "operation not permitted",
@@ -77,29 +81,19 @@ const PING_INFRA_FAILURE_MARKERS: Array<string> = [
 ];
 
 /*
- * Substrings that mean the PROBE has no route to the address at all — the
- * kernel refused before a packet went out — rather than that the target
- * ignored the echo. The distinction is invisible in the result the library
+ * Whether the PROBE could not send at all — no IPv6 address, no route, the
+ * family switched off — rather than the target ignoring the echo, is decided
+ * by Common/Utils/ProbeNetworkFailureUtil, which the Port, SSL and HTTP
+ * checks share. The distinction is invisible in the result the library
  * returns (`alive: false` either way, with the reason only in `output`), and
  * it is the whole difference between "your BGP peer is down" and "the machine
  * this probe runs on has no IPv6".
  *
- * That second case is the common one, because a probe container on a default
- * Docker bridge has IPv4 egress and no IPv6 egress: `ping6 2001:518:2800:9::2`
- * comes straight back with "connect: Network is unreachable" while every IPv4
- * monitor beside it keeps working. Reporting that as a plain "no reply" is
- * what makes an IPv6 monitor look like it cannot be made to work.
- *
- * Deliberately NOT here: "destination host unreachable" and "destination net
- * unreachable". Those are ICMP errors a ROUTER sent back about the target,
- * which is a real outage and belongs in the no-reply case.
+ * That second case is the common one: a probe on a default Docker bridge
+ * answers `ping6 2001:518:2800:9::2` with "connect: Network is unreachable",
+ * and one with IPv6 switched off on its loopback with "connect: Cannot assign
+ * requested address", while every IPv4 monitor beside it keeps working.
  */
-const PING_NO_ROUTE_MARKERS: Array<string> = [
-  "network is unreachable",
-  "no route to host",
-  "address family not supported",
-  "unreachable host",
-];
 
 // Substrings that mean the name never resolved, so nothing was pinged.
 const PING_NAME_RESOLUTION_MARKERS: Array<string> = [
@@ -135,6 +129,17 @@ export interface PingResponse {
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;
   pingResponse?: PingMonitorResponse | undefined;
+}
+
+/*
+ * Why a ping came back alive=false. `isProbeSide` is true only when the cause
+ * is CERTAINLY this probe (it could not send, or cannot use ICMP at all), so a
+ * caller must not word it as a verdict on the host. A cause that only might be
+ * the probe's leaves it false, and the host keeps its lead.
+ */
+interface DeadHostDescription {
+  cause: string;
+  isProbeSide: boolean;
 }
 
 export interface PingOptions {
@@ -324,7 +329,8 @@ export default class PingMonitor {
           isOnline: false,
           avgRttMs: stats.avgRoundTripTimeInMs ?? null,
           packetLossPercent: stats.packetLossPercent,
-          failureCause: this.describeDeadHost(hostAddress, packetCount, res),
+          failureCause: this.describeDeadHost(hostAddress, packetCount, res)
+            .cause,
         };
 
         logger.debug(
@@ -470,13 +476,17 @@ export default class PingMonitor {
   /*
    * Why an alive=false result is a failure. Usually "no reply"; when the
    * output says pinging itself is broken (see PING_INFRA_FAILURE_MARKERS),
-   * that is the cause the operator needs to see on every affected device.
+   * or that the probe could not send to this address at all, that is the
+   * cause the operator needs to see on every affected device.
+   *
+   * Shared by ping(), checkReachability() and runDiagnosticPing(), so a
+   * monitor, a device poll and the "Ping" button give the same answer.
    */
   private static describeDeadHost(
     hostAddress: string,
     packetCount: number,
     res: ping.PingResponse,
-  ): string {
+  ): DeadHostDescription {
     const output: string = (res.output || "").trim();
     const lowerOutput: string = output.toLowerCase();
 
@@ -488,28 +498,68 @@ export default class PingMonitor {
       });
     };
 
-    if (hasMarker(PING_INFRA_FAILURE_MARKERS)) {
-      return `ICMP ping is not usable on this probe: ${output.substring(0, 200)}`;
+    const probeFailure: ProbeNetworkFailure | null =
+      ProbeNetworkFailureUtil.classifyOutput({
+        output: output,
+        operation: ProbeNetworkOperation.PingOrTraceroute,
+      });
+    const isIPv6Target: boolean = HostAddressUtil.isIPv6(hostAddress);
+
+    /*
+     * Before the infra markers, for an IPv6 target: with IPv6 disabled in
+     * the kernel ping6 says "socket: Address family not supported by
+     * protocol", and the infra list's "socket:" would call that ICMP being
+     * unusable — which the same probe's IPv4 monitors disprove every minute.
+     */
+    if (probeFailure && isIPv6Target) {
+      return {
+        cause: ProbeNetworkFailureUtil.describe({
+          host: hostAddress,
+          failure: probeFailure,
+          isIPv6Destination: true,
+        }),
+        isProbeSide: true,
+      };
     }
 
-    if (hasMarker(PING_NO_ROUTE_MARKERS)) {
+    if (hasMarker(PING_INFRA_FAILURE_MARKERS)) {
+      return {
+        cause: `ICMP ping is not usable on this probe: ${output.substring(0, 200)}`,
+        isProbeSide: true,
+      };
+    }
+
+    if (probeFailure) {
       /*
        * The probe could not even send. Say which side that is, because the
        * alternative reading — "the peer is down" — sends the operator to
        * look at a router that is answering perfectly well.
+       *
+       * Only when that is certain, though. "No route to host" is also what a
+       * failed neighbour lookup for a dead on-link host prints, so for an
+       * uncertain match the "Unable to reach host X." lead stays.
        */
-      const ipv6Hint: string = HostAddressUtil.isIPv6(hostAddress)
-        ? " This probe has no IPv6 route; a probe needs IPv6 connectivity to monitor an IPv6 destination."
-        : "";
-
-      return `This probe has no route to ${hostAddress}: ${output.substring(0, 200)}.${ipv6Hint}`;
+      return {
+        cause: ProbeNetworkFailureUtil.describe({
+          host: hostAddress,
+          failure: probeFailure,
+          isIPv6Destination: false,
+        }),
+        isProbeSide: probeFailure.isCertain,
+      };
     }
 
     if (hasMarker(PING_NAME_RESOLUTION_MARKERS)) {
-      return `This probe could not resolve ${hostAddress}: ${output.substring(0, 200)}`;
+      return {
+        cause: `This probe could not resolve ${hostAddress}: ${output.substring(0, 200)}`,
+        isProbeSide: false,
+      };
     }
 
-    return `No ICMP echo reply from ${hostAddress} (${packetCount} sent)`;
+    return {
+      cause: `No ICMP echo reply from ${hostAddress} (${packetCount} sent)`,
+      isProbeSide: false,
+    };
   }
 
   /*
@@ -610,7 +660,7 @@ export default class PingMonitor {
         isOnline: res.alive,
         failureCause: res.alive
           ? ""
-          : this.describeDeadHost(hostAddress, packetCount, res),
+          : this.describeDeadHost(hostAddress, packetCount, res).cause,
         pingResponse: stats,
       };
     } catch (err: unknown) {
@@ -705,13 +755,26 @@ export default class PingMonitor {
          * unit-of-work promotion that would otherwise force it back to
          * code-fault (there is no HTTP request behind a probe check). See
          * Common/Server/Utils/Telemetry/ErrorClassResolver.ts.
+         *
+         * "Unable to reach host X." only leads a cause that IS about the
+         * host. When the probe certainly could not send at all (no IPv6 on
+         * this probe, no ICMP), that lead reads as a verdict on a host that
+         * was never contacted — and this text becomes the incident's root
+         * cause in the customer's email and SMS. A cause that only might be
+         * the probe's keeps the lead. The check is still offline and still
+         * retried exactly as before; only the words change.
          */
+        const deadHost: DeadHostDescription = this.describeDeadHost(
+          hostAddress,
+          PING_PACKET_COUNT,
+          res,
+        );
+        const monitorIdSuffix: string = `Monitor ID: ${pingOptions?.monitorId?.toString()}`;
+
         throw new UnableToReachServer(
-          `Unable to reach host ${hostAddress}. ${this.describeDeadHost(
-            hostAddress,
-            PING_PACKET_COUNT,
-            res,
-          )} Monitor ID: ${pingOptions?.monitorId?.toString()}`,
+          deadHost.isProbeSide
+            ? `${deadHost.cause} ${monitorIdSuffix}`
+            : `Unable to reach host ${hostAddress}. ${deadHost.cause} ${monitorIdSuffix}`,
         ).asUserError();
       }
 

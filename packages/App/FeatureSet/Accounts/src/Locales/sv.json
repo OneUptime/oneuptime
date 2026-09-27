@@ -118,7 +118,13 @@
     "verifyEmailSent": "Vi har skickat en verifieringslänk till dig.",
     "verifyEmailInstructions": "Öppna länken i e-postmeddelandet för att aktivera ditt konto och logga sedan in.",
     "verifyEmailResendHint": "Hittar du det inte? Kontrollera skräppostmappen. Länken upphör att gälla efter 24 timmar, och när du loggar in med din e-postadress och ditt lösenord skickar vi en ny.",
-    "verifyEmailLoginLink": "Gå till inloggning"
+    "verifyEmailLoginLink": "Gå till inloggning",
+    "verifyEmailSpamHint": "Hittar du det inte? Kontrollera skräppostmappen. Länken upphör att gälla efter 24 timmar.",
+    "verifyEmailOpenProvider": "Öppna {{provider}}",
+    "verifyEmailOpensInNewTab": "(öppnas i en ny flik)",
+    "verifyEmailAlreadyVerifiedPrompt": "Har du redan verifierat din e-postadress?",
+    "verifyEmailWrongAddressPrompt": "Fel e-postadress?",
+    "verifyEmailUseDifferentEmail": "Registrera dig med en annan e-postadress"
   },
   "forgotPassword": {
     "title": "Glömt lösenord",
@@ -159,7 +165,18 @@
     "errorTitle": "Förlåt, något gick fel!",
     "returnToSignIn": "Tillbaka till inloggning?",
     "loginLink": "Logga in.",
-    "continueToSignIn": "Fortsätt till inloggning"
+    "continueToSignIn": "Fortsätt till inloggning",
+    "linkInvalidTitle": "Den här verifieringslänken är inte längre giltig",
+    "requestNewLinkDescription": "Om länken har upphört att gälla eller slutat fungera kan vi skicka en ny till dig via e-post.",
+    "tryAgain": "Försök igen"
+  },
+  "resendVerificationEmail": {
+    "button": "Skicka verifieringsmejlet igen",
+    "countdown": "Du kan begära ett nytt mejl om {{time}}.",
+    "sent": "Vi har skickat en ny verifieringslänk. Det kan ta en minut eller två innan den kommer fram.",
+    "wait": "Ett verifieringsmejl skickades nyligen. Du kan begära ett nytt när nedräkningen är slut.",
+    "alreadyVerified": "Din e-postadress är redan verifierad. Du kan logga in nu.",
+    "failed": "Vi kunde inte skicka ett nytt verifieringsmejl. Försök igen om en stund."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
   "Password is required.": "Lösenord krävs.",
   "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Den här verifieringsbegäran är inte längre giltig. Logga in med din e-postadress och ditt lösenord så skickar vi en ny verifieringslänk till dig.",
+  "Your account has been blocked. Please contact your administrator.": "Ditt konto har blockerats. Kontakta din administratör.",
   "Account details": "Kontouppgifter",
   "Secure your account": "Skydda ditt konto",
   "Between {{minimum}} and {{maximum}} characters": "Mellan {{minimum}} och {{maximum}} tecken",

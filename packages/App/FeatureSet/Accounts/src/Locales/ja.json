@@ -118,7 +118,13 @@
     "verifyEmailSent": "確認用リンクを送信しました。",
     "verifyEmailInstructions": "メールに記載されたリンクを開いてアカウントを有効化してから、サインインしてください。",
     "verifyEmailResendHint": "見つからない場合は迷惑メールフォルダを確認してください。リンクの有効期限は24時間です。メールアドレスとパスワードでサインインすると、新しいリンクが送信されます。",
-    "verifyEmailLoginLink": "サインインへ進む"
+    "verifyEmailLoginLink": "サインインへ進む",
+    "verifyEmailSpamHint": "見つからない場合は、迷惑メールフォルダを確認してください。リンクの有効期限は24時間です。",
+    "verifyEmailOpenProvider": "{{provider}}を開く",
+    "verifyEmailOpensInNewTab": "（新しいタブで開きます）",
+    "verifyEmailAlreadyVerifiedPrompt": "メールアドレスの確認はお済みですか？",
+    "verifyEmailWrongAddressPrompt": "メールアドレスが間違っていますか？",
+    "verifyEmailUseDifferentEmail": "別のメールアドレスでサインアップ"
   },
   "forgotPassword": {
     "title": "パスワードをお忘れの場合",
@@ -159,7 +165,18 @@
     "errorTitle": "申し訳ございませんが、エラーが発生しました！",
     "returnToSignIn": "サインインに戻りますか？",
     "loginLink": "ログイン。",
-    "continueToSignIn": "サインインに進む"
+    "continueToSignIn": "サインインに進む",
+    "linkInvalidTitle": "この確認用リンクは無効になりました",
+    "requestNewLinkDescription": "リンクの有効期限が切れているか、リンクが機能しない場合は、新しいリンクをメールでお送りできます。",
+    "tryAgain": "もう一度試す"
+  },
+  "resendVerificationEmail": {
+    "button": "確認メールを再送信",
+    "countdown": "{{time}} 後にもう一度メールをリクエストできます。",
+    "sent": "新しい確認用リンクを送信しました。届くまでに1〜2分かかる場合があります。",
+    "wait": "確認メールは少し前に送信済みです。タイマーが終了すると、もう一度リクエストできます。",
+    "alreadyVerified": "メールアドレスは確認済みです。今すぐサインインできます。",
+    "failed": "新しい確認メールを送信できませんでした。しばらくしてからもう一度お試しください。"
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
   "Password is required.": "パスワードは必須です。",
   "Password must be a string.": "パスワードは文字列で入力してください。",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "この確認リクエストは無効になりました。メールアドレスとパスワードでサインインすると、新しい確認用リンクをお送りします。",
+  "Your account has been blocked. Please contact your administrator.": "アカウントがブロックされています。管理者にお問い合わせください。",
   "Account details": "アカウント情報",
   "Secure your account": "アカウントのセキュリティ",
   "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",

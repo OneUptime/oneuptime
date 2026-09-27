@@ -799,6 +799,15 @@ export default class DataSourceEgressGuard {
    * that was checked the address that gets dialed, closing the DNS-rebind
    * window between validation and connect. TLS still verifies against the
    * original hostname because SNI is taken from the URL, not from here.
+   *
+   * It always answers asynchronously, the way dns.lookup does. Node's
+   * net/tls connect can fail every pinned address synchronously (a probe
+   * with no IPv6 gets EADDRNOTAVAIL or ENETUNREACH from connect() itself),
+   * and when the lookup has answered synchronously that destroys the
+   * TLSSocket before tls.connect calls setServername on it. The request then
+   * throws "Cannot read properties of null (reading 'setServername')" in
+   * place of the real connect error, and that error escapes as an unhandled
+   * 'error' event on the socket.
    */
   public static createPinnedLookup(
     addresses: Array<ResolvedAddress>,
@@ -824,22 +833,27 @@ export default class DataSourceEgressGuard {
           `No IPv${wantedFamily} address is available for the validated host.`,
         );
         error.code = "ENOTFOUND";
-        callback(error, "");
+        process.nextTick(() => {
+          callback(error, "");
+        });
         return;
       }
 
       if (lookupOptions && lookupOptions.all) {
-        callback(
-          null,
+        const allAddresses: Array<{ address: string; family: number }> =
           usableAddresses.map((resolved: ResolvedAddress) => {
             return { address: resolved.address, family: resolved.family };
-          }),
-        );
+          });
+        process.nextTick(() => {
+          callback(null, allAddresses);
+        });
         return;
       }
 
       const first: ResolvedAddress = usableAddresses[0]!;
-      callback(null, first.address, first.family);
+      process.nextTick(() => {
+        callback(null, first.address, first.family);
+      });
     };
   }
 

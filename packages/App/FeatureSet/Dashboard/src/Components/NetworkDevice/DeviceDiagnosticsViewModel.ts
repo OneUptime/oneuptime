@@ -182,7 +182,17 @@ export function describeTraceRoute(trace: NetworkPathTrace): TraceRouteSummary {
 
   let headline: string = "Did not reach the destination";
 
-  if (trace.traceRoute?.isComplete) {
+  /*
+   * No hops is no path, not a route that fell short: traceroute never ran
+   * (a probe with no IPv6 fails "connect: Cannot assign requested address"
+   * before one packet leaves it), hit its deadline, or printed nothing
+   * readable. "Did not reach the destination" there sends the operator to
+   * the device's network when the fault may be the probe's own, so the
+   * headline claims nothing and the note carries the trace's reason.
+   */
+  if (hops.length === 0) {
+    headline = "No path was recorded";
+  } else if (trace.traceRoute?.isComplete) {
     headline = `Reached the destination in ${hops.length} ${
       hops.length === 1 ? "hop" : "hops"
     }`;

@@ -1,6 +1,7 @@
 import OnlineCheck from "../../OnlineCheck";
 import MonitorRetry from "../MonitorRetry";
 import ProxyConfig from "../../ProxyConfig";
+import ProbeDnsLookup from "../ProbeDnsLookup";
 import URL from "Common/Types/API/URL";
 import Hostname from "Common/Types/API/Hostname";
 import type { HttpsProxyAgent } from "https-proxy-agent";
@@ -15,6 +16,10 @@ import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import ObjectUtil from "Common/Utils/ObjectUtil";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkFailure,
+  ProbeNetworkOperation,
+} from "Common/Utils/ProbeNetworkFailureUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { ClientRequest, IncomingMessage } from "http";
 import { Socket } from "net";
@@ -217,6 +222,11 @@ export default class SSLMonitor {
         pingOptions.attempts = [];
       }
 
+      const failureCause: string = SSLMonitor.describeConnectionFailure(
+        host,
+        err,
+      );
+
       const responseReceivedAt: Date = new Date();
       pingOptions.attempts.push({
         attemptNumber: pingOptions.currentRetryCount || 1,
@@ -224,7 +234,7 @@ export default class SSLMonitor {
         responseReceivedAt,
         responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
         isOnline: false,
-        failureCause: API.getFriendlyErrorMessage(err as Error),
+        failureCause: failureCause,
       });
 
       if (
@@ -301,7 +311,7 @@ export default class SSLMonitor {
         isOnline: false,
         isTimeout: false,
         isValidCertificate: false,
-        failureCause: API.getFriendlyErrorMessage(err as Error),
+        failureCause: failureCause,
         probeAttempts: pingOptions.attempts,
         totalAttempts: pingOptions.attempts.length,
       };
@@ -361,6 +371,12 @@ export default class SSLMonitor {
            * "Is Request Timeout" could never fire.
            */
           isTimeout: isTimeout,
+          /*
+           * Left false rather than undefined even though no certificate was
+           * seen. Criteria already treat an offline response as not valid,
+           * but the dashboard reads a missing field as an old probe's payload
+           * and would label this "Signed by a CA".
+           */
           isValidCertificate: false,
           isSelfSigned: false,
           /*
@@ -374,7 +390,7 @@ export default class SSLMonitor {
           certificateValidationErrorCode: "",
           failureCause: isTimeout
             ? `${LOG_PREFIX} - the connection timed out after ${timeoutInMs}ms.`
-            : validationErrorMessage,
+            : SSLMonitor.describeConnectionFailure(host, strictError),
         };
       }
 
@@ -394,7 +410,10 @@ export default class SSLMonitor {
           isSelfSigned: SELF_SIGNED_ERROR_CODES.has(validationErrorCode),
           certificateValidationError: validationErrorMessage,
           certificateValidationErrorCode: validationErrorCode,
-          failureCause: API.getFriendlyErrorMessage(lenientError as Error),
+          failureCause: SSLMonitor.describeConnectionFailure(
+            host,
+            lenientError,
+          ),
         };
       }
     }
@@ -493,6 +512,50 @@ export default class SSLMonitor {
     const message: string = String(err);
 
     return message.includes("timeout") && message.includes("exceeded");
+  }
+
+  /*
+   * The failure cause for a connection that never got as far as a
+   * certificate. A probe with no usable IPv6 fails every IPv6 destination
+   * with "connect EADDRNOTAVAIL" before a packet leaves it, and on its own
+   * that reads as the customer's endpoint being broken. Those get the shared
+   * probe-side wording, which still quotes the OS error.
+   *
+   * ENETUNREACH from a TCP connect can also be a router's "no route" to the
+   * destination, so it is only reworded for an IPv6 destination, where the
+   * shared wording says "most likely". IPv4 has no hedged wording, and
+   * refused, timed-out and host-unreachable connections say something real
+   * about the destination; all of those keep the message they had.
+   */
+  private static describeConnectionFailure(host: string, err: unknown): string {
+    const failure: ProbeNetworkFailure | null =
+      ProbeNetworkFailureUtil.classifyError({
+        error: err,
+        operation: ProbeNetworkOperation.TcpConnect,
+      });
+
+    if (!failure) {
+      return API.getFriendlyErrorMessage(err as Error);
+    }
+
+    /*
+     * The address the connect was for decides the family when the error
+     * names one. Through a proxy that is the proxy's address, and an IPv4
+     * proxy the probe could not reach is no evidence about its IPv6.
+     */
+    const isIPv6Destination: boolean = HostAddressUtil.isIPv6(
+      failure.address || host,
+    );
+
+    if (!failure.isCertain && !isIPv6Destination) {
+      return API.getFriendlyErrorMessage(err as Error);
+    }
+
+    return ProbeNetworkFailureUtil.describe({
+      host: host,
+      failure: failure,
+      isIPv6Destination: isIPv6Destination,
+    });
   }
 
   /*
@@ -748,6 +811,13 @@ export default class SSLMonitor {
        * therefore the monitor - permanently.
        */
       timeout: timeoutInMs,
+      /*
+       * Resolves without dns.ADDRCONFIG, so an IPv6-only name on a probe
+       * without IPv6 fails at connect() as the probe's problem rather than
+       * as "getaddrinfo ENOTFOUND": see ProbeDnsLookup. A proxy agent
+       * resolves on the proxy and does not use it.
+       */
+      lookup: ProbeDnsLookup.lookupWithoutAddrConfig,
     };
 
     // Use proxy agent if proxy is configured
