@@ -128,9 +128,11 @@ function update(
     }
   ).onBeforeUpdate({
     query: { _id: TEMPLATE_ID.toString() },
-    data: data,
+    data: data as unknown as UpdateBy<Model>["data"],
     props: props,
-  } as UpdateBy<Model>);
+    limit: 1,
+    skip: 0,
+  });
 }
 
 let stored: Array<Model> = [];
