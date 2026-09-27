@@ -120,8 +120,10 @@ jest.mock("../../../Server/Infrastructure/GlobalCache", () => {
  * Imported after the mocks above are registered: the service captures
  * IoTFleetService and GlobalCache at module load.
  */
-import { Service as IoTDeviceCredentialServiceType } from "../../../Server/Services/IoTDeviceCredentialService";
-import type { IoTDeviceCredentialContext } from "../../../Server/Services/IoTDeviceCredentialService";
+import {
+  IoTDeviceCredentialContext,
+  Service as IoTDeviceCredentialServiceType,
+} from "../../../Server/Services/IoTDeviceCredentialService";
 
 /*
  * The protected hooks and the private cache, reachable for the test. Driving
@@ -527,18 +529,24 @@ describe("resolving a credential to an auth context", () => {
     ["no device id", { externalId: undefined }],
     ["no secret", { secretKey: undefined }],
     ["no fleet name", { iotFleet: undefined }],
-  ])("a credential with %s resolves to null", async (_label, overrides) => {
-    /*
-     * A half-populated row must not produce a context: every field feeds the
-     * topic scope the broker then trusts, and an undefined one would widen it.
-     */
-    const harness: Harness = buildService();
-    harness.findOneBy.mockResolvedValue(credentialRow(overrides));
+  ])(
+    "a credential with %s resolves to null",
+    async (
+      _label: string,
+      overrides: Record<string, unknown>,
+    ): Promise<void> => {
+      /*
+       * A half-populated row must not produce a context: every field feeds the
+       * topic scope the broker then trusts, and an undefined one would widen it.
+       */
+      const harness: Harness = buildService();
+      harness.findOneBy.mockResolvedValue(credentialRow(overrides));
 
-    await expect(
-      harness.service.getCredentialContext(CREDENTIAL_ID.toString()),
-    ).resolves.toBeNull();
-  });
+      await expect(
+        harness.service.getCredentialContext(CREDENTIAL_ID.toString()),
+      ).resolves.toBeNull();
+    },
+  );
 
   test("a malformed credential id never reaches the database", async () => {
     /*

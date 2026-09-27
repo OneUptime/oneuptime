@@ -262,20 +262,23 @@ describe("a caller cannot create a domain already marked verified", () => {
     ["an .example.com domain", "status.example.com"],
     ["an .example.org domain", "status.example.org"],
     ["an .example.net domain", "status.example.net"],
-  ])("%s may be auto-verified", async (_label, domain) => {
-    /*
-     * These TLDs are IANA-reserved and cannot be given real DNS records, so
-     * there is no TXT record to find. Without the exemption the e2e suite
-     * could not verify a domain at all.
-     */
-    const harness: Harness = buildService();
+  ])(
+    "%s may be auto-verified",
+    async (_label: string, domain: string): Promise<void> => {
+      /*
+       * These TLDs are IANA-reserved and cannot be given real DNS records, so
+       * there is no TXT record to find. Without the exemption the e2e suite
+       * could not verify a domain at all.
+       */
+      const harness: Harness = buildService();
 
-    const result: OnCreate<Model> = await harness.internals.onBeforeCreate(
-      createBy({ domain: domain, isVerified: true }),
-    );
+      const result: OnCreate<Model> = await harness.internals.onBeforeCreate(
+        createBy({ domain: domain, isVerified: true }),
+      );
 
-    expect(result.createBy).toBeDefined();
-  });
+      expect(result.createBy).toBeDefined();
+    },
+  );
 
   test("the test-domain exemption is decided AFTER normalization", async () => {
     /*
