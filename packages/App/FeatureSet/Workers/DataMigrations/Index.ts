@@ -118,6 +118,7 @@ import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSe
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
+import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -522,6 +523,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent: it only fills what is still empty.
    */
   new BackfillStatusPageSubscriberUnsubscribeColumns(),
+  /*
+   * Issue #4035: gives a template key to every incident custom field without
+   * one. The schema migration that added the key gave one to every field
+   * that existed then, but a pod still on the previous version can create a
+   * field while the new version rolls out, and only a create assigns a key.
+   * Idempotent: it only fills an empty key.
+   */
+  new BackfillIncidentCustomFieldVariableKeys(),
 ];
 
 export default DataMigrations;

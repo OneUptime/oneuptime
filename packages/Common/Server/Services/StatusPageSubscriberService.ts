@@ -13,6 +13,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
+import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
@@ -1004,6 +1005,17 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    if (!(await this.isFirstUnsubscribeNoticeInWindow(subscriber.id!))) {
+      logger.debug(
+        `The team was told about subscriber ${subscriber.id!.toString()} unsubscribing within the last ${StatusPageSubscriberUnsubscribeNotice.noticeWindowInHours} hours; not telling it again.`,
+        {
+          projectId: subscriber.projectId.toString(),
+          statusPageId: subscriber.statusPageId.toString(),
+        } as LogAttributes,
+      );
+      return;
+    }
+
     const subscriberListUrl: string = (
       await StatusPageService.getStatusPageLinkInDashboard(
         subscriber.projectId,
@@ -1051,6 +1063,39 @@ export class Service extends DatabaseService<Model> {
           statusPageId: subscriber.statusPageId?.toString(),
         } as LogAttributes);
       });
+    }
+  }
+
+  /*
+   * The team is told about a subscriber unsubscribing at most once per
+   * window. The public manage page both re-subscribes a subscriber and
+   * cancels it again, and it is open to anyone who can see the status page
+   * and knows the subscriber's id (it is in the manage link), so without this
+   * a loop of the two would email every owner of the page on every turn.
+   *
+   * One atomic SET NX per subscriber: exactly one notice wins the window
+   * however many cancellations arrive together. If the cache cannot be
+   * reached the notice goes out: telling the team twice is better than not
+   * at all.
+   */
+  private async isFirstUnsubscribeNoticeInWindow(
+    subscriberId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      return await GlobalCache.setStringIfNotExists(
+        StatusPageSubscriberUnsubscribeNotice.noticeCacheNamespace,
+        subscriberId.toString().toLowerCase(),
+        OneUptimeDate.getCurrentDate().toISOString(),
+        {
+          expiresInSeconds:
+            StatusPageSubscriberUnsubscribeNotice.noticeWindowInHours * 60 * 60,
+        },
+      );
+    } catch (err) {
+      logger.warn(
+        `Could not check when the team was last told about subscriber ${subscriberId.toString()} unsubscribing; telling it: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return true;
     }
   }
 

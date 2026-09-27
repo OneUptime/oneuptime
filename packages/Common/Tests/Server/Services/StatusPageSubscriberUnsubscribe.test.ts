@@ -14,7 +14,9 @@ import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubs
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
-import { StatusPageSubscriberUnsubscribeSource } from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import StatusPageSubscriberUnsubscribeNotice, {
+  StatusPageSubscriberUnsubscribeSource,
+} from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
@@ -36,6 +38,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import crypto from "crypto";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { FindOperator } from "typeorm";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -1391,6 +1394,81 @@ describe("telling the team when a subscriber it added unsubscribes", () => {
     ] as string;
     expect(message).toContain("+15555550123");
     expect(message).toContain(`${DASHBOARD_URL}/sms-subscribers`);
+  });
+
+  /*
+   * The public manage page re-subscribes a subscriber and cancels it again,
+   * for anyone who can see the page and knows the subscriber's id. A loop of
+   * the two must not email every owner on every turn: one notice per
+   * subscriber per window.
+   */
+  test("tells the team about a subscriber at most once per window", async () => {
+    const claimed: Set<string> = new Set();
+    const fence: jest.SpyInstance = jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockImplementation((async (
+        namespace: string,
+        key: string,
+        _value: string,
+        options?: { expiresInSeconds?: number },
+      ): Promise<boolean> => {
+        expect(namespace).toBe(
+          StatusPageSubscriberUnsubscribeNotice.noticeCacheNamespace,
+        );
+        expect(options?.expiresInSeconds).toBe(
+          StatusPageSubscriberUnsubscribeNotice.noticeWindowInHours * 60 * 60,
+        );
+
+        if (claimed.has(key)) {
+          return false;
+        }
+
+        claimed.add(key);
+        return true;
+      }) as never);
+
+    await unsubscribeNow();
+    const firstRound: number = sentMail().length;
+
+    // Re-subscribed on the manage page, and cancelled again, twice over.
+    await unsubscribeNow();
+    await StatusPageSubscriberService.unsubscribe({
+      subscriberId: SUBSCRIBER_ID,
+      source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+    });
+
+    expect(firstRound).toBe(3);
+    expect(sentMail()).toHaveLength(firstRound);
+    expect(fence).toHaveBeenCalledTimes(3);
+    expect(fence.mock.calls[0]![1]).toBe(
+      SUBSCRIBER_ID.toString().toLowerCase(),
+    );
+  });
+
+  test("tells the team when the cache that keeps the window cannot be reached", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    await unsubscribeNow();
+
+    expect(recipients()).toEqual([
+      "dana@acme.com",
+      "olga@acme.com",
+      "tom@acme.com",
+    ]);
+  });
+
+  test("a subscriber nobody is to be told about does not use up the window", async () => {
+    storedSubscriber = subscriberRow({ createdByUserId: null });
+    const fence: jest.SpyInstance = jest.spyOn(
+      GlobalCache,
+      "setStringIfNotExists",
+    );
+
+    await unsubscribeNow();
+
+    expect(fence).not.toHaveBeenCalled();
   });
 
   test("the manage page's cancellation is reported as such", async () => {

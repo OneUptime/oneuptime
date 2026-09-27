@@ -78,6 +78,18 @@ const CHANNEL_NAMES: Record<StatusPageSubscriberUnsubscribeChannel, string> = {
 
 export default class StatusPageSubscriberUnsubscribeNotice {
   /*
+   * The team is told about one subscriber unsubscribing at most once in this
+   * many hours (StatusPageSubscriberService.notifyTeamOfUnsubscribe): the
+   * public manage page can re-subscribe and cancel a subscription over and
+   * over, and each cancellation would otherwise email every owner.
+   */
+  public static readonly noticeWindowInHours: number = 24;
+
+  // Where the time of each subscriber's last notice is kept.
+  public static readonly noticeCacheNamespace: string =
+    "status-page-subscriber-unsubscribe-notice";
+
+  /*
    * The dashboard route, under the status page, of the list a channel's
    * subscribers are on (Dashboard RouteMap, STATUS_PAGE_VIEW_*_SUBSCRIBERS).
    */

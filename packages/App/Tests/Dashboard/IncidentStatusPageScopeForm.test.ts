@@ -169,6 +169,54 @@ describe("getNotifiedStatusPagesBeingRemoved", () => {
       }),
     ).toEqual([{ id: SITE_07, name: "Site 07" }]);
   });
+
+  /*
+   * An incident that is not limited reached every page that lists its
+   * monitors. Limiting it drops every told page the new list leaves out,
+   * though none of them is in the (empty) list it had.
+   */
+  describe("for an incident that is not limited", () => {
+    const allSites: NamedStatusPage = {
+      id: "b0000000-0000-4000-8000-0000000000aa",
+      name: "All Sites",
+    };
+
+    test("limiting it names the told pages it leaves out", () => {
+      expect(
+        getNotifiedStatusPagesBeingRemoved({
+          loadedStatusPages: [],
+          isScoped: false,
+          notifiedStatusPageIds: [allSites.id, SITE_03],
+          notifiedStatusPages: [allSites, { id: SITE_03, name: "Site 03" }],
+          formValue: [SITE_03, SITE_07],
+        }),
+      ).toEqual([allSites]);
+    });
+
+    test("leaving it unlimited drops nothing", () => {
+      expect(
+        getNotifiedStatusPagesBeingRemoved({
+          loadedStatusPages: [],
+          isScoped: false,
+          notifiedStatusPageIds: [allSites.id],
+          notifiedStatusPages: [allSites],
+          formValue: [],
+        }),
+      ).toEqual([]);
+    });
+
+    test("a told page whose name could not be read is not named", () => {
+      expect(
+        getNotifiedStatusPagesBeingRemoved({
+          loadedStatusPages: [],
+          isScoped: false,
+          notifiedStatusPageIds: [allSites.id],
+          notifiedStatusPages: [],
+          formValue: [SITE_03],
+        }),
+      ).toEqual([]);
+    });
+  });
 });
 
 describe("isClearingScope", () => {

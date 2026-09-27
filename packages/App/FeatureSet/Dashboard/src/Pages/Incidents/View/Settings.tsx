@@ -7,9 +7,13 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Query from "Common/Types/BaseDatabase/Query";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -31,6 +35,7 @@ import {
   TranslatedScopeNotice,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
 import {
+  getIdsFromFormValue,
   getNamedStatusPages,
   getNotifiedStatusPagesBeingRemoved,
   isClearingScope,
@@ -143,6 +148,64 @@ const IncidentDelete: FunctionComponent<
     scopeIncident?.statusPages,
   );
 
+  /*
+   * The pages an incident that is not limited has told, by name. Limiting it
+   * drops every one of them the new list leaves out, and they are in no list
+   * the card loaded, so their names are read here for the warning. Pages the
+   * person cannot read are not named.
+   */
+  const [notifiedStatusPages, setNotifiedStatusPages] = useState<
+    Array<NamedStatusPage>
+  >([]);
+
+  const unscopedNotifiedIds: string = scopeIncident?.isScopedToStatusPages
+    ? ""
+    : getIdsFromFormValue(scopeIncident?.statusPagesNotifiedOnCreation).join(
+        ",",
+      );
+
+  useEffect(() => {
+    const ids: Array<string> = unscopedNotifiedIds
+      ? unscopedNotifiedIds.split(",")
+      : [];
+
+    if (ids.length === 0) {
+      setNotifiedStatusPages([]);
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    Promise.resolve()
+      .then((): Promise<ListResult<StatusPage>> => {
+        return ModelAPI.getList<StatusPage>({
+          modelType: StatusPage,
+          query: {
+            _id: new Includes(ids),
+          } as Query<StatusPage>,
+          limit: ids.length,
+          skip: 0,
+          select: { _id: true, name: true },
+          sort: {},
+        });
+      })
+      .then((result: ListResult<StatusPage>) => {
+        if (!isCancelled) {
+          setNotifiedStatusPages(getNamedStatusPages(result.data));
+        }
+      })
+      .catch(() => {
+        // Without names there is nobody to name: the warning is left out.
+        if (!isCancelled) {
+          setNotifiedStatusPages([]);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [unscopedNotifiedIds]);
+
   const scopeFormFields: Fields<Incident> = useMemo(() => {
     const fields: Fields<Incident> = [
       {
@@ -174,6 +237,10 @@ const IncidentDelete: FunctionComponent<
               notifiedStatusPageIds:
                 scopeIncident?.statusPagesNotifiedOnCreation,
               formValue: formValue,
+              isScoped: scopeIncident
+                ? scopeIncident.isScopedToStatusPages === true
+                : undefined,
+              notifiedStatusPages: notifiedStatusPages,
             });
 
           return (
@@ -225,7 +292,7 @@ const IncidentDelete: FunctionComponent<
     }
 
     return fields;
-  }, [scopeIncident, statusPagePickerAccess]);
+  }, [scopeIncident, statusPagePickerAccess, notifiedStatusPages]);
 
   return (
     <Fragment>

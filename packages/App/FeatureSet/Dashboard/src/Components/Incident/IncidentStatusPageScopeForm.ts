@@ -105,20 +105,45 @@ export const getAddedStatusPageIds: (data: {
  * The pages an edit removes that were already sent the incident-created
  * notification (Incident.statusPagesNotifiedOnCreation). Removing them means
  * they hear nothing more about the incident, not even its resolution.
+ *
+ * For an incident that is limited, those are told pages the edit takes out
+ * of its list. For one that is not (isScoped false), every page that lists
+ * its monitors was reached, so limiting it to some pages drops every told
+ * page it leaves out - pages that are in no list at all. Their names come
+ * from `notifiedStatusPages`, read for the record; an edit that leaves the
+ * incident unlimited removes nothing.
  */
 export const getNotifiedStatusPagesBeingRemoved: (data: {
   loadedStatusPages: Array<NamedStatusPage>;
   notifiedStatusPageIds: unknown;
   formValue: unknown;
+  isScoped?: boolean | undefined;
+  notifiedStatusPages?: Array<NamedStatusPage> | undefined;
 }) => Array<NamedStatusPage> = (data: {
   loadedStatusPages: Array<NamedStatusPage>;
   notifiedStatusPageIds: unknown;
   formValue: unknown;
+  isScoped?: boolean | undefined;
+  notifiedStatusPages?: Array<NamedStatusPage> | undefined;
 }): Array<NamedStatusPage> => {
   const notified: Array<string> = getIdsFromFormValue(
     data.notifiedStatusPageIds,
   );
   const kept: Array<string> = getIdsFromFormValue(data.formValue);
+
+  if (data.isScoped === false) {
+    if (kept.length === 0) {
+      return [];
+    }
+
+    return (data.notifiedStatusPages || []).filter(
+      (statusPage: NamedStatusPage): boolean => {
+        return (
+          notified.includes(statusPage.id) && !kept.includes(statusPage.id)
+        );
+      },
+    );
+  }
 
   return data.loadedStatusPages.filter(
     (statusPage: NamedStatusPage): boolean => {

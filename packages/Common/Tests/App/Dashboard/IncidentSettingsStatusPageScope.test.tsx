@@ -45,6 +45,7 @@ let savedRequests: Array<{
 
 const countMock: MockFunction = getJestMockFunction();
 const postMock: MockFunction = getJestMockFunction();
+const listMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
@@ -78,8 +79,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (): Promise<unknown> => {
         return loadedIncident;
       },
-      getList: async (): Promise<unknown> => {
-        return { data: [], count: 0, skip: 0, limit: 0 };
+      getList: (...args: Array<unknown>): unknown => {
+        return listMock(...args);
       },
       count: (...args: Array<unknown>): unknown => {
         return countMock(...args);
@@ -339,6 +340,13 @@ beforeEach(() => {
 
   countMock.mockReset();
   countMock.mockResolvedValue(3 as never);
+  listMock.mockReset();
+  listMock.mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
   postMock.mockReset();
   postMock.mockResolvedValue(audienceResponse() as never);
 });
@@ -615,6 +623,102 @@ describe("the picker's warnings", () => {
     expect(
       screen.queryByTestId("incident-scope-removing-notified-pages"),
     ).toBeNull();
+  });
+
+  /*
+   * An incident its monitors created is not limited, so it told every page
+   * that lists them - an internal 'All Sites' page next to the site pages,
+   * say. Limiting it to Site 03 drops All Sites, which then hears nothing
+   * more, not even that it was resolved; that page is in no list the card
+   * loaded, so its name is read for the warning.
+   */
+  test("limiting an unscoped incident warns about the told pages it leaves out", async () => {
+    const ALL_SITES: string = "b0000000-0000-4000-8000-0000000000aa";
+    listMock.mockResolvedValue({
+      data: [page(ALL_SITES, "All Sites")],
+      count: 1,
+      skip: 0,
+      limit: 1,
+    } as never);
+
+    await renderSettings();
+    await loadIncident({
+      isScoped: false,
+      statusPages: [],
+      notified: [ALL_SITES, SITE_03],
+    });
+
+    // The told pages' names, read by id.
+    expect(listMock).toHaveBeenCalledTimes(1);
+    const request: { modelType: unknown; select: Record<string, unknown> } =
+      listMock.mock.calls[0]![0] as {
+        modelType: unknown;
+        select: Record<string, unknown>;
+      };
+    expect(request.modelType).toBe(StatusPage);
+    expect(request.select).toEqual({ _id: true, name: true });
+
+    await renderFooter([SITE_03]);
+
+    expect(
+      screen.getByTestId("incident-scope-removing-notified-pages"),
+    ).toHaveTextContent(
+      formatScopeText(
+        IncidentStatusPageScopeCopy.removingNotifiedPagesWarning,
+        { names: "All Sites" },
+      ),
+    );
+  });
+
+  test("limiting an unscoped incident to every page it told needs no warning", async () => {
+    listMock.mockResolvedValue({
+      data: [page(SITE_03, "Site 03")],
+      count: 1,
+      skip: 0,
+      limit: 1,
+    } as never);
+
+    await renderSettings();
+    await loadIncident({
+      isScoped: false,
+      statusPages: [],
+      notified: [SITE_03],
+    });
+
+    await renderFooter([SITE_03, SITE_07]);
+
+    expect(
+      screen.queryByTestId("incident-scope-removing-notified-pages"),
+    ).toBeNull();
+  });
+
+  test("an unscoped incident left unscoped drops no told page", async () => {
+    listMock.mockResolvedValue({
+      data: [page(SITE_03, "Site 03")],
+      count: 1,
+      skip: 0,
+      limit: 1,
+    } as never);
+
+    await renderSettings();
+    await loadIncident({
+      isScoped: false,
+      statusPages: [],
+      notified: [SITE_03],
+    });
+
+    await renderFooter([]);
+
+    expect(
+      screen.queryByTestId("incident-scope-removing-notified-pages"),
+    ).toBeNull();
+  });
+
+  test("an unscoped incident that told nobody reads no names", async () => {
+    await renderSettings();
+    await loadIncident({ isScoped: false, statusPages: [], notified: [] });
+
+    expect(listMock).not.toHaveBeenCalled();
   });
 
   test("an unscoped incident left unscoped says nothing", async () => {

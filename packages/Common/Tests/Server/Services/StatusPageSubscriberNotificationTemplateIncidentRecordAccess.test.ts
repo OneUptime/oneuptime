@@ -1,4 +1,6 @@
 import StatusPageSubscriberNotificationTemplateService from "../../../Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateStatusPageService from "../../../Server/Services/StatusPageSubscriberNotificationTemplateStatusPageService";
+import StatusPageSubscriberNotificationTemplateStatusPage from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
@@ -496,6 +498,229 @@ describe("updating a template", () => {
     expect(
       StatusPageSubscriberNotificationTemplateService.findBy,
     ).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Changing where a template is sent - its channel or its event type - sends
+ * everything it places somewhere new: an admin's email template placing an
+ * internal custom field, switched to Slack, would post it to whatever Slack
+ * subscriber a status page role adds. So it counts as placing everything the
+ * template holds.
+ */
+describe("pointing a template somewhere else", () => {
+  test("a Status Page Member cannot switch the channel of a template that places incident records", async () => {
+    stored = [
+      template({
+        notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        templateBody: "Root cause: {{customFields.internal_root_cause}}",
+      }),
+    ];
+
+    await expect(
+      update(
+        { notificationMethod: StatusPageSubscriberNotificationMethod.Slack },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(
+      /Placing \{\{customFields\.internal_root_cause\}\} in a subscriber notification template/,
+    );
+  });
+
+  test("nor its event type", async () => {
+    stored = [template({ emailSubject: "{{incidentLabels}}" })];
+
+    await expect(
+      update(
+        {
+          eventType:
+            StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+        },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  test("the channel and event sent back unchanged, with a typo fixed, still go through", async () => {
+    stored = [
+      template({
+        notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        templateBody: "Root cause: {{customFields.internal_root_cause}}",
+      }),
+    ];
+
+    await expect(
+      update(
+        {
+          notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+          eventType:
+            StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+          templateBody:
+            "Root cause (typo fixed): {{customFields.internal_root_cause}}",
+        },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("a template that places only what the status page shows can be pointed anywhere", async () => {
+    stored = [template({ templateBody: "{{incidentTitle}}" })];
+
+    await expect(
+      update(
+        { notificationMethod: StatusPageSubscriberNotificationMethod.Webhook },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("the new text is what counts when the same write replaces it", async () => {
+    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+
+    await expect(
+      update(
+        {
+          notificationMethod: StatusPageSubscriberNotificationMethod.Webhook,
+          templateBody: "{{incidentTitle}}",
+        },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("someone who may read incidents can switch it", async () => {
+    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+
+    await expect(
+      update(
+        { notificationMethod: StatusPageSubscriberNotificationMethod.Webhook },
+        propsWith([row(Permission.ProjectMember)]),
+      ),
+    ).resolves.toBeDefined();
+  });
+});
+
+/*
+ * Linking a template to a status page sends that page's subscribers what it
+ * places. A status page role may link templates and add its own Slack,
+ * Teams or webhook subscriber to the page, so linking a template that places
+ * incident records - or moving a link to another page - is checked the same.
+ */
+describe("linking a template to a status page", () => {
+  type LinkModel = StatusPageSubscriberNotificationTemplateStatusPage;
+
+  const LINK_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+  const STATUS_PAGE_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  function createLink(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<OnCreate<LinkModel>> {
+    const link: LinkModel =
+      new StatusPageSubscriberNotificationTemplateStatusPage();
+    link.projectId = PROJECT_ID;
+    link.statusPageId = STATUS_PAGE_ID;
+    link.statusPageSubscriberNotificationTemplateId = TEMPLATE_ID;
+
+    return (
+      StatusPageSubscriberNotificationTemplateStatusPageService as unknown as {
+        onBeforeCreate: (
+          createBy: CreateBy<LinkModel>,
+        ) => Promise<OnCreate<LinkModel>>;
+      }
+    ).onBeforeCreate({ data: link, props: props });
+  }
+
+  function updateLink(
+    data: Partial<LinkModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<OnUpdate<LinkModel>> {
+    return (
+      StatusPageSubscriberNotificationTemplateStatusPageService as unknown as {
+        onBeforeUpdate: (
+          updateBy: UpdateBy<LinkModel>,
+        ) => Promise<OnUpdate<LinkModel>>;
+      }
+    ).onBeforeUpdate({
+      query: { _id: LINK_ID.toString() },
+      data: data as unknown as UpdateBy<LinkModel>["data"],
+      props: props,
+      limit: 1,
+      skip: 0,
+    });
+  }
+
+  beforeEach(() => {
+    const link: LinkModel =
+      new StatusPageSubscriberNotificationTemplateStatusPage();
+    link.statusPageSubscriberNotificationTemplateId = TEMPLATE_ID;
+
+    jest
+      .spyOn(
+        StatusPageSubscriberNotificationTemplateStatusPageService,
+        "findBy",
+      )
+      .mockResolvedValue([link] as never);
+  });
+
+  test("a Status Page Member cannot link a template that places incident records", async () => {
+    stored = [
+      template({ templateBody: "{{customFields.internal_root_cause}}" }),
+    ];
+
+    await expect(createLink(propsWith(STATUS_PAGE_MEMBER))).rejects.toThrow(
+      /Placing \{\{customFields\.internal_root_cause\}\} in a subscriber notification template/,
+    );
+
+    // The template is read as root, by id, in the caller's project.
+    const args: {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = (
+      StatusPageSubscriberNotificationTemplateService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    };
+    expect(args.query["projectId"]).toEqual(PROJECT_ID);
+    expect(args.props.isRoot).toBe(true);
+  });
+
+  test("but can link one that places only what the status page shows", async () => {
+    stored = [template({ templateBody: "{{incidentTitle}}" })];
+
+    await expect(
+      createLink(propsWith(STATUS_PAGE_MEMBER)),
+    ).resolves.toBeDefined();
+  });
+
+  test("cannot move a link to another status page, or point it at another template, that places them", async () => {
+    stored = [template({ templateBody: "{{incidentLabels}}" })];
+
+    await expect(
+      updateLink(
+        { statusPageId: ObjectID.generate() },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+    await expect(
+      updateLink(
+        { statusPageSubscriberNotificationTemplateId: TEMPLATE_ID },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  test("someone who may read incidents can link it, and root is not checked", async () => {
+    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+
+    await expect(
+      createLink(propsWith([row(Permission.ProjectMember)])),
+    ).resolves.toBeDefined();
+    await expect(createLink({ isRoot: true })).resolves.toBeDefined();
   });
 });
 

@@ -208,6 +208,10 @@ See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for t
 - **Preview notification** is open to the same roles, and previews only the pages the person can read, at most sixty times every ten minutes. Like the summary, it never shows an address. **Send test to me** sends only to the person's own account email, once it is verified, at most ten times every 15 minutes.
 - **Sending a notification again** needs the permission to edit the incident, for its 'created' notification, and both the permission to edit public notes and the permission to post public notes that notify subscribers, for a note - and so does telling subscribers about an edit to a note. None of them is accepted while that notification is being sent.
 
+## Upgrading a self-hosted server
+
+The workers that send subscriber notifications are what keep an incident to the pages it is limited to. While an upgrade to a version with this feature rolls out, a worker still on the previous version sends the notifications it picks up the way it always has: to every status page that lists the incident's monitors, including pages that only show incidents limited to them. So let the worker deployment finish rolling out, or scale the old workers to zero, before anyone limits an incident to status pages or turns on **Only Show Incidents Scoped to This Page**. With Helm, `migrate.hook: true` also runs the database migrations before any new pod starts.
+
 ## Where to read next
 
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — the subscriber channels, and what each event sends.

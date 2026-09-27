@@ -58,13 +58,20 @@ export class Service extends DatabaseService<Model> {
    * template already holds was allowed when it was written, so someone
    * without incident access can still fix a typo, rename the template or
    * move a placeholder from the subject to the body - but not add one.
+   *
+   * Pointing a template somewhere else counts as placing everything it
+   * holds: changing its channel or event type makes an admin's template
+   * send its incident records to wherever the new channel goes, and a
+   * status page role can add a Slack, Teams or webhook subscriber of its
+   * own. (Linking it to another status page is checked by
+   * StatusPageSubscriberNotificationTemplateStatusPageService.)
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     SubscriberTemplateIncidentRecordAccess.assertCanPlace({
-      placeholders: await this.getIncidentRecordPlaceholdersAdded(updateBy),
+      placeholders: await this.getIncidentRecordPlaceholdersToCheck(updateBy),
       props: updateBy.props,
     });
 
@@ -72,13 +79,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The incident record placeholders this update writes into a template's
-   * body or subject that the template did not hold before, across every
-   * template it would change. The templates are read as root and limited
-   * to the caller's project, like other update hooks: the update's own
-   * permission check has not run yet, and only narrows the rows further.
+   * The incident record placeholders this update must be allowed to place,
+   * across every template it would change: those it writes into a body or
+   * subject that the template did not hold before, and, when it changes
+   * where the template is sent (its channel or event type), every one the
+   * template will hold once written. The templates are read as root and
+   * limited to the caller's project, like other update hooks: the update's
+   * own permission check has not run yet, and only narrows the rows further.
    */
-  private async getIncidentRecordPlaceholdersAdded(
+  private async getIncidentRecordPlaceholdersToCheck(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<string>> {
     if (updateBy.props.isRoot || updateBy.props.isMasterAdmin) {
@@ -88,29 +97,40 @@ export class Service extends DatabaseService<Model> {
     const data: {
       templateBody?: unknown;
       emailSubject?: unknown;
+      eventType?: unknown;
+      notificationMethod?: unknown;
     } = updateBy.data as unknown as {
       templateBody?: unknown;
       emailSubject?: unknown;
+      eventType?: unknown;
+      notificationMethod?: unknown;
     };
     const writesBody: boolean = data.templateBody !== undefined;
     const writesSubject: boolean = data.emailSubject !== undefined;
+    const writesTarget: boolean =
+      data.eventType !== undefined || data.notificationMethod !== undefined;
 
-    if (!writesBody && !writesSubject) {
+    if (!writesBody && !writesSubject && !writesTarget) {
       return [];
     }
 
     // Anything but text places nothing: the column check refuses it anyway.
+    const writtenBody: string | null =
+      writesBody && typeof data.templateBody === "string"
+        ? data.templateBody
+        : null;
+    const writtenSubject: string | null =
+      writesSubject && typeof data.emailSubject === "string"
+        ? data.emailSubject
+        : null;
+
     const written: Array<string> =
       SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
-        writesBody && typeof data.templateBody === "string"
-          ? data.templateBody
-          : null,
-        writesSubject && typeof data.emailSubject === "string"
-          ? data.emailSubject
-          : null,
+        writtenBody,
+        writtenSubject,
       ]);
 
-    if (written.length === 0) {
+    if (written.length === 0 && !writesTarget) {
       return [];
     }
 
@@ -123,6 +143,8 @@ export class Service extends DatabaseService<Model> {
       select: {
         templateBody: true,
         emailSubject: true,
+        eventType: true,
+        notificationMethod: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -140,6 +162,31 @@ export class Service extends DatabaseService<Model> {
           template.emailSubject,
         ]);
 
+      /*
+       * Only a real change: the edit form sends the channel and event type
+       * back as they were, and a typo fix must still go through.
+       */
+      const changesTarget: boolean =
+        writesTarget &&
+        ((data.eventType !== undefined &&
+          data.eventType !== template.eventType) ||
+          (data.notificationMethod !== undefined &&
+            data.notificationMethod !== template.notificationMethod));
+
+      if (changesTarget) {
+        // Everything the template will hold goes to the new target.
+        for (const name of SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders(
+          [
+            writesBody ? writtenBody : template.templateBody,
+            writesSubject ? writtenSubject : template.emailSubject,
+          ],
+        )) {
+          added.add(name);
+        }
+
+        continue;
+      }
+
       for (const name of written) {
         if (!held.includes(name)) {
           added.add(name);
@@ -148,6 +195,49 @@ export class Service extends DatabaseService<Model> {
     }
 
     return Array.from(added).sort();
+  }
+
+  /*
+   * The incident record placeholders the given templates hold, in the
+   * caller's project: what linking them to a status page places there
+   * (StatusPageSubscriberNotificationTemplateStatusPageService). Read as
+   * root, like the update hook above.
+   */
+  public async getIncidentRecordPlaceholdersHeld(data: {
+    templateIds: Array<ObjectID>;
+    projectId?: ObjectID | undefined;
+  }): Promise<Array<string>> {
+    if (data.templateIds.length === 0) {
+      return [];
+    }
+
+    const templates: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(data.templateIds),
+        ...(data.projectId ? { projectId: data.projectId } : {}),
+      },
+      select: {
+        templateBody: true,
+        emailSubject: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const held: Set<string> = new Set<string>();
+
+    for (const template of templates) {
+      for (const name of SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders(
+        [template.templateBody, template.emailSubject],
+      )) {
+        held.add(name);
+      }
+    }
+
+    return Array.from(held).sort();
   }
 
   /**
