@@ -8,6 +8,7 @@ enum StatusPageSubscriberNotificationMethod {
   SMS = "SMS",
   Slack = "Slack",
   MicrosoftTeams = "Microsoft Teams",
+  Discord = "Discord",
   Webhook = "Webhook",
 }
 

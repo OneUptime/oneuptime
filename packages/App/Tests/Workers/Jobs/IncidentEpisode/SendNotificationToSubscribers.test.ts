@@ -1032,7 +1032,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers respects showEpisodesOnS
           SECOND_STATUS_PAGE_ID.toString(),
         );
       }
-      expect(templateLookups()).toHaveLength(4);
+      expect(templateLookups()).toHaveLength(5);
 
       // Exactly one subscriber - the showing page's - hears about it.
       expect(sentMail()).toHaveLength(1);
@@ -1275,7 +1275,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates receive
 
     await runJob();
 
-    expect(templateLookups()).toHaveLength(4);
+    expect(templateLookups()).toHaveLength(5);
     expect(
       templateLookups()
         .map((lookup: JSONObject): string => {
@@ -1284,6 +1284,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates receive
         .sort(),
     ).toEqual(
       [
+        StatusPageSubscriberNotificationMethod.Discord,
         StatusPageSubscriberNotificationMethod.Email,
         StatusPageSubscriberNotificationMethod.SMS,
         StatusPageSubscriberNotificationMethod.Slack,

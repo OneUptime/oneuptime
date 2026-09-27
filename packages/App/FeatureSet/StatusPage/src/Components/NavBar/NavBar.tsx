@@ -23,6 +23,7 @@ export interface ComponentProps {
   enableSMSSubscribers: boolean;
   enableSlackSubscribers?: boolean;
   enableMicrosoftTeamsSubscribers?: boolean;
+  enableDiscordSubscribers?: boolean;
   enableWebhookSubscribers?: boolean;
   showIncidentsOnStatusPage: boolean;
   showAnnouncementsOnStatusPage: boolean;
@@ -187,6 +188,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       props.enableSMSSubscribers ||
       props.enableSlackSubscribers ||
       props.enableMicrosoftTeamsSubscribers ||
+      props.enableDiscordSubscribers ||
       props.enableWebhookSubscribers)
   ) {
     addNavItem({

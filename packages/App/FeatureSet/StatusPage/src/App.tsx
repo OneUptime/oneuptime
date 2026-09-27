@@ -180,6 +180,15 @@ const MicrosoftTeamsSubscribe: React.LazyExoticComponent<
     };
   });
 });
+const DiscordSubscribe: React.LazyExoticComponent<
+  AllPagesModule["DiscordSubscribe"]
+> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.DiscordSubscribe,
+    };
+  });
+});
 const WebhookSubscribe: React.LazyExoticComponent<
   AllPagesModule["WebhookSubscribe"]
 > = lazy(() => {
@@ -237,6 +246,8 @@ const App: () => JSX.Element = () => {
     useState<boolean>(false);
   const [enableMicrosoftTeamsSubscribers, setenableMicrosoftTeamsSubscribers] =
     useState<boolean>(false);
+  const [enableDiscordSubscribers, setenableDiscordSubscribers] =
+    useState<boolean>(false);
   const [enableWebhookSubscribers, setenableWebhookSubscribers] =
     useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
@@ -265,6 +276,7 @@ const App: () => JSX.Element = () => {
       enableEmailSubscribers={enableEmailSubscribers}
       enableSlackSubscribers={enableSlackSubscribers}
       enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+      enableDiscordSubscribers={enableDiscordSubscribers}
       enableWebhookSubscribers={enableWebhookSubscribers}
       isPrivateStatusPage={isPrivateStatusPage}
       onLoadComplete={(masterpage: JSONObject) => {
@@ -340,6 +352,12 @@ const App: () => JSX.Element = () => {
             "statusPage.enableMicrosoftTeamsSubscribers",
           ) as boolean;
 
+        const enableDiscordSubscribers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableDiscordSubscribers",
+          ) as boolean;
+
         const enableWebhookSubscribers: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -366,6 +384,7 @@ const App: () => JSX.Element = () => {
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableSlackSubscribers(enableSlackSubscribers);
         setenableMicrosoftTeamsSubscribers(enableMicrosoftTeamsSubscribers);
+        setenableDiscordSubscribers(enableDiscordSubscribers);
         setenableWebhookSubscribers(enableWebhookSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
 
@@ -592,6 +611,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -617,6 +637,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -642,6 +663,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -679,6 +701,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -704,6 +727,33 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_DISCORD]?.toString() || ""}
+            element={
+              <DiscordSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_DISCORD] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -729,6 +779,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -768,6 +819,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -797,6 +849,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -822,6 +875,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -847,6 +901,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -877,6 +932,33 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_DISCORD]?.toString() || ""}
+            element={
+              <DiscordSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_DISCORD] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
@@ -906,6 +988,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableDiscordSubscribers={enableDiscordSubscribers}
                 enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }

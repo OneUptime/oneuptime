@@ -123,6 +123,9 @@ import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import DiscordWebhook from "../Utils/Workspace/Discord/DiscordWebhook";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -1009,6 +1012,7 @@ export default class StatusPageAPI extends BaseAPI<
             enableEmailSubscribers: true,
             enableSlackSubscribers: true,
             enableMicrosoftTeamsSubscribers: true,
+            enableDiscordSubscribers: true,
             enableWebhookSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
@@ -2762,6 +2766,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableEmailSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableDiscordSubscribers: true,
         enableWebhookSubscribers: true,
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
@@ -2837,6 +2842,20 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
+    if (
+      (req.body.data["discordIncomingWebhookUrl"] ||
+        req.body.data["discordChannelName"]) &&
+      !statusPage.enableDiscordSubscribers
+    ) {
+      logger.debug(
+        `Discord subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Discord subscribers not enabled for this status page.",
+      );
+    }
+
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
         `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
@@ -2852,17 +2871,18 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["subscriberPhone"],
       req.body.data["slackWorkspaceName"],
       req.body.data["microsoftTeamsWorkspaceName"],
+      req.body.data["discordChannelName"],
     ].filter(Boolean);
 
     const identifierCount: number = identifiers.length;
 
     if (identifierCount === 0) {
       logger.debug(
-        `No email, phone, Slack workspace name or Microsoft Teams workspace name provided to manage a subscription on status page with ID: ${statusPageId}`,
+        `No email, phone, Slack workspace name, Microsoft Teams workspace name or Discord channel name provided to manage a subscription on status page with ID: ${statusPageId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
-        "Email, phone, Slack workspace name or Microsoft Teams workspace name is required to manage your subscription.",
+        "Email, phone, Slack workspace name, Microsoft Teams workspace name or Discord channel name is required to manage your subscription.",
       );
     }
 
@@ -2874,14 +2894,14 @@ export default class StatusPageAPI extends BaseAPI<
      */
     if (identifierCount > 1) {
       throw new BadDataException(
-        "Please provide only one of email, phone, Slack workspace name or Microsoft Teams workspace name.",
+        "Please provide only one of email, phone, Slack workspace name, Microsoft Teams workspace name or Discord channel name.",
       );
     }
 
     // The identifier goes straight into the subscriber query, so only plain text is accepted.
     if (typeof identifiers[0] !== "string") {
       throw new BadDataException(
-        "Email, phone, Slack workspace name or Microsoft Teams workspace name must be text.",
+        "Email, phone, Slack workspace name, Microsoft Teams workspace name or Discord channel name must be text.",
       );
     }
 
@@ -2905,6 +2925,12 @@ export default class StatusPageAPI extends BaseAPI<
       ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
       : undefined;
 
+    const discordChannelName: string | undefined = req.body.data[
+      "discordChannelName"
+    ]
+      ? (req.body.data["discordChannelName"] as string)
+      : undefined;
+
     /*
      * Each lookup selects only the contact for its own channel, so a link can
      * only be delivered where that subscriber signed up.
@@ -2921,15 +2947,23 @@ export default class StatusPageAPI extends BaseAPI<
     } else if (slackWorkspaceName) {
       lookupQuery = { slackWorkspaceName: slackWorkspaceName };
       lookupSelect = { _id: true, slackIncomingWebhookUrl: true };
-    } else {
+    } else if (microsoftTeamsWorkspaceName) {
       lookupQuery = {
         microsoftTeamsWorkspaceName: microsoftTeamsWorkspaceName!,
       };
       lookupSelect = { _id: true, microsoftTeamsIncomingWebhookUrl: true };
+    } else {
+      /*
+       * Discord has no workspace concept; the channel name is a subscriber-
+       * supplied label, not a verified identity. It selects only the webhook
+       * of the matching subscriber, like the Slack and Teams labels.
+       */
+      lookupQuery = { discordChannelName: discordChannelName! };
+      lookupSelect = { _id: true, discordIncomingWebhookUrl: true };
     }
 
     logger.debug(
-      `Looking up subscribers by email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
+      `Looking up subscribers by email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}, or Discord channel: ${discordChannelName}`,
       getLogAttributesFromRequest(req as any),
     );
 
@@ -2963,7 +2997,7 @@ export default class StatusPageAPI extends BaseAPI<
        * be used to find out who is subscribed.
        */
       logger.debug(
-        `Subscriber not found for email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
+        `Subscriber not found for email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}, or Discord channel: ${discordChannelName}`,
         getLogAttributesFromRequest(req as any),
       );
       return;
@@ -3011,6 +3045,7 @@ export default class StatusPageAPI extends BaseAPI<
         manageSmsTemplate,
         manageSlackTemplate,
         manageMicrosoftTeamsTemplate,
+        manageDiscordTemplate,
       ]: Array<StatusPageSubscriberNotificationTemplate | null> =
         await Promise.all([
           StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -3046,6 +3081,15 @@ export default class StatusPageAPI extends BaseAPI<
                 StatusPageSubscriberNotificationMethod.MicrosoftTeams,
             },
           ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.Discord,
+            },
+          ),
         ]);
 
       for (const statusPageSubscriber of subscribers) {
@@ -3058,6 +3102,8 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageSubscriber.slackIncomingWebhookUrl;
         const microsoftTeamsIncomingWebhookUrl: URL | undefined =
           statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
+        const discordIncomingWebhookUrl: URL | undefined =
+          statusPageSubscriber.discordIncomingWebhookUrl;
 
         const manageUrlink: string =
           StatusPageSubscriberService.getUnsubscribeLink(
@@ -3224,6 +3270,42 @@ export default class StatusPageAPI extends BaseAPI<
           });
         }
 
+        if (discordIncomingWebhookUrl) {
+          let discordMessage: string;
+          if (manageDiscordTemplate?.templateBody) {
+            discordMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageDiscordTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            discordMessage = defaultChatMessage;
+          }
+
+          /*
+           * DiscordWebhook.send resolves with HTTPErrorResponse on an HTTP
+           * failure instead of rejecting, so a returned failure is logged
+           * explicitly here; the .catch() only covers transport errors.
+           */
+          DiscordWebhook.send({
+            url: discordIncomingWebhookUrl,
+            text: discordMessage,
+          })
+            .then(
+              (result: HTTPResponse<JSONObject> | HTTPErrorResponse): void => {
+                if (result instanceof HTTPErrorResponse) {
+                  logger.error(
+                    `Discord manage-subscription delivery failed (HTTP ${result.statusCode}).`,
+                    getLogAttributesFromRequest(req as any),
+                  );
+                }
+              },
+            )
+            .catch((err: Error) => {
+              logger.error(err, getLogAttributesFromRequest(req as any));
+            });
+        }
+
         logger.debug(
           `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
           getLogAttributesFromRequest(req as any),
@@ -3259,6 +3341,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableSmsSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableDiscordSubscribers: true,
         enableWebhookSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
@@ -3344,6 +3427,20 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
+      (req.body.data["discordIncomingWebhookUrl"] ||
+        req.body.data["discordChannelName"]) &&
+      !statusPage.enableDiscordSubscribers
+    ) {
+      logger.debug(
+        `Discord subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Discord subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
       req.body.data["subscriberWebhook"] &&
       !statusPage.enableWebhookSubscribers
     ) {
@@ -3362,14 +3459,15 @@ export default class StatusPageAPI extends BaseAPI<
       !req.body.data["subscriberPhone"] &&
       !req.body.data["slackWorkspaceName"] &&
       !req.body.data["microsoftTeamsWorkspaceName"] &&
+      !req.body.data["discordChannelName"] &&
       !req.body.data["subscriberWebhook"]
     ) {
       logger.debug(
-        `No email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL provided for subscription to status page with ID: ${objectId}`,
+        `No email, phone, slack workspace name, Microsoft Teams workspace name, Discord channel name, or webhook URL provided for subscription to status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
-        "Email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL is required to subscribe to this status page.",
+        "Email, phone, slack workspace name, Microsoft Teams workspace name, Discord channel name, or webhook URL is required to subscribe to this status page.",
       );
     }
 
@@ -3403,6 +3501,18 @@ export default class StatusPageAPI extends BaseAPI<
       "microsoftTeamsWorkspaceName"
     ]
       ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    const discordIncomingWebhookUrl: string | undefined = req.body.data[
+      "discordIncomingWebhookUrl"
+    ]
+      ? (req.body.data["discordIncomingWebhookUrl"] as string)
+      : undefined;
+
+    const discordChannelName: string | undefined = req.body.data[
+      "discordChannelName"
+    ]
+      ? (req.body.data["discordChannelName"] as string)
       : undefined;
 
     const subscriberWebhookUrl: string | undefined = req.body.data[
@@ -3511,6 +3621,24 @@ export default class StatusPageAPI extends BaseAPI<
       );
       statusPageSubscriber.microsoftTeamsWorkspaceName =
         microsoftTeamsWorkspaceName;
+    }
+
+    if (discordIncomingWebhookUrl) {
+      logger.debug(
+        "Setting a Discord webhook on a subscriber.",
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.discordIncomingWebhookUrl = URL.fromString(
+        discordIncomingWebhookUrl,
+      );
+    }
+
+    if (discordChannelName) {
+      logger.debug(
+        `Setting subscriber Discord channel name: ${discordChannelName}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.discordChannelName = discordChannelName;
     }
 
     if (subscriberWebhookUrl) {

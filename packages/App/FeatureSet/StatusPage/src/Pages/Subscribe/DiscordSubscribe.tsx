@@ -21,10 +21,8 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
-import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,
@@ -34,9 +32,13 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
-const SubscribePage: FunctionComponent<SubscribePageProps> = (
-  props: SubscribePageProps,
+export type ComponentProps = SubscribePageProps;
+
+const SubscribePage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -47,16 +49,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
    */
   const [isManageLinkRequested, setIsManageLinkRequested] =
     useState<boolean>(false);
-
-  const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
-
-  const [
-    categoryCheckboxOptionsAndCategories,
-    setCategoryCheckboxOptionsAndCategories,
-  ] = useState<CategoryCheckboxOptionsAndCategories>({
-    categories: [],
-    options: [],
-  });
   /*
    * Start in the loading state when the effect below is actually going to
    * fetch. Starting at false rendered the whole form, then swapped it for a
@@ -67,6 +59,17 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   const [isLaoding, setIsLoading] = useState<boolean>(
     Boolean(props.allowSubscribersToChooseResources),
   );
+
+  const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+
+  const [
+    categoryCheckboxOptionsAndCategories,
+    setCategoryCheckboxOptionsAndCategories,
+  ] = useState<CategoryCheckboxOptionsAndCategories>({
+    categories: [],
+    options: [],
+  });
+
   const [error, setError] = useState<string | undefined>(undefined);
 
   const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
@@ -111,18 +114,23 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   const fields: Array<ModelField<StatusPageSubscriber>> = [
     {
       field: {
-        subscriberEmail: true,
+        discordChannelName: true,
       },
-      title: t("subscribe.email.yourEmail"),
-      /*
-       * Explicit localized description; otherwise the model's hardcoded English
-       * column description ("Email address of the subscriber.") leaks through.
-       */
-      description: t("subscribe.email.description"),
-      fieldType: FormFieldSchemaType.Email,
+      title: t("subscribe.discord.channelName"),
+      description: t("subscribe.discord.channelNameDescription"),
+      fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: t("subscribe.email.placeholder"),
-      disableSpellCheck: true,
+      placeholder: t("subscribe.discord.channelNamePlaceholder"),
+    },
+    {
+      field: {
+        discordIncomingWebhookUrl: true,
+      },
+      title: t("subscribe.discord.webhookUrl"),
+      description: t("subscribe.discord.webhookUrlDescription"),
+      fieldType: FormFieldSchemaType.URL,
+      required: true,
+      placeholder: t("subscribe.discord.webhookUrlPlaceholder"),
     },
   ];
 
@@ -186,8 +194,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
           modelAPI={StatusPageModelAPI}
-          id="email-form"
-          name="Status Page > Email Subscribe"
+          id="discord-form"
+          name="Status Page > Discord Subscribe"
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),
@@ -220,19 +228,18 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
           modelAPI={StatusPageModelAPI}
-          id="email-form"
-          name="Status Page > Mage Subscribe"
+          id="discord-manage-form"
+          name="Status Page > Manage Discord Subscription"
           fields={[
             {
               field: {
-                subscriberEmail: true,
+                discordChannelName: true,
               },
-              title: t("subscribe.email.managePrompt"),
-              description: t("subscribe.email.manageDescription"),
-              fieldType: FormFieldSchemaType.Email,
+              title: t("subscribe.discord.managePrompt"),
+              description: t("subscribe.discord.manageDescription"),
+              fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: t("subscribe.email.managePlaceholder"),
-              disableSpellCheck: true,
+              placeholder: t("subscribe.discord.channelNamePlaceholder"),
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(
@@ -276,17 +283,17 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           title: t("subscribe.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
-              : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route),
+              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_DISCORD] as Route)
+              : (RouteMap[PageMap.SUBSCRIBE_DISCORD] as Route),
           ),
         },
       ]}
       sideMenu={
         <SubscribeSideMenu
           isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+          enableSlackSubscribers={props.enableSlackSubscribers}
           enableEmailSubscribers={props.enableEmailSubscribers}
           enableSMSSubscribers={props.enableSMSSubscribers}
-          enableSlackSubscribers={props.enableSlackSubscribers}
           enableMicrosoftTeamsSubscribers={
             props.enableMicrosoftTeamsSubscribers
           }
@@ -304,23 +311,21 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           <div>
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
-                {" "}
-                {t("subscribe.emailSentCheckSpam")}{" "}
+                {t("subscribe.subscribedSuccessfully")}
               </p>
             )}
 
             {isManageLinkRequested && (
               <p className="text-center text-gray-400 mb-20 mt-20">
-                {" "}
-                {t("subscribe.manageLinkSentEmail")}{" "}
+                {t("subscribe.manageLinkSent")}
               </p>
             )}
 
             {!isSuccess && !isManageLinkRequested ? (
               <div className="">
                 <Card
-                  title={t("subscribe.email.title")}
-                  description={t("subscribe.email.description")}
+                  title={t("subscribe.discord.title")}
+                  description={t("subscribe.discord.description")}
                 >
                   <Tabs
                     tabs={[

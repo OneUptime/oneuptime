@@ -33,6 +33,10 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import DiscordWebhook from "Common/Server/Utils/Workspace/Discord/DiscordWebhook";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
@@ -209,6 +213,7 @@ const notifySubscribersOfAnnouncement: (data: {
       Markdown.convertToPlainText(announcement.description || "");
 
     let notificationSentToAtLeastOneSubscriber: boolean = false;
+    const discordFailures: Array<string> = [];
 
     for (const statuspage of statusPages) {
       try {
@@ -249,7 +254,14 @@ const notifySubscribersOfAnnouncement: (data: {
             : statusPageURL;
 
         // Fetch custom templates for this status page
-        const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+        const [
+          emailTemplate,
+          smsTemplate,
+          slackTemplate,
+          teamsTemplate,
+          discordTemplate,
+        ]: [
+          StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
@@ -282,6 +294,14 @@ const notifySubscribersOfAnnouncement: (data: {
               eventType: copy.templateEventType,
               notificationMethod:
                 StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statuspage.id!,
+              eventType: copy.templateEventType,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.Discord,
             },
           ),
         ]);
@@ -543,6 +563,51 @@ const notifySubscribersOfAnnouncement: (data: {
               });
             }
 
+            if (subscriber.discordIncomingWebhookUrl) {
+              logger.debug(
+                `Queueing Discord notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
+              );
+
+              // Build Teams message - use custom template if available
+              let teamsMessage: string;
+              if (discordTemplate?.templateBody) {
+                // Teams gets the raw markdown description.
+                teamsMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    discordTemplate.templateBody,
+                    subscriberMarkdownTemplateVariables,
+                  );
+              } else {
+                // Default markdown message
+                teamsMessage = `## ${copy.chatHeading} - ${announcement.title || ""}
+
+**Description:** ${announcement.description || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+              }
+
+              // send Discord notification here.
+              /*
+               * DiscordWebhook.send resolves with HTTPErrorResponse on
+               * failure rather than throwing; rethrow so the persisted
+               * subscriber notification status records the failure.
+               */
+              await DiscordWebhook.send({
+                url: subscriber.discordIncomingWebhookUrl,
+                text: teamsMessage,
+              }).then(
+                (
+                  result: HTTPResponse<JSONObject> | HTTPErrorResponse,
+                ): void => {
+                  if (result instanceof HTTPErrorResponse) {
+                    discordFailures.push(
+                      `HTTP ${result.statusCode} for subscriber ${subscriber._id}`,
+                    );
+                  }
+                },
+              );
+            }
+
             if (subscriber.subscriberWebhook) {
               logger.debug(
                 `Queueing webhook notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
@@ -683,6 +748,17 @@ const notifySubscribersOfAnnouncement: (data: {
     } else {
       logger.debug(
         `No subscribers were notified for announcement ${announcement.id}. All status pages either hide announcements or had no matching subscribers.`,
+      );
+    }
+
+    /*
+     * Discord delivery failures are definitive (Discord answered
+     * with an error status); record them instead of success. No
+     * automatic retry of ambiguous sends.
+     */
+    if (discordFailures.length > 0) {
+      throw new Error(
+        `Discord subscriber notification failed: ${discordFailures.join("; ")}`,
       );
     }
 

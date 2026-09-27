@@ -36,6 +36,10 @@ import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/Statu
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import DiscordWebhook from "../Utils/Workspace/Discord/DiscordWebhook";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
 import SSRFProtection from "../Utils/SSRFProtection";
 import StatusPageSubscriberNotificationTemplateService, {
@@ -333,6 +337,25 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(
           "Invalid Microsoft Teams Incoming Webhook URL.",
         );
+      }
+    }
+
+    /*
+     * Validate the Discord webhook URL if provided. DiscordWebhook enforces
+     * the HTTPS discord.com host, the webhook path shape, and the query-key
+     * allowlist, so the token cannot be redirected to another host.
+     */
+    if (data.data.discordIncomingWebhookUrl) {
+      logger.debug("Validating a Discord incoming webhook URL.", {
+        projectId: data.data.projectId?.toString(),
+        statusPageId: data.data.statusPageId?.toString(),
+      } as LogAttributes);
+      if (!DiscordWebhook.isValidUrl(data.data.discordIncomingWebhookUrl)) {
+        logger.debug("Invalid Discord Incoming Webhook URL.", {
+          projectId: data.data.projectId?.toString(),
+          statusPageId: data.data.statusPageId?.toString(),
+        } as LogAttributes);
+        throw new BadDataException("Invalid Discord Incoming Webhook URL.");
       }
     }
 
@@ -638,6 +661,62 @@ Stay informed about service availability! 🚀`;
         })
         .catch((err: Error) => {
           logger.error("Error sending Microsoft Teams notification:", {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+        });
+    }
+
+    // if Discord incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the Discord channel.
+    if (
+      createdItem.discordIncomingWebhookUrl &&
+      createdItem.sendYouHaveSubscribedMessage
+    ) {
+      logger.debug("Sending Discord notification for new subscriber.", {
+        projectId: createdItem.projectId?.toString(),
+      } as LogAttributes);
+      const discordMessage: string = `## 📢 New Subscription to ${statusPageName}
+
+**You have successfully subscribed to receive status updates!**
+
+🔗 **Status Page:** [${statusPageName}](${statusPageURL})
+📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
+
+You will receive real-time notifications for:
+• Incidents and outages
+• Scheduled maintenance events
+• Service announcements
+• Status updates
+
+Stay informed about service availability! 🚀`;
+
+      /*
+       * DiscordWebhook.send resolves with HTTPErrorResponse on an HTTP
+       * failure instead of rejecting, so a returned failure must be checked
+       * explicitly; a .catch() alone would report a failed welcome as sent.
+       */
+      DiscordWebhook.send({
+        url: URL.fromString(createdItem.discordIncomingWebhookUrl.toString()),
+        text: discordMessage,
+      })
+        .then((result: HTTPResponse<JSONObject> | HTTPErrorResponse): void => {
+          if (result instanceof HTTPErrorResponse) {
+            logger.error(
+              `Discord notification failed (HTTP ${result.statusCode}).`,
+              {
+                projectId: createdItem.projectId?.toString(),
+              } as LogAttributes,
+            );
+            return;
+          }
+          logger.debug("Discord notification sent successfully.", {
+            projectId: createdItem.projectId?.toString(),
+          } as LogAttributes);
+        })
+        .catch((err: Error) => {
+          logger.error("Error sending Discord notification:", {
             projectId: createdItem.projectId?.toString(),
           } as LogAttributes);
           logger.error(err, {
@@ -1170,6 +1249,7 @@ Stay informed about service availability! 🚀`;
         subscriberWebhook: true,
         slackIncomingWebhookUrl: true,
         microsoftTeamsIncomingWebhookUrl: true,
+        discordIncomingWebhookUrl: true,
         isSubscribedToAllResources: true,
         statusPageResources: true,
         isSubscribedToAllEventTypes: true,
@@ -1540,6 +1620,86 @@ You will receive real-time notifications for:
       });
     } catch (error) {
       logger.error("Error sending test Slack notification:", {
+        projectId: statusPage?.projectId?.toString(),
+      } as LogAttributes);
+      logger.error(error, {
+        projectId: statusPage?.projectId?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  public async testDiscordWebhook(data: {
+    webhookUrl: string;
+    statusPageId: ObjectID;
+  }): Promise<void> {
+    /*
+     * Enforce the same host/path/query rules as subscription creation before
+     * the server POSTs to the URL.
+     */
+    if (!DiscordWebhook.isValidUrl(data.webhookUrl)) {
+      throw new BadDataException("Invalid Discord webhook URL");
+    }
+
+    // Get status page info
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: data.statusPageId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        name: true,
+        pageTitle: true,
+        projectId: true,
+        _id: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status page not found");
+    }
+
+    // Create test notification message
+    const statusPageName: string =
+      statusPage.pageTitle || statusPage.name || "Status Page";
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id!,
+    );
+
+    // Create markdown message for Discord
+    const markdownMessage: string = `## Test Notification - ${statusPageName}
+
+**This is a test notification from OneUptime.**
+
+You have successfully configured Discord notifications for this status page.
+
+You will receive real-time notifications for:
+- Incidents
+- Scheduled Maintenance Events
+- Status Updates
+- Announcements
+
+[View Status Page](${statusPageURL})`;
+
+    /*
+     * DiscordWebhook.send resolves with HTTPErrorResponse on an HTTP
+     * failure instead of rejecting. Surface that as an exception so the
+     * caller can report a failed test delivery instead of a success.
+     */
+    try {
+      const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await DiscordWebhook.send({
+          url: URL.fromString(data.webhookUrl),
+          text: markdownMessage,
+        });
+      if (result instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          `Discord webhook test delivery failed (HTTP ${result.statusCode}).`,
+        );
+      }
+    } catch (error) {
+      logger.error("Error sending test Discord notification:", {
         projectId: statusPage?.projectId?.toString(),
       } as LogAttributes);
       logger.error(error, {

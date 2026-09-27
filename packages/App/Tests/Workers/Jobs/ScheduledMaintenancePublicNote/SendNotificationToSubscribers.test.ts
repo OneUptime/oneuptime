@@ -960,6 +960,7 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated,
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated,
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated,
+      StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated,
     ]);
   });
 
@@ -1141,6 +1142,7 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
     await runJob(CREATED_JOB);
 
     expect(templateLookups()).toEqual([
+      StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,

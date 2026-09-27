@@ -1456,7 +1456,7 @@ describe("IncidentStateTimeline default messages", () => {
     ).mock.calls.map((call: Array<unknown>): JSONObject => {
       return call[0] as JSONObject;
     });
-    expect(lookups).toHaveLength(4);
+    expect(lookups).toHaveLength(5);
     for (const lookup of lookups) {
       expect(lookup["eventType"]).toBe(EVENT_TYPE);
     }

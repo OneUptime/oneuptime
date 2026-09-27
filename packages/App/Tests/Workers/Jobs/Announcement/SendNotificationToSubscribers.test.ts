@@ -940,6 +940,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
         .sort(),
     ).toEqual(
       [
+        StatusPageSubscriberNotificationMethod.Discord,
         StatusPageSubscriberNotificationMethod.Email,
         StatusPageSubscriberNotificationMethod.SMS,
         StatusPageSubscriberNotificationMethod.Slack,

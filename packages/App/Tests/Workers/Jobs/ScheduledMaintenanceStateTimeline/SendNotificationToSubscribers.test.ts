@@ -1119,6 +1119,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       EVENT_TYPE,
       EVENT_TYPE,
       EVENT_TYPE,
+      EVENT_TYPE,
     ]);
   });
 

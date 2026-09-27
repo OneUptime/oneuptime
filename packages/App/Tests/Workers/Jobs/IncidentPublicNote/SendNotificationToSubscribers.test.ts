@@ -877,7 +877,7 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
       return call[0] as JSONObject;
     });
 
-    expect(lookups).toHaveLength(4);
+    expect(lookups).toHaveLength(5);
     for (const lookup of lookups) {
       expect(lookup["eventType"]).toBe(
         StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
