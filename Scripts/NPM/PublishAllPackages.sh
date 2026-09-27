@@ -83,10 +83,36 @@ publish_to_npm "packages/Common"
 # out here after publishing successfully, skipping the CLI and React Native
 # publishes and every job gated behind them.
 #
-# The budget is raised to 15 minutes as well: @oneuptime/common unpacks to
-# ~156 MB, and real propagation of a tarball that size is not instant.
+# The budget is 90 minutes, and that number is measured rather than guessed.
+# 15 minutes was the previous budget, chosen when 13.0.7 timed out at 5 with
+# the reasoning that "propagation of a tarball that size is not instant".
+# 14.0.7 then timed out at 15 the same way, so here is the actual figure:
+# @oneuptime/common@14.0.7 was accepted by the registry at 05:26:16Z and first
+# became readable at 06:21:39Z. Fifty-five minutes, for 39.9 MB compressed /
+# 181.7 MB unpacked across 15353 files.
+#
+# 90 minutes is therefore about 1.6x the one propagation we have timed, which
+# is thin evidence to extrapolate from - so read a trip of this ceiling as
+# "npm is slower than 90 minutes today", not as a broken publish. Check
+# whether the version is on the registry before assuming anything else is
+# wrong; the publish above almost certainly succeeded, because that is how
+# both previous failures went.
+#
+# Waiting rather than failing is the cheap direction. The loop exits the moment
+# the version appears, so a fast propagation costs nothing and only a slow one
+# holds the runner - which is exactly when the alternative is a half-finished
+# release that skips the CLI and React Native publishes, the release e2e
+# suites, the tags and the GitHub release, and has to be retried by hand.
+#
+# The real fix is upstream of this loop: a 181 MB package with 15353 files is
+# what makes propagation take the better part of an hour, and most of that is
+# build/dist/**/*.js.map plus test scaffolding (jest.config.json,
+# test-setup.sh, tsconfig.tests.json) that no consumer imports. Trimming what
+# packages/Common ships would shrink this wait rather than wait it out, but it
+# changes what dependents receive, so it is not something to slip into a
+# release fix.
 echo "Waiting for @oneuptime/common@$package_version to be available on npm..."
-max_attempts=90
+max_attempts=540
 attempt=1
 until npm view --prefer-online "@oneuptime/common@$package_version" version 2>/dev/null; do
     if [ "$attempt" -ge "$max_attempts" ]; then
