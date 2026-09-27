@@ -88,15 +88,26 @@ Send a message to a Telegram chat using a bot token and chat ID.
 
 ## Email
 
-Send an email through OneUptime.
+Send an email through an SMTP server that you enter on the block.
 
 **Settings**:
 
-- **To** — the recipient's email address.
+- **From Email** — the sender, for example `Alerts <alerts@company.com>`.
+- **To Email** — the recipient's email address. Separate several addresses with commas or semicolons.
 - **Subject** — the subject line.
-- **Body** — the message in Markdown or HTML.
+- **Email Body** — the message, sent as HTML.
+- **SMTP Host** and **SMTP Port** — the mail server to connect to.
+- **SMTP Username** and **SMTP Password** — optional. Fill in both or neither.
+- **Use Implicit TLS** — turn on for implicit TLS, usually on port 465. Leave off for STARTTLS, usually on port 587.
 
-The email goes out from your project's configured sender — see [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Success** — fires when the SMTP server accepted the message.
+- **Error** — fires when the SMTP host is refused, the server can't be reached, or it rejects the message. Passes along the error message. A missing **To Email**, **From Email**, **SMTP Host** or **SMTP Port** stops the run instead.
+
+The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs & Logs](/docs/workflows/runs-and-logs).
+
+Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
 
 ## Custom Code
 

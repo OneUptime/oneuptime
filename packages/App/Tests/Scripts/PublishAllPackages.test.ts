@@ -44,7 +44,24 @@ describe("PublishAllPackages", () => {
     }
   });
 
-  it("allows longer than one packument cache lifetime for Common to appear", () => {
+  /*
+   * The budget has now been set twice by a release failing on it, so this
+   * pins the evidence rather than a round number.
+   *
+   *   13.0.7 timed out at 5 minutes. Diagnosed as npm's packument cache
+   *          (max-age=300) and raised to 15.
+   *   14.0.7 timed out at 15 minutes. Not the cache: @oneuptime/common@14.0.7
+   *          was accepted at 05:26:16Z and first readable at 06:21:39Z, so
+   *          propagation genuinely took 55 minutes for a 181.7 MB unpacked
+   *          package.
+   *
+   * The floor below is that measured 55 minutes. Anything at or under it is
+   * a budget we have already watched a release fail on, and the failure is
+   * expensive and misleading - the publish succeeds, then the CLI and React
+   * Native publishes, the release e2e suites, the tags and the GitHub release
+   * are all skipped behind it.
+   */
+  it("allows longer than Common has actually taken to propagate", () => {
     const attempts: RegExpMatchArray | null =
       SOURCE.match(/max_attempts=(\d+)/u);
     const delay: RegExpMatchArray | null = SOURCE.match(/sleep (\d+)/u);
@@ -54,7 +71,16 @@ describe("PublishAllPackages", () => {
 
     const budgetInSeconds: number = Number(attempts![1]) * Number(delay![1]);
 
-    // The registry's own max-age is 300s; wait comfortably past it.
+    // 14.0.7 took 3323s. Comfortably past the slowest propagation observed.
+    const slowestObservedPropagationSeconds: number = 55 * 60;
+
+    expect(budgetInSeconds).toBeGreaterThan(slowestObservedPropagationSeconds);
+
+    /*
+     * And past the registry's own max-age too, which is what 13.0.7 was
+     * diagnosed as - kept as a separate, much lower bar so that a future
+     * reduction cannot quietly reintroduce the original bug either.
+     */
     expect(budgetInSeconds).toBeGreaterThan(300);
   });
 

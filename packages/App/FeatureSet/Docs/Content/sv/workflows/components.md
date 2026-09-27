@@ -88,15 +88,26 @@ Skicka ett meddelande till en Telegram-chatt med hjälp av en bot-token och ett 
 
 ## Email
 
-Skicka ett e-postmeddelande via OneUptime.
+Skicka ett e-postmeddelande via en SMTP-server som du anger i blocket.
 
 **Inställningar**:
 
-- **To** — mottagarens e-postadress.
+- **From Email** — avsändaren, till exempel `Alerts <alerts@company.com>`.
+- **To Email** — mottagarens e-postadress. Separera flera adresser med kommatecken eller semikolon.
 - **Subject** — ämnesraden.
-- **Body** — meddelandet i Markdown eller HTML.
+- **Email Body** — meddelandet, som skickas som HTML.
+- **SMTP Host** och **SMTP Port** — e-postservern att ansluta till.
+- **SMTP Username** och **SMTP Password** — valfria. Fyll i båda eller ingen av dem.
+- **Use Implicit TLS** — slå på för implicit TLS, vanligtvis på port 465. Låt den vara avslagen för STARTTLS, vanligtvis på port 587.
 
-E-posten skickas från projektets konfigurerade avsändare — se [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Success** — utlöses när SMTP-servern accepterade meddelandet.
+- **Error** — utlöses när SMTP-värden avvisas, servern inte går att nå eller den avvisar meddelandet. Skickar vidare felmeddelandet. Saknas **To Email**, **From Email**, **SMTP Host** eller **SMTP Port** stoppas körningen i stället.
+
+Blocket ansluter direkt till servern i sina inställningar. Det använder inte projektets [SMTP](/docs/emails/smtp)-inställningar eller OneUptimes egen e-postserver, och e-postmeddelandena det skickar visas inte i Aviseringsloggar. För att se vad det gjorde, titta i arbetsflödets [Körningar och loggar](/docs/workflows/runs-and-logs).
+
+Anslutningar till loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser och molnens metadataadresser avvisas. På OneUptime Cloud avvisas även en SMTP-värd på en privat nätverksadress, eller ett namn som slås upp till en sådan. Självhostade installationer kan nå en e-postserver i sitt eget nätverk, såvida inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är satt till `true`. En avvisad värd går ut genom **Error**-utgången, och ingenting skickas.
 
 ## Custom Code
 

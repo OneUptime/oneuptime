@@ -88,15 +88,26 @@ Send en melding til en Telegram-chat med et bot-token og en chat-ID.
 
 ## Email
 
-Send en e-post gjennom OneUptime.
+Send en e-post gjennom en SMTP-server som du legger inn på blokken.
 
 **Innstillinger**:
 
-- **Til** — mottakerens e-postadresse.
-- **Emne** — emnelinjen.
-- **Body** — meldingen i Markdown eller HTML.
+- **From Email** — avsenderen, for eksempel `Alerts <alerts@company.com>`.
+- **To Email** — mottakerens e-postadresse. Skill flere adresser med komma eller semikolon.
+- **Subject** — emnelinjen.
+- **Email Body** — meldingen, sendt som HTML.
+- **SMTP Host** og **SMTP Port** — e-postserveren det skal kobles til.
+- **SMTP Username** og **SMTP Password** — valgfrie. Fyll ut begge eller ingen av dem.
+- **Use Implicit TLS** — slå på for implisitt TLS, vanligvis på port 465. La den være av for STARTTLS, vanligvis på port 587.
 
-E-posten sendes fra avsenderen prosjektet ditt er satt opp med — se [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Suksess** — fyrer når SMTP-serveren godtok meldingen.
+- **Feil** — fyrer når SMTP-verten avvises, serveren ikke kan nås, eller serveren avviser meldingen. Sender videre feilmeldingen. Mangler **To Email**, **From Email**, **SMTP Host** eller **SMTP Port**, stopper kjøringen i stedet.
+
+Blokken kobler seg direkte til serveren i innstillingene sine. Den bruker verken prosjektets [SMTP](/docs/emails/smtp)-innstillinger eller OneUptimes egen e-postserver, og e-postene den sender, vises ikke i Varsellogger. Vil du sjekke hva den gjorde, se arbeidsflytens [kjøringer & logger](/docs/workflows/runs-and-logs).
+
+Tilkoblinger til loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og skymetadata-adresser avvises. På OneUptime Cloud avvises også en SMTP-vert på en privat nettverksadresse, eller et navn som løses opp til en slik adresse. Selvhostede installasjoner kan nå en e-postserver på sitt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er satt til `true`. En avvist vert går til **Feil**-utgangen, og ingenting blir sendt.
 
 ## Custom Code
 
