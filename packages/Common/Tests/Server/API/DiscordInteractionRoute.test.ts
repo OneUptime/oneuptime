@@ -85,6 +85,28 @@ jest.mock(
 jest.mock("../../../Server/Utils/Workspace/Discord/Actions/Monitor", () => {
   return { DiscordMonitorActionModule: { handlers: [], family: "monitor" } };
 });
+jest.mock(
+  "../../../Server/Utils/Workspace/Discord/Actions/IncidentCreation",
+  () => {
+    return {
+      DiscordIncidentCreationModule: {
+        handlers: [],
+        family: "incident-creation",
+      },
+    };
+  },
+);
+jest.mock(
+  "../../../Server/Utils/Workspace/Discord/Actions/ScheduledMaintenanceCreation",
+  () => {
+    return {
+      DiscordMaintenanceCreationModule: {
+        handlers: [],
+        family: "maintenance-creation",
+      },
+    };
+  },
+);
 
 const APPLICATION_ID: string = "111111111111111111";
 const INTERACTION_ID: string = "222222222222222222";
@@ -303,6 +325,16 @@ describe("Discord signed interaction route", () => {
           "../../../Server/Utils/Workspace/Discord/Actions/Monitor",
         ) as { DiscordMonitorActionModule: unknown }
       ).DiscordMonitorActionModule,
+      (
+        jest.requireMock(
+          "../../../Server/Utils/Workspace/Discord/Actions/IncidentCreation",
+        ) as { DiscordIncidentCreationModule: unknown }
+      ).DiscordIncidentCreationModule,
+      (
+        jest.requireMock(
+          "../../../Server/Utils/Workspace/Discord/Actions/ScheduledMaintenanceCreation",
+        ) as { DiscordMaintenanceCreationModule: unknown }
+      ).DiscordMaintenanceCreationModule,
     ]);
   });
 
