@@ -28,8 +28,51 @@ import Sleep from "../Types/Sleep";
 import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "./HTTPResponseBodyReader";
+import HostAddressUtil from "./HostAddressUtil";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkFailure,
+  ProbeNetworkFailureKind,
+  ProbeNetworkOperation,
+} from "./ProbeNetworkFailureUtil";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
+
+/*
+ * A request that failed on the probe itself, before anything reached the
+ * target. See API.getProbeSideRequestFailure.
+ */
+interface ProbeSideRequestFailure {
+  failure: ProbeNetworkFailure;
+  // The request's host, bare, or a stand-in when the error does not carry it.
+  host: string;
+  isIPv6Destination: boolean;
+}
+
+// What a probe-side failure calls the target when the error has no request URL.
+const UNKNOWN_REQUEST_HOST: string = "the server";
+
+// How far down an error's `cause` / `errors` the connect addresses are read.
+const MAX_CONNECT_ADDRESS_DEPTH: number = 5;
+
+/*
+ * The code a probe-side failure is reported under. Taken from the
+ * classification rather than the thrown error because fetch's TypeError and
+ * the API monitor's APIException have no usable code of their own, and an
+ * aggregate carries only its first attempt's. NoRouteToHost never comes out
+ * of a TCP connect; it is listed so the map stays total.
+ */
+const PROBE_NETWORK_FAILURE_ERROR_CODES: Record<
+  ProbeNetworkFailureKind,
+  string
+> = {
+  [ProbeNetworkFailureKind.NoSourceAddress]: "EADDRNOTAVAIL",
+  [ProbeNetworkFailureKind.AddressFamilyNotSupported]: "EAFNOSUPPORT",
+  [ProbeNetworkFailureKind.NetworkUnreachable]: "ENETUNREACH",
+  [ProbeNetworkFailureKind.NoRouteToHost]: "EHOSTUNREACH",
+};
+
+const NETWORK_UNREACHABLE_DESCRIPTION: string =
+  "Network unreachable. There is no route to the network where the server resides. This is typically a routing or connectivity issue.";
 
 /*
  * Diagnostic summary of one settled fetch() call, retries included. Handed
@@ -1299,6 +1342,30 @@ export default class API {
       };
     }
 
+    /*
+     * The connect failed on the probe, before the request left it. Checked
+     * ahead of the string rules below because none of them describe it:
+     * EADDRNOTAVAIL matched nothing and fell through to "The request was sent
+     * but no response was returned", when nothing was sent at all, and a
+     * probe with no IPv6 was told there was no route to the network where the
+     * server resides. Still the TCP connection phase, since connect() is what
+     * failed. The failure cause the monitor reports alongside this already
+     * quotes the OS error (getProbeNetworkFailureDescription), so this only
+     * says what it means for the request.
+     */
+    const probeSideFailure: ProbeSideRequestFailure | null =
+      API.getProbeSideRequestFailure(error);
+
+    if (probeSideFailure) {
+      return {
+        failedPhase: RequestFailedPhase.TCPConnection,
+        errorCode:
+          PROBE_NETWORK_FAILURE_ERROR_CODES[probeSideFailure.failure.kind],
+        errorDescription: API.getProbeSideFailureDetails(probeSideFailure),
+        rawErrorMessage,
+      };
+    }
+
     // Helper to determine the phase and description based on error code/message
     const lowerMessage: string = rawErrorMessage.toLowerCase();
 
@@ -1460,8 +1527,7 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode: errorCode || "ENETUNREACH",
-        errorDescription:
-          "Network unreachable. There is no route to the network where the server resides. This is typically a routing or connectivity issue.",
+        errorDescription: NETWORK_UNREACHABLE_DESCRIPTION,
         rawErrorMessage,
       };
     }
@@ -1511,5 +1577,184 @@ export default class API {
       errorDescription: `Request failed: ${API.getFriendlyErrorMessage(error as Error)}`,
       rawErrorMessage,
     };
+  }
+
+  /*
+   * The failure cause for a monitor request that failed on the probe itself,
+   * in the shared probe-side wording (which quotes the OS error), or null for
+   * any other failure. A probe with no usable IPv6 fails every IPv6 URL with
+   * a bare "connect EADDRNOTAVAIL ...", which reads as the customer's site
+   * being down while it may be answering perfectly well.
+   *
+   * ENETUNREACH from a TCP connect can also be a router's "no route" to the
+   * destination, so it is only reworded for an IPv6 destination, where the
+   * shared wording says "most likely". Otherwise it keeps its message.
+   *
+   * Separate from getFriendlyErrorMessage on purpose: that one is also used
+   * by the dashboard and by the server's own outbound requests, where "this
+   * probe" would be false. Only the Website and API monitors call this.
+   */
+  public static getProbeNetworkFailureDescription(
+    error: unknown,
+  ): string | null {
+    const probeSideFailure: ProbeSideRequestFailure | null =
+      API.getProbeSideRequestFailure(error);
+
+    if (
+      !probeSideFailure ||
+      (!probeSideFailure.failure.isCertain &&
+        !probeSideFailure.isIPv6Destination)
+    ) {
+      return null;
+    }
+
+    return ProbeNetworkFailureUtil.describe({
+      host: probeSideFailure.host,
+      failure: probeSideFailure.failure,
+      isIPv6Destination: probeSideFailure.isIPv6Destination,
+    });
+  }
+
+  /*
+   * Classifies a request error as a connect that failed on the probe, with
+   * the host to name and whether to word it as IPv6.
+   *
+   * IPv6 wording needs evidence. It is used when every address the probe
+   * tried to connect to was IPv6 or, when the error names no address, when
+   * the request URL's host is an IPv6 literal. A dual-stack name whose IPv4
+   * attempt failed as well is not an IPv6 problem, and neither is an IPv4
+   * proxy the probe could not reach on the way to an IPv6 target.
+   */
+  private static getProbeSideRequestFailure(
+    error: unknown,
+  ): ProbeSideRequestFailure | null {
+    // The guard refuses before any socket exists; its message is its own.
+    if (error instanceof EgressGuardException) {
+      return null;
+    }
+
+    /*
+     * The API monitor gets the AxiosError wrapped in an APIException (see
+     * getErrorResponse). The wrapper's own code is an ExceptionCode number
+     * and its message carries the errno but not the OS text, so the
+     * classifier would find nothing on it.
+     */
+    const requestError: unknown =
+      error instanceof APIException && error.error ? error.error : error;
+
+    const failure: ProbeNetworkFailure | null =
+      ProbeNetworkFailureUtil.classifyError({
+        error: requestError,
+        operation: ProbeNetworkOperation.TcpConnect,
+      });
+
+    if (!failure) {
+      return null;
+    }
+
+    const requestHost: string | null = API.getRequestHost(requestError);
+    const connectAddresses: Array<string> = [];
+    API.collectConnectAddresses(requestError, 0, connectAddresses);
+
+    const isIPv6Destination: boolean =
+      connectAddresses.length > 0
+        ? connectAddresses.every((address: string) => {
+            return HostAddressUtil.isIPv6(address);
+          })
+        : Boolean(requestHost && HostAddressUtil.isIPv6(requestHost));
+
+    return {
+      failure: failure,
+      host: requestHost || UNKNOWN_REQUEST_HOST,
+      isIPv6Destination: isIPv6Destination,
+    };
+  }
+
+  /*
+   * The "Error Details" text for a probe-side failure. ENETUNREACH that is
+   * not towards IPv6 keeps the family-neutral description it always had.
+   */
+  private static getProbeSideFailureDetails(
+    probeSideFailure: ProbeSideRequestFailure,
+  ): string {
+    const failure: ProbeNetworkFailure = probeSideFailure.failure;
+
+    if (!probeSideFailure.isIPv6Destination) {
+      return failure.isCertain
+        ? "The probe could not open the connection from its own side, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server."
+        : NETWORK_UNREACHABLE_DESCRIPTION;
+    }
+
+    /*
+     * EADDRNOTAVAIL from a TCP connect is also what a probe that has run
+     * out of local ports gets, IPv6 or not, so it is not stated as missing
+     * IPv6.
+     */
+    if (failure.isCertain && failure.isCauseAmbiguous) {
+      return "The probe could not open the IPv6 connection from its own side, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server.";
+    }
+
+    if (failure.isCertain) {
+      return "The probe cannot send IPv6 traffic, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server.";
+    }
+
+    return "There was no IPv6 route to the server. Most likely the probe has no IPv6 route rather than the server being down.";
+  }
+
+  /*
+   * The host of the URL an axios request was sent to, without IPv6
+   * brackets, or null when the error is not an axios one or has no usable
+   * URL. It is the hop that failed, which after a redirect is not
+   * necessarily the monitor's own URL.
+   */
+  private static getRequestHost(error: unknown): string | null {
+    if (!axios.isAxiosError(error) || !error.config?.url) {
+      return null;
+    }
+
+    try {
+      const requestUrl: globalThis.URL = new globalThis.URL(
+        error.config.url,
+        error.config.baseURL || undefined,
+      );
+
+      return HostAddressUtil.stripBrackets(requestUrl.hostname) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Every `address` a socket error in the chain names: the error's own, its
+   * cause's (axios and fetch keep the socket error there) and each attempt
+   * of an aggregate (Node's happy-eyeballs connect, one error per address).
+   */
+  private static collectConnectAddresses(
+    value: unknown,
+    depth: number,
+    addresses: Array<string>,
+  ): void {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      depth > MAX_CONNECT_ADDRESS_DEPTH
+    ) {
+      return;
+    }
+
+    const errorLike: { address?: unknown; errors?: unknown; cause?: unknown } =
+      value as { address?: unknown; errors?: unknown; cause?: unknown };
+
+    if (typeof errorLike.address === "string" && errorLike.address) {
+      addresses.push(HostAddressUtil.stripBrackets(errorLike.address));
+    }
+
+    if (Array.isArray(errorLike.errors)) {
+      for (const attempt of errorLike.errors) {
+        API.collectConnectAddresses(attempt, depth + 1, addresses);
+      }
+    }
+
+    API.collectConnectAddresses(errorLike.cause, depth + 1, addresses);
   }
 }

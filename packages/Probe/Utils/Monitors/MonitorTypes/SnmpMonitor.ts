@@ -6,6 +6,9 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import NumberUtil from "Common/Utils/Number";
+import ProbeNetworkFailureUtil, {
+  ProbeNetworkOperation,
+} from "Common/Utils/ProbeNetworkFailureUtil";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -385,6 +388,11 @@ export default class SnmpMonitor {
         (endTime[0] * 1000000000 + endTime[1]) / 1000000,
       );
 
+      const failureCause: string = SnmpMonitor.getFailureCause(
+        config.hostname,
+        err,
+      );
+
       const responseReceivedAt: Date = new Date();
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -392,7 +400,7 @@ export default class SnmpMonitor {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: false,
-        failureCause: (err as Error).message || (err as Error).toString(),
+        failureCause: failureCause,
       });
 
       if (
@@ -441,12 +449,39 @@ export default class SnmpMonitor {
         isOnline: false,
         isTimeout: false,
         responseTimeInMs: responseTimeInMs,
-        failureCause: (err as Error).message || (err as Error).toString(),
+        failureCause: failureCause,
         oidResponses: [],
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,
       };
     }
+  }
+
+  /*
+   * Why a query failed, as the operator should read it. A send that failed
+   * on the probe gets the shared probe-side wording: a probe with no usable
+   * IPv6 answers every IPv6 device with "send EADDRNOTAVAIL ...", and on its
+   * own that became "Device is unreachable" for a device nobody contacted.
+   *
+   * Classified as a ping is, not as a TCP connect. net-snmp sends on an
+   * unconnected UDP socket, so a send error is the probe's own source
+   * address or route lookup failing before anything left it, and a router's
+   * ICMP error is never delivered to such a socket: "certain" is accurate.
+   */
+  private static getFailureCause(hostname: string, err: unknown): string {
+    const probeSideCause: string | null = ProbeNetworkFailureUtil.describeError(
+      {
+        host: hostname,
+        error: err,
+        operation: ProbeNetworkOperation.PingOrTraceroute,
+      },
+    );
+
+    if (probeSideCause) {
+      return probeSideCause;
+    }
+
+    return (err as Error)?.message || String(err);
   }
 
   /*

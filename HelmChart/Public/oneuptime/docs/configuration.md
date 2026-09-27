@@ -228,6 +228,8 @@ probes:
 
 > **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
 
+> **IPv6 targets.** Chart probes run on the cluster's pod network, so they can reach IPv6 destinations only on a dual-stack or IPv6-only cluster. On an IPv4-only cluster, checks of IPv6 destinations fail on these probes (a Ping monitor's failure reason then says the probe cannot send IPv6 traffic). To check a probe, run `kubectl exec -n <namespace> deploy/<release>-probe-<key> -- ping -6 -c 1 2001:4860:4860::8888`: `1 received` means it has IPv6, and `Network is unreachable` means the pod has no IPv6 route. To monitor IPv6 destinations from an IPv4-only cluster, use a [custom probe](https://oneuptime.com/docs/probe/custom-probe#monitoring-ipv6-destinations) on a machine that has IPv6.
+
 ## Incidents & alerts
 
 | Parameter                            | Description                                                                          | Default |

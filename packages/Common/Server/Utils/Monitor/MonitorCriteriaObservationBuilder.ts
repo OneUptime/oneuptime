@@ -36,6 +36,7 @@ import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
+import ProbeNetworkFailureUtil from "../../../Utils/ProbeNetworkFailureUtil";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
@@ -1554,6 +1555,15 @@ export default class MonitorCriteriaObservationBuilder {
 
     if (probeResponse.isOnline) {
       return "Device is reachable (answered ping or SNMP).";
+    }
+
+    /*
+     * A probe that could not send at all (no IPv6 on the probe, say) never
+     * contacted the device, so "unreachable" would be a verdict on a device
+     * nobody checked, and would contradict the cause that follows it.
+     */
+    if (ProbeNetworkFailureUtil.isProbeSideCause(probeResponse.failureCause)) {
+      return `Device could not be checked from this probe: ${probeResponse.failureCause}`;
     }
 
     if (probeResponse.failureCause) {

@@ -221,6 +221,74 @@ describe("checkReachability — a host that does not answer", () => {
     expect(result.failureCause).toContain("ICMP ping is not usable");
     expect(result.failureCause).toContain("Operation not permitted");
   });
+
+  /*
+   * A probe with IPv6 switched off answers every IPv6 device the same way
+   * the customer's Ping monitor did. The device poll must say it is the
+   * probe, the same way the monitor path now does, rather than list every
+   * IPv6 device in the fleet as silently down.
+   */
+  test("an IPv6 device on a probe with no IPv6 is offline with a probe-side cause", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult({
+        output: "ping6: connect: Cannot assign requested address\n",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const result: DeviceReachabilityCheck = await PingMonitor.checkReachability(
+      { host: new IPv6("2001:518:2800:9::2") },
+    );
+
+    expect(result.isOnline).toBe(false);
+    expect(result.failureCause).toBe(
+      "This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so 2001:518:2800:9::2 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:518:2800:9::2 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.",
+    );
+    // The retry is unchanged: the device poll still gives it a second chance.
+    expect(probeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("an IPv6 device on a kernel without IPv6 is not reported as ICMP being unusable", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult({
+        output: "ping6: socket: Address family not supported by protocol\n",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const result: DeviceReachabilityCheck = await PingMonitor.checkReachability(
+      { host: new IPv6("2001:db8::25") },
+    );
+
+    expect(result.failureCause).toContain(
+      "This probe cannot send IPv6 traffic",
+    );
+    expect(result.failureCause).not.toContain("ICMP ping is not usable");
+  });
+
+  /*
+   * macOS prints "No route to host" for a failed neighbour lookup: an
+   * on-link device that is down. The device poll must not blame only the
+   * probe for it.
+   */
+  test("an uncertain 'No route to host' leaves room for the device being down", async () => {
+    probeSpy.mockResolvedValue(
+      makeDeadResult({
+        output:
+          "ping: sendto: No route to host\nping: sendto: Host is down\nPING 192.168.1.249 (192.168.1.249): 56 data bytes\n",
+        packetLoss: "unknown",
+      }),
+    );
+
+    const result: DeviceReachabilityCheck = await PingMonitor.checkReachability(
+      { host: new IPv4("192.168.1.249") },
+    );
+
+    expect(result.isOnline).toBe(false);
+    expect(result.failureCause).toBe(
+      "This probe may have no route to 192.168.1.249 (ping: sendto: No route to host); 192.168.1.249 itself may also be down.",
+    );
+  });
 });
 
 describe("checkReachability — never throws", () => {
