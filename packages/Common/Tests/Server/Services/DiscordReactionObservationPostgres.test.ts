@@ -39,7 +39,7 @@ import {
  *      AlreadyObserved (the steal predicate includes the timestamp).
  */
 
-const describePostgres = (
+const describePostgres: typeof describe = (
   process.env["RUN_POSTGRES_DISCORD_OBSERVATION_TESTS"] === "true"
     ? describe
     : describe.skip
@@ -54,7 +54,9 @@ type ClaimKeyFunction = (n: number) => string;
  * "Claimed" arm carries observedAt. Narrow instead of reading it off the
  * union (TS2339 on v13).
  */
-const claimedToken = (claim: ObservationClaim): Date => {
+const claimedToken: (claim: ObservationClaim) => Date = (
+  claim: ObservationClaim,
+): Date => {
   if (claim.result === "Claimed" && claim.observedAt instanceof Date) {
     return claim.observedAt;
   }
@@ -136,9 +138,9 @@ describePostgres(
         return claim.result;
       });
 
-      const winners: number = results.filter(
-        (result: string): boolean => result === "Claimed",
-      ).length;
+      const winners: number = results.filter((result: string): boolean => {
+        return result === "Claimed";
+      }).length;
 
       expect(winners).toBe(1);
       expect(results).not.toContain("Threw");
@@ -167,9 +169,9 @@ describePostgres(
         return claim.result;
       });
 
-      const winners: number = results.filter(
-        (result: string): boolean => result === "Claimed",
-      ).length;
+      const winners: number = results.filter((result: string): boolean => {
+        return result === "Claimed";
+      }).length;
 
       expect(winners).toBe(1);
       expect(results).not.toContain("Threw");
@@ -242,10 +244,12 @@ describePostgres(
       expect(second.result).toBe("AlreadyObserved");
     });
 
-    // ---- HOM-43 review 4: token enforcement (red against fail-open code) ----
-    // Completion and release are separate cases: a combined case stops at
-    // the first failed assertion and never exercises the rest (Astra,
-    // review of hom43-token-red-01).
+    /*
+     * ---- HOM-43 review 4: token enforcement (red against fail-open code) ----
+     * Completion and release are separate cases: a combined case stops at
+     * the first failed assertion and never exercises the rest (Astra,
+     * review of hom43-token-red-01).
+     */
 
     test("an omitted token cannot complete another worker's claim", async (): Promise<void> => {
       const owner: ObservationClaim =
@@ -256,8 +260,10 @@ describePostgres(
         });
       expect(owner.result).toBe("Claimed");
 
-      // Undefined token (cast: the fixed signature requires a Date).
-      // Must be refused, not treated as a wildcard.
+      /*
+       * Undefined token (cast: the fixed signature requires a Date).
+       * Must be refused, not treated as a wildcard.
+       */
       const doneNoToken: boolean =
         await DiscordReactionObservationService.markDone({
           projectId: projectId,
@@ -327,8 +333,10 @@ describePostgres(
         });
       expect(doneByOwner).toBe(true);
 
-      // The previous owner's late markDone must report failure, not ride the
-      // token-blind Done fallback to success.
+      /*
+       * The previous owner's late markDone must report failure, not ride the
+       * token-blind Done fallback to success.
+       */
       const doneByStale: boolean =
         await DiscordReactionObservationService.markDone({
           projectId: projectId,

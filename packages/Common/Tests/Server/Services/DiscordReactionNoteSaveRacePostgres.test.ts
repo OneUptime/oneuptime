@@ -32,7 +32,7 @@ import {
  * migrated Postgres (the parity runner sets this with PARITY_TEST_POSTGRES=1).
  */
 
-const describePostgres = (
+const describePostgres: typeof describe = (
   process.env["RUN_POSTGRES_DISCORD_OBSERVATION_TESTS"] === "true"
     ? describe
     : describe.skip
@@ -115,8 +115,10 @@ describePostgres(
         ],
       );
 
-      // The fence covers the note row; feed/notification fan-out is out of
-      // scope for this race and is stubbed for isolation.
+      /*
+       * The fence covers the note row; feed/notification fan-out is out of
+       * scope for this race and is stubbed for isolation.
+       */
       jest
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(null as never);
@@ -130,8 +132,10 @@ describePostgres(
     });
 
     afterEach((): void => {
-      // Note: PostgresAppInstance spies made in beforeAll are restored in
-      // afterAll; restoring here would drop the DataSource for later tests.
+      /*
+       * Note: PostgresAppInstance spies made in beforeAll are restored in
+       * afterAll; restoring here would drop the DataSource for later tests.
+       */
     });
 
     afterAll(async (): Promise<void> => {
@@ -185,13 +189,15 @@ describePostgres(
           ): Promise<IncidentInternalNote> => {
             if (firstCall) {
               firstCall = false;
-              // Worker A pauses INSIDE the critical section, exactly at
-              // Astra's boundary: hasNote already returned false. The
-              // pause is transient (300 ms): real contention windows are
-              // milliseconds; a fence that survives this window with one
-              // row is the production guarantee. The unfenced code lets
-              // worker B complete its whole check-then-insert inside the
-              // pause, which is the double insert.
+              /*
+               * Worker A pauses INSIDE the critical section, exactly at
+               * Astra's boundary: hasNote already returned false. The
+               * pause is transient (300 ms): real contention windows are
+               * milliseconds; a fence that survives this window with one
+               * row is the production guarantee. The unfenced code lets
+               * worker B complete its whole check-then-insert inside the
+               * pause, which is the double insert.
+               */
               pausedArrived?.();
               await new Promise((res: (v: unknown) => void): void => {
                 setTimeout(res, 300);
@@ -217,9 +223,11 @@ describePostgres(
       // Worker A is now paused after hasNote=false, before the insert.
       await arrived;
 
-      // Worker B runs the whole save while A is paused. Fenced, B waits
-      // at the advisory lock until A commits, then sees the note and
-      // reports Duplicate. Unfenced, B inserts too.
+      /*
+       * Worker B runs the whole save while A is paused. Fenced, B waits
+       * at the advisory lock until A commits, then sees the note and
+       * reports Duplicate. Unfenced, B inserts too.
+       */
       const second: WorkspaceNoteSaveResult =
         await WorkspaceReactionNote.saveNote({
           resource: {

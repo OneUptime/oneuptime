@@ -415,16 +415,17 @@ export default class DiscordInteractionDispatcher {
       interaction.type === DiscordInteractionKind.MessageComponent
         ? this.multiComponentValues(interaction.data, operation)
         : {};
-    const plan: (context: DiscordActionContext) => Promise<DiscordDraftPlan> =
-      (context: DiscordActionContext): Promise<DiscordDraftPlan> => {
-        return this.draftFlow.continue({
-          kind: interaction.type,
-          customId,
-          values,
-          selections,
-          context,
-        });
-      };
+    const plan: (context: DiscordActionContext) => Promise<DiscordDraftPlan> = (
+      context: DiscordActionContext,
+    ): Promise<DiscordDraftPlan> => {
+      return this.draftFlow.continue({
+        kind: interaction.type,
+        customId,
+        values,
+        selections,
+        context,
+      });
+    };
     if (operation === "edit" || operation === "search") {
       const context: DiscordActionContext =
         await this.resolveReceiptContext(interaction);

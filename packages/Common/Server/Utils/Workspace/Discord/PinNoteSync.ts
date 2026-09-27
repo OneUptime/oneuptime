@@ -441,8 +441,10 @@ export default class DiscordPinNoteSync {
       messageId: data.pin.messageId,
     });
 
-    // The pin path trusts the reaction sync's watched set (HOM-43 review 3);
-    // re-verify the live binding before any save, like processReaction.
+    /*
+     * The pin path trusts the reaction sync's watched set (HOM-43 review 3);
+     * re-verify the live binding before any save, like processReaction.
+     */
     if (
       !(await DiscordReactionNoteSync.isLiveInstallation(
         data.watched,

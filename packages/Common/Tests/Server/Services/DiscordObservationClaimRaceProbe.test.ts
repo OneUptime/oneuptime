@@ -31,7 +31,7 @@ import {
  * steal was a read-then-updateBy without a timestamp comparison.
  */
 
-const describePostgres = (
+const describePostgres: typeof describe = (
   process.env["RUN_POSTGRES_DISCORD_OBSERVATION_TESTS"] === "true"
     ? describe
     : describe.skip
@@ -128,9 +128,9 @@ describePostgres(
         )
       ).map(normalize);
 
-      const winners: number = results.filter(
-        (result: string): boolean => result === "Claimed",
-      ).length;
+      const winners: number = results.filter((result: string): boolean => {
+        return result === "Claimed";
+      }).length;
 
       expect(results).not.toContain("Threw");
       expect(winners).toBe(1);

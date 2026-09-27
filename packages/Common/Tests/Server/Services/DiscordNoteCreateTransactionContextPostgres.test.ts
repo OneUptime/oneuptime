@@ -42,7 +42,7 @@ import {
  * migrated Postgres (the parity runner sets this with PARITY_TEST_POSTGRES=1).
  */
 
-const describePostgres = (
+const describePostgres: typeof describe = (
   process.env["RUN_POSTGRES_DISCORD_OBSERVATION_TESTS"] === "true"
     ? describe
     : describe.skip

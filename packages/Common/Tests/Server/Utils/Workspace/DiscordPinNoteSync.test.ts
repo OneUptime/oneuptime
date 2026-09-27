@@ -188,8 +188,10 @@ beforeEach((): void => {
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
 
-  // Live installation: the project binding points at this guild (HOM-43
-  // review 3 — the pin path revalidates the live binding before saving).
+  /*
+   * Live installation: the project binding points at this guild (HOM-43
+   * review 3 — the pin path revalidates the live binding before saving).
+   */
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
     .mockResolvedValue({

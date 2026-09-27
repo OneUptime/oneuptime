@@ -95,7 +95,9 @@ export class Service extends DatabaseService<Model> {
       .update()
       .set({
         observationState: "Pending",
-        observedAt: () => `date_trunc('milliseconds', now())`,
+        observedAt: () => {
+          return `date_trunc('milliseconds', now())`;
+        },
       })
       .where(
         `"projectId" = :projectId AND "claimKey" = :claimKey AND "observationState" = 'Pending' AND ("observedAt" IS NULL OR "observedAt" < date_trunc('milliseconds', now()) - (:staleSeconds * interval '1 second'))`,
@@ -113,8 +115,10 @@ export class Service extends DatabaseService<Model> {
 
     if (steal.affected && steal.affected > 0) {
       if (!stolenToken) {
-        // We hold the claim but could not read our own token back: loud, not
-        // laundered into AlreadyObserved while owning a Pending row.
+        /*
+         * We hold the claim but could not read our own token back: loud, not
+         * laundered into AlreadyObserved while owning a Pending row.
+         */
         throw new Error(
           "DiscordReactionObservation claim won but returned no observedAt token",
         );
@@ -165,7 +169,9 @@ export class Service extends DatabaseService<Model> {
             claimKey: data.claimKey,
             source: data.source,
             observationState: "Pending",
-            observedAt: () => `date_trunc('milliseconds', now())`,
+            observedAt: () => {
+              return `date_trunc('milliseconds', now())`;
+            },
           } as any)
           .orIgnore()
           .returning(["observedAt"])

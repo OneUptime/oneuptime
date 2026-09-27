@@ -733,7 +733,7 @@ describe("DiscordReactionNoteSync.syncChannel", () => {
   });
 
   test("fetches one bounded page and processes the reactions it finds", async () => {
-    const messagesSpy = jest
+    const messagesSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelMessages")
       .mockResolvedValue([
         discordMessage({
@@ -785,7 +785,7 @@ describe("DiscordReactionNoteSync pagination completeness (HOM-43 review)", () =
       discordMessage({ id: snowflakeAt(new Date(boundary.getTime() - 60000)) }),
     ];
 
-    const messagesSpy = jest
+    const messagesSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelMessages")
       .mockResolvedValueOnce(page1)
       .mockResolvedValueOnce(page2);
@@ -812,7 +812,7 @@ describe("DiscordReactionNoteSync pagination completeness (HOM-43 review)", () =
       );
     }
 
-    const messagesSpy = jest
+    const messagesSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelMessages")
       .mockImplementation(async (): Promise<Array<JSONObject>> => {
         return page;
@@ -854,7 +854,7 @@ describe("DiscordReactionNoteSync pagination completeness (HOM-43 review)", () =
     }
     const checkpoint: string = String(page[49]!["id"]);
 
-    const messagesSpy = jest
+    const messagesSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelMessages")
       .mockImplementation(async (): Promise<Array<JSONObject>> => {
         return page;
@@ -891,7 +891,7 @@ describe("DiscordReactionNoteSync pagination completeness (HOM-43 review)", () =
     }
     const secondPage: JSONArray = [reactionUser({ id: "2000000000009999" })];
 
-    const messagesSpy = jest
+    const messagesSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelMessages")
       .mockResolvedValue([
         discordMessage({
@@ -899,7 +899,7 @@ describe("DiscordReactionNoteSync pagination completeness (HOM-43 review)", () =
           reactions: [reactionSummary({ name: "📌", count: 101 })],
         }),
       ]);
-    const reactionsSpy = jest
+    const reactionsSpy: jest.SpyInstance = jest
       .spyOn(DiscordClient, "getChannelReactions")
       .mockResolvedValueOnce(firstPage)
       .mockResolvedValueOnce(secondPage);
@@ -1213,7 +1213,7 @@ describe("DiscordReactionNoteSync.syncProject and syncAllProjects", () => {
       .spyOn(DiscordReactionNoteSync, "getWatchedChannels")
       .mockResolvedValue([first, second]);
 
-    const channelSpy = jest
+    const channelSpy: jest.SpyInstance = jest
       .spyOn(DiscordReactionNoteSync, "syncChannel")
       .mockImplementation(async (data: { channel: DiscordWatchedChannel }) => {
         if (data.channel.channelId === first.channelId) {
@@ -1242,11 +1242,11 @@ describe("DiscordReactionNoteSync.syncProject and syncAllProjects", () => {
     incomplete.projectId = ObjectID.generate();
     // no authToken
 
-    const findBySpy = jest
+    const findBySpy: jest.SpyInstance = jest
       .spyOn(WorkspaceProjectAuthTokenService, "findBy")
       .mockResolvedValue([good, incomplete]);
 
-    const projectSpy = jest
+    const projectSpy: jest.SpyInstance = jest
       .spyOn(DiscordReactionNoteSync, "syncProject")
       .mockRejectedValue(new Error("boom"));
 
@@ -1425,8 +1425,10 @@ describe("DiscordReactionNoteSync same-guild reinstall refusal (HOM-43)", () => 
   });
 
   test("R2: a fresh poll after reinstall stamps the persisted row's tuple, not the live binding", async (): Promise<void> => {
-    // The resource lists the thread's channel; the lifecycle row still
-    // carries the PRE-reinstall installation tuple.
+    /*
+     * The resource lists the thread's channel; the lifecycle row still
+     * carries the PRE-reinstall installation tuple.
+     */
     jest.spyOn(IncidentService, "findBy").mockResolvedValue([
       {
         id: incidentId,

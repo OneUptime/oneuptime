@@ -343,8 +343,10 @@ export default class DiscordReactionNoteSync {
      * row (a channel named by a rule, not a created thread) carries no
      * tuple; the live-guild check in isLiveInstallation still governs it.
      */
-    const installationByResource: Map<string, DiscordWatchedInstallation | null> =
-      new Map();
+    const installationByResource: Map<
+      string,
+      DiscordWatchedInstallation | null
+    > = new Map();
 
     for (const entry of watched) {
       const mapKey: string = [
@@ -384,9 +386,9 @@ export default class DiscordReactionNoteSync {
           installationVersion?: number | null;
           threadId?: string | null;
         } | null =
-          rows.find((row: { threadId?: string | null }) =>
-            Boolean(row.threadId),
-          ) || null;
+          rows.find((row: { threadId?: string | null }) => {
+            return Boolean(row.threadId);
+          }) || null;
 
         installationByResource.set(
           mapKey,
@@ -687,9 +689,11 @@ export default class DiscordReactionNoteSync {
 
       for (const summary of reactionSummaries) {
         const emoji: JSONObject | undefined = summary["emoji"] as
-          JSONObject | undefined;
+          | JSONObject
+          | undefined;
         const emojiName: string | undefined = emoji?.["name"] as
-          string | undefined;
+          | string
+          | undefined;
 
         if (!emojiName) {
           continue;
@@ -747,7 +751,8 @@ export default class DiscordReactionNoteSync {
             }
 
             const reactingUserId: string | undefined = user["id"] as
-              string | undefined;
+              | string
+              | undefined;
 
             if (!reactingUserId) {
               continue;
@@ -789,7 +794,8 @@ export default class DiscordReactionNoteSync {
     since: Date;
   }): { message: JSONObject; timestamp: Date } | null {
     const messageId: string | undefined = data.message["id"] as
-      string | undefined;
+      | string
+      | undefined;
 
     if (!messageId) {
       return null;
@@ -797,7 +803,8 @@ export default class DiscordReactionNoteSync {
 
     // Default (0) is a user message; anything else is a system message.
     const messageType: number | undefined = data.message["type"] as
-      number | undefined;
+      | number
+      | undefined;
 
     if (messageType !== undefined && messageType !== 0) {
       return null;
@@ -886,7 +893,6 @@ export default class DiscordReactionNoteSync {
      * layer.
      */
     let durableClaim: ObservationClaim;
-    let observedAt: Date;
 
     try {
       durableClaim = await DiscordReactionObservationService.claim({
@@ -908,7 +914,7 @@ export default class DiscordReactionNoteSync {
       return DiscordReactionOutcome.AlreadyHandled;
     }
 
-    observedAt = durableClaim.observedAt;
+    const observedAt: Date = durableClaim.observedAt;
 
     try {
       /*
@@ -1419,7 +1425,8 @@ export default class DiscordReactionNoteSync {
 
     const footerText: string =
       ((embed["footer"] as JSONObject | undefined)?.["text"] as
-        string | undefined) || "";
+        | string
+        | undefined) || "";
     if (footerText.trim()) {
       lines.push(footerText.trim());
     }
