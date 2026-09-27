@@ -37,6 +37,7 @@ import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNot
 import User from "../../../Models/DatabaseModels/User";
 import Search from "../../../Types/BaseDatabase/Search";
 import IconProp from "../../../Types/Icon/IconProp";
+import { SubscriberNotificationResendAction } from "../../../Types/StatusPage/SubscriberNotificationResend";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -450,42 +451,42 @@ describe("getPostedNotificationSummary", () => {
       "Subscribers notified",
       NoteNotificationTone.Success,
       IconProp.CheckCircle,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.Pending,
       "Notifying subscribers soon",
       NoteNotificationTone.Pending,
       IconProp.Clock,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.InProgress,
       "Notifying subscribers",
       NoteNotificationTone.Progress,
       IconProp.ArrowPath,
-      false,
+      null,
     ],
     [
       StatusPageSubscriberNotificationStatus.Failed,
       "Notification failed",
       NoteNotificationTone.Danger,
       IconProp.Error,
-      true,
+      SubscriberNotificationResendAction.Retry,
     ],
     [
       StatusPageSubscriberNotificationStatus.Skipped,
       "Subscribers not notified",
       NoteNotificationTone.Neutral,
       IconProp.BellSlash,
-      false,
+      null,
     ],
     [
       undefined,
       "Subscribers not notified",
       NoteNotificationTone.Neutral,
       IconProp.BellSlash,
-      false,
+      null,
     ],
   ])(
     "%s reads as %s",
@@ -494,7 +495,7 @@ describe("getPostedNotificationSummary", () => {
       label: string,
       tone: NoteNotificationTone,
       icon: IconProp,
-      isRetryable: boolean,
+      resendAction: SubscriberNotificationResendAction | null,
     ) => {
       const summary: NoteNotificationSummary = getPostedNotificationSummary(
         status,
@@ -505,7 +506,7 @@ describe("getPostedNotificationSummary", () => {
         label,
         tone,
         icon,
-        isRetryable,
+        resendAction,
         detail: null,
       });
     },
@@ -528,6 +529,61 @@ describe("getPostedNotificationSummary", () => {
       ).detail,
     ).toBeNull();
   });
+
+  describe("where Resend is offered (the incident's public notes)", () => {
+    test.each([
+      [
+        StatusPageSubscriberNotificationStatus.Success,
+        SubscriberNotificationResendAction.Resend,
+      ],
+      [
+        StatusPageSubscriberNotificationStatus.Failed,
+        SubscriberNotificationResendAction.Retry,
+      ],
+      [StatusPageSubscriberNotificationStatus.Skipped, null],
+      [StatusPageSubscriberNotificationStatus.Pending, null],
+      [StatusPageSubscriberNotificationStatus.InProgress, null],
+      [undefined, null],
+    ])(
+      "%s offers %s",
+      (
+        status: StatusPageSubscriberNotificationStatus | undefined,
+        resendAction: SubscriberNotificationResendAction | null,
+      ) => {
+        expect(
+          getPostedNotificationSummary(status, "message", {
+            isResendAfterSuccessOffered: true,
+          }).resendAction,
+        ).toBe(resendAction);
+      },
+    );
+
+    test("the label stays what happened, not what can be done about it", () => {
+      expect(
+        getPostedNotificationSummary(
+          StatusPageSubscriberNotificationStatus.Success,
+          undefined,
+          { isResendAfterSuccessOffered: true },
+        ).label,
+      ).toBe("Subscribers notified");
+    });
+
+    test("left off, a notification that went out cannot be sent again", () => {
+      for (const options of [
+        undefined,
+        {},
+        { isResendAfterSuccessOffered: false },
+      ]) {
+        expect(
+          getPostedNotificationSummary(
+            StatusPageSubscriberNotificationStatus.Success,
+            undefined,
+            options,
+          ).resendAction,
+        ).toBeNull();
+      }
+    });
+  });
 });
 
 describe("getUpdateNotificationSummary", () => {
@@ -537,27 +593,27 @@ describe("getUpdateNotificationSummary", () => {
   });
 
   test.each([
-    [StatusPageSubscriberNotificationStatus.Success, "Update sent", false],
-    [StatusPageSubscriberNotificationStatus.Pending, "Update queued", false],
+    [StatusPageSubscriberNotificationStatus.Success, "Update sent", null],
+    [StatusPageSubscriberNotificationStatus.Pending, "Update queued", null],
+    [StatusPageSubscriberNotificationStatus.InProgress, "Sending update", null],
     [
-      StatusPageSubscriberNotificationStatus.InProgress,
-      "Sending update",
-      false,
+      StatusPageSubscriberNotificationStatus.Failed,
+      "Update failed",
+      SubscriberNotificationResendAction.Retry,
     ],
-    [StatusPageSubscriberNotificationStatus.Failed, "Update failed", true],
-    [StatusPageSubscriberNotificationStatus.Skipped, "Update not sent", false],
+    [StatusPageSubscriberNotificationStatus.Skipped, "Update not sent", null],
   ])(
     "%s reads as %s",
     (
       status: StatusPageSubscriberNotificationStatus,
       label: string,
-      isRetryable: boolean,
+      resendAction: SubscriberNotificationResendAction | null,
     ) => {
       const summary: NoteNotificationSummary | null =
         getUpdateNotificationSummary(status, "message");
 
       expect(summary?.label).toBe(label);
-      expect(summary?.isRetryable).toBe(isRetryable);
+      expect(summary?.resendAction).toBe(resendAction);
       expect(summary?.detail).toBe("message");
     },
   );

@@ -2,7 +2,11 @@ import AffectedResourcesDisplay from "../../../Components/AffectedResources/Affe
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import SubscriberNotificationStatus, {
+  ResendNotificationOptions,
+} from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import SubscriberNotificationResendCopy from "../../../Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
+import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
@@ -81,6 +85,8 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedResend from "Common/Types/StatusPage/IncidentCreatedResend";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
@@ -572,11 +578,39 @@ const IncidentView: FunctionComponent<
     });
   };
 
-  const handleResendNotification: () => Promise<void> =
-    async (): Promise<void> => {
-      setResendNotificationErrorState(null);
+  /*
+   * Sends the incident-created notification again. Retry after a failure
+   * puts it back to Pending, and the server keeps its record of the status
+   * pages already reached, so the send resumes after them. Resend after a
+   * success - and Retry with "every status page" ticked - asks the server to
+   * send it to every page again (IncidentCreatedResend), which empties that
+   * record in the same write.
+   */
+  const handleResendNotification: (
+    options: ResendNotificationOptions,
+  ) => Promise<void> = async (
+    options: ResendNotificationOptions,
+  ): Promise<void> => {
+    setResendNotificationErrorState(null);
 
-      try {
+    try {
+      if (options.isToAllStatusPages) {
+        /*
+         * The same Pending as Retry - an update must write some column -
+         * with the request that makes it reach every page.
+         */
+        const incident: Incident = new Incident();
+        incident._id = modelIdString;
+        incident.subscriberNotificationStatusOnIncidentCreated =
+          StatusPageSubscriberNotificationStatus.Pending;
+
+        await ModelAPI.createOrUpdate<Incident>({
+          model: incident,
+          modelType: Incident,
+          formType: FormType.Update,
+          miscDataProps: IncidentCreatedResend.getMiscDataProps(),
+        });
+      } else {
         // Reset the notification status to Pending so the worker can pick it up again
         await ModelAPI.updateById({
           id: modelId,
@@ -585,21 +619,22 @@ const IncidentView: FunctionComponent<
             subscriberNotificationStatusOnIncidentCreated:
               StatusPageSubscriberNotificationStatus.Pending,
             subscriberNotificationStatusMessage:
-              "Notification queued for resending",
+              IncidentCreatedResend.retryQueuedMessage,
           },
         });
-
-        // Only the details card shows the status, so only it reads again.
-        setDetailsRefresher((current: boolean): boolean => {
-          return !current;
-        });
-      } catch (err) {
-        setResendNotificationErrorState({
-          subjectId: modelIdString,
-          value: BaseAPI.getFriendlyMessage(err),
-        });
       }
-    };
+
+      // Only the details card shows the status, so only it reads again.
+      setDetailsRefresher((current: boolean): boolean => {
+        return !current;
+      });
+    } catch (err) {
+      setResendNotificationErrorState({
+        subjectId: modelIdString,
+        value: BaseAPI.getFriendlyMessage(err),
+      });
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -1200,13 +1235,38 @@ const IncidentView: FunctionComponent<
                               ? IncidentCreatedRenotify.hiddenFromStatusPagesLabel
                               : undefined
                           }
-                          onResendNotification={() => {
-                            handleResendNotification().catch((err: Error) => {
-                              setResendNotificationErrorState({
-                                subjectId: modelIdString,
-                                value: BaseAPI.getFriendlyMessage(err),
-                              });
-                            });
+                          onResendNotification={(
+                            options: ResendNotificationOptions,
+                          ) => {
+                            handleResendNotification(options).catch(
+                              (err: Error) => {
+                                setResendNotificationErrorState({
+                                  subjectId: modelIdString,
+                                  value: BaseAPI.getFriendlyMessage(err),
+                                });
+                              },
+                            );
+                          }}
+                          /*
+                           * Resend after a success, Retry after a failure,
+                           * each confirmed with who it reaches now: the
+                           * pages of the incident's current scope.
+                           */
+                          resendConfirmation={{
+                            resendDescription:
+                              SubscriberNotificationResendCopy.incidentCreatedResendDescription,
+                            retryDescription:
+                              SubscriberNotificationResendCopy.incidentCreatedRetryDescription,
+                            retryToAllStatusPagesLabel:
+                              SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+                            retryToAllStatusPagesDescription:
+                              SubscriberNotificationResendCopy.incidentCreatedResendToAllStatusPagesDescription,
+                            audience: (
+                              <SubscriberAudienceSummary
+                                request={{ incidentId: modelId }}
+                                dataTestId="incident-created-resend-audience"
+                              />
+                            ),
                           }}
                         />
                         {resendNotificationError ? (

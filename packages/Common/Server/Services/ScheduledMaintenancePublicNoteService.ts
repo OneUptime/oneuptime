@@ -19,6 +19,7 @@ import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -122,11 +123,22 @@ export class Service extends DatabaseService<Model> {
    * An edit tells subscribers nothing unless the editor asked for it on this
    * edit (see SubscriberUpdateNotification). When they did, queue the update
    * notification; the ScheduledMaintenancePublicNote worker job sends it.
+   *
+   * Sending the note's 'posted' notification again - its status written back
+   * to Pending, as the dashboard's Retry does - needs the permission to post
+   * a note that notifies subscribers, and a note whose notification can go
+   * out again (see SubscriberNotificationResendAccess).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+    });
+
     if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
       updateBy.data.subscriberNotificationStatusOnNoteUpdated =
         StatusPageSubscriberNotificationStatus.Pending;

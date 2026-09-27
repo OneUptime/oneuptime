@@ -104,6 +104,19 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
             />
           );
         },
+        /*
+         * A note whose notification went out can be sent again (Resend),
+         * one that failed retried; both ask first, naming the status pages
+         * the incident's scope reaches now - where it would go.
+         */
+        resend: {
+          audience: (
+            <SubscriberAudienceSummary
+              request={{ incidentId: modelId }}
+              dataTestId="incident-public-note-resend-audience"
+            />
+          ),
+        },
       }}
       templates={{
         modelType: IncidentNoteTemplate,

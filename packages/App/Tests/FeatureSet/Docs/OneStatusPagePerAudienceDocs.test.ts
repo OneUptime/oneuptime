@@ -21,6 +21,8 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedResend from "Common/Types/StatusPage/IncidentCreatedResend";
+import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience from "Common/Types/StatusPage/IncidentSubscriberAudience";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
@@ -842,6 +844,49 @@ describe("One Status Page per Audience docs", () => {
         expect(readPage(GUIDE_PAGE, language)).toContain(
           `"miscDataProps": {"${IncidentScopeAddedPagesNotification.miscDataKey}": true}`,
         );
+      }
+    });
+
+    it("sends the resend-to-every-page request under the miscDataProps key the server reads", () => {
+      for (const language of ALL_LANGUAGES) {
+        expect(readPage(GUIDE_PAGE, language)).toContain(
+          `"miscDataProps": {"${IncidentCreatedResend.miscDataKey}": true}`,
+        );
+      }
+    });
+
+    it("names the resend controls as the dashboard labels them", () => {
+      for (const language of ALL_LANGUAGES) {
+        const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
+
+        expect(
+          names.has(
+            SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+          ),
+        ).toBe(true);
+        expect(
+          names.has(
+            SubscriberNotificationResendCopy.resendToAllStatusPagesButton,
+          ),
+        ).toBe(true);
+        expect(names.has(SubscriberNotificationResendCopy.resendButton)).toBe(
+          true,
+        );
+
+        const notes: Set<string> = boldText(
+          readPage("incidents/notes-owners-and-feed", language),
+        );
+
+        expect(
+          notes.has(
+            SubscriberNotificationResendCopy.resendNoteNotificationButton,
+          ),
+        ).toBe(true);
+        expect(
+          notes.has(
+            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+          ),
+        ).toBe(true);
       }
     });
 

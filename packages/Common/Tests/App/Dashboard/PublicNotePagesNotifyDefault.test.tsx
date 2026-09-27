@@ -52,6 +52,7 @@ type RecordedFeedProps = {
     renderPreview?:
       | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
       | undefined;
+    resend?: { audience?: ReactElement | undefined } | undefined;
   };
 };
 
@@ -381,6 +382,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       };
       delete settings["audienceSummary"];
       delete settings["renderPreview"];
+      delete settings["resend"];
 
       expect(settings).toEqual({
         isNotifyingByDefault: false,
@@ -403,6 +405,26 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       expect(
         (
           audience!.props as { request: { incidentId: ObjectID } }
+        ).request.incidentId.toString(),
+      ).toBe(EVENT_ID);
+    });
+
+    test("a note whose notification went out can be sent again where the event has a scope, confirmed with its audience", async () => {
+      await renderFor(true);
+
+      const resend: { audience?: ReactElement | undefined } | undefined =
+        feed().subscriberNotifications?.resend;
+
+      if (!page.hasAudienceSummary) {
+        // Episode and scheduled maintenance notes keep Retry only.
+        expect(resend).toBeUndefined();
+        return;
+      }
+
+      expect(resend).toBeDefined();
+      expect(
+        (
+          resend!.audience!.props as { request: { incidentId: ObjectID } }
         ).request.incidentId.toString(),
       ).toBe(EVENT_ID);
     });

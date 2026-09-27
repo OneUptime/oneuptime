@@ -61,6 +61,8 @@ import {
 } from "./EventNotesUtil";
 import NoteAvatar from "./NoteAvatar";
 import NoteCard, { NoteActionGate } from "./NoteCard";
+import { NoteResendConfirmation } from "./NoteNotificationBadge";
+import SubscriberNotificationResendCopy from "../StatusPageSubscribers/SubscriberNotificationResendCopy";
 import NoteComposer, {
   AudienceBadge,
   AUDIENCE_STYLES,
@@ -106,6 +108,22 @@ export interface EventNotesSubscriberConfig {
   renderPreview?:
     | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
     | undefined;
+  /*
+   * Offers Resend for a note whose notification went out, next to Retry for
+   * one that failed, and asks before either is sent, naming who it would
+   * reach now. The incident's public notes pass it; the episode and
+   * scheduled maintenance notes leave it out and keep Retry only, straight
+   * from the details dialog.
+   */
+  resend?: EventNotesResendConfig | undefined;
+}
+
+export interface EventNotesResendConfig {
+  /*
+   * Who a note sent again would reach now (SubscriberAudienceSummary for
+   * incidents), shown in the confirmation.
+   */
+  audience?: ReactElement | undefined;
 }
 
 export interface ComponentProps<TNote extends BaseModel> {
@@ -227,6 +245,38 @@ function EventNotes<TNote extends BaseModel>(
 
   const isNotifyingByDefault: boolean =
     props.subscriberNotifications?.isNotifyingByDefault ?? true;
+
+  /*
+   * Sending a note's 'posted' notification again writes its status, and
+   * tells every subscriber what the note says - what posting it did. So it
+   * takes both: permission to edit the note's notification status, and
+   * permission to post a note that notifies subscribers. The server checks
+   * the same (SubscriberNotificationResendAccess).
+   */
+  const canResendPostedNotification: boolean =
+    isPublic &&
+    editGate.isShown &&
+    !editGate.isDisabled &&
+    createGate.isAllowed &&
+    canWrite("subscriberNotificationStatusOnNoteCreated", "update") &&
+    canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create");
+
+  // Retry sends the edit's notification again: the note's edit permission.
+  const canResendUpdateNotification: boolean =
+    editGate.isShown && !editGate.isDisabled;
+
+  const postedNotificationResendConfirmation:
+    | NoteResendConfirmation
+    | undefined =
+    isPublic && props.subscriberNotifications?.resend
+      ? {
+          resendDescription:
+            SubscriberNotificationResendCopy.noteResendDescription,
+          retryDescription:
+            SubscriberNotificationResendCopy.noteRetryDescription,
+          audience: props.subscriberNotifications.resend.audience,
+        }
+      : undefined;
 
   const createDraft: DraftFactory = (): NoteComposerValues => {
     return {
@@ -988,18 +1038,21 @@ function EventNotes<TNote extends BaseModel>(
                         return deleteNote(note);
                       }}
                       onRetryPostedNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendPostedNotification
                           ? () => {
                               return resendNotification(note, "posted");
                             }
                           : undefined
                       }
                       onRetryUpdateNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendUpdateNotification
                           ? () => {
                               return resendNotification(note, "update");
                             }
                           : undefined
+                      }
+                      postedNotificationResendConfirmation={
+                        postedNotificationResendConfirmation
                       }
                       isPostedAtEditable={
                         isEditPostedAtEditable &&

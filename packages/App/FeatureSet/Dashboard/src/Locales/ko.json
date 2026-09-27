@@ -6630,5 +6630,19 @@
   "Write the template to see a preview.": "미리 보기를 보려면 템플릿을 작성하세요.",
   "No subject: the notification is sent with the default subject for this event.": "제목 없음: 알림은 이 이벤트의 기본 제목으로 전송됩니다.",
   "Not variables of this event, so sent as written: {{names}}": "이 이벤트의 변수가 아니므로 작성된 그대로 전송됩니다: {{names}}",
-  "Report templates have no preview: they are filled in with the report's own data when the report is sent.": "보고서 템플릿은 미리 볼 수 없습니다. 보고서를 보낼 때 보고서 자체의 데이터로 채워집니다."
+  "Report templates have no preview: they are filled in with the report's own data when the report is sent.": "보고서 템플릿은 미리 볼 수 없습니다. 보고서를 보낼 때 보고서 자체의 데이터로 채워집니다.",
+  "Resend": "다시 보내기",
+  "Retry": "다시 시도",
+  "Resend to all pages": "모든 페이지에 다시 보내기",
+  "Resend notification": "알림 다시 보내기",
+  "Retry notification": "알림 다시 시도",
+  "Send this notification again?": "이 알림을 다시 보내시겠습니까?",
+  "Retry this notification?": "이 알림을 다시 시도하시겠습니까?",
+  "This note is sent again to the subscribers of every status page this incident reaches now, including the pages that were sent it before. Notes and state changes are always sent to every page again; only a retry of the incident-created notification resumes where it stopped. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.": "이 노트는 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 이미 받은 페이지를 포함해 다시 전송됩니다. 노트와 상태 변경은 항상 모든 페이지에 다시 전송되며, 중단된 지점부터 이어서 보내는 것은 인시던트 생성 알림의 재시도뿐입니다. 노트를 게시한 후 이 인시던트가 제한된 상태 페이지가 바뀌었다면 현재 제한된 페이지로 전송됩니다.",
+  "Retry sends this note again to the subscribers of every status page this incident reaches now, including the pages that were sent it before: notes and state changes do not resume where they stopped, only the incident-created notification does. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.": "다시 시도하면 이 노트가 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 이미 받은 페이지를 포함해 다시 전송됩니다. 노트와 상태 변경은 중단된 지점부터 이어서 보내지 않으며, 그렇게 하는 것은 인시던트 생성 알림뿐입니다. 노트를 게시한 후 이 인시던트가 제한된 상태 페이지가 바뀌었다면 현재 제한된 페이지로 전송됩니다.",
+  "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages that were already sent it. If the status pages this incident is limited to have changed since it went out, it goes to the pages it is limited to now.": "이 인시던트가 생성되었다는 알림이 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 이미 받은 페이지를 포함해 다시 전송됩니다. 전송 후 이 인시던트가 제한된 상태 페이지가 바뀌었다면 현재 제한된 페이지로 전송됩니다.",
+  "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "다시 시도는 이미 도달한 상태 페이지 다음부터 이어서 보냅니다. 이 인시던트의 현재 범위에 있는 페이지 중 알림을 완전히 받지 못한 페이지(이후 추가된 페이지 포함)에만 지금 전송됩니다. 모든 페이지에 다시 전송되는 노트와 상태 변경과 달리, 이미 도달한 페이지에는 두 번 전송되지 않습니다.",
+  "Send it to every status page again, including the pages already reached": "이미 도달한 페이지를 포함해 모든 상태 페이지에 다시 보내기",
+  "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "이 인시던트가 생성되었다는 알림이 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 실패한 전송이 이미 도달한 페이지를 포함해 다시 전송됩니다.",
+  "Could not queue the notification again.": "알림을 다시 대기열에 넣을 수 없습니다."
 }

@@ -173,6 +173,12 @@ interface NotePageCase {
   siblingPath?: string | undefined;
   // Fills a picked template's {{incident.title}}-style placeholders.
   fillsIncidentPlaceholders?: boolean | undefined;
+  /*
+   * Offers Resend for a note whose notification went out, confirmed with
+   * the incident's audience. Only the incident's public notes do; the
+   * episode and scheduled maintenance ones keep Retry after a failure only.
+   */
+  offersResend?: boolean | undefined;
 }
 
 const INCIDENTS: string = `/dashboard/${PROJECT_ID}/incidents`;
@@ -198,6 +204,7 @@ const PAGES: Array<NotePageCase> = [
     },
     siblingPath: `${INCIDENTS}/${EVENT_ID}/internal-notes`,
     fillsIncidentPlaceholders: true,
+    offersResend: true,
   },
   {
     name: "incident private notes",
@@ -402,6 +409,42 @@ describe.each(PAGES)("$name", (page: NotePageCase) => {
       expect(feed().subscriberNotifications).toBeUndefined();
     }
   });
+
+  if (page.offersResend) {
+    test("offers Resend, confirmed with who this incident's notes reach now", async () => {
+      await renderPage();
+
+      const resend: { audience?: ReactElement | undefined } | undefined = (
+        feed().subscriberNotifications as
+          | { resend?: { audience?: ReactElement | undefined } }
+          | undefined
+      )?.resend;
+
+      expect(resend).toBeDefined();
+
+      // The audience summary for this incident's current scope.
+      const audience: ReactElement = resend!.audience!;
+      const props: {
+        request: { incidentId: { toString: () => string } };
+        dataTestId?: string;
+      } = audience.props as {
+        request: { incidentId: { toString: () => string } };
+        dataTestId?: string;
+      };
+
+      expect(props.request.incidentId.toString()).toBe(EVENT_ID);
+      expect(props.dataTestId).toBe("incident-public-note-resend-audience");
+    });
+  } else if (page.visibility === "public") {
+    test("keeps Retry after a failure only: no Resend setting", async () => {
+      await renderPage();
+
+      expect(
+        (feed().subscriberNotifications as { resend?: unknown } | undefined)
+          ?.resend,
+      ).toBeUndefined();
+    });
+  }
 
   if (page.ai) {
     const ai: NonNullable<NotePageCase["ai"]> = page.ai;

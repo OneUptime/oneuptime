@@ -57,6 +57,7 @@ import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidato
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenotify";
+import IncidentCreatedResend from "../../Types/StatusPage/IncidentCreatedResend";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -65,6 +66,7 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageService from "./StatusPageService";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import Select from "../Types/Database/Select";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
@@ -653,6 +655,10 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.queueCreatedNotificationResendToAllStatusPagesIfRequested(
+      updateBy,
+    );
+
     await this.clearCreatedNotificationRecordOnResend({
       updateBy: updateBy,
       isResendRequested: isCreatedNotificationResendRequested,
@@ -890,9 +896,11 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Whether an update itself asks for the 'created' notification to go out
-   * again: it sets the status to Pending - the API route of resending it -
-   * or turns notifying on creation on, which onBeforeUpdate maps to Pending.
-   * Read before any hook adds a Pending of its own.
+   * again: it sets the status to Pending - the API route of resending it,
+   * and the dashboard's Retry - turns notifying on creation on, which
+   * onBeforeUpdate maps to Pending, or asks for it to be sent to every
+   * status page again (IncidentCreatedResend, the dashboard's Resend). Read
+   * before any hook adds a Pending of its own.
    */
   private isCreatedNotificationResendRequested(
     updateBy: UpdateBy<Model>,
@@ -901,8 +909,98 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
         StatusPageSubscriberNotificationStatus.Pending ||
       updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true
+        true ||
+      IncidentCreatedResend.isRequested(updateBy.miscDataProps)
     );
+  }
+
+  /*
+   * 'Resend to all pages' (see IncidentCreatedResend): the 'created'
+   * notification goes back to Pending with a message saying so, and
+   * clearCreatedNotificationRecordOnResend empties its record of told pages
+   * in the same write, so the job sends it to every page the incident
+   * reaches now - after a failure too, where a plain Retry would resume.
+   *
+   * Everything is written into the caller's own update, so it lands with the
+   * rest of it or not at all, and the column check that runs after this hook
+   * still decides whether the caller may write the status. That check is
+   * also made here first, before the incidents are read: the refusals below
+   * depend on the notification's state, and a caller who may not send it
+   * again is told only that. The incidents are then read with the caller's
+   * own permissions (and the privacy filter already on the query), so an
+   * incident they cannot see never decides the answer; when they can see
+   * none of those the update matches, nothing is queued.
+   *
+   * Refused - with the reason, rather than silently dropped, because asking
+   * for it is the whole point of the request - when any matched incident's
+   * notification did not go out (Skipped) or is on its way (Pending,
+   * InProgress), and when the same update sets the status to anything but
+   * Pending.
+   */
+  private async queueCreatedNotificationResendToAllStatusPagesIfRequested(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (!IncidentCreatedResend.isRequested(updateBy.miscDataProps)) {
+      return;
+    }
+
+    const requestedStatus: unknown =
+      updateBy.data.subscriberNotificationStatusOnIncidentCreated;
+
+    if (
+      requestedStatus !== undefined &&
+      requestedStatus !== StatusPageSubscriberNotificationStatus.Pending
+    ) {
+      throw new BadDataException(
+        IncidentCreatedResend.conflictingStatusMessage,
+      );
+    }
+
+    SubscriberNotificationResendAccess.assertCallerMayUpdateColumns({
+      modelType: Model,
+      columns: {
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessage:
+          IncidentCreatedResend.queuedMessage,
+        statusPagesNotifiedOnCreation: [],
+      },
+      props: updateBy.props,
+      refusal: IncidentCreatedResend.noPermissionMessage,
+    });
+
+    const incidents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        subscriberNotificationStatusOnIncidentCreated: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: updateBy.props,
+    });
+
+    for (const incident of incidents) {
+      const refusal: string | null = IncidentCreatedResend.getRefusalReason(
+        incident.subscriberNotificationStatusOnIncidentCreated,
+      );
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+    }
+
+    if (incidents.length === 0) {
+      return;
+    }
+
+    updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+      StatusPageSubscriberNotificationStatus.Pending;
+
+    if (updateBy.data.subscriberNotificationStatusMessage === undefined) {
+      updateBy.data.subscriberNotificationStatusMessage =
+        IncidentCreatedResend.queuedMessage;
+    }
   }
 
   /*
@@ -915,10 +1013,11 @@ export class Service extends DatabaseService<Model> {
    *
    * It is kept in three cases:
    * - Failed: Retry resumes where the failed send stopped, so the pages it
-   *   told are not told twice;
+   *   told are not told twice - unless the update asks for it to go to every
+   *   page again (IncidentCreatedResend), which is what that request is for;
    * - Pending or InProgress: the notification is on its way already, and its
    *   record is what keeps a send queued for added pages from reaching the
-   *   pages told before;
+   *   pages told before (IncidentCreatedResend refuses these);
    * - a root caller that writes the record itself.
    *
    * An update matching several incidents empties the record when any of them
@@ -940,6 +1039,23 @@ export class Service extends DatabaseService<Model> {
         "statusPagesNotifiedOnCreation"
       ] !== undefined
     ) {
+      return;
+    }
+
+    if (IncidentCreatedResend.isRequested(updateBy.miscDataProps)) {
+      /*
+       * Queued for every page by
+       * queueCreatedNotificationResendToAllStatusPagesIfRequested, which
+       * left the status alone when the caller can see none of the incidents
+       * the update matches: nothing to read to decide.
+       */
+      if (
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
+        StatusPageSubscriberNotificationStatus.Pending
+      ) {
+        updateBy.data.statusPagesNotifiedOnCreation = [];
+      }
+
       return;
     }
 

@@ -6630,5 +6630,19 @@
   "Write the template to see a preview.": "プレビューを表示するには、テンプレートを書いてください。",
   "No subject: the notification is sent with the default subject for this event.": "件名がありません。通知はこのイベントのデフォルトの件名で送信されます。",
   "Not variables of this event, so sent as written: {{names}}": "このイベントの変数ではないため、書かれたとおりに送信されます: {{names}}",
-  "Report templates have no preview: they are filled in with the report's own data when the report is sent.": "レポートテンプレートにはプレビューがありません。レポートの送信時に、レポート自体のデータで埋められます。"
+  "Report templates have no preview: they are filled in with the report's own data when the report is sent.": "レポートテンプレートにはプレビューがありません。レポートの送信時に、レポート自体のデータで埋められます。",
+  "Resend": "再送信",
+  "Retry": "再試行",
+  "Resend to all pages": "すべてのページに再送信",
+  "Resend notification": "通知を再送信",
+  "Retry notification": "通知を再試行",
+  "Send this notification again?": "この通知をもう一度送信しますか？",
+  "Retry this notification?": "この通知を再試行しますか？",
+  "This note is sent again to the subscribers of every status page this incident reaches now, including the pages that were sent it before. Notes and state changes are always sent to every page again; only a retry of the incident-created notification resumes where it stopped. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.": "このノートは、このインシデントが現在届くすべてのステータスページの購読者に、すでに受け取ったページも含めて再送信されます。ノートと状態の変更は常にすべてのページに再送信されます。中断したところから再開するのは、インシデント作成通知の再試行だけです。ノートの投稿後にこのインシデントの対象ステータスページが変わった場合は、現在の対象ページに送信されます。",
+  "Retry sends this note again to the subscribers of every status page this incident reaches now, including the pages that were sent it before: notes and state changes do not resume where they stopped, only the incident-created notification does. If the status pages this incident is limited to have changed since the note was posted, it goes to the pages it is limited to now.": "再試行すると、このノートは、このインシデントが現在届くすべてのステータスページの購読者に、すでに受け取ったページも含めて再送信されます。ノートと状態の変更は中断したところから再開しません。再開するのはインシデント作成通知だけです。ノートの投稿後にこのインシデントの対象ステータスページが変わった場合は、現在の対象ページに送信されます。",
+  "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages that were already sent it. If the status pages this incident is limited to have changed since it went out, it goes to the pages it is limited to now.": "このインシデントが作成されたという通知は、このインシデントが現在届くすべてのステータスページの購読者に、すでに受け取ったページも含めて再送信されます。送信後にこのインシデントの対象ステータスページが変わった場合は、現在の対象ページに送信されます。",
+  "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "再試行は、すでに届いたステータスページの後から再開します。このインシデントの現在の対象ページのうち、通知を完全には受け取っていないページ（その後追加されたページを含む）にだけ今送信されます。すべてのページに再送信されるノートや状態の変更とは異なり、すでに届いたページには二度送信されません。",
+  "Send it to every status page again, including the pages already reached": "すでに届いたページも含めて、すべてのステータスページにもう一度送信する",
+  "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "このインシデントが作成されたという通知は、このインシデントが現在届くすべてのステータスページの購読者に、失敗した送信がすでに届いたページも含めて再送信されます。",
+  "Could not queue the notification again.": "通知を再度キューに入れられませんでした。"
 }

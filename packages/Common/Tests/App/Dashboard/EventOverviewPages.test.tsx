@@ -32,6 +32,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 const recordedProps: Record<string, Array<Record<string, unknown>>> = {};
 const mountCounts: Record<string, number> = {};
@@ -91,6 +92,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<unknown>) => {
         return updateByIdMock(...args);
+      },
+      createOrUpdate: (...args: Array<unknown>) => {
+        return createOrUpdateMock(...args);
       },
     },
   };
@@ -326,6 +330,9 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentCreatedResend from "../../../Types/StatusPage/IncidentCreatedResend";
+import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -377,6 +384,11 @@ function createDeferred<T>(): Deferred<T> {
 function propsHistory<T>(key: string): Array<T> {
   return (recordedProps[key] || []) as unknown as Array<T>;
 }
+
+// What the incident overview hands the notification status badge.
+type ResendStatusProps = {
+  onResendNotification: (options: { isToAllStatusPages: boolean }) => void;
+};
 
 function latestProps<T>(key: string): T {
   const history: Array<T> = propsHistory<T>(key);
@@ -775,6 +787,7 @@ afterEach(() => {
   getListMock.mockReset();
   getItemMock.mockReset();
   updateByIdMock.mockReset();
+  createOrUpdateMock.mockReset();
 
   for (const key of Object.keys(recordedProps)) {
     delete recordedProps[key];
@@ -2109,9 +2122,9 @@ describe("incident-only behaviour", () => {
     const readsBefore: number = countItemReads();
 
     await act(async () => {
-      latestProps<{ onResendNotification: () => void }>(
+      latestProps<ResendStatusProps>(
         "SubscriberNotificationStatus",
-      ).onResendNotification();
+      ).onResendNotification({ isToAllStatusPages: false });
     });
 
     await waitFor(() => {
@@ -2121,6 +2134,7 @@ describe("incident-only behaviour", () => {
       ).toBe(!refresherBefore);
     });
 
+    // Retry: back to Pending, and the server keeps the record so it resumes.
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: Record<string, unknown> })
@@ -2128,10 +2142,117 @@ describe("incident-only behaviour", () => {
     ).toEqual({
       subscriberNotificationStatusOnIncidentCreated:
         StatusPageSubscriberNotificationStatus.Pending,
-      subscriberNotificationStatusMessage: "Notification queued for resending",
+      subscriberNotificationStatusMessage:
+        IncidentCreatedResend.retryQueuedMessage,
     });
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(countItemReads()).toBe(readsBefore);
     expect(mountCounts["InvestigationPanel"]).toBe(1);
+  });
+
+  test("resending to every status page asks the server to, and re-reads only the details card", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    createOrUpdateMock.mockResolvedValue({});
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const refresherBefore: boolean | undefined =
+      latestProps<CardModelDetailProps>(
+        "CardModelDetail:Incident Details",
+      ).refresher;
+
+    renderStatusField();
+
+    await act(async () => {
+      latestProps<ResendStatusProps>(
+        "SubscriberNotificationStatus",
+      ).onResendNotification({ isToAllStatusPages: true });
+    });
+
+    await waitFor(() => {
+      expect(
+        latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+          .refresher,
+      ).toBe(!refresherBefore);
+    });
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+
+    const request: {
+      model: Incident;
+      modelType: unknown;
+      formType: FormType;
+      miscDataProps: Record<string, unknown>;
+    } = createOrUpdateMock.mock.calls[0]![0] as {
+      model: Incident;
+      modelType: unknown;
+      formType: FormType;
+      miscDataProps: Record<string, unknown>;
+    };
+
+    expect(request.modelType).toBe(Incident);
+    expect(request.formType).toBe(FormType.Update);
+    expect(request.model._id?.toString()).toBe(EVENT_ID);
+    expect(request.model.subscriberNotificationStatusOnIncidentCreated).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(request.miscDataProps).toEqual(
+      IncidentCreatedResend.getMiscDataProps(),
+    );
+  });
+
+  test("offers Resend after a success, confirmed with who this incident reaches now", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    renderStatusField();
+
+    const confirmation: {
+      resendDescription: string;
+      retryDescription: string;
+      retryToAllStatusPagesLabel?: string;
+      retryToAllStatusPagesDescription?: string;
+      audience: ReactElement;
+    } = latestProps<{
+      resendConfirmation: {
+        resendDescription: string;
+        retryDescription: string;
+        retryToAllStatusPagesLabel?: string;
+        retryToAllStatusPagesDescription?: string;
+        audience: ReactElement;
+      };
+    }>("SubscriberNotificationStatus").resendConfirmation;
+
+    expect(confirmation.resendDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedResendDescription,
+    );
+    expect(confirmation.retryDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedRetryDescription,
+    );
+    expect(confirmation.retryToAllStatusPagesLabel).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+    );
+    expect(confirmation.retryToAllStatusPagesDescription).toBe(
+      SubscriberNotificationResendCopy.incidentCreatedResendToAllStatusPagesDescription,
+    );
+
+    const audienceProps: {
+      request: { incidentId: { toString: () => string } };
+    } = confirmation.audience.props as {
+      request: { incidentId: { toString: () => string } };
+    };
+
+    expect(audienceProps.request.incidentId.toString()).toBe(EVENT_ID);
   });
 
   /*
@@ -2160,9 +2281,9 @@ describe("incident-only behaviour", () => {
 
   const resend: ResendFunction = async (): Promise<void> => {
     await act(async () => {
-      latestProps<{ onResendNotification: () => void }>(
+      latestProps<ResendStatusProps>(
         "SubscriberNotificationStatus",
-      ).onResendNotification();
+      ).onResendNotification({ isToAllStatusPages: false });
     });
     await flush();
   };

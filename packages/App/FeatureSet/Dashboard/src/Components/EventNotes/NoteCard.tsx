@@ -30,7 +30,9 @@ import {
 import NoteAttachments from "./NoteAttachments";
 import NoteAvatar from "./NoteAvatar";
 import NoteComposer, { NoteComposerValues, NotifyOption } from "./NoteComposer";
-import NoteNotificationBadge from "./NoteNotificationBadge";
+import NoteNotificationBadge, {
+  NoteResendConfirmation,
+} from "./NoteNotificationBadge";
 
 /*
  * How an edit or delete affordance is offered: `isShown: false` hides it (the
@@ -60,6 +62,12 @@ export interface ComponentProps {
   onDelete: () => Promise<void>;
   onRetryPostedNotification?: (() => Promise<void>) | undefined;
   onRetryUpdateNotification?: (() => Promise<void>) | undefined;
+  /*
+   * Offers Resend for a posted notification that went out, and asks before
+   * it or a Retry is sent, with this confirmation. Left out, only a failed
+   * one offers Retry, with no confirmation.
+   */
+  postedNotificationResendConfirmation?: NoteResendConfirmation | undefined;
   isPostedAtEditable: boolean;
   updateNotifyOption?: NotifyOption | undefined;
 }
@@ -166,6 +174,11 @@ const NoteCard: FunctionComponent<ComponentProps> = (
       ? getPostedNotificationSummary(
           props.note.subscriberNotificationStatusOnNoteCreated,
           props.note.subscriberNotificationStatusMessage,
+          {
+            isResendAfterSuccessOffered: Boolean(
+              props.postedNotificationResendConfirmation,
+            ),
+          },
         )
       : null;
 
@@ -320,6 +333,9 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                     summary={postedSummary}
                     kindLabel="Subscriber notification"
                     onRetry={props.onRetryPostedNotification}
+                    resendConfirmation={
+                      props.postedNotificationResendConfirmation
+                    }
                     dataTestId="note-notification-status"
                   />
                 )}

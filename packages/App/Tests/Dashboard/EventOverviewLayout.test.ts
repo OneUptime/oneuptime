@@ -493,7 +493,7 @@ describe("incident-only layout", () => {
   test("resending subscriber notifications refreshes only the details card", () => {
     const resendBody: string = arrowBodyAfter(
       INCIDENT_PAGE.view,
-      "const handleResendNotification: () => Promise<void> =",
+      "const handleResendNotification: ( options: ResendNotificationOptions, ) => Promise<void> = async (",
     );
 
     expect(resendBody).toContain("setDetailsRefresher(");
@@ -505,7 +505,7 @@ describe("incident-only layout", () => {
   test("a failed resend is reported under the status it failed to change, not as a refresh failure", () => {
     const resendBody: string = arrowBodyAfter(
       INCIDENT_PAGE.view,
-      "const handleResendNotification: () => Promise<void> =",
+      "const handleResendNotification: ( options: ResendNotificationOptions, ) => Promise<void> = async (",
     );
 
     expect(resendBody).toContain("setResendNotificationErrorState(null);");
