@@ -17,6 +17,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import OAuth2TokenClient, {
+  OAuth2TokenHttpRequest,
+  OAuth2TokenHttpResponse,
+} from "Common/Server/Utils/Workflow/OAuth2TokenClient";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import dns from "dns";
 import nodemailer from "nodemailer";
@@ -274,37 +278,36 @@ beforeEach(() => {
 
   /*
    * The token endpoint issues a token named after the secret it was given,
-   * so each assertion can tell whose credentials a token came from.
-   * Microsoft Graph accepts every send and records the bearer token used.
+   * so each assertion can tell whose credentials a token came from. Token
+   * requests leave through the egress-guarded, pinned OAuth transport;
+   * SmtpOAuthTokenPinning.test.ts runs that transport for real.
    */
+  jest
+    .spyOn(OAuth2TokenClient, "sendThroughEgressGuard")
+    .mockImplementation(
+      (request: OAuth2TokenHttpRequest): Promise<OAuth2TokenHttpResponse> => {
+        expect(request.url).toBe(TOKEN_URL);
+
+        const params: URLSearchParams = new URLSearchParams(request.body);
+        tokenRequests.push(params);
+
+        return Promise.resolve({
+          statusCode: 200,
+          bodyText: JSON.stringify({
+            access_token: `token-issued-for:${params.get("client_secret")}`,
+            token_type: "Bearer",
+            expires_in: 3600,
+          }),
+          headers: {},
+        });
+      },
+    );
+
+  // Microsoft Graph accepts every send and records the bearer token used.
   fetchSpy = jest
     .spyOn(globalThis, "fetch")
     .mockImplementation(
-      (input: Parameters<typeof fetch>[0], init?: RequestInit | undefined) => {
-        const url: string = input.toString();
-
-        if (url === TOKEN_URL) {
-          const params: URLSearchParams = new URLSearchParams(
-            init?.body as string,
-          );
-          tokenRequests.push(params);
-
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => {
-              return Promise.resolve({
-                access_token: `token-issued-for:${params.get("client_secret")}`,
-                token_type: "Bearer",
-                expires_in: 3600,
-              });
-            },
-            text: () => {
-              return Promise.resolve("");
-            },
-          } as unknown as Response);
-        }
-
+      (_input: Parameters<typeof fetch>[0], init?: RequestInit | undefined) => {
         graphAuthorizations.push(
           (init?.headers as Record<string, string>)["Authorization"] || "",
         );
