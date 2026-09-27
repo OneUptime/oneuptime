@@ -432,6 +432,51 @@ describe("IncidentStatusPageScope.resolvePagesForIncidents", () => {
     expect(reachedPageNames(resolved)).toEqual(["Site 05"]);
   });
 
+  /*
+   * The customer's setup: every site page only shows scoped incidents, and
+   * the incident is scoped to two of them. The other eight are left out
+   * because the incident is limited to other pages - not because they only
+   * show scoped incidents, which this one is.
+   */
+  test("pages that only show scoped incidents, left out of a scoped incident, are outside its scope", async () => {
+    useTenSitePages(true);
+    storedScopes = [
+      {
+        id: INCIDENT_A,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(3), sitePageId(7)],
+      },
+    ];
+
+    const resolved: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incidentOn(INCIDENT_A, [SHARED_MONITOR])],
+      });
+
+    expect(reachedPageNames(resolved)).toEqual(["Site 03", "Site 07"]);
+    expect(
+      excludedPageNames(
+        resolved,
+        StatusPageExclusionReason.OutsideIncidentScope,
+      ),
+    ).toEqual([
+      "Site 01",
+      "Site 02",
+      "Site 04",
+      "Site 05",
+      "Site 06",
+      "Site 08",
+      "Site 09",
+      "Site 10",
+    ]);
+    expect(
+      excludedPageNames(
+        resolved,
+        StatusPageExclusionReason.OnlyShowsScopedIncidents,
+      ),
+    ).toEqual([]);
+  });
+
   test("a scope never adds a page that does not list the incident's monitors", async () => {
     useTenSitePages();
     const unrelatedPage: string = "b0000000-0000-4000-8000-0000000000ff";
@@ -703,6 +748,49 @@ describe("IncidentStatusPageScope.resolvePagesForIncidents, for an episode's inc
     expect(reachedPageNames(resolved)).toEqual(["East", "North", "West"]);
     // Dedupe applies when any incident of the episode is scoped.
     expect(resolved.isScoped).toBe(true);
+  });
+
+  test("a scoped-only page reached by the unscoped incident alone is left out because it only shows scoped incidents; one a scoped incident also skipped is outside its scope", async () => {
+    storedScopes = [
+      // Scoped to West, which does not only show scoped incidents.
+      {
+        id: INCIDENT_A,
+        isScopedToStatusPages: true,
+        statusPageIds: [PAGE_WEST],
+      },
+      // Unscoped, on the monitor East lists too: every page but East.
+      { id: INCIDENT_B, isScopedToStatusPages: false },
+    ];
+
+    const onlyUnscoped: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incidentOn(INCIDENT_B, [SHARED_MONITOR])],
+      });
+
+    expect(
+      excludedPageNames(
+        onlyUnscoped,
+        StatusPageExclusionReason.OnlyShowsScopedIncidents,
+      ),
+    ).toEqual(["East"]);
+
+    const both: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [
+          incidentOn(INCIDENT_A, [SHARED_MONITOR]),
+          incidentOn(INCIDENT_B, [SHARED_MONITOR]),
+        ],
+      });
+
+    expect(
+      excludedPageNames(both, StatusPageExclusionReason.OutsideIncidentScope),
+    ).toEqual(["East"]);
+    expect(
+      excludedPageNames(
+        both,
+        StatusPageExclusionReason.OnlyShowsScopedIncidents,
+      ),
+    ).toEqual([]);
   });
 
   test("a page lists only the resources of the incidents that reach it", async () => {

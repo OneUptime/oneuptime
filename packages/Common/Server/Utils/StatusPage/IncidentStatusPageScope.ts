@@ -404,6 +404,13 @@ export default class IncidentStatusPageScope {
 
     // Keyed by the lower-cased page id while collecting.
     const reachedResources: Map<string, Array<StatusPageResource>> = new Map();
+    /*
+     * The pages a scoped incident's monitors are on that its scope left out:
+     * it is limited to other pages. A page only an unscoped incident's
+     * monitors reached, and which only shows scoped incidents, is left out for
+     * that instead.
+     */
+    const outsideScopedIncidentReach: Set<string> = new Set();
 
     for (const batch of batches) {
       for (const resource of batch.resources) {
@@ -429,6 +436,10 @@ export default class IncidentStatusPageScope {
             : batch.scopedStatusPageIds.includes(statusPageId);
 
         if (!isInScope) {
+          if (batch.scopedStatusPageIds !== null) {
+            outsideScopedIncidentReach.add(statusPageId);
+          }
+
           continue;
         }
 
@@ -469,11 +480,19 @@ export default class IncidentStatusPageScope {
         continue;
       }
 
+      /*
+       * Why it was left out. A scoped incident that lists the page's monitors
+       * but not the page is limited to other pages, whatever the page's own
+       * setting; only a page reached by unscoped incidents alone was left
+       * out because it only shows incidents limited to it.
+       */
       excludedStatusPages.push({
         statusPage: statusPage,
-        reason: this.showsOnlyScopedIncidents(statusPage)
-          ? StatusPageExclusionReason.OnlyShowsScopedIncidents
-          : StatusPageExclusionReason.OutsideIncidentScope,
+        reason:
+          !outsideScopedIncidentReach.has(statusPageId) &&
+          this.showsOnlyScopedIncidents(statusPage)
+            ? StatusPageExclusionReason.OnlyShowsScopedIncidents
+            : StatusPageExclusionReason.OutsideIncidentScope,
       });
     }
 

@@ -27,7 +27,11 @@ import SubscriberNotificationTiming from "./SubscriberNotificationTiming";
  *   page they are for (statusPageId, resourcesAffected, unsubscribeUrl), and
  *   an integration listening per page must see every page. An unscoped
  *   incident sends exactly as it always has, one message per subscription.
- *   The addresses are remembered for this send only.
+ *   The addresses are remembered for this send only. An address counts as
+ *   sent only once its message was: one whose message failed - its page's
+ *   own SMTP or Twilio is down, say - or whose handler threw before sending
+ *   is freed again (deliver, releaseUndeliveredAddresses), so a later page
+ *   that has it sends it rather than counting it as already sent.
  * - Delivery (deliver): each message is awaited, and counted sent or failed.
  *   A failure is a send that throws (an unreachable host, a refused URL), one
  *   that answers with an HTTPErrorResponse (the Notification service's email
@@ -82,6 +86,15 @@ export enum SubscriberNotificationRetryScope {
 type DedupedMethod =
   | StatusPageSubscriberNotificationMethod.Email
   | StatusPageSubscriberNotificationMethod.SMS;
+
+/*
+ * An address this send has taken for one page: reserved when that page's
+ * handler asked to send to it, sent once its message was.
+ */
+interface AddressReservation {
+  statusPageId: string;
+  sent: boolean;
+}
 
 interface StatusPageDelivery {
   statusPageId: string;
@@ -156,8 +169,8 @@ export default class SubscriberNotificationDeliveryRecord {
 
   private readonly sendTimeoutInMs: number;
   private readonly deliveries: Array<StatusPageDelivery> = [];
-  private readonly sentEmails: Set<string> = new Set();
-  private readonly sentPhones: Set<string> = new Set();
+  private readonly sentEmails: Map<string, AddressReservation> = new Map();
+  private readonly sentPhones: Map<string, AddressReservation> = new Map();
   private readonly excludedStatusPages: Array<ExcludedStatusPage> = [];
   private subscriberMatched: boolean = false;
 
@@ -267,12 +280,15 @@ export default class SubscriberNotificationDeliveryRecord {
    * message is recorded and logged, and the send goes on to the next one.
    *
    * An email passes its subject; the first one on a page is the one the
-   * feed shows.
+   * feed shows. An email or SMS passes `to`, the address shouldSendEmail or
+   * shouldSendSms let through: sent, it stays taken for the rest of this
+   * send; failed, it is freed, so a later page that has it sends it.
    */
   public async deliver(data: {
     statusPage: StatusPage;
     method: StatusPageSubscriberNotificationMethod;
     subject?: string | undefined;
+    to?: Email | Phone | string | undefined;
     send: () => Promise<unknown>;
     logAttributes?: LogAttributes | undefined;
   }): Promise<boolean> {
@@ -291,6 +307,12 @@ export default class SubscriberNotificationDeliveryRecord {
       failed = true;
       failure = err;
     }
+
+    this.settleAddress({
+      method: data.method,
+      to: data.to,
+      sent: !failed,
+    });
 
     if (!failed) {
       this.recordSent({
@@ -491,12 +513,21 @@ export default class SubscriberNotificationDeliveryRecord {
    *
    * `sentMessage` is the job's own line for a send that reached everyone.
    * Pages passed over (they hide incidents, or were already sent it) are in
-   * the feed item, not here.
+   * the feed item, not here - unless the send went to no page at all. Then
+   * the message says so, and why: every page was left out by the scope,
+   * passed over, or there was none. "Sent successfully to all subscribers"
+   * would tell whoever reads the badge that subscribers heard when nobody
+   * did - the usual outcome, for an incident created on a monitor that only
+   * pages showing scoped incidents list.
    */
   public toStatusMessage(data: {
     sentMessage: string;
     retryScope: SubscriberNotificationRetryScope;
   }): string {
+    if (!this.hasFailures() && !this.hasStartedAnyStatusPage()) {
+      return this.describeNoStatusPageSent();
+    }
+
     const parts: Array<string> = [];
     const { sent, failed } = this.getTotals();
 
@@ -570,6 +601,74 @@ export default class SubscriberNotificationDeliveryRecord {
           "Retry sends it again to every status page, including the subscribers who already got it.",
         );
       }
+    }
+
+    return parts.join(" ");
+  }
+
+  // Whether the send went to any status page, whatever it then sent there.
+  private hasStartedAnyStatusPage(): boolean {
+    return this.deliveries.some((delivery: StatusPageDelivery): boolean => {
+      return delivery.started;
+    });
+  }
+
+  /*
+   * The status message of a send that went to no status page: the pages the
+   * scope left out, by reason, and the ones passed over, each with why.
+   */
+  private describeNoStatusPageSent(): string {
+    const parts: Array<string> = [
+      "Not sent to any subscriber: no status page was sent this notification.",
+    ];
+
+    const leftOut: Array<string> = [];
+
+    for (const reason of [
+      StatusPageExclusionReason.OutsideIncidentScope,
+      StatusPageExclusionReason.OnlyShowsScopedIncidents,
+    ]) {
+      const count: number = this.excludedStatusPages.filter(
+        (excluded: ExcludedStatusPage): boolean => {
+          return excluded.reason === reason;
+        },
+      ).length;
+
+      if (count > 0) {
+        leftOut.push(
+          `${count} ${count === 1 ? EXCLUSION_HEADINGS[reason].one : EXCLUSION_HEADINGS[reason].many}`,
+        );
+      }
+    }
+
+    if (leftOut.length > 0) {
+      parts.push(`Left out by its status page scope: ${leftOut.join("; ")}.`);
+    }
+
+    const passedOver: Array<StatusPageDelivery> = this.deliveries.filter(
+      (delivery: StatusPageDelivery): boolean => {
+        return isPassedOver(delivery);
+      },
+    );
+    const listed: Array<StatusPageDelivery> = passedOver.slice(
+      0,
+      MAX_LISTED_STATUS_MESSAGE_PAGES,
+    );
+
+    for (const delivery of listed) {
+      parts.push(
+        `${toPlainText(delivery.statusPageName)}: ${SKIP_REASON_TEXT[delivery.skipReason!]}.`,
+      );
+    }
+
+    if (passedOver.length > listed.length) {
+      parts.push(
+        `And ${passedOver.length - listed.length} more status page${passedOver.length - listed.length === 1 ? "" : "s"}.`,
+      );
+    }
+
+    if (leftOut.length === 0 && passedOver.length === 0) {
+      parts.push("No status page lists what it is about.");
     }
 
     return parts.join(" ");
@@ -711,10 +810,72 @@ export default class SubscriberNotificationDeliveryRecord {
     }
   }
 
+  /*
+   * Free the addresses a page reserved and never sent to: its handler threw
+   * before sending, or the page stopped part-way. Called once every handler
+   * of the page has finished (SubscriberNotificationFanOut), so none of them
+   * is still sending; pages are visited one after another, so a later page
+   * that has one of these addresses then sends it.
+   */
+  public releaseUndeliveredAddresses(statusPage: StatusPage): void {
+    const statusPageId: string = this.normalizeId(
+      statusPage._id || statusPage.id?.toString() || "",
+    );
+
+    for (const reservations of [this.sentEmails, this.sentPhones]) {
+      for (const [address, reservation] of Array.from(reservations)) {
+        if (!reservation.sent && reservation.statusPageId === statusPageId) {
+          reservations.delete(address);
+        }
+      }
+    }
+  }
+
+  /*
+   * What a delivered email or SMS means for its address: taken for the rest
+   * of this send when it went out, freed when it failed.
+   */
+  private settleAddress(data: {
+    method: StatusPageSubscriberNotificationMethod;
+    to: Email | Phone | string | undefined;
+    sent: boolean;
+  }): void {
+    if (!this.dedupeEmailAndSms || data.to === undefined) {
+      return;
+    }
+
+    let reservations: Map<string, AddressReservation>;
+    let address: string;
+
+    if (data.method === StatusPageSubscriberNotificationMethod.Email) {
+      reservations = this.sentEmails;
+      address = SubscriberNotificationDeliveryRecord.normalizeEmail(data.to);
+    } else if (data.method === StatusPageSubscriberNotificationMethod.SMS) {
+      reservations = this.sentPhones;
+      address = SubscriberNotificationDeliveryRecord.normalizePhone(data.to);
+    } else {
+      return;
+    }
+
+    const reservation: AddressReservation | undefined =
+      reservations.get(address);
+
+    if (!reservation) {
+      return;
+    }
+
+    if (data.sent) {
+      reservation.sent = true;
+      return;
+    }
+
+    reservations.delete(address);
+  }
+
   private claim(data: {
     statusPage: StatusPage;
     address: string;
-    sent: Set<string>;
+    sent: Map<string, AddressReservation>;
     method: DedupedMethod;
   }): boolean {
     if (!this.dedupeEmailAndSms || !data.address) {
@@ -722,7 +883,12 @@ export default class SubscriberNotificationDeliveryRecord {
     }
 
     if (!data.sent.has(data.address)) {
-      data.sent.add(data.address);
+      data.sent.set(data.address, {
+        statusPageId: this.normalizeId(
+          data.statusPage._id || data.statusPage.id?.toString() || "",
+        ),
+        sent: false,
+      });
       return true;
     }
 

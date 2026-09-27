@@ -57,6 +57,43 @@ export default class SubscriberNotificationFanOut {
       data.subscribersPerRead ||
       SubscriberNotificationTiming.SUBSCRIBERS_PER_READ;
 
+    try {
+      await SubscriberNotificationFanOut.walkSubscribers({
+        ...data,
+        statusPageId: statusPageId,
+        concurrency: concurrency,
+        subscribersPerRead: subscribersPerRead,
+      });
+    } finally {
+      /*
+       * Every handler of the page has finished. An email address or phone
+       * number the page reserved and never sent to (its handler threw, or
+       * the page stopped part-way) is freed for the pages after it.
+       */
+      data.record.releaseUndeliveredAddresses(data.statusPage);
+    }
+  }
+
+  private static async walkSubscribers(data: {
+    statusPage: StatusPage;
+    statusPageId: ObjectID;
+    record: SubscriberNotificationDeliveryRecord;
+    sendWindow: SubscriberNotificationSendWindow;
+    handler: (subscriber: StatusPageSubscriber) => Promise<void>;
+    logAttributes?: LogAttributes | undefined;
+    concurrency: number;
+    subscribersPerRead: number;
+  }): Promise<void> {
+    const {
+      statusPageId,
+      concurrency,
+      subscribersPerRead,
+    }: {
+      statusPageId: ObjectID;
+      concurrency: number;
+      subscribersPerRead: number;
+    } = data;
+
     let afterId: ObjectID | undefined = undefined;
     // Set once the send window closes; read by every handler in flight.
     const progress: { ranOutOfTime: boolean } = { ranOutOfTime: false };

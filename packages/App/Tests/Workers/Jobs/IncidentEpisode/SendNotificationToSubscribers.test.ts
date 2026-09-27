@@ -1231,8 +1231,11 @@ describe("IncidentEpisode:SendNotificationToSubscribers respects showEpisodesOnS
       subscriberNotificationStatusOnEpisodeCreated:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        // Every page hides episodes: nothing was sent, so no page follows.
-        "Notifications sent successfully to all subscribers.",
+        /*
+         * Every page hides episodes: nothing was sent, and the message says
+         * so rather than that everyone was sent it.
+         */
+        "Not sent to any subscriber: no status page was sent this notification. Acme: not sent, this status page does not show episodes.",
     });
   });
 
@@ -2150,8 +2153,13 @@ describe("IncidentEpisode:SendNotificationToSubscribers, with status page scope 
 
     // B reaches 4-10 (not the scoped-only pages); A adds Site 03.
     expect(sitesLookedUp()).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    /*
+     * Sites 01 and 02 are on A's monitor too, and A is limited to other
+     * pages: that is the reason given, although B would not reach them
+     * either (they only show scoped incidents).
+     */
     expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
-      "**Not sent to 2 status pages that only show incidents limited to them:** Site 01, Site 02.",
+      "**Not sent to 2 status pages outside the status pages this is limited to:** Site 01, Site 02.",
     );
   });
 

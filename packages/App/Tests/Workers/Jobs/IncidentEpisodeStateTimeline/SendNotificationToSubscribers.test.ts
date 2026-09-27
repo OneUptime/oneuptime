@@ -1243,8 +1243,11 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessage:
-        // Every page hides episodes: nothing was sent, so no page follows.
-        "Notifications sent successfully to all subscribers.",
+        /*
+         * Every page hides episodes: nothing was sent, and the message says
+         * so rather than that everyone was sent it.
+         */
+        "Not sent to any subscriber: no status page was sent this notification. Acme: not sent, this status page does not show episodes.",
     });
   });
 });

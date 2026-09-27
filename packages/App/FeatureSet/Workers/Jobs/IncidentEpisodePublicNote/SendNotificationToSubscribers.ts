@@ -685,6 +685,8 @@ const notifySubscribersOfEpisodePublicNote: (data: {
               await deliveryRecord.deliver({
                 statusPage: statuspage,
                 method: StatusPageSubscriberNotificationMethod.SMS,
+                // Which number it was, so a failed send frees it for a later page.
+                to: sms.to,
                 logAttributes: logAttributes,
                 send: () => {
                   return SmsService.sendSms(sms, {
@@ -736,6 +738,8 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 await deliveryRecord.deliver({
                   statusPage: statuspage,
                   method: StatusPageSubscriberNotificationMethod.Email,
+                  // Which address it was, so a failed send frees it for a later page.
+                  to: subscriberEmail,
                   subject: compiledSubject,
                   logAttributes: logAttributes,
                   send: () => {
@@ -764,6 +768,8 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 await deliveryRecord.deliver({
                   statusPage: statuspage,
                   method: StatusPageSubscriberNotificationMethod.Email,
+                  // Which address it was, so a failed send frees it for a later page.
+                  to: subscriberEmail,
                   subject: copy.emailSubjectPrefix + episode.title,
                   logAttributes: logAttributes,
                   send: () => {

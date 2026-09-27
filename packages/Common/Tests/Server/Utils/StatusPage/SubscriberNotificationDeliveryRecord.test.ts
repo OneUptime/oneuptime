@@ -140,6 +140,152 @@ describe("SubscriberNotificationDeliveryRecord email and SMS dedupe", () => {
     expect(record.toMarkdown()).not.toContain("Not sent again");
   });
 
+  /*
+   * An address is taken when a page asks to send to it, and counts as sent
+   * only once its message went out. When the first page's message fails -
+   * that page's own SMTP or Twilio is misconfigured - the next page that has
+   * the address sends it, rather than counting it as already sent.
+   */
+  test("an address whose email failed on one page is sent on the next page that has it", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    expect(
+      record.shouldSendEmail({ statusPage: site03, email: "manager@acme.com" }),
+    ).toBe(true);
+    await record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      to: new Email("manager@acme.com"),
+      send: () => {
+        return Promise.resolve(
+          new HTTPErrorResponse(500, { message: "SMTP down" }, {}),
+        );
+      },
+    });
+
+    // A differently written form of the same address is the same address.
+    expect(
+      record.shouldSendEmail({
+        statusPage: site07,
+        email: " Manager@Acme.com",
+      }),
+    ).toBe(true);
+    await record.deliver({
+      statusPage: site07,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      to: " Manager@Acme.com",
+      send: () => {
+        return Promise.resolve(undefined);
+      },
+    });
+
+    // Sent now: a third page does not send it again.
+    expect(
+      record.shouldSendEmail({ statusPage: site09, email: "manager@acme.com" }),
+    ).toBe(false);
+
+    expect(record.getFailedCount(SITE_03)).toBe(1);
+    expect(record.getSentCount(SITE_07)).toBe(1);
+    // Site 07 is not credited with an address "already sent it".
+    expect(record.toMarkdown()).not.toContain(
+      "- **Site 07**: 1 email sent. Not sent again",
+    );
+    expect(record.toMarkdown()).toContain(
+      "- **Site 09**: nothing sent. Not sent again to 1 email address already sent it through another status page.",
+    );
+  });
+
+  test("a phone number whose SMS failed on one page is sent on the next", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    expect(
+      record.shouldSendSms({ statusPage: site03, phone: "+15555550100" }),
+    ).toBe(true);
+    await record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.SMS,
+      to: new Phone("+15555550100"),
+      send: () => {
+        return Promise.reject(new Error("Twilio refused"));
+      },
+    });
+
+    expect(
+      record.shouldSendSms({ statusPage: site07, phone: "+1 (555) 555-0100" }),
+    ).toBe(true);
+  });
+
+  test("an address whose message went out stays taken", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    record.shouldSendEmail({ statusPage: site03, email: "manager@acme.com" });
+    await record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      to: "manager@acme.com",
+      send: () => {
+        return Promise.resolve(undefined);
+      },
+    });
+    record.releaseUndeliveredAddresses(site03);
+
+    expect(
+      record.shouldSendEmail({ statusPage: site07, email: "manager@acme.com" }),
+    ).toBe(false);
+  });
+
+  test("an address a page reserved and never sent to is freed once the page is done", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    // Site 03's handler took the address, then threw before sending.
+    expect(
+      record.shouldSendEmail({ statusPage: site03, email: "manager@acme.com" }),
+    ).toBe(true);
+    expect(
+      record.shouldSendSms({ statusPage: site03, phone: "+15555550100" }),
+    ).toBe(true);
+
+    // Still taken while Site 03 is being sent.
+    expect(
+      record.shouldSendEmail({ statusPage: site03, email: "manager@acme.com" }),
+    ).toBe(false);
+
+    record.releaseUndeliveredAddresses(site07);
+    expect(
+      record.shouldSendEmail({ statusPage: site07, email: "manager@acme.com" }),
+    ).toBe(false);
+
+    record.releaseUndeliveredAddresses(site03);
+    expect(
+      record.shouldSendEmail({ statusPage: site07, email: "manager@acme.com" }),
+    ).toBe(true);
+    expect(
+      record.shouldSendSms({ statusPage: site07, phone: "+15555550100" }),
+    ).toBe(true);
+  });
+
+  test("for an unscoped send, a failed message frees nothing, since nothing is taken", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    await record.deliver({
+      statusPage: site03,
+      method: StatusPageSubscriberNotificationMethod.Email,
+      to: "manager@acme.com",
+      send: () => {
+        return Promise.reject(new Error("SMTP down"));
+      },
+    });
+
+    expect(
+      record.shouldSendEmail({ statusPage: site07, email: "manager@acme.com" }),
+    ).toBe(true);
+  });
+
   test("addresses are remembered for one send only", () => {
     const first: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
@@ -982,18 +1128,103 @@ describe("SubscriberNotificationDeliveryRecord sent and failed, in the feed and 
     ).toBe("Sent. *Internal* ops: 1 email sent.");
   });
 
-  test("with nothing to report, the status message is the job's line alone", () => {
+  test("pages passed over are left out of the message of a send that went to a page", () => {
     const record: SubscriberNotificationDeliveryRecord =
       new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 
     record.skipStatusPage(site03, StatusPageDeliverySkipReason.HidesIncidents);
+    record.startStatusPage(site07);
+    sent(record, site07, StatusPageSubscriberNotificationMethod.Email, 1);
+    record.finishStatusPage(site07);
 
     expect(
       record.toStatusMessage({
         sentMessage: "Sent.",
         retryScope: SubscriberNotificationRetryScope.EveryPage,
       }),
-    ).toBe("Sent.");
+    ).toBe("Sent. Site 07: 1 email sent.");
+  });
+
+  /*
+   * A send that went to no status page reached nobody. Its status message
+   * must say so, and why, rather than the job's "sent successfully to all
+   * subscribers": for an incident created on a monitor that only pages
+   * showing scoped incidents list, that is the usual outcome.
+   */
+  test("a send every page was left out of by scope says nobody was sent it, and why", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    record.addExcludedStatusPages([
+      {
+        statusPage: site03,
+        reason: StatusPageExclusionReason.OnlyShowsScopedIncidents,
+      },
+      {
+        statusPage: site07,
+        reason: StatusPageExclusionReason.OnlyShowsScopedIncidents,
+      },
+      {
+        statusPage: site09,
+        reason: StatusPageExclusionReason.OutsideIncidentScope,
+      },
+    ]);
+
+    expect(record.hasFailures()).toBe(false);
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Notifications sent successfully to all subscribers.",
+        retryScope: SubscriberNotificationRetryScope.PagesNotYetSent,
+      }),
+    ).toBe(
+      "Not sent to any subscriber: no status page was sent this notification. Left out by its status page scope: 1 status page outside the status pages this is limited to; 2 status pages that only show incidents limited to them.",
+    );
+  });
+
+  test("a send whose every page was passed over names each page and why", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.skipStatusPage(site03, StatusPageDeliverySkipReason.HidesIncidents);
+    record.skipStatusPage(site07, StatusPageDeliverySkipReason.AlreadyNotified);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe(
+      "Not sent to any subscriber: no status page was sent this notification. Site 03: not sent, this status page does not show incidents. Site 07: not sent again, its subscribers were already sent this notification.",
+    );
+  });
+
+  test("a send with no status page at all says so", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe(
+      "Not sent to any subscriber: no status page was sent this notification. No status page lists what it is about.",
+    );
+  });
+
+  test("a page the send went to, with no subscriber matched, still leads with the job's line", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.startStatusPage(site03);
+    record.finishStatusPage(site03);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe("Sent. Site 03: nothing sent, no subscriber matched.");
   });
 
   test("records whether any subscriber's preferences let the send through", () => {

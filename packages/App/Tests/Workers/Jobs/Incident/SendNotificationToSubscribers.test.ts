@@ -1353,6 +1353,30 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       StatusPageSubscriberNotificationStatus.Success,
     );
     expect(finalWrite()["statusPagesNotifiedOnCreation"]).toEqual([]);
+    /*
+     * And the badge says nobody was sent it, and why - not that it was sent
+     * to all subscribers.
+     */
+    expect(finalWrite()["subscriberNotificationStatusMessage"]).toBe(
+      "Not sent to any subscriber: no status page was sent this notification. Left out by its status page scope: 10 status pages that only show incidents limited to them.",
+    );
+  });
+
+  test("a scoped incident whose other pages only show scoped incidents names them as outside its scope", async () => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+    everySiteHasOneEmailSubscriber();
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+    );
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).not.toContain(
+      "only show incidents limited to them",
+    );
   });
 
   test("an unscoped incident still tells pages that show every incident", async () => {
@@ -1409,6 +1433,71 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
     expect(
       (sentMail()[0]!["vars"] as JSONObject)["unsubscribeUrl"],
     ).toBeDefined();
+  });
+
+  /*
+   * The address is taken for Site 03, whose own mail server is down. Its
+   * email fails, so the address is freed, and Site 07 - which has it too -
+   * sends it rather than counting it as already sent. Only Site 07 is
+   * recorded as told, so Retry goes back to Site 03 alone.
+   */
+  test("an address whose email failed on the first page is sent by the next page that has it", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "Regional.Manager@acme.com",
+        phone: "+15555550100",
+      });
+    });
+    mock(MailService.sendMail).mockImplementation(((
+      _mail: unknown,
+      options: { statusPageId?: ObjectID },
+    ) => {
+      return Promise.resolve(
+        siteOf(options.statusPageId) === 3
+          ? httpError(500, "Site 03's mail server refused the connection")
+          : undefined,
+      );
+    }) as never);
+    mock(SmsService.sendSms).mockImplementation(((
+      _sms: unknown,
+      options: { statusPageId?: ObjectID },
+    ) => {
+      return siteOf(options.statusPageId) === 3
+        ? Promise.reject(new Error("Site 03's Twilio refused the message"))
+        : Promise.resolve(undefined);
+    }) as never);
+
+    await runJob();
+
+    // Tried on Site 03, then sent on Site 07.
+    expect(
+      sentMail().map((_mail: JSONObject, index: number): number => {
+        return siteOf(
+          (
+            mock(MailService.sendMail).mock.calls[index]![1] as {
+              statusPageId: ObjectID;
+            }
+          ).statusPageId,
+        );
+      }),
+    ).toEqual([3, 7]);
+    expect(mock(SmsService.sendSms)).toHaveBeenCalledTimes(2);
+
+    expect(finalWrite()["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Failed,
+    );
+    expect(finalWrite()["statusPagesNotifiedOnCreation"]).toEqual([
+      sitePageId(7).toString().toLowerCase(),
+    ]);
+
+    const markdown: string = feedItems()[0]![
+      "moreInformationInMarkdown"
+    ] as string;
+    expect(markdown).toContain("- **Site 07**: 1 email, 1 SMS sent.");
+    expect(markdown).not.toContain(
+      "already sent it through another status page",
+    );
   });
 
   test("an unscoped incident sends every subscription its email, as before", async () => {

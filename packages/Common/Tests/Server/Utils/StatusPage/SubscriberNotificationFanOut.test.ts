@@ -347,6 +347,94 @@ describe("SubscriberNotificationFanOut.forEachSubscriber", () => {
     );
   });
 
+  /*
+   * A scoped send takes an email address or phone number for the first page
+   * that asks for it. A handler that took one and threw before sending it -
+   * a custom template that would not compile, say - must not keep it from
+   * the pages after: once every handler of the page is done, it is freed.
+   */
+  test("an address a throwing handler took is freed for the pages after this one", async () => {
+    stored = subscribers(2);
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+    const nextPage: StatusPage = new StatusPage();
+    nextPage._id = "b0000000-0000-4000-8000-000000000007";
+    nextPage.name = "Site 07";
+
+    record.startStatusPage(statusPage());
+    await SubscriberNotificationFanOut.forEachSubscriber({
+      statusPage: statusPage(),
+      record: record,
+      sendWindow: openWindow(),
+      concurrency: 1,
+      handler: async (subscriber: StatusPageSubscriber): Promise<void> => {
+        if (subscriber._id === subscriberId(1)) {
+          record.shouldSendEmail({
+            statusPage: statusPage(),
+            email: "manager@acme.com",
+          });
+          throw new Error("The template would not compile.");
+        }
+
+        // Still taken while the page is being sent.
+        expect(
+          record.shouldSendEmail({
+            statusPage: statusPage(),
+            email: "manager@acme.com",
+          }),
+        ).toBe(false);
+      },
+    });
+
+    expect(
+      record.shouldSendEmail({
+        statusPage: nextPage,
+        email: "manager@acme.com",
+      }),
+    ).toBe(true);
+  });
+
+  test("an address is freed even when a read of the page fails", async () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+    const nextPage: StatusPage = new StatusPage();
+    nextPage._id = "b0000000-0000-4000-8000-000000000007";
+
+    stored = subscribers(LIMIT_MAX);
+    let readCount: number = 0;
+    (
+      StatusPageSubscriberService.getSubscribersByStatusPage as unknown as jest.Mock
+    ).mockImplementation((async (): Promise<Array<StatusPageSubscriber>> => {
+      readCount++;
+
+      if (readCount > 1) {
+        throw new Error("database went away");
+      }
+
+      return stored;
+    }) as never);
+
+    await expect(
+      SubscriberNotificationFanOut.forEachSubscriber({
+        statusPage: statusPage(),
+        record: record,
+        sendWindow: openWindow(),
+        handler: async (subscriber: StatusPageSubscriber): Promise<void> => {
+          if (subscriber._id === subscriberId(1)) {
+            record.shouldSendSms({
+              statusPage: statusPage(),
+              phone: "+15555550100",
+            });
+          }
+        },
+      }),
+    ).rejects.toThrow("database went away");
+
+    expect(
+      record.shouldSendSms({ statusPage: nextPage, phone: "+15555550100" }),
+    ).toBe(true);
+  });
+
   test("a read that fails is thrown, for the job to handle like any error on that page", async () => {
     jest
       .spyOn(StatusPageSubscriberService, "getSubscribersByStatusPage")

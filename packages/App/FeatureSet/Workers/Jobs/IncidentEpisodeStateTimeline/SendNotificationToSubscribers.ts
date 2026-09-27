@@ -679,6 +679,8 @@ RunCron(
                     await deliveryRecord.deliver({
                       statusPage: statuspage,
                       method: StatusPageSubscriberNotificationMethod.SMS,
+                      // Which number it was, so a failed send frees it for a later page.
+                      to: sms.to,
                       logAttributes: logAttributes,
                       send: () => {
                         return SmsService.sendSms(sms, {
@@ -737,6 +739,8 @@ RunCron(
                       await deliveryRecord.deliver({
                         statusPage: statuspage,
                         method: StatusPageSubscriberNotificationMethod.Email,
+                        // Which address it was, so a failed send frees it for a later page.
+                        to: subscriberEmail,
                         subject: compiledSubject,
                         logAttributes: logAttributes,
                         send: () => {
@@ -770,6 +774,8 @@ RunCron(
                       await deliveryRecord.deliver({
                         statusPage: statuspage,
                         method: StatusPageSubscriberNotificationMethod.Email,
+                        // Which address it was, so a failed send frees it for a later page.
+                        to: subscriberEmail,
                         subject: subject,
                         logAttributes: logAttributes,
                         send: () => {
