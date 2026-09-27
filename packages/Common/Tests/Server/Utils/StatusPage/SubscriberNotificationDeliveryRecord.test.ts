@@ -14,6 +14,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The per-send record the incident and episode subscriber jobs keep: it
@@ -474,7 +475,7 @@ describe("SubscriberNotificationDeliveryRecord.deliver", () => {
     jest.useRealTimers();
   });
 
-  function quietLogger(): jest.SpiedFunction<typeof logger.error> {
+  function quietLogger(): SpyInstance<typeof logger.error> {
     return jest.spyOn(logger, "error").mockImplementation((): void => {});
   }
 
@@ -517,7 +518,7 @@ describe("SubscriberNotificationDeliveryRecord.deliver", () => {
 
   for (const [label, send] of failures) {
     test(`a send that ${label} is counted failed, and logged as the subscriber's side of the wire`, async () => {
-      const error: jest.SpiedFunction<typeof logger.error> = quietLogger();
+      const error: SpyInstance<typeof logger.error> = quietLogger();
       const record: SubscriberNotificationDeliveryRecord =
         new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
 

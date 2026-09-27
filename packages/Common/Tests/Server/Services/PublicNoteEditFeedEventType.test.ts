@@ -5,6 +5,7 @@ import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledM
 import ScheduledMaintenancePublicNoteService from "../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
@@ -22,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Editing a public note writes a feed item. It used to be logged as a
@@ -50,12 +52,14 @@ const MAINTENANCE_ID: ObjectID = new ObjectID(
 const NOTE_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const USER_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
-type OnUpdateSuccess<TModel> = (
+type OnUpdateSuccess<TModel extends BaseModel> = (
   onUpdate: OnUpdate<TModel>,
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<TModel>>;
 
-function onUpdateOf<TModel>(data: JSONObject): OnUpdate<TModel> {
+function onUpdateOf<TModel extends BaseModel>(
+  data: JSONObject,
+): OnUpdate<TModel> {
   return {
     updateBy: {
       query: { _id: NOTE_ID.toString() },
@@ -71,7 +75,7 @@ afterEach(() => {
 });
 
 describe("IncidentPublicNoteService: editing a public note", () => {
-  let createFeedItem: jest.SpiedFunction<
+  let createFeedItem: SpyInstance<
     typeof IncidentFeedService.createIncidentFeedItem
   >;
 
@@ -144,7 +148,7 @@ describe("IncidentPublicNoteService: editing a public note", () => {
 });
 
 describe("ScheduledMaintenancePublicNoteService: editing a public note", () => {
-  let createFeedItem: jest.SpiedFunction<
+  let createFeedItem: SpyInstance<
     typeof ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem
   >;
 

@@ -109,7 +109,13 @@ function statusPage(id: string): StatusPage {
   return page;
 }
 
-function storedIncident(overrides: Partial<Incident> = {}): Incident {
+/*
+ * Column values to set on a stored incident. A value may be undefined: a
+ * column an incident from before it existed never had written.
+ */
+type IncidentOverrides = { [K in keyof Incident]?: Incident[K] | undefined };
+
+function storedIncident(overrides: IncidentOverrides = {}): Incident {
   const incident: Incident = new Incident();
   incident._id = incidentId;
   incident.projectId = projectId;

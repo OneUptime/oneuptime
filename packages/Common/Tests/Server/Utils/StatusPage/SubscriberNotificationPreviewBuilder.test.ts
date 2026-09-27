@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * SubscriberNotificationPreviewBuilder: what "Preview notification" and "Send
@@ -290,9 +291,9 @@ function body(page: SubscriberNotificationPreviewPage): JSONObject {
   return page.email.envelope.vars as JSONObject;
 }
 
-let getSubscribersByStatusPage: jest.Mock;
-let subscriberFindBy: jest.Mock;
-let applyMappingsToCreate: jest.Mock;
+let getSubscribersByStatusPage: Mock;
+let subscriberFindBy: Mock;
+let applyMappingsToCreate: Mock;
 
 beforeEach(() => {
   readablePageIds = null;

@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * How a subscriber send walks one status page's subscribers: every one of
@@ -364,7 +365,7 @@ describe("SubscriberNotificationFanOut.forEachSubscriber", () => {
   });
 
   test("reads as root, around the hooks", async () => {
-    const read: jest.SpiedFunction<
+    const read: SpyInstance<
       typeof StatusPageSubscriberService.getSubscribersByStatusPage
     > = jest.spyOn(StatusPageSubscriberService, "getSubscribersByStatusPage");
 

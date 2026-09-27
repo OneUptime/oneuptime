@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * SubscriberIncidentEmailBuilder: the one code path that builds a status
@@ -598,10 +599,12 @@ describe("building has no side effects; sending does", () => {
       page: statusPage({ smtp: true }),
     });
 
-    const recordFieldsUsedBy: jest.Mock = jest.fn(async (): Promise<void> => {
-      return undefined;
-    });
-    const recordIncludedFieldsSent: jest.Mock = jest.fn(
+    const recordFieldsUsedBy: Mock<() => Promise<void>> = jest.fn(
+      async (): Promise<void> => {
+        return undefined;
+      },
+    );
+    const recordIncludedFieldsSent: Mock<() => Promise<void>> = jest.fn(
       async (): Promise<void> => {
         return undefined;
       },
