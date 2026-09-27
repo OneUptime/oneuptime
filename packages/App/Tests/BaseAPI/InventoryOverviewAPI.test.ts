@@ -17,7 +17,6 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { FindOperator } from "typeorm";
 
 /*
  * POST /inventory-item/overview — the Inventory Overview page in one request.
@@ -31,6 +30,16 @@ import { FindOperator } from "typeorm";
  * dashboard parses. The aggregate itself is covered by
  * InventoryItemServiceOverviewCounts.test.ts.
  */
+
+/*
+ * The part of typeorm's FindOperator these assertions read. Only what it
+ * renders is checked, so the structural type says exactly as much as the test
+ * relies on.
+ */
+interface RenderedFindOperator {
+  type: string;
+  getSql?: ((aliasPath: string) => string) | undefined;
+}
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -286,11 +295,14 @@ describe("POST /inventory-item/overview", () => {
       const query: JSONObject = recentlyAddedRead()["query"] as JSONObject;
       /*
        * Checked by what it renders rather than `instanceof`: App and Common
-       * each resolve their own copy of typeorm.
+       * each resolve their own copy of typeorm. The shape is declared here
+       * rather than imported as typeorm's FindOperator for the same reason
+       * the assertion is structural - typeorm is Common's dependency, not
+       * App's, so App's tsconfig cannot resolve it.
        */
-      const firstSeenAt: FindOperator<unknown> = query[
+      const firstSeenAt: RenderedFindOperator = query[
         "firstSeenAt"
-      ] as unknown as FindOperator<unknown>;
+      ] as unknown as RenderedFindOperator;
 
       expect(firstSeenAt.type).toBe("raw");
       expect(firstSeenAt.getSql!(`"firstSeenAt"`)).toBe(
