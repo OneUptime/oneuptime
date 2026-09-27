@@ -6,7 +6,6 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import SubscriberNotificationTiming from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
 import fs from "fs";
 import path from "path";
-import { FindOperator } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -264,10 +263,18 @@ interface StoredRow {
  */
 let tables: Map<unknown, Array<StoredRow>> = new Map();
 
+/*
+ * What the sweep's lessThan builds (a typeorm FindOperator), as far as these
+ * tests read it: typeorm is Common's, not App's (TestImportsResolveFromApp).
+ */
+interface QueryOperator {
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
+
 function cutoffOf(query: JSONObject): Date {
-  const operator: FindOperator<unknown> = query[
+  const operator: QueryOperator = query[
     "updatedAt"
-  ] as unknown as FindOperator<unknown>;
+  ] as unknown as QueryOperator;
   const parameters: Array<unknown> = Object.values(
     operator.objectLiteralParameters || {},
   );
