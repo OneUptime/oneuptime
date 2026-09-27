@@ -114,7 +114,7 @@ The incident's **State Timeline** page in the incident side menu is the audit tr
 - **Starts At** — when the incident entered this state.
 - **Ends At** — when it left. The current state shows `Currently Active`.
 - **Duration** — time spent in the state, counted to now for the current one.
-- **Subscriber Notification Status** — whether the status page notification for this change was sent, skipped or is still pending, with a **more details** link, and — when the send failed — a **Retry** action.
+- **Subscriber Notification Status** — whether the status page notification for this change was sent, skipped or is still pending, with a **more details** link, and — when the send failed — a **Retry** action. **Retry** sends the state change again to every status page the incident reaches now, including the subscribers who already got it.
 
 **Row actions:**
 
@@ -146,6 +146,8 @@ Notification is requested per timeline row by **Notify Status Page Subscribers**
 - **The status page is outside the incident's scope.** An incident limited to some status pages with **Limit to these status pages** notifies only those pages among the ones that list its monitors, and a page with **Only Show Incidents Scoped to This Page** on is never notified about an incident that is not limited to it. This is per status page too. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **One more thing that changes the outcome.** If you type a **Public Note** into the state-change modal, the timeline row is marked as already notified rather than queued. The note itself is what reaches subscribers, so they get one message instead of two. The event type behind the plain state-change message is `Subscriber Incident State Changed`.
+
+**Sent means every subscriber was sent it.** The job waits for each message and counts it sent or failed, per status page and channel, and the row's status message lists those counts. One failed message, or a send that ran out of time or was interrupted, makes the row **Failed**. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 
 For who receives these and how the templates are chosen, see [Subscribers & Announcements](/docs/status-pages/subscribers).
 

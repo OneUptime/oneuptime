@@ -7,7 +7,7 @@ Shared infrastructure used to make that hard. An incident reaches a status page 
 - **Limit to these status pages** on an incident, so it shows on, and notifies, only the pages you pick.
 - **Only Show Incidents Scoped to This Page** on a status page, so an incident nobody has scoped yet reaches none of these pages until someone decides. That includes the incidents a monitor, Slack, Microsoft Teams, the API or AI opens on its own.
 - A record of which pages were told that an incident was created, so a page you add later is told once and the others are not told again.
-- A **Will notify** summary that shows who will hear about an incident before you declare it or post a public note.
+- A **Will notify** summary that shows who will hear about an incident before you declare it or post a public note, and **Preview notification**, which shows what each page's subscribers will get.
 
 ## When to use it
 
@@ -50,8 +50,9 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
 5. **Let responders read status pages.** The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty, and says why.
 6. **Decide what every message says.** At **Incidents → Settings → Custom Fields**, define the incident custom fields your team answers every time, for example `Impact` (a dropdown), `Expected Resolution` (a date and time) and `Acknowledgement` (a yes/no switch). Give them an **Order**, and turn on **Show on Create** so the declare form asks for them, **Required on Create** where an answer is a must, and **Include in Subscriber Notifications** for the ones every audience may read. Those are then in the default email of every page. See [Custom fields](/docs/incidents/settings#custom-fields).
-7. **Optionally, brand each page's email.** On the **Scale** plan, give each page a **Custom SMTP Config** and link custom templates for the incident events; they can place any field with `{{customFields.<key>}}`. See [What a custom template needs](/docs/status-pages/subscribers#what-a-custom-template-needs), and [What every message carries](#what-every-message-carries) before you use `{{affectedStatusPages}}`.
+7. **Optionally, brand each page's email.** On the **Scale** plan, give each page a **Custom SMTP Config** and link custom templates for the incident events; they can place any field with `{{customFields.<key>}}`. While you write a template, **Live preview** under it shows it filled in with sample values. See [What a custom template needs](/docs/status-pages/subscribers#what-a-custom-template-needs), and [What every message carries](#what-every-message-carries) before you use `{{affectedStatusPages}}`.
 8. **Optionally, save incident templates with pages already picked.** A `Region East outage` template can carry the East site pages, and default answers for the custom fields.
+9. **Check each page's email before the first outage.** Start **Declare Incident** with the shared monitor and two of the site pages picked, and on the summary before you submit, open **Preview notification**: it shows the email each page's subscribers would get, and which template it uses and why. **Send test to me** sends one to your own inbox. Nobody else is sent anything until you declare the incident, so leave the form without submitting it when you are done. See [Who will be notified](#who-will-be-notified).
 
 ## Limiting an incident to status pages
 
@@ -83,6 +84,8 @@ Below that, under **Not notified:**, it lists the pages that list the monitors b
 The same summary appears under **Notify Status Page Subscribers** when you write a note on the incident's **Public Notes** page, for the incident as it stands.
 
 The counts are "up to". They count the confirmed subscribers of each page who have not unsubscribed, per channel, and a subscriber who picked only some resources or event types may not get this message. Pages you cannot read are not named. They are counted as "more status pages you do not have access to".
+
+**Preview notification**, on the summary and under the note's checkbox, shows what they will get: pick a page to see its email as its subscribers will receive it, with its subject, and which template it uses and why, for example that a page's custom template is not used because the page has no **Custom SMTP Config**. **Send test to me** sends the page's email to your own account email, and to nobody else. Pages you cannot read are counted but not previewed. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 
 ### After it is declared
 
@@ -136,7 +139,7 @@ The checkbox only appears when ticking it would send something: at least one pag
 
 A page added later hears about what happens next: later public notes, state changes and the postmortem. It is not sent the notes and state changes that went out before it was added. If it needs to catch up, post a public note.
 
-The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped. A page counts as told only when every one of its subscribers was sent the message; a page where a message failed, or that the send stopped part-way through, is sent it again in full. The record is written as each page finishes, so this holds even for a send that was interrupted.
+The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped. A page counts as told only when every one of its subscribers was sent the message; a page where a message failed, or that the send stopped part-way through, is sent it again in full. The record is written as each page finishes, so this holds even for a send that was interrupted. It is kept per page, not per subscriber: the subscribers of a page the send stopped part-way through who were already sent the message get it a second time.
 
 To start over instead, for example after fixing a template or an SMTP setting, tick **Send it to every status page again, including the pages already reached** in the **Retry** confirmation: the button becomes **Resend to all pages**, the record is emptied, and every page the incident reaches now is sent it again. After a notification that went out in full, the **Subscriber Notification Status** on the incident's **Overview** offers **Resend**, which does the same. Both confirmations list the pages it would reach now. Neither is offered for a notification that was skipped, or that is still queued or being sent.
 
@@ -190,6 +193,7 @@ A monitor has one status, and every status page that lists the monitor shows it.
 
 - **The incident feed.** The 'created' entry of a limited incident lists the pages it is limited to. Every change to the list adds an entry listing the pages added and removed, and whether the added pages will be sent the 'created' notification.
 - **Each subscriber notification.** The **Subscriber Notification Sent** entry in the incident feed has a **More Information** panel listing each page the send went to: how many messages were sent and how many failed on each channel, and the subject its email went out with. It also lists the pages it passed over and why (already told, or not showing incidents), the pages the scope left out, and whether email and SMS were sent once per address. When the send put custom field values into a message, the panel ends with them, under **Custom fields sent**.
+- **The notification's status.** Each notification's status message says, for each page, how many messages were sent and how many failed on each channel, and after a failure what **Retry** will do. A send that was interrupted part-way, because its server restarted or stopped responding, is marked failed with a message that starts `Interrupted:`, rather than staying in progress. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 - **Notification Logs** on each status page show every message that page sent.
 
 See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for the feed itself.
@@ -200,6 +204,8 @@ See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for t
 - **Pages the editor cannot see are kept.** An editor who can read only some of an incident's pages sees only those in the picker, and saving keeps the pages they cannot see.
 - **The pages an incident is limited to are part of the incident.** Like its monitors, anyone who can read the incident sees their names, on the **Status Page Scope** card, the overview and in the incident feed, whether or not they can read those status pages.
 - **The audience summary** is open to the roles that can declare or edit an incident or post a public note on one. It names only the pages the person can read. Other pages the incident will notify are counted as "more status pages you do not have access to", and it never shows addresses.
+- **Preview notification** is open to the same roles, and previews only the pages the person can read. Like the summary, it never shows an address. **Send test to me** sends only to the person's own account email, once it is verified, at most ten times every 15 minutes.
+- **Sending a notification again** needs the permission to edit the incident, for its 'created' notification, and both the permission to edit public notes and the permission to post public notes that notify subscribers, for a note.
 
 ## Where to read next
 

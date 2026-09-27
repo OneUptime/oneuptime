@@ -192,6 +192,46 @@ Through the API, send the choice next to the fields you change, in `miscDataProp
 
 as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
 
+## Checking what was sent
+
+Every subscriber notification has a status of its own, next to what it is about. For an incident, that is its 'created' notification on the incident's **Overview**, each row of its **State Timeline**, each public note and its **Postmortem**. Scheduled maintenance events and announcements show theirs the same way, and incident episodes on their public notes. Click the status to read its message, which says what happened. Public notes show the status as a badge with wording of their own:
+
+| Status                       | On a public note               | What it means                                                                                                     |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Sending Soon**             | **Notifying subscribers soon** | Queued. The job that sends it runs every minute.                                                                  |
+| **Notifications Being Sent** | **Notifying subscribers**      | The job is working through the subscribers.                                                                       |
+| **Notifications Sent**       | **Subscribers notified**       | It went out. See below for what that means.                                                                       |
+| **Failed**                   | **Notification failed**        | Not every subscriber was sent it, or the send stopped. The message says what was sent and what **Retry** does.    |
+| **Notifications skipped.**   | **Subscribers not notified**   | Nothing was meant to be sent, for example because the incident is hidden from status pages. The message says why. |
+
+### How a send is counted
+
+The notifications of incidents and incident episodes — created, state changed, public note posted or updated, and postmortem — are counted message by message:
+
+- **A message counts as sent** once the mail server or SMS provider has taken it, or once the Slack, Microsoft Teams or webhook endpoint has answered. "Sent" is as far as OneUptime can see: a mail server can still bounce an email later.
+- **A message counts as failed** when it is refused, when sending it errors, or when it gets no answer within 4 minutes. One failure makes the notification **Failed**; the other subscribers are still sent it.
+- **Every subscriber is reached.** A status page's subscribers are read 10,000 at a time until the last one, with 20 messages in flight at once. A notification stops starting new messages 20 minutes after it started: the status pages and subscribers it did not reach by then are listed as not sent, and it is marked **Failed**.
+- **The counts are recorded per status page.** The status message lists, for each status page, how many messages were sent and failed on each channel, for example `Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` The **Subscriber Notification Sent** entry in the incident's feed lists the same counts with the subject each page's email went out with. **Notification Logs** on each status page shows every message.
+
+Scheduled maintenance and announcement notifications are not counted this way yet. Their messages are handed to the senders without waiting for an answer, so **Notifications Sent** means they were handed over, and one send reaches at most 10,000 subscribers of each status page.
+
+### Sends that were interrupted
+
+A send whose server restarts or stops responding part-way cannot finish, and nothing else would settle it. So a notification still **Notifications Being Sent** after 40 minutes, longer than any send is allowed to take, is marked **Failed**, with a message that starts `Interrupted:` and says what **Retry** will do. This covers every notification above, scheduled maintenance and announcements included. The check runs every 5 minutes.
+
+### Retry and Resend
+
+**Retry** is offered on a notification that **Failed**. It puts the notification back in the queue, and the next run of the send job, within a minute, sends it again. On an incident, sending again after a notification went out is offered too: **Resend notification** on a public note, and **Resend** on the incident's 'created' notification, on its **Overview**. Both ask first, listing the status pages it would reach now with an "up to" count per channel. None of these is offered on a notification that was skipped, or while one is still queued or being sent. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed#when-a-public-note-actually-reaches-subscribers).
+
+A notification sent again is sent as things stand when it goes out: to the status pages it reaches then, and to their subscribers then. For an incident, that means the pages added to or removed from its scope since count, and so do the people who subscribed or unsubscribed since.
+
+**Progress is kept per status page, not per subscriber.**
+
+- **The incident's 'created' notification** records each status page once every one of its subscribers has been sent it, and **Retry** skips those pages. A page where a message failed, or that the send stopped part-way through, is sent it again in full, so the subscribers of that page who already got it get it a second time. To send it to every page again, use **Resend to all pages** (see [Adding status pages](/docs/status-pages/one-status-page-per-audience#adding-status-pages)).
+- **Every other notification** — a state change, a public note, a postmortem, and those of episodes, scheduled maintenance events and announcements — keeps no such record. **Retry** sends it again to every status page, including the subscribers who already got it.
+
+For an incident limited to specific status pages, one email or text message per person applies within each send, so a retry, which is a send of its own, can reach someone who got the first one. See [One email per person](/docs/status-pages/one-status-page-per-audience#one-email-per-person).
+
 ## Customizing notification templates
 
 The **Notification Templates** card on **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.
