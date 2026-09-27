@@ -28,7 +28,7 @@ import ModelAPI, {
 } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import SensitiveUrlToken from "../../../UI/Utils/SensitiveUrlToken";
-import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import VerifyEmailPage from "../../../../App/FeatureSet/Accounts/src/Pages/VerifyEmail";
 
 /*
@@ -186,6 +186,38 @@ const expectSignInFooter: ExpectFooterFunction = (): void => {
   );
 };
 
+type SwitchLanguageFunction = () => Promise<void>;
+
+const switchToPersian: SwitchLanguageFunction = async (): Promise<void> => {
+  await act(async () => {
+    await i18n.changeLanguage("fa");
+  });
+};
+
+type PersianFunction = (key: string, english: string) => string;
+
+/*
+ * The Persian copy for a key, out of fa.json. A missing Persian string would
+ * silently fall back to the English one and prove nothing, so it must be
+ * neither the English copy nor the bare key, and must be in Persian script.
+ */
+const persian: PersianFunction = (key: string, english: string): string => {
+  const text: string = i18n.t(key);
+
+  expect(text).not.toBe(english);
+  expect(text).not.toBe(key);
+  expect(text).toMatch(/[؀-ۿ]/);
+
+  return text;
+};
+
+type CardFunction = (testId: string) => HTMLElement | null;
+
+// The card around a view: the element that carries the page's direction.
+const cardAround: CardFunction = (testId: string): HTMLElement | null => {
+  return screen.getByTestId(testId).closest<HTMLElement>("[dir]");
+};
+
 describe("Verify email page", () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -240,7 +272,7 @@ describe("Verify email page", () => {
       );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
 
     const reportedErrors: Array<string> = consoleErrors.mock.calls
@@ -255,6 +287,11 @@ describe("Verify email page", () => {
 
     jest.useRealTimers();
     jest.restoreAllMocks();
+
+    // Language is shared by every test in the file: always put English back.
+    if (i18n.language !== "en") {
+      await i18n.changeLanguage("en");
+    }
 
     expect(reportedErrors).toEqual([]);
   });
@@ -615,6 +652,128 @@ describe("Verify email page", () => {
       expect(
         screen.queryByTestId("verify-email-try-again"),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * The card takes its direction from the language, not a hard-coded "ltr":
+   * in Persian every view of it -- success, a link problem, a server that did
+   * not answer -- must lay out right-to-left and speak Persian.
+   */
+  describe("in a right-to-left language", () => {
+    test("the success card is right-to-left, in Persian", async () => {
+      await switchToPersian();
+      await renderPage();
+
+      expect(cardAround("verify-email-success")).toHaveAttribute("dir", "rtl");
+
+      const title: string = persian("verifyEmail.successTitle", SUCCESS_TITLE);
+      expect(heading()).toHaveTextContent(title);
+      expect(heading()).not.toHaveTextContent(SUCCESS_TITLE);
+      expect(screen.getByTestId("verify-email-success")).toHaveTextContent(
+        persian("verifyEmail.successDescription", SUCCESS_DESCRIPTION),
+      );
+      expect(
+        screen.getByRole("link", {
+          name: persian("verifyEmail.continueToSignIn", CONTINUE_TO_SIGN_IN),
+        }),
+      ).toHaveAttribute("href", "/accounts/login");
+    });
+
+    test("the card for a link that was turned down is right-to-left, in Persian", async () => {
+      verifyAnswers = [refuse(400, LINK_EXPIRED)];
+      await switchToPersian();
+      await renderPage();
+
+      expect(cardAround("verify-email-error")).toHaveAttribute("dir", "rtl");
+
+      const title: string = persian(
+        "verifyEmail.linkInvalidTitle",
+        LINK_INVALID_TITLE,
+      );
+      expect(heading()).toHaveTextContent(title);
+      expect(heading()).not.toHaveTextContent(LINK_INVALID_TITLE);
+      expect(errorBlock()).toHaveTextContent(
+        persian("verifyEmail.requestNewLinkDescription", REQUEST_NEW_LINK),
+      );
+
+      const resend: HTMLElement = screen.getByTestId(
+        "resend-verification-email",
+      );
+      expect(errorBlock()).toContainElement(resend);
+      expect(resend).toHaveAccessibleName(
+        persian("resendVerificationEmail.button", RESEND_BUTTON),
+      );
+
+      expect(
+        screen.getByRole("link", {
+          name: persian("verifyEmail.loginLink", LOGIN_LINK),
+        }),
+      ).toHaveAttribute("href", "/accounts/login");
+    });
+
+    test("the card for a link that could never work is right-to-left, in Persian", async () => {
+      linkToken = MALFORMED_TOKEN;
+      verifyAnswers = [refuse(400, LINK_INVALID)];
+      await switchToPersian();
+      await renderPage();
+
+      expect(cardAround("verify-email-error")).toHaveAttribute("dir", "rtl");
+      expect(heading()).toHaveTextContent(
+        persian("verifyEmail.linkInvalidTitle", LINK_INVALID_TITLE),
+      );
+      expect(
+        screen.queryByTestId("resend-verification-email"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the card for a server that did not answer is right-to-left, in Persian", async () => {
+      verifyAnswers = [refuse(500, "Server Error")];
+      await switchToPersian();
+      await renderPage();
+
+      expect(cardAround("verify-email-error")).toHaveAttribute("dir", "rtl");
+
+      const title: string = persian("verifyEmail.errorTitle", ERROR_TITLE);
+      expect(heading()).toHaveTextContent(title);
+      expect(heading()).not.toHaveTextContent(ERROR_TITLE);
+
+      const retry: HTMLElement = screen.getByTestId("verify-email-try-again");
+      expect(errorBlock()).toContainElement(retry);
+      expect(retry).toHaveAccessibleName(
+        persian("verifyEmail.tryAgain", TRY_AGAIN),
+      );
+    });
+
+    test("a card that flips to success after a resend stays right-to-left", async () => {
+      verifyAnswers = [refuse(400, LINK_EXPIRED)];
+      resendAnswer = async (): Promise<HTTPResponse<JSONObject>> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { emailSent: false, alreadyVerified: true, retryAfterSeconds: 0 },
+          {},
+        );
+      };
+      await switchToPersian();
+      await renderPage();
+
+      fireEvent.click(screen.getByTestId("resend-verification-email"));
+      await settle();
+
+      expect(cardAround("verify-email-success")).toHaveAttribute("dir", "rtl");
+      expect(heading()).toHaveTextContent(
+        persian("verifyEmail.successTitle", SUCCESS_TITLE),
+      );
+      expect(heading()).toHaveFocus();
+    });
+
+    test("English is back for the next test", async () => {
+      verifyAnswers = [refuse(400, LINK_EXPIRED)];
+      await renderPage();
+
+      expect(i18n.language).toBe("en");
+      expect(heading()).toHaveTextContent(LINK_INVALID_TITLE);
+      expect(cardAround("verify-email-error")).toHaveAttribute("dir", "ltr");
     });
   });
 });

@@ -24,6 +24,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Headers from "../../../Types/API/Headers";
 import APIException from "../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../Types/JSON";
+import Button, { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
 import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
@@ -277,6 +278,47 @@ const expectFixedButtonLabel: ExpectButtonLabelFunction = (): void => {
   expect(button()).toHaveAccessibleName(BUTTON);
   expect(button()).toHaveTextContent(BUTTON);
   expect(button().textContent).not.toMatch(/\d/);
+};
+
+/*
+ * WHY THE BUTTON'S CLASSES ARE PINNED. The shared Button's OUTLINE style is
+ * nothing but two custom classes, btn-outline-secondary and
+ * background-very-light-Gray500-on-hover, and no stylesheet the Accounts app
+ * loads defines either -- an OUTLINE button there renders as bare text with
+ * no border. NORMAL is plain Tailwind (a gray border on white), which the
+ * Accounts build does ship, so it is the one that looks like a button.
+ *
+ * NORMAL also carries md:w-auto and md:ml-3 for dialog footers. The inline
+ * width and margin are what keep it full width and flush with the card on a
+ * wide screen, where those md: classes would otherwise win over w-full.
+ */
+const ACCOUNTS_BUTTON_CLASSES: string =
+  "w-full justify-center gap-1 disabled:cursor-not-allowed disabled:opacity-60";
+
+// Only Button's NORMAL branch renders these; OUTLINE replaces them wholesale.
+const NORMAL_STYLE_CLASSES: Array<string> = ["border-gray-300", "bg-white"];
+
+// OUTLINE's classes, undefined in every stylesheet Accounts loads.
+const OUTLINE_STYLE_CLASSES: Array<string> = [
+  "btn-outline-secondary",
+  "background-very-light-Gray500-on-hover",
+];
+
+type ExpectButtonStyleFunction = (element: HTMLElement) => void;
+
+const expectAccountsButtonStyle: ExpectButtonStyleFunction = (
+  element: HTMLElement,
+): void => {
+  expect(element).toHaveClass(...ACCOUNTS_BUTTON_CLASSES.split(" "));
+  expect(element).toHaveStyle({ width: "100%", marginLeft: "0px" });
+
+  for (const className of NORMAL_STYLE_CLASSES) {
+    expect(element).toHaveClass(className);
+  }
+
+  for (const className of OUTLINE_STYLE_CLASSES) {
+    expect(element).not.toHaveClass(className);
+  }
 };
 
 describe("ResendVerificationEmail", () => {
@@ -1109,6 +1151,72 @@ describe("ResendVerificationEmail", () => {
 
       unmount();
       expect(jest.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("appearance", () => {
+    test("is a full-width NORMAL button, never an OUTLINE one", () => {
+      renderButton();
+
+      expect(button()).toBeEnabled();
+      expectAccountsButtonStyle(button());
+    });
+
+    test("keeps the same look while it waits and while it sends", async () => {
+      renderButton({ initialCooldownSeconds: 5 });
+
+      expect(button()).toBeDisabled();
+      expectAccountsButtonStyle(button());
+
+      advance(5000);
+      const pending: Deferred = deferred();
+      answerResend = (): Promise<Answer> => {
+        return pending.promise;
+      };
+      await clickResend();
+
+      expect(button()).toBeDisabled();
+      expectAccountsButtonStyle(button());
+
+      await act(async () => {
+        pending.resolve(sent(60));
+      });
+      await settle();
+    });
+
+    test("the check above fails for an OUTLINE button with the same classes and style", () => {
+      /*
+       * A control, so the check cannot pass by accident: the shared Button
+       * in OUTLINE style, given exactly what the component passes, keeps
+       * w-full, justify-center and the inline width -- those come from the
+       * caller -- but loses NORMAL's border and background to the two
+       * classes Accounts has no CSS for.
+       */
+      render(
+        <Button
+          buttonStyle={ButtonStyleType.OUTLINE}
+          title={BUTTON}
+          dataTestId="outline-control"
+          className={ACCOUNTS_BUTTON_CLASSES}
+          style={{ width: "100%", marginLeft: 0 }}
+        />,
+      );
+
+      const outline: HTMLElement = screen.getByTestId("outline-control");
+      expect(outline).toHaveClass("w-full", "justify-center");
+      expect(outline).toHaveStyle({ width: "100%", marginLeft: "0px" });
+
+      for (const className of NORMAL_STYLE_CLASSES) {
+        expect(outline).not.toHaveClass(className);
+      }
+
+      for (const className of OUTLINE_STYLE_CLASSES) {
+        expect(outline).toHaveClass(className);
+      }
+
+      expect(() => {
+        expectAccountsButtonStyle(outline);
+      }).toThrow();
     });
   });
 });

@@ -22,6 +22,7 @@ import IdentityRateLimit, {
   VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -733,6 +734,39 @@ const rawOperatorValue: RawOperatorValueFunction = (
   return values[0];
 };
 
+type RawOperator = {
+  type: string;
+  getSql?: ((alias: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+};
+
+type ExpectAtOrAfterFunction = (operator: unknown, start: Date) => void;
+
+/*
+ * The history query must select rows created AT OR AFTER its start. The bound
+ * value alone cannot tell `>=` from `<=` -- both carry the same Date -- and a
+ * flipped comparison would hand the policy the rows from BEFORE the window
+ * instead of the ones inside it, and the recent sends the cooldown and the
+ * caps exist to count would never be seen. So the SQL the operator renders is
+ * read back, and its placeholder tied to the one bound parameter.
+ */
+const expectAtOrAfter: ExpectAtOrAfterFunction = (
+  operator: unknown,
+  start: Date,
+): void => {
+  const raw: RawOperator = operator as RawOperator;
+
+  expect(raw.type).toBe("raw");
+  expect(typeof raw.getSql).toBe("function");
+
+  const sql: string = raw.getSql!("createdAt");
+  const match: RegExpMatchArray | null = sql.match(/^\(createdAt >= :(\w+)\)$/);
+
+  expect(match).not.toBeNull();
+  expect(Object.keys(raw.objectLiteralParameters || {})).toEqual([match![1]]);
+  expect(rawOperatorValue(operator)).toEqual(start);
+};
+
 let getString: jest.SpiedFunction<typeof GlobalCache.getString>;
 let setStringIfNotExists: jest.SpiedFunction<
   typeof GlobalCache.setStringIfNotExists
@@ -929,6 +963,16 @@ describe("a resend token from signup", () => {
     expect(mailed).toBe(user);
     expect(mailed.id!.toString()).toBe(USER_ID);
     expect(mailed.email!.toString()).toBe(USER_EMAIL);
+
+    /*
+     * And told to wait for the mail service's answer. This reply says a mail
+     * went out, so a send that fails has to fail the request -- fire and
+     * forget, as sign-in has it, would answer emailSent:true regardless.
+     */
+    expect(sendVerificationEmail).toHaveBeenCalledWith(user, {
+      awaitDelivery: true,
+    });
+    expect(sendVerificationEmail.mock.calls[0]).toHaveLength(2);
   });
 
   it("answers that the mail went out and when another may be asked for", async () => {
@@ -1015,19 +1059,36 @@ describe("a resend token from signup", () => {
   });
 
   it("asks for the account's send history since the start of the hour", async () => {
+    // The real helper, watched: restored by the next applyDefaults.
+    const greaterThanEqualTo: jest.SpiedFunction<
+      typeof QueryHelper.greaterThanEqualTo
+    > = jest.spyOn(QueryHelper, "greaterThanEqualTo");
+
     // Issued ten minutes ago: the hour reaches further back than issuance.
     await resend(resendBody(resendTokenFor()));
 
     const query: Record<string, any> = firstCallArgs(
       findEmailVerificationTokens,
     );
-
-    expect(query["query"]["userId"].toString()).toBe(USER_ID);
-    expect(rawOperatorValue(query["query"]["createdAt"])).toEqual(
-      new Date(
-        clock.getTime() - VERIFICATION_EMAIL_RESEND_WINDOW_IN_SECONDS * 1000,
-      ),
+    const historyStart: Date = new Date(
+      clock.getTime() - VERIFICATION_EMAIL_RESEND_WINDOW_IN_SECONDS * 1000,
     );
+
+    /*
+     * This account's rows and nothing else: no predicate dropped, none
+     * added that would hide a send from the policy.
+     */
+    expect(Object.keys(query["query"]).sort()).toEqual(["createdAt", "userId"]);
+    expect(query["query"]["userId"].toString()).toBe(USER_ID);
+
+    // Created AT OR AFTER the start of the hour -- not before it.
+    expect(greaterThanEqualTo).toHaveBeenCalledTimes(1);
+    expect(greaterThanEqualTo).toHaveBeenCalledWith(historyStart);
+    expect(query["query"]["createdAt"]).toBe(
+      greaterThanEqualTo.mock.results[0]!.value,
+    );
+    expectAtOrAfter(query["query"]["createdAt"], historyStart);
+
     expect(query["select"]).toEqual({ createdAt: true });
     expect(query["sort"]).toEqual({ createdAt: SortOrder.Descending });
     expect(query["limit"]).toBe(100);
@@ -1044,11 +1105,10 @@ describe("a resend token from signup", () => {
 
     await resend(resendBody(resendTokenFor({ issuedAt })));
 
-    expect(
-      rawOperatorValue(
-        firstCallArgs(findEmailVerificationTokens)["query"]["createdAt"],
-      ),
-    ).toEqual(issuedAt);
+    expectAtOrAfter(
+      firstCallArgs(findEmailVerificationTokens)["query"]["createdAt"],
+      issuedAt,
+    );
   });
 
   it("ignores an address supplied alongside the token", async () => {
@@ -1106,6 +1166,10 @@ describe("the token from an expired verification link", () => {
     });
     expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
     expect(sendVerificationEmail.mock.calls[0]![0]).toBe(user);
+    expect(sendVerificationEmail).toHaveBeenCalledWith(user, {
+      awaitDelivery: true,
+    });
+    expect(sendVerificationEmail.mock.calls[0]).toHaveLength(2);
   });
 
   it("finds the link's row by its token, as root, selecting only what it needs", async () => {
@@ -1140,11 +1204,10 @@ describe("the token from an expired verification link", () => {
 
     await resend(linkBody(LINK_TOKEN));
 
-    expect(
-      rawOperatorValue(
-        firstCallArgs(findEmailVerificationTokens)["query"]["createdAt"],
-      ),
-    ).toEqual(createdAt);
+    expectAtOrAfter(
+      firstCallArgs(findEmailVerificationTokens)["query"]["createdAt"],
+      createdAt,
+    );
   });
 
   it("still honours a link exactly fourteen days old", async () => {
@@ -1217,6 +1280,96 @@ const editedResendToken: ForgedTokenFunction = (): string => {
 
   return `${prefix}.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.${signature}`;
 };
+
+const OTHER_ADDRESS: string = "someone-else@example.com";
+
+type MismatchedAccountCase = InvalidCase & {
+  // The state the stored account is in -- what it WOULD be told, if it matched.
+  account: StoredUserOptions;
+};
+
+type CredentialKind = "a resend token" | "a link";
+type CredentialMismatch = "address" | "no-password";
+
+type MismatchedAccountCaseFunction = (
+  credential: CredentialKind,
+  mismatch: CredentialMismatch,
+  accountLabel: string,
+  account: StoredUserOptions,
+) => MismatchedAccountCase;
+
+/*
+ * A blocked or already verified account, behind a credential that does not
+ * match it: minted for another address, or naming an account with no password
+ * (an unclaimed invitation, whose way in is the registration link).
+ */
+const mismatchedAccountCase: MismatchedAccountCaseFunction = (
+  credential: CredentialKind,
+  mismatch: CredentialMismatch,
+  accountLabel: string,
+  account: StoredUserOptions,
+): MismatchedAccountCase => {
+  const isAddressMismatch: boolean = mismatch === "address";
+
+  return {
+    label: `${credential} ${
+      isAddressMismatch
+        ? "minted for another address"
+        : "for an account with no password"
+    }, on ${accountLabel}`,
+    body: (): unknown => {
+      if (credential === "a link") {
+        return linkBody(LINK_TOKEN);
+      }
+
+      return resendBody(
+        resendTokenFor(isAddressMismatch ? { email: OTHER_ADDRESS } : {}),
+      );
+    },
+    setup: (): void => {
+      userFindOneBy.mockResolvedValue(
+        storedUser({ ...account, hasPassword: isAddressMismatch }),
+      );
+
+      if (credential === "a link" && isAddressMismatch) {
+        findEmailVerificationToken.mockResolvedValue(
+          linkRow({ email: OTHER_ADDRESS }),
+        );
+      }
+    },
+    reaches: "user-lookup",
+    account,
+  };
+};
+
+type AccountState = [string, StoredUserOptions];
+
+const MISMATCHABLE_ACCOUNT_STATES: Array<AccountState> = [
+  ["a blocked account", { isBlocked: true }],
+  ["an already verified account", { isEmailVerified: true }],
+  [
+    "a blocked, already verified account",
+    { isBlocked: true, isEmailVerified: true },
+  ],
+];
+
+const MISMATCHED_ACCOUNT_CASES: Array<MismatchedAccountCase> = [];
+
+for (const credential of [
+  "a resend token",
+  "a link",
+] as Array<CredentialKind>) {
+  for (const mismatch of [
+    "address",
+    "no-password",
+  ] as Array<CredentialMismatch>) {
+    for (const [accountLabel, account] of MISMATCHABLE_ACCOUNT_STATES) {
+      MISMATCHED_ACCOUNT_CASES.push(
+        mismatchedAccountCase(credential, mismatch, accountLabel, account),
+      );
+    }
+  }
+}
 
 const INVALID_CASES: Array<InvalidCase> = [
   // --- the body itself ---
@@ -1590,6 +1743,16 @@ const INVALID_CASES: Array<InvalidCase> = [
     reaches: "user-lookup",
   },
 
+  /*
+   * --- a blocked or verified account the credential does not match ---
+   *
+   * The credential is matched to the account BEFORE the account's own state
+   * is reported. The other way round, "you are blocked" and "already
+   * verified" would answer questions about an account the credential gives
+   * its holder no claim to.
+   */
+  ...MISMATCHED_ACCOUNT_CASES,
+
   // --- the credential has bought all it will ever buy ---
   {
     label: "a resend token that has already bought its three resends",
@@ -1785,6 +1948,92 @@ describe("an account that is already verified", () => {
       expect(getString).not.toHaveBeenCalled();
       expect(findEmailVerificationTokens).not.toHaveBeenCalled();
       expect(setStringIfNotExists).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("a blocked or verified account behind a credential that does not match it", () => {
+  it.each(
+    MISMATCHED_ACCOUNT_CASES.map((mismatchedCase: MismatchedAccountCase) => {
+      return [mismatchedCase.label, mismatchedCase];
+    }),
+  )(
+    "gets the uniform refusal for %s -- never 'blocked', never 'already verified'",
+    async (_label: unknown, mismatchedCase: unknown) => {
+      const theCase: MismatchedAccountCase =
+        mismatchedCase as MismatchedAccountCase;
+
+      const result: InvokeResult = await runInvalidCase(theCase);
+
+      // The account the route read really was in that state.
+      const stored: User = (await userFindOneBy.mock.results[0]!.value) as User;
+
+      expect(stored.isBlocked).toBe(theCase.account.isBlocked === true);
+      expect(stored.isEmailVerified).toBe(
+        theCase.account.isEmailVerified === true,
+      );
+
+      expectInvalidRefusal(result);
+      expect((result.nextError as Exception).message).not.toBe(
+        ExceptionMessages.UserBlocked,
+      );
+
+      // No reply at all -- so no { alreadyVerified: true } either.
+      expect(sendJsonObjectResponse).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    MISMATCHABLE_ACCOUNT_STATES.flatMap(
+      ([accountLabel, account]: AccountState) => {
+        return [
+          [
+            accountLabel,
+            "a resend token",
+            (): unknown => {
+              return resendBody(resendTokenFor());
+            },
+            account,
+          ],
+          [
+            accountLabel,
+            "a link",
+            (): unknown => {
+              return linkBody(LINK_TOKEN);
+            },
+            account,
+          ],
+        ];
+      },
+    ),
+  )(
+    "tells %s its state once %s does match it -- the mismatch is what refuses",
+    async (
+      _accountLabel: unknown,
+      _credential: unknown,
+      body: unknown,
+      account: unknown,
+    ) => {
+      const accountState: StoredUserOptions = account as StoredUserOptions;
+      userFindOneBy.mockResolvedValue(storedUser(accountState));
+
+      const result: InvokeResult = await resend((body as () => unknown)());
+
+      // Blocked outranks verified, as the "a blocked account" block pins.
+      if (accountState.isBlocked === true) {
+        expect((result.nextError as Exception).message).toBe(
+          ExceptionMessages.UserBlocked,
+        );
+        expect(result.reply).toBeNull();
+      } else {
+        expectReply(result, {
+          emailSent: false,
+          alreadyVerified: true,
+          retryAfterSeconds: 0,
+        });
+      }
+
+      expect(sendVerificationEmail).not.toHaveBeenCalled();
     },
   );
 });
@@ -2046,6 +2295,73 @@ describe("when the send itself fails", () => {
 
     expect(deleteKeyIfValue).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [
+      "a resend token",
+      (): unknown => {
+        return resendBody(resendTokenFor());
+      },
+    ],
+    [
+      "a link token",
+      (): unknown => {
+        return linkBody(LINK_TOKEN);
+      },
+    ],
+  ])(
+    "answers a mail the mail service would not take with the mailer's 503, never emailSent, through %s",
+    async (_label: string, body: () => unknown) => {
+      /*
+       * What AuthenticationEmail throws under awaitDelivery when the mail
+       * service refuses or cannot be reached: it has already removed its own
+       * token row, so this route only has to release its fence and pass the
+       * 503 on -- and must not, on any path, still say the mail went out.
+       */
+      const undelivered: ServiceUnavailableException =
+        new ServiceUnavailableException(
+          VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+        );
+      sendVerificationEmail.mockRejectedValue(undelivered);
+
+      const result: InvokeResult = await resend(body());
+
+      expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+      expect(sendVerificationEmail.mock.calls[0]![1]).toEqual({
+        awaitDelivery: true,
+      });
+
+      // The fence this request claimed, released by its own value.
+      expect(setStringIfNotExists).toHaveBeenCalledTimes(1);
+
+      const claimedValue: string = setStringIfNotExists.mock.calls[0]![2];
+
+      expect(deleteKeyIfValue).toHaveBeenCalledTimes(1);
+      expect(deleteKeyIfValue).toHaveBeenCalledWith(
+        FENCE_NAMESPACE,
+        USER_ID,
+        claimedValue,
+      );
+
+      // The 503 itself reaches the error handler, untouched.
+      expect(result.nextError).toBe(undelivered);
+      expect((result.nextError as Exception).code).toBe(503);
+      expect((result.nextError as Exception).message).toBe(
+        VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
+      );
+
+      // And no reply of any kind -- above all, no emailSent: true.
+      expect(result.reply).toBeNull();
+      expect(sendJsonObjectResponse).not.toHaveBeenCalled();
+      expect(
+        (loggerInfo.mock.calls as Array<Array<unknown>>).some(
+          (call: Array<unknown>) => {
+            return call[0] === "Verification email resent";
+          },
+        ),
+      ).toBe(false);
+    },
+  );
 });
 
 describe("what the reply and the logs never carry", () => {
@@ -2332,6 +2648,9 @@ describe("POST /signup -> POST /resend-verification-email", () => {
     expect(
       (sendVerificationEmail.mock.calls[0]![0] as User).id!.toString(),
     ).toBe(USER_ID);
+    expect(sendVerificationEmail.mock.calls[0]![1]).toEqual({
+      awaitDelivery: true,
+    });
   });
 
   it("buys exactly three resends after the welcome mail, then stops working", async () => {

@@ -1671,9 +1671,16 @@ router.post(
         });
       }
 
-      // Mails the address STORED on the account, never one from the request.
+      /*
+       * Mails the address STORED on the account, never one from the request.
+       * Awaited all the way to the mail service, unlike the sign-in path:
+       * this reply says a mail went out, and a send that fails removes its
+       * own token row (see AuthenticationEmail) so it spends no cap.
+       */
       try {
-        await AuthenticationEmail.sendVerificationEmail(user);
+        await AuthenticationEmail.sendVerificationEmail(user, {
+          awaitDelivery: true,
+        });
       } catch (err) {
         /*
          * Nothing was sent, so the user should not be made to wait out a
