@@ -172,7 +172,7 @@ The update goes to the same people the original would reach today: the same chan
 
 Two cases send nothing on purpose, and record why:
 
-- **The original notification has not gone out yet.** If an announcement or note is still waiting to be announced, that notification reads the item when it is sent and already carries your edit, so a separate "updated" message would only confuse people.
+- **The original notification has not gone out yet.** If an announcement or note is still waiting to be announced, that notification reads the item when it is sent and already carries your edit, so a separate "updated" message would only confuse people. If the original is being sent at that moment, the update waits instead and goes out once the original has finished: that send read the item before your edit, so subscribers may have been sent the text from before it.
 - **The announcement is scheduled for later.** Until **Start Showing Announcement At** passes, it is not on any status page, and whoever is notified when it goes live sees the edited version.
 
 The edited item shows an **Update Notification Status** next to the original one, with the same states (**Sending Soon**, **Notifications Sent**, **Failed** and so on). **Retry** on a failed update notification re-sends the update, never the original "posted" message. Each status page can customize these messages with the **Subscriber Announcement Updated**, **Subscriber Incident Note Updated**, **Subscriber Scheduled Maintenance Note Updated** and **Subscriber Episode Note Updated** template event types; without a custom template the built-in update wording is used.

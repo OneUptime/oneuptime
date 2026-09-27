@@ -308,6 +308,7 @@ import {
   PENDING_ROW_VERSION,
   describeSubscriberDelivery,
 } from "../Fixtures/SubscriberDeliveryContract";
+import { statusesInOrder } from "../Fixtures/SubscriberNotificationSendFixtures";
 import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -725,6 +726,97 @@ describe("Incident:SendPostmortemNotificationToSubscribers", () => {
       ),
     );
   });
+});
+
+/*
+ * The job decides to skip a postmortem notification - not shown on the
+ * status page, not meant to notify, no monitors - from the incident as it
+ * read it when the run started, which can be minutes before it gets to it.
+ * So it claims the notification first, and settles it as Skipped only when
+ * it owns it.
+ */
+describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
+  function postmortemStatuses(): Array<StatusPageSubscriberNotificationStatus> {
+    return statusesInOrder({
+      claim: IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      update: IncidentService.updateOneById,
+      statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
+    });
+  }
+
+  interface SkipCase {
+    name: string;
+    change: (row: Incident) => void;
+    message: string;
+  }
+
+  const cases: Array<SkipCase> = [
+    {
+      name: "a postmortem not shown on the status page",
+      change: (row: Incident): void => {
+        row.showPostmortemOnStatusPage = false;
+      },
+      message:
+        "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+    },
+    {
+      name: "an incident not set to notify on postmortem published",
+      change: (row: Incident): void => {
+        row.notifySubscribersOnPostmortemPublished = false;
+      },
+      message:
+        "Incident is not set to notify subscribers on postmortem published. Skipping notifications to subscribers.",
+    },
+    {
+      name: "an incident without monitors",
+      change: (row: Incident): void => {
+        row.monitors = [];
+      },
+      message:
+        "No monitors are attached to this incident. Skipping notifications to subscribers.",
+    },
+  ];
+
+  test.each(cases)(
+    "$name is claimed, then settled as Skipped",
+    async (testCase: SkipCase) => {
+      const row: Incident = incident();
+      testCase.change(row);
+      pendingIncidents = [row];
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(0);
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+      expect(
+        (
+          mock(IncidentService.updateOneById).mock.calls[0]![0] as {
+            data: JSONObject;
+          }
+        ).data["subscriberNotificationStatusMessageOnPostmortemPublished"],
+      ).toBe(testCase.message);
+    },
+  );
+
+  test.each(cases)(
+    "$name is not skipped when it changed since the run read it",
+    async (testCase: SkipCase) => {
+      const row: Incident = incident();
+      testCase.change(row);
+      pendingIncidents = [row];
+      mock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockResolvedValue(false as never);
+
+      await runJob();
+
+      expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+      expect(sentMail()).toHaveLength(0);
+    },
+  );
 });
 
 describe("Incident:SendPostmortemNotificationToSubscribers, with custom templates and grouped resources", () => {

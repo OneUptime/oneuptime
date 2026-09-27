@@ -183,6 +183,8 @@ RunCron(
        * records the pages it finished and Retry resumes after them.
        */
       let notifiedStatusPageIds: Array<string> | null = null;
+      // Whether this run owns the notification, and so may settle it.
+      let claimed: boolean = false;
 
       try {
         logger.debug(
@@ -195,6 +197,35 @@ RunCron(
           "#" + (incident.incidentNumber?.toString() || " - ");
         const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
       Notification sent to status page subscribers because this incident was created.`;
+
+        /*
+         * Pending to InProgress, only if no other run has claimed it and it
+         * has not changed since this run read it (SubscriberNotificationClaim).
+         *
+         * Claimed before anything is decided from the row: this run read it
+         * when it started, which can be minutes ago once earlier sends have
+         * taken their time, so a decision to skip it made from that read -
+         * hidden, no monitors - could overwrite a notification re-queued or
+         * claimed since. Only the run that owns it settles it, Skipped
+         * included.
+         */
+        claimed = await SubscriberNotificationClaim.claim({
+          service: IncidentService,
+          id: incident.id!,
+          statusColumn: "subscriberNotificationStatusOnIncidentCreated",
+          version: incident.version,
+        });
+
+        if (!claimed) {
+          logger.debug(
+            `Incident ${incident.id}'s created notification was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
+
+        logger.debug(
+          `Incident ${incident.id} status set to InProgress for subscriber notifications.`,
+        );
 
         if (!incident.monitors || incident.monitors.length === 0) {
           logger.debug(
@@ -249,28 +280,6 @@ RunCron(
 
           continue; // Do not send notification to subscribers if incident is not visible on status page.
         }
-
-        /*
-         * Pending to InProgress, only if no other run has claimed it and it
-         * has not changed since this run read it (SubscriberNotificationClaim).
-         */
-        const claimed: boolean = await SubscriberNotificationClaim.claim({
-          service: IncidentService,
-          id: incident.id!,
-          statusColumn: "subscriberNotificationStatusOnIncidentCreated",
-          version: incident.version,
-        });
-
-        if (!claimed) {
-          logger.debug(
-            `Incident ${incident.id}'s created notification was claimed by another run, or changed since this run read it; leaving it.`,
-          );
-          continue;
-        }
-
-        logger.debug(
-          `Incident ${incident.id} status set to InProgress for subscriber notifications.`,
-        );
 
         const sendWindow: SubscriberNotificationSendWindow =
           SubscriberNotificationTiming.startSendWindow();
@@ -688,6 +697,8 @@ RunCron(
                             statuspage.callSmsConfig,
                           ),
                         statusPageId: statuspage.id!,
+                        // An SMS the project cannot send (SMS off, no balance) is failed.
+                        failIfNotSent: true,
                         incidentId: incident.id!,
                       });
                     },
@@ -991,8 +1002,17 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
           });
         }
       } catch (err) {
-        // If there was an error, mark as failed
         logger.error(err);
+
+        /*
+         * Only a notification this run claimed is its to fail. Anything
+         * before the claim leaves it Pending for the next run.
+         */
+        if (!claimed) {
+          continue;
+        }
+
+        // If there was an error, mark as failed
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {

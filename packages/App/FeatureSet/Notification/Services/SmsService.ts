@@ -50,13 +50,33 @@ export default class SmsService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Throw when the SMS is deliberately not sent - the project was not
+       * found, has SMS notifications turned off, or has too little balance -
+       * instead of returning as if it went out. The SMS log and the owners'
+       * email are written either way. Status page subscriber sends that count
+       * what they delivered pass it, so such an SMS counts as failed, not
+       * sent; everyone else keeps the quiet return.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
     const startNs: bigint = process.hrtime.bigint();
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.sendSmsInternal(to, message, options);
+      const notSentReason: string | null = await this.sendSmsInternal(
+        to,
+        message,
+        options,
+      );
+
+      if (notSentReason !== null && options.failIfNotSent) {
+        // The tenant's settings or balance, not a defect: a user error.
+        throw new BadDataException(
+          `SMS not sent: ${notSentReason}`,
+        ).asUserError();
+      }
     } catch (err) {
       outcome = "failure";
       throw err;
@@ -94,8 +114,14 @@ export default class SmsService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      failIfNotSent?: boolean | undefined;
     },
-  ): Promise<void> {
+  ): Promise<string | null> {
+    /*
+     * Returns why the SMS was deliberately not sent (the project was not
+     * found, has SMS turned off, or has too little balance), after logging
+     * it; null when it was handed to Twilio. A failure to send throws.
+     */
     let smsError: Error | null = null;
     const smsLog: SmsLog = new SmsLog();
     /*
@@ -260,7 +286,7 @@ export default class SmsService {
               isRoot: true,
             },
           });
-          return;
+          return smsLog.statusMessage!;
         }
 
         if (!project.enableSmsNotifications) {
@@ -290,7 +316,7 @@ export default class SmsService {
               `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessage} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
             );
           }
-          return;
+          return smsLog.statusMessage!;
         }
 
         if (shouldChargeForSMS) {
@@ -337,7 +363,7 @@ export default class SmsService {
                 } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`,
               );
             }
-            return;
+            return smsLog.statusMessage!;
           }
 
           if (project.smsOrCallCurrentBalanceInUSDCents < smsCost * 100) {
@@ -371,7 +397,7 @@ export default class SmsService {
                 } USD. Required balance is ${smsCost} USD to send this SMS. Please enable auto recharge or recharge manually.`,
               );
             }
-            return;
+            return smsLog.statusMessage!;
           }
         }
       }
@@ -519,6 +545,8 @@ export default class SmsService {
     if (smsError) {
       throw smsError;
     }
+
+    return null;
   }
 
   /**

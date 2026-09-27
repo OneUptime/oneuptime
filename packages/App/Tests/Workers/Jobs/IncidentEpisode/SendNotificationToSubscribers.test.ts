@@ -1033,7 +1033,12 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
     await runJob();
 
     nothingSent();
+    // Claimed first, so the skip never overwrites a notification queued since.
     expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
       {
         subscriberNotificationStatusOnEpisodeCreated:
           StatusPageSubscriberNotificationStatus.Skipped,
@@ -1041,6 +1046,18 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
           "No monitors are attached to the incidents in this episode. Skipping notifications to subscribers.",
       },
     ]);
+  });
+
+  test("does not skip an episode it could not claim: another run has it, or it changed since", async () => {
+    memberMonitors = [];
+    mock(
+      IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob();
+
+    nothingSent();
+    expect(IncidentEpisodeService.updateOneById).not.toHaveBeenCalled();
   });
 });
 

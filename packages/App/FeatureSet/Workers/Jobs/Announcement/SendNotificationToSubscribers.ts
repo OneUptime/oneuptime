@@ -857,6 +857,23 @@ RunCron(
 
     for (const announcement of announcements) {
       try {
+        /*
+         * The announcement's notification is being sent right now, with the
+         * announcement as it was read before this edit. Left Pending,
+         * untouched: a later run sends the update once that has settled
+         * (SubscriberUpdateNotification).
+         */
+        if (
+          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+            announcement.subscriberNotificationStatus,
+          )
+        ) {
+          logger.debug(
+            `Announcement ${announcement.id}'s notification is being sent; its update notification waits for it.`,
+          );
+          continue;
+        }
+
         let skipReason: string | null =
           SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
             announcement.subscriberNotificationStatus,

@@ -32,7 +32,12 @@ import SubscriberNotificationTiming from "./SubscriberNotificationTiming";
  *   that answers with an HTTPErrorResponse (the Notification service's email
  *   and SMS endpoints, and the Slack and webhook senders, return one rather
  *   than throw), or one still unanswered after
- *   SubscriberNotificationTiming.SEND_TIMEOUT_IN_MS.
+ *   SubscriberNotificationTiming.SEND_TIMEOUT_IN_MS. The SMS endpoint
+ *   answers success for an SMS the project deliberately does not send -
+ *   SMS notifications turned off, too little SMS balance - unless the
+ *   request asks otherwise, so the jobs send with SmsService's
+ *   failIfNotSent: such an SMS then answers with an error and counts as
+ *   failed, and a page reached that way is not recorded as told.
  * - A record of it: for the incident (or episode) feed item, each page, the
  *   subject its email went out with, and how many messages were sent and
  *   failed on each channel, plus the pages that were left out and why; and

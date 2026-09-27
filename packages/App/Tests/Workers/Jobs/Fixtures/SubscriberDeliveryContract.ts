@@ -12,6 +12,7 @@ import {
   StatusWrite,
   TestClock,
   failSends,
+  httpError,
   orderedSubscriberId,
   pagedSubscribersFake,
   statusWritesInOrder,
@@ -291,6 +292,77 @@ export function describeSubscriberDelivery(
         });
       }
     }
+
+    /*
+     * The Notification service answers success for an SMS it deliberately
+     * does not send - the project has SMS notifications off, or too little
+     * balance - unless the request asks it to fail. So every job asks, and
+     * such an SMS counts as failed rather than sent.
+     */
+    test("an SMS the project does not send (SMS off, too little balance) counts as failed", async () => {
+      harness.pendRows(1);
+
+      // The endpoint's answers: an error only when asked for one.
+      mock(harness.senders.sms).mockImplementation(((
+        _sms: unknown,
+        options: JSONObject,
+      ) => {
+        return Promise.resolve(
+          options["failIfNotSent"] === true
+            ? httpError(
+                400,
+                "SMS not sent: SMS notifications are not enabled for this project.",
+              )
+            : undefined,
+        );
+      }) as never);
+
+      await harness.runJob();
+
+      expect(harness.senders.sms).toHaveBeenCalledTimes(1);
+      expect(mock(harness.senders.sms).mock.calls[0]![1]).toEqual(
+        expect.objectContaining({ failIfNotSent: true }),
+      );
+
+      expect(settled()).toEqual(
+        expect.objectContaining({
+          [harness.statusColumn]: StatusPageSubscriberNotificationStatus.Failed,
+          [harness.messageColumn]: `Not every subscriber was sent this notification: 1 of 5 messages failed. Acme: 1 email, 1 Slack, 1 Microsoft Teams, 1 webhook sent; 1 SMS failed. ${retrySentence()}`,
+        }),
+      );
+    });
+
+    /*
+     * One page's send breaking - here its subscribers cannot be read - is
+     * that page failing part-way, not the whole notification: the send goes
+     * on to the next page and settles as usual, with the per-page record in
+     * its status message and a feed item, rather than a bare error message.
+     */
+    test("a page whose send breaks is recorded as failed part-way, and the send settles as usual", async () => {
+      harness.pendRows(1);
+      mock(harness.subscribers).mockRejectedValue(
+        new Error("could not read the subscribers") as never,
+      );
+
+      await harness.runJob();
+
+      for (const channel of CHANNELS) {
+        expect(harness.senders[channel]).not.toHaveBeenCalled();
+      }
+
+      expect(settled()).toEqual(
+        expect.objectContaining({
+          [harness.statusColumn]: StatusPageSubscriberNotificationStatus.Failed,
+          [harness.messageColumn]: `Not every subscriber was sent this notification. Sending to a status page failed part-way. Acme: nothing sent, then sending failed part-way. ${retrySentence()}`,
+        }),
+      );
+
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toEqual(Red500);
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+        "- **Acme**: nothing sent. Sending to this status page failed part-way, so some of its subscribers may not have been sent it.",
+      );
+    });
 
     test("reads every subscriber of a page, past LIMIT_MAX", async () => {
       harness.pendRows(1);

@@ -900,32 +900,95 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
     expect(DatabaseConfig.getHost).not.toHaveBeenCalled();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the note's original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedNotes = [
-        publicNote({
-          subscriberNotificationStatusOnNoteCreated: originalStatus,
-        }),
-      ];
+  /*
+   * The 'posted' notification is still queued: the run that claims it reads
+   * the note afresh, so it carries the edit. The update is skipped - once
+   * claimed, so a decision from an old read never overwrites anything.
+   */
+  test("skips while the note's original notification is Pending, once it has claimed the update", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(IncidentEpisodeService.findOneById).not.toHaveBeenCalled();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnNoteUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(IncidentEpisodeService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  test("a skip decided from an old read is not written when the note changed since", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    mock(
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      IncidentEpisodePublicNoteService.updateOneById,
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The 'posted' notification is being sent right now, with the note as it
+   * was before the edit: the update waits for it, then goes out.
+   */
+  test("waits, untouched, while the note's original notification is being sent, then sends the edit", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      IncidentEpisodePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).not.toHaveBeenCalled();
+    expect(
+      IncidentEpisodePublicNoteService.updateOneById,
+    ).not.toHaveBeenCalled();
+
+    // A later run, once the original has gone out.
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()).toHaveLength(1);
+    expect(
+      statusWrites()[statusWrites().length - 1]![
+        "subscriberNotificationStatusOnNoteUpdated"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Success);
+  });
 
   test("emails the updated-note template with an update subject", async () => {
     updatedNotes = [publicNote()];
@@ -1053,6 +1116,10 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
     expect(statusWrites()).toEqual([
       {
         subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Skipped,
         subscriberNotificationStatusMessageOnNoteUpdated:
           "Related episode not found. Skipping notifications to subscribers.",
@@ -1068,6 +1135,10 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
 
     nothingSent();
     expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
       {
         subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Skipped,

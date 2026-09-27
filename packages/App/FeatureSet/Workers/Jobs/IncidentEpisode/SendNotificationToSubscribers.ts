@@ -162,6 +162,9 @@ RunCron(
         break;
       }
 
+      // Whether this run owns the notification, and so may settle it.
+      let claimed: boolean = false;
+
       try {
         logger.debug(
           `Processing episode ${episode.id} (project: ${episode.projectId}) for subscriber notifications.`,
@@ -176,6 +179,29 @@ RunCron(
           episode.episodeNumber?.toString() || " - ";
         const episodeFeedText: string = `📧 **Subscriber Episode Created Notification Sent for [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()})**:
       Notification sent to status page subscribers because this episode was created.`;
+
+        /*
+         * Pending to InProgress, only if no other run has claimed it and it
+         * has not changed since this run read it (SubscriberNotificationClaim).
+         *
+         * Claimed before anything is decided about it, so a decision to skip
+         * it never overwrites a notification re-queued or claimed since this
+         * run read it. Only the run that owns it settles it, Skipped
+         * included.
+         */
+        claimed = await SubscriberNotificationClaim.claim({
+          service: IncidentEpisodeService,
+          id: episode.id!,
+          statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
+          version: episode.version,
+        });
+
+        if (!claimed) {
+          logger.debug(
+            `Episode ${episode.id}'s created notification was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
 
         /*
          * The episode's incidents, with their monitors. The episode reaches
@@ -218,24 +244,6 @@ RunCron(
             },
           });
 
-          continue;
-        }
-
-        /*
-         * Pending to InProgress, only if no other run has claimed it and it
-         * has not changed since this run read it (SubscriberNotificationClaim).
-         */
-        const claimed: boolean = await SubscriberNotificationClaim.claim({
-          service: IncidentEpisodeService,
-          id: episode.id!,
-          statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
-          version: episode.version,
-        });
-
-        if (!claimed) {
-          logger.debug(
-            `Episode ${episode.id}'s created notification was claimed by another run, or changed since this run read it; leaving it.`,
-          );
           continue;
         }
 
@@ -771,6 +779,8 @@ RunCron(
                             statuspage.callSmsConfig,
                           ),
                         statusPageId: statuspage.id!,
+                        // An SMS the project cannot send (SMS off, no balance) is failed.
+                        failIfNotSent: true,
                       });
                     },
                   });
@@ -1025,11 +1035,20 @@ RunCron(
           logAttributes,
         );
       } catch (err) {
-        // If there was an error, mark as failed
         logger.error(err, {
           projectId: episode.projectId?.toString(),
           incidentEpisodeId: episode.id?.toString(),
         });
+
+        /*
+         * Only a notification this run claimed is its to fail. Anything
+         * before the claim leaves it Pending for the next run.
+         */
+        if (!claimed) {
+          continue;
+        }
+
+        // If there was an error, mark as failed
         await IncidentEpisodeService.updateOneById({
           id: episode.id!,
           data: {

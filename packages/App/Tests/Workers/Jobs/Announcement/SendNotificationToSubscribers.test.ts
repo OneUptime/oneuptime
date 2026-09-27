@@ -821,29 +821,44 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     nothingSent();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips the update while the original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedRows = [
-        announcement({ subscriberNotificationStatus: originalStatus }),
-      ];
+  test("skips the update while the original notification is Pending", async () => {
+    updatedRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnAnnouncementUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnAnnouncementUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnAnnouncementUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnAnnouncementUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  /*
+   * The original is being sent with the announcement as it was read before
+   * the edit: the update waits, untouched, and goes out once that settled.
+   */
+  test("waits, untouched, while the original notification is being sent", async () => {
+    updatedRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()).toEqual([]);
+  });
 
   test("skips an announcement that is not shown on status pages yet", async () => {
     updatedRows = [

@@ -129,7 +129,34 @@ RunCron(
         break;
       }
 
+      // Whether this run owns the notification, and so may settle it.
+      let claimed: boolean = false;
+
       try {
+        /*
+         * Pending to InProgress, only if no other run has claimed it and it
+         * has not changed since this run read it (SubscriberNotificationClaim).
+         *
+         * Claimed before anything is decided from the row: this run read it
+         * when it started, which can be minutes ago once earlier sends have
+         * taken their time, so a decision to skip it made from that read
+         * could overwrite a notification re-queued or claimed since. Only the
+         * run that owns it settles it, Skipped included.
+         */
+        claimed = await SubscriberNotificationClaim.claim({
+          service: IncidentService,
+          id: incident.id!,
+          statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
+          version: incident.version,
+        });
+
+        if (!claimed) {
+          logger.debug(
+            `Incident ${incident.id}'s postmortem notification was claimed by another run, or changed since this run read it; leaving it.`,
+          );
+          continue;
+        }
+
         if (!incident.showPostmortemOnStatusPage) {
           logger.debug(
             `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
@@ -207,24 +234,6 @@ RunCron(
             },
           });
 
-          continue;
-        }
-
-        /*
-         * Pending to InProgress, only if no other run has claimed it and it
-         * has not changed since this run read it (SubscriberNotificationClaim).
-         */
-        const claimed: boolean = await SubscriberNotificationClaim.claim({
-          service: IncidentService,
-          id: incident.id!,
-          statusColumn: "subscriberNotificationStatusOnPostmortemPublished",
-          version: incident.version,
-        });
-
-        if (!claimed) {
-          logger.debug(
-            `Incident ${incident.id}'s postmortem notification was claimed by another run, or changed since this run read it; leaving it.`,
-          );
           continue;
         }
 
@@ -743,6 +752,8 @@ RunCron(
                             statuspage.callSmsConfig,
                           ),
                         statusPageId: statuspage.id!,
+                        // An SMS the project cannot send (SMS off, no balance) is failed.
+                        failIfNotSent: true,
                         incidentId: incident.id!,
                       });
                     },
@@ -1016,11 +1027,20 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
           logAttributes,
         );
       } catch (err) {
-        // If there was an error, mark as failed
         logger.error(err, {
           projectId: incident.projectId?.toString(),
           incidentId: incident.id?.toString(),
         });
+
+        /*
+         * Only a notification this run claimed is its to fail. Anything
+         * before the claim leaves it Pending for the next run.
+         */
+        if (!claimed) {
+          continue;
+        }
+
+        // If there was an error, mark as failed
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {

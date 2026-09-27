@@ -951,32 +951,110 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     nothingSent();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the note's original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedNotes = [
-        publicNote({
-          subscriberNotificationStatusOnNoteCreated: originalStatus,
-        }),
-      ];
+  /*
+   * The 'posted' notification is still queued: it has not gone out, and the
+   * run that claims it reads the note afresh (the edit changed its version),
+   * so it carries the edit. The update is skipped - once claimed, so a
+   * decision from an old read never overwrites anything.
+   */
+  test("skips while the note's original notification is Pending, once it has claimed the update", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(IncidentService.findOneById).not.toHaveBeenCalled();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnNoteUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(IncidentService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  test("a skip decided from an old read is not written when the note changed since", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    // Queued again, or claimed by another run, since this run read it.
+    mock(
+      IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(IncidentPublicNoteService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The 'posted' notification is being sent right now, with the note as it
+   * was before the edit - a typo fixed, or an ETA corrected, right after
+   * posting. Skipping the update would leave subscribers with the old text.
+   */
+  test("waits, untouched, while the note's original notification is being sent", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+    ).not.toHaveBeenCalled();
+    expect(IncidentPublicNoteService.updateOneById).not.toHaveBeenCalled();
+    expect(feedItems()).toEqual([]);
+  });
+
+  test("sends the edit once the original notification has gone out", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+    nothingSent();
+
+    // A later run: the original settled with the text from before the edit.
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentNoteUpdated,
+    );
+    expect(
+      statusWrites()[statusWrites().length - 1]![
+        "subscriberNotificationStatusOnNoteUpdated"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Success);
+  });
 
   test("emails the updated-note template with an update subject", async () => {
     updatedNotes = [publicNote()];
@@ -1155,6 +1233,10 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     expect(statusWrites()).toEqual([
       {
         subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatusOnNoteUpdated:
           StatusPageSubscriberNotificationStatus.Skipped,
         subscriberNotificationStatusMessageOnNoteUpdated:
           "Related incident not found. Skipping notifications to subscribers.",
@@ -1170,8 +1252,13 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
 
     nothingSent();
     expect(
-      statusWrites()[0]!["subscriberNotificationStatusOnNoteUpdated"],
-    ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
+      statusWrites().map((write: JSONObject) => {
+        return write["subscriberNotificationStatusOnNoteUpdated"];
+      }),
+    ).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
   });
 
   test("respects a status page that hides incidents", async () => {
@@ -1214,7 +1301,15 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
 
     await runJob(UPDATED_JOB);
 
-    expect(writesFor(NOTE_ID)).toHaveLength(1);
+    // Claimed, then skipped: its original has not gone out yet.
+    expect(
+      writesFor(NOTE_ID).map((write: JSONObject) => {
+        return write["subscriberNotificationStatusOnNoteUpdated"];
+      }),
+    ).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
     expect(
       writesFor(SECOND_NOTE_ID).map((write: JSONObject) => {
         return write["subscriberNotificationStatusOnNoteUpdated"];
@@ -1409,6 +1504,56 @@ describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
           "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
       },
     ]);
+  });
+
+  /*
+   * One page's send breaking used to end the whole notification: the pages
+   * after it were never tried, and the per-page record and the feed item
+   * were replaced by the bare error message.
+   */
+  test("a page whose send breaks does not stop the pages after it", async () => {
+    createdNotes = [publicNote()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage(),
+      statusPage({ id: SECOND_STATUS_PAGE_ID, pageTitle: "Beta Status" }),
+    ] as never);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      resource(),
+      resource({
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        statusPageId: SECOND_STATUS_PAGE_ID,
+      }),
+    ] as never);
+    // The first page's subscribers cannot be read; the second page's can.
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(async (statusPageId: unknown) => {
+      if ((statusPageId as ObjectID).toString() === STATUS_PAGE_ID.toString()) {
+        throw new Error("could not read the subscribers");
+      }
+
+      return [subscriber()];
+    });
+
+    await runJob(CREATED_JOB);
+
+    // The second page was still sent it, on every channel.
+    expect(sentMail()).toHaveLength(1);
+    expect(sentWebhooks()).toHaveLength(1);
+
+    const settled: JSONObject = statusWrites()[statusWrites().length - 1]!;
+    expect(settled["subscriberNotificationStatusOnNoteCreated"]).toBe(
+      StatusPageSubscriberNotificationStatus.Failed,
+    );
+    expect(settled["subscriberNotificationStatusMessage"]).toContain(
+      "Sending to a status page failed part-way.",
+    );
+    expect(settled["subscriberNotificationStatusMessage"]).toContain(
+      "1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent",
+    );
+    expect(feedItems()).toHaveLength(1);
   });
 
   test("marks the original notification Failed when sending breaks", async () => {

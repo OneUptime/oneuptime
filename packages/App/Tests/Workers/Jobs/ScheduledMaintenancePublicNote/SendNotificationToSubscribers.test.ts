@@ -911,32 +911,46 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
     expect(DatabaseConfig.getHost).not.toHaveBeenCalled();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the note's original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedNotes = [
-        publicNote({
-          subscriberNotificationStatusOnNoteCreated: originalStatus,
-        }),
-      ];
+  test("skips while the note's original notification is Pending", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnNoteUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  /*
+   * The original is being sent with the note as it was read before the
+   * edit: the update waits, untouched, and goes out once that settled.
+   */
+  test("waits, untouched, while the note's original notification is being sent", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([]);
+  });
 
   test("emails the updated-note template with an update subject", async () => {
     updatedNotes = [publicNote()];

@@ -938,6 +938,23 @@ RunCron(
 
     for (const publicNote of updatedNotes) {
       try {
+        /*
+         * The note's 'posted' notification is being sent right now, with the
+         * note as it was read before this edit. Left Pending, untouched: a
+         * later run sends the update once that has settled
+         * (SubscriberUpdateNotification).
+         */
+        if (
+          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+            publicNote.subscriberNotificationStatusOnNoteCreated,
+          )
+        ) {
+          logger.debug(
+            `Scheduled maintenance public note ${publicNote.id}'s posted notification is being sent; its update notification waits for it.`,
+          );
+          continue;
+        }
+
         const skipReason: string | null =
           SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
             publicNote.subscriberNotificationStatusOnNoteCreated,

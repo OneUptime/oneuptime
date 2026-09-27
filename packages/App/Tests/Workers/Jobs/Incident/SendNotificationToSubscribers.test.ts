@@ -304,6 +304,7 @@ import {
 import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
 import {
   failSends,
+  httpError,
   statusesInOrder,
 } from "../Fixtures/SubscriberNotificationSendFixtures";
 import {
@@ -1049,7 +1050,12 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
     });
   }
 
-  test("marks the 'created' notification Skipped with the reason, and never InProgress", async () => {
+  /*
+   * Claimed first - so a skip decided from this run's read never overwrites
+   * a notification re-queued (published with 'notify') or claimed since -
+   * then settled as Skipped straight away, never left InProgress.
+   */
+  test("settles the 'created' notification as Skipped with the reason, never leaving it InProgress", async () => {
     pendingIncidents = [hiddenIncident()];
 
     await runJob();
@@ -1062,9 +1068,28 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
           IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
       },
     ]);
-    expect(statusesWritten(INCIDENT_ID)).not.toContain(
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
       StatusPageSubscriberNotificationStatus.InProgress,
-    );
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
+  });
+
+  /*
+   * The run read the incident while it was hidden. By the time it gets to
+   * it - minutes later, after other sends - it was published with 'notify
+   * subscribers', which put the notification back to Pending at a new
+   * version. The old decision must not overwrite that request.
+   */
+  test("a skip decided from an old read is not written when the incident changed since", async () => {
+    pendingIncidents = [hiddenIncident()];
+    mock(
+      IncidentService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob();
+
+    expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+    expect(sentMail()).toHaveLength(0);
   });
 
   test("writes the status as root without hooks, like the job's other writes", async () => {
@@ -1121,6 +1146,7 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
     await runJob();
 
     expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
       StatusPageSubscriberNotificationStatus.Skipped,
     ]);
     expect(sentMail()).toHaveLength(0);
@@ -1151,6 +1177,7 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
     await runJob();
 
     expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
       StatusPageSubscriberNotificationStatus.Skipped,
     ]);
     expect(statusesWritten(SECOND_INCIDENT_ID)).toEqual([
@@ -2659,6 +2686,45 @@ describe("Incident:SendNotificationToSubscribers, when a send falls short", () =
     expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
       "- **Site 07**: 1 email sent; 1 webhook failed.",
     );
+  });
+
+  /*
+   * A project with SMS notifications turned off (the default), or without
+   * SMS balance: the Notification service does not send the SMS. Counted as
+   * sent, the page would be recorded as told, and neither Retry nor adding
+   * pages would ever reach its SMS subscribers once SMS is turned on.
+   */
+  test("a page whose SMS the project does not send is not recorded as told, and the send is Failed", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, email: "site3@acme.com" }),
+      siteSubscriber({ site: 7, phone: "+15555550107" }),
+    ];
+
+    mock(SmsService.sendSms).mockImplementation(((
+      _sms: unknown,
+      options: JSONObject,
+    ) => {
+      // What the SMS endpoint answers when asked to fail an SMS it does not send.
+      return Promise.resolve(
+        options["failIfNotSent"] === true
+          ? httpError(
+              400,
+              "SMS not sent: SMS notifications are not enabled for this project.",
+            )
+          : undefined,
+      );
+    }) as never);
+
+    await runJob();
+
+    expect(notifiedPageRecords()).toEqual([[3]]);
+    expect(settledWrite()).toEqual({
+      subscriberNotificationStatusOnIncidentCreated:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage:
+        "Not every subscriber was sent this notification: 1 of 2 messages failed. Site 03: 1 email sent. Site 07: nothing sent; 1 SMS failed. Retry sends it again only to the status pages that were not sent it in full: Site 07.",
+      statusPagesNotifiedOnCreation: [sitePageId(3).toString()],
+    });
   });
 
   test("Retry resumes after the pages sent in full: only the page that fell short is sent it again", async () => {
