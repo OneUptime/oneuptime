@@ -336,6 +336,9 @@ import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboa
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import Permission from "../../../Types/Permission";
 
 const EVENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const OTHER_EVENT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -772,14 +775,22 @@ const itemRequestId: ItemRequestIdFunction = (args: Array<unknown>): string => {
   return (args[0] as { id: ObjectID }).id.toString();
 };
 
+// What the signed-in user may do; a project member unless a test says so.
+let currentPermissions: Array<Permission> = [Permission.ProjectMember];
+
 beforeEach(() => {
   currentEventId = EVENT_ID;
+  currentPermissions = [Permission.ProjectMember];
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockImplementation((): ObjectID => {
       return new ObjectID(currentEventId);
     });
+  jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+    return currentPermissions;
+  });
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -2253,7 +2264,110 @@ describe("incident-only behaviour", () => {
     };
 
     expect(audienceProps.request.incidentId.toString()).toBe(EVENT_ID);
+    expect(audienceProps.request).not.toHaveProperty(
+      "excludeStatusPagesNotifiedOnCreation",
+    );
   });
+
+  /*
+   * Retry resumes after the pages already sent it in full, so its
+   * confirmation's "Will notify" must not list them: it asks for the audience
+   * without them. Resend, and Retry to every page, keep the full one.
+   */
+  test("Retry's confirmation shows who Retry reaches: without the pages already sent it in full", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    renderStatusField();
+
+    const confirmation: { retryAudience?: ReactElement } = latestProps<{
+      resendConfirmation: { retryAudience?: ReactElement };
+    }>("SubscriberNotificationStatus").resendConfirmation;
+
+    const retryAudienceProps: {
+      request: {
+        incidentId: { toString: () => string };
+        excludeStatusPagesNotifiedOnCreation?: boolean;
+      };
+    } = confirmation.retryAudience!.props as {
+      request: {
+        incidentId: { toString: () => string };
+        excludeStatusPagesNotifiedOnCreation?: boolean;
+      };
+    };
+
+    expect(retryAudienceProps.request.incidentId.toString()).toBe(EVENT_ID);
+    expect(
+      retryAudienceProps.request.excludeStatusPagesNotifiedOnCreation,
+    ).toBe(true);
+  });
+
+  /*
+   * Retry and Resend write the notification's status. A role that may not
+   * is offered neither - the details card used to offer them to everyone,
+   * read-only viewers included, and let the server refuse.
+   */
+  test.each([[[Permission.Viewer]], [[Permission.IncidentViewer]], [[]]])(
+    "a user with %j is offered neither Resend nor Retry",
+    async (permissions: Array<Permission>) => {
+      currentPermissions = permissions;
+      serve(INCIDENT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      INCIDENT_CASE.renderPage();
+      await waitForPage();
+
+      renderStatusField();
+
+      const statusProps: {
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      } = latestProps<{
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      }>("SubscriberNotificationStatus");
+
+      expect(statusProps.onResendNotification).toBeUndefined();
+      expect(statusProps.resendConfirmation).toBeUndefined();
+    },
+  );
+
+  test.each([
+    [[Permission.IncidentMember]],
+    [[Permission.EditProjectIncident]],
+  ])(
+    "a user with %j is offered them",
+    async (permissions: Array<Permission>) => {
+      currentPermissions = permissions;
+      serve(INCIDENT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      INCIDENT_CASE.renderPage();
+      await waitForPage();
+
+      renderStatusField();
+
+      const statusProps: {
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      } = latestProps<{
+        onResendNotification?: unknown;
+        resendConfirmation?: unknown;
+      }>("SubscriberNotificationStatus");
+
+      expect(statusProps.onResendNotification).toBeDefined();
+      expect(statusProps.resendConfirmation).toBeDefined();
+    },
+  );
 
   /*
    * The details card is stubbed, so the status row is rendered here from the

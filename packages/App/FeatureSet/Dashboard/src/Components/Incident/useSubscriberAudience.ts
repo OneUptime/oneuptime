@@ -29,6 +29,12 @@ import { getIdsFromFormValue } from "./IncidentStatusPageScopeForm";
 export type SubscriberAudienceRequest =
   | {
       incidentId: ObjectID | string;
+      /*
+       * Who a Retry of its 'created' notification reaches: the pages already
+       * sent it in full are listed as not notified (see
+       * IncidentSubscriberAudienceExclusionReason.AlreadyNotified).
+       */
+      excludeStatusPagesNotifiedOnCreation?: boolean | undefined;
     }
   | {
       monitorIds: unknown;
@@ -60,7 +66,13 @@ export const getSubscriberAudienceRequestBody: (
   if ("incidentId" in request) {
     const incidentId: string = request.incidentId.toString().trim();
 
-    return incidentId ? { incidentId: incidentId } : null;
+    if (!incidentId) {
+      return null;
+    }
+
+    return request.excludeStatusPagesNotifiedOnCreation
+      ? { incidentId: incidentId, excludeStatusPagesNotifiedOnCreation: true }
+      : { incidentId: incidentId };
   }
 
   return {

@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (não está entre as páginas às quais este incidente está limitado)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (só mostra incidentes limitados a ela)",
   "{{name}} (does not show incidents)": "{{name}} (não mostra incidentes)",
+  "{{name}} (already sent this notification in full)": "{{name}} (já recebeu esta notificação por completo)",
   "{{name}} (lists none of these monitors)": "{{name}} (não lista nenhum destes monitores)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "Nenhum assinante de página de status será notificado: não há monitores anexados. Os assinantes ficam sabendo de um incidente pelos monitores que suas páginas de status listam.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Nenhum assinante de página de status será notificado: nenhuma página de status que lista estes monitores mostrará este incidente.",

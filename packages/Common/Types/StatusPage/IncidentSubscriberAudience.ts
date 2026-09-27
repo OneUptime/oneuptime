@@ -31,6 +31,12 @@ export enum IncidentSubscriberAudienceExclusionReason {
   OnlyShowsScopedIncidents = "OnlyShowsScopedIncidents",
   // The page does not show incidents at all (Show Incidents is off).
   HidesIncidents = "HidesIncidents",
+  /*
+   * Asked for a Retry of the incident's 'created' notification only: the
+   * page was already sent it in full (Incident.statusPagesNotifiedOnCreation),
+   * and Retry resumes after it.
+   */
+  AlreadyNotified = "AlreadyNotified",
 }
 
 // How many subscribers of one status page each channel reaches, at most.

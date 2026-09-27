@@ -457,6 +457,24 @@ describe("SubscriberAudienceSummary when nothing will be sent anyway", () => {
 });
 
 describe("getSubscriberAudienceRequestBody", () => {
+  test("asks who a Retry of the 'created' notification reaches only when told to", () => {
+    expect(
+      getSubscriberAudienceRequestBody({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: true,
+      }),
+    ).toEqual({
+      incidentId: INCIDENT_ID,
+      excludeStatusPagesNotifiedOnCreation: true,
+    });
+    expect(
+      getSubscriberAudienceRequestBody({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: false,
+      }),
+    ).toEqual({ incidentId: INCIDENT_ID });
+  });
+
   test("an incident id, trimmed", () => {
     expect(
       getSubscriberAudienceRequestBody({ incidentId: ` ${INCIDENT_ID} ` }),
@@ -465,6 +483,12 @@ describe("getSubscriberAudienceRequestBody", () => {
 
   test("an empty incident id asks nothing", () => {
     expect(getSubscriberAudienceRequestBody({ incidentId: "" })).toBeNull();
+    expect(
+      getSubscriberAudienceRequestBody({
+        incidentId: "",
+        excludeStatusPagesNotifiedOnCreation: true,
+      }),
+    ).toBeNull();
     expect(getSubscriberAudienceRequestBody(null)).toBeNull();
   });
 

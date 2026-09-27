@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (ikke en af de sider, hændelsen er begrænset til)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (viser kun hændelser, der er begrænset til den)",
   "{{name}} (does not show incidents)": "{{name}} (viser ikke hændelser)",
+  "{{name}} (already sent this notification in full)": "{{name}} (har allerede fået denne underretning i sin helhed)",
   "{{name}} (lists none of these monitors)": "{{name}} (viser ingen af disse monitorer)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "Ingen statussideabonnenter underrettes: der er ikke tilknyttet nogen monitorer. Abonnenter hører om en hændelse gennem de monitorer, deres statussider viser.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Ingen statussideabonnenter underrettes: ingen statusside, der viser disse monitorer, vil vise denne hændelse.",

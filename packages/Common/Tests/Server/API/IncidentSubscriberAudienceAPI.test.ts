@@ -140,6 +140,8 @@ interface IncidentFixture {
   isVisibleOnStatusPage: boolean;
   isPrivate: boolean;
   scopedStatusPageIds: Array<string> | null;
+  // The record of pages already sent its 'created' notification in full.
+  statusPagesNotifiedOnCreation?: Array<string> | undefined;
 }
 
 let pages: Array<PageFixture> = [];
@@ -521,6 +523,11 @@ beforeEach(() => {
         monitor._id = id;
         return monitor;
       });
+      if (fixture.statusPagesNotifiedOnCreation) {
+        incident.statusPagesNotifiedOnCreation = [
+          ...fixture.statusPagesNotifiedOnCreation,
+        ];
+      }
       return Promise.resolve(incident);
     },
   );
@@ -1139,6 +1146,110 @@ describe("an incident that exists", () => {
     const call: RouteCall = await post({ incidentId: INCIDENT_ID });
 
     expect(call.thrown).toBeInstanceOf(NotFoundException);
+  });
+
+  /*
+   * A Retry of the 'created' notification resumes after the pages already
+   * sent it in full, so its confirmation must not list them as notified.
+   */
+  describe("who a Retry of its 'created' notification reaches", () => {
+    test("the pages already sent it in full are left out, with why", async () => {
+      useSitePages();
+      useIncident({
+        statusPagesNotifiedOnCreation: [sitePageId(1), sitePageId(3)],
+      });
+
+      const audience: IncidentSubscriberAudienceResult = await audienceFor({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: true,
+      });
+
+      expect(names(audience.statusPages)).toEqual([
+        "Site 02",
+        "Site 04",
+        "Site 05",
+      ]);
+      expect(
+        audience.excludedStatusPages.filter(
+          (excluded: { reason: IncidentSubscriberAudienceExclusionReason }) => {
+            return (
+              excluded.reason ===
+              IncidentSubscriberAudienceExclusionReason.AlreadyNotified
+            );
+          },
+        ),
+      ).toEqual([
+        {
+          statusPageId: sitePageId(1),
+          name: "Site 01",
+          reason: IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+        },
+        {
+          statusPageId: sitePageId(3),
+          name: "Site 03",
+          reason: IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+        },
+      ]);
+    });
+
+    test("without the request every page it reaches is listed, as for Resend", async () => {
+      useSitePages();
+      useIncident({
+        statusPagesNotifiedOnCreation: [sitePageId(1), sitePageId(3)],
+      });
+
+      const audience: IncidentSubscriberAudienceResult = await audienceFor({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(audience.statusPages).toHaveLength(5);
+      expect(audience.excludedStatusPages).toEqual([]);
+    });
+
+    test("only a real yes asks for it", async () => {
+      useSitePages();
+      useIncident({ statusPagesNotifiedOnCreation: [sitePageId(1)] });
+
+      const audience: IncidentSubscriberAudienceResult = await audienceFor({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: "true",
+      });
+
+      expect(audience.statusPages).toHaveLength(5);
+    });
+
+    test("an incident with no record yet leaves nothing out", async () => {
+      useSitePages();
+      useIncident();
+
+      const audience: IncidentSubscriberAudienceResult = await audienceFor({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: true,
+      });
+
+      expect(audience.statusPages).toHaveLength(5);
+    });
+
+    test("a page already sent it that the caller cannot read is not named", async () => {
+      useSitePages();
+      useIncident({
+        statusPagesNotifiedOnCreation: [sitePageId(1), sitePageId(3)],
+      });
+      readablePageIds = [sitePageId(2), sitePageId(3), sitePageId(4)];
+
+      const audience: IncidentSubscriberAudienceResult = await audienceFor({
+        incidentId: INCIDENT_ID,
+        excludeStatusPagesNotifiedOnCreation: true,
+      });
+
+      expect(
+        audience.excludedStatusPages.map((excluded: { name: string }) => {
+          return excluded.name;
+        }),
+      ).toEqual(["Site 03"]);
+      // Site 05 will be sent it and cannot be read; Site 01 will not be.
+      expect(audience.hiddenStatusPageCount).toBe(1);
+    });
   });
 
   test("an incident on no monitor reaches nobody", async () => {

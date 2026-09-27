@@ -139,7 +139,10 @@ describe("SubscriberNotificationResendCopy wiring", () => {
       "Index.tsx",
     );
 
-    expect(source).toContain("resendConfirmation={{");
+    // Only for whoever may send it again.
+    expect(source).toContain(
+      "resendConfirmation={ canSendCreatedNotificationAgain ? {",
+    );
     for (const key of [
       "incidentCreatedResendDescription",
       "incidentCreatedRetryDescription",
@@ -150,6 +153,10 @@ describe("SubscriberNotificationResendCopy wiring", () => {
     }
     expect(source).toContain(
       'SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-created-resend-audience"',
+    );
+    // Retry's own: without the pages already sent it in full.
+    expect(source).toContain(
+      'SubscriberAudienceSummary request={{ incidentId: modelId, excludeStatusPagesNotifiedOnCreation: true, }} dataTestId="incident-created-retry-audience"',
     );
     // 'Resend to all pages' is the server's request, not a guess.
     expect(source).toContain("IncidentCreatedResend.getMiscDataProps()");

@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (niet een van de pagina's waartoe dit incident is beperkt)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (toont alleen incidenten die tot deze pagina zijn beperkt)",
   "{{name}} (does not show incidents)": "{{name}} (toont geen incidenten)",
+  "{{name}} (already sent this notification in full)": "{{name}} (heeft deze melding al volledig ontvangen)",
   "{{name}} (lists none of these monitors)": "{{name}} (vermeldt geen van deze monitoren)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "Er worden geen statuspagina-abonnees geïnformeerd: er zijn geen monitoren gekoppeld. Abonnees horen over een incident via de monitoren die hun statuspagina's vermelden.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Er worden geen statuspagina-abonnees geïnformeerd: geen enkele statuspagina die deze monitoren vermeldt, toont dit incident.",

@@ -50,6 +50,8 @@ const EXCLUSION_TEXT: Record<
     IncidentStatusPageScopeCopy.audienceOnlyShowsScoped,
   [IncidentSubscriberAudienceExclusionReason.HidesIncidents]:
     IncidentStatusPageScopeCopy.audienceHidesIncidents,
+  [IncidentSubscriberAudienceExclusionReason.AlreadyNotified]:
+    IncidentStatusPageScopeCopy.audienceAlreadyNotified,
 };
 
 // "Site 03 (up to 41 email, 3 SMS)", or "Site 05 (no subscribers yet)".

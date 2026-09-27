@@ -235,6 +235,37 @@ describe("buildSubscriberAudienceView", () => {
     ]);
   });
 
+  test("a page a Retry of the 'created' notification skips, with why", () => {
+    expect(
+      view({
+        statusPages: [SITE_03],
+        excludedStatusPages: [
+          {
+            statusPageId: "a",
+            name: "Site 07",
+            reason: IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+          },
+        ],
+      }).notNotified,
+    ).toEqual(["Site 07 (already sent this notification in full)"]);
+  });
+
+  test("every reason a page is left out has its words", () => {
+    for (const reason of Object.values(
+      IncidentSubscriberAudienceExclusionReason,
+    )) {
+      const line: string = view({
+        statusPages: [SITE_03],
+        excludedStatusPages: [
+          { statusPageId: "a", name: "Site 07", reason: reason },
+        ],
+      }).notNotified[0]!;
+
+      expect(line.startsWith("Site 07 (")).toBe(true);
+      expect(line).not.toContain("undefined");
+    }
+  });
+
   test("a hidden incident: nothing will be sent, whatever it reaches", () => {
     expect(
       view({ isHiddenFromStatusPages: true, statusPages: [SITE_03] }),

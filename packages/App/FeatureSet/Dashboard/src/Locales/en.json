@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (not one of the pages this incident is limited to)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (only shows incidents limited to it)",
   "{{name}} (does not show incidents)": "{{name}} (does not show incidents)",
+  "{{name}} (already sent this notification in full)": "{{name}} (already sent this notification in full)",
   "{{name}} (lists none of these monitors)": "{{name}} (lists none of these monitors)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "No status page subscribers will be notified: no status page that lists these monitors will show this incident.",

@@ -197,6 +197,16 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         }
       }}
       onKeyDown={(event: React.KeyboardEvent<HTMLFormElement>) => {
+        /*
+         * Only keys typed in the composer itself. React bubbles a portalled
+         * dialog's events here too - 'Preview notification' opens from the
+         * composer - and its Escape must close the dialog, not the draft,
+         * and its Cmd+Enter must not post.
+         */
+        if (!event.currentTarget.contains(event.target as Node)) {
+          return;
+        }
+
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
 

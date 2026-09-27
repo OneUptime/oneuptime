@@ -18,6 +18,7 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -50,7 +51,9 @@ import {
  * address. Only counts and the caller's own address are ever shown.
  *
  * The dialog is portalled to the body: it opens from inside forms (Declare
- * Incident, the note composer), and nothing in it may submit them.
+ * Incident, the note composer), and nothing in it may submit them. React
+ * still bubbles its events to those forms' handlers, which ignore the ones
+ * from outside their own element.
  */
 
 export interface ComponentProps {
@@ -102,6 +105,12 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
   const [sendTest, setSendTest] = useState<SendTestState>(
     EMPTY_SEND_TEST_STATE,
   );
+  /*
+   * Which test send the answer shown is for. Picking another page starts
+   * over, and an answer for a test sent before that is dropped: it would
+   * say "sent" (or why not) under a page that was never sent.
+   */
+  const sendTestGeneration: React.MutableRefObject<number> = useRef<number>(0);
 
   useEffect(() => {
     let isCancelled: boolean = false;
@@ -148,11 +157,21 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
 
     setSendTest({ isSending: true, sentTo: "", error: "" });
 
+    const generation: number = sendTestGeneration.current;
+
     sendSubscriberNotificationTest(request, selectedStatusPage.statusPageId)
       .then((sent: SubscriberNotificationSendTestResult) => {
+        if (generation !== sendTestGeneration.current) {
+          return;
+        }
+
         setSendTest({ isSending: false, sentTo: sent.sentTo, error: "" });
       })
       .catch((err: unknown) => {
+        if (generation !== sendTestGeneration.current) {
+          return;
+        }
+
         setSendTest({
           isSending: false,
           sentTo: "",
@@ -237,13 +256,19 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
                       id={pageSelectId}
                       data-testid={`${dataTestId}-page-select`}
                       value={selectedStatusPage.statusPageId}
+                      /*
+                       * Kept on the page being sent until the test has
+                       * answered, so its answer is shown under that page.
+                       */
+                      disabled={sendTest.isSending}
                       onChange={(
                         event: React.ChangeEvent<HTMLSelectElement>,
                       ) => {
+                        sendTestGeneration.current += 1;
                         setSelectedStatusPageId(event.target.value);
                         setSendTest(EMPTY_SEND_TEST_STATE);
                       }}
-                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
                     >
                       {result.statusPages.map(
                         (
@@ -383,17 +408,16 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Keys are left to propagate. The dialog's Escape and its Tab focus trap
+   * are listened for on the document (Modal), and a portalled event still
+   * reaches it: stopping propagation here stopped the native event at the
+   * body, so Escape did not close the dialog and Tab walked out of it. The
+   * forms this opens from ignore keys from outside their own element - the
+   * note composer posts on Cmd+Enter and closes on Escape (NoteComposer).
+   */
   const modal: ReactElement = (
-    <div
-      data-testid={dataTestId}
-      /*
-       * Keys typed here stay here: the note composer this can open from
-       * posts on Cmd+Enter and closes on Escape.
-       */
-      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
-        event.stopPropagation();
-      }}
-    >
+    <div data-testid={dataTestId}>
       <Modal
         title={SubscriberNotificationPreviewCopy.dialogTitle}
         description={SubscriberNotificationPreviewCopy.dialogDescription}

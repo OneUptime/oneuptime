@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (не входит в страницы, которыми ограничен этот инцидент)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (показывает только ограниченные ею инциденты)",
   "{{name}} (does not show incidents)": "{{name}} (не показывает инциденты)",
+  "{{name}} (already sent this notification in full)": "{{name}} (уже получила это уведомление полностью)",
   "{{name}} (lists none of these monitors)": "{{name}} (не указан ни один из этих мониторов)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "Подписчики страниц состояния не получат уведомлений: мониторы не привязаны. Подписчики узнают об инциденте через мониторы, указанные на их страницах состояния.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Подписчики страниц состояния не получат уведомлений: ни одна страница состояния, где указаны эти мониторы, не покажет этот инцидент.",

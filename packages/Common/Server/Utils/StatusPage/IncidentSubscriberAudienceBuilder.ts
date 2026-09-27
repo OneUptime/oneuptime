@@ -78,6 +78,13 @@ export type IncidentSubscriberAudienceRequest =
       projectId: ObjectID;
       props: DatabaseCommonInteractionProps;
       incidentId: ObjectID;
+      /*
+       * Who a Retry of the incident's 'created' notification reaches: the
+       * pages it was already sent to in full (its record,
+       * Incident.statusPagesNotifiedOnCreation) are not sent it again, so
+       * they are reported as left out, with why, rather than as notified.
+       */
+      excludeStatusPagesNotifiedOnCreation?: boolean | undefined;
     }
   | {
       projectId: ObjectID;
@@ -105,6 +112,11 @@ interface AudienceInputs {
   // The pages the incident is limited to, lower-cased; empty when unscoped.
   scopedStatusPageIds: Array<string>;
   isHiddenFromStatusPages: boolean;
+  /*
+   * The pages a Retry of the 'created' notification skips, lower-cased;
+   * empty unless the request asked (excludeStatusPagesNotifiedOnCreation).
+   */
+  alreadyNotifiedStatusPageIds: Array<string>;
 }
 
 export default class IncidentSubscriberAudienceBuilder {
@@ -192,6 +204,7 @@ export default class IncidentSubscriberAudienceBuilder {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
     incidentId: ObjectID;
+    excludeStatusPagesNotifiedOnCreation?: boolean | undefined;
   }): Promise<AudienceInputs> {
     const incident: Incident | null = await IncidentService.findOneBy({
       query: {
@@ -217,7 +230,9 @@ export default class IncidentSubscriberAudienceBuilder {
      * The scope is read as root, now that the caller has been shown to read
      * the incident: its status page ids only decide which pages below are
      * reported as listing none of its monitors, and those are named only if
-     * the caller can read them.
+     * the caller can read them. The record of pages already sent the
+     * 'created' notification is read the same way, for a Retry's audience:
+     * it only moves pages from notified to left out.
      */
     const incidentWithScope: Incident | null = await IncidentService.findOneBy({
       query: {
@@ -230,6 +245,9 @@ export default class IncidentSubscriberAudienceBuilder {
         statusPages: {
           _id: true,
         },
+        ...(request.excludeStatusPagesNotifiedOnCreation
+          ? { statusPagesNotifiedOnCreation: true }
+          : {}),
       },
       props: {
         isRoot: true,
@@ -255,6 +273,11 @@ export default class IncidentSubscriberAudienceBuilder {
        */
       isHiddenFromStatusPages:
         incident.isVisibleOnStatusPage !== true || incident.isPrivate === true,
+      alreadyNotifiedStatusPageIds: request.excludeStatusPagesNotifiedOnCreation
+        ? IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+            incidentWithScope?.statusPagesNotifiedOnCreation,
+          )
+        : [],
     };
   }
 
@@ -334,6 +357,8 @@ export default class IncidentSubscriberAudienceBuilder {
       scopedStatusPageIds: statusPageIds,
       // The form knows whether the incident will be private; the page says so.
       isHiddenFromStatusPages: false,
+      // Nothing has been sent about an incident not yet declared.
+      alreadyNotifiedStatusPageIds: [],
     };
   }
 
@@ -391,6 +416,19 @@ export default class IncidentSubscriberAudienceBuilder {
         excludedPages.push({
           statusPage: statusPage,
           reason: IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+        });
+        continue;
+      }
+
+      // A Retry of the 'created' notification resumes after these.
+      if (
+        data.inputs.alreadyNotifiedStatusPageIds.includes(
+          this.getId(statusPage),
+        )
+      ) {
+        excludedPages.push({
+          statusPage: statusPage,
+          reason: IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
         });
         continue;
       }

@@ -85,6 +85,8 @@ jest.mock("../../../UI/Utils/Translation", () => {
 
 import SubscriberNotificationPreviewModal from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/SubscriberNotificationPreviewModal";
 import SubscriberNotificationPreviewButton from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/SubscriberNotificationPreviewButton";
+import NoteComposer from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteComposer";
+import { getNotesCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil";
 import SubscriberNotificationPreviewCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationPreviewCopy";
 import {
   EMAIL_PREVIEW_SANDBOX,
@@ -451,6 +453,88 @@ describe("Send test to me", () => {
     expect(JSON.stringify(request.data)).not.toMatch(/@/);
   });
 
+  /*
+   * Picking another page while a test is on its way used to re-enable the
+   * button, and the answer then showed "Test email sent" under a page that
+   * was never sent.
+   */
+  test("keeps the picker on the page being sent until the test answers", async () => {
+    let answer: (response: HTTPResponse<JSONObject>) => void = (): void => {};
+    answerPreviewWith(result(), () => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    await openModal();
+
+    const select: HTMLElement = screen.getByTestId(
+      "subscriber-notification-preview-page-select",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("subscriber-notification-preview-send-test"),
+      );
+    });
+
+    expect(select).toBeDisabled();
+    expect(
+      screen.getByTestId("subscriber-notification-preview-send-test"),
+    ).toBeDisabled();
+
+    await act(async () => {
+      answer(ok({ sentTo: "me@example.com" } as JSONObject));
+    });
+
+    expect(select).not.toBeDisabled();
+    expect(select).toHaveValue(SITE_03);
+    expect(
+      await screen.findByTestId(
+        "subscriber-notification-preview-send-test-sent",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an answer for a page no longer shown is dropped", async () => {
+    let answer: (response: HTTPResponse<JSONObject>) => void = (): void => {};
+    answerPreviewWith(result(), () => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    await openModal();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("subscriber-notification-preview-send-test"),
+      );
+    });
+
+    // Changed anyway, as a script or an assistive technology could.
+    const select: HTMLSelectElement = screen.getByTestId(
+      "subscriber-notification-preview-page-select",
+    ) as HTMLSelectElement;
+    select.disabled = false;
+    fireEvent.change(select, { target: { value: SITE_07 } });
+
+    await act(async () => {
+      answer(ok({ sentTo: "me@example.com" } as JSONObject));
+    });
+
+    expect(
+      screen.queryByTestId("subscriber-notification-preview-send-test-sent"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("subscriber-notification-preview-send-test"),
+    ).not.toBeDisabled();
+  });
+
   test("a refused test says why", async () => {
     answerPreviewWith(result(), async () => {
       return new HTTPErrorResponse(
@@ -483,14 +567,12 @@ describe("Send test to me", () => {
 });
 
 describe("inside the forms it opens from", () => {
-  test("is rendered outside them, and its keys do not reach them", async () => {
-    const onKeyDown: MockFunction = getJestMockFunction();
+  test("is rendered outside them, and clicking in it submits nothing", async () => {
     const onSubmit: MockFunction = getJestMockFunction();
 
     render(
       <form
         data-testid="host-form"
-        onKeyDown={onKeyDown}
         onSubmit={(event: React.FormEvent) => {
           event.preventDefault();
           onSubmit();
@@ -505,16 +587,11 @@ describe("inside the forms it opens from", () => {
 
     await screen.findByTestId("subscriber-notification-preview-body");
 
-    const form: HTMLElement = screen.getByTestId("host-form");
-
     expect(
-      within(form).queryByTestId("subscriber-notification-preview"),
+      within(screen.getByTestId("host-form")).queryByTestId(
+        "subscriber-notification-preview",
+      ),
     ).toBeNull();
-
-    fireEvent.keyDown(
-      screen.getByTestId("subscriber-notification-preview-page-select"),
-      { key: "Enter", metaKey: true },
-    );
 
     await act(async () => {
       fireEvent.click(
@@ -522,8 +599,183 @@ describe("inside the forms it opens from", () => {
       );
     });
 
-    expect(onKeyDown).not.toHaveBeenCalled();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The note composer posts on Cmd+Enter and drops a blank draft on Escape.
+   * React bubbles the portalled dialog's key events to it; it ignores the
+   * ones from outside its own element, so the dialog's keys stay the
+   * dialog's.
+   */
+  describe("the note composer", () => {
+    function renderComposer(): {
+      onSubmit: MockFunction;
+      onCancel: MockFunction;
+      onClose: MockFunction;
+    } {
+      const onSubmit: MockFunction = getJestMockFunction();
+      const onCancel: MockFunction = getJestMockFunction();
+      const onClose: MockFunction = getJestMockFunction();
+
+      render(
+        <NoteComposer
+          mode="create"
+          visibility="public"
+          copy={getNotesCopy("public", "incident")}
+          values={{
+            note: "",
+            attachments: [],
+            shouldNotify: true,
+            postedAt: null,
+          }}
+          onChange={() => {}}
+          editorKey="editor"
+          isAttachmentsEnabled={false}
+          notifyOption={{
+            title: "Notify status page subscribers",
+            checkedDescription: "Subscribers will be notified.",
+            uncheckedDescription: "Nobody will be notified.",
+          }}
+          notifyPreview={() => {
+            return (
+              <SubscriberNotificationPreviewModal
+                request={REQUEST}
+                onClose={() => {
+                  onClose();
+                }}
+              />
+            );
+          }}
+          isPostedAtEditable={false}
+          isSubmitting={false}
+          onSubmit={() => {
+            onSubmit();
+          }}
+          onCancel={() => {
+            onCancel();
+          }}
+          dataTestId="note-composer"
+        />,
+      );
+
+      return { onSubmit, onCancel, onClose };
+    }
+
+    test("Escape in the dialog closes the dialog, not the draft", async () => {
+      const calls: {
+        onSubmit: MockFunction;
+        onCancel: MockFunction;
+        onClose: MockFunction;
+      } = renderComposer();
+
+      await screen.findByTestId("subscriber-notification-preview-body");
+
+      fireEvent.keyDown(
+        screen.getByTestId("subscriber-notification-preview-page-select"),
+        { key: "Escape" },
+      );
+
+      expect(calls.onClose).toHaveBeenCalledTimes(1);
+      expect(calls.onCancel).not.toHaveBeenCalled();
+    });
+
+    test("Cmd+Enter in the dialog does not post the note", async () => {
+      const calls: {
+        onSubmit: MockFunction;
+        onCancel: MockFunction;
+        onClose: MockFunction;
+      } = renderComposer();
+
+      await screen.findByTestId("subscriber-notification-preview-body");
+
+      fireEvent.keyDown(
+        screen.getByTestId("subscriber-notification-preview-page-select"),
+        { key: "Enter", metaKey: true },
+      );
+
+      expect(calls.onSubmit).not.toHaveBeenCalled();
+    });
+
+    test("the composer's own keys still work", async () => {
+      const calls: {
+        onSubmit: MockFunction;
+        onCancel: MockFunction;
+        onClose: MockFunction;
+      } = renderComposer();
+
+      await screen.findByTestId("subscriber-notification-preview-body");
+
+      fireEvent.keyDown(screen.getByTestId("note-composer"), {
+        key: "Escape",
+      });
+
+      expect(calls.onCancel).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+/*
+ * The dialog closes on Escape and keeps Tab inside it (Modal listens on the
+ * document). A wrapper that stopped every key's propagation, to keep keys
+ * from the note composer, stopped them at the body before the document saw
+ * them: Escape did nothing, and Tab walked out of an aria-modal dialog.
+ */
+describe("the keyboard", () => {
+  test("Escape closes the dialog", async () => {
+    const onClose: MockFunction = getJestMockFunction();
+
+    render(
+      <SubscriberNotificationPreviewModal
+        request={REQUEST}
+        onClose={() => {
+          onClose();
+        }}
+      />,
+    );
+
+    await screen.findByTestId("subscriber-notification-preview-body");
+
+    fireEvent.keyDown(
+      screen.getByTestId("subscriber-notification-preview-page-select"),
+      { key: "Escape" },
+    );
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("Tab from the last control wraps to the first, and Shift+Tab back", async () => {
+    render(
+      <SubscriberNotificationPreviewModal
+        request={REQUEST}
+        onClose={() => {}}
+      />,
+    );
+
+    await screen.findByTestId("subscriber-notification-preview-body");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    const focusable: Array<HTMLElement> = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), select:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    expect(focusable.length).toBeGreaterThan(1);
+
+    const last: HTMLElement = focusable[focusable.length - 1]!;
+    last.focus();
+
+    fireEvent.keyDown(last, { key: "Tab" });
+
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).not.toBe(last);
+
+    const first: HTMLElement = document.activeElement as HTMLElement;
+
+    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+
+    expect(dialog.contains(document.activeElement)).toBe(true);
   });
 });
 

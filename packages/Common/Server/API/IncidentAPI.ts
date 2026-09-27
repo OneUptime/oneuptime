@@ -162,7 +162,9 @@ export default class IncidentAPI extends BaseAPI<
 
   /*
    * The request body: {incidentId} for an incident that exists, or
-   * {monitorIds, statusPageIds} for one being declared - never both.
+   * {monitorIds, statusPageIds} for one being declared - never both. With
+   * incidentId, excludeStatusPagesNotifiedOnCreation asks who a Retry of
+   * its 'created' notification reaches.
    */
   public static parseSubscriberAudienceRequest(data: {
     body: unknown;
@@ -191,6 +193,10 @@ export default class IncidentAPI extends BaseAPI<
         projectId: data.projectId,
         props: data.props,
         incidentId: IncidentAPI.parseObjectID(body["incidentId"], "incidentId"),
+        // Who a Retry of its 'created' notification reaches: only a real yes.
+        ...(body["excludeStatusPagesNotifiedOnCreation"] === true
+          ? { excludeStatusPagesNotifiedOnCreation: true }
+          : {}),
       };
     }
 

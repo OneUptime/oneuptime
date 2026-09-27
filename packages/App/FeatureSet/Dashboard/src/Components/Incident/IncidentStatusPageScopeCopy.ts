@@ -70,6 +70,7 @@ export const IncidentStatusPageScopeCopy: {
   audienceOutsideScope: string;
   audienceOnlyShowsScoped: string;
   audienceHidesIncidents: string;
+  audienceAlreadyNotified: string;
   audienceNotListingMonitors: string;
   audienceNoMonitors: string;
   audienceNoStatusPages: string;
@@ -145,6 +146,7 @@ export const IncidentStatusPageScopeCopy: {
     "{{name}} (not one of the pages this incident is limited to)",
   audienceOnlyShowsScoped: "{{name}} (only shows incidents limited to it)",
   audienceHidesIncidents: "{{name}} (does not show incidents)",
+  audienceAlreadyNotified: "{{name}} (already sent this notification in full)",
   audienceNotListingMonitors: "{{name}} (lists none of these monitors)",
   audienceNoMonitors:
     "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.",

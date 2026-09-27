@@ -6553,6 +6553,7 @@
   "{{name}} (not one of the pages this incident is limited to)": "{{name}} (جزو صفحه‌هایی نیست که این حادثه به آن‌ها محدود شده است)",
   "{{name}} (only shows incidents limited to it)": "{{name}} (فقط حادثه‌های محدودشده به خودش را نشان می‌دهد)",
   "{{name}} (does not show incidents)": "{{name}} (حادثه‌ها را نشان نمی‌دهد)",
+  "{{name}} (already sent this notification in full)": "{{name}} (این اعلان را پیش‌تر به‌طور کامل دریافت کرده است)",
   "{{name}} (lists none of these monitors)": "{{name}} (هیچ‌یک از این مانیتورها را فهرست نمی‌کند)",
   "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.": "به هیچ مشترک صفحهٔ وضعیتی اطلاع داده نمی‌شود: هیچ مانیتوری پیوست نشده است. مشترکان از طریق مانیتورهایی که صفحات وضعیتشان فهرست می‌کنند از حادثه باخبر می‌شوند.",
   "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "به هیچ مشترک صفحهٔ وضعیتی اطلاع داده نمی‌شود: هیچ صفحهٔ وضعیتی که این مانیتورها را فهرست می‌کند این حادثه را نمایش نخواهد داد.",

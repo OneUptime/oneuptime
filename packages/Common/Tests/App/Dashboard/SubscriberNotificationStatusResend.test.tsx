@@ -263,6 +263,89 @@ describe("SubscriberNotificationStatus with a confirmation (the incident-created
     expect(onResend).toHaveBeenCalledWith({ isToAllStatusPages: false });
   });
 
+  /*
+   * Retry resumes after the pages already sent it in full, so its "Will
+   * notify" leaves them out: a separate audience, shown for Retry alone.
+   * Ticking "every status page" - or a Resend - shows the full one.
+   */
+  describe("with a Retry audience of its own", () => {
+    const WITH_RETRY_AUDIENCE: SubscriberNotificationResendConfirmation = {
+      ...CONFIRMATION,
+      retryAudience: (
+        <div data-testid="retry-audience">
+          Will notify: Site 07 (up to 18 email)
+        </div>
+      ),
+    };
+
+    test("Retry shows who Retry reaches", () => {
+      renderBadge({
+        status: StatusPageSubscriberNotificationStatus.Failed,
+        message: "Not every subscriber was sent this notification.",
+        confirmation: WITH_RETRY_AUDIENCE,
+      });
+
+      fireEvent.click(
+        within(openDetails()).getByRole("button", { name: "Retry" }),
+      );
+
+      const confirm: HTMLElement = screen.getByRole("dialog", {
+        name: SubscriberNotificationResendCopy.retryConfirmTitle,
+      });
+
+      expect(within(confirm).getByTestId("retry-audience")).toBeInTheDocument();
+      expect(within(confirm).queryByTestId("audience")).toBeNull();
+    });
+
+    test("ticking 'every status page' shows every page it reaches", () => {
+      renderBadge({
+        status: StatusPageSubscriberNotificationStatus.Failed,
+        message: "Not every subscriber was sent this notification.",
+        confirmation: WITH_RETRY_AUDIENCE,
+      });
+
+      fireEvent.click(
+        within(openDetails()).getByRole("button", { name: "Retry" }),
+      );
+
+      const confirm: HTMLElement = screen.getByRole("dialog", {
+        name: SubscriberNotificationResendCopy.retryConfirmTitle,
+      });
+
+      act(() => {
+        fireEvent.click(
+          within(confirm).getByTestId(
+            "subscriber-notification-resend-to-all-pages",
+          ),
+        );
+      });
+
+      expect(within(confirm).getByTestId("audience")).toBeInTheDocument();
+      expect(within(confirm).queryByTestId("retry-audience")).toBeNull();
+    });
+
+    test("Resend shows every page it reaches", () => {
+      renderBadge({
+        status: StatusPageSubscriberNotificationStatus.Success,
+        message: "Notifications sent successfully to all subscribers.",
+        confirmation: WITH_RETRY_AUDIENCE,
+      });
+
+      fireEvent.click(
+        within(openDetails()).getByRole("button", {
+          name: SubscriberNotificationResendCopy.resendButton,
+        }),
+      );
+
+      const confirm: HTMLElement = screen.getByRole("dialog", {
+        name: SubscriberNotificationResendCopy.resendConfirmTitle,
+      });
+
+      expect(within(confirm).getByTestId("audience")).toBeInTheDocument();
+      expect(within(confirm).queryByTestId("retry-audience")).toBeNull();
+    });
+  });
+
   test("ticking 'every status page' turns Retry into 'Resend to all pages'", () => {
     const onResend: MockFunction = renderBadge({
       status: StatusPageSubscriberNotificationStatus.Failed,

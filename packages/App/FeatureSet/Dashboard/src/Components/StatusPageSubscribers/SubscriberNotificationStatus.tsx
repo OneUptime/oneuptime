@@ -51,6 +51,14 @@ export interface SubscriberNotificationResendConfirmation {
   retryToAllStatusPagesDescription?: string | undefined;
   // Who it would reach now: the incident's audience summary.
   audience?: ReactElement | undefined;
+  /*
+   * Who a Retry reaches, where that is not `audience`: the incident-created
+   * notification's Retry resumes after the pages already sent it in full,
+   * so its summary leaves them out. Shown for Retry unless its "every
+   * status page" box is ticked; Resend, and Retry to every page, show
+   * `audience`.
+   */
+  retryAudience?: ReactElement | undefined;
 }
 
 export interface ComponentProps {
@@ -324,7 +332,9 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {confirmation.audience || <></>}
+        {(!isResend && !isToAllStatusPages && confirmation.retryAudience
+          ? confirmation.retryAudience
+          : confirmation.audience) || <></>}
       </div>
     );
   };

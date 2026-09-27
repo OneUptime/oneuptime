@@ -3051,10 +3051,58 @@ AnalyticsModelAPI.aggregate = async (options) => {
   return { data: [] };
 };
 
+/*
+ * Who incident #1042's status page notifications reach
+ * (POST /incident/subscriber-audience), for the Retry and Resend
+ * confirmations of its 'created' notification. Its monitors reach two
+ * status pages. Asked for a Retry's audience
+ * (excludeStatusPagesNotifiedOnCreation), the page the failed send reached in
+ * full is left out, as the server leaves it out.
+ */
+const SUBSCRIBER_COUNTS = {
+  email: 1284,
+  sms: 0,
+  slack: 0,
+  microsoftTeams: 0,
+  webhook: 3,
+};
+const AUDIENCE_PAGES = [
+  { statusPageId: "90000000-0000-4000-8000-000000000001", name: "Acme EU" },
+  { statusPageId: "90000000-0000-4000-8000-000000000002", name: "Acme US" },
+];
+
+function subscriberAudience(body) {
+  const alreadyNotified =
+    body.excludeStatusPagesNotifiedOnCreation === true
+      ? [AUDIENCE_PAGES[1].statusPageId]
+      : [];
+  return {
+    hasMonitors: true,
+    isScoped: false,
+    isHiddenFromStatusPages: false,
+    statusPages: AUDIENCE_PAGES.filter((page) => {
+      return !alreadyNotified.includes(page.statusPageId);
+    }).map((page) => {
+      return { ...page, subscriberCounts: SUBSCRIBER_COUNTS };
+    }),
+    hiddenStatusPageCount: 0,
+    excludedStatusPages: AUDIENCE_PAGES.filter((page) => {
+      return alreadyNotified.includes(page.statusPageId);
+    }).map((page) => {
+      return { ...page, reason: "AlreadyNotified" };
+    }),
+    selectedStatusPagesNotListingMonitors: [],
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
   fixture.apiRequests.push({ method, url, body });
+
+  if (url.includes("/incident/subscriber-audience")) {
+    return ok(subscriberAudience(body));
+  }
 
   if (
     url.includes("/ai-investigation/incident") ||
