@@ -43,18 +43,21 @@ const DEFINITION_FILES: Array<string> = [
 // Every file known to compile a custom email template's body.
 const EXPECTED_EMAIL_BODY_FILES: Array<string> = [
   "App/FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers.ts",
-  "App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/IncidentEpisode/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers.ts",
-  "App/FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers.ts",
   "App/FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers.ts",
   "Common/Server/API/StatusPageAPI.ts",
   "Common/Server/Services/ScheduledMaintenanceService.ts",
   "Common/Server/Services/StatusPageSubscriberService.ts",
+  /*
+   * The incident created and public note emails, for the jobs and the
+   * notification preview alike (the jobs no longer compile them).
+   */
+  "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder.ts",
 ];
 
 const TEXT_COMPILE: string = "compileTemplate";

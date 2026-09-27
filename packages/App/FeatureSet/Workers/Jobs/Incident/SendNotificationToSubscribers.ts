@@ -1,10 +1,8 @@
 import RunCron from "../../Utils/Cron";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import SMS from "Common/Types/SMS/SMS";
@@ -15,14 +13,11 @@ import MailService from "Common/Server/Services/MailService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageService, {
-  Service as StatusPageServiceType,
-} from "Common/Server/Services/StatusPageService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
-  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
@@ -41,11 +36,15 @@ import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
-import IncidentTemplateVariableBuilder, {
+import {
   IncidentStatusPageTemplateVariables,
   IncidentTemplateVariables,
 } from "Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder";
-import { JSONObject } from "Common/Types/JSON";
+import SubscriberIncidentEmailBuilder, {
+  SubscriberIncidentEmail,
+  SubscriberIncidentEmailEvent,
+  SubscriberIncidentStatusPageEmail,
+} from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
@@ -339,20 +338,15 @@ RunCron(
          * the description is rendered once rather than once per subscriber,
          * and the incident's labels and custom fields are read once. They
          * do not vary per status page or per subscriber; what does is added
-         * per page below.
+         * per page below. Read the way the notification preview reads them
+         * (SubscriberIncidentEmailBuilder).
          */
         const incidentTemplateVariables: IncidentTemplateVariables =
-          await IncidentTemplateVariableBuilder.build({
+          await SubscriberIncidentEmailBuilder.buildTemplateVariables({
+            event: SubscriberIncidentEmailEvent.IncidentCreated,
             incident: incident,
             statusPages: statusPages,
-            markdownVariables: {
-              incidentDescription: incident.description,
-            },
           });
-        const incidentDescriptionHtml: string =
-          incidentTemplateVariables.getMarkdownVariable(
-            "incidentDescription",
-          ).html;
 
         for (const statuspage of statusPages) {
           try {
@@ -411,17 +405,12 @@ RunCron(
               await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
               statuspage.pageTitle || statuspage.name || "Status Page";
-            const statusPageIdString: string | null =
-              statuspage.id?.toString() || statuspage._id?.toString() || null;
 
             const incidentDetailsUrl: string =
-              incident.id && statusPageURL
-                ? URL.fromString(statusPageURL)
-                    .addRoute(`/incidents/${incident.id.toString()}`)
-                    .toString()
-                : statusPageURL;
-
-            // Send email to Email subscribers.
+              SubscriberIncidentEmailBuilder.getDetailsUrl({
+                statusPageUrl: statusPageURL,
+                incidentId: incident.id,
+              });
 
             /*
              * Everything this page's messages are filled with (see
@@ -437,8 +426,6 @@ RunCron(
                 detailsUrl: incidentDetailsUrl,
                 resources: statusPageToResources[statuspage._id!] || [],
               });
-            const resourcesAffectedString: string =
-              pageTemplateVariables.resourcesAffectedHtml;
             const resourcesAffectedPlainText: string =
               pageTemplateVariables.resourcesAffectedPlainText;
 
@@ -446,23 +433,31 @@ RunCron(
               `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedPlainText}`,
             );
 
-            // Fetch custom templates for this status page (if any)
+            /*
+             * The page's email - its custom template or the default one, and
+             * why - built by the code the notification preview shows it
+             * with, so what was previewed is what is sent.
+             */
+            const pageEmail: SubscriberIncidentStatusPageEmail =
+              await SubscriberIncidentEmailBuilder.forStatusPage({
+                event: SubscriberIncidentEmailEvent.IncidentCreated,
+                incident: incident,
+                incidentTemplateVariables: incidentTemplateVariables,
+                statusPage: statuspage,
+                statusPageUrl: statusPageURL,
+                detailsUrl: incidentDetailsUrl,
+                pageTemplateVariables: pageTemplateVariables,
+                host: host,
+                httpProtocol: httpProtocol,
+              });
+
+            // Fetch the other channels' custom templates for this page (if any)
             const [
-              emailTemplate,
               smsTemplate,
               slackTemplate,
               teamsTemplate,
             ]: Array<StatusPageSubscriberNotificationTemplate | null> =
               await Promise.all([
-                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                  {
-                    statusPageId: statuspage.id!,
-                    eventType:
-                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                    notificationMethod:
-                      StatusPageSubscriberNotificationMethod.Email,
-                  },
-                ),
                 StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
                   {
                     statusPageId: statuspage.id!,
@@ -494,14 +489,10 @@ RunCron(
 
             /*
              * Custom templates get each value in the format their channel
-             * renders: HTML for the email body (it is wrapped only by
-             * BlankTemplate), plain text for SMS and the email subject, and
-             * Markdown for Slack and Teams. The email body escapes every
-             * plain value (compileEmailBodyTemplate); only the values the
-             * builder wrapped in SafeHtml go into it as HTML.
+             * renders: plain text for SMS, and Markdown for Slack and Teams.
+             * (The email's are the builder's: see
+             * SubscriberIncidentEmailBuilder.)
              */
-            const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
-              pageTemplateVariables.emailBody;
             const plainTextTemplateVariables: Record<string, string> =
               pageTemplateVariables.plainText;
             const markdownTemplateVariables: Record<string, string> =
@@ -570,11 +561,6 @@ RunCron(
                 );
 
                 // Add unsubscribeUrl to template variables
-                const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
-                  {
-                    ...emailBodyTemplateVariables,
-                    unsubscribeUrl: unsubscribeUrl,
-                  };
                 const subscriberPlainTextTemplateVariables: Dictionary<string> =
                   {
                     ...plainTextTemplateVariables,
@@ -606,111 +592,36 @@ RunCron(
 
                   const subscriberEmail: Email = subscriber.subscriberEmail;
 
-                  if (emailTemplate?.templateBody && statuspage.smtpConfig) {
-                    // Use custom template with BlankTemplate only when custom SMTP is configured
-                    const compiledBody: string =
-                      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
-                        emailTemplate.templateBody,
-                        subscriberEmailBodyTemplateVariables,
+                  // The page's email, with this subscriber's unsubscribe link.
+                  const email: SubscriberIncidentEmail =
+                    pageEmail.forSubscriber({
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+
+                  await pageEmail.recordSending();
+
+                  await deliveryRecord.deliver({
+                    statusPage: statuspage,
+                    method: StatusPageSubscriberNotificationMethod.Email,
+                    subject: email.subject,
+                    logAttributes: logAttributes,
+                    send: () => {
+                      return MailService.sendMail(
+                        {
+                          toEmail: subscriberEmail,
+                          ...email.envelope,
+                        },
+                        {
+                          mailServer: ProjectSMTPConfigService.toEmailServer(
+                            statuspage.smtpConfig,
+                          ),
+                          projectId: statuspage.projectId,
+                          statusPageId: statuspage.id!,
+                          incidentId: incident.id!,
+                        },
                       );
-                    const compiledSubject: string = emailTemplate.emailSubject
-                      ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                          emailTemplate.emailSubject,
-                          subscriberPlainTextTemplateVariables,
-                        )
-                      : "[Incident] " + incident.title || "";
-
-                    await incidentTemplateVariables.recordFieldsUsedBy([
-                      emailTemplate.templateBody,
-                      emailTemplate.emailSubject,
-                    ]);
-
-                    await deliveryRecord.deliver({
-                      statusPage: statuspage,
-                      method: StatusPageSubscriberNotificationMethod.Email,
-                      subject: compiledSubject,
-                      logAttributes: logAttributes,
-                      send: () => {
-                        return MailService.sendMail(
-                          {
-                            toEmail: subscriberEmail,
-                            templateType: EmailTemplateType.BlankTemplate,
-                            vars: {
-                              body: compiledBody,
-                            },
-                            subject: compiledSubject,
-                            isSubjectLiteral: true,
-                          },
-                          {
-                            mailServer: ProjectSMTPConfigService.toEmailServer(
-                              statuspage.smtpConfig,
-                            ),
-                            projectId: statuspage.projectId,
-                            statusPageId: statuspage.id!,
-                            incidentId: incident.id!,
-                          },
-                        );
-                      },
-                    });
-                  } else {
-                    await incidentTemplateVariables.recordIncludedFieldsSent();
-
-                    // Use default hard-coded template
-                    await deliveryRecord.deliver({
-                      statusPage: statuspage,
-                      method: StatusPageSubscriberNotificationMethod.Email,
-                      subject: "[Incident] " + incident.title || "",
-                      logAttributes: logAttributes,
-                      send: () => {
-                        return MailService.sendMail(
-                          {
-                            toEmail: subscriberEmail,
-                            templateType:
-                              EmailTemplateType.SubscriberIncidentCreated,
-                            vars: {
-                              statusPageName: statusPageName,
-                              statusPageUrl: statusPageURL,
-                              detailsUrl: incidentDetailsUrl,
-                              logoUrl:
-                                statuspage.logoFileId && statusPageIdString
-                                  ? new URL(httpProtocol, host)
-                                      .addRoute(StatusPageApiRoute)
-                                      .addRoute(`/logo/${statusPageIdString}`)
-                                      .toString()
-                                  : "",
-                              isPublicStatusPage: statuspage.isPublicStatusPage
-                                ? "true"
-                                : "false",
-                              resourcesAffected: resourcesAffectedString,
-                              incidentSeverity:
-                                incident.incidentSeverity?.name || " - ",
-                              incidentTitle: incident.title || "",
-                              incidentDescription: incidentDescriptionHtml,
-                              // The fields marked "Include in Subscriber Notifications".
-                              customFieldRows:
-                                pageTemplateVariables.customFieldRows as unknown as JSONObject,
-                              unsubscribeUrl: unsubscribeUrl,
-
-                              subscriberEmailNotificationFooterText:
-                                StatusPageServiceType.getSubscriberEmailFooterText(
-                                  statuspage,
-                                ),
-                            },
-                            subject: "[Incident] " + incident.title || "",
-                            isSubjectLiteral: true,
-                          },
-                          {
-                            mailServer: ProjectSMTPConfigService.toEmailServer(
-                              statuspage.smtpConfig,
-                            ),
-                            projectId: statuspage.projectId,
-                            statusPageId: statuspage.id!,
-                            incidentId: incident.id!,
-                          },
-                        );
-                      },
-                    });
-                  }
+                    },
+                  });
                 }
 
                 if (

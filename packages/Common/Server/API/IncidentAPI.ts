@@ -30,7 +30,6 @@ import IncidentAIContextBuilder, {
 } from "../Utils/AI/IncidentAIContextBuilder";
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission, { UserPermission } from "../../Types/Permission";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import IncidentSubscriberAudience, {
   IncidentSubscriberAudienceResult,
@@ -48,19 +47,11 @@ export default class IncidentAPI extends BaseAPI<
    * ones that may declare an incident, edit one, or post a public note on
    * one - the three places the audience is shown. Which incident, monitors
    * and status pages the answer covers is then bounded by what the caller
-   * may read (IncidentSubscriberAudienceBuilder).
+   * may read (IncidentSubscriberAudienceBuilder, which the notification
+   * preview checks against too).
    */
   public static readonly SUBSCRIBER_AUDIENCE_PERMISSIONS: ReadonlyArray<Permission> =
-    [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-      Permission.EditProjectIncident,
-      Permission.CreateIncidentPublicNote,
-    ];
+    IncidentSubscriberAudienceBuilder.PERMISSIONS;
 
   public constructor() {
     super(Incident, IncidentService);
@@ -147,28 +138,8 @@ export default class IncidentAPI extends BaseAPI<
      */
     const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
 
-    /*
-     * Read through getUserPermissions(Allow), as the handlers above do: the
-     * tenant permission list holds grants and denials together, and a team's
-     * block entry for one of these must not count as a grant of it.
-     */
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const hasPermission: boolean = permissions.some((p: Permission) => {
-      return IncidentAPI.SUBSCRIBER_AUDIENCE_PERMISSIONS.includes(p);
-    });
-
-    if (!hasPermission && !props.isMasterAdmin) {
-      throw new NotAuthorizedException(
-        "You do not have permission to see who this incident's status page notifications would reach. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident, Edit Incident, Create Incident Public Note.",
-      );
-    }
+    // One of the roles that may see the audience (read as Allow grants).
+    IncidentSubscriberAudienceBuilder.assertCallerMaySeeAudience(props);
 
     const request: IncidentSubscriberAudienceRequest =
       IncidentAPI.parseSubscriberAudienceRequest({

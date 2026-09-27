@@ -2,6 +2,10 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Permission, { UserPermission } from "../../../Types/Permission";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -72,6 +76,18 @@ export type IncidentSubscriberAudienceRequest =
       statusPageIds: Array<ObjectID>;
     };
 
+/*
+ * The audience with the status pages behind it, for a caller that goes on to
+ * build what those pages are sent (the notification preview): the pages the
+ * incident reaches, as the subscriber jobs load them, and the resources each
+ * lists. Never serialized: it holds every page, readable or not, and each
+ * page's mail and SMS settings.
+ */
+export interface IncidentSubscriberAudienceWithStatusPages {
+  audience: IncidentSubscriberAudienceResult;
+  resolved: ResolvedIncidentStatusPages;
+}
+
 // What decides the audience, once the request is resolved.
 interface AudienceInputs {
   resolved: ResolvedIncidentStatusPages;
@@ -82,19 +98,83 @@ interface AudienceInputs {
 }
 
 export default class IncidentSubscriberAudienceBuilder {
+  /*
+   * The roles that may see who an incident's notifications would reach, and
+   * preview what they would be sent: the ones that may declare an incident,
+   * edit one, or post a public note on one - the places the audience is
+   * shown. Which incident, monitors and status pages an answer covers is
+   * then bounded by what the caller may read.
+   */
+  public static readonly PERMISSIONS: ReadonlyArray<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.CreateProjectIncident,
+    Permission.EditProjectIncident,
+    Permission.CreateIncidentPublicNote,
+  ];
+
+  /*
+   * Refuses a caller who holds none of PERMISSIONS in the project. Read
+   * through getUserPermissions(Allow): the tenant permission list holds
+   * grants and denials together, and a team's block entry for one of these
+   * must not count as a grant of it.
+   */
+  public static assertCallerMaySeeAudience(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isMasterAdmin) {
+      return;
+    }
+
+    const permissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    const hasPermission: boolean = permissions.some((p: Permission) => {
+      return this.PERMISSIONS.includes(p);
+    });
+
+    if (!hasPermission) {
+      throw new NotAuthorizedException(
+        "You do not have permission to see who this incident's status page notifications would reach. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident, Edit Incident, Create Incident Public Note.",
+      );
+    }
+  }
+
   public static async build(
     request: IncidentSubscriberAudienceRequest,
   ): Promise<IncidentSubscriberAudienceResult> {
+    return (await this.buildWithStatusPages(request)).audience;
+  }
+
+  // The audience, and the status pages it was worked out from.
+  public static async buildWithStatusPages(
+    request: IncidentSubscriberAudienceRequest,
+  ): Promise<IncidentSubscriberAudienceWithStatusPages> {
     const inputs: AudienceInputs =
       "incidentId" in request
         ? await this.getInputsForIncident(request)
         : await this.getInputsForDraft(request);
 
-    return this.buildAudience({
-      projectId: request.projectId,
-      props: request.props,
-      inputs: inputs,
-    });
+    const audience: IncidentSubscriberAudienceResult = await this.buildAudience(
+      {
+        projectId: request.projectId,
+        props: request.props,
+        inputs: inputs,
+      },
+    );
+
+    return {
+      audience: audience,
+      resolved: inputs.resolved,
+    };
   }
 
   // An incident that exists: read with the caller's permissions.

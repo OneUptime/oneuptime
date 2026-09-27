@@ -311,8 +311,20 @@ import {
   describeSubscriberDelivery,
 } from "../Fixtures/SubscriberDeliveryContract";
 import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberIncidentEmailBuilder, {
+  SubscriberIncidentEmail,
+  SubscriberIncidentEmailEvent,
+  SubscriberIncidentStatusPageEmail,
+} from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const JOB: string = "Incident:SendNotificationToSubscribers";
 
@@ -2743,5 +2755,110 @@ describe("Incident:SendNotificationToSubscribers, when a send falls short", () =
         },
       ),
     ).toEqual([StatusPageSubscriberNotificationStatus.Failed]);
+  });
+});
+
+/*
+ * The email is built by SubscriberIncidentEmailBuilder, the code path the
+ * notification preview renders with, so what is previewed is what is sent:
+ * the job sends exactly the page's email the builder built, addressed to the
+ * subscriber with their own unsubscribe link, and records the fields it
+ * carries only as it sends it.
+ */
+describe("Incident:SendNotificationToSubscribers sends the builder's email", () => {
+  interface BuiltPage {
+    data: Parameters<typeof SubscriberIncidentEmailBuilder.forStatusPage>[0];
+    pageEmail: SubscriberIncidentStatusPageEmail;
+    recordSending: jest.Mock;
+  }
+
+  // Wraps the real builder, recording what it was given and built.
+  function spyOnBuilder(): Array<BuiltPage> {
+    const built: Array<BuiltPage> = [];
+    const forStatusPage: typeof SubscriberIncidentEmailBuilder.forStatusPage =
+      SubscriberIncidentEmailBuilder.forStatusPage.bind(
+        SubscriberIncidentEmailBuilder,
+      );
+
+    jest
+      .spyOn(SubscriberIncidentEmailBuilder, "forStatusPage")
+      .mockImplementation(async (data: BuiltPage["data"]) => {
+        const pageEmail: SubscriberIncidentStatusPageEmail =
+          await forStatusPage(data);
+        const recordSending: jest.Mock = jest.fn(() => {
+          expect(mock(MailService.sendMail)).not.toHaveBeenCalled();
+          return pageEmail.recordSending();
+        }) as unknown as jest.Mock;
+
+        built.push({
+          data: data,
+          pageEmail: pageEmail,
+          recordSending: recordSending,
+        });
+
+        return {
+          ...pageEmail,
+          recordSending: recordSending as unknown as () => Promise<void>,
+        };
+      });
+
+    return built;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the default email: built once for the page, sent as built", async () => {
+    const built: Array<BuiltPage> = spyOnBuilder();
+
+    await runJob();
+
+    expect(built).toHaveLength(1);
+    expect(built[0]!.data.event).toBe(
+      SubscriberIncidentEmailEvent.IncidentCreated,
+    );
+    expect(built[0]!.data.statusPage._id).toBe(STATUS_PAGE_ID.toString());
+    expect(built[0]!.data.statusPageUrl).toBe(STATUS_PAGE_URL);
+    expect(built[0]!.data.detailsUrl).toBe(DETAILS_URL);
+
+    const expected: SubscriberIncidentEmail = built[0]!.pageEmail.forSubscriber(
+      {
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(sentMail()).toEqual([
+      {
+        toEmail: new Email("customer@example.com"),
+        ...expected.envelope,
+      },
+    ]);
+    expect(built[0]!.recordSending).toHaveBeenCalledTimes(1);
+  });
+
+  test("a custom template: sent as the builder compiled it", async () => {
+    useCustomTemplatesOnEveryChannel();
+    const built: Array<BuiltPage> = spyOnBuilder();
+
+    await runJob();
+
+    expect(built[0]!.pageEmail.templateChoice.usesCustomTemplate).toBe(true);
+
+    const expected: SubscriberIncidentEmail = built[0]!.pageEmail.forSubscriber(
+      {
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(expected.envelope.templateType).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()).toEqual([
+      {
+        toEmail: new Email("customer@example.com"),
+        ...expected.envelope,
+      },
+    ]);
   });
 });

@@ -229,18 +229,9 @@ export default class IncidentSubscriberAudience {
       isHiddenFromStatusPages: json["isHiddenFromStatusPages"] === true,
       statusPages: toArray(json["statusPages"]).map(
         (item: JSONObject): IncidentSubscriberAudienceStatusPage => {
-          const counts: JSONObject =
-            (item["subscriberCounts"] as JSONObject | undefined) || {};
-
           return {
             ...toNamed(item),
-            subscriberCounts: {
-              email: toCount(counts["email"]),
-              sms: toCount(counts["sms"]),
-              slack: toCount(counts["slack"]),
-              microsoftTeams: toCount(counts["microsoftTeams"]),
-              webhook: toCount(counts["webhook"]),
-            },
+            subscriberCounts: this.countsFromJSON(item["subscriberCounts"]),
           };
         },
       ),
@@ -262,6 +253,32 @@ export default class IncidentSubscriberAudience {
       selectedStatusPagesNotListingMonitors: toArray(
         json["selectedStatusPagesNotListingMonitors"],
       ).map(toNamed),
+    };
+  }
+
+  /*
+   * One page's counts as they arrive, each a whole number of at least 0: a
+   * count that is missing or not a number reads as 0.
+   */
+  public static countsFromJSON(
+    value: unknown,
+  ): IncidentSubscriberAudienceCounts {
+    const counts: JSONObject =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as JSONObject)
+        : {};
+
+    const toCount: (count: unknown) => number = (count: unknown): number => {
+      const number: number = Number(count);
+      return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
+    };
+
+    return {
+      email: toCount(counts["email"]),
+      sms: toCount(counts["sms"]),
+      slack: toCount(counts["slack"]),
+      microsoftTeams: toCount(counts["microsoftTeams"]),
+      webhook: toCount(counts["webhook"]),
     };
   }
 

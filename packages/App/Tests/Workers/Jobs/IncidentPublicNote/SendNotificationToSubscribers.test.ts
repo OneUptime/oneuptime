@@ -323,6 +323,11 @@ import {
   describeSubscriberDelivery,
 } from "../Fixtures/SubscriberDeliveryContract";
 import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import SubscriberIncidentEmailBuilder, {
+  SubscriberIncidentEmail,
+  SubscriberIncidentEmailEvent,
+  SubscriberIncidentStatusPageEmail,
+} from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -541,6 +546,37 @@ function subscriber(): StatusPageSubscriber {
 
 function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
+}
+
+/*
+ * The email is built by SubscriberIncidentEmailBuilder, the code path the
+ * notification preview renders with, so what is previewed is what is sent.
+ * Wraps the real builder, recording what it was given and built.
+ */
+interface BuiltPage {
+  data: Parameters<typeof SubscriberIncidentEmailBuilder.forStatusPage>[0];
+  pageEmail: SubscriberIncidentStatusPageEmail;
+}
+
+function spyOnEmailBuilder(): Array<BuiltPage> {
+  const built: Array<BuiltPage> = [];
+  const forStatusPage: typeof SubscriberIncidentEmailBuilder.forStatusPage =
+    SubscriberIncidentEmailBuilder.forStatusPage.bind(
+      SubscriberIncidentEmailBuilder,
+    );
+
+  jest
+    .spyOn(SubscriberIncidentEmailBuilder, "forStatusPage")
+    .mockImplementation(async (data: BuiltPage["data"]) => {
+      const pageEmail: SubscriberIncidentStatusPageEmail =
+        await forStatusPage(data);
+
+      built.push({ data: data, pageEmail: pageEmail });
+
+      return pageEmail;
+    });
+
+  return built;
 }
 
 /*
@@ -1215,6 +1251,43 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
       StatusPageSubscriberNotificationStatus.Success,
     ]);
   });
+});
+
+describe("IncidentPublicNote jobs send the builder's email", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each(TRIGGERS)(
+    "the $name builds each page's email once and sends it as built",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      const built: Array<BuiltPage> = spyOnEmailBuilder();
+
+      await runJob(trigger.job);
+
+      expect(built).toHaveLength(1);
+      expect(built[0]!.data.event).toBe(
+        trigger.job === UPDATED_JOB
+          ? SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated
+          : SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      );
+      expect(built[0]!.data.statusPage._id).toBe(STATUS_PAGE_ID.toString());
+      expect(built[0]!.data.detailsUrl).toBe(DETAILS_URL);
+
+      const expected: SubscriberIncidentEmail =
+        built[0]!.pageEmail.forSubscriber({
+          unsubscribeUrl: UNSUBSCRIBE_URL,
+        });
+
+      expect(sentMail()).toEqual([
+        {
+          toEmail: new Email("customer@example.com"),
+          ...expected.envelope,
+        },
+      ]);
+    },
+  );
 });
 
 describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {

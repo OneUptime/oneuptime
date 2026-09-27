@@ -983,9 +983,27 @@ describe("incident custom fields docs", () => {
       (worker: string) => {
         const source: string = readSource(path.join(APP_DIR, worker));
 
-        expect(source).toMatch(
-          /emailTemplate\?\.templateBody && statuspage\.smtpConfig/,
-        );
+        /*
+         * The created and public note workers build their email through
+         * SubscriberIncidentEmailBuilder, the code path the notification
+         * preview shows it with, so the email rule is the builder's there.
+         */
+        if (source.includes("SubscriberIncidentEmailBuilder.forStatusPage(")) {
+          const builder: string = readSource(
+            path.join(
+              COMMON_DIR,
+              "Server/Utils/StatusPage/SubscriberIncidentEmailBuilder.ts",
+            ),
+          );
+
+          expect(builder).toMatch(/if \(!data\.emailTemplate\.templateBody\)/);
+          expect(builder).toMatch(/if \(!data\.statusPage\.smtpConfig\)/);
+          expect(builder).toMatch(/usesCustomTemplate: true/);
+        } else {
+          expect(source).toMatch(
+            /emailTemplate\?\.templateBody && statuspage\.smtpConfig/,
+          );
+        }
         expect(source).toMatch(
           /smsTemplate\?\.templateBody && statuspage\.callSmsConfig/,
         );
