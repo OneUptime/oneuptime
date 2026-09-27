@@ -88,15 +88,26 @@ API 组件的简化版，适合"发完就走"的场景。往一个 URL POST 一�
 
 ## 电子邮件
 
-通过 OneUptime 发一封邮件。
+通过你在方块上填写的 SMTP 服务器发一封邮件。
 
 **设置**：
 
-- **收件人**——收件人的邮箱地址。
-- **主题**——邮件的主题行。
-- **Body**——用 Markdown 或 HTML 写的正文。
+- **From Email**——发件人，例如 `Alerts <alerts@company.com>`。
+- **To Email**——收件人的邮箱地址。多个地址用逗号或分号隔开。
+- **Subject**——邮件的主题行。
+- **Email Body**——正文，以 HTML 形式发送。
+- **SMTP Host** 和 **SMTP Port**——要连接的邮件服务器。
+- **SMTP Username** 和 **SMTP Password**——可选。要么两个都填，要么都不填。
+- **Use Implicit TLS**——使用隐式 TLS 时打开，通常用 465 端口。使用 STARTTLS 时保持关闭，通常用 587 端口。
 
-邮件从你项目配置好的发件人那里发出去——见 [SMTP](/docs/emails/smtp)。
+**Outputs**：
+
+- **成功**——SMTP 服务器接受了这封邮件时触发。
+- **错误**——SMTP 主机被拒绝、服务器连不上，或者服务器拒收这封邮件时触发。把错误信息传下去。如果缺了 **To Email**、**From Email**、**SMTP Host** 或 **SMTP Port**，则会改为直接停止这次运行。
+
+这个方块直接连接它设置里的那台服务器。它不使用你项目的 [SMTP](/docs/emails/smtp) 设置，也不使用 OneUptime 自己的邮件服务器，它发出的邮件也不会出现在通知日志里。想知道它做了什么，就去看这个工作流的[运行与日志](/docs/workflows/runs-and-logs)。
+
+到回环地址（`localhost`、`127.0.0.1`）、链路本地地址和云元数据地址的连接都会被拒绝。在 OneUptime Cloud 上，位于私有网络地址上的 SMTP 主机，或者解析到私有网络地址的主机名，也会被拒绝。自托管部署可以连到自己网络里的邮件服务器，除非把 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 设为 `true`。被拒绝的主机会走 **错误** 输出，什么都不会发出去。
 
 ## Custom Code
 

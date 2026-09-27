@@ -39,7 +39,7 @@ These sinks are covered, because the target is a URL an authenticated member of 
 
 **Not** covered, and never will be: **status page subscriber webhooks**. Any visitor to a public status page can register one, so relaxing that sink would let anyone on the internet make your server POST into your private network. This is not configurable.
 
-Outbound connections that are not webhooks — external data sources, LLM providers, SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs.
+Outbound connections that are not webhooks — external data sources, LLM providers, SMTP servers (a project's SMTP settings and the workflow **Email** component), SMTP OAuth token endpoints, OIDC discovery and Runbook HTTP steps — are governed separately, by `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, and already permit private ranges on self-hosted installs.
 
 ### Configuring the API server
 
