@@ -81,7 +81,7 @@ Like incident templates, rows are created and viewed rather than edited inline; 
 | `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
 | `{{customFields.<key>}}`            | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
 
-A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into a link, an image or HTML in the posted note. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note.
+A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into a link, an image or HTML in the posted note. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note, with a warning: the custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
@@ -179,6 +179,8 @@ An incident created with `createdIncidentTemplateId` starts with the template's 
 Values are stored under the field's name, so renaming a field has to move them. When you save a new **Field Name**, OneUptime moves the field's value to the new name on every incident and every incident template in the project, and updates the saved views of the incidents list that show or filter by the field. The move starts no **On Update Incident** workflow, and it does not change any incident's last-updated time. The field's **Template Variable** stays as it was, so note templates, custom subscriber notification templates and webhook integrations that use it keep working.
 
 Two renames are refused: one onto a name another incident custom field already has (compared without regard to case), and an API request that would rename several fields at once. Workflows and API clients that read or write a value by the field's old name need to be changed to the new one.
+
+After a rename the field holds only its own values. Deleting a field leaves its values on the incidents that had them, so incidents can still hold values under the new name from a field that was deleted; the rename clears those, rather than show them as this field's answers or send them to subscribers. Every incident and template moves together: if the move fails, none of them changes, the field keeps its old name and the save reports an error, so you can simply try again. A field **created** with a deleted field's name is different: it shows the values that field left behind, and sends them to subscribers once **Include in Subscriber Notifications** is on.
 
 ### Terraform
 

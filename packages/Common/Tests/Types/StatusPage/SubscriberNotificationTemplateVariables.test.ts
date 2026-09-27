@@ -474,3 +474,68 @@ describe("SubscriberNotificationTemplateVariables", () => {
     expect(report).toContain("report.rows");
   });
 });
+
+/*
+ * The placeholders that read the team's incident records - labels and custom
+ * fields - which only someone who may read incidents may place in a
+ * template (SubscriberTemplateIncidentRecordAccess). Everything else a
+ * template offers is on the status page already.
+ */
+describe("SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders", () => {
+  test("finds labels and every custom field placeholder, each once, sorted", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "<p>{{ customFields.root_cause }} {{incidentLabels}}</p>",
+        "{{customFields.customer_account}} {{customFields.root_cause}}",
+        null,
+        undefined,
+      ]),
+    ).toEqual([
+      "customFields.customer_account",
+      "customFields.root_cause",
+      "incidentLabels",
+    ]);
+  });
+
+  test("a guessed key counts, whether or not such a field exists", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "{{customFields.a}}{{customFields.b_2}}",
+      ]),
+    ).toEqual(["customFields.a", "customFields.b_2"]);
+  });
+
+  test("what the status page shows does not count", () => {
+    const publicVariables: Array<string> = Array.from(
+      new Set(
+        ALL_EVENTS.flatMap(
+          (event: StatusPageSubscriberNotificationEventType) => {
+            return names(event);
+          },
+        ),
+      ),
+    ).filter((name: string) => {
+      return name !== "incidentLabels";
+    });
+
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        publicVariables
+          .map((name: string) => {
+            return `{{${name}}}`;
+          })
+          .join(" "),
+      ]),
+    ).toEqual([]);
+    expect(publicVariables).toContain("affectedStatusPages");
+    expect(publicVariables).toContain("incidentTitle");
+  });
+
+  test("only what the compiler would fill: other spellings are left as written", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "{customFields.a} {{customFields.a-b}} {{ customfields.a }} {{incidentlabels}}",
+      ]),
+    ).toEqual([]);
+  });
+});

@@ -7,6 +7,8 @@ import {
   buildCustomFieldFormFields,
   CUSTOM_FIELD_NO_VALUE_PLACEHOLDER,
   CustomFieldFormDefinition,
+  getCustomFieldDetailContentClassName,
+  getCustomFieldDisplayValue,
   getCustomFieldDropdownOptions,
 } from "./CustomFieldFormFields";
 
@@ -104,7 +106,8 @@ export interface CustomFieldValueSummaryProps {
 
 /*
  * One field's value on a form's review step, drawn the way the Custom Fields
- * card draws it: Yes or No, the option's label, the date in the viewer's time.
+ * card draws it: Yes or No, the option's label, the date in the viewer's
+ * time, a text field's number or yes/no as text, a Long text value's lines.
  */
 export const CustomFieldValueSummary: FunctionComponent<
   CustomFieldValueSummaryProps
@@ -119,13 +122,17 @@ export const CustomFieldValueSummary: FunctionComponent<
       item={{
         value: isCustomFieldValueEmpty(props.value)
           ? null
-          : (props.value as JSONObject["value"]),
+          : (getCustomFieldDisplayValue({
+              customFieldType: type,
+              value: props.value,
+            }) as JSONObject["value"]),
       }}
       fields={[
         {
           key: "value",
           // CustomFieldType names a FieldType by value (see CustomFieldType).
           fieldType: (type as unknown as FieldType) || FieldType.Text,
+          contentClassName: getCustomFieldDetailContentClassName(type),
           placeholder: CUSTOM_FIELD_NO_VALUE_PLACEHOLDER,
           dropdownOptions: isDropdown
             ? getCustomFieldDropdownOptions(props.definition.dropdownOptions)
@@ -255,8 +262,12 @@ export const getCustomFieldFormInitialValues: GetCustomFieldFormInitialValuesFun
         continue;
       }
 
+      // A text field's number or yes/no as text: its input takes a string.
       initialValues[getCustomFieldFormKey(definition.name)] =
-        value as JSONObject["value"];
+        getCustomFieldDisplayValue({
+          customFieldType: definition.customFieldType,
+          value: value,
+        }) as JSONObject["value"];
     }
 
     return initialValues;

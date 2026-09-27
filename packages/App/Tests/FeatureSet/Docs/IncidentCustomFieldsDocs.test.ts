@@ -8,6 +8,7 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import SubscriberTemplateIncidentRecordAccess from "Common/Server/Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { CustomFieldDefinition } from "Common/Types/CustomField/CustomFieldDefinition";
 import { INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS } from "Common/Types/CustomField/CustomFieldSavedViews";
@@ -22,6 +23,7 @@ import {
   getCustomFieldVariableKeyBase,
 } from "Common/Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "Common/Types/JSON";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import {
@@ -871,6 +873,74 @@ describe("incident custom fields docs", () => {
         ).toBe(false);
       },
     );
+
+    /*
+     * The roles the docs name as able to place labels and custom fields are
+     * exactly the ones the save check lets through, read from the models;
+     * the status page roles it names are ones it refuses.
+     */
+    test.each(LANGUAGES)(
+      "%s: names who may place labels and custom fields, as the save check reads the models",
+      (language: string) => {
+        const named: Set<string> = boldText(
+          sectionOf(
+            readPage(SUBSCRIBERS_PAGE, language),
+            INCIDENT_VARIABLES_SUBSECTION[language] as string,
+          ),
+        );
+        const requirements: Array<Array<Permission>> =
+          SubscriberTemplateIncidentRecordAccess.getRequirements([
+            `${CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX}root_cause`,
+            "incidentLabels",
+          ]).map((requirement: { permissions: Array<Permission> }) => {
+            return requirement.permissions;
+          });
+        const allowedRoles: Array<Permission> = [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.IncidentAdmin,
+          Permission.IncidentMember,
+          Permission.IncidentViewer,
+        ];
+
+        for (const role of allowedRoles) {
+          expect(named.has(PermissionHelper.getTitle(role))).toBe(true);
+
+          for (const permissions of requirements) {
+            expect(permissions).toContain(role);
+          }
+        }
+
+        for (const role of [
+          Permission.StatusPageAdmin,
+          Permission.StatusPageMember,
+        ]) {
+          expect(named.has(PermissionHelper.getTitle(role))).toBe(true);
+          expect(
+            requirements.every((permissions: Array<Permission>) => {
+              return permissions.includes(role);
+            }),
+          ).toBe(false);
+        }
+      },
+    );
+
+    test("the template service runs the save check on create and update", () => {
+      const service: string = readSource(
+        path.join(
+          COMMON_DIR,
+          "Server/Services/StatusPageSubscriberNotificationTemplateService.ts",
+        ),
+      );
+
+      expect(
+        service.match(
+          /SubscriberTemplateIncidentRecordAccess\.assertCanPlace/g,
+        ),
+      ).toHaveLength(2);
+    });
 
     test.each(LANGUAGES)(
       "%s: states the plan each piece needs, as the models gate it",

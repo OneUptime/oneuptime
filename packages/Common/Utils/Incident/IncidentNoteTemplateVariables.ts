@@ -160,8 +160,10 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
       }
 
       /*
-       * A calendar date: the day that was picked, with no time zone to shift
-       * it into the day before for a reader west of UTC.
+       * A calendar date: the day that was picked, read the way the
+       * subscriber messages read it (formatCustomFieldCalendarDate), not in
+       * the note author's time zone, which need not be the zone it was
+       * picked in. A note and an email about the incident say the same day.
        */
       case CustomFieldType.Date:
         return escapeMarkdownValue(formatCustomFieldCalendarDate(value));

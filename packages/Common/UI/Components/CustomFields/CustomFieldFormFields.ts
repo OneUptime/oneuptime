@@ -10,6 +10,7 @@ import {
   parseCustomFieldDropdownOptions,
 } from "../../../Types/CustomField/CustomFieldDropdownOption";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { customFieldValueToText } from "../../../Types/CustomField/CustomFieldValueFormat";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -130,6 +131,68 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
         return dropdownOption;
       },
     );
+  };
+
+/*
+ * The types whose value is text. A value of theirs can still be a number or
+ * a yes/no: the value check accepts those for them, and a field switched
+ * from Number or Yes/No to one of them keeps the values it had.
+ */
+const TEXT_CUSTOM_FIELD_TYPES: ReadonlyArray<CustomFieldType> = [
+  CustomFieldType.Text,
+  CustomFieldType.LongText,
+  CustomFieldType.Markdown,
+];
+
+export type GetCustomFieldDisplayValueFunction = (data: {
+  customFieldType?: CustomFieldType | null | undefined;
+  value: unknown;
+}) => unknown;
+
+/**
+ * A stored value as Detail is handed it, on the Custom Fields card and a
+ * form's review step: a text field's value as the text it reads as
+ * (customFieldValueToText, as its subscriber messages read it), anything
+ * else as stored. Detail cannot draw a text field's number or yes/no: its
+ * Markdown viewer renders nothing for a value that is not a string, and
+ * React renders nothing for a boolean, so a Rich text field holding 5 or
+ * true looked empty.
+ */
+export const getCustomFieldDisplayValue: GetCustomFieldDisplayValueFunction =
+  (data: {
+    customFieldType?: CustomFieldType | null | undefined;
+    value: unknown;
+  }): unknown => {
+    if (
+      data.value === null ||
+      data.value === undefined ||
+      typeof data.value === "string" ||
+      !data.customFieldType ||
+      !TEXT_CUSTOM_FIELD_TYPES.includes(data.customFieldType)
+    ) {
+      return data.value;
+    }
+
+    return customFieldValueToText(data.value);
+  };
+
+export type GetCustomFieldDetailContentClassNameFunction = (
+  customFieldType?: CustomFieldType | null | undefined,
+) => string | undefined;
+
+/**
+ * The class Detail gives a field's value: a Long text value keeps its line
+ * breaks, as the type promises (CustomFieldType) and as its email shows it.
+ * Detail has no Long text rendering of its own and would run the lines
+ * together.
+ */
+export const getCustomFieldDetailContentClassName: GetCustomFieldDetailContentClassNameFunction =
+  (
+    customFieldType?: CustomFieldType | null | undefined,
+  ): string | undefined => {
+    return customFieldType === CustomFieldType.LongText
+      ? "whitespace-pre-wrap"
+      : undefined;
   };
 
 /*

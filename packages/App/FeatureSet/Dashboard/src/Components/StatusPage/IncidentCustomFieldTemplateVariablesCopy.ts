@@ -19,6 +19,7 @@
 export const IncidentCustomFieldTemplateVariablesCopy: {
   internalDataWarningTitle: string;
   internalDataWarning: string;
+  placementPermission: string;
   customFieldsTitle: string;
   customFieldsDescription: string;
   variableColumnTitle: string;
@@ -33,6 +34,9 @@ export const IncidentCustomFieldTemplateVariablesCopy: {
   internalDataWarningTitle: "Internal data",
   internalDataWarning:
     "Custom field values and the list of affected status pages come from your team's incident records. The subscribers of a status page are usually outside your team, and the affected status pages name every audience the incident reaches. Place them only in templates whose subscribers may see them.",
+  // The save refuses it otherwise (SubscriberTemplateIncidentRecordAccess).
+  placementPermission:
+    "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.",
   customFieldsTitle: "Incident Custom Fields",
   customFieldsDescription:
     "Place a field's value in this template with its template variable. A field the incident has no value for is left empty. Fields with Include in Subscriber Notifications turned on are already in the default email, Slack, Microsoft Teams and webhook messages; the default SMS is kept short and leaves them out.",

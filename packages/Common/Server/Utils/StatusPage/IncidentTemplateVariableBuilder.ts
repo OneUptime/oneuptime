@@ -22,7 +22,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SafeHtml from "../../../Types/SafeHtml";
-import {
+import SubscriberNotificationTemplateCompiler, {
   SubscriberNotificationEmailBodyTemplateVariables,
   SubscriberNotificationTextTemplateVariables,
 } from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
@@ -66,17 +66,20 @@ import StatusPageResourceUtil from "../StatusPageResource";
  * with no value are left out of those lists. The default SMS carries none:
  * an SMS is billed by the segment, and a rich or long value cannot fit.
  *
+ * The object records which fields go out, as each message is about to be
+ * sent (recordIncludedFieldsSent, recordFieldsUsedBy), for the incident
+ * feed's "Subscriber Notification Sent" item (getSentCustomFieldsMarkdown),
+ * and gives webhooks their structured customFields (getWebhookCustomFields).
+ *
  * A Rich text field's inline images are uploaded private. The ones in a
  * value that goes out are made public, as a public note's are when it is
- * posted, so the recipient's mail client can load them: the fields included
- * in subscriber notifications when the values are built, and a field a custom
- * template places when a status page's templates are read
- * (publishImagesUsedBy).
- *
- * The object also records which fields went out (recordIncludedFieldsSent,
- * recordFieldsUsedBy), for the incident feed's "Subscriber Notification
- * Sent" item (getSentCustomFieldsMarkdown), and gives webhooks their
- * structured customFields (getWebhookCustomFields).
+ * posted, so the recipient's mail client can load them - and only then: by
+ * those same two calls, the first time a message carries the field, never
+ * when the values are built. A send that reaches no status page or no
+ * subscriber, or a custom template that is not used (an email template on a
+ * page with no SMTP of its own, an SMS template with no Twilio), makes no
+ * image public. Like a public note's, an image stays public once it went
+ * out: the messages that carry it have been delivered and must still load it.
  */
 
 // One incident custom field, as the subscriber messages read it.
@@ -144,8 +147,6 @@ interface FormattedCustomFieldValue {
 }
 
 const LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/g;
-
-const PLACEHOLDER_PATTERN: RegExp = /{{\s*([\w.]+)\s*}}/g;
 
 export class IncidentTemplateVariables {
   private readonly incident: Incident;
@@ -311,25 +312,19 @@ export class IncidentTemplateVariables {
   }
 
   /**
-   * Makes public the inline images of every Rich text field these templates
-   * place ({{customFields.<key>}}), so the recipient can load them. Each
-   * field once per send; never throws.
+   * A default message is about to go out on a channel that carries the
+   * included fields: the default email, Slack or Teams message, or a
+   * webhook. Awaited before the message is sent: the first time, it makes
+   * the included Rich text fields' images public, so the recipient can load
+   * them. Never throws.
    */
-  public async publishImagesUsedBy(
-    templates: Array<string | null | undefined>,
-  ): Promise<void> {
-    const keys: Set<string> =
-      IncidentTemplateVariables.getKeysUsedBy(templates);
-
-    for (const field of this.customFields) {
-      if (field.variableKey && keys.has(field.variableKey)) {
-        await this.publishImages(field);
-      }
+  public async recordIncludedFieldsSent(): Promise<void> {
+    if (this.includedFieldsSent) {
+      return;
     }
-  }
 
-  // Makes public the images of the included fields: they go out by default.
-  public async publishImagesOfIncludedFields(): Promise<void> {
+    this.includedFieldsSent = true;
+
     for (const field of this.customFields) {
       if (field.isIncludedInSubscriberNotifications && field.hasValue) {
         await this.publishImages(field);
@@ -337,18 +332,26 @@ export class IncidentTemplateVariables {
     }
   }
 
-  /*
-   * A default message went out on a channel that carries the included
-   * fields: the default email, Slack or Teams message, or a webhook.
+  /**
+   * A message is about to go out through these custom templates - the ones
+   * actually compiled into it. Awaited before the message is sent: it makes
+   * the images of the Rich text fields they place ({{customFields.<key>}})
+   * public, each field once per send. Never throws.
    */
-  public recordIncludedFieldsSent(): void {
-    this.includedFieldsSent = true;
-  }
+  public async recordFieldsUsedBy(
+    templates: Array<string | null | undefined>,
+  ): Promise<void> {
+    const keys: Set<string> =
+      IncidentTemplateVariables.getKeysUsedBy(templates);
 
-  // A message went out through these custom templates.
-  public recordFieldsUsedBy(templates: Array<string | null | undefined>): void {
-    for (const key of IncidentTemplateVariables.getKeysUsedBy(templates)) {
+    for (const key of keys) {
       this.fieldKeysSent.add(key);
+    }
+
+    for (const field of this.customFields) {
+      if (field.variableKey && keys.has(field.variableKey) && field.hasValue) {
+        await this.publishImages(field);
+      }
     }
   }
 
@@ -483,6 +486,12 @@ export class IncidentTemplateVariables {
         return { plainText: text, markdown: text, html: null };
       }
 
+      /*
+       * The day that was picked. It is stored as the author's local
+       * midnight, not as the day (see formatCustomFieldCalendarDate), so it
+       * is not read in the page's time zones: those are the subscribers',
+       * not the author's.
+       */
       case CustomFieldType.Date: {
         const text: string = formatCustomFieldCalendarDate(value);
         return { plainText: text, markdown: text, html: null };
@@ -528,24 +537,21 @@ export class IncidentTemplateVariables {
     }
   }
 
-  // The custom field keys these templates place, {{customFields.<key>}}.
+  /*
+   * The custom field keys these templates place, {{customFields.<key>}},
+   * found the way the compiler finds the placeholders it fills.
+   */
   private static getKeysUsedBy(
     templates: Array<string | null | undefined>,
   ): Set<string> {
     const keys: Set<string> = new Set<string>();
     const prefix: string = getCustomFieldTemplateVariableName("");
 
-    for (const template of templates) {
-      if (!template) {
-        continue;
-      }
-
-      for (const match of template.matchAll(PLACEHOLDER_PATTERN)) {
-        const name: string = match[1] || "";
-
-        if (name.startsWith(prefix)) {
-          keys.add(name.slice(prefix.length));
-        }
+    for (const name of SubscriberNotificationTemplateCompiler.getPlaceholderNames(
+      templates,
+    )) {
+      if (name.startsWith(prefix)) {
+        keys.add(name.slice(prefix.length));
       }
     }
 
@@ -597,7 +603,11 @@ export default class IncidentTemplateVariableBuilder {
       markdownVariables[name] = await this.renderMarkdown(source || "");
     }
 
-    const variables: IncidentTemplateVariables = new IncidentTemplateVariables({
+    /*
+     * No image is made public here: nothing has gone out yet, and a send may
+     * reach no one (see recordIncludedFieldsSent).
+     */
+    return new IncidentTemplateVariables({
       incident: incident,
       customFields: customFields,
       textVariables: { ...(data.textVariables || {}) },
@@ -607,10 +617,6 @@ export default class IncidentTemplateVariableBuilder {
         data.statusPages,
       ).join(", "),
     });
-
-    await variables.publishImagesOfIncludedFields();
-
-    return variables;
   }
 
   /*

@@ -42,7 +42,12 @@ import { DataSource, QueryRunner } from "typeorm";
  *     "On Update" workflow of any incident, template or view, and without
  *     touching their version or updatedAt;
  *   - bags that are not objects, and other projects, are left alone;
+ *   - the renamed field never picks up values it did not hold: whatever a
+ *     record held under the new name without holding the old one (a
+ *     deleted field's answer) is cleared;
  *   - a rename onto another field's name is refused and moves nothing;
+ *   - the tables move together or not at all, and a rename whose values
+ *     could not move leaves the field under its old name;
  *   - a new field gets a unique template key, and the index refuses a
  *     duplicate however it is written;
  *   - the migration's backfill gives every existing field a key, oldest
@@ -289,14 +294,25 @@ describePostgres(
         "Business Impact": "stale",
       });
       const withoutValue: ObjectID = await seedIncident({ Region: "West" });
+      const withOnlyStaleNewKey: ObjectID = await seedIncident({
+        "Business Impact": "stale",
+        Region: "North",
+      });
       const withNoBag: ObjectID = await seedIncident(null);
       const withArrayBag: ObjectID = await seedIncident(["Impact"]);
       const otherProjects: ObjectID = await seedIncident(
         { Impact: "High" },
         otherProjectId,
       );
+      const otherProjectsStaleNewKey: ObjectID = await seedIncident(
+        { "Business Impact": "theirs" },
+        otherProjectId,
+      );
 
       const template: ObjectID = await seedTemplate({ Impact: "Medium" });
+      const staleTemplate: ObjectID = await seedTemplate({
+        "Business Impact": "stale",
+      });
       const otherProjectsTemplate: ObjectID = await seedTemplate(
         { Impact: "Medium" },
         otherProjectId,
@@ -351,6 +367,13 @@ describePostgres(
       expect((await readRow("Incident", withoutValue)).customFields).toEqual({
         Region: "West",
       });
+      // A value under the new name that the field never held is cleared.
+      const cleared: { customFields: unknown; version: number } = await readRow(
+        "Incident",
+        withOnlyStaleNewKey,
+      );
+      expect(cleared.customFields).toEqual({ Region: "North" });
+      expect(cleared.version).toBe(3);
       expect((await readRow("Incident", withNoBag)).customFields).toBeNull();
       expect((await readRow("Incident", withArrayBag)).customFields).toEqual([
         "Impact",
@@ -358,10 +381,16 @@ describePostgres(
       expect((await readRow("Incident", otherProjects)).customFields).toEqual({
         Impact: "High",
       });
+      expect(
+        (await readRow("Incident", otherProjectsStaleNewKey)).customFields,
+      ).toEqual({ "Business Impact": "theirs" });
 
       expect(
         (await readRow("IncidentTemplate", template)).customFields,
       ).toEqual({ "Business Impact": "Medium" });
+      expect(
+        (await readRow("IncidentTemplate", staleTemplate)).customFields,
+      ).toEqual({});
       expect(
         (await readRow("IncidentTemplate", otherProjectsTemplate)).customFields,
       ).toEqual({ Impact: "Medium" });
@@ -403,6 +432,104 @@ describePostgres(
         });
       expect(stored?.name).toBe("Business Impact");
       expect(stored?.variableKey).toBe("impact");
+    });
+
+    /*
+     * Deleting a field leaves its values in the incidents. A field flagged
+     * for subscriber notifications renamed onto that name must not start
+     * sending the deleted field's answers, which were never shared.
+     */
+    test("a field renamed onto a deleted field's name does not inherit its values", async () => {
+      // "Internal RCA" was a field once; its values outlived it.
+      const customerImpact: IncidentCustomField =
+        await createField("Customer Impact");
+      const answered: ObjectID = await seedIncident({
+        "Customer Impact": "Checkout is slow",
+        "Internal RCA": "Bad deploy by team X",
+      });
+      const unanswered: ObjectID = await seedIncident({
+        "Internal RCA": "Expired certificate",
+      });
+      const template: ObjectID = await seedTemplate({
+        "Internal RCA": "Fill in after the review",
+      });
+
+      await IncidentCustomFieldService.updateOneById({
+        id: customerImpact.id!,
+        data: { name: "Internal RCA" },
+        props: adminProps(),
+      });
+
+      expect((await readRow("Incident", answered)).customFields).toEqual({
+        "Internal RCA": "Checkout is slow",
+      });
+      expect((await readRow("Incident", unanswered)).customFields).toEqual({});
+      expect(
+        (await readRow("IncidentTemplate", template)).customFields,
+      ).toEqual({});
+      expect(incidentWorkflow).not.toHaveBeenCalled();
+      expect(templateWorkflow).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The move also clears stale values under the new name, so a rename
+     * that moved one table and not the other could not be undone by
+     * renaming back: that would clear what the second table still held. So
+     * the tables move together or not at all, and when they do not, the
+     * field takes its old name back.
+     */
+    test("a move that fails in one table moves nothing, and the field keeps its old name", async () => {
+      const impact: IncidentCustomField = await createField("Impact");
+      const incident: ObjectID = await seedIncident({ Impact: "High" });
+      const template: ObjectID = await seedTemplate({ Impact: "Medium" });
+
+      // The second table's statement fails.
+      await database.query(
+        `ALTER TABLE "${schema}"."IncidentTemplate" RENAME COLUMN "customFields" TO "customFieldsBroken"`,
+      );
+
+      try {
+        await expect(
+          IncidentCustomFieldService.updateOneById({
+            id: impact.id!,
+            data: { name: "Business Impact" },
+            props: adminProps(),
+          }),
+        ).rejects.toThrow();
+      } finally {
+        await database.query(
+          `ALTER TABLE "${schema}"."IncidentTemplate" RENAME COLUMN "customFieldsBroken" TO "customFields"`,
+        );
+      }
+
+      // The first table's move was rolled back with the second's.
+      expect((await readRow("Incident", incident)).customFields).toEqual({
+        Impact: "High",
+      });
+      expect(
+        (await readRow("IncidentTemplate", template)).customFields,
+      ).toEqual({ Impact: "Medium" });
+
+      const stored: IncidentCustomField | null =
+        await IncidentCustomFieldService.findOneById({
+          id: impact.id!,
+          select: { name: true },
+          props: { isRoot: true },
+        });
+      expect(stored?.name).toBe("Impact");
+
+      // And the rename can simply be tried again.
+      await IncidentCustomFieldService.updateOneById({
+        id: impact.id!,
+        data: { name: "Business Impact" },
+        props: adminProps(),
+      });
+      expect((await readRow("Incident", incident)).customFields).toEqual({
+        "Business Impact": "High",
+      });
+      expect(
+        (await readRow("IncidentTemplate", template)).customFields,
+      ).toEqual({ "Business Impact": "Medium" });
     });
 
     test("renaming back moves the values back", async () => {

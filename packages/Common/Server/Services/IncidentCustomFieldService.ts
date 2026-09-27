@@ -266,7 +266,10 @@ export class Service extends DatabaseService<Model> {
    * Incidents store a field's values under its name, and incident templates
    * store the values they fill in the same way, so a renamed field's values
    * are moved to the new name in both, together with the saved views of the
-   * incidents table that name it.
+   * incidents table that name it. Values a record held under the new name
+   * without holding the old one - a deleted field's, which deleting leaves
+   * behind - are cleared, so the renamed field never shows (or sends to
+   * subscribers) answers that were never its own.
    *
    * With raw SQL (CustomFieldRename), not an update through this or any
    * other service: that would start the "On Update Incident" workflow for
@@ -322,13 +325,30 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
+      const newName: string = field.name;
+
       await renameCustomField({
         projectId: before.projectId,
         oldName: before.oldName,
-        newName: field.name,
+        newName: newName,
         valueServices: [IncidentService, IncidentTemplateService],
         tableViewIds: INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS,
         definitionName: "incident custom field",
+        /*
+         * The values are all still under the old name: so is the field,
+         * again, and the save fails. Left renamed, the field would show
+         * none of its values, and renaming it back would clear them (the
+         * move clears stale values under the name it moves to). Hook-free,
+         * so the rename is not attempted again, and only if nobody has
+         * renamed the field since.
+         */
+        onValuesNotMoved: async (): Promise<void> => {
+          await this.updateColumnsByIdWithoutHooks({
+            id: field.id!,
+            data: { name: before.oldName },
+            expectedData: { name: newName },
+          });
+        },
       });
     }
   }

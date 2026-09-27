@@ -5,6 +5,8 @@ import {
   buildCustomFieldFormFields,
   CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE,
   CustomFieldFormDefinition,
+  getCustomFieldDetailContentClassName,
+  getCustomFieldDisplayValue,
   sortCustomFieldDefinitions,
   toCustomFieldFormDefinition,
 } from "../../../../UI/Components/CustomFields/CustomFieldFormFields";
@@ -376,5 +378,55 @@ describe("toCustomFieldFormDefinition", () => {
     [{ name: 7 }],
   ])("has nothing to read in %j", (item: unknown) => {
     expect(toCustomFieldFormDefinition(item)).toBeNull();
+  });
+});
+
+describe("getCustomFieldDisplayValue", () => {
+  test.each([
+    [CustomFieldType.Markdown, 5, "5"],
+    [CustomFieldType.Markdown, true, "true"],
+    [CustomFieldType.Markdown, false, "false"],
+    [CustomFieldType.LongText, 0, "0"],
+    [CustomFieldType.Text, 12.5, "12.5"],
+    [CustomFieldType.Text, ["a", "b"], "a, b"],
+    // Text stays the text it is.
+    [CustomFieldType.Markdown, "**bold**", "**bold**"],
+    // Other types keep their values: Detail draws those itself.
+    [CustomFieldType.Number, 5, 5],
+    [CustomFieldType.Boolean, false, false],
+    [CustomFieldType.MultiSelectDropdown, ["a"], ["a"]],
+    [undefined, 5, 5],
+  ] as Array<[CustomFieldType | undefined, unknown, unknown]>)(
+    "a %s field holding %p is shown as %p",
+    (type: CustomFieldType | undefined, value: unknown, shown: unknown) => {
+      expect(
+        getCustomFieldDisplayValue({ customFieldType: type, value: value }),
+      ).toEqual(shown);
+    },
+  );
+
+  test.each([null, undefined])("%p stays empty", (value: unknown) => {
+    expect(
+      getCustomFieldDisplayValue({
+        customFieldType: CustomFieldType.Markdown,
+        value: value,
+      }),
+    ).toBe(value);
+  });
+});
+
+describe("getCustomFieldDetailContentClassName", () => {
+  test("keeps line breaks for Long text only", () => {
+    expect(getCustomFieldDetailContentClassName(CustomFieldType.LongText)).toBe(
+      "whitespace-pre-wrap",
+    );
+
+    for (const type of Object.values(CustomFieldType)) {
+      if (type !== CustomFieldType.LongText) {
+        expect(getCustomFieldDetailContentClassName(type)).toBeUndefined();
+      }
+    }
+
+    expect(getCustomFieldDetailContentClassName(undefined)).toBeUndefined();
   });
 });

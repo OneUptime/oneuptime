@@ -317,6 +317,14 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     return <span>{JSON.stringify(value)}</span>;
   }
 
+  /*
+   * Long text keeps its line breaks, as the type promises and as the Custom
+   * Fields card and its email show it; runs of spaces still collapse.
+   */
+  if (definition.customFieldType === CustomFieldType.LongText) {
+    return <span className="whitespace-pre-line">{String(value)}</span>;
+  }
+
   return <span>{String(value)}</span>;
 };
 

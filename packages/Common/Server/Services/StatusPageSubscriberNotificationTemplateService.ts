@@ -2,8 +2,14 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import ObjectID from "../../Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
+import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
@@ -23,6 +29,125 @@ export type {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A template's body and subject may place values from the team's incident
+   * records - {{incidentLabels}} and {{customFields.<key>}} - only when
+   * whoever writes them may read those records: the status page roles that
+   * may write templates may not (SubscriberTemplateIncidentRecordAccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    SubscriberTemplateIncidentRecordAccess.assertCanPlace({
+      placeholders:
+        SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+          createBy.data.templateBody,
+          createBy.data.emailSubject,
+        ]),
+      props: createBy.props,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * On an update, only what the write adds is checked: a placeholder the
+   * template already holds was allowed when it was written, so someone
+   * without incident access can still fix a typo, rename the template or
+   * move a placeholder from the subject to the body - but not add one.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    SubscriberTemplateIncidentRecordAccess.assertCanPlace({
+      placeholders: await this.getIncidentRecordPlaceholdersAdded(updateBy),
+      props: updateBy.props,
+    });
+
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * The incident record placeholders this update writes into a template's
+   * body or subject that the template did not hold before, across every
+   * template it would change. The templates are read as root and limited
+   * to the caller's project, like other update hooks: the update's own
+   * permission check has not run yet, and only narrows the rows further.
+   */
+  private async getIncidentRecordPlaceholdersAdded(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<string>> {
+    if (updateBy.props.isRoot || updateBy.props.isMasterAdmin) {
+      return [];
+    }
+
+    const data: {
+      templateBody?: unknown;
+      emailSubject?: unknown;
+    } = updateBy.data as unknown as {
+      templateBody?: unknown;
+      emailSubject?: unknown;
+    };
+    const writesBody: boolean = data.templateBody !== undefined;
+    const writesSubject: boolean = data.emailSubject !== undefined;
+
+    if (!writesBody && !writesSubject) {
+      return [];
+    }
+
+    // Anything but text places nothing: the column check refuses it anyway.
+    const written: Array<string> =
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        writesBody && typeof data.templateBody === "string"
+          ? data.templateBody
+          : null,
+        writesSubject && typeof data.emailSubject === "string"
+          ? data.emailSubject
+          : null,
+      ]);
+
+    if (written.length === 0) {
+      return [];
+    }
+
+    const query: Query<Model> = updateBy.props.tenantId
+      ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+      : updateBy.query;
+
+    const templates: Array<Model> = await this.findBy({
+      query: query,
+      select: {
+        templateBody: true,
+        emailSubject: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const added: Set<string> = new Set<string>();
+
+    for (const template of templates) {
+      const held: Array<string> =
+        SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+          template.templateBody,
+          template.emailSubject,
+        ]);
+
+      for (const name of written) {
+        if (!held.includes(name)) {
+          added.add(name);
+        }
+      }
+    }
+
+    return Array.from(added).sort();
   }
 
   /**

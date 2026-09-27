@@ -34,7 +34,8 @@ import React, {
  * The reference names the variable family with its key left open; only the
  * project knows its keys, so they are read here. Above them is a warning:
  * custom field values and {{affectedStatusPages}} are internal data that a
- * template author could send to people outside the team.
+ * template author could send to people outside the team - and a line saying
+ * who may place custom fields and labels at all, which the save enforces.
  *
  * Reading the fields needs a permission and a plan with custom fields; when
  * that fails the warning still shows, with a line saying the fields could
@@ -165,6 +166,13 @@ const IncidentCustomFieldTemplateVariables: FunctionComponent<
         strongTitle={copy.internalDataWarningTitle}
         title={copy.internalDataWarning}
       />
+
+      <p
+        className="text-xs text-gray-600"
+        data-testid="incident-template-variables-placement-permission"
+      >
+        {tx(copy.placementPermission)}
+      </p>
 
       <div>
         <p className="text-sm font-semibold text-gray-900">

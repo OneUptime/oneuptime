@@ -340,4 +340,130 @@ describe("CustomFieldsDetail - long and rich text", () => {
     expect(await screen.findByText("Incident Details")).toBeInTheDocument();
     expect(await screen.findByText(/Checkout is down/)).toBeInTheDocument();
   });
+
+  /*
+   * The type promises Long text keeps its line breaks, and its email does;
+   * the card ran the lines together.
+   */
+  test("a Long text field keeps its line breaks on the card", async () => {
+    resolveListWith(
+      incidentFields([
+        {
+          name: "Additional Information",
+          customFieldType: CustomFieldType.LongText,
+        },
+      ]),
+    );
+    resolveRecordWith(Incident, {
+      "Additional Information": "First line\nSecond line",
+    });
+
+    renderCard();
+
+    const value: HTMLElement = await screen.findByText(
+      (_content: string, element: Element | null): boolean => {
+        return Boolean(
+          element?.textContent === "First line\nSecond line" &&
+            element.children.length === 0,
+        );
+      },
+    );
+
+    expect(value.closest(".whitespace-pre-wrap")).not.toBeNull();
+  });
+
+  test("a Text field's value does not keep line breaks: only Long text does", async () => {
+    resolveListWith(
+      incidentFields([
+        { name: "Region", customFieldType: CustomFieldType.Text },
+      ]),
+    );
+    resolveRecordWith(Incident, { Region: "EU West" });
+
+    renderCard();
+
+    const value: HTMLElement = await screen.findByText("EU West");
+
+    expect(value.closest(".whitespace-pre-wrap")).toBeNull();
+  });
+
+  /*
+   * The value check lets a text field hold a number or a yes/no, and a field
+   * switched from Number or Yes/No to Rich text keeps its values. The card
+   * showed them as nothing: the Markdown viewer draws only strings, React no
+   * booleans.
+   */
+  test.each([
+    [CustomFieldType.Markdown, 5, "5"],
+    [CustomFieldType.Markdown, true, "true"],
+    [CustomFieldType.Markdown, false, "false"],
+    [CustomFieldType.Markdown, 0, "0"],
+    [CustomFieldType.LongText, 12, "12"],
+    [CustomFieldType.Text, true, "true"],
+  ] as Array<[CustomFieldType, unknown, string]>)(
+    "a %s field holding %p shows %p",
+    async (type: CustomFieldType, stored: unknown, shown: string) => {
+      resolveListWith(
+        incidentFields([{ name: "Converted Field", customFieldType: type }]),
+      );
+      resolveRecordWith(Incident, {
+        "Converted Field": stored as JSONObject[string],
+      });
+
+      renderCard();
+
+      expect(await screen.findByText("Converted Field")).toBeInTheDocument();
+      expect(await screen.findByText(shown)).toBeInTheDocument();
+      expect(screen.queryByText("No data entered")).not.toBeInTheDocument();
+    },
+  );
+
+  /*
+   * The Rich text editor failed on a value that is not a string, so the
+   * edit form of a record with one could not open. It starts from the text.
+   */
+  test("the edit form opens on such a value, as text, and a save keeps the rest as stored", async () => {
+    resolveListWith(
+      incidentFields([
+        {
+          name: "Converted Field",
+          customFieldType: CustomFieldType.Markdown,
+          sortOrder: 1,
+        },
+        { name: "Notes", sortOrder: 2 },
+      ]),
+    );
+    resolveRecordWith(Incident, {
+      "Converted Field": 5,
+      Notes: "Paged the network team",
+      "Not A Field": true,
+    });
+    updateByIdMock.mockResolvedValue(undefined as never);
+
+    renderCard();
+
+    expect(await screen.findByText("5")).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText("Edit Fields"));
+
+    const notes: HTMLInputElement = (await screen.findByDisplayValue(
+      "Paged the network team",
+    )) as HTMLInputElement;
+    fireEvent.change(notes, { target: { value: "Paged the vendor too" } });
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalled();
+    });
+
+    const customFields: JSONObject = (
+      (updateByIdMock.mock.calls[0]![0] as JSONObject)["data"] as JSONObject
+    )["customFields"] as JSONObject;
+
+    expect(customFields["Notes"]).toBe("Paged the vendor too");
+    // The Rich text field now holds the text it showed.
+    expect(customFields["Converted Field"]).toBe("5");
+    // A key no field has is carried as stored, never turned into text.
+    expect(customFields["Not A Field"]).toBe(true);
+  });
 });

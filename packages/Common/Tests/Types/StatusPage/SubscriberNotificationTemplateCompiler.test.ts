@@ -220,3 +220,58 @@ describe("SubscriberNotificationTemplateCompiler.compileTemplate", () => {
     ).toBe("1 2 {{c}}");
   });
 });
+
+describe("SubscriberNotificationTemplateCompiler.getPlaceholderNames", () => {
+  test("names exactly the placeholders the compile fills, each once", () => {
+    const templates: Array<string | null | undefined> = [
+      "<p>{{incidentTitle}} {{ customFields.root_cause }}</p>",
+      "{{customFields.root_cause}} {{incidentLabels}}",
+      null,
+      undefined,
+      "",
+      // Not placeholders the compile fills: left as written.
+      "{{customFields.root-cause}} {{ }} {{customFields.café}} {incidentTitle}",
+    ];
+
+    expect(
+      Array.from(
+        SubscriberNotificationTemplateCompiler.getPlaceholderNames(templates),
+      ),
+    ).toEqual(["incidentTitle", "customFields.root_cause", "incidentLabels"]);
+
+    // Every name it finds is one the compile replaces, and no other.
+    const variables: Record<string, string> = {};
+
+    for (const name of SubscriberNotificationTemplateCompiler.getPlaceholderNames(
+      templates,
+    )) {
+      variables[name] = "X";
+    }
+
+    const compiled: string = templates
+      .map((template: string | null | undefined): string => {
+        return SubscriberNotificationTemplateCompiler.compileTemplate(
+          template || "",
+          variables,
+        );
+      })
+      .join("\n");
+
+    expect(compiled).not.toContain("{{incidentTitle}}");
+    expect(compiled).not.toContain("customFields.root_cause");
+    expect(compiled).toContain("{{customFields.root-cause}}");
+  });
+
+  test("can be called again and again: no pattern state carries over", () => {
+    for (let i: number = 0; i < 3; i++) {
+      expect(
+        Array.from(
+          SubscriberNotificationTemplateCompiler.getPlaceholderNames([
+            "{{a}}",
+            "{{a}} {{b}}",
+          ]),
+        ),
+      ).toEqual(["a", "b"]);
+    }
+  });
+});

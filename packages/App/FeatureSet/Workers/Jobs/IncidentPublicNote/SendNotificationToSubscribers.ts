@@ -473,14 +473,6 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       const markdownTemplateVariables: Record<string, string> =
         pageTemplateVariables.markdown;
 
-      // A Rich text field a custom template places goes out: its images must load.
-      await incidentTemplateVariables.publishImagesUsedBy([
-        emailTemplate?.templateBody,
-        smsTemplate?.templateBody,
-        slackTemplate?.templateBody,
-        teamsTemplate?.templateBody,
-      ]);
-
       /*
        * The fields marked "Include in Subscriber Notifications", for the
        * default Slack and Teams messages, one per line. The default SMS
@@ -598,7 +590,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   unsubscribeUrl: smsUnsubscribeUrl,
                 },
               );
-            incidentTemplateVariables.recordFieldsUsedBy([
+            await incidentTemplateVariables.recordFieldsUsedBy([
               smsTemplate.templateBody,
             ]);
           } else {
@@ -676,7 +668,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               method: StatusPageSubscriberNotificationMethod.Email,
               subject: compiledSubject,
             });
-            incidentTemplateVariables.recordFieldsUsedBy([
+            await incidentTemplateVariables.recordFieldsUsedBy([
               emailTemplate.templateBody,
               emailTemplate.emailSubject,
             ]);
@@ -712,7 +704,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               method: StatusPageSubscriberNotificationMethod.Email,
               subject: copy.emailSubjectPrefix + incident.title,
             });
-            incidentTemplateVariables.recordIncludedFieldsSent();
+            await incidentTemplateVariables.recordIncludedFieldsSent();
 
             // Use default hard-coded template
             MailService.sendMail(
@@ -792,7 +784,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 slackTemplate.templateBody,
                 subscriberMarkdownTemplateVariables,
               );
-            incidentTemplateVariables.recordFieldsUsedBy([
+            await incidentTemplateVariables.recordFieldsUsedBy([
               slackTemplate.templateBody,
             ]);
           } else {
@@ -808,7 +800,7 @@ ${chatCustomFields}
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
-            incidentTemplateVariables.recordIncludedFieldsSent();
+            await incidentTemplateVariables.recordIncludedFieldsSent();
           }
 
           deliveryRecord.recordQueued({
@@ -853,7 +845,7 @@ ${incidentPublicNote.note || ""}
                 teamsTemplate.templateBody,
                 subscriberMarkdownTemplateVariables,
               );
-            incidentTemplateVariables.recordFieldsUsedBy([
+            await incidentTemplateVariables.recordFieldsUsedBy([
               teamsTemplate.templateBody,
             ]);
           } else {
@@ -869,7 +861,7 @@ ${chatCustomFields}
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
-            incidentTemplateVariables.recordIncludedFieldsSent();
+            await incidentTemplateVariables.recordIncludedFieldsSent();
           }
 
           deliveryRecord.recordQueued({
@@ -909,7 +901,7 @@ ${incidentPublicNote.note || ""}
             statusPage: statuspage,
             method: StatusPageSubscriberNotificationMethod.Webhook,
           });
-          incidentTemplateVariables.recordIncludedFieldsSent();
+          await incidentTemplateVariables.recordIncludedFieldsSent();
 
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,

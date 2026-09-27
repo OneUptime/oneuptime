@@ -4,6 +4,7 @@ import {
 } from "../CustomField/CustomFieldVariableKey";
 import BadDataException from "../Exception/BadDataException";
 import StatusPageSubscriberNotificationEventType from "./StatusPageSubscriberNotificationEventType";
+import SubscriberNotificationTemplateCompiler from "./SubscriberNotificationTemplateCompiler";
 
 export interface SubscriberNotificationTemplateVariable {
   name: string;
@@ -75,6 +76,23 @@ const INCIDENT_DYNAMIC_VARIABLES: Array<SubscriberNotificationTemplateDynamicVar
       mayBeHtmlInEmailBody: true,
     },
   ];
+
+/*
+ * The variables that read the team's own incident records rather than what
+ * the incident's status pages already show: its labels, and every custom
+ * field ({{customFields.<key>}}), marked for subscribers or not. The title,
+ * description, severity, state and public notes are on the status page for
+ * anyone who can see it; these are not, and the status page roles that may
+ * write templates may not read them. So a template can place them only if
+ * whoever writes it may read them (Server/Utils/StatusPage/
+ * SubscriberTemplateIncidentRecordAccess).
+ *
+ * {{affectedStatusPages}} is not one of them: it names status pages, which
+ * the same roles read.
+ */
+const INCIDENT_RECORD_VARIABLE_NAMES: ReadonlyArray<string> = [
+  "incidentLabels",
+];
 
 // The incident events, which offer INCIDENT_VARIABLES and the custom fields.
 const INCIDENT_EVENT_TYPES: ReadonlyArray<StatusPageSubscriberNotificationEventType> =
@@ -488,6 +506,29 @@ export default class SubscriberNotificationTemplateVariables {
     }
 
     return null;
+  }
+
+  /**
+   * The placeholders in these texts - a template's body and email subject -
+   * that read the team's incident records (INCIDENT_RECORD_VARIABLE_NAMES
+   * and any {{customFields.<key>}}, whether or not such a field exists),
+   * each once, sorted. Found exactly as the compiler finds what it fills,
+   * whatever the template's event type: an update can change the event type
+   * without touching the text.
+   */
+  public static getIncidentRecordPlaceholders(
+    texts: Array<string | null | undefined>,
+  ): Array<string> {
+    return Array.from(
+      SubscriberNotificationTemplateCompiler.getPlaceholderNames(texts),
+    )
+      .filter((name: string): boolean => {
+        return (
+          INCIDENT_RECORD_VARIABLE_NAMES.includes(name) ||
+          name.startsWith(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX)
+        );
+      })
+      .sort();
   }
 
   // Whether a template for this event can use {{name}}.

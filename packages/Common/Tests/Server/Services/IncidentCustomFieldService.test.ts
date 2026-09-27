@@ -105,12 +105,38 @@ interface FakeRepository {
   repository: unknown;
 }
 
+/*
+ * The tables a rename writes to, by name. The statements of one rename run
+ * in one transaction, on whichever table's manager opened it; its manager
+ * hands each statement to the fake of the table it names.
+ */
+const fakeTables: Record<string, FakeRepository> = {};
+let transactions: MockFunction;
+
+function fakeTableFor(sql: string): FakeRepository {
+  const table: string | undefined = Object.keys(fakeTables).find(
+    (name: string): boolean => {
+      return sql.includes(`UPDATE "${name}"`);
+    },
+  );
+
+  if (!table) {
+    throw new Error(`No fake table for: ${sql}`);
+  }
+
+  return fakeTables[table]!;
+}
+
+const transactionManager: { query: MockFunction } = {
+  query: getJestMockFunction(),
+};
+
 // Enough of a TypeORM repository for the raw rename statement.
 function fakeRepository(tableName: string, moved: number): FakeRepository {
   const query: MockFunction = getJestMockFunction();
-  query.mockResolvedValue([{ count: moved }] as never);
+  query.mockResolvedValue([{ moved: moved, cleared: 0 }] as never);
 
-  return {
+  const fake: FakeRepository = {
     query: query,
     repository: {
       metadata: {
@@ -122,9 +148,13 @@ function fakeRepository(tableName: string, moved: number): FakeRepository {
       },
       manager: {
         query: query,
+        transaction: transactions,
       },
     },
   };
+
+  fakeTables[tableName] = fake;
+  return fake;
 }
 
 let findBy: MockFunction;
@@ -374,9 +404,32 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
   let workflowTriggers: Array<MockFunction>;
   let hookedWrites: Array<MockFunction>;
 
+  let restoreName: MockFunction;
+
   beforeEach(() => {
+    transactionManager.query = getJestMockFunction();
+    transactionManager.query.mockImplementation(((
+      sql: string,
+      parameters: Array<string>,
+    ) => {
+      return fakeTableFor(sql).query(sql, parameters);
+    }) as never);
+
+    transactions = getJestMockFunction();
+    transactions.mockImplementation((async (
+      run: (manager: unknown) => Promise<unknown>,
+    ) => {
+      return await run(transactionManager);
+    }) as never);
+
     incidentTable = fakeRepository("Incident", 12);
     templateTable = fakeRepository("IncidentTemplate", 2);
+
+    restoreName = getJestMockFunction();
+    restoreName.mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentCustomFieldService, "updateColumnsByIdWithoutHooks")
+      .mockImplementation(restoreName as never);
 
     jest
       .spyOn(IncidentService, "getRepository")
@@ -466,7 +519,7 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
 
       expect(sql).toContain(`UPDATE "${table}"`);
       expect(sql).toContain(
-        `SET "customFields" = ("customFields" - $2::text) || jsonb_build_object($3::text, "customFields" -> $2::text)`,
+        `THEN ("customFields" - $2::text) || jsonb_build_object($3::text, "customFields" -> $2::text)`,
       );
       expect(sql).toContain(`WHERE "projectId" = $1`);
       expect(sql).toContain(`jsonb_typeof("customFields") = 'object'`);
@@ -480,6 +533,41 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
         "Business Impact",
       ]);
     }
+  });
+
+  /*
+   * Deleting a field leaves its values behind. A record that holds a value
+   * under the new name but none under the old one holds a deleted field's
+   * answer, which the renamed field must not show or send to subscribers.
+   */
+  test("clears what a record holds under the new name when it holds nothing under the old", async () => {
+    findBy.mockResolvedValue([
+      field({ id: fieldId, name: "Business Impact" }),
+    ] as never);
+
+    await service.onUpdateSuccess(onUpdate(RENAME), [fieldId]);
+
+    for (const fake of [incidentTable, templateTable]) {
+      const [sql] = fake.query.mock.calls[0] as [string, Array<string>];
+
+      expect(sql).toContain(`WHEN jsonb_exists("customFields", $2::text)`);
+      expect(sql).toContain(`ELSE "customFields" - $3::text`);
+      expect(sql).toMatch(
+        /jsonb_exists\("customFields", \$2::text\)\s+OR jsonb_exists\("customFields", \$3::text\)/,
+      );
+    }
+  });
+
+  test("moves every table's values in one transaction", async () => {
+    findBy.mockResolvedValue([
+      field({ id: fieldId, name: "Business Impact" }),
+    ] as never);
+
+    await service.onUpdateSuccess(onUpdate(RENAME), [fieldId]);
+
+    expect(transactions).toHaveBeenCalledTimes(1);
+    expect(transactionManager.query).toHaveBeenCalledTimes(2);
+    expect(restoreName).not.toHaveBeenCalled();
   });
 
   test("starts no workflow and makes no hooked write", async () => {
@@ -557,7 +645,7 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
 
     incidentTable.query.mockImplementation((() => {
       order.push("move");
-      return Promise.resolve([{ count: 1 }]);
+      return Promise.resolve([{ moved: 1, cleared: 0 }]);
     }) as never);
 
     (
@@ -605,5 +693,59 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
     await expect(
       service.onUpdateSuccess(onUpdate(RENAME), [fieldId]),
     ).rejects.toThrow("connection lost");
+  });
+
+  /*
+   * No value moved, so the field takes its old name back: left renamed it
+   * would show none of its values, and renaming it back would clear them.
+   */
+  test("a failed move gives the field its old name back, if nobody renamed it since", async () => {
+    findBy.mockResolvedValue([
+      field({ id: fieldId, name: "Business Impact" }),
+    ] as never);
+    templateTable.query.mockRejectedValue(
+      new Error("connection lost") as never,
+    );
+
+    await expect(
+      service.onUpdateSuccess(onUpdate(RENAME), [fieldId]),
+    ).rejects.toThrow("connection lost");
+
+    expect(restoreName).toHaveBeenCalledTimes(1);
+
+    const restore: JSONObject = restoreName.mock.calls[0]![0] as JSONObject;
+    expect((restore["id"] as ObjectID).toString()).toBe(fieldId.toString());
+    expect(restore["data"]).toEqual({ name: "Impact" });
+    expect(restore["expectedData"]).toEqual({ name: "Business Impact" });
+
+    // Nothing after the values ran: the saved views keep the old name too.
+    expect(tableViewFindBy).not.toHaveBeenCalled();
+  });
+
+  test("a failure to restore the name still reports the move's failure", async () => {
+    findBy.mockResolvedValue([
+      field({ id: fieldId, name: "Business Impact" }),
+    ] as never);
+    incidentTable.query.mockRejectedValue(
+      new Error("connection lost") as never,
+    );
+    restoreName.mockRejectedValue(new Error("still down") as never);
+
+    await expect(
+      service.onUpdateSuccess(onUpdate(RENAME), [fieldId]),
+    ).rejects.toThrow("connection lost");
+  });
+
+  test("a saved view that could not be rewritten keeps the rename: the values moved", async () => {
+    findBy.mockResolvedValue([
+      field({ id: fieldId, name: "Business Impact" }),
+    ] as never);
+    tableViewFindBy.mockRejectedValue(new Error("views down") as never);
+
+    await expect(
+      service.onUpdateSuccess(onUpdate(RENAME), [fieldId]),
+    ).rejects.toThrow("views down");
+
+    expect(restoreName).not.toHaveBeenCalled();
   });
 });

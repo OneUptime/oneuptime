@@ -6,6 +6,7 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
+import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -2136,6 +2137,146 @@ ${IMPACT_DETAILS}
     expect(
       mock(syncIsPublicForMarkdownImages).mock.calls[0]!.slice(0, 2),
     ).toEqual([IMPACT_DETAILS, true]);
+  });
+
+  /*
+   * A Date is stored as the picked day's midnight in the author's time
+   * zone: 27 Sep picked in Berlin is 26 Sep 22:00 UTC, and went out as
+   * 26 Sep.
+   */
+  test("a Date picked east of UTC goes out as the day that was picked", async () => {
+    mock(IncidentCustomFieldService.findBy).mockResolvedValue([
+      {
+        name: "Expected Resolution",
+        variableKey: "expected_resolution",
+        customFieldType: CustomFieldType.Date,
+        includeInSubscriberNotifications: true,
+        sortOrder: 1,
+      },
+    ] as never);
+
+    const row: Incident = incident();
+    row.customFields = { "Expected Resolution": "2026-09-26T22:00:00.000Z" };
+    pendingIncidents = [row];
+
+    await runJob();
+
+    expect((sentMail()[0]!["vars"] as JSONObject)["customFieldRows"]).toEqual([
+      { title: "Expected Resolution", plainText: "2026-09-27" },
+    ]);
+    expect(sentSlack()[0]).toContain("**Expected Resolution:** 2026-09-27");
+    expect(sentTeams()[0]).toContain("**Expected Resolution:** 2026-09-27");
+    expect(feedItem()["moreInformationInMarkdown"]).toContain(
+      "- **Expected Resolution:** 2026\\-09\\-27",
+    );
+  });
+
+  test("before the first message that carries them is sent", async () => {
+    await runJob();
+
+    const publishedAt: number = mock(syncIsPublicForMarkdownImages).mock
+      .invocationCallOrder[0]!;
+
+    for (const send of [
+      MailService.sendMail,
+      SlackUtil.sendMessageToChannelViaIncomingWebhook,
+      MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+    ]) {
+      expect(publishedAt).toBeLessThan(mock(send).mock.invocationCallOrder[0]!);
+    }
+  });
+
+  /*
+   * The regression: the images used to be made public as soon as the values
+   * were built, before any status page or subscriber was looked at.
+   */
+  test("an incident that reaches no status page makes no image public", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([] as never);
+
+    await runJob();
+
+    expect(sentMail()).toEqual([]);
+    expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
+  });
+
+  test("nor does one whose subscribers are all filtered out", async () => {
+    mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
+      false,
+    );
+
+    await runJob();
+
+    expect(sentMail()).toEqual([]);
+    expect(sentWebhooks()).toEqual([]);
+    expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
+  });
+
+  describe("a Rich text field only a custom email template places", () => {
+    const PLACING_TEMPLATE: string =
+      "<div>{{customFields.impact_details}}</div>";
+
+    beforeEach(() => {
+      mock(IncidentCustomFieldService.findBy).mockResolvedValue(
+        CUSTOM_FIELD_DEFINITIONS.map(
+          (
+            definition: IncidentTemplateCustomFieldDefinition,
+          ): IncidentTemplateCustomFieldDefinition => {
+            return definition.name === "Impact Details"
+              ? { ...definition, includeInSubscriberNotifications: false }
+              : definition;
+          },
+        ) as never,
+      );
+
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        return (args as JSONObject)["notificationMethod"] ===
+          StatusPageSubscriberNotificationMethod.Email
+          ? { templateBody: PLACING_TEMPLATE, emailSubject: "Subject" }
+          : null;
+      });
+    });
+
+    test("stays private on a page without its own SMTP, where the template is not used", async () => {
+      await runJob();
+
+      // The default email went out instead, without the field.
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.SubscriberIncidentCreated,
+      );
+      expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
+      expect(feedItem()["moreInformationInMarkdown"]).not.toContain(
+        "Impact Details",
+      );
+    });
+
+    test("is made public, once, where the template is sent", async () => {
+      const page: StatusPage = statusPage();
+      (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([page] as never);
+
+      await runJob();
+
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(
+        mock(syncIsPublicForMarkdownImages).mock.calls.map(
+          (call: Array<unknown>): Array<unknown> => {
+            return call.slice(0, 2);
+          },
+        ),
+      ).toEqual([[IMPACT_DETAILS, true]]);
+      expect(
+        mock(syncIsPublicForMarkdownImages).mock.invocationCallOrder[0]!,
+      ).toBeLessThan(mock(MailService.sendMail).mock.invocationCallOrder[0]!);
+    });
   });
 
   test("a project with no field marked for subscribers sends what it always did", async () => {

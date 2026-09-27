@@ -819,6 +819,28 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     ).toEqual("SRE");
   });
 
+  // Long text keeps its lines, as the type promises; Text does not need to.
+  test("keeps a Long text value's line breaks", () => {
+    const container: HTMLElement = renderValue({
+      value: "First line\nSecond line",
+      definition: {
+        name: "Additional Information",
+        customFieldType: CustomFieldType.LongText,
+      },
+    });
+    const cell: HTMLElement = container.firstChild as HTMLElement;
+
+    expect(cell.textContent).toEqual("First line\nSecond line");
+    expect(cell).toHaveClass("whitespace-pre-line");
+
+    expect(
+      (
+        renderValue({ value: "SRE", definition: textDefinition })
+          .firstChild as HTMLElement
+      ).className,
+    ).not.toContain("whitespace-pre");
+  });
+
   test("renders a number value", () => {
     expect(
       renderValue({

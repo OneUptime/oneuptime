@@ -2,6 +2,8 @@
 
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import SubscriberNotificationTemplateCompiler from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import {
   buildIncidentNoteTemplateVariables,
@@ -394,6 +396,35 @@ describe("formatCustomFieldValueForNote", () => {
       formatCustomFieldValueForNote({ customFieldType: undefined, value: 7 }),
     ).toBe("7");
   });
+
+  /*
+   * The dashboard's date input stores the picked day's midnight in the
+   * author's time zone as a UTC instant, so 1 Oct picked in Berlin is
+   * "2026-09-30T22:00:00.000Z" - and the note used to say 30 Sep.
+   */
+  test.each([
+    ["Berlin", "2026-09-30T22:00:00.000Z"],
+    ["New York", "2026-10-01T04:00:00.000Z"],
+    ["Tokyo", "2026-09-30T15:00:00.000Z"],
+  ])(
+    "a Date picked in %s reads as the day picked, whatever the note author's zone",
+    (_where: string, stored: string) => {
+      for (const author of ["Europe/Berlin", "America/Los_Angeles", "UTC"]) {
+        OneUptimeDate.setUserTimezone(author as Timezone);
+
+        try {
+          expect(
+            formatCustomFieldValueForNote({
+              customFieldType: CustomFieldType.Date,
+              value: stored,
+            }),
+          ).toBe("2026-10-01");
+        } finally {
+          OneUptimeDate.setUserTimezone(null);
+        }
+      }
+    },
+  );
 });
 
 describe("fillNoteTemplate", () => {

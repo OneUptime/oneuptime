@@ -13,6 +13,8 @@ import BasicFormModal from "../FormModal/BasicFormModal";
 import {
   buildCustomFieldFormFields,
   CustomFieldFormDefinition,
+  getCustomFieldDetailContentClassName,
+  getCustomFieldDisplayValue,
   getCustomFieldDropdownOptions,
   sortCustomFieldDefinitions,
   toCustomFieldFormDefinition,
@@ -365,6 +367,36 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     ...(props.additionalButtons || []),
   ];
 
+  /*
+   * The stored values as the card draws them and the edit form starts from
+   * them: a text field's number or yes/no as text
+   * (getCustomFieldDisplayValue). The Markdown viewer draws nothing for a
+   * value that is not a string, and the Rich text editor fails on one, so a
+   * field switched from Number to Rich text could be neither seen nor
+   * edited. Every other value, and every key no field has, is as stored.
+   */
+  const getDisplayValues: () => JSONObject = (): JSONObject => {
+    const stored: JSONObject = ((model as any)?.["customFields"] ||
+      {}) as JSONObject;
+    const displayed: JSONObject = { ...stored };
+
+    for (const schemaItem of schemaList) {
+      const name: unknown = (schemaItem as any).name;
+
+      if (
+        typeof name === "string" &&
+        Object.prototype.hasOwnProperty.call(stored, name)
+      ) {
+        displayed[name] = getCustomFieldDisplayValue({
+          customFieldType: (schemaItem as any).customFieldType,
+          value: stored[name],
+        }) as JSONObject[string];
+      }
+    }
+
+    return displayed;
+  };
+
   return (
     <Card
       title={props.title}
@@ -395,7 +427,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         {!isLoading && !loadError && schemaList.length > 0 && model && (
           <Detail
             id={props.name}
-            item={(model as any)["customFields"] || {}}
+            item={getDisplayValues()}
             fields={schemaList.map((schemaItem: BaseModel) => {
               const isDropdown: boolean =
                 (schemaItem as any).customFieldType ===
@@ -407,6 +439,9 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                 title: (schemaItem as any).name,
                 description: getMappedDescription(schemaItem) as string,
                 fieldType: (schemaItem as any).customFieldType,
+                contentClassName: getCustomFieldDetailContentClassName(
+                  (schemaItem as any).customFieldType,
+                ),
                 placeholder: "No data entered",
                 dropdownOptions: isDropdown
                   ? getCustomFieldDropdownOptions(
@@ -429,7 +464,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               await onSave(data).catch();
             }}
             formProps={{
-              initialValues: (model as any)?.["customFields"] || {},
+              initialValues: getDisplayValues(),
               /*
                * Mapped fields are left OUT of the form rather than rendered
                * disabled: `Field.disabled` is honoured by only three of the

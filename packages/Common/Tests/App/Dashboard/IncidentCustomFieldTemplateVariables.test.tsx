@@ -294,6 +294,38 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     });
   });
 
+  /*
+   * The save refuses a custom field or the labels from someone who cannot
+   * read every incident (SubscriberTemplateIncidentRecordAccess): the panel
+   * says so before they try, even when it could not list the fields.
+   */
+  test("says who may place custom fields and labels, translated", async () => {
+    getListMock.mockRejectedValue(new Error("Not authorized"));
+
+    render(
+      <IncidentCustomFieldTemplateVariables
+        eventType={Event.SubscriberIncidentCreated}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "incident-custom-field-template-variables-unavailable",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("incident-template-variables-placement-permission"),
+    ).toHaveTextContent(
+      IncidentCustomFieldTemplateVariablesCopy.placementPermission,
+    );
+    expect(translated).toContain(
+      IncidentCustomFieldTemplateVariablesCopy.placementPermission,
+    );
+  });
+
   test("keeps the warning, and says the fields could not be listed, when they cannot be read", async () => {
     getListMock.mockRejectedValue(new Error("Not authorized"));
 

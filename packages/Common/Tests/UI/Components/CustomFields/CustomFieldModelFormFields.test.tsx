@@ -309,6 +309,65 @@ describe("buildCustomFieldModelFormFields", () => {
       ).toBeInTheDocument();
     });
 
+    /*
+     * Detail has no Long text rendering of its own: the review step ran the
+     * lines together, although the type promises they are kept.
+     */
+    test("keeps a Long text answer's line breaks", () => {
+      const field: ModelField<Incident> = fieldFor(
+        buildCustomFieldModelFormFields<Incident>({
+          definitions: [
+            definition({
+              name: "Additional Information",
+              customFieldType: CustomFieldType.LongText,
+            }),
+          ],
+        }),
+        "Additional Information",
+      );
+
+      render(
+        field.getSummaryElement!({
+          [key("Additional Information")]: "First line\nSecond line",
+        } as unknown as FormValues<Incident>) as ReactElement,
+      );
+
+      const value: HTMLElement = screen.getByText(
+        (_content: string, element: Element | null): boolean => {
+          return (
+            element?.textContent === "First line\nSecond line" &&
+            element.children.length === 0
+          );
+        },
+      );
+
+      expect(value.closest(".whitespace-pre-wrap")).not.toBeNull();
+    });
+
+    test("shows a Rich text field's number as text rather than nothing", async () => {
+      const field: ModelField<Incident> = fieldFor(
+        buildCustomFieldModelFormFields<Incident>({
+          definitions: [
+            definition({
+              name: "Incident Details",
+              customFieldType: CustomFieldType.Markdown,
+            }),
+          ],
+        }),
+        "Incident Details",
+      );
+
+      render(
+        field.getSummaryElement!({
+          [key("Incident Details")]: 5,
+        } as unknown as FormValues<Incident>) as ReactElement,
+      );
+
+      // The Markdown viewer loads on demand.
+      expect(await screen.findByText("5")).toBeInTheDocument();
+      expect(screen.queryByText(CUSTOM_FIELD_NO_VALUE_PLACEHOLDER)).toBeNull();
+    });
+
     test("reads the input's own value, not a column of the same name", () => {
       renderSummary("title", {
         title: "The incident's title",
@@ -335,6 +394,42 @@ describe("getCustomFieldFormInitialValues", () => {
       }),
     ).toEqual({
       [key("Impact")]: "High",
+      [key("Estimated Duration")]: 0,
+      [key("Acknowledgement")]: false,
+    });
+  });
+
+  /*
+   * A template can hold a number for a field since switched to text: its
+   * input takes a string (the Rich text editor fails on anything else).
+   */
+  test("hands a text field's number or yes/no to its input as text", () => {
+    expect(
+      getCustomFieldFormInitialValues({
+        definitions: [
+          ...DEFINITIONS,
+          definition({
+            name: "Details",
+            customFieldType: CustomFieldType.Markdown,
+          }),
+          definition({
+            name: "Notes",
+            customFieldType: CustomFieldType.LongText,
+          }),
+        ],
+        customFields: {
+          Details: 5,
+          Notes: true,
+          title: false,
+          "Estimated Duration": 0,
+          Acknowledgement: false,
+        },
+      }),
+    ).toEqual({
+      [key("Details")]: "5",
+      [key("Notes")]: "true",
+      [key("title")]: "false",
+      // Other types keep their values as they are.
       [key("Estimated Duration")]: 0,
       [key("Acknowledgement")]: false,
     });

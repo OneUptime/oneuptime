@@ -148,7 +148,7 @@ describe("the dashboard renders the shared strings", () => {
     const source: string = readSource("Pages", "Incidents", "Create.tsx");
 
     expect(source).toContain(
-      "statusPages: true, isScopedToStatusPages: true, }, });",
+      "statusPages: true, isScopedToStatusPages: true, // Its custom field values: the Details step starts from them. customFields: true, }, });",
     );
     expect(source).toContain(
       "statusPages: incidentTemplate.statusPages?.map( (statusPage: StatusPage) => { return statusPage.id!.toString(); }, ),",

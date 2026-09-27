@@ -770,6 +770,54 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
     );
   });
 
+  /*
+   * The dashboard's date input stores the picked day's midnight in the
+   * author's time zone as a UTC instant. Read as its UTC day, 27 Sep picked
+   * in Berlin was 26 Sep in every message.
+   */
+  test.each([
+    ["Berlin", "2026-09-26T22:00:00.000Z"],
+    ["New York", "2026-09-27T04:00:00.000Z"],
+    ["Auckland", "2026-09-26T11:00:00.000Z"],
+  ])(
+    "a Date picked in %s reads as the day picked on every channel and in the feed",
+    async (_where: string, stored: string) => {
+      const variables: IncidentTemplateVariables = await build({
+        definitions: [
+          field({
+            name: "Expected Resolution",
+            variableKey: "expected_resolution",
+            customFieldType: CustomFieldType.Date,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+        customFields: { "Expected Resolution": stored },
+      });
+      const site: IncidentStatusPageTemplateVariables = forSite03(variables);
+
+      expect(site.customFieldRows).toEqual([
+        { title: "Expected Resolution", plainText: "2026-09-27" },
+      ]);
+      expect(site.customFieldsMarkdownLines).toEqual([
+        "**Expected Resolution:** 2026-09-27",
+      ]);
+      expect(site.emailBody["customFields.expected_resolution"]).toBe(
+        "2026-09-27",
+      );
+      expect(site.plainText["customFields.expected_resolution"]).toBe(
+        "2026-09-27",
+      );
+      expect(site.markdown["customFields.expected_resolution"]).toBe(
+        "2026-09-27",
+      );
+
+      await variables.recordIncludedFieldsSent();
+      expect(variables.getSentCustomFieldsMarkdown()).toContain(
+        "- **Expected Resolution:** 2026\\-09\\-27",
+      );
+    },
+  );
+
   test("a Date and time reads in the status page's subscriber time zones", async () => {
     const site: IncidentStatusPageTemplateVariables = forSite03(
       await build({
@@ -1021,25 +1069,52 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
     ];
   }
 
-  test("an included Rich text field's images are made public, as a public note's are", async () => {
-    await build({
+  function publishedMarkdown(): Array<unknown> {
+    return mock(syncIsPublicForMarkdownImages).mock.calls.map(
+      (call: Array<unknown>): Array<unknown> => {
+        return call.slice(0, 2);
+      },
+    );
+  }
+
+  /*
+   * The regression: build() used to make the included fields' images public
+   * at once, before any page or subscriber was looked at - so an incident
+   * that reached no one still published them.
+   */
+  test("building the values makes no image public: nothing has gone out", async () => {
+    const variables: IncidentTemplateVariables = await build({
       definitions: definitions(true),
       customFields: { Impact: RICH_TEXT_WITH_IMAGE },
     });
 
-    expect(syncIsPublicForMarkdownImages).toHaveBeenCalledTimes(1);
-    expect(
-      mock(syncIsPublicForMarkdownImages).mock.calls[0]!.slice(0, 2),
-    ).toEqual([RICH_TEXT_WITH_IMAGE, true]);
+    forSite03(variables);
+    variables.getSentCustomFieldsMarkdown();
+    variables.getWebhookCustomFields();
+
+    expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
 
-  test("a field that does not go out keeps its images private", async () => {
+  test("an included Rich text field's images are made public when a default message carries it, once", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: definitions(true),
+      customFields: { Impact: RICH_TEXT_WITH_IMAGE },
+    });
+
+    await variables.recordIncludedFieldsSent();
+    await variables.recordIncludedFieldsSent();
+
+    expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
+  });
+
+  test("a field not included stays private when a default message goes out", async () => {
     const variables: IncidentTemplateVariables = await build({
       definitions: definitions(false),
       customFields: { Impact: RICH_TEXT_WITH_IMAGE },
     });
 
-    await variables.publishImagesUsedBy([
+    await variables.recordIncludedFieldsSent();
+    await variables.recordFieldsUsedBy([
       "<p>{{incidentTitle}}</p>",
       null,
       undefined,
@@ -1048,25 +1123,35 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
 
-  test("a custom template that places the field makes its images public, once", async () => {
+  test("a custom template that places the field makes its images public when it is sent, once", async () => {
     const variables: IncidentTemplateVariables = await build({
       definitions: definitions(false),
       customFields: { Impact: RICH_TEXT_WITH_IMAGE },
     });
 
-    await variables.publishImagesUsedBy([
+    await variables.recordFieldsUsedBy([
       "<div>{{ customFields.impact }}</div>",
     ]);
-    await variables.publishImagesUsedBy(["{{customFields.impact}}"]);
+    await variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+    // The same field again through a default message: already public.
+    await variables.recordIncludedFieldsSent();
 
-    expect(syncIsPublicForMarkdownImages).toHaveBeenCalledTimes(1);
-    expect(mock(syncIsPublicForMarkdownImages).mock.calls[0]![0]).toBe(
-      RICH_TEXT_WITH_IMAGE,
-    );
+    expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
+  });
+
+  test("a placed field with no value is not looked at", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: definitions(false),
+      customFields: {},
+    });
+
+    await variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+
+    expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
 
   test("a plain field is never looked at for images", async () => {
-    await build({
+    const variables: IncidentTemplateVariables = await build({
       definitions: [
         field({
           name: "Link",
@@ -1076,6 +1161,9 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
       ],
       customFields: { Link: IMAGE_URL },
     });
+
+    await variables.recordIncludedFieldsSent();
+    await variables.recordFieldsUsedBy(["{{customFields.link}}"]);
 
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
@@ -1148,7 +1236,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       customFields: VALUES,
     });
 
-    variables.recordIncludedFieldsSent();
+    await variables.recordIncludedFieldsSent();
 
     expect(variables.getSentCustomFieldsMarkdown()).toBe(
       [
@@ -1171,7 +1259,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       customFields: VALUES,
     });
 
-    variables.recordFieldsUsedBy([
+    await variables.recordFieldsUsedBy([
       "Ticket {{customFields.internal_ticket}} at {{customFields.empty}} {{customFields.unknown}}",
       undefined,
     ]);
@@ -1191,10 +1279,10 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       customFields: VALUES,
     });
 
-    variables.recordFieldsUsedBy(["{{customFields.internal_ticket}}"]);
-    variables.recordFieldsUsedBy(["{{customFields.affected_location}}"]);
-    variables.recordIncludedFieldsSent();
-    variables.recordIncludedFieldsSent();
+    await variables.recordFieldsUsedBy(["{{customFields.internal_ticket}}"]);
+    await variables.recordFieldsUsedBy(["{{customFields.affected_location}}"]);
+    await variables.recordIncludedFieldsSent();
+    await variables.recordIncludedFieldsSent();
 
     const markdown: string = variables.getSentCustomFieldsMarkdown();
 

@@ -67,6 +67,32 @@ export default class SubscriberNotificationTemplateCompiler {
   }
 
   /**
+   * The names of the placeholders these templates hold, each once: exactly
+   * the ones the compile functions below would fill, spaces inside the
+   * braces allowed, so what a template reads can be known before it is
+   * saved or sent. Empty templates are skipped.
+   */
+  public static getPlaceholderNames(
+    templates: Array<string | null | undefined>,
+  ): Set<string> {
+    const names: Set<string> = new Set<string>();
+
+    for (const template of templates) {
+      if (typeof template !== "string" || !template) {
+        continue;
+      }
+
+      for (const match of template.matchAll(
+        SubscriberNotificationTemplateCompiler.getPlaceholderPattern(),
+      )) {
+        names.add(match[1]!);
+      }
+    }
+
+    return names;
+  }
+
+  /**
    * Compile a template for a channel that does not render HTML: an email
    * subject, SMS, Slack or Microsoft Teams. Each {{variableName}} is replaced
    * with its value exactly as written.
@@ -138,12 +164,17 @@ export default class SubscriberNotificationTemplateCompiler {
     renderValue: RenderValueFunction,
   ): string {
     return template.replace(
-      new RegExp(`{{\\s*(${PLACEHOLDER_NAME_SOURCE})\\s*}}`, "g"),
+      SubscriberNotificationTemplateCompiler.getPlaceholderPattern(),
       (placeholder: string, name: string): string => {
         const rendered: string | null = renderValue(name);
 
         return rendered === null ? placeholder : rendered;
       },
     );
+  }
+
+  // A fresh global pattern each time: a shared one would carry lastIndex.
+  private static getPlaceholderPattern(): RegExp {
+    return new RegExp(`{{\\s*(${PLACEHOLDER_NAME_SOURCE})\\s*}}`, "g");
   }
 }

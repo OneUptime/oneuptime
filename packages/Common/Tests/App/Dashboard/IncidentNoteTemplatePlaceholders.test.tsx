@@ -64,6 +64,38 @@ describe("the note template placeholders hint", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The same template fills public notes, which reach status pages and
+   * their subscribers, and the placeholders fill every custom field - marked
+   * for subscribers or not - and the status pages' names.
+   */
+  test("warns that the placeholders are internal data a public note sends out", () => {
+    render(<IncidentNoteTemplatePlaceholders />);
+
+    const warning: HTMLElement = screen.getByTestId(
+      "incident-note-template-internal-data-warning",
+    );
+
+    expect(warning).toHaveTextContent(
+      `[${IncidentCustomFieldsCopy.noteTemplateInternalDataWarningTitle}]`,
+    );
+    expect(warning).toHaveTextContent(
+      IncidentCustomFieldsCopy.noteTemplateInternalDataWarning,
+    );
+    expect(IncidentCustomFieldsCopy.noteTemplateInternalDataWarning).toMatch(
+      /public note/,
+    );
+    expect(translated).toContain(
+      IncidentCustomFieldsCopy.noteTemplateInternalDataWarningTitle,
+    );
+    // Inside the hint, under the placeholders it is about.
+    expect(
+      within(
+        screen.getByTestId("incident-note-template-placeholders"),
+      ).getByTestId("incident-note-template-internal-data-warning"),
+    ).toBe(warning);
+  });
+
   test("translates the words, never the placeholders", () => {
     render(<IncidentNoteTemplatePlaceholders />);
 
