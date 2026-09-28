@@ -355,6 +355,8 @@ describe("the tools the model reads use the shared summaries", () => {
         canRunAiCommands: true,
       },
       accessMethod: "in_cluster",
+      aiAgent: null,
+      automaticInvestigation: { incidents: false, alerts: false },
       kubectlAllowlist: ["kubectl set image deployment/web * -n web"],
       isInvestigationEnabled: true,
       isInvestigationReady: true,

@@ -672,7 +672,7 @@ export default class Register {
        */
       logger.warn(
         result.data["bindingState"] === "left_unbound_by_operator"
-          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it, or its Runner was deleted), so OneUptime AI will not use this in-cluster Runner. Upgrade the Kubernetes agent chart to switch to the Kubernetes AI agent, which replaces it.`
+          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it, its Runner was deleted, or OneUptime AI already reached it through the Kubernetes AI agent), so OneUptime AI will not use this in-cluster Runner. Upgrade the Kubernetes agent chart to switch to the Kubernetes AI agent, which replaces it.`
           : `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner. Upgrade the Kubernetes agent chart to switch to the Kubernetes AI agent, which replaces it.`,
         { runnerName: RUNNER_NAME } as LogAttributes,
       );

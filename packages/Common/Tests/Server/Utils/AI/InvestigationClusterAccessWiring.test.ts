@@ -90,6 +90,8 @@ function readyStatus(
       posture: { inCluster: true, allowWrites: false },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,

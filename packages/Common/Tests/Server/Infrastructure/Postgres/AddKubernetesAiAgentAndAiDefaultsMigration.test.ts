@@ -127,7 +127,7 @@ const POSTMORTEM_BACKFILL: string = `UPDATE "Project" SET "enableAutomaticPostmo
 
 const NEVER_CONFIGURED_CLUSTERS_INVESTIGATE: string = `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = true WHERE "aiAccessConfiguredAt" IS NULL`;
 
-const REVOCATIONS_CARRY_OVER: string = `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = false, "aiRemediationMode" = 'Disabled' WHERE "aiAccessRunnerId" IS NULL AND ("aiAccessRunnerBoundAt" IS NOT NULL OR "aiAccessLastVerifiedAt" IS NOT NULL OR "aiAccessLastError" IS NOT NULL)`;
+const REVOCATIONS_CARRY_OVER: string = `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = false, "aiRemediationMode" = 'Disabled', "aiAccessConfiguredAt" = COALESCE("aiAccessConfiguredAt", NOW()) WHERE "aiAccessRunnerId" IS NULL AND ("aiAccessRunnerBoundAt" IS NOT NULL OR "aiAccessLastVerifiedAt" IS NOT NULL OR "aiAccessLastError" IS NOT NULL)`;
 
 const NO_UNATTENDED_SURPRISE: string = `UPDATE "KubernetesCluster" c SET "aiRemediationMode" = 'RequireApproval' FROM "Project" p WHERE c."projectId" = p."_id" AND p."enableAiCommandExecution" IS NOT TRUE AND c."aiRemediationMode" IN ('Automatic','BypassApproval')`;
 
@@ -475,6 +475,15 @@ describe("AddKubernetesAiAgentAndAiDefaults migration - the backfills", () => {
   test("a cluster whose Runner was unbound or deleted is switched fully off, after the default backfill", async () => {
     expect(REVOCATIONS_CARRY_OVER).toContain(
       `SET "isAiInvestigationEnabled" = false, "aiRemediationMode" = 'Disabled'`,
+    );
+
+    /*
+     * Marked configured (keeping an earlier timestamp), so the AI agent's
+     * first-connection defaults — which only apply while
+     * aiAccessConfiguredAt IS NULL — never turn a revoked cluster back on.
+     */
+    expect(REVOCATIONS_CARRY_OVER).toContain(
+      `"aiAccessConfiguredAt" = COALESCE("aiAccessConfiguredAt", NOW())`,
     );
 
     const where: string = REVOCATIONS_CARRY_OVER.slice(

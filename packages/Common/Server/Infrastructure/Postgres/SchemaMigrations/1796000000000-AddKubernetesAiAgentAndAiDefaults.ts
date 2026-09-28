@@ -88,9 +88,14 @@ export class AddKubernetesAiAgentAndAiDefaults1796000000000
       `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = true WHERE "aiAccessConfiguredAt" IS NULL`,
     );
 
-    // 3. A cluster whose Runner was unbound or deleted stays off.
+    /*
+     * 3. A cluster whose Runner was unbound or deleted stays off. It is also
+     * marked configured, so the Kubernetes AI agent's first-connection
+     * defaults (which only touch never-configured clusters) can never switch
+     * a revoked cluster back on.
+     */
     await queryRunner.query(
-      `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = false, "aiRemediationMode" = 'Disabled' WHERE "aiAccessRunnerId" IS NULL AND ("aiAccessRunnerBoundAt" IS NOT NULL OR "aiAccessLastVerifiedAt" IS NOT NULL OR "aiAccessLastError" IS NOT NULL)`,
+      `UPDATE "KubernetesCluster" SET "isAiInvestigationEnabled" = false, "aiRemediationMode" = 'Disabled', "aiAccessConfiguredAt" = COALESCE("aiAccessConfiguredAt", NOW()) WHERE "aiAccessRunnerId" IS NULL AND ("aiAccessRunnerBoundAt" IS NOT NULL OR "aiAccessLastVerifiedAt" IS NOT NULL OR "aiAccessLastError" IS NOT NULL)`,
     );
 
     // 4. No unattended mode goes live without the project's opt-in.

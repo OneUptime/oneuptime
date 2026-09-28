@@ -359,6 +359,8 @@ function readyStatus(
       canRunAiCommands: true,
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -623,7 +625,7 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     expect(casSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("the cluster check runs AFTER the Runner consent re-check, and a Runner refusal wins without any status read", async () => {
+  test("the cluster check runs AFTER the Runner consent re-check: a Runner refusal wins, and the status is read only once, to tell the AI agent from a Runner", async () => {
     runnerFindSpy.mockResolvedValue(null);
     statusSpy.mockResolvedValue(null);
 
@@ -631,8 +633,21 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
       await callApprove(),
     );
 
+    /*
+     * The status (here: cluster gone) would refuse too, with its own
+     * message — the Runner's refusal is the one reported.
+     */
     expect(error.message).toContain("no longer accepts AI commands");
-    expect(statusSpy).not.toHaveBeenCalled();
+    expect(error.message).not.toContain("no longer exists");
+    /*
+     * A kubectl command's runnerId may be the cluster's Kubernetes AI agent,
+     * which is not a Runner row — only the cluster's status can say so, so
+     * it is read before the Runner table, and never twice.
+     */
+    expect(statusSpy).toHaveBeenCalledTimes(1);
+    expect(statusSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      runnerFindSpy.mock.invocationCallOrder[0]!,
+    );
   });
 
   /*
@@ -778,6 +793,14 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     expect(error.message).toContain('would change namespace "web"');
     expect(error.message).toContain('"api"');
     expect(error.message).toContain("Nothing ran");
+    /*
+     * The chart's previous in-cluster Runner: its scope is widened by
+     * upgrading to the AI agent, which replaces it — so not "approve again".
+     */
+    expect(error.message).toContain(
+      "upgrade the Kubernetes agent chart to the AI agent and set aiAgent.remediation.*",
+    );
+    expect(error.message).not.toContain("approve again");
   });
 
   test("rejects a command whose ROLLBACK the Runner would refuse", async () => {

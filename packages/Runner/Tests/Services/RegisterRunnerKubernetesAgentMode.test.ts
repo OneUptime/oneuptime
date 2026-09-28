@@ -585,7 +585,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
     expect(
       warnLog.some((entry: unknown) => {
         return String(entry).includes(
-          "(an operator cleared it, or its Runner was deleted)",
+          "(an operator cleared it, its Runner was deleted, or OneUptime AI already reached it through the Kubernetes AI agent)",
         );
       }),
     ).toBe(true);

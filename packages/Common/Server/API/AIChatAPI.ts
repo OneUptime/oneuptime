@@ -47,6 +47,7 @@ import AIConversationMessageService from "../Services/AIConversationMessageServi
 import AIRunEventService from "../Services/AIRunEventService";
 import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
+import { AI_DISABLED_MESSAGE } from "../Services/AIService";
 import LlmProviderService from "../Services/LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import ChatAgentRunner, {
@@ -217,10 +218,12 @@ router.post(
           }),
         ]);
 
+      /*
+       * The shared kill-switch sentence, so Ask AI names the same settings
+       * page as every other AI surface that refuses.
+       */
       if (project && project.enableAi === false) {
-        throw new BadDataException(
-          "AI features are disabled for this project. Enable them in Project Settings > AI Credits.",
-        );
+        throw new BadDataException(AI_DISABLED_MESSAGE);
       }
 
       if (runningRunsInProject >= MAX_CONCURRENT_RUNS_PER_PROJECT) {

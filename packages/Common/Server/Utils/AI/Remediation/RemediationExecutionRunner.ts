@@ -107,6 +107,26 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * suggestion settles what happened instead of re-executing anything.
  */
 
+/*
+ * A cluster round: remediation a cluster's AI agent page asked for (its
+ * Fixes mode), not an auto-remediation rule — it names a cluster and no
+ * rule. The project's "Enable AI command execution" opt-in gates rule
+ * rounds only; a cluster round's consent lives on the cluster (see
+ * RemediationExecutionRunner.checkProjectGates). Keyed on the suggestion
+ * row, never on the plan's step types: a rule can compose an all-kubectl
+ * plan, and it was composed under the opt-in, so it stays under it. Shared
+ * with the approve route so execution and approval can never disagree about
+ * which rounds need the opt-in.
+ */
+export function isClusterRemediationRound(suggestion: {
+  kubernetesClusterId?: ObjectID | undefined;
+  autoRemediationRuleId?: ObjectID | undefined;
+}): boolean {
+  return (
+    Boolean(suggestion.kubernetesClusterId) && !suggestion.autoRemediationRuleId
+  );
+}
+
 const MAX_SIGNAL_TITLE_CHARS: number = 500;
 const MAX_SIGNAL_DESCRIPTION_CHARS: number = 4000;
 const MAX_POSTED_ANALYSIS_CHARS: number = 6000;
@@ -507,25 +527,16 @@ export default class RemediationExecutionRunner {
         return;
       }
 
-      // Gates that must still hold at execution time, not just at rule match.
-      const gateFailure: string | null =
-        await this.checkProjectGates(projectId);
-      if (gateFailure) {
-        await this.settleNoneApplicable({
-          suggestion,
-          rationaleMarkdown: gateFailure,
-        });
-        await this.completeRunQuietly(aiRunId);
-        return;
-      }
-
       /*
        * A cluster-level round whose cluster was deleted while it waited in
        * the queue: the delete nulled kubernetesClusterId (ON DELETE SET
        * NULL), and a cluster round never had a rule — so without this it
        * would fall into the rule lane below and be closed as "the rule
        * behind this suggestion was deleted", naming a rule that never
-       * existed. Its server-written name is what is left to tell.
+       * existed. Its server-written name is what is left to tell. Checked
+       * before the project gates: nothing is left to run, and with no
+       * cluster on the row it no longer reads as a cluster round, so the
+       * gates would otherwise blame an opt-in it never needed.
        */
       const deletedClusterRound: { clusterName: string } | null =
         !suggestion.kubernetesClusterId && !suggestion.autoRemediationRuleId
@@ -536,6 +547,20 @@ export default class RemediationExecutionRunner {
         await this.settleNoneApplicable({
           suggestion,
           rationaleMarkdown: `The Kubernetes cluster "${deletedClusterRound.clusterName}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`,
+        });
+        await this.completeRunQuietly(aiRunId);
+        return;
+      }
+
+      // Gates that must still hold at execution time, not just at rule match.
+      const gateFailure: string | null = await this.checkProjectGates({
+        projectId,
+        isClusterRound: isClusterRemediationRound(suggestion),
+      });
+      if (gateFailure) {
+        await this.settleNoneApplicable({
+          suggestion,
+          rationaleMarkdown: gateFailure,
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -565,7 +590,7 @@ export default class RemediationExecutionRunner {
             suggestion,
             rationaleMarkdown: `OneUptime AI can no longer remediate cluster "${
               clusterTarget?.clusterName || "(deleted)"
-            }"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI page.`,
+            }"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`,
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -1119,7 +1144,7 @@ export default class RemediationExecutionRunner {
     if (live.withdrawnReason) {
       await this.settleNoneApplicable({
         suggestion,
-        rationaleMarkdown: `${live.withdrawnReason} Review the cluster's AI page.\n\n${data.rationaleMarkdown}`,
+        rationaleMarkdown: `${live.withdrawnReason} Review the cluster's AI agent page (AI → Agent).\n\n${data.rationaleMarkdown}`,
       });
       return;
     }
@@ -1386,12 +1411,26 @@ export default class RemediationExecutionRunner {
       });
   }
 
-  // Null when all gates pass; otherwise the rationale for settling quietly.
-  private static async checkProjectGates(
-    projectId: ObjectID,
-  ): Promise<string | null> {
+  /*
+   * The project switches a round must still pass when it runs. Null when
+   * they do; otherwise the rationale for settling quietly.
+   *
+   * Enable AI and Enable auto-remediation are kill switches for every
+   * round. The "Enable AI command execution" opt-in gates rule rounds
+   * (Bash/SSH on Runners, and kubectl a rule composes) but not a cluster
+   * round (isClusterRemediationRound): its consent is the cluster's own
+   * Fixes mode plus, for the in-cluster Kubernetes AI agent, the chart's
+   * write RBAC. A cluster reached through an advanced Runner with a
+   * Kubernetes credential has no chart RBAC behind it, so its status keeps
+   * the project_ai_command_execution_disabled gap while the opt-in is off —
+   * and the cluster round stops at isRemediationReady instead.
+   */
+  public static async checkProjectGates(data: {
+    projectId: ObjectID;
+    isClusterRound: boolean;
+  }): Promise<string | null> {
     const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
+      id: data.projectId,
       select: {
         enableAi: true,
         enableAutoRemediation: true,
@@ -1405,15 +1444,19 @@ export default class RemediationExecutionRunner {
       project.enableAi === false ||
       project.enableAutoRemediation === false
     ) {
-      return "AI or auto-remediation was disabled for this project before the run started — nothing was run or proposed.";
+      return "AI or auto-remediation was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
+    }
+
+    if (data.isClusterRound) {
+      return null;
     }
 
     /*
-     * Opt-in semantics (=== true): AI command execution never runs in a
-     * project that has not explicitly turned it on.
+     * Opt-in semantics (=== true): a rule's AI command execution never runs
+     * in a project that has not explicitly turned it on.
      */
     if (project.enableAiCommandExecution !== true) {
-      return "AI command execution is not enabled for this project (Project Settings → AI) — nothing was run or proposed.";
+      return "AI command execution is not enabled for this project (Project Settings → AI Features) — nothing was run or proposed.";
     }
 
     return null;

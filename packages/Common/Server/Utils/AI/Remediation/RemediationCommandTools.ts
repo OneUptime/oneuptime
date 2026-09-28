@@ -38,6 +38,7 @@ import {
   KubernetesRunnerPosture,
   isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
+  getKubernetesAiAccessTargetKind,
   isUnattendedRemediationMode,
   parseKubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -82,7 +83,10 @@ import KubectlJobRunner, {
   RedactedKubectlOutput,
 } from "../ClusterAccess/KubectlJobRunner";
 import KubectlOutputRedactor from "../../../../Utils/AiRemediation/KubectlOutputRedactor";
-import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../ClusterAccess/ClusterAccessContext";
+import {
+  UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
+  describeClusterAccessTarget,
+} from "../ClusterAccess/ClusterAccessContext";
 import logger from "../../Logger";
 
 /*
@@ -404,7 +408,7 @@ export default class RemediationCommandToolkit {
       definition: {
         name: "list_command_targets",
         description:
-          "List where this remediation may run commands: Runners (Bash runs on the Runner's host; SSH runs on an assigned credential's host) and Kubernetes clusters (Kubectl runs through the cluster's Runner). Call this before composing any command.",
+          "List where this remediation may run commands: Runners (Bash runs on the Runner's host; SSH runs on an assigned credential's host) and Kubernetes clusters (Kubectl runs through the cluster's Kubernetes AI agent or Runner). Call this before composing any command.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -497,7 +501,7 @@ export default class RemediationCommandToolkit {
         kubernetesClusterId: cluster.clusterId,
         name: cluster.clusterName,
         stepTypes: "Kubectl",
-        via: `Runner "${cluster.runner?.name}"${
+        via: `${describeClusterAccessTarget(cluster)}${
           cluster.accessMethod === "in_cluster" ? " (in-cluster)" : ""
         }`,
         /*
@@ -785,7 +789,10 @@ export default class RemediationCommandToolkit {
     return refusal
       ? RemediationCommandToolkit.describeRunnerScopeRefusal({
           refusal,
-          runnerLabel: `the Runner of cluster "${data.cluster.clusterName}"`,
+          runnerLabel:
+            getKubernetesAiAccessTargetKind(data.cluster.runner) === "ai_agent"
+              ? `the Kubernetes AI agent of cluster "${data.cluster.clusterName}"`
+              : `the Runner of cluster "${data.cluster.clusterName}"`,
           settings: RemediationCommandToolkit.getRunnerScopeSettings(
             data.cluster,
           ),
@@ -794,14 +801,29 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Where the bound Runner's write scope is set, for a refusal to name: the
-   * Kubernetes agent chart's values for the agent's in-cluster Runner (by
-   * its server-owned name, or its posture), the Runner's own environment
-   * for any other — a credential Runner, which no chart configures.
+   * Where the target's write scope is set, for a refusal to name — three
+   * ways, by who runs kubectl for the cluster:
+   *
+   * - the Kubernetes AI agent (runner.kind "ai_agent"): the chart's
+   *   aiAgent.remediation.* values;
+   * - the chart's previous in-cluster Runner (by its server-owned name, or
+   *   its posture): its values are aiAccess.remediation.*, and changing
+   *   them now means upgrading the chart to the AI agent, which replaces it;
+   * - any other Runner — a credential Runner, which no chart configures:
+   *   its own environment.
    */
-  private static getRunnerScopeSettings(
-    cluster: KubernetesClusterAiAccessStatus,
+  public static getRunnerScopeSettings(
+    cluster: Pick<KubernetesClusterAiAccessStatus, "runner">,
   ): { namespaces: string; nodeOperations: string } {
+    if (getKubernetesAiAccessTargetKind(cluster.runner) === "ai_agent") {
+      return {
+        namespaces:
+          "aiAgent.remediation.namespaces on the Kubernetes agent chart",
+        nodeOperations:
+          "aiAgent.remediation.nodeOperations=false on the Kubernetes agent chart",
+      };
+    }
+
     const isAgentRunner: boolean =
       isKubernetesAgentRunnerName(cluster.runner?.name) ||
       isKubernetesAgentRunnerPosture(cluster.runner?.posture);
@@ -809,9 +831,9 @@ export default class RemediationCommandToolkit {
     if (isAgentRunner) {
       return {
         namespaces:
-          "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+          "aiAccess.remediation.namespaces on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces",
         nodeOperations:
-          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart",
+          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.nodeOperations",
       };
     }
 
@@ -1783,7 +1805,7 @@ export default class RemediationCommandToolkit {
       return {
         text: `Cluster "${status.clusterName}" no longer allows AI remediation${
           gap ? ` (${gap.title})` : ""
-        } — its AI page changed during this run. ${stopText}`,
+        } — its AI agent page changed during this run. ${stopText}`,
       };
     }
 
@@ -1794,7 +1816,7 @@ export default class RemediationCommandToolkit {
     ) {
       this.revokeCluster(clusterId);
       return {
-        text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run. ${stopText}`,
+        text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run (or its Kubernetes AI agent took over from its Runner). ${stopText}`,
       };
     }
 
@@ -2001,7 +2023,7 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "propose_remediation_commands",
-        description: `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo (for Kubectl, e.g. kubectl rollout undo deployment/<name> -n <namespace>). Kubectl commands run through the cluster's Runner, and a write outside its writeScope (list_command_targets) is refused; ${KUBECTL_NEVER_RUNS_SUMMARY}.`,
+        description: `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo (for Kubectl, e.g. kubectl rollout undo deployment/<name> -n <namespace>). Kubectl commands run through the cluster's Kubernetes AI agent or Runner, and a write outside its writeScope (list_command_targets) is refused; ${KUBECTL_NEVER_RUNS_SUMMARY}.`,
         inputSchema: {
           type: "object",
           properties: {

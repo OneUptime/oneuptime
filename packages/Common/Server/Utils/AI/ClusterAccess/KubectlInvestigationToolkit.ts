@@ -7,6 +7,7 @@ import {
   KubernetesClusterAiAccessStatus,
   MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
   MAX_KUBECTL_TIMEOUT_MS,
+  getKubernetesAiAccessTargetKind,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubectlPolicy, {
   KubectlPolicyResult,
@@ -30,6 +31,11 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  describeClusterAccessTarget,
+  describeClusterAccessTargetOfCluster,
+  describeClusterAccessTargetRole,
+} from "./ClusterAccessContext";
 
 /*
  * The run-scoped, READ-ONLY kubectl toolkit for an investigation.
@@ -227,8 +233,13 @@ export default class KubectlInvestigationToolkit {
                 : ""
             } — ${
               this.isClusterUnreachable(cluster.clusterId)
-                ? `UNREACHABLE for the rest of this investigation: its Runner "${cluster.runner?.name}" did not pick up an earlier command. Do not call run_kubectl on it again.`
-                : `read-only kubectl via Runner "${cluster.runner?.name}"`
+                ? `UNREACHABLE for the rest of this investigation: its ${describeClusterAccessTarget(
+                    cluster,
+                  ).replace(
+                    /^the /,
+                    "",
+                  )} did not pick up an earlier command. Do not call run_kubectl on it again.`
+                : `read-only kubectl via ${describeClusterAccessTarget(cluster)}`
             }`;
           })
           .join("\n");
@@ -345,15 +356,20 @@ export default class KubectlInvestigationToolkit {
     );
 
     if (tripped !== undefined) {
+      const target: string = describeClusterAccessTarget(cluster);
+      const role: string = describeClusterAccessTargetRole(cluster);
+
       return this.failure(
-        `Runner "${cluster.runner.name}", which serves cluster "${cluster.clusterName}", did not pick up an earlier command${
+        `${target.charAt(0).toUpperCase()}${target.slice(1)}, which serves cluster "${cluster.clusterName}", did not pick up an earlier command${
           tripped.clusterName !== cluster.clusterName
             ? ` (for cluster "${tripped.clusterName}")`
             : ""
         } within ${KubectlInvestigationToolkit.describeSeconds(
           tripped.claimWindowMs,
-        )}, so the cluster is treated as unreachable for the rest of this investigation. Nothing was run. Do not call run_kubectl on this cluster again: continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
-        `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.`,
+        )}, so the cluster is treated as unreachable for the rest of this investigation. Nothing was run. Do not call run_kubectl on this cluster again: continue with OneUptime telemetry and say in **Cluster access** that ${role} did not respond.`,
+        `kubectl was not run on cluster "${cluster.clusterName}": ${describeClusterAccessTargetOfCluster(
+          cluster,
+        )} did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.`,
       );
     }
 
@@ -427,8 +443,12 @@ export default class KubectlInvestigationToolkit {
       const alsoUnreachable: Array<KubernetesClusterAiAccessStatus> =
         this.getOtherClustersOnRunner(cluster);
 
+      const role: string = describeClusterAccessTargetRole(cluster);
+
       return this.failure(
-        `kubectl was NOT run on cluster "${cluster.clusterName}": its Runner did not pick up "${outcome.displayCommand}" within ${KubectlInvestigationToolkit.describeSeconds(
+        `kubectl was NOT run on cluster "${cluster.clusterName}": ${describeClusterAccessTargetOfCluster(
+          cluster,
+        )} did not pick up "${outcome.displayCommand}" within ${KubectlInvestigationToolkit.describeSeconds(
           budget.plan.claimTimeoutInMs,
         )} (it may be offline, restarting or busy). The cluster is treated as unreachable for the rest of this investigation — do not call run_kubectl on it again.${
           alsoUnreachable.length > 0
@@ -440,8 +460,10 @@ export default class KubectlInvestigationToolkit {
                   ", ",
                 )}, so ${alsoUnreachable.length === 1 ? "that cluster is" : "those clusters are"} unreachable too.`
             : ""
-        } Continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
-        `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up the command in time.`,
+        } Continue with OneUptime telemetry and say in **Cluster access** that ${role} did not respond.`,
+        `kubectl was not run on cluster "${cluster.clusterName}": ${describeClusterAccessTargetOfCluster(
+          cluster,
+        )} did not pick up the command in time.`,
       );
     }
 
@@ -460,9 +482,16 @@ export default class KubectlInvestigationToolkit {
         ? redactedReason
         : `${redactedReason}.`;
 
+      const isAgent: boolean =
+        getKubernetesAiAccessTargetKind(cluster.runner) === "ai_agent";
+
       return this.failure(
-        `No kubectl result came back from cluster "${cluster.clusterName}" for "${outcome.displayCommand}": ${reason} Nothing from this command is evidence. Continue with OneUptime telemetry and mention in **Cluster access** that the cluster's Runner stopped responding.`,
-        `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the Runner of cluster "${cluster.clusterName}" took the command, but no result came back, so whether it ran is unknown.`,
+        `No kubectl result came back from cluster "${cluster.clusterName}" for "${outcome.displayCommand}": ${reason} Nothing from this command is evidence. Continue with OneUptime telemetry and mention in **Cluster access** that ${describeClusterAccessTargetRole(
+          cluster,
+        )} stopped responding.`,
+        `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the ${
+          isAgent ? "Kubernetes AI agent" : "Runner"
+        } of cluster "${cluster.clusterName}" took the command, but no result came back, so whether it ran is unknown.`,
       );
     }
 

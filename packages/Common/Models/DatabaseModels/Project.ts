@@ -1582,7 +1582,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable AI Command Execution",
     description:
-      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else). Off by default.",
+      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else), and AI may fix Kubernetes clusters reached through a Runner with a Kubernetes credential. Fixes on a cluster through its in-cluster Kubernetes AI agent do not need it: that cluster's AI agent page and the agent's write access decide. Off by default.",
     defaultValue: false,
     example: false,
   })

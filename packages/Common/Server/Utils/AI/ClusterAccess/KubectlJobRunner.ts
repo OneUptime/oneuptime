@@ -392,6 +392,9 @@ export default class KubectlJobRunner {
                   wasClaimed: claimState.wasClaimed,
                   claimTimeoutInMs: data.claimTimeoutInMs,
                   executionTimeoutInMs: data.executionTimeoutInMs,
+                  isForKubernetesAiAgent: Boolean(
+                    job.targetKubernetesAiAgentId,
+                  ),
                 })
               : terminalJob.errorMessage ||
                   `Command ended with status ${terminalJob.status}.`,
@@ -612,18 +615,26 @@ export default class KubectlJobRunner {
     wasClaimed: boolean | undefined;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    // The job was for the cluster's Kubernetes AI agent, not a Runner.
+    isForKubernetesAiAgent?: boolean | undefined;
   }): string {
+    const executor: string = data.isForKubernetesAiAgent
+      ? "Kubernetes AI agent"
+      : "Runner";
+
     if (data.wasClaimed === false) {
-      return `The cluster's Runner did not pick up this kubectl command within ${KubectlJobRunner.describeSeconds(
+      return `The cluster's ${executor} did not pick up this kubectl command within ${KubectlJobRunner.describeSeconds(
         data.claimTimeoutInMs,
       )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
     }
 
     if (data.wasClaimed === undefined) {
-      return "No result came back for this kubectl command in time, and whether a Runner picked it up could not be read. What the command did is unknown.";
+      return `No result came back for this kubectl command in time, and whether ${
+        data.isForKubernetesAiAgent ? "the Kubernetes AI agent" : "a Runner"
+      } picked it up could not be read. What the command did is unknown.`;
     }
 
-    return `The Runner took this kubectl command but did not report a result in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
+    return `The ${executor} took this kubectl command but did not report a result in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
       data.executionTimeoutInMs,
     )} timeout. Whether it ran, and what it did, is unknown.`;
   }

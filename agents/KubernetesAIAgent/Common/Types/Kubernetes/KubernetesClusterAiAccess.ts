@@ -526,15 +526,18 @@ export function isInClusterPostureForCluster(
  * bound_to_other_runner:            an operator bound the cluster to a
  *                                   different Runner in the dashboard; left
  *                                   alone.
- * left_unbound_by_operator:         a Runner was bound to this cluster
- *                                   before and no Runner is bound now — an
- *                                   operator cleared the binding, or the
- *                                   bound Runner row was deleted (the
- *                                   foreign key nulls it). Registration does
- *                                   not re-bind or flip any switch; the agent
- *                                   Runner row exists and heartbeats, and the
- *                                   operator selects it on the cluster's AI
- *                                   page when they want it back.
+ * left_unbound_by_operator:         no Runner is bound now, but one was
+ *                                   before or AI already ran kubectl on the
+ *                                   cluster — an operator cleared the
+ *                                   binding, the bound Runner row was deleted
+ *                                   (the foreign key nulls it), or the
+ *                                   commands came through the cluster's
+ *                                   Kubernetes AI agent. Registration does not
+ *                                   re-bind or flip any switch; the Runner
+ *                                   row exists and heartbeats, and binding it
+ *                                   again (through the API) needs the admin
+ *                                   permissions. The Kubernetes AI agent is
+ *                                   the way back.
  */
 export type KubernetesAgentRunnerBindingState =
   | "first_bind"

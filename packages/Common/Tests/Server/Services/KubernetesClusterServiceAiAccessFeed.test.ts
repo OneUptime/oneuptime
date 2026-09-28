@@ -1,3 +1,4 @@
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
@@ -5,6 +6,7 @@ import RunnerService from "../../../Server/Services/RunnerService";
 import UserService from "../../../Server/Services/UserService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import { KubernetesClusterFeedEventType } from "../../../Models/DatabaseModels/KubernetesClusterFeed";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -119,8 +121,13 @@ describe("KubernetesClusterService AI access feed", () => {
   let aiFeedWriter: jest.SpyInstance;
   let genericFeedWriter: jest.SpyInstance;
   let clusterSettings: jest.SpyInstance;
+  let agentRows: jest.SpyInstance;
 
   beforeEach(() => {
+    // No Kubernetes AI agent unless a test says otherwise.
+    agentRows = jest
+      .spyOn(KubernetesAiAgentService, "findForClusters")
+      .mockResolvedValue(new Map<string, KubernetesAiAgent>());
     clusterSettings = jest
       .spyOn(KubernetesClusterService, "findBy")
       .mockResolvedValue([
@@ -291,6 +298,54 @@ describe("KubernetesClusterService AI access feed", () => {
 
     expect(item.feedInfoInMarkdown).toContain("Runner cleared");
     expect(item.displayColor).toBe(Gray500);
+  });
+
+  /*
+   * With a Kubernetes AI agent, clearing the Runner hands the cluster to the
+   * agent: the same loosening the permission check applies, so the item is
+   * in the warning colour.
+   */
+  it("records clearing the Runner of a cluster with an AI agent in warning colour", async () => {
+    clusterSettings.mockResolvedValue([
+      {
+        id: CLUSTER_ID,
+        projectId: PROJECT_ID,
+        aiAccessRunnerId: RUNNER_ID,
+      } as unknown as KubernetesCluster,
+    ]);
+    agentRows.mockResolvedValue(
+      new Map<string, KubernetesAiAgent>([
+        [
+          CLUSTER_ID.toString(),
+          { id: ObjectID.generate() } as unknown as KubernetesAiAgent,
+        ],
+      ]),
+    );
+
+    const item: FeedItem = onlyItem(
+      await runUpdate({ aiAccessRunnerId: null }),
+    );
+
+    expect(item.feedInfoInMarkdown).toContain("Runner cleared");
+    expect(item.displayColor).toBe(Yellow500);
+  });
+
+  it("records turning fixes on from Off in warning colour", async () => {
+    clusterSettings.mockResolvedValue([
+      {
+        id: CLUSTER_ID,
+        projectId: PROJECT_ID,
+        aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+      } as unknown as KubernetesCluster,
+    ]);
+
+    const item: FeedItem = onlyItem(
+      await runUpdate({
+        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      }),
+    );
+
+    expect(item.displayColor).toBe(Yellow500);
   });
 
   /*
