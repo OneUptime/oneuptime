@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
@@ -13,6 +15,12 @@ import ChartGroup, {
   Chart,
   ChartType,
 } from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import {
   XAxis,
   XAxisAggregateType,
@@ -61,6 +69,12 @@ import {
  * History comes from paired spans, so it exists only between two services.
  * A call into a database or remote API (inferred from client spans) shows
  * the latest window alone, and says why.
+ *
+ * Drag-to-zoom on the history charts narrows THIS drawer's window only
+ * (issue #4105), never the Topology page's range: the maps read only that
+ * range's start ("Active in"), and changing it reloads the map this drawer
+ * is open on. A double-click on a chart, or "Reset zoom", puts the page's
+ * range back; a new range picked on the page starts the drawer over on it.
  */
 
 export interface ComponentProps {
@@ -151,13 +165,46 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   /*
+   * The drawer's own window while a chart zoom narrows it; null follows
+   * the page's range. A new range from the page ends the zoom.
+   */
+  const [zoomedTimeRange, setZoomedTimeRange] =
+    useState<RangeStartAndEndDateTime | null>(null);
+
+  useEffect(() => {
+    setZoomedTimeRange(null);
+  }, [props.timeRange]);
+
+  const timeRange: RangeStartAndEndDateTime =
+    zoomedTimeRange || props.timeRange;
+
+  const latestPageTimeRange: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(props.timeRange);
+  latestPageTimeRange.current = props.timeRange;
+
+  const onDrawerTimeRangeChange: (next: RangeStartAndEndDateTime) => void =
+    useCallback((next: RangeStartAndEndDateTime): void => {
+      // A reset hands back the page's own range: follow the page again.
+      setZoomedTimeRange(
+        TimeRangeZoomUtil.isSameRange(next, latestPageTimeRange.current)
+          ? null
+          : next,
+      );
+    }, []);
+
+  const zoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: timeRange,
+    onTimeRangeChange: onDrawerTimeRangeChange,
+  });
+
+  /*
    * Freeze the window per range change: relative presets anchor to "now",
    * so recomputing every render would shift the chart axis away from the
    * buckets fetched when the panel opened.
    */
   const window: InBetween<Date> = useMemo(() => {
-    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
-  }, [props.timeRange]);
+    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+  }, [timeRange]);
 
   useEffect(() => {
     /*
@@ -286,7 +333,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-  }, [fromName, toName, props.timeRange, window, historyAvailable]);
+  }, [fromName, toName, timeRange, window, historyAvailable]);
 
   const buildCharts: () => Array<Chart> = (): Array<Chart> => {
     if (!result || result.buckets.length === 0) {
@@ -425,91 +472,121 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       size={SideOverSize.Medium}
     >
-      <div className="space-y-6">
-        {hasLatestMetrics ? (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              {translateString("Latest window (~15 min)") || ""}
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
-              <span>
-                {formatCallRate(rel.callCount!, props.metricsWindowSeconds)}
-              </span>
-              <span style={{ color: healthColor }}>
-                {formatErrorRate(rel.callCount, rel.errorCount)} errors
-              </span>
-              <span>avg {formatDurationMs(rel.avgDurationMs)}</span>
+      {/*
+       * The drawer's own zoom, for its charts and its "Reset zoom". It also
+       * shadows any zoom a page around the drawer offers.
+       */}
+      <TimeRangeZoomProvider zoom={zoom}>
+        <div className="space-y-6">
+          {hasLatestMetrics ? (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {translateString("Latest window (~15 min)") || ""}
+              </h3>
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
+                <span>
+                  {formatCallRate(rel.callCount!, props.metricsWindowSeconds)}
+                </span>
+                <span style={{ color: healthColor }}>
+                  {formatErrorRate(rel.callCount, rel.errorCount)} errors
+                </span>
+                <span>avg {formatDurationMs(rel.avgDurationMs)}</span>
+              </div>
             </div>
+          ) : (
+            <></>
+          )}
+
+          {result?.truncated ? (
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+              {translateString(
+                "These services have more traffic than can be analyzed for this time range, so the history shows the most recent part only. Narrow the time range for complete data.",
+              ) || ""}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * The drawer has no picker of its own, so the way out of a zoom
+           * sits above the history, whatever the history is showing (a
+           * loader, an empty zoomed stretch or the charts).
+           */}
+          {historyAvailable && zoom.isZoomed ? (
+            <div
+              className="-mb-4 flex justify-end"
+              data-testid="edge-history-zoom"
+            >
+              <ResetTimeRangeZoomButton />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {!historyAvailable ? (
+            <p
+              className="text-sm text-gray-500"
+              data-testid="edge-history-unavailable"
+            >
+              {translateString(
+                "History is available for calls between two instrumented services. This call was inferred from the client spans of the caller, so only the latest window is shown.",
+              ) || ""}
+            </p>
+          ) : isLoading ? (
+            <ComponentLoader />
+          ) : error ? (
+            <ErrorMessage message={error} />
+          ) : !result || result.buckets.length === 0 ? (
+            /*
+             * A zoom into a quiet stretch lands here, with no chart left to
+             * double-click; the message takes the double-click instead.
+             */
+            <p
+              className="text-sm text-gray-500"
+              data-testid="edge-history-empty"
+              onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
+            >
+              {translateString(
+                "No calls between these services were recorded in the selected time range.",
+              ) || ""}
+            </p>
+          ) : (
+            <ChartGroup charts={buildCharts()} />
+          )}
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Open</h3>
+            <ul className="mt-2 space-y-2 text-sm">
+              {result?.callerServiceId && (
+                <li>
+                  <Link
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
+                      { modelId: new ObjectID(result.callerServiceId) },
+                    )}
+                    className="font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    {translateString("Traces for") || ""} {fromName}
+                  </Link>
+                </li>
+              )}
+              {result?.calleeServiceId && (
+                <li>
+                  <Link
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
+                      { modelId: new ObjectID(result.calleeServiceId) },
+                    )}
+                    className="font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    {translateString("Traces for") || ""} {toName}
+                  </Link>
+                </li>
+              )}
+            </ul>
           </div>
-        ) : (
-          <></>
-        )}
-
-        {result?.truncated ? (
-          <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
-            {translateString(
-              "These services have more traffic than can be analyzed for this time range, so the history shows the most recent part only. Narrow the time range for complete data.",
-            ) || ""}
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {!historyAvailable ? (
-          <p
-            className="text-sm text-gray-500"
-            data-testid="edge-history-unavailable"
-          >
-            {translateString(
-              "History is available for calls between two instrumented services. This call was inferred from the client spans of the caller, so only the latest window is shown.",
-            ) || ""}
-          </p>
-        ) : isLoading ? (
-          <ComponentLoader />
-        ) : error ? (
-          <ErrorMessage message={error} />
-        ) : !result || result.buckets.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            {translateString(
-              "No calls between these services were recorded in the selected time range.",
-            ) || ""}
-          </p>
-        ) : (
-          <ChartGroup charts={buildCharts()} />
-        )}
-
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Open</h3>
-          <ul className="mt-2 space-y-2 text-sm">
-            {result?.callerServiceId && (
-              <li>
-                <Link
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                    { modelId: new ObjectID(result.callerServiceId) },
-                  )}
-                  className="font-medium text-indigo-600 hover:text-indigo-800"
-                >
-                  {translateString("Traces for") || ""} {fromName}
-                </Link>
-              </li>
-            )}
-            {result?.calleeServiceId && (
-              <li>
-                <Link
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                    { modelId: new ObjectID(result.calleeServiceId) },
-                  )}
-                  className="font-medium text-indigo-600 hover:text-indigo-800"
-                >
-                  {translateString("Traces for") || ""} {toName}
-                </Link>
-              </li>
-            )}
-          </ul>
         </div>
-      </div>
+      </TimeRangeZoomProvider>
     </SideOver>
   );
 };
