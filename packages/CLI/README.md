@@ -173,13 +173,11 @@ The CLI stores configuration at `~/.oneuptime/config.json` with `0600` permissio
       "apiUrl": "https://oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
+
+Output format and list size are not read from this file. Pass `-o` and `--limit` per command; without `-o`, the CLI prints a table in a terminal and JSON when piped. Older versions wrote a `defaults` block here; it was never read and can be deleted.
 
 ## Global Options
 

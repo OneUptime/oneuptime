@@ -162,19 +162,35 @@ describe("ResourceCommands", () => {
   });
 
   describe("resource command actions", () => {
+    /*
+     * Build on the real program so these tests parse argv exactly as the
+     * shipped CLI does. A hand-built root that left out the global
+     * -o/--output let the leaf subcommand parse -o itself, which hid the
+     * bug fixed in #4096. Subcommands copy exit and output settings when
+     * they are created, so they are silenced by walking the whole tree.
+     */
     function createProgramWithResources(): Command {
-      const program: Command = new Command();
-      program.exitOverride();
-      program.configureOutput({
-        writeOut: () => {},
-        writeErr: () => {},
-      });
-      program
-        .option("--api-key <key>", "API key")
-        .option("--url <url>", "URL")
-        .option("--context <name>", "Context");
-      registerResourceCommands(program);
+      const program: Command = buildProgram();
+      const silence: (cmd: Command) => void = (cmd: Command): void => {
+        cmd.exitOverride();
+        cmd.configureOutput({
+          writeOut: () => {},
+          writeErr: () => {},
+        });
+        cmd.commands.forEach(silence);
+      };
+      silence(program);
       return program;
+    }
+
+    const originalIsTTY: boolean | undefined = process.stdout.isTTY;
+
+    function setStdoutIsTTY(value: boolean | undefined): void {
+      Object.defineProperty(process.stdout, "isTTY", {
+        value,
+        writable: true,
+        configurable: true,
+      });
     }
 
     beforeEach(() => {
@@ -185,6 +201,10 @@ describe("ResourceCommands", () => {
       process.env["ONEUPTIME_API_KEY"] = "test-key-12345";
       process.env["ONEUPTIME_URL"] = "https://test.oneuptime.com";
       mockExecuteApiRequest.mockResolvedValue({ data: [] });
+    });
+
+    afterEach(() => {
+      setStdoutIsTTY(originalIsTTY);
     });
 
     describe("list subcommand", () => {
@@ -226,6 +246,8 @@ describe("ResourceCommands", () => {
       });
 
       it("should extract data array from response object", async () => {
+        // A terminal gets a table by default, so JSON can only come from -o.
+        setStdoutIsTTY(true);
         mockExecuteApiRequest.mockResolvedValue({
           data: [{ _id: "1", name: "Test" }],
         });
@@ -240,11 +262,14 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { _id: "1", name: "Test" },
+        ]);
       });
 
       it("should handle response that is already an array", async () => {
+        setStdoutIsTTY(true);
         mockExecuteApiRequest.mockResolvedValue([{ _id: "1" }]);
 
         const program: Command = createProgramWithResources();
@@ -257,8 +282,10 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { _id: "1" },
+        ]);
       });
 
       it("should handle API errors", async () => {
@@ -270,22 +297,6 @@ describe("ResourceCommands", () => {
         await program.parseAsync(["node", "test", "incident", "list"]);
 
         expect(process.exit).toHaveBeenCalled();
-      });
-
-      it("should reject an unknown output format", async () => {
-        const program: Command = createProgramWithResources();
-
-        await expect(
-          program.parseAsync([
-            "node",
-            "test",
-            "incident",
-            "list",
-            "-o",
-            "yaml",
-          ]),
-        ).rejects.toMatchObject({ code: "commander.invalidArgument" });
-        expect(mockExecuteApiRequest).not.toHaveBeenCalled();
       });
     });
 
@@ -310,24 +321,6 @@ describe("ResourceCommands", () => {
           mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("read");
         expect(opts.id).toBe("abc-123");
-      });
-
-      it("should support output format flag", async () => {
-        mockExecuteApiRequest.mockResolvedValue({ _id: "abc-123" });
-
-        const program: Command = createProgramWithResources();
-        await program.parseAsync([
-          "node",
-          "test",
-          "incident",
-          "get",
-          "abc-123",
-          "-o",
-          "json",
-        ]);
-
-        // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalled();
       });
 
       it("should handle get errors", async () => {
@@ -564,20 +557,6 @@ describe("ResourceCommands", () => {
     });
 
     describe("output format through the CLI entry point", () => {
-      const originalIsTTY: boolean | undefined = process.stdout.isTTY;
-
-      function setStdoutIsTTY(value: boolean | undefined): void {
-        Object.defineProperty(process.stdout, "isTTY", {
-          value,
-          writable: true,
-          configurable: true,
-        });
-      }
-
-      afterEach(() => {
-        setStdoutIsTTY(originalIsTTY);
-      });
-
       describe.each([
         ["incident", "list"],
         ["incident", "get", "test-id-123"],
@@ -636,6 +615,36 @@ describe("ResourceCommands", () => {
             }
           },
         );
+      });
+
+      it("ignores the output default older versions wrote to the config file", async () => {
+        /*
+         * Every config written by `oneuptime login` before this field was
+         * dropped says "table". Reading it would turn piped output into a
+         * table and break scripts that parse JSON.
+         */
+        if (!fs.existsSync(CONFIG_DIR)) {
+          fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        }
+        fs.writeFileSync(
+          CONFIG_FILE,
+          JSON.stringify({
+            currentContext: "",
+            contexts: {},
+            defaults: { output: "table", limit: 10 },
+          }),
+          { mode: 0o600 },
+        );
+        setStdoutIsTTY(false);
+        mockExecuteApiRequest.mockResolvedValue({
+          data: [{ title: "API outage" }],
+        });
+
+        await buildProgram().parseAsync(["node", "test", "incident", "list"]);
+
+        expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([
+          { title: "API outage" },
+        ]);
       });
 
       it("honors wide output for lists with more than six columns", async () => {

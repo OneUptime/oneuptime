@@ -7,10 +7,6 @@ export interface CLIContext {
 export interface CLIConfig {
   currentContext: string;
   contexts: Record<string, CLIContext>;
-  defaults: {
-    output: string;
-    limit: number;
-  };
 }
 
 export enum OutputFormat {
