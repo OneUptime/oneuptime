@@ -35,12 +35,19 @@ import logger from "../Logger";
  *     in a cluster someone runs both ways — from being called silent,
  *     and turns clock skew into a later report rather than a false one.
  *
+ * Who reports: every live node, but only once the cluster has an
+ * ESTABLISHED node — one that has pushed CONTINUOUSLY (no gap over
+ * STREAK_GAP_MS) for at least SILENCE_MS. After a OneUptime ingest outage
+ * or backlog every key has expired, and the first node processed
+ * afterwards would see all its siblings as silent; by the time any node
+ * is established, every sibling that is alive has a key again. Having
+ * every live node report (not just the established ones) is what keeps
+ * Quorum at Risk exact: each report carries 1 / (live nodes) of the
+ * silent nodes' weight, so however many pushes each live node lands in a
+ * minute, the silent nodes weigh exactly as much as live ones.
+ *
  * False alarms this is built to avoid:
- *   - A OneUptime ingest outage or backlog: every key expires, and the
- *     first node processed afterwards would see all its siblings as
- *     silent. A reporter must therefore have pushed CONTINUOUSLY (no gap
- *     over STREAK_GAP_MS) for at least SILENCE_MS, by which time every
- *     sibling that is alive has a key again.
+ *   - A OneUptime ingest outage or backlog — see "Who reports" above.
  *   - A whole cluster going dark (power, network, the metric server
  *     removed): nobody is left to report, so nobody is paged per node —
  *     the cluster turns Disconnected instead, exactly as when the agent
@@ -77,7 +84,7 @@ export interface ProxmoxRosterNode {
 
 export interface ProxmoxSilentNodeDecision {
   silentNodes: Array<string>; // node names, sorted
-  // Nodes (including the reporter) currently eligible to report.
+  // Live nodes (including the reporter) — every one of them reports.
   reporterCount: number;
 }
 
@@ -98,6 +105,10 @@ export function parseProxmoxNodeLiveness(
     return null;
   }
   const [startRaw, lastRaw] = value.split(",");
+  // Number("") is 0 — an empty field must not read as the epoch.
+  if (!startRaw || !lastRaw || !startRaw.trim() || !lastRaw.trim()) {
+    return null;
+  }
   const streakStartMs: number = Number(startRaw);
   const lastPushMs: number = Number(lastRaw);
   if (
@@ -134,20 +145,33 @@ export function nextProxmoxNodeLiveness(
   };
 }
 
-function isAlive(liveness: ProxmoxNodeLiveness | null, nowMs: number): boolean {
+// A status push from this node was processed within the silence window.
+export function isAliveProxmoxNode(
+  liveness: ProxmoxNodeLiveness | null,
+  nowMs: number,
+): boolean {
   return Boolean(
     liveness && nowMs - liveness.lastPushMs <= PROXMOX_NODE_SILENCE_MS,
   );
 }
 
-// Alive AND has pushed continuously for at least the silence window.
+/*
+ * Established: has pushed continuously for at least the silence window,
+ * and the streak is still unbroken now — its last push is at most
+ * STREAK_GAP_MS old. The cluster reports silent nodes only while at least
+ * one node is established. The second condition matters right after a
+ * OneUptime outage a little shorter than the silence window: a key
+ * written before the outage is still alive, but that node's streak is
+ * already broken (its next push will restart it), so it must not vouch
+ * for the siblings whose keys expired a moment earlier.
+ */
 export function isEligibleProxmoxReporter(
   liveness: ProxmoxNodeLiveness | null,
   nowMs: number,
 ): boolean {
   return Boolean(
     liveness &&
-      isAlive(liveness, nowMs) &&
+      nowMs - liveness.lastPushMs <= PROXMOX_NODE_STREAK_GAP_MS &&
       nowMs - liveness.streakStartMs >= PROXMOX_NODE_SILENCE_MS,
   );
 }
@@ -167,7 +191,7 @@ export function decideProxmoxSilentNodes(data: {
 }): ProxmoxSilentNodeDecision | null {
   const selfLiveness: ProxmoxNodeLiveness | null =
     data.liveness.get(data.selfNode) || null;
-  if (!isEligibleProxmoxReporter(selfLiveness, data.nowMs)) {
+  if (!isAliveProxmoxNode(selfLiveness, data.nowMs)) {
     return null;
   }
 
@@ -186,17 +210,21 @@ export function decideProxmoxSilentNodes(data: {
 
   const silentBeforeMs: number = data.reporterTimeMs - PROXMOX_NODE_SILENCE_MS;
   const silentNodes: Array<string> = [];
-  let reporterCount: number = 0;
+  let liveCount: number = 0;
+  let established: boolean = false;
 
   for (const [nodeName, rosterNode] of nodes) {
     const liveness: ProxmoxNodeLiveness | null =
       data.liveness.get(nodeName) || null;
+    if (isAliveProxmoxNode(liveness, data.nowMs)) {
+      liveCount++;
+    }
     if (isEligibleProxmoxReporter(liveness, data.nowMs)) {
-      reporterCount++;
+      established = true;
     }
     if (
       nodeName !== data.selfNode &&
-      !isAlive(liveness, data.nowMs) &&
+      !isAliveProxmoxNode(liveness, data.nowMs) &&
       rosterNode &&
       rosterNode.lastSeenAt.getTime() < silentBeforeMs
     ) {
@@ -204,12 +232,12 @@ export function decideProxmoxSilentNodes(data: {
     }
   }
 
-  if (silentNodes.length === 0 || reporterCount === 0) {
+  if (!established || silentNodes.length === 0) {
     return null;
   }
 
   silentNodes.sort();
-  return { silentNodes, reporterCount };
+  return { silentNodes, reporterCount: liveCount };
 }
 
 export function isProxmoxSilentNodeDetectionEnabled(): boolean {
@@ -272,11 +300,6 @@ export async function recordProxmoxNodePushAndFindSilentNodes(data: {
       serializeProxmoxNodeLiveness(current),
       { expiresInSeconds: Math.ceil(PROXMOX_NODE_SILENCE_MS / 1000) },
     );
-
-    // Not a reporter yet: skip the roster and sibling reads entirely.
-    if (!isEligibleProxmoxReporter(current, nowMs)) {
-      return null;
-    }
 
     const rosterKey: string = `${data.projectId.toString()}:${data.proxmoxClusterId.toString()}`;
     let roster: Array<ProxmoxRosterNode> | undefined =

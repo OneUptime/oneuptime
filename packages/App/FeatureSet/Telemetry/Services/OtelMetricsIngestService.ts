@@ -1105,12 +1105,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           ]);
 
           /*
-           * The same pure gate autoDiscoverDatabaseServer ran: it names the
-           * rows, and its endpoint keys them when no row claimed the batch
-           * by id — even when no row exists for it (a LOCAL-scope
-           * endpoint). The resolved row's key is added by the resolver.
-           */
-          /*
            * A native-push node's own status push also reports the
            * siblings that have stopped reporting (pve_up = 0), so Node
            * Offline and Quorum at Risk see dead nodes as they do on the
@@ -1126,6 +1120,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             });
           }
 
+          /*
+           * The same pure gate autoDiscoverDatabaseServer ran: it names the
+           * rows, and its endpoint keys them when no row claimed the batch
+           * by id — even when no row exists for it (a LOCAL-scope
+           * endpoint). The resolved row's key is added by the resolver.
+           */
           const databaseServerResource: DatabaseServerResourceResolution | null =
             this.resolveDatabaseServerResource({
               attributes: resourceAttributes_raw,
@@ -3346,11 +3346,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       let reporterTimeMs: number | null = null;
       for (const timeUnixNano of status.timeUnixNanos) {
-        if (typeof timeUnixNano !== "string" && typeof timeUnixNano !== "number") {
+        if (
+          typeof timeUnixNano !== "string" &&
+          typeof timeUnixNano !== "number"
+        ) {
           continue;
         }
         const ms: number = OneUptimeDate.fromUnixNano(timeUnixNano).getTime();
-        if (Number.isFinite(ms) && (reporterTimeMs === null || ms < reporterTimeMs)) {
+        if (
+          Number.isFinite(ms) &&
+          (reporterTimeMs === null || ms < reporterTimeMs)
+        ) {
           reporterTimeMs = ms;
         }
       }
@@ -3411,8 +3417,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * Turn reported nodes Offline in the inventory. Every live node reports
    * on every push (~every 10 s), so the write is fenced to once per
    * 30 s per cluster and set of nodes; the UPDATE itself is a no-op for
-   * rows already Offline and refreshed within the last minute. Never
-   * throws.
+   * rows already marked. Never throws.
    */
   private static async markProxmoxSilentNodesOffline(data: {
     projectId: ObjectID;
@@ -3501,6 +3506,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             projectId: data.projectId,
             proxmoxClusterId: new ObjectID(clusterIdStr),
             resources,
+            // A native push is exactly the batch that counts from inventory.
+            isNativePush: Boolean(snap?.countsFromInventory),
           });
 
           const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(

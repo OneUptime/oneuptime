@@ -693,14 +693,16 @@ export function normalizeProxmoxNativePushInPlace(
  *
  * Quorum at Risk is Σ pve_up ÷ Σ pve_node_info over every row of a
  * minute, so each node must weigh the same in the denominator. Every
- * live node contributes one pve_node_info = 1 per push. With L live
- * reporters each reporting D silent nodes on each of their pushes, each
- * report carries pve_node_info = D ÷ L in total (split across the silent
- * nodes), so every "round" of pushes adds exactly D to the denominator
- * and 0 to the numerator: the ratio is L ÷ (L + D), as with the agent.
- * The weights are multiples of 2^-16, so any sum of them is exact in
- * floating point, whatever order ClickHouse adds them in — which keeps
- * the 50 % boundary (L = D) exact.
+ * live node contributes one pve_node_info = 1 per push, and every live
+ * node reports (ProxmoxNativeNodeLiveness): with L live nodes and D
+ * silent ones, each report carries pve_node_info = D ÷ L in total (split
+ * across the silent nodes). A minute in which the live nodes land P
+ * pushes between them then sums to P in the numerator and P + P·D/L in
+ * the denominator — the ratio is L ÷ (L + D), as with the agent, however
+ * unevenly the pushes fall into the minute. The weights are multiples of
+ * 2^-16, so any sum of them is exact in floating point, whatever order
+ * ClickHouse adds them in, and rounded UP, so a cluster exactly half
+ * down never reads a hair above 50 %.
  * ------------------------------------------------------------------
  */
 
@@ -792,9 +794,11 @@ export function readProxmoxNativeNodeStatus(
 
 /*
  * Each silent node's pve_node_info weight in one report: D ÷ L in total,
- * in whole 2^-16 units, split as evenly as possible (the first nodes in
- * the given order take the remainder). With L = D the weights add up to
- * exactly 1.
+ * rounded up to whole 2^-16 units, split as evenly as possible (the first
+ * nodes in the given order take the remainder). With L = D the weights
+ * add up to exactly 1. Rounding up can only ever lower the ratio by a
+ * negligible amount — too little to take a cluster with more live than
+ * silent nodes down to 50 %.
  */
 export function splitProxmoxSiblingInfoWeights(
   silentNodes: Array<string>,
@@ -803,7 +807,7 @@ export function splitProxmoxSiblingInfoWeights(
   if (silentNodes.length === 0 || reporterCount < 1) {
     return [];
   }
-  const totalUnits: number = Math.round(
+  const totalUnits: number = Math.ceil(
     (silentNodes.length * WEIGHT_UNITS_PER_NODE) / reporterCount,
   );
   const baseUnits: number = Math.floor(totalUnits / silentNodes.length);

@@ -7,7 +7,10 @@ import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
-import { ProxmoxRosterNode } from "../Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import {
+  ProxmoxRosterNode,
+  isProxmoxSilentNodeDetectionEnabled,
+} from "../Utils/Telemetry/ProxmoxNativeNodeLiveness";
 
 const NODE_ID_PREFIX: string = "node/";
 
@@ -91,6 +94,7 @@ const UPSERT_COLUMNS: Array<string> = [
   "isBackedUp",
   "uptimeSeconds",
   "lastSeenAt",
+  "isNativePush",
   "version",
 ];
 
@@ -130,12 +134,17 @@ export class Service extends DatabaseService<Model> {
    * a complete scrape, but a batch that happens to lack an info series
    * (e.g. only pve_up made it through a pipeline filter) must not blank
    * name/vmid/haState that an earlier batch already filled.
+   *
+   * isNativePush records where the batch came from — the Proxmox VE
+   * native push (true) or the agent (false) — and follows the latest
+   * observation, so a cluster moved from one to the other follows too.
    */
   @CaptureSpan()
   public async bulkUpsert(data: {
     projectId: ObjectID;
     proxmoxClusterId: ObjectID;
     resources: Array<ParsedProxmoxResource>;
+    isNativePush?: boolean | undefined;
   }): Promise<void> {
     if (data.resources.length === 0) {
       return;
@@ -186,6 +195,7 @@ export class Service extends DatabaseService<Model> {
           r.isBackedUp,
           r.uptimeSeconds !== null ? Math.trunc(r.uptimeSeconds) : null,
           r.lastSeenAt,
+          Boolean(data.isNativePush),
           0, // version (BaseModel @VersionColumn)
         );
       }
@@ -195,7 +205,7 @@ export class Service extends DatabaseService<Model> {
           "projectId", "proxmoxClusterId", "kind", "externalId",
           "name", "vmid", "guestType", "parentNodeName",
           "isUp", "haState", "onboot", "isBackedUp", "uptimeSeconds",
-          "lastSeenAt", "version"
+          "lastSeenAt", "isNativePush", "version"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "proxmoxClusterId", "kind", "externalId")
@@ -210,6 +220,7 @@ export class Service extends DatabaseService<Model> {
           "isBackedUp" = COALESCE(EXCLUDED."isBackedUp", "ProxmoxResource"."isBackedUp"),
           "uptimeSeconds" = COALESCE(EXCLUDED."uptimeSeconds", "ProxmoxResource"."uptimeSeconds"),
           "lastSeenAt" = EXCLUDED."lastSeenAt",
+          "isNativePush" = EXCLUDED."isNativePush",
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "ProxmoxResource"."lastSeenAt"
       `;
@@ -317,28 +328,47 @@ export class Service extends DatabaseService<Model> {
    * the cleanup worker for clusters that are still connected — a
    * disconnected cluster keeps its last-known inventory.
    *
-   * Exception: a Node that its live siblings are still reporting as not
-   * reporting (Proxmox VE native push — markNodesNotReporting) is kept,
-   * so it stays on the pages as Offline and keeps its alert open. Only
-   * markNodesNotReporting refreshes updatedAt on such a row without
-   * moving lastSeenAt, so "isUp is false and updatedAt is recent" means
-   * exactly "still being reported". Once the reports stop — the node
-   * returned, was removed, or passed the retention window — the row ages
-   * out like any other.
+   * Exception: a Node that reports itself over the Proxmox VE native push
+   * (isNativePush) is kept until it has been silent for longer than the
+   * retention window, or is removed (removeOfflineNode). Those pushes
+   * never say which nodes the cluster has — the Node rows ARE the
+   * cluster's membership, the roster the nodes still alive report the
+   * silent ones from (getNodeRoster uses the same cutoff). Pruning a
+   * silent native node at the normal cutoff would drop it from the
+   * roster: it would never be reported down, its Node Offline alert
+   * would resolve, and Quorum at Risk would stop counting it. That
+   * holds whether or not it has been marked Offline yet — a node that
+   * died just before or during a OneUptime outage is only marked once
+   * the nodes have pushed again for two minutes after it. With silent-node
+   * detection switched off (PVE_NATIVE_NODE_SILENCE_DETECTION=false)
+   * nothing would ever mark such a node, so the keep is off too and every
+   * row ages out as before.
    */
   @CaptureSpan()
   public async deleteStaleForCluster(data: {
     proxmoxClusterId: ObjectID;
     olderThan: Date;
+    now?: Date | undefined;
   }): Promise<number> {
     const result: Array<{ affected?: number }> | { affected?: number } =
-      await this.getRepository().manager.query(
-        `DELETE FROM "ProxmoxResource"
-         WHERE "proxmoxClusterId" = $1
-           AND "lastSeenAt" < $2
-           AND NOT ("kind" = 'Node' AND "isUp" IS FALSE AND "updatedAt" >= $2)`,
-        [data.proxmoxClusterId.toString(), data.olderThan],
-      );
+      isProxmoxSilentNodeDetectionEnabled()
+        ? await this.getRepository().manager.query(
+            `DELETE FROM "ProxmoxResource"
+             WHERE "proxmoxClusterId" = $1
+               AND "lastSeenAt" < $2
+               AND NOT ("kind" = 'Node'
+                        AND "isNativePush" IS TRUE
+                        AND "lastSeenAt" >= $3)`,
+            [
+              data.proxmoxClusterId.toString(),
+              data.olderThan,
+              this.getSilentNodeRetentionCutoff(data.now),
+            ],
+          )
+        : await this.getRepository().manager.query(
+            `DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2`,
+            [data.proxmoxClusterId.toString(), data.olderThan],
+          );
 
     // Postgres driver returns [rows, affected] for DELETE — normalize.
     let affected: number = 0;
@@ -370,17 +400,18 @@ export class Service extends DatabaseService<Model> {
     proxmoxClusterId: ObjectID;
     now?: Date | undefined;
   }): Promise<Array<ProxmoxRosterNode>> {
-    const seenSince: Date = OneUptimeDate.addRemoveHours(
-      data.now || OneUptimeDate.getCurrentDate(),
-      -this.getSilentNodeRetentionHours(),
-    );
+    const seenSince: Date = this.getSilentNodeRetentionCutoff(data.now);
     const rows: Array<{ externalId: string; lastSeenAt: Date | string }> =
       await this.getRepository().manager.query(
         `SELECT "externalId", "lastSeenAt" FROM "ProxmoxResource"
          WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
            AND "kind" = 'Node' AND "deletedAt" IS NULL
            AND "lastSeenAt" >= $3`,
-        [data.projectId.toString(), data.proxmoxClusterId.toString(), seenSince],
+        [
+          data.projectId.toString(),
+          data.proxmoxClusterId.toString(),
+          seenSince,
+        ],
       );
 
     const roster: Array<ProxmoxRosterNode> = [];
@@ -400,12 +431,18 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Mark nodes that their live siblings report as not reporting
-   * (Proxmox VE native push) as Offline. Touches isUp, uptimeSeconds and
-   * updatedAt only — never lastSeenAt or metricsUpdatedAt, which stay
-   * the node's own last push. The node's next push flips it back through
+   * (Proxmox VE native push) as Offline: isUp = false, uptimeSeconds
+   * cleared. Never touches lastSeenAt or metricsUpdatedAt, which stay the
+   * node's own last push. The node's next push flips it back through
    * bulkUpsert (a newer lastSeenAt, isUp = true). A row the node itself
    * refreshed after `silentBefore` is left alone, so a late report can
    * never mark a live node down. Returns the number of rows written.
+   *
+   * A node the native pushes report is a member of a native-push cluster,
+   * so the mark also sets isNativePush: a node that was already down when
+   * the cluster moved from the agent to the native push (or before this
+   * column existed) is then kept like any other native node instead of
+   * being pruned while it is still being reported.
    */
   @CaptureSpan()
   public async markNodesNotReporting(data: {
@@ -424,19 +461,18 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
-    /*
-     * The updatedAt refresh (at most once a minute while the node stays
-     * reported) is what keeps the row through deleteStaleForCluster.
-     */
     const result: unknown = await this.getRepository().manager.query(
       `UPDATE "ProxmoxResource"
-       SET "isUp" = false, "uptimeSeconds" = NULL, "updatedAt" = now()
+       SET "isUp" = false,
+           "uptimeSeconds" = NULL,
+           "isNativePush" = true,
+           "updatedAt" = now()
        WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
          AND "kind" = 'Node' AND "externalId" = ANY($3)
          AND "deletedAt" IS NULL
          AND "lastSeenAt" < $4
          AND ("isUp" IS DISTINCT FROM false
-              OR "updatedAt" < now() - interval '60 seconds')`,
+              OR "isNativePush" IS DISTINCT FROM true)`,
       [
         data.projectId.toString(),
         data.proxmoxClusterId.toString(),
@@ -485,6 +521,17 @@ export class Service extends DatabaseService<Model> {
     return Array.isArray(result) && typeof result[1] === "number"
       ? result[1] > 0
       : false;
+  }
+
+  /**
+   * The oldest last report a native-push node may have and still be kept
+   * and reported: now minus getSilentNodeRetentionHours().
+   */
+  public getSilentNodeRetentionCutoff(now?: Date | undefined): Date {
+    return OneUptimeDate.addRemoveHours(
+      now || OneUptimeDate.getCurrentDate(),
+      -this.getSilentNodeRetentionHours(),
+    );
   }
 
   /**
