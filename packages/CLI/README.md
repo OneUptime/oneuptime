@@ -124,6 +124,8 @@ Every discovered resource supports these subcommands:
 | `json`  | Raw JSON (default when piped)           |
 | `wide`  | Table with all columns shown            |
 
+`-o` applies to `<resource> list`, `get`, `create`, `update` and `count`, as well as `oneuptime resources` and `oneuptime context list`, and can go anywhere on the command line. Any other value is rejected with an error.
+
 ```bash
 # Explicit format
 oneuptime incident list -o json

@@ -498,7 +498,7 @@ describe("ResourceCommands", () => {
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
         expect(mockExecuteApiRequest.mock.calls[0][0].operation).toBe("count");
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith(42);
+        expect(console.log).toHaveBeenCalledWith("42");
       });
 
       it("should pass query filter", async () => {
@@ -526,17 +526,24 @@ describe("ResourceCommands", () => {
         await program.parseAsync(["node", "test", "incident", "count"]);
 
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith(99);
+        expect(console.log).toHaveBeenCalledWith("99");
       });
 
       it("should handle non-object response in count", async () => {
         mockExecuteApiRequest.mockResolvedValue("some-string");
 
         const program: Command = createProgramWithResources();
-        await program.parseAsync(["node", "test", "incident", "count"]);
+        await program.parseAsync([
+          "node",
+          "test",
+          "incident",
+          "count",
+          "-o",
+          "json",
+        ]);
 
         // eslint-disable-next-line no-console
-        expect(console.log).toHaveBeenCalledWith("some-string");
+        expect(console.log).toHaveBeenCalledWith('"some-string"');
       });
 
       it("should handle count errors", async () => {
@@ -664,6 +671,105 @@ describe("ResourceCommands", () => {
           expect.stringContaining("\u2500"),
         );
       });
+
+      describe("incident count", () => {
+        it.each([
+          { argv: ["incident", "count"], tty: true, count: 42 },
+          { argv: ["incident", "count"], tty: false, count: 42 },
+          { argv: ["incident", "count", "-o", "json"], tty: true, count: 0 },
+          {
+            argv: ["--output", "table", "incident", "count"],
+            tty: false,
+            count: 0,
+          },
+          { argv: ["log", "count", "-o", "wide"], tty: false, count: 7 },
+        ])(
+          "prints the bare count for $argv, tty=$tty",
+          async ({
+            argv,
+            tty,
+            count,
+          }: {
+            argv: string[];
+            tty: boolean;
+            count: number;
+          }) => {
+            setStdoutIsTTY(tty);
+            mockExecuteApiRequest.mockResolvedValue({ count });
+
+            await buildProgram().parseAsync(["node", "test", ...argv]);
+
+            expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+            expect(consoleLogSpy).toHaveBeenCalledWith(String(count));
+          },
+        );
+
+        it.each([
+          { argv: ["incident", "count"], tty: false },
+          { argv: ["incident", "count", "-o", "json"], tty: true },
+          { argv: ["-o", "json", "incident", "count"], tty: true },
+        ])(
+          "prints a response without a count key as JSON for $argv, tty=$tty",
+          async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+            setStdoutIsTTY(tty);
+            mockExecuteApiRequest.mockResolvedValue({ total: 7 });
+
+            await buildProgram().parseAsync(["node", "test", ...argv]);
+
+            expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual({
+              total: 7,
+            });
+          },
+        );
+
+        it("prints a response without a count key as a table with -o table", async () => {
+          setStdoutIsTTY(false);
+          mockExecuteApiRequest.mockResolvedValue({ total: 7 });
+
+          await buildProgram().parseAsync([
+            "node",
+            "test",
+            "incident",
+            "count",
+            "-o",
+            "table",
+          ]);
+
+          const output: string = consoleLogSpy.mock.calls[0][0];
+          expect(output).toContain("\u2500");
+          expect(output).toContain("total");
+        });
+      });
+
+      it.each([
+        { argv: ["-o", "yaml", "incident", "list"] },
+        { argv: ["incident", "list", "-o", "yaml"] },
+        { argv: ["incident", "get", "test-id-123", "--output", "yaml"] },
+        { argv: ["incident", "count", "--output=yaml"] },
+        { argv: ["resources", "-o", "yaml"] },
+        { argv: ["context", "list", "-o", "yaml"] },
+      ])(
+        "rejects an unknown output format for $argv",
+        async ({ argv }: { argv: string[] }) => {
+          const errors: string[] = [];
+          const program: Command = buildProgram();
+          program.exitOverride();
+          program.configureOutput({
+            writeErr: (str: string) => {
+              errors.push(str);
+            },
+          });
+
+          await expect(
+            program.parseAsync(["node", "test", ...argv]),
+          ).rejects.toMatchObject({ code: "commander.invalidArgument" });
+          expect(errors.join("")).toContain(
+            "Allowed choices are json, table, wide.",
+          );
+          expect(mockExecuteApiRequest).not.toHaveBeenCalled();
+          expect(consoleLogSpy).not.toHaveBeenCalled();
+        },
+      );
     });
 
     describe("credential resolution in commands", () => {
