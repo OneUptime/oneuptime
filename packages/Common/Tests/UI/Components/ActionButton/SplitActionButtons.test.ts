@@ -321,7 +321,7 @@ describe("splitActionButtons", () => {
       expect(titles(result.moreMenu)).toEqual(["Show ID and Key"]);
     });
 
-    test("a disabled action can still be the button - it explains itself there", () => {
+    test("a disabled action is the button only when nothing on the row is usable", () => {
       const result: SplitActionButtonsResult<Row> = split([
         action("Edit", ButtonStyleType.OUTLINE, {
           disabled: true,
@@ -332,6 +332,78 @@ describe("splitActionButtons", () => {
 
       expect(result.primary?.button.title).toBe("Edit");
       expect(result.primary?.button.disabled).toBe(true);
+    });
+
+    /*
+     * A read-only member on a security-event connection: Test connection and
+     * Run now are locked for them, Diagnostics is not. The one button on the
+     * row should be the one they can press.
+     */
+    test("a usable action beats a locked one listed before it", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Test connection", ButtonStyleType.OUTLINE, { disabled: true }),
+        action("Run now", ButtonStyleType.OUTLINE, { disabled: true }),
+        action("Diagnostics", ButtonStyleType.OUTLINE),
+        action("Edit", ButtonStyleType.OUTLINE, { disabled: true }),
+      ]);
+
+      expect(result.primary?.button.title).toBe("Diagnostics");
+      expect(titles(result.moreMenu)).toEqual([
+        "Test connection",
+        "Run now",
+        "Edit",
+      ]);
+    });
+
+    test("a usable outlined action beats a locked call to action", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Run Now", ButtonStyleType.NORMAL, { disabled: true }),
+        action("Diagnostics", ButtonStyleType.OUTLINE),
+      ]);
+
+      expect(result.primary?.button.title).toBe("Diagnostics");
+      expect(titles(result.moreMenu)).toEqual(["Run Now"]);
+    });
+
+    test("among usable actions the call-to-action style still wins", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Diagnostics", ButtonStyleType.OUTLINE),
+        action("Run Now", ButtonStyleType.NORMAL),
+      ]);
+
+      expect(result.primary?.button.title).toBe("Run Now");
+    });
+
+    test("when everything is locked, the call-to-action style still wins", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Diagnostics", ButtonStyleType.OUTLINE, { disabled: true }),
+        action("Run Now", ButtonStyleType.NORMAL, { disabled: true }),
+      ]);
+
+      expect(result.primary?.button.title).toBe("Run Now");
+      expect(result.primary?.button.disabled).toBe(true);
+    });
+
+    test("an explicit Primary stays the button even when it is locked", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Edit", ButtonStyleType.OUTLINE),
+        action("Verify", ButtonStyleType.SUCCESS_OUTLINE, {
+          placement: ActionButtonPlacement.Primary,
+          disabled: true,
+        }),
+      ]);
+
+      expect(result.primary?.button.title).toBe("Verify");
+    });
+
+    test("a usable destructive action is not promoted over a locked everyday one", () => {
+      const result: SplitActionButtonsResult<Row> = split([
+        action("Edit", ButtonStyleType.OUTLINE, { disabled: true }),
+        DELETE,
+      ]);
+
+      expect(result.primary?.button.title).toBe("Edit");
+      expect(titles(result.moreMenu)).toEqual(["Remove from Project"]);
     });
   });
 

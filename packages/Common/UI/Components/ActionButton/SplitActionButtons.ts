@@ -21,6 +21,12 @@ import GenericObject from "../../../Types/GenericObject";
  *  4. A lone destructive action. With nothing else on the row, hiding "Delete"
  *     behind a menu of one would only add a click.
  *
+ * Within 2 and 3, an action this viewer can use beats one that is locked for
+ * them. A read-only member should not find the row's one button disabled while
+ * the thing they are allowed to do is tucked away in the menu; the locked
+ * action still sits in the menu, explaining itself. A locked action is only the
+ * button when nothing on the row is usable.
+ *
  * Destructive actions are never promoted over anything else, and actions marked
  * ActionButtonPlacement.MoreMenu are never promoted at all. The menu keeps the
  * authored order, except that destructive actions sink to the bottom - the
@@ -118,13 +124,30 @@ const splitActionButtons: SplitActionButtonsFunction = <
       return !isDestructiveActionButton(entry.button);
     });
 
+  const usableCandidates: Array<IndexedActionButton<T>> =
+    nonDestructiveCandidates.filter((entry: IndexedActionButton<T>) => {
+      return !entry.button.disabled;
+    });
+
+  type FindCallToActionFunction = (
+    entries: Array<IndexedActionButton<T>>,
+  ) => IndexedActionButton<T> | undefined;
+
+  const findCallToAction: FindCallToActionFunction = (
+    entries: Array<IndexedActionButton<T>>,
+  ): IndexedActionButton<T> | undefined => {
+    return entries.find((entry: IndexedActionButton<T>) => {
+      return CALL_TO_ACTION_STYLES.includes(entry.button.buttonStyleType);
+    });
+  };
+
   const primary: IndexedActionButton<T> | null =
     candidates.find((entry: IndexedActionButton<T>) => {
       return entry.button.placement === ActionButtonPlacement.Primary;
     }) ||
-    nonDestructiveCandidates.find((entry: IndexedActionButton<T>) => {
-      return CALL_TO_ACTION_STYLES.includes(entry.button.buttonStyleType);
-    }) ||
+    findCallToAction(usableCandidates) ||
+    usableCandidates[0] ||
+    findCallToAction(nonDestructiveCandidates) ||
     nonDestructiveCandidates[0] ||
     (visible.length === 1 && candidates.length === 1 ? candidates[0]! : null);
 
