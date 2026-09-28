@@ -5,7 +5,7 @@ import {
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
-} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+} from "../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import CommandPolicy from "./CommandPolicy";
 
 /*

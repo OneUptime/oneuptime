@@ -3,7 +3,11 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { KUBERNETES_AGENT_CLUSTER_NAME, MAX_OUTPUT_BYTES } from "../Config";
-import KubernetesPosture from "../Utils/KubernetesPosture";
+import KubernetesPosture, {
+  InClusterApiServer,
+  SERVICE_ACCOUNT_CA_PATH,
+  SERVICE_ACCOUNT_TOKEN_PATH,
+} from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import KubectlArgvGuard from "../Utils/KubectlArgvGuard";
 import KubectlWriteScope, {
@@ -107,13 +111,6 @@ const PROXY_ENV_NAMES: Array<string> = [
   "http_proxy",
   "NO_PROXY",
   "no_proxy",
-];
-
-// What kubectl needs to find the API server with the pod's ServiceAccount.
-const IN_CLUSTER_ENV_NAMES: Array<string> = [
-  "KUBERNETES_SERVICE_HOST",
-  "KUBERNETES_SERVICE_PORT",
-  "KUBERNETES_SERVICE_PORT_HTTPS",
 ];
 
 /*
@@ -302,6 +299,23 @@ function getPayloadClusterIdentifier(payload: JSONObject): string {
   return "";
 }
 
+/*
+ * https://host:port for the in-cluster API server, bracketing an IPv6 host
+ * the way Go's net.JoinHostPort (and so client-go's own in-cluster config)
+ * does: KUBERNETES_SERVICE_HOST is a bare IPv6 address on IPv6 clusters.
+ */
+export function formatInClusterServerUrl(apiServer: {
+  host: string;
+  port: string;
+}): string {
+  const host: string =
+    apiServer.host.includes(":") && !apiServer.host.startsWith("[")
+      ? `[${apiServer.host}]`
+      : apiServer.host;
+
+  return `https://${host}:${apiServer.port}`;
+}
+
 function hasFlag(args: Array<string>, name: string): boolean {
   return args.some((arg: string) => {
     // kubectl reads "_" as "-" in a long flag name.
@@ -405,7 +419,7 @@ export default class KubectlExecutor {
       KubectlWriteScope.getRefusal({
         command: policy,
         writeNamespaces: KubernetesPosture.getWriteNamespaces(),
-        podNamespace: KubernetesPosture.getPodNamespace(),
+        podNamespace: KubernetesPosture.getOwnPodNamespace(),
         allowNodeOperations: KubernetesPosture.allowsNodeOperations(),
         /*
          * A missing -n means the pod's own namespace in-cluster, and
@@ -492,31 +506,60 @@ export default class KubectlExecutor {
     }
 
     /*
-     * Every command gets its own private directory — the credential's
-     * kubeconfig when there is one, an empty HOME and a discovery cache —
-     * so nothing another command, another process or a previous life of
-     * this one left on disk can shape what kubectl does.
+     * Every command gets its own private directory — its kubeconfig (the
+     * credential's, or the pod's own ServiceAccount), an empty HOME and a
+     * discovery cache — so nothing another command, another process or a
+     * previous life of this one left on disk can shape what kubectl does.
      */
     let jobDir: string | null = null;
     let kubeconfigPath: string | null = null;
 
+    /*
+     * The pod's own ServiceAccount, written out as an explicit kubeconfig
+     * rather than left to kubectl's implicit in-cluster fallback. client-go
+     * only falls back to the in-cluster config when the merged client config
+     * equals its built-in default, so ANY flag that changes the client config
+     * — the --request-timeout added below, or one an AI-composed command
+     * carries — made kubectl skip the pod's ServiceAccount and dial
+     * http://localhost:8080 ("The connection to the server localhost:8080
+     * was refused"). Every credential-less job failed that way.
+     */
+    let inClusterApiServer: InClusterApiServer | null = null;
+
+    if (!usesCredential) {
+      inClusterApiServer = KubernetesPosture.getInClusterApiServer();
+      const inClusterRefusal: string | null =
+        KubectlExecutor.getInClusterAccessRefusal(inClusterApiServer);
+
+      if (inClusterRefusal) {
+        return {
+          success: false,
+          output: "",
+          errorMessage: inClusterRefusal,
+        };
+      }
+    }
+
     try {
       jobDir = KubectlExecutor.createKubeconfigDir();
+      kubeconfigPath = path.join(jobDir, "config");
 
-      if (usesCredential) {
-        kubeconfigPath = path.join(jobDir, "config");
-        fs.writeFileSync(
-          kubeconfigPath,
-          KubectlExecutor.buildKubeconfig({
-            apiServerUrl,
-            token,
-            caCertificate: data.credential?.["caCertificate"]
-              ? String(data.credential["caCertificate"])
-              : undefined,
-          }),
-          { mode: 0o600 },
-        );
-      }
+      fs.writeFileSync(
+        kubeconfigPath,
+        usesCredential
+          ? KubectlExecutor.buildKubeconfig({
+              apiServerUrl,
+              token,
+              caCertificate: data.credential?.["caCertificate"]
+                ? String(data.credential["caCertificate"])
+                : undefined,
+            })
+          : KubectlExecutor.buildInClusterKubeconfig({
+              apiServer: inClusterApiServer!,
+              namespace: KubernetesPosture.getOwnPodNamespace(),
+            }),
+        { mode: 0o600 },
+      );
     } catch (err) {
       KubectlExecutor.cleanup(jobDir);
       return {
@@ -525,14 +568,12 @@ export default class KubectlExecutor {
         errorMessage: `${
           usesCredential
             ? "Could not prepare the Kubernetes credential"
-            : "Could not prepare a private working directory for kubectl"
+            : "Could not prepare the in-cluster kubeconfig for kubectl"
         }: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
 
-    const finalArgs: Array<string> = kubeconfigPath
-      ? ["--kubeconfig", kubeconfigPath]
-      : [];
+    const finalArgs: Array<string> = ["--kubeconfig", kubeconfigPath];
 
     /*
      * Bound every API call so a hung watch or a slow API server cannot hold
@@ -556,6 +597,7 @@ export default class KubectlExecutor {
         homeDir: path.join(jobDir, JOB_HOME_DIR_NAME),
         cacheDir: path.join(jobDir, JOB_CACHE_DIR_NAME),
         kubeconfigPath,
+        usesCredential,
         apiServerDescription: usesCredential
           ? describeApiServer(apiServerUrl)
           : null,
@@ -648,6 +690,76 @@ export default class KubectlExecutor {
       "    user: oneuptime",
       "current-context: oneuptime",
       "",
+    ]
+      .filter((line: string) => {
+        return line !== "";
+      })
+      .join("\n")
+      .concat("\n");
+  }
+
+  /*
+   * Why a credential-less job cannot run with this pod's ServiceAccount, or
+   * null when it can: kubectl needs the in-cluster API server address and
+   * the mounted token and CA. Said before kubectl runs, so the operator sees
+   * the actual cause (automountServiceAccountToken turned off, say) rather
+   * than a connection error.
+   */
+  public static getInClusterAccessRefusal(
+    apiServer: InClusterApiServer | null,
+  ): string | null {
+    if (!apiServer) {
+      return "Refused by the Runner: this kubectl command has no Kubernetes credential and must run with the pod's own ServiceAccount, but KUBERNETES_SERVICE_HOST / KUBERNETES_SERVICE_PORT are not set in this Runner's environment, so it cannot find the cluster's API server. The Runner must run inside the cluster it serves.";
+    }
+
+    for (const file of [SERVICE_ACCOUNT_TOKEN_PATH, SERVICE_ACCOUNT_CA_PATH]) {
+      let isFile: boolean = false;
+
+      try {
+        isFile = fs.statSync(file).isFile();
+      } catch {
+        isFile = false;
+      }
+
+      if (!isFile) {
+        return `Refused by the Runner: this kubectl command must run with the pod's own ServiceAccount, but ${file} is not mounted in this pod. Make sure the pod's ServiceAccount token is mounted (automountServiceAccountToken must not be false on the pod or its ServiceAccount).`;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * The pod's own ServiceAccount as an explicit kubeconfig. The token and CA
+   * are referenced by path, never copied: the kubelet rotates the projected
+   * token in place and kubectl re-reads tokenFile, and no bearer token is
+   * written to disk by the Runner. The context namespace is the pod's own,
+   * so a command without -n still lands where KubectlWriteScope assumes it
+   * does (usesCredential:false means "the pod's namespace").
+   */
+  public static buildInClusterKubeconfig(data: {
+    apiServer: InClusterApiServer;
+    namespace: string | null;
+  }): string {
+    return [
+      "apiVersion: v1",
+      "kind: Config",
+      "clusters:",
+      "- name: in-cluster",
+      "  cluster:",
+      `    server: ${JSON.stringify(formatInClusterServerUrl(data.apiServer))}`,
+      `    certificate-authority: ${JSON.stringify(SERVICE_ACCOUNT_CA_PATH)}`,
+      "users:",
+      "- name: in-cluster",
+      "  user:",
+      `    tokenFile: ${JSON.stringify(SERVICE_ACCOUNT_TOKEN_PATH)}`,
+      "contexts:",
+      "- name: in-cluster",
+      "  context:",
+      "    cluster: in-cluster",
+      "    user: in-cluster",
+      data.namespace ? `    namespace: ${JSON.stringify(data.namespace)}` : "",
+      "current-context: in-cluster",
     ]
       .filter((line: string) => {
         return line !== "";
@@ -834,19 +946,21 @@ export default class KubectlExecutor {
    *   - KUBERC=off and KUBECTL_KUBERC=false: kubectl 1.33+ reads a kuberc
    *     preferences file (aliases, default flags) — it must never rewrite
    *     an argv the policy already approved.
-   *   - With a credential: KUBECONFIG = the temporary kubeconfig (also on
-   *     the argv as --kubeconfig), and this host's proxy settings, which is
-   *     how the Runner's own traffic reaches the outside too. No in-cluster
-   *     service address, so kubectl can never fall back to the pod's own
-   *     ServiceAccount.
-   *   - Without one (the kubernetes-agent Runner in its pod): the in-cluster
-   *     service address, and no proxy — the API server is the pod's own
-   *     service, and a host proxy would only get in its way.
+   *   - KUBECONFIG = the command's private kubeconfig (also on the argv as
+   *     --kubeconfig): the credential's, or the pod's own ServiceAccount
+   *     written out explicitly (buildInClusterKubeconfig). Never the
+   *     in-cluster service variables: kubectl must never fall back to an
+   *     implicit config of its own choosing.
+   *   - With a credential: this host's proxy settings, which is how the
+   *     Runner's own traffic reaches the outside too. In-cluster: none — the
+   *     API server is the pod's own service, and a host proxy would only get
+   *     in its way.
    */
   public static buildSpawnEnv(data: {
     homeDir: string;
     cacheDir: string;
-    kubeconfigPath: string | null;
+    kubeconfigPath: string;
+    usesCredential: boolean;
   }): NodeJS.ProcessEnv {
     const env: NodeJS.ProcessEnv = {
       PATH: process.env["PATH"] || "/usr/local/bin:/usr/bin:/bin",
@@ -854,22 +968,17 @@ export default class KubectlExecutor {
       KUBECACHEDIR: data.cacheDir,
       KUBERC: "off",
       KUBECTL_KUBERC: "false",
+      KUBECONFIG: data.kubeconfigPath,
     };
 
-    const passThrough: Array<string> = data.kubeconfigPath
-      ? PROXY_ENV_NAMES
-      : IN_CLUSTER_ENV_NAMES;
+    if (data.usesCredential) {
+      for (const name of PROXY_ENV_NAMES) {
+        const value: string | undefined = process.env[name];
 
-    for (const name of passThrough) {
-      const value: string | undefined = process.env[name];
-
-      if (value) {
-        env[name] = value;
+        if (value) {
+          env[name] = value;
+        }
       }
-    }
-
-    if (data.kubeconfigPath) {
-      env["KUBECONFIG"] = data.kubeconfigPath;
     }
 
     return env;
@@ -880,7 +989,8 @@ export default class KubectlExecutor {
     timeoutInMs: number;
     homeDir: string;
     cacheDir: string;
-    kubeconfigPath: string | null;
+    kubeconfigPath: string;
+    usesCredential: boolean;
     // "https://host:port" of the credential's API server; null in-cluster.
     apiServerDescription: string | null;
   }): Promise<KubectlExecResult> {
@@ -906,6 +1016,7 @@ export default class KubectlExecutor {
               homeDir: data.homeDir,
               cacheDir: data.cacheDir,
               kubeconfigPath: data.kubeconfigPath,
+              usesCredential: data.usesCredential,
             }),
             cwd: data.homeDir,
           });

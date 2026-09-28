@@ -1,7 +1,7 @@
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
-} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+} from "../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 
 /*
  * Policy gate for AI-composed remediation commands.
