@@ -3436,6 +3436,8 @@
   "Minimum number of probes that must agree before a status change. Leave blank to require all enabled probes to agree.": "ステータス変更前に合意が必要なプローブの最小数。すべての有効なプローブの合意を必須にするには空白のままにします。",
   "Minimum Probe Agreement": "最小プローブ合意数",
   "Model Name": "モデル名",
+  "MAC Address": "MACアドレス",
+  "Firmware Version": "ファームウェアバージョン",
   "Modern OAuth2 flow": "最新の OAuth2 フロー",
   "Monitor Affected": "影響を受けるモニター",
   "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team.": "あらゆるものを監視 - Web サイト、API、IPv4、IPv6、データの受信送信など。あらゆるメトリクスでアラートを作成し、適切なチームに通知します。",

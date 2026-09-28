@@ -3436,6 +3436,8 @@
   "Minimum number of probes that must agree before a status change. Leave blank to require all enabled probes to agree.": "상태 변경 전에 합의해야 하는 최소 프로브 수입니다. 활성화된 모든 프로브의 합의를 요구하려면 비워 두세요.",
   "Minimum Probe Agreement": "최소 프로브 합의",
   "Model Name": "모델 이름",
+  "MAC Address": "MAC 주소",
+  "Firmware Version": "펌웨어 버전",
   "Modern OAuth2 flow": "최신 OAuth2 흐름",
   "Monitor Affected": "영향받은 모니터",
   "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team.": "무엇이든 모니터링하세요 - 웹사이트, API, IPv4, IPv6 또는 인바운드로 데이터를 전송하는 것 등. 모든 메트릭에 대한 경고를 만들고 적절한 팀에 알립니다.",
