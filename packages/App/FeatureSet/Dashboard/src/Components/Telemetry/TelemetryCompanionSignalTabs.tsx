@@ -32,6 +32,7 @@ import DashboardLogsViewer from "../Logs/LogsViewer";
 import TracesViewer from "../Traces/TracesViewer";
 import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
 import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useServiceNames from "./useServiceNames";
 import {
   formatDroppedScopeHint,
@@ -83,6 +84,24 @@ const TAB_LABELS: Dictionary<string> = {
   [TelemetryType.Trace]: "Traces",
   [TelemetryType.Metric]: "Metrics",
   [TelemetryType.Exception]: "Exceptions",
+};
+
+type WithoutPageZoomFunction = (companion: ReactElement) => ReactElement;
+
+/*
+ * Each companion keeps its own window: seeded from the snapshot, zoomed
+ * and reset inside the companion (the viewers' histograms, the metric
+ * card's own zoom). These tabs also open inside the investigation drawer,
+ * over pages whose charts zoom the page. That page's zoom is withdrawn
+ * here, so a companion's time picker never offers to reset the page
+ * behind the drawer, and a drag on the companion metric card never
+ * retimes it. The primary signal is the host's own element and keeps
+ * whatever zoom the host gives it.
+ */
+const withoutPageZoom: WithoutPageZoomFunction = (
+  companion: ReactElement,
+): ReactElement => {
+  return <TimeRangeZoomProvider zoom={null}>{companion}</TimeRangeZoomProvider>;
 };
 
 interface CompanionScopeHintProps {
@@ -460,12 +479,12 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
       if (telemetryType === TelemetryType.Log && companions.logs) {
         items.push({
           name: label,
-          children: (
+          children: withoutPageZoom(
             <CompanionLogsTab
               spec={companions.logs}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-            />
+            />,
           ),
         });
         continue;
@@ -474,12 +493,12 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
       if (telemetryType === TelemetryType.Trace && companions.traces) {
         items.push({
           name: label,
-          children: (
+          children: withoutPageZoom(
             <CompanionTracesTab
               spec={companions.traces}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-            />
+            />,
           ),
         });
         continue;
@@ -488,12 +507,12 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
       if (telemetryType === TelemetryType.Metric && companions.metrics) {
         items.push({
           name: label,
-          children: (
+          children: withoutPageZoom(
             <CompanionMetricsTab
               spec={companions.metrics}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-            />
+            />,
           ),
         });
         continue;
@@ -502,12 +521,12 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
       if (telemetryType === TelemetryType.Exception && companions.exceptions) {
         items.push({
           name: label,
-          children: (
+          children: withoutPageZoom(
             <CompanionExceptionsTab
               spec={companions.exceptions}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-            />
+            />,
           ),
         });
       }
