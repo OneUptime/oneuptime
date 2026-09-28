@@ -15,12 +15,24 @@ export interface ComponentProps {
    * Shown on hover - the place a locked menu item says why it is locked.
    */
   tooltip?: string | undefined;
+  /*
+   * Red text and a red hover, for the items that delete or remove something.
+   * The menu is where a table puts those, so they need to read as dangerous
+   * without a button border to say so.
+   */
+  isDestructive?: boolean | undefined;
+  /*
+   * Keep the icon's gutter even when this item has no icon, so its label lines
+   * up with the labels of the items around it that do.
+   */
+  isIconSpaceReserved?: boolean | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isDisabled: boolean = Boolean(props.isDisabled);
+  const isDestructive: boolean = Boolean(props.isDestructive);
 
   const menuItem: ReactElement = (
     /*
@@ -30,7 +42,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      */
     <button
       type="button"
-      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors duration-100 enabled:cursor-pointer enabled:hover:bg-indigo-50 enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+        isDestructive
+          ? "text-red-600 enabled:hover:bg-red-50 enabled:hover:text-red-700"
+          : "text-gray-700 enabled:hover:bg-indigo-50 enabled:hover:text-gray-900"
+      } ${
         isDisabled && props.tooltip ? "pointer-events-none " : ""
       }${props.className || ""}`}
       role="menuitem"
@@ -44,8 +60,15 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       {props.icon && (
         <Icon
           icon={props.icon}
-          className={`mr-2.5 h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors duration-100 ${props.iconClassName}`}
+          className={`mr-2.5 h-4 w-4 shrink-0 transition-colors duration-100 ${
+            isDestructive
+              ? "text-red-500 group-hover:text-red-600"
+              : "text-gray-400 group-hover:text-indigo-500"
+          } ${props.iconClassName || ""}`}
         />
+      )}
+      {!props.icon && props.isIconSpaceReserved && (
+        <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
       )}
       <div className="flex w-full justify-between items-center">
         <div className="font-medium">{props.text}</div>

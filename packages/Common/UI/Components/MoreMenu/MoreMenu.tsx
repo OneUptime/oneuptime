@@ -5,11 +5,15 @@ import React, {
   useEffect,
   useId,
   useImperativeHandle,
+  useLayoutEffect,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import { consumePressForAnchoredPopup } from "../../Types/LayeredDismissal";
 import Button, { ButtonStyleType } from "../Button/Button";
+import DROPDOWN_MENU_Z_INDEX from "../Dropdown/DropdownMenuZIndex";
 
 export interface ComponentProps {
   children: Array<ReactElement>;
@@ -41,7 +45,47 @@ export interface ComponentProps {
    * know they are at the bottom say so; everything else keeps opening down.
    */
   isOpeningUpwards?: boolean | undefined;
+  /*
+   * Render the open menu into document.body, `fixed` against its trigger,
+   * instead of absolutely inside the trigger's wrapper. For triggers that live
+   * inside a clipping container - a table row sits in an `overflow-x-auto`
+   * scroller, so an absolute menu under its last row is cut off or scrolls the
+   * table instead of showing. Placement follows the other portalled popups:
+   * below the trigger and right-aligned to it, flipped above when there is not
+   * room below, clamped to the viewport.
+   */
+  isMenuPortaled?: boolean | undefined;
 }
+
+// Matches the mt-2 / mb-2 gap the in-place menu keeps from its trigger.
+const PORTALED_MENU_GAP_PX: number = 8;
+const PORTALED_MENU_VIEWPORT_PADDING_PX: number = 8;
+// w-56, for the first measurement before the menu has a width of its own.
+const PORTALED_MENU_FALLBACK_WIDTH_PX: number = 224;
+
+interface PortaledMenuPosition {
+  top: number | undefined;
+  bottom: number | undefined;
+  left: number;
+  isAbove: boolean;
+}
+
+/*
+ * A fullscreen element hides everything outside it, so a menu opened from
+ * inside one has to be portalled into it rather than into the body.
+ */
+const getMenuPortalTarget: () => HTMLElement | null =
+  (): HTMLElement | null => {
+    if (typeof document === "undefined") {
+      return null;
+    }
+
+    const fullscreenElement: Element | null = document.fullscreenElement;
+
+    return fullscreenElement instanceof HTMLElement
+      ? fullscreenElement
+      : document.body;
+  };
 
 const isMenuItemDisabled: (item: HTMLElement) => boolean = (
   item: HTMLElement,
@@ -67,6 +111,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
     const { ref, isComponentVisible, setIsComponentVisible } =
       useComponentOutsideClick(false);
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+    const isMenuPortaled: boolean = Boolean(props.isMenuPortaled);
+    const [portaledMenuPosition, setPortaledMenuPosition] =
+      useState<PortaledMenuPosition | null>(null);
 
     /*
      * Menu sections and dividers are valid top-level children, so the list of
@@ -169,12 +216,155 @@ const MoreMenu: React.ForwardRefExoticComponent<
       }
     }, [props.isDisabled, isComponentVisible, setIsComponentVisible]);
 
+    const updatePortaledMenuPosition: () => void = useCallback((): void => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const trigger: HTMLElement | null = document.getElementById(buttonId);
+
+      if (!trigger) {
+        return;
+      }
+
+      const menuElement: HTMLElement | null = ref.current as HTMLElement | null;
+      const triggerRect: DOMRect = trigger.getBoundingClientRect();
+      const menuWidth: number =
+        menuElement?.offsetWidth || PORTALED_MENU_FALLBACK_WIDTH_PX;
+      const menuHeight: number = menuElement?.offsetHeight || 0;
+
+      // Right edge to right edge, like the in-place menu's `right-0`.
+      const maximumLeft: number = Math.max(
+        PORTALED_MENU_VIEWPORT_PADDING_PX,
+        window.innerWidth - PORTALED_MENU_VIEWPORT_PADDING_PX - menuWidth,
+      );
+      const left: number = Math.min(
+        Math.max(
+          triggerRect.right - menuWidth,
+          PORTALED_MENU_VIEWPORT_PADDING_PX,
+        ),
+        maximumLeft,
+      );
+
+      const spaceBelow: number =
+        window.innerHeight -
+        triggerRect.bottom -
+        PORTALED_MENU_GAP_PX -
+        PORTALED_MENU_VIEWPORT_PADDING_PX;
+      const spaceAbove: number =
+        triggerRect.top -
+        PORTALED_MENU_GAP_PX -
+        PORTALED_MENU_VIEWPORT_PADDING_PX;
+      const isAbove: boolean = props.isOpeningUpwards
+        ? spaceAbove >= menuHeight || spaceAbove > spaceBelow
+        : menuHeight > spaceBelow && spaceAbove > spaceBelow;
+
+      setPortaledMenuPosition({
+        top: isAbove ? undefined : triggerRect.bottom + PORTALED_MENU_GAP_PX,
+        bottom: isAbove
+          ? window.innerHeight - triggerRect.top + PORTALED_MENU_GAP_PX
+          : undefined,
+        left,
+        isAbove,
+      });
+    }, [buttonId, props.isOpeningUpwards, ref]);
+
+    /*
+     * Measured before paint, so the menu never flashes at the corner of the
+     * viewport; until then it is mounted `visibility: hidden`. Repositioned on
+     * every scroll (captured, because the table's own scroller does not bubble
+     * one to window) so it stays attached to its trigger.
+     */
+    useLayoutEffect(() => {
+      if (!isMenuPortaled || !isComponentVisible) {
+        setPortaledMenuPosition(null);
+        return undefined;
+      }
+
+      let animationFrame: number | null = null;
+
+      const schedulePositionUpdate: () => void = (): void => {
+        if (animationFrame !== null) {
+          return;
+        }
+
+        animationFrame = window.requestAnimationFrame((): void => {
+          animationFrame = null;
+          updatePortaledMenuPosition();
+        });
+      };
+
+      updatePortaledMenuPosition();
+
+      window.addEventListener("resize", schedulePositionUpdate);
+      document.addEventListener("scroll", schedulePositionUpdate, true);
+
+      return () => {
+        window.removeEventListener("resize", schedulePositionUpdate);
+        document.removeEventListener("scroll", schedulePositionUpdate, true);
+        if (animationFrame !== null) {
+          window.cancelAnimationFrame(animationFrame);
+        }
+      };
+    }, [isMenuPortaled, isComponentVisible, updatePortaledMenuPosition]);
+
+    /*
+     * A portalled menu is not inside the Modal it was opened from, so a press
+     * outside it could also read as a press on that Modal's backdrop. The press
+     * is spent on closing the menu; claim it so the dialog behind survives.
+     */
+    useEffect(() => {
+      if (!isMenuPortaled || !isComponentVisible) {
+        return undefined;
+      }
+
+      const handlePointerDown: (event: MouseEvent) => void = (
+        event: MouseEvent,
+      ): void => {
+        const target: EventTarget | null = event.target;
+
+        if (!(target instanceof Node)) {
+          return;
+        }
+
+        const menuElement: HTMLElement | null =
+          ref.current as HTMLElement | null;
+
+        if (
+          menuElement?.contains(target) ||
+          document.getElementById(buttonId)?.contains(target)
+        ) {
+          return;
+        }
+
+        consumePressForAnchoredPopup(event);
+      };
+
+      document.addEventListener("mousedown", handlePointerDown, true);
+
+      return () => {
+        document.removeEventListener("mousedown", handlePointerDown, true);
+      };
+    }, [buttonId, isMenuPortaled, isComponentVisible, ref]);
+
+    /*
+     * A portalled menu is `visibility: hidden` until it has been measured, and
+     * a hidden element refuses focus - so the first item is focused once the
+     * menu has a position, not merely once it is open.
+     */
+    const isMenuPlaced: boolean =
+      !isMenuPortaled || portaledMenuPosition !== null;
+
     useEffect(() => {
       const menuItems: Array<HTMLElement> = getMenuItems();
 
       menuItems.forEach((item: HTMLElement, index: number) => {
         item.tabIndex = index === focusedIndex ? 0 : -1;
       });
+
+      if (!isMenuPlaced) {
+        return;
+      }
 
       if (focusedIndex >= 0 && menuItems.length > 0) {
         const safeFocusedIndex: number = Math.min(
@@ -188,7 +378,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
           menuItems[safeFocusedIndex]?.focus();
         }
       }
-    }, [focusedIndex, getMenuItems, isComponentVisible, props.children]);
+    }, [
+      focusedIndex,
+      getMenuItems,
+      isComponentVisible,
+      isMenuPlaced,
+      props.children,
+    ]);
 
     const restoreFocusToTrigger: () => void = useCallback((): void => {
       /*
@@ -231,6 +427,16 @@ const MoreMenu: React.ForwardRefExoticComponent<
 
         if (event.key === "Tab") {
           setIsComponentVisible(false);
+
+          /*
+           * A portalled menu sits at the end of the body, so the browser's own
+           * Tab would carry focus from it to whatever follows the body - out
+           * of the table, and out of any dialog it is in. Hand focus back to
+           * the trigger first and let the same Tab move on from there.
+           */
+          if (isMenuPortaled) {
+            focusTrigger();
+          }
           return;
         }
 
@@ -311,6 +517,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         focusTrigger,
         getMenuItems,
         isComponentVisible,
+        isMenuPortaled,
         setIsComponentVisible,
       ],
     );
@@ -377,6 +584,55 @@ const MoreMenu: React.ForwardRefExoticComponent<
           },
         });
       };
+
+    const isMenuAbove: boolean = isMenuPortaled
+      ? Boolean(portaledMenuPosition?.isAbove)
+      : Boolean(props.isOpeningUpwards);
+
+    const menuPortalTarget: HTMLElement | null = isMenuPortaled
+      ? getMenuPortalTarget()
+      : null;
+
+    const menu: ReactElement = (
+      <div
+        ref={ref}
+        id={menuId}
+        /*
+         * Once settled the menu carries no transform class at all: a
+         * lingering scale would make it the containing block for any
+         * position:fixed descendant (the Modal invariant).
+         */
+        className={`${
+          isMenuPortaled ? "" : "absolute right-0 z-50 "
+        }w-56 rounded-lg bg-white text-left shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
+          isMenuAbove
+            ? `${isMenuPortaled ? "" : "bottom-full mb-2 "}origin-bottom-right`
+            : `${isMenuPortaled ? "" : "mt-2 "}origin-top-right`
+        } ${hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"}`}
+        style={
+          isMenuPortaled
+            ? {
+                position: "fixed",
+                top: portaledMenuPosition?.top,
+                bottom: portaledMenuPosition?.bottom,
+                left: portaledMenuPosition?.left ?? 0,
+                zIndex: DROPDOWN_MENU_Z_INDEX,
+                visibility: portaledMenuPosition ? "visible" : "hidden",
+              }
+            : undefined
+        }
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby={buttonId}
+        onClick={handleMenuClick}
+      >
+        {props.children.map((child: ReactElement, index: number) => {
+          return (
+            <React.Fragment key={child.key || index}>{child}</React.Fragment>
+          );
+        })}
+      </div>
+    );
 
     return (
       <div
@@ -463,34 +719,11 @@ const MoreMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
-        {isComponentVisible && (
-          <div
-            ref={ref}
-            id={menuId}
-            /*
-             * Once settled the menu carries no transform class at all: a
-             * lingering scale would make it the containing block for any
-             * position:fixed descendant (the Modal invariant).
-             */
-            className={`absolute right-0 z-50 w-56 rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
-              props.isOpeningUpwards
-                ? "bottom-full mb-2 origin-bottom-right"
-                : "mt-2 origin-top-right"
-            } ${hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"}`}
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby={buttonId}
-            onClick={handleMenuClick}
-          >
-            {props.children.map((child: ReactElement, index: number) => {
-              return (
-                <React.Fragment key={child.key || index}>
-                  {child}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        )}
+        {isComponentVisible && !isMenuPortaled && menu}
+        {isComponentVisible &&
+          isMenuPortaled &&
+          menuPortalTarget &&
+          createPortal(menu, menuPortalTarget)}
       </div>
     );
   },
