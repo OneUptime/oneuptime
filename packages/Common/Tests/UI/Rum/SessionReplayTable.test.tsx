@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -26,7 +27,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The session list, rendered against a mocked /list and /ingest-status.
  * Skeleton rows while loading; routes, trace counts, idle hint and the
- * first-error action on a row; whole-row navigation with Cmd-click as a
+ * first-error action in a row's ⋯ menu beside Watch; whole-row
+ * navigation with Cmd-click as a
  * real link; search debounced into the request; a sort change resets the
  * cursor; Next disabled without a cursor; unplayable rows never offer
  * Watch; the ignored user filter is called out instead of chipped; the
@@ -70,6 +72,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import SessionReplayTable, {
   fetchSessionReplayList,
+  getSessionReplayFirstErrorRoute,
   parseSessionReplaySummary,
   SESSION_REPLAY_FRUSTRATION_COUNTERS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
@@ -514,14 +517,26 @@ describe("SessionReplayTable rendering", () => {
       "jane@acme.com",
     );
 
-    const firstError: HTMLAnchorElement = screen
-      .getByTestId("session-row-first-error")
-      .closest("a") as HTMLAnchorElement;
+    /* The first-error action waits in the row's ⋯ menu, beside Watch. */
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const firstError: string = (
+      navigateMock.mock.calls[0]![0] as { toString: () => string }
+    ).toString();
 
     /* 65s minus the 1s pre-roll, whole seconds, on the errors rail. */
-    expect(firstError.getAttribute("href")).toContain(`/${SESSION_A}`);
-    expect(firstError.getAttribute("href")).toContain("t=64");
-    expect(firstError.getAttribute("href")).toContain("rail=errors");
+    expect(firstError).toContain(`/${SESSION_A}`);
+    expect(firstError).toContain("t=64");
+    expect(firstError).toContain("rail=errors");
   });
 
   it("a provisional row says Recording now with a live dot and honest placeholders", async () => {
@@ -650,7 +665,14 @@ describe("SessionReplayTable rendering", () => {
     await waitForRows(2);
 
     expect(screen.queryByTestId("session-row-watch")).toBeNull();
-    expect(screen.queryByTestId("session-row-first-error")).toBeNull();
+    /*
+     * Both rows have errors, but no footage to jump into: no first-error
+     * action, so no ⋯ menu to hold it.
+     */
+    expect(screen.queryByTestId("row-actions-more-button")).toBeNull();
+    expect(
+      screen.queryByRole("menuitem", { name: "Watch from first error" }),
+    ).toBeNull();
     expect(screen.getAllByTestId("session-row-signals-only").length).toBe(2);
 
     const badges: Array<HTMLElement> = screen.getAllByTestId(
@@ -1358,6 +1380,351 @@ describe("SessionReplayTable navigation", () => {
     expect(
       (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
     ).toContain("rail=traces");
+  });
+});
+
+/*
+ * Where the ⋯ menu's "Watch from first error" goes, or null to keep it off
+ * the row: only a session with a route, footage that plays and an error.
+ */
+describe("getSessionReplayFirstErrorRoute", () => {
+  function firstErrorRouteFor(overrides?: JSONObject): string | null {
+    const route: { toString: () => string } | null =
+      getSessionReplayFirstErrorRoute({
+        row: parseSessionReplaySummary(wireRow(overrides)),
+        rumApplicationId: APP_ID,
+        nowUnixMs: NOW,
+      });
+
+    return route ? route.toString() : null;
+  }
+
+  it("opens the player one second before the first error, on the errors rail", () => {
+    const route: string | null = firstErrorRouteFor();
+
+    expect(route).toContain(APP_ID);
+    expect(route).toContain(`/${SESSION_A}`);
+    expect(route).toContain("t=64");
+    expect(route).toContain("rail=errors");
+  });
+
+  it("starts at zero when the error is inside the pre-roll or its offset is unknown", () => {
+    expect(firstErrorRouteFor({ firstErrorOffsetMs: 400 })).toContain("t=0");
+
+    const legacy: JSONObject = wireRow();
+
+    delete legacy["firstErrorOffsetMs"];
+
+    expect(
+      getSessionReplayFirstErrorRoute({
+        row: parseSessionReplaySummary(legacy),
+        rumApplicationId: APP_ID,
+        nowUnixMs: NOW,
+      })?.toString(),
+    ).toContain("t=0");
+  });
+
+  it("is null for a session without an error", () => {
+    expect(firstErrorRouteFor({ errorCount: 0, hasError: 0 })).toBeNull();
+  });
+
+  it("is null when the footage will not play", () => {
+    expect(firstErrorRouteFor({ sealedReason: "recording-lost" })).toBeNull();
+    expect(firstErrorRouteFor({ chunkCount: 0 })).toBeNull();
+  });
+
+  it("is null for a row with no session to open", () => {
+    expect(firstErrorRouteFor({ sessionId: "" })).toBeNull();
+  });
+
+  it("is offered on a session still recording, whose footage already plays", () => {
+    expect(firstErrorRouteFor({ isFinalized: 0 })).toContain("rail=errors");
+  });
+});
+
+/*
+ * A row carries one control and a ⋯ menu, not a stack of them: Watch (or
+ * Signals only) stays a real link, and "Watch from first error" - once a
+ * small link under it - is the menu's one item. A row with no first error
+ * to jump to has nothing for a menu, so it has no ⋯.
+ */
+describe("SessionReplayTable row actions", () => {
+  function navigatedTo(callIndex: number): string {
+    return (
+      navigateMock.mock.calls[callIndex]![0] as { toString: () => string }
+    ).toString();
+  }
+
+  function moreButtonOf(row: HTMLElement): HTMLElement {
+    return within(row).getByTestId("row-actions-more-button");
+  }
+
+  function openMenuOf(row: HTMLElement): HTMLElement {
+    fireEvent.click(moreButtonOf(row));
+
+    return screen.getByRole("menu");
+  }
+
+  function menuItemNames(menu: HTMLElement): Array<string> {
+    return within(menu)
+      .getAllByRole("menuitem")
+      .map((item: HTMLElement): string => {
+        return item.textContent || "";
+      });
+  }
+
+  it("a watchable row with an error shows Watch as its one button and the first-error jump in its ⋯ menu", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const actions: HTMLElement = within(row as HTMLElement).getByTestId(
+      "row-actions",
+    );
+
+    /* Watch is still the Actions cell's own link, with its real href. */
+    const watch: HTMLAnchorElement = within(row as HTMLElement)
+      .getByTestId("session-row-watch")
+      .closest("a") as HTMLAnchorElement;
+
+    expect(watch.getAttribute("href")).toContain(`/${SESSION_A}`);
+    expect(watch.getAttribute("href")).not.toContain("rail=errors");
+
+    /*
+     * Beside it RowActions draws only the ⋯: the first-error jump is never
+     * promoted to a second button, and the old link is gone from the cell.
+     */
+    expect(within(actions).getAllByRole("button")).toEqual([
+      moreButtonOf(row as HTMLElement),
+    ]);
+    expect(moreButtonOf(row as HTMLElement)).toHaveAttribute(
+      "aria-label",
+      "More actions",
+    );
+    expect(row).not.toHaveTextContent("from 1st error");
+    expect(screen.queryByTestId("session-row-first-error")).toBeNull();
+
+    /* The Actions cell holds exactly one link: Watch. */
+    const actionsCell: HTMLElement = actions.closest("td") as HTMLElement;
+
+    expect(within(actionsCell).getAllByRole("link")).toEqual([watch]);
+
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    expect(menuItemNames(menu)).toEqual(["Watch from first error"]);
+    /* Portalled out of the row, so the table's overflow cannot clip it. */
+    expect(row).not.toContainElement(menu);
+
+    /* Opening the menu is the ⋯'s click, not the row's. */
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("a watchable row without an error shows Watch and no ⋯", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ errorCount: 0, hasError: 0, firstErrorOffsetMs: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-watch"),
+    ).toBeInTheDocument();
+    expect(
+      within(row as HTMLElement).queryByTestId("row-actions-more-button"),
+    ).toBeNull();
+    expect(within(row as HTMLElement).queryByTestId("row-actions")).toBeNull();
+  });
+
+  it("an unplayable row with errors shows Signals only and no ⋯", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ sealedReason: "recording-lost" })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-signals-only"),
+    ).toBeInTheDocument();
+    expect(
+      within(row as HTMLElement).queryByTestId("row-actions-more-button"),
+    ).toBeNull();
+  });
+
+  it("only the rows with a first error to jump to carry a ⋯", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, errorCount: 0, hasError: 0 }),
+        wireRow({ sessionId: SESSION_C, chunkCount: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(3);
+
+    expect(
+      rows.map((row: HTMLElement): boolean => {
+        return Boolean(within(row).queryByTestId("row-actions-more-button"));
+      }),
+    ).toEqual([true, false, false]);
+  });
+
+  it("choosing Watch from first error opens THAT row's session at its own first error", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, firstErrorOffsetMs: 10_000 }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    /* One navigation: the item's. The row it sits in does not add its own. */
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_B}`);
+    expect(navigatedTo(0)).not.toContain(SESSION_A);
+    /* 10s minus the 1s pre-roll, on the errors rail. */
+    expect(navigatedTo(0)).toContain("t=9");
+    expect(navigatedTo(0)).toContain("rail=errors");
+    /* In this tab, as the old link's plain click did. */
+    expect(navigateMock.mock.calls[0]![1]).toEqual({});
+
+    /* The menu closes behind the choice. */
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    /* And the first row's own menu still jumps to the first row's error. */
+    fireEvent.click(
+      within(openMenuOf(rows[0] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(2);
+    expect(navigatedTo(1)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(1)).toContain("t=64");
+  });
+
+  it("a session whose first error is at the very start jumps to t=0", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ firstErrorOffsetMs: 0 })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(
+      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(0)).toContain("t=0");
+    expect(navigatedTo(0)).toContain("rail=errors");
+  });
+
+  it("the jump re-stamps the list URL, so the player's back link returns to this page", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    window.sessionStorage.removeItem(SESSION_REPLAY_LIST_URL_STORAGE_KEY);
+
+    fireEvent.click(
+      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
+        name: "Watch from first error",
+      }),
+    );
+
+    expect(
+      window.sessionStorage.getItem(SESSION_REPLAY_LIST_URL_STORAGE_KEY),
+    ).toBe(`${window.location.pathname}${window.location.search}`);
+    expect(readReplayListUrl(window.sessionStorage)).not.toBeNull();
+  });
+
+  it("Enter on the focused menu item jumps once, and the row does not also open", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const item: HTMLElement = within(openMenuOf(row as HTMLElement)).getByRole(
+      "menuitem",
+      { name: "Watch from first error" },
+    );
+
+    act((): void => {
+      item.focus();
+    });
+
+    fireEvent.keyDown(item, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain("rail=errors");
+  });
+
+  it("a click inside the open menu but off its items does not open the row's session", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    /*
+     * The menu is portalled to document.body but React bubbles its clicks
+     * to the row all the same; the menu's own padding is not the row.
+     */
+    fireEvent.click(menu);
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("the row itself still opens at the start, beside its ⋯", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(row as HTMLElement);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(navigatedTo(0)).not.toContain("rail=errors");
   });
 });
 
@@ -2405,6 +2772,74 @@ describe("SessionReplayTable auto-refresh", () => {
     /* Focus leaves the table: the next tick reads the page. */
     act((): void => {
       (row as HTMLElement).blur();
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    await waitForRows(2);
+  });
+
+  /*
+   * The ⋯ menu is portalled to document.body: neither the pointer check
+   * nor the focus check sees it once the pointer has left the table. Rows
+   * are keyed by position, so a read under an open menu would leave its
+   * "Watch from first error" pointing at whichever session moved into the
+   * slot.
+   */
+  it("a tick stands down while a row's ⋯ menu is open, so the menu keeps acting on the session it was opened for", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0 })]);
+      }
+
+      return listResponse([
+        wireRow({ sessionId: SESSION_B, isFinalized: 0 }),
+        wireRow({ isFinalized: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+
+    const menu: HTMLElement = screen.getByRole("menu");
+
+    /* Nothing of the table's holds the pointer or the focus. */
+    act((): void => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+
+    fireEvent.click(
+      within(menu).getByRole("menuitem", { name: "Watch from first error" }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+    ).toContain(`/${SESSION_A}`);
+
+    /*
+     * The menu has closed. It hands focus back to its trigger a frame
+     * later; once that has moved on too, the next tick reads the page.
+     */
+    await advance(50);
+
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    act((): void => {
+      (document.activeElement as HTMLElement | null)?.blur();
     });
 
     await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);

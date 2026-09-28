@@ -15,6 +15,8 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import {
   ButtonSize,
   ButtonStyleType,
@@ -489,6 +491,58 @@ const UserViewNotificationMethods: FunctionComponent<
       }
     };
 
+  /*
+   * Each row carries one button and a ⋯ menu, like every other row of actions
+   * in the product. "Resend code" is the button whenever it is offered: on an
+   * unverified method it is the one thing an admin can do to move it forward.
+   * "Remove" goes in the menu under it, in red - and on a row with nothing to
+   * resend it is the only action, so it stays a button of its own rather than
+   * becoming a menu of one.
+   *
+   * The conditions are the ones the row always had. Resend needs a method that
+   * is still unverified AND one an admin could have added, because only those
+   * channels have a code this page can cause to be sent - a Telegram code
+   * starts with the account holder messaging the bot. Remove is offered on
+   * every channel, including the ones an admin can never add.
+   *
+   * Neither action does its work in the row: each opens a confirmation, which
+   * carries its own spinner while the request is in flight. So each hands the
+   * row back at once - RowActions keeps a button spinning until its action
+   * completes, and a spinner on the row behind an open modal would be a second
+   * one for the same request.
+   */
+  const methodActionButtons: Array<ActionButtonSchema<AdminMethodWire>> = [
+    {
+      title: "Resend code",
+      icon: IconProp.Email,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (method: AdminMethodWire): boolean => {
+        return canManageMethods && !method.isVerified && method.isAdminAddable;
+      },
+      onClick: (method: AdminMethodWire, onCompleteAction: () => void) => {
+        onCompleteAction();
+        setResendError("");
+        setResendMethod(method);
+      },
+    },
+    {
+      title: "Remove",
+      icon: IconProp.Trash,
+      buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+      isVisible: (): boolean => {
+        return canManageMethods;
+      },
+      onClick: (method: AdminMethodWire, onCompleteAction: () => void) => {
+        onCompleteAction();
+        setDeleteError("");
+        setMethodToDelete(method);
+        loadDeletionPreview(method).catch(() => {
+          // The preview is best-effort; see loadDeletionPreview.
+        });
+      },
+    },
+  ];
+
   const getMethodsBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return (
@@ -573,42 +627,10 @@ const UserViewNotificationMethods: FunctionComponent<
                 </span>
               )}
 
-              {canManageMethods &&
-              !method.isVerified &&
-              method.isAdminAddable ? (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                  onClick={() => {
-                    setResendError("");
-                    setResendMethod(method);
-                  }}
-                >
-                  <Icon icon={IconProp.Email} className="h-3 w-3" />
-                  Resend code
-                </button>
-              ) : (
-                <></>
-              )}
-
-              {canManageMethods ? (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-50"
-                  onClick={() => {
-                    setDeleteError("");
-                    setMethodToDelete(method);
-                    loadDeletionPreview(method).catch(() => {
-                      // The preview is best-effort; see loadDeletionPreview.
-                    });
-                  }}
-                >
-                  <Icon icon={IconProp.Trash} className="h-3 w-3" />
-                  Remove
-                </button>
-              ) : (
-                <></>
-              )}
+              <RowActions<AdminMethodWire>
+                item={method}
+                actionButtons={methodActionButtons}
+              />
             </li>
           );
         })}

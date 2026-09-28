@@ -2236,7 +2236,9 @@ describe("The escalation page, wired", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByLabelText("Edit rule").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByRole("button", { name: "Edit rule" }).length,
+      ).toBeGreaterThan(0);
     });
 
     expect(

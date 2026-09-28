@@ -36,6 +36,9 @@ import {
   parseSessionReplayListCursor,
   SessionReplaySortedListCursorDto,
 } from "Common/Types/Rum/SessionReplayApi";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Table from "Common/UI/Components/Table/Table";
@@ -846,16 +849,6 @@ function getSessionReplayCells(
     activityParts.push(`${row.clickCount} ${plural(row.clickCount, "click")}`);
   }
 
-  const firstErrorRoute: Route | null =
-    row.errorCount > 0
-      ? buildReplayMomentRoute({
-          rumApplicationId: props.rumApplicationId,
-          sessionId: row.sessionId,
-          t: row.firstErrorOffsetMs ?? 0,
-          rail: "errors",
-        })
-      : null;
-
   /*
    * Who this session belongs to, ranked the one way every cell ranks it
    * (SessionReplayUserIdentity): a readable label, a withheld one, a
@@ -1113,40 +1106,66 @@ function getSessionReplayCells(
         </div>
       )}
     </div>,
+    /*
+     * The row's one button. It stays a real link rather than becoming an
+     * action button, so Cmd-click and middle-click still open the player in
+     * a new tab. Everything else the row can do sits in the ⋯ menu that the
+     * Table draws beside it - see getSessionReplayRowActions.
+     */
     <div key="5">
-      {route && (
-        <div className="flex flex-col items-end gap-1">
-          {playability.isWatchable ? (
-            <Link
-              to={route}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-              title={`Watch session ${row.sessionId.slice(0, 8)}`}
-            >
-              <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
-              <span data-testid="session-row-watch">Watch</span>
-            </Link>
-          ) : (
-            <Link
-              to={route}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
-              title={`${playability.text}: open the session's signals without footage`}
-            >
-              <span data-testid="session-row-signals-only">Signals only</span>
-            </Link>
-          )}
-          {playability.isWatchable && firstErrorRoute && (
-            <Link
-              to={firstErrorRoute}
-              className="text-[11px] font-medium text-indigo-600 hover:underline"
-              title="Open the player one second before the first error"
-            >
-              <span data-testid="session-row-first-error">from 1st error</span>
-            </Link>
-          )}
-        </div>
-      )}
+      {route &&
+        (playability.isWatchable ? (
+          <Link
+            to={route}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+            title={`Watch session ${row.sessionId.slice(0, 8)}`}
+          >
+            <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+            <span data-testid="session-row-watch">Watch</span>
+          </Link>
+        ) : (
+          <Link
+            to={route}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
+            title={`${playability.text}: open the session's signals without footage`}
+          >
+            <span data-testid="session-row-signals-only">Signals only</span>
+          </Link>
+        ))}
     </div>,
   ];
+}
+
+/*
+ * Where "Watch from first error" opens this row: the player one second
+ * before the first error, on the errors rail. Null whenever the row has no
+ * such moment to offer - no session route, footage that will not play, or
+ * no error - and then the action is not on the row at all, exactly as the
+ * old "from 1st error" link was not.
+ */
+export function getSessionReplayFirstErrorRoute(
+  props: Pick<SessionReplayRowProps, "row" | "rumApplicationId" | "nowUnixMs">,
+): Route | null {
+  const { row } = props;
+
+  if (!routeForSession(props.rumApplicationId, row.sessionId)) {
+    return null;
+  }
+
+  if (!getSessionReplayPlayability(row, props.nowUnixMs).isWatchable) {
+    return null;
+  }
+
+  if (row.errorCount <= 0) {
+    return null;
+  }
+
+  return buildReplayMomentRoute({
+    rumApplicationId: props.rumApplicationId,
+    sessionId: row.sessionId,
+    t: row.firstErrorOffsetMs ?? 0,
+    rail: "errors",
+  });
 }
 
 function getSessionReplayRowProps(
@@ -1165,6 +1184,20 @@ function getSessionReplayRowProps(
     }
 
     const target: HTMLElement | null = event.target as HTMLElement | null;
+
+    /*
+     * The row's ⋯ menu is portalled to document.body, but React still
+     * bubbles its clicks up the component tree to this row. A click that
+     * landed outside the row's own elements - on the menu's padding, say -
+     * is not a click on the row.
+     */
+    if (
+      target instanceof Node &&
+      event.currentTarget instanceof Node &&
+      !event.currentTarget.contains(target)
+    ) {
+      return;
+    }
 
     /* A click on a link or button inside the row is that control's, not the row's. */
     if (
@@ -1206,6 +1239,54 @@ function getSessionReplayRowProps(
 
 interface SessionReplayTableRow extends SessionReplaySummary {
   cells: Array<ReactElement>;
+  /* See getSessionReplayFirstErrorRoute; null keeps the action off the row. */
+  firstErrorRoute: Route | null;
+}
+
+/*
+ * The row's ⋯ menu. Watch (or Signals only) is the row's button and stays
+ * a link in the Actions cell; what used to hang under it as a small "from
+ * 1st error" link is a menu item now, so a row reads as one control rather
+ * than two stacked ones. It is pinned to the menu because it is never the
+ * first thing to reach for - Watch is - and with no other action beside it
+ * the split would otherwise promote it to a second button.
+ *
+ * A row with no first error to jump to has nothing in the menu, so it
+ * shows no ⋯ at all.
+ *
+ * The one thing given up: menu items are buttons, and a row action never sees
+ * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
+ * a new tab the way the old inline link could. Watch - the row's link - still
+ * can, and the player it opens has the errors rail one click away.
+ */
+function getSessionReplayRowActions(
+  openSession: (route: Route, openInNewTab: boolean) => void,
+): Array<ActionButtonSchema<SessionReplayTableRow>> {
+  return [
+    {
+      title: "Watch from first error",
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      tooltip: "Open the player one second before the first error",
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.firstErrorRoute);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        /*
+         * The way the row itself opens a session, so the player's back
+         * link is re-stamped with the list exactly as the viewer left it.
+         */
+        if (row.firstErrorRoute) {
+          openSession(row.firstErrorRoute, false);
+        }
+
+        onCompleteAction();
+      },
+    },
+  ];
 }
 
 const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
@@ -1660,6 +1741,21 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       const region: HTMLDivElement | null = tableRegionRef.current;
       const focused: Element | null = document.activeElement;
 
+      /*
+       * A row's ⋯ menu is portalled to document.body: the focus it holds
+       * is outside the region, and it stays open after the pointer has
+       * left. Its trigger is inside, and says whether the menu is open.
+       * Rows are keyed by position, so a read that reordered them under an
+       * open menu would leave it acting on whichever session moved into
+       * that slot.
+       */
+      if (
+        region &&
+        region.querySelector('[aria-haspopup="menu"][aria-expanded="true"]')
+      ) {
+        return true;
+      }
+
       return Boolean(
         region && focused && focused !== region && region.contains(focused),
       );
@@ -1856,9 +1952,19 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             onOpen: openSession,
             onFilterByUser: filterByUser,
           }),
+          firstErrorRoute: getSessionReplayFirstErrorRoute({
+            row,
+            rumApplicationId: rumApplicationIdString,
+            nowUnixMs,
+          }),
         };
       });
     }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
+
+  const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
+    useMemo((): Array<ActionButtonSchema<SessionReplayTableRow>> => {
+      return getSessionReplayRowActions(openSession);
+    }, [openSession]);
 
   const showIdentityNudge: boolean =
     !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
@@ -2009,6 +2115,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 id="session-replay-table"
                 data={tableRows}
                 columns={SESSION_REPLAY_COLUMNS}
+                actionButtons={rowActions}
                 getRowProps={(
                   row: SessionReplayTableRow,
                 ): React.HTMLAttributes<HTMLElement> => {

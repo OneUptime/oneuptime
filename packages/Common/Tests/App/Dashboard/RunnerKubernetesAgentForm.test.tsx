@@ -559,7 +559,14 @@ describe("the Runner pages, rendered", () => {
     );
   }
 
-  async function clickRowAction(
+  /*
+   * A row's actions are one button and a ⋯ menu holding the rest
+   * (RowActions). On this table "View" is the button, so "Edit" is in the
+   * menu. The menu is portalled to document.body so the table's scroller
+   * cannot clip it, which is why it is found through `screen` and not
+   * inside the row - and why only one menu is ever open to find.
+   */
+  async function clickRowMenuAction(
     rowName: string,
     action: string,
   ): Promise<void> {
@@ -572,7 +579,16 @@ describe("the Runner pages, rendered", () => {
     if (!row) {
       throw new Error(`"${rowName}" is not in a table row.`);
     }
-    fireEvent.click(within(row).getByText(action));
+    const trigger: HTMLElement | null = within(row).queryByTestId(
+      "row-actions-more-button",
+    );
+    if (!trigger) {
+      throw new Error(`"${rowName}" has no ⋯ menu on its row.`);
+    }
+    fireEvent.click(trigger);
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", { name: action }),
+    );
   }
 
   async function openDialog(firstField: string): Promise<HTMLElement> {
@@ -598,7 +614,7 @@ describe("the Runner pages, rendered", () => {
   test("the list page's edit form on an agent row leaves out the name; create and the next edit do not", async () => {
     openRunnersPage();
 
-    await clickRowAction("kubernetes-agent/prod-east", "Edit");
+    await clickRowMenuAction("kubernetes-agent/prod-east", "Edit");
     const editDialog: HTMLElement = await openDialog("Description");
     expect(hasFieldTitled(editDialog, "Name")).toBe(false);
     expect(editDialog).toHaveTextContent(AGENT_NOTE_START);
@@ -614,7 +630,7 @@ describe("the Runner pages, rendered", () => {
     await closeDialog(createDialog);
 
     // The next edit follows its own row: an ordinary Runner keeps its name.
-    await clickRowAction("bash-runner", "Edit");
+    await clickRowMenuAction("bash-runner", "Edit");
     const hostDialog: HTMLElement = await openDialog("Description");
     expect(hasFieldTitled(hostDialog, "Name")).toBe(true);
     expect(hostDialog).not.toHaveTextContent(AGENT_NOTE_START);

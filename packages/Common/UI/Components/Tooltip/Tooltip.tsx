@@ -22,6 +22,13 @@ export interface ComponentProps {
    * nothing to click: it then mounts on <body> and hides on mouse-out.
    */
   interactive?: boolean | undefined;
+  /*
+   * The trigger already points aria-describedby at this same text, which it
+   * does when the text must be announced whether or not the tooltip is showing
+   * (a locked menu item saying why it is locked). Tippy's own describedby would
+   * then have it read twice, so leave it off.
+   */
+  isTriggerAlreadyDescribed?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -78,7 +85,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       {...themeProps}
       {...animationProps}
       aria={{
-        content: "describedby",
+        content: props.isTriggerAlreadyDescribed ? null : "describedby",
         /*
          * Tippy's default ("auto") stamps aria-expanded onto the trigger, but our
          * triggers are often plain non-interactive elements (e.g. uptime bars) whose

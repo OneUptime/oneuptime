@@ -25,7 +25,9 @@ import PermissionGate, {
 } from "../../Utils/PermissionGate";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
-import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "../ActionButton/ActionButtonSchema";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -2830,6 +2832,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: tx("Show ID"),
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
+        // A utility every row carries - it belongs in the ⋯ menu, not on the row.
+        placement: ActionButtonPlacement.MoreMenu,
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,
@@ -2863,6 +2867,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             ? tx(props.viewButtonText)
             : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
           buttonStyleType: ButtonStyleType.NORMAL,
+          /*
+           * Opening the record is what a row is for, so View is the row's one
+           * button and Edit, Delete and the rest go in the ⋯ menu beside it.
+           * Custom actions are listed ahead of View, so a table that wants one
+           * of its own on the row can still mark it Primary.
+           */
+          placement: ActionButtonPlacement.Primary,
           onClick: async (
             item: TBaseModel,
             onCompleteAction: VoidFunction,

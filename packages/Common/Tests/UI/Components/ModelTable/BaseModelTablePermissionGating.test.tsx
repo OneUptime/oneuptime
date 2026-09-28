@@ -243,6 +243,23 @@ describe("BaseModelTable permission gating", () => {
     );
   };
 
+  /*
+   * A row shows one action as a button and folds the rest into a ⋯ menu. With
+   * Edit and Delete, Edit is the button and Delete is in the menu - so the menu
+   * has to be opened before Delete exists in the document at all.
+   */
+  const openRowActionsMenu: () => void = (): void => {
+    const trigger: HTMLElement | null = document.querySelector(
+      '[data-testid="row-actions-more-button"]',
+    );
+
+    if (!trigger) {
+      throw new Error("The row has no ⋯ actions menu to open.");
+    }
+
+    fireEvent.click(trigger);
+  };
+
   beforeEach(() => {
     isMasterAdminForTest = false;
     permissionsForTest = [];
@@ -399,6 +416,10 @@ describe("BaseModelTable permission gating", () => {
       });
 
       expect(findButton("Edit")).not.toBeDisabled();
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
       expect(findButton("Delete")).not.toBeDisabled();
     });
 
@@ -427,7 +448,18 @@ describe("BaseModelTable permission gating", () => {
       });
 
       expect(findButton("Edit")).toBeDisabled();
-      expect(findButton("Delete")).toBeDisabled();
+
+      openRowActionsMenu();
+
+      /*
+       * In the menu a locked action is aria-disabled rather than natively
+       * disabled, so the keyboard can still reach it and hear why.
+       */
+      expect(findButton("Delete")).not.toBeNull();
+      expect(findButton("Delete")).toHaveAttribute("aria-disabled", "true");
+      expect(findButton("Delete")).toHaveAccessibleDescription(
+        expect.stringContaining(DELETE_DENIED_MESSAGE),
+      );
     });
 
     test("the locked Edit explains itself on hover", async () => {
@@ -452,10 +484,14 @@ describe("BaseModelTable permission gating", () => {
       renderTable();
 
       await waitFor(() => {
-        expect(findButton("Delete")).not.toBeNull();
+        expect(findButton("Edit")).not.toBeNull();
       });
 
-      fireEvent.mouseEnter(findButton("Delete")!.parentElement as HTMLElement);
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
+
+      fireEvent.mouseEnter(findButton("Delete")!);
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(
         DELETE_DENIED_MESSAGE,
@@ -468,8 +504,12 @@ describe("BaseModelTable permission gating", () => {
       renderTable();
 
       await waitFor(() => {
-        expect(findButton("Delete")).not.toBeNull();
+        expect(findButton("Edit")).not.toBeNull();
       });
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
 
       fireEvent.click(findButton("Delete")!);
 
@@ -601,7 +641,7 @@ describe("BaseModelTable permission gating", () => {
       const deleteItem: HTMLElement | undefined = findMenuItem("Delete");
 
       expect(deleteItem).toBeDefined();
-      expect(deleteItem).toBeDisabled();
+      expect(deleteItem).toHaveAttribute("aria-disabled", "true");
     });
 
     test("the locked bulk Delete explains itself on hover", async () => {
@@ -613,9 +653,7 @@ describe("BaseModelTable permission gating", () => {
 
       await openBulkMenu(container);
 
-      fireEvent.mouseEnter(
-        findMenuItem("Delete")!.parentElement as HTMLElement,
-      );
+      fireEvent.mouseEnter(findMenuItem("Delete")!);
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(
         DELETE_DENIED_MESSAGE,

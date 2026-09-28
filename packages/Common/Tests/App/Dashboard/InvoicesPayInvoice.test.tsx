@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React, { ReactElement, ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -8,7 +14,10 @@ import BillingInvoice, {
   InvoiceStatus,
 } from "../../../Models/DatabaseModels/BillingInvoice";
 import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "../../../UI/Components/ActionButton/RowActions";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -77,33 +86,86 @@ jest.mock(
   { virtual: true },
 );
 
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (key: string, options?: { defaultValue?: string }): string => {
+          return options?.defaultValue ?? key;
+        },
+      };
+    },
+  };
+});
+
 type ColumnProps = {
   title: string;
-  getElement?: (item: BillingInvoice) => ReactElement;
+};
+
+type InvoicesTableProps = {
+  columns: Array<ColumnProps>;
+  selectMoreFields?: Record<string, boolean>;
+  actionButtons?: Array<ActionButtonSchema<BillingInvoice>>;
+};
+
+type MakeInvoiceOptions = {
+  invoiceId: string;
+  customerId?: string;
+  status: InvoiceStatus;
+  downloadableLink?: string;
+};
+
+type MakeInvoiceFunction = (options: MakeInvoiceOptions) => BillingInvoice;
+
+const makeInvoice: MakeInvoiceFunction = (
+  options: MakeInvoiceOptions,
+): BillingInvoice => {
+  const invoice: BillingInvoice = new BillingInvoice();
+  invoice.status = options.status;
+  invoice.paymentProviderCustomerId = options.customerId || CUSTOMER_ID;
+  invoice.paymentProviderInvoiceId = options.invoiceId;
+
+  if (options.downloadableLink) {
+    invoice.downloadableLink = URL.fromString(options.downloadableLink);
+  }
+
+  return invoice;
 };
 
 /*
- * The table's data fetching is a test boundary. It renders only the Actions
- * cell of one open invoice, which is where the page wires Pay Invoice.
+ * The rows the table mock draws, and the props it was last given. Each test
+ * sets the rows; the default is the one open invoice from the incident.
+ */
+let invoicesForTest: Array<BillingInvoice> = [];
+let lastTableProps: InvoicesTableProps | null = null;
+
+/*
+ * The table's data fetching is a test boundary. Each invoice becomes one row
+ * whose actions are drawn by RowActions - the same component ModelTable's
+ * rows use for their Actions cell - from the actionButtons the page hands the
+ * table. That keeps the button, the ⋯ menu and what each one runs real.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
-    default: (props: { columns: Array<ColumnProps> }): ReactElement => {
-      const invoice: BillingInvoice = new BillingInvoice();
-      invoice.status = "open" as InvoiceStatus;
-      invoice.paymentProviderCustomerId = "cus_stale_card_customer";
-      invoice.paymentProviderInvoiceId = "in_stale_card_invoice";
-
-      const actions: ColumnProps | undefined = props.columns.find(
-        (column: ColumnProps) => {
-          return column.title === "Actions";
-        },
-      );
+    default: (props: InvoicesTableProps): ReactElement => {
+      lastTableProps = props;
 
       return (
         <div data-testid="invoices-table">
-          {actions?.getElement ? actions.getElement(invoice) : <></>}
+          {invoicesForTest.map((invoice: BillingInvoice) => {
+            return (
+              <div
+                key={invoice.paymentProviderInvoiceId}
+                data-testid="invoice-row"
+              >
+                <RowActions<BillingInvoice>
+                  item={invoice}
+                  actionButtons={props.actionButtons}
+                />
+              </div>
+            );
+          })}
         </div>
       );
     },
@@ -185,6 +247,9 @@ describe("Invoices page Pay Invoice", () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    invoicesForTest = [
+      makeInvoice({ invoiceId: INVOICE_ID, status: InvoiceStatus.Open }),
+    ];
     postMock.mockReset().mockResolvedValue(apiResponse({}));
     getListMock.mockReset().mockResolvedValue({ data: [], count: 0 });
     confirmCardPaymentMock
@@ -433,5 +498,378 @@ describe("Invoices page Pay Invoice", () => {
 
     await screen.findByRole("dialog", { name: "Payment is processing" });
     await expectTableBack();
+  });
+});
+
+/*
+ * Invoice rows used to draw a hand-built "Actions" column with a Download and
+ * a Pay Invoice button side by side. They now hand both to the table as row
+ * actions, so every row shows one button and a ⋯ menu with the rest: Pay
+ * Invoice on the row while the invoice still owes money, Download on the row
+ * once it does not. These tests look at each kind of row the way a customer
+ * does, and check that each action still runs for the invoice it sits on.
+ */
+describe("Invoices page row actions", () => {
+  let navigate: jest.SpyInstance;
+
+  const FIRST_PDF: string = "https://invoices.example.com/in_first.pdf";
+  const SECOND_PDF: string = "https://invoices.example.com/in_second.pdf";
+
+  type RenderInvoicesFunction = (invoices: Array<BillingInvoice>) => void;
+
+  const renderInvoices: RenderInvoicesFunction = (
+    invoices: Array<BillingInvoice>,
+  ): void => {
+    invoicesForTest = invoices;
+
+    render(
+      <Invoices
+        pageRoute={new Route("/settings/invoices")}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+  };
+
+  type GetRowsFunction = () => Array<HTMLElement>;
+
+  const getRows: GetRowsFunction = (): Array<HTMLElement> => {
+    return screen.getAllByTestId("invoice-row");
+  };
+
+  type RowButtonLabelsFunction = (row: HTMLElement) => Array<string>;
+
+  const rowButtonLabels: RowButtonLabelsFunction = (
+    row: HTMLElement,
+  ): Array<string> => {
+    return within(row)
+      .queryAllByRole("button")
+      .map((button: HTMLElement) => {
+        return (
+          button.getAttribute("aria-label") || (button.textContent || "").trim()
+        );
+      });
+  };
+
+  type OpenMenuInFunction = (row: HTMLElement) => HTMLElement;
+
+  const openMenuIn: OpenMenuInFunction = (row: HTMLElement): HTMLElement => {
+    fireEvent.click(within(row).getByTestId("row-actions-more-button"));
+    return screen.getByRole("menu");
+  };
+
+  type MenuLabelsFunction = (menu: HTMLElement) => Array<string>;
+
+  const menuLabels: MenuLabelsFunction = (menu: HTMLElement): Array<string> => {
+    return within(menu)
+      .getAllByRole("menuitem")
+      .map((item: HTMLElement) => {
+        return (item.textContent || "").trim();
+      });
+  };
+
+  type NavigatedToFunction = () => Array<string>;
+
+  const navigatedTo: NavigatedToFunction = (): Array<string> => {
+    return navigate.mock.calls.map((call: Array<unknown>) => {
+      return String(call[0]);
+    });
+  };
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    invoicesForTest = [];
+    lastTableProps = null;
+    postMock.mockReset().mockResolvedValue(apiResponse({}));
+    getListMock.mockReset().mockResolvedValue({ data: [], count: 0 });
+    confirmCardPaymentMock
+      .mockReset()
+      .mockResolvedValue({ paymentIntent: { status: "succeeded" } });
+    loadStripeMock
+      .mockReset()
+      .mockResolvedValue({ confirmCardPayment: confirmCardPaymentMock });
+    getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(projectId);
+    getJestSpyOn(ProjectUtil, "isSubscriptionInactive").mockReturnValue(false);
+    getJestSpyOn(Navigation, "reload").mockImplementation(() => {
+      return undefined;
+    });
+    navigate = getJestSpyOn(Navigation, "navigate").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  it("hands Download and Pay Invoice to the table instead of drawing an Actions column", () => {
+    renderInvoices([]);
+
+    expect(
+      lastTableProps?.columns.map((column: ColumnProps) => {
+        return column.title;
+      }),
+    ).toEqual(["Invoice Number", "Invoice Date", "Amount", "Invoice Status"]);
+    expect(
+      lastTableProps?.actionButtons?.map(
+        (action: ActionButtonSchema<BillingInvoice>) => {
+          return action.title;
+        },
+      ),
+    ).toEqual(["Download", "Pay Invoice"]);
+  });
+
+  it("still asks for the download link now that no column reads it", () => {
+    renderInvoices([]);
+
+    expect(lastTableProps?.selectMoreFields).toEqual(
+      expect.objectContaining({
+        downloadableLink: true,
+        paymentProviderCustomerId: true,
+        paymentProviderInvoiceId: true,
+      }),
+    );
+  });
+
+  it("shows Pay Invoice on an unpaid invoice's row and folds Download into the ⋯ menu", () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        status: InvoiceStatus.Open,
+        downloadableLink: FIRST_PDF,
+      }),
+    ]);
+
+    const row: HTMLElement = getRows()[0]!;
+
+    expect(rowButtonLabels(row)).toEqual(["Pay Invoice", "More actions"]);
+    expect(within(row).queryByText("Download")).not.toBeInTheDocument();
+    expect(menuLabels(openMenuIn(row))).toEqual(["Download"]);
+  });
+
+  it("shows just Download on a paid invoice's row, with no ⋯ menu", () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        status: InvoiceStatus.Paid,
+        downloadableLink: FIRST_PDF,
+      }),
+    ]);
+
+    const row: HTMLElement = getRows()[0]!;
+
+    expect(rowButtonLabels(row)).toEqual(["Download"]);
+    expect(
+      within(row).queryByTestId("row-actions-more-button"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Pay Invoice")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["paid", InvoiceStatus.Paid],
+    ["draft", InvoiceStatus.Draft],
+    ["void", InvoiceStatus.Void],
+    ["deleted", InvoiceStatus.Deleted],
+  ])(
+    "never offers Pay Invoice on a %s invoice, on the row or in the menu",
+    (_label: string, status: InvoiceStatus) => {
+      renderInvoices([
+        makeInvoice({
+          invoiceId: "in_first",
+          status,
+          downloadableLink: FIRST_PDF,
+        }),
+      ]);
+
+      const row: HTMLElement = getRows()[0]!;
+
+      expect(rowButtonLabels(row)).toEqual(["Download"]);
+      expect(screen.queryByText("Pay Invoice")).not.toBeInTheDocument();
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    ["an open", InvoiceStatus.Open],
+    ["an uncollectible", InvoiceStatus.Uncollectible],
+    ["a status-less", InvoiceStatus.Undefined],
+  ])(
+    "puts Pay Invoice on the row of %s invoice, ahead of Download",
+    (_label: string, status: InvoiceStatus) => {
+      renderInvoices([
+        makeInvoice({
+          invoiceId: "in_first",
+          status,
+          downloadableLink: FIRST_PDF,
+        }),
+      ]);
+
+      const row: HTMLElement = getRows()[0]!;
+
+      expect(rowButtonLabels(row)).toEqual(["Pay Invoice", "More actions"]);
+      expect(menuLabels(openMenuIn(row))).toEqual(["Download"]);
+    },
+  );
+
+  it("shows only Pay Invoice on an unpaid invoice that has no PDF yet", () => {
+    renderInvoices([
+      makeInvoice({ invoiceId: "in_first", status: InvoiceStatus.Open }),
+    ]);
+
+    const row: HTMLElement = getRows()[0]!;
+
+    expect(rowButtonLabels(row)).toEqual(["Pay Invoice"]);
+    expect(
+      within(row).queryByTestId("row-actions-more-button"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Download")).not.toBeInTheDocument();
+  });
+
+  it("leaves a paid invoice with no PDF without any actions", () => {
+    renderInvoices([
+      makeInvoice({ invoiceId: "in_first", status: InvoiceStatus.Paid }),
+    ]);
+
+    const row: HTMLElement = getRows()[0]!;
+
+    expect(within(row).queryByTestId("row-actions")).not.toBeInTheDocument();
+    expect(rowButtonLabels(row)).toEqual([]);
+  });
+
+  it("lets every row pick its own button on a page of mixed invoices", () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_open",
+        status: InvoiceStatus.Open,
+        downloadableLink: FIRST_PDF,
+      }),
+      makeInvoice({
+        invoiceId: "in_paid",
+        status: InvoiceStatus.Paid,
+        downloadableLink: SECOND_PDF,
+      }),
+      makeInvoice({ invoiceId: "in_draft", status: InvoiceStatus.Draft }),
+      makeInvoice({
+        invoiceId: "in_uncollectible",
+        status: InvoiceStatus.Uncollectible,
+      }),
+    ]);
+
+    expect(getRows().map(rowButtonLabels)).toEqual([
+      ["Pay Invoice", "More actions"],
+      ["Download"],
+      [],
+      ["Pay Invoice"],
+    ]);
+  });
+
+  it("opens that row's PDF when Download is picked from its ⋯ menu", () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        status: InvoiceStatus.Open,
+        downloadableLink: FIRST_PDF,
+      }),
+      makeInvoice({
+        invoiceId: "in_second",
+        status: InvoiceStatus.Open,
+        downloadableLink: SECOND_PDF,
+      }),
+    ]);
+
+    const menu: HTMLElement = openMenuIn(getRows()[1]!);
+
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Download" }));
+
+    expect(navigatedTo()).toEqual([URL.fromString(SECOND_PDF).toString()]);
+    // Downloading is not paying.
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  it("opens that row's PDF when Download is the row's button", () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        status: InvoiceStatus.Paid,
+        downloadableLink: FIRST_PDF,
+      }),
+      makeInvoice({
+        invoiceId: "in_second",
+        status: InvoiceStatus.Paid,
+        downloadableLink: SECOND_PDF,
+      }),
+    ]);
+
+    fireEvent.click(
+      within(getRows()[0]!).getByRole("button", { name: "Download" }),
+    );
+
+    expect(navigatedTo()).toEqual([URL.fromString(FIRST_PDF).toString()]);
+  });
+
+  it("pays the invoice on the row whose Pay Invoice was pressed", async () => {
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        customerId: "cus_first",
+        status: InvoiceStatus.Open,
+        downloadableLink: FIRST_PDF,
+      }),
+      makeInvoice({
+        invoiceId: "in_second",
+        customerId: "cus_second",
+        status: InvoiceStatus.Open,
+        downloadableLink: SECOND_PDF,
+      }),
+    ]);
+
+    fireEvent.click(
+      within(getRows()[1]!).getByRole("button", { name: "Pay Invoice" }),
+    );
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+    expect(postMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          data: {
+            paymentProviderInvoiceId: "in_second",
+            paymentProviderCustomerId: "cus_second",
+          },
+        },
+      }),
+    );
+    // Paying is not downloading.
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("still swaps the table for the page loader while a row's payment is made", async () => {
+    let resolvePost: (value: unknown) => void = () => {};
+    postMock.mockReturnValue(
+      new Promise((resolve: (value: unknown) => void) => {
+        resolvePost = resolve;
+      }),
+    );
+
+    renderInvoices([
+      makeInvoice({
+        invoiceId: "in_first",
+        status: InvoiceStatus.Open,
+        downloadableLink: FIRST_PDF,
+      }),
+    ]);
+
+    fireEvent.click(
+      within(getRows()[0]!).getByRole("button", { name: "Pay Invoice" }),
+    );
+
+    expect(await screen.findByTestId("invoices-loader")).toBeInTheDocument();
+    expect(screen.queryByTestId("invoices-table")).not.toBeInTheDocument();
+
+    resolvePost(apiResponse({ paymentProcessing: true }));
+
+    await screen.findByRole("dialog", { name: "Payment is processing" });
+    await expectTableBack();
+    expect(rowButtonLabels(getRows()[0]!)).toEqual([
+      "Pay Invoice",
+      "More actions",
+    ]);
   });
 });

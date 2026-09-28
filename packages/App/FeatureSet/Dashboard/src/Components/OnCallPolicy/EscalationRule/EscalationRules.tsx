@@ -18,9 +18,14 @@ import {
 } from "./EscalationRuleReadiness";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -37,7 +42,6 @@ import Image from "Common/UI/Components/Image/Image";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -1240,36 +1244,6 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type IconButtonProps = {
-    icon: IconProp;
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-  };
-
-  const getIconButton: (buttonProps: IconButtonProps) => ReactElement = (
-    buttonProps: IconButtonProps,
-  ): ReactElement => {
-    return (
-      <Tooltip text={buttonProps.label}>
-        <button
-          type="button"
-          aria-label={buttonProps.label}
-          disabled={buttonProps.disabled}
-          onClick={buttonProps.onClick}
-          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none ${
-            buttonProps.danger
-              ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
-              : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-          }`}
-        >
-          <Icon icon={buttonProps.icon} className="h-4 w-4" />
-        </button>
-      </Tooltip>
-    );
-  };
-
   const openCreateModal: () => void = (): void => {
     editedMembersRef.current = { users: [], teams: [], onCallSchedules: [] };
     setShowCreateModal(true);
@@ -1313,6 +1287,116 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     setRuleToEdit(rule);
   };
 
+  /*
+   * A level's actions: Edit on the card, and a ⋯ menu holding the rest. It used
+   * to be four bare icons in a row - two arrows, a pencil and a bin - which read
+   * as equally important and left the bin one slip of the pointer from the
+   * pencil. Editing is what somebody opens a level for; reordering is rarer,
+   * and deleting rarer still, so those wait in the menu, with Delete last and
+   * red (RowActions sinks destructive actions to the bottom on its own).
+   *
+   * The arrows stay listed at the ends of the ladder, disabled, rather than
+   * vanishing: a menu that grows and shrinks from level to level is harder to
+   * learn than one that always says the same thing.
+   */
+  const getRuleActionButtons: (
+    rule: OnCallDutyEscalationRule,
+    index: number,
+  ) => Array<ActionButtonSchema<OnCallDutyEscalationRule>> = (
+    rule: OnCallDutyEscalationRule,
+    index: number,
+  ): Array<ActionButtonSchema<OnCallDutyEscalationRule>> => {
+    type MoveToFunction = (
+      neighbour: OnCallDutyEscalationRule | undefined,
+      onCompleteAction: VoidFunction,
+    ) => void;
+
+    /*
+     * Held until the reorder has landed, so RowActions sees the action as in
+     * flight for as long as it really is. The card itself is what stops a
+     * second move meanwhile - it goes translucent and ignores the pointer while
+     * reorderingRuleId names it, exactly as it did before.
+     */
+    const moveTo: MoveToFunction = (
+      neighbour: OnCallDutyEscalationRule | undefined,
+      onCompleteAction: VoidFunction,
+    ): void => {
+      if (!neighbour || neighbour.order === undefined) {
+        onCompleteAction();
+        return;
+      }
+
+      moveRule(rule, neighbour.order)
+        .catch(() => {})
+        .finally(() => {
+          onCompleteAction();
+        });
+    };
+
+    return [
+      {
+        title: "Move up",
+        icon: IconProp.ArrowUp,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: index === 0,
+        onClick: (
+          _item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          moveTo(rules[index - 1], onCompleteAction);
+        },
+      },
+      {
+        title: "Move down",
+        icon: IconProp.ArrowDown,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: index === rules.length - 1,
+        onClick: (
+          _item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          moveTo(rules[index + 1], onCompleteAction);
+        },
+      },
+      {
+        title: "Edit rule",
+        icon: IconProp.Edit,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * Said outright rather than left to the authored order: the arrows are
+         * listed first so the menu reads top to bottom, and without this the
+         * first of them would take the card's button.
+         */
+        placement: ActionButtonPlacement.Primary,
+        onClick: (
+          item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            openEditModal(item);
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      },
+      {
+        title: "Delete rule",
+        icon: IconProp.Trash,
+        buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+        onClick: (
+          item: OnCallDutyEscalationRule,
+          onCompleteAction: VoidFunction,
+        ) => {
+          // The confirmation modal, with its counted impact, does the asking.
+          setRuleToDelete(item);
+          onCompleteAction();
+        },
+      },
+    ];
+  };
+
   const getRuleCard: (
     rule: OnCallDutyEscalationRule,
     index: number,
@@ -1322,13 +1406,12 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const ruleId: string = rule.id?.toString() || "";
     const members: RuleMembers = membersByRuleId[ruleId] || emptyRuleMembers();
-    const isFirst: boolean = index === 0;
-    const isLast: boolean = index === rules.length - 1;
     const isReordering: boolean = reorderingRuleId === ruleId;
 
     return (
       <div
         key={ruleId}
+        data-testid="escalation-rule-card"
         className={`group rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:border-indigo-300 hover:shadow-md ${
           isReordering ? "opacity-60 pointer-events-none" : ""
         }`}
@@ -1367,47 +1450,11 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 </div>
 
                 {/* Actions */}
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {getIconButton({
-                    icon: IconProp.ArrowUp,
-                    label: "Move up",
-                    disabled: isFirst,
-                    onClick: () => {
-                      const previous: OnCallDutyEscalationRule | undefined =
-                        rules[index - 1];
-                      if (previous && previous.order !== undefined) {
-                        moveRule(rule, previous.order).catch(() => {});
-                      }
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.ArrowDown,
-                    label: "Move down",
-                    disabled: isLast,
-                    onClick: () => {
-                      const next: OnCallDutyEscalationRule | undefined =
-                        rules[index + 1];
-                      if (next && next.order !== undefined) {
-                        moveRule(rule, next.order).catch(() => {});
-                      }
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.Edit,
-                    label: "Edit rule",
-                    onClick: () => {
-                      return openEditModal(rule);
-                    },
-                  })}
-                  {getIconButton({
-                    icon: IconProp.Trash,
-                    label: "Delete rule",
-                    danger: true,
-                    onClick: () => {
-                      return setRuleToDelete(rule);
-                    },
-                  })}
-                </div>
+                <RowActions<OnCallDutyEscalationRule>
+                  item={rule}
+                  actionButtons={getRuleActionButtons(rule, index)}
+                  className="shrink-0 justify-end"
+                />
               </div>
 
               {/* Notifies */}

@@ -5,6 +5,7 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -64,6 +65,12 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
             title: "Verify",
             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
             icon: IconProp.Check,
+            /*
+             * Entering the code is what an unverified row is waiting for, so
+             * Verify is the row's button and Resend Code (styled NORMAL, which
+             * would otherwise win) goes in the ⋯ menu.
+             */
+            placement: ActionButtonPlacement.Primary,
             isVisible: (item: UserIncomingCallNumber): boolean => {
               if (item["isVerified"]) {
                 return false;
