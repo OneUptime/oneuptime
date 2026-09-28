@@ -243,6 +243,23 @@ describe("BaseModelTable permission gating", () => {
     );
   };
 
+  /*
+   * A row shows one action as a button and folds the rest into a ⋯ menu. With
+   * Edit and Delete, Edit is the button and Delete is in the menu - so the menu
+   * has to be opened before Delete exists in the document at all.
+   */
+  const openRowActionsMenu: () => void = (): void => {
+    const trigger: HTMLElement | null = document.querySelector(
+      '[data-testid="row-actions-more-button"]',
+    );
+
+    if (!trigger) {
+      throw new Error("The row has no ⋯ actions menu to open.");
+    }
+
+    fireEvent.click(trigger);
+  };
+
   beforeEach(() => {
     isMasterAdminForTest = false;
     permissionsForTest = [];
@@ -399,6 +416,10 @@ describe("BaseModelTable permission gating", () => {
       });
 
       expect(findButton("Edit")).not.toBeDisabled();
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
       expect(findButton("Delete")).not.toBeDisabled();
     });
 
@@ -427,6 +448,10 @@ describe("BaseModelTable permission gating", () => {
       });
 
       expect(findButton("Edit")).toBeDisabled();
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
       expect(findButton("Delete")).toBeDisabled();
     });
 
@@ -452,8 +477,12 @@ describe("BaseModelTable permission gating", () => {
       renderTable();
 
       await waitFor(() => {
-        expect(findButton("Delete")).not.toBeNull();
+        expect(findButton("Edit")).not.toBeNull();
       });
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
 
       fireEvent.mouseEnter(findButton("Delete")!.parentElement as HTMLElement);
 
@@ -468,8 +497,12 @@ describe("BaseModelTable permission gating", () => {
       renderTable();
 
       await waitFor(() => {
-        expect(findButton("Delete")).not.toBeNull();
+        expect(findButton("Edit")).not.toBeNull();
       });
+
+      openRowActionsMenu();
+
+      expect(findButton("Delete")).not.toBeNull();
 
       fireEvent.click(findButton("Delete")!);
 

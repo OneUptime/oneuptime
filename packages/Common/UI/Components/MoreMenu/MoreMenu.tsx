@@ -603,8 +603,14 @@ const MoreMenu: React.ForwardRefExoticComponent<
          * position:fixed descendant (the Modal invariant).
          */
         className={`${
-          isMenuPortaled ? "" : "absolute right-0 z-50 "
-        }w-56 rounded-lg bg-white text-left shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
+          /*
+           * The portalled menu takes its place and layer from the inline
+           * style below instead.
+           */
+          isMenuPortaled
+            ? "w-56 rounded-lg"
+            : "absolute right-0 z-50 w-56 rounded-lg"
+        } bg-white text-left shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
           isMenuAbove
             ? `${isMenuPortaled ? "" : "bottom-full mb-2 "}origin-bottom-right`
             : `${isMenuPortaled ? "" : "mt-2 "}origin-top-right`
