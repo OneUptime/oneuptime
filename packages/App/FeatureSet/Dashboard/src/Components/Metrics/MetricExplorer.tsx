@@ -74,6 +74,11 @@ import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "./Utils/UseEventTimeReferenceLines";
 import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
+import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import {
+  TimeRangeZoomProvider,
+  TimeRangeZoomScope,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
@@ -543,34 +548,52 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   // -- Header actions --
 
-  const timeRangePickerValue: RangeStartAndEndDateTime =
-    metricViewData.rangeToken
-      ? { range: metricViewData.rangeToken as TimeRange }
-      : {
-          range: TimeRange.CUSTOM,
-          startAndEndDate: metricViewData.startAndEndDate || undefined,
-        };
+  /*
+   * The explorer's window as a picker range: its preset while it rolls,
+   * the pinned window otherwise (a zoom, a custom pick, an absolute deep
+   * link). Derived, never stored twice: the picker shows it and the page
+   * zoom compares against it, so a zoom lasts exactly as long as the
+   * explorer stays on the window the zoom picked.
+   */
+  const timeRange: RangeStartAndEndDateTime =
+    MetricViewTimeRange.fromData(metricViewData);
 
-  const handleTimeRangePicked: (value: RangeStartAndEndDateTime) => void = (
-    value: RangeStartAndEndDateTime,
-  ): void => {
-    if (value.range === TimeRange.CUSTOM) {
-      if (value.startAndEndDate) {
-        setMetricViewData({
-          ...metricViewData,
-          rangeToken: undefined,
-          startAndEndDate: value.startAndEndDate,
-        });
+  /*
+   * Every change of window that does not come from the charts' own data
+   * lands here: the picker, and (through the page zoom below) a chart
+   * drag or its double-click reset. A preset re-anchors to now and keeps
+   * rolling; a custom window is pinned. Written as an update of the
+   * latest state, so a gesture can never write back a stale copy of the
+   * queries next to its window.
+   */
+  const handleTimeRangePicked: (value: RangeStartAndEndDateTime) => void =
+    useCallback((value: RangeStartAndEndDateTime): void => {
+      if (value.range === TimeRange.CUSTOM) {
+        const pickedWindow: InBetween<Date> | undefined = value.startAndEndDate;
+
+        if (pickedWindow) {
+          setMetricViewData((previous: MetricViewData): MetricViewData => {
+            return {
+              ...previous,
+              rangeToken: undefined,
+              startAndEndDate: pickedWindow,
+            };
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    setMetricViewData({
-      ...metricViewData,
-      rangeToken: value.range,
-      startAndEndDate: resolveRangeToken(value.range),
-    });
-  };
+      const rangeToken: TimeRange = value.range;
+      const resolvedWindow: InBetween<Date> = resolveRangeToken(rangeToken);
+
+      setMetricViewData((previous: MetricViewData): MetricViewData => {
+        return {
+          ...previous,
+          rangeToken: rangeToken,
+          startAndEndDate: resolvedWindow,
+        };
+      });
+    }, []);
 
   /*
    * Cross-signal pivot: open the logs/traces explorer scoped to the
@@ -672,261 +695,291 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   }, []);
 
   return (
-    <div>
-      <div className="mb-5 space-y-2">
-        {headerError ? <HintChip variant="red">{headerError}</HintChip> : null}
+    /*
+     * Issue #4105: every chart in the explorer zooms the explorer. A drag
+     * on any of them narrows the window everything here follows (charts,
+     * event markers, the URL, Copy Link, the signal pivots, a saved view's
+     * capture); a double-click on any of them, or "Reset zoom" beside the
+     * picker, returns to the range from before the first zoom — rolling
+     * again if it was a preset. A picker pick or a saved view is a new
+     * starting point and ends the zoom.
+     */
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangePicked}
+    >
+      <div>
+        <div className="mb-5 space-y-2">
+          {headerError ? (
+            <HintChip variant="red">{headerError}</HintChip>
+          ) : null}
 
-        {/*
-         * One toolbar row: time window · refresh cadence · signal pivots ·
-         * overlays on the left; view identity & share actions on the right.
-         * Wraps into stacked clusters on narrow screens.
-         */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 shadow-sm">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-            <AutoRefreshControl
-              autoRefreshInterval={autoRefreshInterval}
-              onAutoRefreshIntervalChange={setAutoRefreshInterval}
-              onManualRefresh={handleRefresh}
-              isRefreshing={isFetchingResults}
-              lastRefreshedAt={lastRefreshedAt}
-              timeRangePicker={
-                <TelemetryTimeRangePicker
-                  value={timeRangePickerValue}
-                  onChange={handleTimeRangePicked}
-                />
-              }
-            />
-            <div
-              className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
-              aria-label="Related telemetry signals"
-            >
-              <Tooltip text="Open the logs explorer scoped to this time window and filters">
-                <button
-                  type="button"
-                  aria-label="View logs for this time window and filters"
-                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
-                  onClick={() => {
-                    void navigateToSignalWithCurrentWindow(PageMap.LOGS);
-                  }}
-                >
-                  <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
-                  <span>Logs</span>
-                </button>
-              </Tooltip>
-              <Tooltip text="Open the traces explorer scoped to this time window and filters">
-                <button
-                  type="button"
-                  aria-label="View traces for this time window and filters"
-                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
-                  onClick={() => {
-                    void navigateToSignalWithCurrentWindow(PageMap.TRACES);
-                  }}
-                >
-                  <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />
-                  <span>Traces</span>
-                </button>
-              </Tooltip>
-              <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
-                <button
-                  type="button"
-                  aria-label="Investigate this time window in a side panel"
-                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
-                  onClick={() => {
-                    setIsInvestigationOpen(true);
-                  }}
-                >
-                  <Icon
-                    icon={IconProp.MagnifyingGlassPlus}
-                    className="h-3.5 w-3.5"
+          {/*
+           * One toolbar row: time window · refresh cadence · signal pivots ·
+           * overlays on the left; view identity & share actions on the right.
+           * Wraps into stacked clusters on narrow screens.
+           */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 shadow-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <AutoRefreshControl
+                autoRefreshInterval={autoRefreshInterval}
+                onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                onManualRefresh={handleRefresh}
+                isRefreshing={isFetchingResults}
+                lastRefreshedAt={lastRefreshedAt}
+                timeRangePicker={
+                  <TelemetryTimeRangePicker
+                    value={timeRange}
+                    onChange={handleTimeRangePicked}
                   />
-                  <span>Investigate</span>
-                </button>
-              </Tooltip>
-              <Tooltip
-                text={
-                  showEvents
-                    ? "Hide incident and alert markers on the charts"
-                    : "Show incident and alert markers on the charts"
                 }
+              />
+              <div
+                className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+                aria-label="Related telemetry signals"
               >
-                <button
-                  type="button"
-                  aria-label="Toggle incident and alert markers"
-                  aria-pressed={showEvents}
-                  onClick={toggleShowEvents}
-                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                <Tooltip text="Open the logs explorer scoped to this time window and filters">
+                  <button
+                    type="button"
+                    aria-label="View logs for this time window and filters"
+                    className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                    onClick={() => {
+                      void navigateToSignalWithCurrentWindow(PageMap.LOGS);
+                    }}
+                  >
+                    <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
+                    <span>Logs</span>
+                  </button>
+                </Tooltip>
+                <Tooltip text="Open the traces explorer scoped to this time window and filters">
+                  <button
+                    type="button"
+                    aria-label="View traces for this time window and filters"
+                    className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                    onClick={() => {
+                      void navigateToSignalWithCurrentWindow(PageMap.TRACES);
+                    }}
+                  >
+                    <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />
+                    <span>Traces</span>
+                  </button>
+                </Tooltip>
+                <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
+                  <button
+                    type="button"
+                    aria-label="Investigate this time window in a side panel"
+                    className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                    onClick={() => {
+                      setIsInvestigationOpen(true);
+                    }}
+                  >
+                    <Icon
+                      icon={IconProp.MagnifyingGlassPlus}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span>Investigate</span>
+                  </button>
+                </Tooltip>
+                <Tooltip
+                  text={
                     showEvents
-                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
-                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
-                  }`}
+                      ? "Hide incident and alert markers on the charts"
+                      : "Show incident and alert markers on the charts"
+                  }
                 >
-                  <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
-                  <span>Events</span>
-                  {showEvents && eventMarkerCount > 0 ? (
-                    <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
-                      {eventMarkerCount}
-                    </span>
-                  ) : null}
-                </button>
-              </Tooltip>
-              <Tooltip
-                text={
-                  showCompare
-                    ? "Hide the previous period's ghost lines"
-                    : "Overlay each chart with the previous period (dashed)"
+                  <button
+                    type="button"
+                    aria-label="Toggle incident and alert markers"
+                    aria-pressed={showEvents}
+                    onClick={toggleShowEvents}
+                    className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                      showEvents
+                        ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                        : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                    }`}
+                  >
+                    <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
+                    <span>Events</span>
+                    {showEvents && eventMarkerCount > 0 ? (
+                      <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
+                        {eventMarkerCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </Tooltip>
+                <Tooltip
+                  text={
+                    showCompare
+                      ? "Hide the previous period's ghost lines"
+                      : "Overlay each chart with the previous period (dashed)"
+                  }
+                >
+                  <button
+                    type="button"
+                    aria-label="Toggle compare with previous period"
+                    aria-pressed={showCompare}
+                    onClick={toggleShowCompare}
+                    className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                      showCompare
+                        ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                        : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                    }`}
+                  >
+                    <Icon
+                      icon={IconProp.ArrowUturnLeft}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span>Compare</span>
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-2 xl:w-auto xl:justify-start xl:border-t-0 xl:pt-0">
+              <TelemetrySavedViewsControl<MetricSavedView>
+                modelType={MetricSavedView}
+                savedViewNoun="Metric Explorer"
+                explorerLabel="metric explorer"
+                hasInitialUrlState={hasInitialUrlState}
+                captureCurrentState={captureCurrentState}
+                applyState={applySavedViewState}
+                onError={setHeaderError}
+                additionalQuery={
+                  {
+                    viewType: TelemetrySavedViewType.Explorer,
+                  } as Query<MetricSavedView>
+                }
+                additionalSaveFields={
+                  {
+                    viewType: TelemetrySavedViewType.Explorer,
+                  } as Partial<MetricSavedView>
+                }
+                triggerClassName="h-8 border-gray-200 px-2.5 text-gray-600"
+                showTriggerIcon={true}
+                dropdownAlignment="right"
+              />
+              <CopyTextButton
+                textToBeCopied={ExplorerLink.buildExplorerUrl(
+                  metricViewData,
+                ).toString()}
+                label="Copy Link"
+                copiedLabel="Link Copied!"
+                size="sm"
+                variant="ghost"
+                title="Copy a shareable link to this view"
+                className="h-8 border-gray-200 bg-white px-2.5 font-medium text-gray-600 shadow-sm hover:border-gray-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              />
+              <MoreMenu
+                text="Actions"
+                triggerClassName={TOOLBAR_ACTION_BUTTON_CLASS_NAME}
+                elementToBeShownInsteadOfButton={
+                  <>
+                    <Icon
+                      icon={IconProp.More}
+                      className="h-4 w-4 text-gray-500"
+                    />
+                    <span>Actions</span>
+                    <Icon
+                      icon={IconProp.ChevronDown}
+                      className="h-3 w-3 text-gray-400"
+                    />
+                  </>
                 }
               >
-                <button
-                  type="button"
-                  aria-label="Toggle compare with previous period"
-                  aria-pressed={showCompare}
-                  onClick={toggleShowCompare}
-                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
-                    showCompare
-                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
-                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
-                  }`}
-                >
-                  <Icon
-                    icon={IconProp.ArrowUturnLeft}
-                    className="h-3.5 w-3.5"
+                <MoreMenuItem
+                  key="create-monitor-from-view"
+                  icon={IconProp.Heartbeat}
+                  text="Create monitor from this view"
+                  onClick={navigateToCreateMonitor}
+                />
+                {/*
+                 * Appending this view to a dashboard is a write to that
+                 * dashboard, so it is gated on the same permission the
+                 * dashboard editor is - otherwise this is a second, unguarded
+                 * door into the same refused update.
+                 */}
+                {addToDashboardGate.isAllowed ||
+                addToDashboardGate.disabledReason ? (
+                  <MoreMenuItem
+                    key="add-to-dashboard"
+                    icon={IconProp.ChartPie}
+                    text="Add to dashboard"
+                    isDisabled={!addToDashboardGate.isAllowed}
+                    tooltip={
+                      addToDashboardGate.isAllowed
+                        ? undefined
+                        : addToDashboardGate.disabledReason
+                    }
+                    onClick={() => {
+                      if (!addToDashboardGate.isAllowed) {
+                        return;
+                      }
+                      setShowAddToDashboardModal(true);
+                    }}
                   />
-                  <span>Compare</span>
-                </button>
-              </Tooltip>
+                ) : (
+                  <></>
+                )}
+              </MoreMenu>
             </div>
           </div>
-
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-2 xl:w-auto xl:justify-start xl:border-t-0 xl:pt-0">
-            <TelemetrySavedViewsControl<MetricSavedView>
-              modelType={MetricSavedView}
-              savedViewNoun="Metric Explorer"
-              explorerLabel="metric explorer"
-              hasInitialUrlState={hasInitialUrlState}
-              captureCurrentState={captureCurrentState}
-              applyState={applySavedViewState}
-              onError={setHeaderError}
-              additionalQuery={
-                {
-                  viewType: TelemetrySavedViewType.Explorer,
-                } as Query<MetricSavedView>
-              }
-              additionalSaveFields={
-                {
-                  viewType: TelemetrySavedViewType.Explorer,
-                } as Partial<MetricSavedView>
-              }
-              triggerClassName="h-8 border-gray-200 px-2.5 text-gray-600"
-              showTriggerIcon={true}
-              dropdownAlignment="right"
-            />
-            <CopyTextButton
-              textToBeCopied={ExplorerLink.buildExplorerUrl(
-                metricViewData,
-              ).toString()}
-              label="Copy Link"
-              copiedLabel="Link Copied!"
-              size="sm"
-              variant="ghost"
-              title="Copy a shareable link to this view"
-              className="h-8 border-gray-200 bg-white px-2.5 font-medium text-gray-600 shadow-sm hover:border-gray-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            />
-            <MoreMenu
-              text="Actions"
-              triggerClassName={TOOLBAR_ACTION_BUTTON_CLASS_NAME}
-              elementToBeShownInsteadOfButton={
-                <>
-                  <Icon
-                    icon={IconProp.More}
-                    className="h-4 w-4 text-gray-500"
-                  />
-                  <span>Actions</span>
-                  <Icon
-                    icon={IconProp.ChevronDown}
-                    className="h-3 w-3 text-gray-400"
-                  />
-                </>
-              }
-            >
-              <MoreMenuItem
-                key="create-monitor-from-view"
-                icon={IconProp.Heartbeat}
-                text="Create monitor from this view"
-                onClick={navigateToCreateMonitor}
-              />
-              {/*
-               * Appending this view to a dashboard is a write to that
-               * dashboard, so it is gated on the same permission the
-               * dashboard editor is - otherwise this is a second, unguarded
-               * door into the same refused update.
-               */}
-              {addToDashboardGate.isAllowed ||
-              addToDashboardGate.disabledReason ? (
-                <MoreMenuItem
-                  key="add-to-dashboard"
-                  icon={IconProp.ChartPie}
-                  text="Add to dashboard"
-                  isDisabled={!addToDashboardGate.isAllowed}
-                  tooltip={
-                    addToDashboardGate.isAllowed
-                      ? undefined
-                      : addToDashboardGate.disabledReason
-                  }
-                  onClick={() => {
-                    if (!addToDashboardGate.isAllowed) {
-                      return;
-                    }
-                    setShowAddToDashboardModal(true);
-                  }}
-                />
-              ) : (
-                <></>
-              )}
-            </MoreMenu>
-          </div>
         </div>
-      </div>
 
-      {isInvestigationOpen &&
-      metricViewData.startAndEndDate?.startValue instanceof Date &&
-      metricViewData.startAndEndDate?.endValue instanceof Date ? (
-        <InvestigationDrawer
-          title="Investigate this view"
-          window={metricViewData.startAndEndDate}
-          metricViewData={metricViewData}
-          onClose={() => {
-            setIsInvestigationOpen(false);
-          }}
-        />
-      ) : null}
-      <MetricView
-        data={metricViewData}
-        hideStartAndEndDate={true}
-        refreshNonce={refreshNonce}
-        compareWithPreviousPeriod={showCompare}
-        timeReferenceLines={
-          eventReferenceLines.length > 0 ? eventReferenceLines : undefined
-        }
-        onIsFetchingResultsChange={(isFetching: boolean) => {
-          setIsFetchingResults(isFetching);
-          if (!isFetching) {
-            setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+        {isInvestigationOpen &&
+        metricViewData.startAndEndDate?.startValue instanceof Date &&
+        metricViewData.startAndEndDate?.endValue instanceof Date ? (
+          /*
+           * The drawer starts from the explorer's window but keeps its own:
+           * its metric card zooms itself, and its traces and exceptions tabs
+           * have pickers of their own. The explorer's zoom stays out of it,
+           * or those pickers would offer the explorer's "Reset zoom", which
+           * retimes the explorer behind the drawer and nothing in it.
+           */
+          <TimeRangeZoomProvider zoom={null}>
+            <InvestigationDrawer
+              title="Investigate this view"
+              window={metricViewData.startAndEndDate}
+              metricViewData={metricViewData}
+              onClose={() => {
+                setIsInvestigationOpen(false);
+              }}
+            />
+          </TimeRangeZoomProvider>
+        ) : null}
+        {/*
+         * No zoom props: the view takes the explorer's zoom from the scope
+         * above, so its charts retime the explorer, not a window of their
+         * own, and the reset lives beside the picker.
+         */}
+        <MetricView
+          data={metricViewData}
+          hideStartAndEndDate={true}
+          refreshNonce={refreshNonce}
+          compareWithPreviousPeriod={showCompare}
+          timeReferenceLines={
+            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
           }
-        }}
-        onChange={(data: MetricViewData) => {
-          setMetricViewData(data);
-        }}
-      />
-
-      {showAddToDashboardModal ? (
-        <AddToDashboardModal
-          metricViewData={metricViewData}
-          onClose={() => {
-            setShowAddToDashboardModal(false);
+          onIsFetchingResultsChange={(isFetching: boolean) => {
+            setIsFetchingResults(isFetching);
+            if (!isFetching) {
+              setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+            }
+          }}
+          onChange={(data: MetricViewData) => {
+            setMetricViewData(data);
           }}
         />
-      ) : null}
-    </div>
+
+        {showAddToDashboardModal ? (
+          <AddToDashboardModal
+            metricViewData={metricViewData}
+            onClose={() => {
+              setShowAddToDashboardModal(false);
+            }}
+          />
+        ) : null}
+      </div>
+    </TimeRangeZoomScope>
   );
 };
 
