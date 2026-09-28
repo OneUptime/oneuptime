@@ -147,10 +147,6 @@ Anmeldedaten werden in `~/.oneuptime/config.json` mit eingeschränkten Berechtig
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```

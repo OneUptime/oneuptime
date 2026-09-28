@@ -40,10 +40,7 @@ describe("ConfigManager", () => {
   describe("load", () => {
     it("should return default config when no config file exists", () => {
       const config: CLIConfig = ConfigManager.load();
-      expect(config.currentContext).toBe("");
-      expect(config.contexts).toEqual({});
-      expect(config.defaults.output).toBe("table");
-      expect(config.defaults.limit).toBe(10);
+      expect(config).toEqual({ currentContext: "", contexts: {} });
     });
 
     it("should load existing config from file", () => {
@@ -52,7 +49,6 @@ describe("ConfigManager", () => {
         contexts: {
           test: { name: "test", apiUrl: "https://test.com", apiKey: "key123" },
         },
-        defaults: { output: "json", limit: 20 },
       };
       if (!fs.existsSync(CONFIG_DIR)) {
         fs.mkdirSync(CONFIG_DIR, { recursive: true });
@@ -64,6 +60,35 @@ describe("ConfigManager", () => {
       const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("test");
       expect(config.contexts["test"]?.apiKey).toBe("key123");
+    });
+
+    it("should load a config that still has the defaults block older versions wrote", () => {
+      if (!fs.existsSync(CONFIG_DIR)) {
+        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+      }
+      fs.writeFileSync(
+        CONFIG_FILE,
+        JSON.stringify({
+          currentContext: "legacy",
+          contexts: {
+            legacy: {
+              name: "legacy",
+              apiUrl: "https://legacy.com",
+              apiKey: "legacy-key",
+            },
+          },
+          defaults: { output: "table", limit: 10 },
+        }),
+        { mode: 0o600 },
+      );
+
+      const creds: ResolvedCredentials = ConfigManager.getResolvedCredentials(
+        {},
+      );
+      expect(creds).toEqual({
+        apiKey: "legacy-key",
+        apiUrl: "https://legacy.com",
+      });
     });
 
     it("should return default config when file contains invalid JSON", () => {
@@ -92,7 +117,6 @@ describe("ConfigManager", () => {
       const config: CLIConfig = {
         currentContext: "",
         contexts: {},
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       expect(fs.existsSync(CONFIG_FILE)).toBe(true);
@@ -105,7 +129,6 @@ describe("ConfigManager", () => {
         contexts: {
           x: { name: "x", apiUrl: "https://x.com", apiKey: "k" },
         },
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       const content: string = fs.readFileSync(CONFIG_FILE, "utf-8");
@@ -124,7 +147,6 @@ describe("ConfigManager", () => {
       const config: CLIConfig = {
         currentContext: "ghost",
         contexts: {},
-        defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
       expect(ConfigManager.getCurrentContext()).toBeNull();

@@ -147,10 +147,6 @@ Autentiseringsuppgifter lagras i `~/.oneuptime/config.json` med begr√§nsade beh√
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```

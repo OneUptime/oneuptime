@@ -147,10 +147,6 @@ Legitimationsoplysninger gemmes i `~/.oneuptime/config.json` med begrænsede til
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```

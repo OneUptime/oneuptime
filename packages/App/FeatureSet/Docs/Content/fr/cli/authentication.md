@@ -147,10 +147,6 @@ Les identifiants sont stockés dans `~/.oneuptime/config.json` avec des permissi
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
