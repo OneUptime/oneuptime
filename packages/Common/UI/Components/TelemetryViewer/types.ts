@@ -47,6 +47,8 @@ export interface HistogramSeriesOption {
   label: string;
   // Hex fill color used for the bar segment and the legend swatch.
   color: string;
+  // Hover text for the legend entry, e.g. what a status name means.
+  description?: string | undefined;
 }
 
 export interface LiveOptions {

@@ -6,6 +6,10 @@ import SpanUtil from "../../Utils/SpanUtil";
 import { formatAbsoluteTime } from "./TraceTimeFormat";
 import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 export interface TraceRowProps {
   span: Span;
@@ -21,50 +25,6 @@ export interface TraceRowProps {
   isExpanded?: boolean | undefined;
   // Toggles the inline span detail panel.
   onToggle?: (() => void) | undefined;
-}
-
-type StatusTheme = {
-  dot: string;
-  ring: string;
-  bar: string;
-  barTrack: string;
-  pillBg: string;
-  pillText: string;
-  label: string;
-};
-
-function getStatusTheme(status: number | undefined | null): StatusTheme {
-  if (status === SpanStatus.Error) {
-    return {
-      dot: "bg-red-500",
-      ring: "ring-red-100",
-      bar: "bg-red-500",
-      barTrack: "bg-red-50",
-      pillBg: "bg-red-50",
-      pillText: "text-red-700",
-      label: "Error",
-    };
-  }
-  if (status === SpanStatus.Ok) {
-    return {
-      dot: "bg-emerald-500",
-      ring: "ring-emerald-100",
-      bar: "bg-emerald-500",
-      barTrack: "bg-gray-100",
-      pillBg: "bg-emerald-50",
-      pillText: "text-emerald-700",
-      label: "Ok",
-    };
-  }
-  return {
-    dot: "bg-gray-300",
-    ring: "ring-gray-100",
-    bar: "bg-gray-400",
-    barTrack: "bg-gray-100",
-    pillBg: "bg-gray-50",
-    pillText: "text-gray-500",
-    label: "Unset",
-  };
 }
 
 function formatRelativeTime(time: Date): string {
@@ -129,7 +89,9 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const shortTraceId: string =
     traceIdStr.length > 16 ? `${traceIdStr.slice(0, 16)}…` : traceIdStr;
 
-  const theme: StatusTheme = getStatusTheme(span.statusCode);
+  const status: SpanStatusPresentation = getSpanStatusPresentation(
+    span.statusCode,
+  );
 
   // Only surface kind when it's meaningful (non-internal)
   const kindRaw: SpanKind | undefined = span.kind as SpanKind | undefined;
@@ -162,18 +124,23 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
       }`}
     >
       <div className="flex items-center gap-4 px-5 py-3">
-        {/* Status indicator */}
+        {/*
+         * Status indicator. role="img" so the aria-label is announced (a
+         * plain span's label is not); the title explains the status name.
+         */}
         <span
-          aria-label={`Status: ${theme.label}`}
+          role="img"
+          aria-label={`Status: ${status.displayLabel}`}
+          title={`${status.label}: ${status.description}`}
           className={`relative flex h-2 w-2 flex-shrink-0 items-center justify-center`}
         >
           <span
-            className={`absolute inline-flex h-full w-full rounded-full ${theme.dot} opacity-60 ${
+            className={`absolute inline-flex h-full w-full rounded-full ${status.dotClassName} opacity-60 ${
               isError ? "animate-ping" : ""
             }`}
           />
           <span
-            className={`relative inline-flex h-2 w-2 rounded-full ${theme.dot} ring-2 ${theme.ring}`}
+            className={`relative inline-flex h-2 w-2 rounded-full ${status.dotClassName} ring-2 ${status.ringClassName}`}
           />
         </span>
 
@@ -226,9 +193,9 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Error pill */}
           {isError && (
             <span
-              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${theme.pillBg} ${theme.pillText}`}
+              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`}
             >
-              {theme.label}
+              {status.label}
             </span>
           )}
         </div>
@@ -238,10 +205,10 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Inline duration bar */}
           <div className="max-sm:hidden items-center gap-2 sm:flex">
             <div
-              className={`relative h-1 w-24 overflow-hidden rounded-full ${theme.barTrack}`}
+              className={`relative h-1 w-24 overflow-hidden rounded-full ${status.barTrackClassName}`}
             >
               <div
-                className={`absolute left-0 top-0 h-full rounded-full ${theme.bar} transition-all duration-300`}
+                className={`absolute left-0 top-0 h-full rounded-full ${status.barClassName} transition-all duration-300`}
                 style={{ width: `${durationPct}%` }}
               />
             </div>

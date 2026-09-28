@@ -57,6 +57,10 @@ import {
   AttributeEntry,
   flattenSpanAttributes,
 } from "../../Utils/TraceDetailPresentation";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 export interface SpanDetailsPanelProps {
   span: Span;
@@ -76,26 +80,6 @@ export interface SpanDetailsPanelProps {
 type PanelTabId = "details" | "logs" | "exceptions";
 
 const LOG_FETCH_LIMIT: number = 200;
-
-function getStatusLabel(status: number | undefined | null): string {
-  if (status === SpanStatus.Error) {
-    return "Error";
-  }
-  if (status === SpanStatus.Ok) {
-    return "Ok";
-  }
-  return "Unset";
-}
-
-function getStatusColor(status: number | undefined | null): string {
-  if (status === SpanStatus.Error) {
-    return "#ef4444";
-  }
-  if (status === SpanStatus.Ok) {
-    return "#10b981";
-  }
-  return "#9ca3af";
-}
 
 const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
   props: SpanDetailsPanelProps,
@@ -430,8 +414,10 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
   const serviceName: string = entityDisplay.name;
   const serviceColor: string = entityDisplay.color || "#64748b";
 
-  const statusColor: string = getStatusColor(span.statusCode);
-  const statusLabel: string = getStatusLabel(span.statusCode);
+  const status: SpanStatusPresentation = getSpanStatusPresentation(
+    span.statusCode,
+  );
+  const isError: boolean = status.status === SpanStatus.Error;
 
   const startTimeDate: Date | null = span.startTime
     ? OneUptimeDate.fromString(span.startTime as unknown as string)
@@ -555,7 +541,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
     { label: entityDisplay.typeLabel, value: serviceName },
-    { label: "Status", value: statusLabel },
+    { label: "Status", value: status.displayLabel },
     { label: "Duration", value: durationLabel },
     { label: "Span Kind", value: kindLabel },
     ...(startTimeDate
@@ -595,17 +581,16 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                   {span.name || "(unnamed span)"}
                 </h3>
                 <span
-                  className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                  style={{
-                    backgroundColor: `${statusColor}1a`,
-                    color: statusColor,
-                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`}
+                  title={status.description}
+                  data-testid="span-details-status"
                 >
                   <span
                     className="inline-block h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: statusColor }}
+                    style={{ backgroundColor: status.color }}
+                    aria-hidden="true"
                   />
-                  {statusLabel}
+                  {status.displayLabel}
                 </span>
               </div>
               <div className="font-mono text-xs text-gray-500">
@@ -916,11 +901,22 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               )}
             </section>
 
-            {/* Status message (errors) */}
+            {/*
+             * Status message. Red only for an Error span: ingest keeps the
+             * message whatever the status, and a red box under a green
+             * status would read as a failure that did not happen.
+             */}
             {statusMessage && (
               <section className="space-y-3">
                 <header className={sectionHeaderClass}>Status Message</header>
-                <div className="rounded-lg border border-red-100 bg-red-50 p-4 font-mono text-[13px] leading-6 text-red-700">
+                <div
+                  data-testid="span-details-status-message"
+                  className={`rounded-lg border p-4 font-mono text-[13px] leading-6 ${
+                    isError
+                      ? "border-red-100 bg-red-50 text-red-700"
+                      : "border-gray-200 bg-gray-50 text-gray-700"
+                  }`}
+                >
                   {statusMessage}
                 </div>
               </section>
