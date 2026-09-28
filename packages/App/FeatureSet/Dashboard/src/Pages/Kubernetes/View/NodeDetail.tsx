@@ -39,6 +39,7 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -394,8 +395,13 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           <KubernetesMetricsTab
             queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              /*
+               * The tab's card hands this chart its zoom: a drag here
+               * narrows the CPU, memory and filesystem charts above too,
+               * and a double-click on any of them undoes it.
+               */
               return (
-                <div className="mt-4">
+                <div className="group mt-4">
                   <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                     <span>Network Throughput</span>
                     <InfoTooltip
@@ -403,6 +409,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
                       text={
                         KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeNetworkThroughput
                       }
+                    />
+                    <TimeRangeZoomHint
+                      revealOnHover={true}
+                      className="ml-auto font-normal"
                     />
                   </div>
                   <KubernetesNetworkThroughputChart

@@ -18,7 +18,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -28,18 +27,7 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
-import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
-import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import {
-  XAxis as ChartXAxis,
-  XAxisAggregateType,
-} from "Common/UI/Components/Charts/Types/XAxis/XAxis";
-import YAxis, {
-  YAxisPrecision,
-} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -61,6 +49,7 @@ import {
   getTotalCostElement,
   noCostDataMessage,
 } from "./Utils/KubernetesCostTableCells";
+import KubernetesCostTrendChart from "./View/KubernetesCostTrendChart";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
@@ -306,42 +295,21 @@ const KubernetesCosts: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  const series: Array<SeriesPoint> = [
-    {
-      seriesName: "Total Cost",
-      data: trend,
-    },
-  ];
-
-  const xAxis: ChartXAxis = {
-    legend: "Time",
-    options: {
-      type: XAxisType.Time,
-      min: startAndEndDate.startValue,
-      max: startAndEndDate.endValue,
-      aggregateType: XAxisAggregateType.Sum,
-    },
-  };
-
-  const yAxis: YAxis = {
-    legend: "Cost",
-    options: {
-      type: YAxisType.Number,
-      min: 0,
-      max: "auto",
-      precision: YAxisPrecision.TwoDecimals,
-      formatter: (value: number): string => {
-        return formatCost(value);
-      },
-    },
-  };
-
   const clusterCountLabel: string = `${clusterRows.length} cluster${
     clusterRows.length === 1 ? "" : "s"
   }`;
 
+  /*
+   * Issue #4105: a drag across the spend chart narrows the page to the
+   * window dragged out - the tiles and the cluster table are read for the
+   * page's window, so they follow - and a double-click on the chart (or
+   * Reset zoom beside the card's picker) puts the range back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(
           IconProp.Billing,
@@ -396,22 +364,12 @@ const KubernetesCosts: FunctionComponent<
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdlePercent}
             />
           </div>
-          {isLoading ? (
-            <div className="h-48 animate-pulse rounded-md bg-gray-50" />
-          ) : trend.length > 0 ? (
-            <LineChartElement
-              data={series}
-              xAxis={xAxis}
-              yAxis={yAxis}
-              curve={ChartCurve.MONOTONE}
-              heightInPx={300}
-              showLegend={false}
-              sync={false}
-              syncid="k8s-project-costs"
-            />
-          ) : (
-            <ErrorMessage message={noCostDataMessage} />
-          )}
+          <KubernetesCostTrendChart
+            trend={trend}
+            isLoading={isLoading}
+            startAndEndDate={startAndEndDate}
+            syncid="k8s-project-costs"
+          />
         </div>
       </EmbeddedMetricCard>
 
@@ -447,7 +405,7 @@ const KubernetesCosts: FunctionComponent<
           noItemsMessage={noCostDataMessage}
         />
       </Card>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
