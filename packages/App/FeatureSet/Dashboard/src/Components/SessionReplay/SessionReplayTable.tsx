@@ -1253,6 +1253,11 @@ interface SessionReplayTableRow extends SessionReplaySummary {
  *
  * A row with no first error to jump to has nothing in the menu, so it
  * shows no ⋯ at all.
+ *
+ * The one thing given up: menu items are buttons, and a row action never sees
+ * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
+ * a new tab the way the old inline link could. Watch - the row's link - still
+ * can, and the player it opens has the errors rail one click away.
  */
 function getSessionReplayRowActions(
   openSession: (route: Route, openInNewTab: boolean) => void,
