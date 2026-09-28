@@ -3436,6 +3436,8 @@
   "Minimum number of probes that must agree before a status change. Leave blank to require all enabled probes to agree.": "Número mínimo de sondas que devem concordar antes de uma mudança de status. Deixe em branco para exigir que todas as sondas habilitadas concordem.",
   "Minimum Probe Agreement": "Concordância Mínima de Sondas",
   "Model Name": "Nome do Modelo",
+  "MAC Address": "Endereço MAC",
+  "Firmware Version": "Versão do firmware",
   "Modern OAuth2 flow": "Fluxo OAuth2 moderno",
   "Monitor Affected": "Monitor Afetado",
   "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team.": "Monitore qualquer coisa - Sites, API, IPv4, IPv6, ou envie dados de entrada e muito mais. Crie alertas em quaisquer métricas e alerte a equipe certa.",

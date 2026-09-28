@@ -247,7 +247,7 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
       const doc: string = readDoc("en", "telemetry", "host-otel-collector.md");
 
       expect(doc).toContain(
-        "### Inventory attributes (IP, serial number, make, model)",
+        "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
       );
       for (const key of REQUESTED_ATTRIBUTES) {
         expect(doc).toContain(key);
@@ -285,7 +285,7 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
       const doc: string = readDoc("en", "telemetry", "host-otel-collector.md");
       const section: string = doc.substring(
         doc.indexOf(
-          "### Inventory attributes (IP, serial number, make, model)",
+          "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
         ),
         doc.indexOf("### Complete example — Linux host"),
       );

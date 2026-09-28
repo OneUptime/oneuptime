@@ -406,7 +406,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -476,7 +480,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -557,7 +565,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -893,7 +905,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:

@@ -3436,6 +3436,8 @@
   "Minimum number of probes that must agree before a status change. Leave blank to require all enabled probes to agree.": "Minste antall sonder som må være enige før en statusendring. La stå tomt for å kreve at alle aktiverte sonder er enige.",
   "Minimum Probe Agreement": "Minimum sondeenighet",
   "Model Name": "Modellnavn",
+  "MAC Address": "MAC-adresse",
+  "Firmware Version": "Fastvareversjon",
   "Modern OAuth2 flow": "Moderne OAuth2-flyt",
   "Monitor Affected": "Overvåking berørt",
   "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team.": "Overvåk hva som helst – nettsteder, API, IPv4, IPv6, eller send data innkommende og mer. Opprett varsler på alle målinger og varsle riktig team.",

@@ -27,7 +27,7 @@ Useful columns on an inventory item:
 | `source` | `discovered`, `inventory`, or `manual` |
 | `description` | Free text |
 | `identifyingAttributes` | The immutable attribute set that defines this thing's identity |
-| `descriptiveAttributes` | Mutable observed metadata — see [Host asset attributes](#host-asset-attributes) below |
+| `descriptiveAttributes` | Mutable observed metadata — see [Host asset attributes](#host-asset-attributes) and [Network device asset attributes](#network-device-asset-attributes) below |
 | `customFields` | Your own fields, keyed by field name |
 | `resourceType` / `resourceId` | Pointer to the richer OneUptime record, when one exists |
 | `firstSeenAt` / `lastSeenAt` | Observation window |
@@ -90,7 +90,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-The discovered hardware detail — vendor, model, serial number, firmware, site — lives on the Network Device record itself. Follow `resourceId` to `/api/network-device/:id/get-item` for it, or pull `/api/network-device/get-list` directly.
+Each network device's `descriptiveAttributes` carries its serial number, MAC address, make, model and firmware — see [Network device asset attributes](#network-device-asset-attributes) below. Anything else the poller knows (site, role, interfaces, neighbors) lives on the Network Device record itself: follow `resourceId` to `/api/network-device/:id/get-item`, or pull `/api/network-device/get-list` directly.
 
 ### As CSV
 
@@ -114,23 +114,47 @@ The inventory list in the dashboard exports the same way, including whichever cu
 | Field | Key | Collected by default? |
 | ----- | --- | --------------------- |
 | IP addresses | `host.ip` | Yes — comma-separated when the machine has several |
+| MAC addresses | `host.mac` | Yes — comma-separated, one per interface that is up, as `AC-DE-48-23-45-67` |
 | Architecture | `host.arch` | Yes |
 | Machine id | `host.id` | Yes — the machine GUID on Windows, `/etc/machine-id` on Linux |
-| Operating system | `os.type`, `os.description` | Yes |
+| Operating system | `os.type`, `os.description`, `os.version` | Yes |
 | Cloud placement | `cloud.provider`, `cloud.region`, `cloud.availability_zone` | Only with a cloud detector |
 | Serial number | `host.serial_number` | Needs one config step |
 | Make | `device.manufacturer` | Needs one config step |
 | Model | `device.model.name` | Needs one config step |
+| Firmware (BIOS / UEFI) version | `device.firmware.version` | Needs one config step |
 
 Everything marked *Yes* comes from the collector's `resourcedetection` processor and is already in the config OneUptime generates for you.
 
 The `cloud.*` keys need a cloud detector in that processor — `detectors: [system, env, ec2]`, or `gcp` / `azure` for the others. The shipped config runs `[system, env]` only, so those three stay empty until you add one.
 
-The last three have no resource detector — they live in the machine's firmware, read through WMI on Windows and DMI on Linux — so they are stamped onto the resource once, when the machine is provisioned. [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-serial-number-make-model) has the exact snippet for each OS. `host.manufacturer` and `host.model.name` are accepted as alternative spellings and stored under the `device.*` keys, so a sync only ever has to read one key per fact.
+The last four have no resource detector — they live in the machine's firmware, read through WMI on Windows and DMI on Linux — so they are stamped onto the resource once, when the machine is provisioned. [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware) has the exact snippet for each OS. `host.manufacturer`, `host.model.name`, `host.firmware.version` and `host.bios.version` are accepted as alternative spellings and stored under the `device.*` keys (and `device.serial_number` under `host.serial_number`), so a sync only ever has to read one key per fact.
 
 `host.id` is worth a look as a correlation key if your CMDB already keys on a hardware identifier — unlike `entityKey` it is the machine's own id, so it matches what an endpoint management tool reports for the same box.
 
 Attributes are additive: one that stops being reported stays on the row rather than being blanked, so a value your sync has already read never silently disappears.
+
+## Network Device Asset Attributes
+
+A **network device** (`entityType: network.device`) is mirrored from its Network Device record, and its `descriptiveAttributes` use the same keys a host uses for the same facts — so one CMDB column holds the serial number whether the row is a server or a switch:
+
+| Field | Key | Where it comes from |
+| ----- | --- | ------------------- |
+| Hostname / IP | `net.device.hostname` | The address OneUptime polls |
+| DNS name | `net.device.dns_name` | The reverse-DNS name found at discovery |
+| MAC address | `host.mac` | Typed on the device, or learned from a walked router's ARP table |
+| Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the vendor of the `sysObjectID` |
+| Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName` |
+| Serial number | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
+| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev` |
+| Software / OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev` |
+| System description | `os.description` | `sysDescr` |
+
+The hardware rows fill in after the device's first SNMP walk, so a device monitored by ping alone — or one added but not yet polled — shows only its hostname. A device that does not implement ENTITY-MIB has no serial, model or firmware to report; its `sysDescr` usually still names the software version.
+
+These are copied from the Network Device record every fifteen minutes and **replace** the previous values rather than adding to them, so a value cleared on the device (a MAC removed, say) also leaves the inventory item.
+
+There is no *available upgrade* version: SNMP has no standard object for one, so OneUptime records the version the device is running.
 
 ## Correlating With Your CMDB
 

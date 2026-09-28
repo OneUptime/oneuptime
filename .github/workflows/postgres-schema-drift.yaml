@@ -129,6 +129,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IoTDeviceLatestMetricsPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkDevice, CloudResource and InventoryItem
+      # tables into an isolated schema and runs the inventory mirror's
+      # reconcile against them. jsonb reorders an attribute bag's keys, so
+      # only a real database shows whether a steady-state pass writes nothing.
+      - name: Test the inventory mirror reconcile against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INVENTORY_MIRROR_TESTS: "true"
+          INVENTORY_MIRROR_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INVENTORY_MIRROR_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INVENTORY_MIRROR_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Telemetry/InventoryMirrorPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres
