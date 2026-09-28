@@ -185,9 +185,13 @@ export interface AiAccessSettingsSnapshot {
   aiAccessCredentialId: string | null;
 }
 
-// What a cluster that was never AI-configured has: the column defaults.
+/*
+ * What a cluster that was never AI-configured has: the column defaults
+ * (investigation on — it only ever runs read-only kubectl — and remediation
+ * Disabled).
+ */
 const NEVER_CONFIGURED_AI_ACCESS: AiAccessSettingsSnapshot = {
-  isAiInvestigationEnabled: false,
+  isAiInvestigationEnabled: true,
   aiRemediationMode: KubernetesAiRemediationMode.Disabled,
   aiKubectlCommandAllowlist: [],
   aiAccessRunnerId: null,

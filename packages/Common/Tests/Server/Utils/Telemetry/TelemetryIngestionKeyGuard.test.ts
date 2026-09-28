@@ -14,6 +14,7 @@ import TelemetryIngestionKeyPolicy from "../../../../Types/Telemetry/TelemetryIn
 import TelemetryIngestionKeyType from "../../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  IDENTITY_REGISTRATION_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../../../Types/Telemetry/TelemetryIngestSurface";
 import ObjectID from "../../../../Types/ObjectID";
@@ -136,10 +137,51 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all fifteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(15);
+    test("covers all sixteen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(16);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(11);
+      expect(BROWSER_FORBIDDEN).toHaveLength(12);
+    });
+
+    /*
+     * Every identity registration surface (a surface that mints a cluster
+     * credential) is server-only. Checked against the set, so adding an
+     * identity surface without keeping it off the allowlist fails here.
+     */
+    test("keeps every identity registration surface off the browser allowlist", () => {
+      expect(Array.from(IDENTITY_REGISTRATION_SURFACES).sort()).toEqual(
+        [
+          TelemetryIngestSurface.KubernetesAgentRunner,
+          TelemetryIngestSurface.KubernetesAiAgent,
+        ].sort(),
+      );
+
+      for (const surface of Array.from(IDENTITY_REGISTRATION_SURFACES)) {
+        expect(BROWSER_FORBIDDEN).toContain(surface);
+        expect(BROWSER_ALLOWED).not.toContain(surface);
+      }
+    });
+
+    test("keeps Kubernetes AI agent registration off the browser allowlist", () => {
+      const refusal: TelemetryIngestionKeyRefusal | null = refusalFor({
+        policy: buildPolicy({
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: [ALLOWED_ORIGIN],
+        }),
+        surface: TelemetryIngestSurface.KubernetesAiAgent,
+      });
+
+      expect(refusal?.reason).toBe(
+        TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey,
+      );
+      expect(refusal?.message).toContain("Kubernetes AI agent registration");
+
+      expect(
+        refusalFor({
+          policy: buildPolicy(),
+          surface: TelemetryIngestSurface.KubernetesAiAgent,
+        }),
+      ).toBeNull();
     });
 
     /*

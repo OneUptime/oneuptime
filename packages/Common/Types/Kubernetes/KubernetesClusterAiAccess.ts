@@ -1,12 +1,18 @@
 /*
  * OneUptime AI access to a Kubernetes cluster.
  *
- * A cluster's AI page binds one Runner (in-cluster, installed by the
- * kubernetes-agent chart, or an existing Runner plus a Kubernetes
- * credential) and two switches: whether AI may run read-only kubectl during
- * investigations, and how AI may remediate. Everything here is shared by the
- * server, the Runner binary and the dashboard so the three never disagree
- * about what a mode or a tier means.
+ * AI reaches a cluster through one access target: the Kubernetes AI agent
+ * the kubernetes-agent chart installs (its own identity, never a Runner), the
+ * chart's previous in-cluster Runner, or an existing Runner plus a Kubernetes
+ * credential. Two switches decide what AI may do there: whether it may run
+ * read-only kubectl during investigations, and how it may remediate.
+ * Everything here is shared by the server, the Runner binary, the Kubernetes
+ * AI agent and the dashboard so they never disagree about what a mode or a
+ * tier means.
+ *
+ * This file has NO imports on purpose: the Kubernetes AI agent
+ * (agents/KubernetesAIAgent) carries a byte-identical copy of it and must
+ * compile without the rest of Common.
  */
 
 /*
@@ -121,7 +127,26 @@ export type KubernetesAiAccessGapCode =
   | "project_auto_remediation_disabled"
   | "project_ai_command_execution_disabled"
   | "llm_provider_missing"
-  | "last_access_check_failed";
+  | "last_access_check_failed"
+  /*
+   * Neither the cluster's Kubernetes AI agent nor any Runner can reach the
+   * cluster: the agent never registered (the chart was not upgraded, or was
+   * installed with aiAgent.enabled=false) and no Runner is bound. Blocks
+   * both. Replaces no_runner_bound, which the server no longer produces.
+   */
+  | "ai_agent_not_connected"
+  /*
+   * The resolved access target is the cluster's Kubernetes AI agent and it
+   * has not been seen within KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES.
+   * Blocks both.
+   */
+  | "ai_agent_offline"
+  /*
+   * Billing is on, the project's LLM provider is OneUptime's own (which
+   * costs AI credits), the balance is used up and auto-recharge is off, so
+   * no AI run can start. Blocks both.
+   */
+  | "ai_balance_insufficient";
 
 export interface KubernetesAiAccessGap {
   code: KubernetesAiAccessGapCode;
@@ -168,13 +193,102 @@ export interface KubernetesRunnerPosture {
   allowNodeOperations?: boolean | undefined;
 }
 
+/*
+ * What the Kubernetes AI agent reports about itself on registration and on
+ * every heartbeat. The same shape as a Runner's posture — the agent is the
+ * chart's in-cluster kubectl executor, just with its own identity — but
+ * stored BARE on KubernetesAiAgent.posture rather than under
+ * hostInfo.kubernetes, so it is parsed with parseKubernetesAgentPosture.
+ */
+export type KubernetesAgentPosture = KubernetesRunnerPosture;
+
+/*
+ * Which kind of access target AI reaches a cluster through.
+ *
+ * ai_agent: the cluster's Kubernetes AI agent (a KubernetesAiAgent row, never
+ *           a Runner). It authenticates to the API server with its own
+ *           ServiceAccount, so its accessMethod is "in_cluster".
+ * runner:   a Runner row — the chart's previous in-cluster Runner
+ *           (accessMethod "in_cluster") or a Runner holding a Kubernetes
+ *           credential (accessMethod "credential").
+ *
+ * accessMethod says how kubectl authenticates; this says which identity runs
+ * it. Tell the AI agent and the legacy in-cluster Runner apart ONLY by this.
+ */
+export type KubernetesAiAccessTargetKind = "ai_agent" | "runner";
+
+/*
+ * The access target AI reaches a cluster through. Named "runner" for
+ * compatibility: plans and jobs store the target id as runnerId whatever its
+ * kind. When the target is the Kubernetes AI agent, id is the
+ * KubernetesAiAgent row id, name is KUBERNETES_AI_AGENT_DISPLAY_NAME, kind is
+ * "ai_agent" and canRunAiCommands is always true.
+ */
 export interface KubernetesAiAccessRunnerSummary {
   id: string;
   name: string;
+  // Absent means "runner" (every summary built before the AI agent existed).
+  kind?: KubernetesAiAccessTargetKind | undefined;
   isOnline: boolean;
   lastAliveAt?: string | undefined;
   canRunAiCommands: boolean;
   posture?: KubernetesRunnerPosture | undefined;
+}
+
+/*
+ * The kind of an access target summary, defaulting an absent kind to
+ * "runner" the way the field is documented.
+ */
+export function getKubernetesAiAccessTargetKind(
+  runner:
+    | { kind?: KubernetesAiAccessTargetKind | undefined }
+    | null
+    | undefined,
+): KubernetesAiAccessTargetKind | null {
+  if (!runner) {
+    return null;
+  }
+
+  return runner.kind === "ai_agent" ? "ai_agent" : "runner";
+}
+
+/*
+ * What the Kubernetes AI agent last told the server about its connection:
+ * "connected" from registration and every heartbeat, "disconnected" when it
+ * signs off (or an admin resets it). Online additionally needs a heartbeat
+ * within KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES.
+ */
+export type KubernetesAiAgentConnectionStatus = "connected" | "disconnected";
+
+/*
+ * The cluster's Kubernetes AI agent as the dashboard shows it, whether or not
+ * it is the target AI currently uses (an advanced Runner binding wins over
+ * it). Never carries the agent key or its hash.
+ */
+export interface KubernetesAiAgentSummary {
+  id: string;
+  isOnline: boolean;
+  connectionStatus: KubernetesAiAgentConnectionStatus;
+  lastAliveAt?: string | undefined;
+  lastRegisteredAt?: string | undefined;
+  agentVersion?: string | undefined;
+  posture?: KubernetesAgentPosture | undefined;
+  /*
+   * The last time another agent pod tried to register for this cluster
+   * while this one was online, and why it was refused.
+   */
+  lastRefusedRegistrationAt?: string | undefined;
+  lastRefusedRegistrationReason?: string | undefined;
+}
+
+/*
+ * The project's automatic-investigation opt-ins, shown as a non-blocking
+ * line on the cluster's AI agent page. They are project-wide, not per
+ * cluster, and never produce a gap.
+ */
+export interface KubernetesAiAutomaticInvestigationSettings {
+  incidents: boolean;
+  alerts: boolean;
 }
 
 /*
@@ -186,9 +300,36 @@ export interface KubernetesClusterAiAccessStatus {
   clusterId: string;
   clusterName: string;
   clusterIdentifier?: string | undefined;
+  // The resolved access target (see KubernetesAiAccessRunnerSummary.kind).
   runner: KubernetesAiAccessRunnerSummary | null;
-  // "in_cluster" when the bound Runner uses its own ServiceAccount.
+  /*
+   * "in_cluster" when the target uses its own ServiceAccount (the
+   * Kubernetes AI agent or the chart's previous in-cluster Runner),
+   * "credential" when it is a Runner using a Kubernetes credential.
+   */
   accessMethod: "in_cluster" | "credential" | "none";
+  /*
+   * The cluster's Kubernetes AI agent row, whether or not it is the active
+   * target; null when no agent ever registered for the cluster.
+   *
+   * TEMPORARILY OPTIONAL. The contract is `aiAgent:
+   * KubernetesAiAgentSummary | null` and `automaticInvestigation:
+   * KubernetesAiAutomaticInvestigationSettings`, both always set. They are
+   * optional only so the build stays green until the one producer,
+   * KubernetesClusterAiAccessService.getStatusForClusterModel, sets both on
+   * every status it returns (and the test fixtures that build this type are
+   * updated). Once that lands, drop the `?` and `| undefined` from both.
+   * Until then, producers must still always set both, and consumers read a
+   * missing aiAgent as null — never as a third state.
+   */
+  aiAgent?: KubernetesAiAgentSummary | null | undefined;
+  /*
+   * The project's automatic-investigation opt-ins (not gaps). Temporarily
+   * optional: see aiAgent above.
+   */
+  automaticInvestigation?:
+    | KubernetesAiAutomaticInvestigationSettings
+    | undefined;
   // Set with accessMethod "credential": the RunbookCredential the jobs name.
   credentialId?: string | undefined;
   credentialName?: string | undefined;
@@ -240,11 +381,28 @@ export function isKubernetesAgentRunnerName(name: unknown): boolean {
 }
 
 /*
- * The Runner is the only component that ever holds cluster credentials, so
- * the server learns the Runner's write posture from the Runner itself. A
- * Runner installed with read-only RBAC reports allowWrites=false and the
- * server then never enqueues a write for it.
+ * The in-cluster executor (the Kubernetes AI agent, or a Runner) is the only
+ * component that ever holds cluster credentials, so the server learns its
+ * write posture from the executor itself. One installed with read-only RBAC
+ * reports allowWrites=false and the server then never enqueues a write for
+ * it.
+ *
+ * parseKubernetesAgentPosture reads a BARE posture object: the body the
+ * Kubernetes AI agent sends and the KubernetesAiAgent.posture column.
+ * parseKubernetesRunnerPosture reads a Runner's hostInfo, where the same
+ * object sits under hostInfo.kubernetes. Both validate every field the same
+ * way: anything of the wrong type is dropped, never trusted.
  */
+export function parseKubernetesAgentPosture(
+  raw: unknown,
+): KubernetesAgentPosture | undefined {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+
+  return parsePostureFields(raw as Record<string, unknown>);
+}
+
 export function parseKubernetesRunnerPosture(
   hostInfo: unknown,
 ): KubernetesRunnerPosture | undefined {
@@ -252,16 +410,14 @@ export function parseKubernetesRunnerPosture(
     return undefined;
   }
 
-  const kubernetes: unknown = (hostInfo as Record<string, unknown>)[
-    "kubernetes"
-  ];
+  return parseKubernetesAgentPosture(
+    (hostInfo as Record<string, unknown>)["kubernetes"],
+  );
+}
 
-  if (!kubernetes || typeof kubernetes !== "object") {
-    return undefined;
-  }
-
-  const raw: Record<string, unknown> = kubernetes as Record<string, unknown>;
-
+function parsePostureFields(
+  raw: Record<string, unknown>,
+): KubernetesAgentPosture {
   return {
     clusterIdentifier:
       typeof raw["clusterIdentifier"] === "string"
@@ -456,6 +612,33 @@ export const KUBECTL_ALLOW_NODE_OPERATIONS_ENV: string =
   "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS";
 
 /*
+ * The Kubernetes AI agent (image KUBERNETES_AI_AGENT_IMAGE_REPOSITORY) is
+ * the chart's in-cluster kubectl executor from this release on. It reads
+ * KUBECTL_ALLOW_WRITES_ENV, KUBECTL_WRITE_NAMESPACES_ENV and
+ * KUBECTL_ALLOW_NODE_OPERATIONS_ENV with exactly the meanings above (the
+ * chart fills them from aiAgent.remediation.*), plus its own pod namespace
+ * from AI_AGENT_POD_NAMESPACE_ENV (downward API) — the namespace it never
+ * writes into, reported as posture.podNamespace.
+ */
+export const AI_AGENT_POD_NAMESPACE_ENV: string =
+  "ONEUPTIME_AI_AGENT_POD_NAMESPACE";
+
+// The chart labels the agent's Deployment and pod `component: ai-agent`.
+export const KUBERNETES_AI_AGENT_COMPONENT: string = "ai-agent";
+
+export const KUBERNETES_AI_AGENT_IMAGE_REPOSITORY: string =
+  "oneuptime/kubernetes-ai-agent";
+
+// How the agent is named wherever a Runner name would otherwise appear.
+export const KUBERNETES_AI_AGENT_DISPLAY_NAME: string = "Kubernetes AI agent";
+
+/*
+ * The agent heartbeats every 30 seconds; it counts as online while its last
+ * heartbeat is at most this old (the same window a Runner gets).
+ */
+export const KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES: number = 5;
+
+/*
  * Why POST /runner-ingest/register-kubernetes-agent refused a registration
  * (HTTP 403). The server sends it as `reason` in the JSON error body so the
  * Runner can tell a wait that clears on its own from one that needs an
@@ -474,15 +657,71 @@ export const KUBECTL_ALLOW_NODE_OPERATIONS_ENV: string =
  * runner_belongs_to_another_cluster: the row this cluster's agent Runner
  *                                    name resolves to is another cluster's.
  *                                    Needs an operator.
+ * superseded_by_ai_agent:            this cluster's Kubernetes AI agent is
+ *                                    online, and it replaces the in-cluster
+ *                                    Runner. Refused only WHILE the agent is
+ *                                    online, so it clears on its own when the
+ *                                    agent stops (a helm rollback); the body
+ *                                    carries retryAfterSeconds.
  */
 export type KubernetesAgentRegistrationRefusalReason =
   | "previous_instance_online"
   | "runner_holds_more_than_defaults"
-  | "runner_belongs_to_another_cluster";
+  | "runner_belongs_to_another_cluster"
+  | "superseded_by_ai_agent";
+
+// The legacy Runner refusals that clear on their own.
+export const TRANSIENT_KUBERNETES_AGENT_REGISTRATION_REFUSALS: ReadonlyArray<KubernetesAgentRegistrationRefusalReason> =
+  ["previous_instance_online", "superseded_by_ai_agent"];
 
 // Refusals that clear without anyone doing anything; retrying is right.
 export function isTransientKubernetesAgentRegistrationRefusal(
   reason: unknown,
 ): boolean {
-  return reason === "previous_instance_online";
+  return (
+    typeof reason === "string" &&
+    (
+      TRANSIENT_KUBERNETES_AGENT_REGISTRATION_REFUSALS as ReadonlyArray<string>
+    ).includes(reason)
+  );
+}
+
+/*
+ * Why POST /kubernetes-ai-agent-ingest/register refused the Kubernetes AI
+ * agent (HTTP 403, `reason` in the JSON body; transient ones also carry
+ * retryAfterSeconds and a Retry-After header).
+ *
+ * previous_instance_online: this cluster's agent row is online and the
+ *                           request did not present its current key (a
+ *                           second install with the same clusterName, or a
+ *                           pod replaced without a clean shutdown). Clears
+ *                           on its own once the old instance goes quiet.
+ * legacy_runner_online:     this cluster's previous in-cluster Runner is
+ *                           still online — for a few seconds during a helm
+ *                           upgrade, while the old pod terminates. Clears on
+ *                           its own.
+ * cluster_name_invalid:     the clusterName is empty or too long. Needs an
+ *                           operator (fix the chart's clusterName).
+ * agent_cap_reached:        the project hit the agent row cap or the hourly
+ *                           new-agent brake. Needs an operator (or time).
+ */
+export type KubernetesAiAgentRegistrationRefusalReason =
+  | "previous_instance_online"
+  | "legacy_runner_online"
+  | "cluster_name_invalid"
+  | "agent_cap_reached";
+
+export const TRANSIENT_KUBERNETES_AI_AGENT_REGISTRATION_REFUSALS: ReadonlyArray<KubernetesAiAgentRegistrationRefusalReason> =
+  ["previous_instance_online", "legacy_runner_online"];
+
+// Agent refusals that clear without anyone doing anything; retrying is right.
+export function isTransientKubernetesAiAgentRegistrationRefusal(
+  reason: unknown,
+): boolean {
+  return (
+    typeof reason === "string" &&
+    (
+      TRANSIENT_KUBERNETES_AI_AGENT_REGISTRATION_REFUSALS as ReadonlyArray<string>
+    ).includes(reason)
+  );
 }
