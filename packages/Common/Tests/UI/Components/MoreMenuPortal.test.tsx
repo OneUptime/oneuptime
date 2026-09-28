@@ -308,15 +308,36 @@ describe("MoreMenu, portalled", () => {
       expect(menu.style.bottom).toBe("");
     });
 
-    test("is kept on screen when the trigger is near the left edge", () => {
+    test("hangs rightwards from the trigger when there is no room to its left", () => {
       triggerRect = { top: 100, left: 20, width: 34, height: 30 };
 
       renderMenu();
 
       const menu: HTMLElement = openMenu();
 
-      expect(menu.style.left).toBe("8px");
+      expect(menu.style.left).toBe("20px");
       expect(menu.style.right).toBe("");
+    });
+
+    test("never starts closer than 8px to the left edge", () => {
+      triggerRect = { top: 100, left: 2, width: 34, height: 30 };
+
+      renderMenu();
+
+      expect(openMenu().style.left).toBe("8px");
+    });
+
+    test("on a narrow screen, hangs rightwards but stops at the right edge", () => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: 300,
+      });
+      triggerRect = { top: 100, left: 150, width: 34, height: 30 };
+
+      renderMenu();
+
+      // 184 - 224 overflows the left, and 150 + 224 the right: 300 - 8 - 224.
+      expect(openMenu().style.left).toBe("68px");
     });
 
     test("is kept on screen when the trigger runs past the right edge", () => {

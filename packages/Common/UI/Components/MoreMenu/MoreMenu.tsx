@@ -266,8 +266,19 @@ const MoreMenu: React.ForwardRefExoticComponent<
             viewportWidth - triggerRect.right,
             PORTALED_MENU_VIEWPORT_PADDING_PX,
           );
+      /*
+       * Without room to hang leftwards - a trigger near the left edge, as on
+       * the mobile cards - the menu hangs rightwards from the trigger's own
+       * left edge instead, still kept inside the viewport.
+       */
       const left: number | undefined = isOverflowingLeft
-        ? PORTALED_MENU_VIEWPORT_PADDING_PX
+        ? Math.max(
+            Math.min(
+              triggerRect.left,
+              viewportWidth - PORTALED_MENU_VIEWPORT_PADDING_PX - menuWidth,
+            ),
+            PORTALED_MENU_VIEWPORT_PADDING_PX,
+          )
         : undefined;
 
       const spaceBelow: number =
