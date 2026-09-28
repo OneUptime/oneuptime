@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -34,6 +35,95 @@ export interface SparklinePoint {
   timestamp: Date;
 }
 
+export interface SparklineSelectionWindow {
+  startTime: Date;
+  endTime: Date;
+}
+
+/**
+ * The time a drag across sparkline points firstIndex..lastIndex covers:
+ * from the earliest of their timestamps to the END of the latest one's
+ * bucket, so the zoomed window holds every point the drag went over.
+ *
+ * The points are drawn evenly spaced in the order the host hands them
+ * over, so the window is read from the timestamps themselves rather than
+ * from the two ends of the drag: a point out of time order can widen it,
+ * but can never turn it inside out. A bucket is as wide as the smallest gap
+ * between two distinct timestamps in the series - the interval the host
+ * aggregated at.
+ *
+ * Null when the drag never left one point, or the points it covered carry
+ * no usable time: neither is a window worth retiming a board for.
+ */
+export const getSparklineSelectionWindow: (
+  data: Array<SparklinePoint>,
+  firstIndex: number,
+  lastIndex: number,
+) => SparklineSelectionWindow | null = (
+  data: Array<SparklinePoint>,
+  firstIndex: number,
+  lastIndex: number,
+): SparklineSelectionWindow | null => {
+  const lowerIndex: number = Math.max(0, Math.min(firstIndex, lastIndex));
+  const upperIndex: number = Math.min(
+    data.length - 1,
+    Math.max(firstIndex, lastIndex),
+  );
+
+  if (lowerIndex >= upperIndex) {
+    return null;
+  }
+
+  const toMs: (point: SparklinePoint | undefined) => number = (
+    point: SparklinePoint | undefined,
+  ): number => {
+    const timestamp: Date | undefined = point?.timestamp;
+    return timestamp instanceof Date ? timestamp.getTime() : Number.NaN;
+  };
+
+  const selectedMs: Array<number> = data
+    .slice(lowerIndex, upperIndex + 1)
+    .map(toMs)
+    .filter((ms: number): boolean => {
+      return Number.isFinite(ms);
+    });
+
+  if (selectedMs.length === 0) {
+    return null;
+  }
+
+  const startMs: number = Math.min(...selectedMs);
+  const latestMs: number = Math.max(...selectedMs);
+
+  const distinctMs: Array<number> = Array.from(
+    new Set(
+      data.map(toMs).filter((ms: number): boolean => {
+        return Number.isFinite(ms);
+      }),
+    ),
+  ).sort((a: number, b: number): number => {
+    return a - b;
+  });
+
+  let bucketWidthMs: number = 0;
+
+  for (let i: number = 1; i < distinctMs.length; i++) {
+    const gapMs: number = distinctMs[i]! - distinctMs[i - 1]!;
+
+    if (bucketWidthMs === 0 || gapMs < bucketWidthMs) {
+      bucketWidthMs = gapMs;
+    }
+  }
+
+  const endMs: number = latestMs + bucketWidthMs;
+
+  if (endMs <= startMs) {
+    return null;
+  }
+
+  return { startTime: new Date(startMs), endTime: new Date(endMs) };
+};
+
 interface SparklineProps {
   data: Array<SparklinePoint>;
   width: number;
@@ -47,6 +137,23 @@ interface SparklineProps {
    * surface its timestamp inline (no on-chart tooltip).
    */
   onHoverPoint?: ((point: SparklinePoint | null) => void) | undefined;
+  /*
+   * Drag across the line: called with the window the dragged-over points
+   * cover (see getSparklineSelectionWindow). Unset, the line only
+   * inspects on hover.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Double-click on the line. Set only while there is a zoom to undo.
+  onTimeRangeReset?: (() => void) | undefined;
+}
+
+export const SPARKLINE_TEST_ID: string = "value-widget-sparkline";
+export const SPARKLINE_SELECTION_TEST_ID: string =
+  "value-widget-sparkline-selection";
+
+interface SparklineDrag {
+  startIndex: number;
+  endIndex: number;
 }
 
 export const Sparkline: FunctionComponent<SparklineProps> = (
@@ -54,6 +161,76 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
 ): ReactElement => {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef: React.RefObject<SVGSVGElement> = useRef<SVGSVGElement>(null);
+
+  /*
+   * The drag in progress. The ref is the authority - a release can be seen
+   * twice (the line's own mouseup and the page-wide one below) and must
+   * only zoom once - and the state mirrors it for the selection band.
+   */
+  const [drag, setDrag] = useState<SparklineDrag | null>(null);
+  const dragRef: React.MutableRefObject<SparklineDrag | null> =
+    useRef<SparklineDrag | null>(null);
+
+  /*
+   * Read when the drag lands, by a release the window listener below may
+   * deliver a render or two after the drag began.
+   */
+  const latestRef: React.MutableRefObject<{
+    data: Array<SparklinePoint>;
+    onTimeRangeSelect: ((startTime: Date, endTime: Date) => void) | undefined;
+  }> = useRef({
+    data: props.data,
+    onTimeRangeSelect: props.onTimeRangeSelect,
+  });
+  latestRef.current = {
+    data: props.data,
+    onTimeRangeSelect: props.onTimeRangeSelect,
+  };
+
+  const finishDrag: () => void = useCallback((): void => {
+    const finished: SparklineDrag | null = dragRef.current;
+
+    if (!finished) {
+      return;
+    }
+
+    dragRef.current = null;
+    setDrag(null);
+
+    // A press and release on one point is a click, not a window.
+    const selected: SparklineSelectionWindow | null =
+      getSparklineSelectionWindow(
+        latestRef.current.data,
+        finished.startIndex,
+        finished.endIndex,
+      );
+
+    if (selected) {
+      latestRef.current.onTimeRangeSelect?.(
+        selected.startTime,
+        selected.endTime,
+      );
+    }
+  }, []);
+
+  /*
+   * Readers overshoot a line this small all the time and let go outside
+   * it, where its own mouseup never fires. Without this the drag would
+   * never end and its band would stay painted.
+   */
+  const isDragging: boolean = drag !== null;
+
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    window.addEventListener("mouseup", finishDrag);
+
+    return () => {
+      window.removeEventListener("mouseup", finishDrag);
+    };
+  }, [isDragging, finishDrag]);
 
   if (props.data.length < 2) {
     return <></>;
@@ -96,25 +273,59 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
   const { onHoverPoint } = props;
+  const canSelect: boolean = Boolean(props.onTimeRangeSelect);
+
+  // The point under the pointer: the nearest of the evenly spaced points.
+  const indexAt: (clientX: number) => number | null = (
+    clientX: number,
+  ): number | null => {
+    const rect: DOMRect | undefined = svgRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return null;
+    }
+    const xPx: number = clientX - rect.left;
+    const usable: number = Math.max(rect.width - padding * 2, 1);
+    const ratio: number = Math.max(0, Math.min(1, (xPx - padding) / usable));
+    const idx: number = Math.round(ratio * (dataPoints.length - 1));
+    return Math.max(0, Math.min(dataPoints.length - 1, idx));
+  };
 
   const onMove: (e: React.MouseEvent<SVGSVGElement>) => void = (
     e: React.MouseEvent<SVGSVGElement>,
   ) => {
-    const rect: DOMRect | undefined = svgRef.current?.getBoundingClientRect();
-    if (!rect) {
+    const clampedIdx: number | null = indexAt(e.clientX);
+    if (clampedIdx === null) {
       return;
     }
-    const xPx: number = e.clientX - rect.left;
-    const usable: number = Math.max(rect.width - padding * 2, 1);
-    const ratio: number = Math.max(0, Math.min(1, (xPx - padding) / usable));
-    const idx: number = Math.round(ratio * (dataPoints.length - 1));
-    const clampedIdx: number = Math.max(
-      0,
-      Math.min(dataPoints.length - 1, idx),
-    );
+
+    /*
+     * The hover read-out keeps following the pointer through a drag: it
+     * names the point the window currently ends on.
+     */
     setHoverIndex(clampedIdx);
     if (onHoverPoint) {
       onHoverPoint(dataPoints[clampedIdx] ?? null);
+    }
+
+    const current: SparklineDrag | null = dragRef.current;
+    if (!current) {
+      return;
+    }
+
+    /*
+     * No button held: it came up somewhere no mouseup could be heard
+     * (outside the browser window, say). Abandon the drag.
+     */
+    if (e.buttons === 0) {
+      dragRef.current = null;
+      setDrag(null);
+      return;
+    }
+
+    if (current.endIndex !== clampedIdx) {
+      const next: SparklineDrag = { ...current, endIndex: clampedIdx };
+      dragRef.current = next;
+      setDrag(next);
     }
   };
 
@@ -125,8 +336,55 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
     }
   };
 
+  const onMouseDown: (e: React.MouseEvent<SVGSVGElement>) => void = (
+    e: React.MouseEvent<SVGSVGElement>,
+  ) => {
+    if (!canSelect || e.button !== 0) {
+      return;
+    }
+
+    const startIdx: number | null = indexAt(e.clientX);
+    if (startIdx === null) {
+      return;
+    }
+
+    // Keep the browser from starting a text selection across the tile.
+    e.preventDefault();
+
+    const started: SparklineDrag = { startIndex: startIdx, endIndex: startIdx };
+    dragRef.current = started;
+    setDrag(started);
+  };
+
+  const onMouseUp: (e: React.MouseEvent<SVGSVGElement>) => void = (
+    e: React.MouseEvent<SVGSVGElement>,
+  ) => {
+    const current: SparklineDrag | null = dragRef.current;
+    if (!current) {
+      return;
+    }
+
+    /*
+     * The point under the pointer at release is the most current answer:
+     * a quick drag can be let go before its last move has been handled.
+     */
+    const releaseIdx: number | null = indexAt(e.clientX);
+    if (releaseIdx !== null) {
+      dragRef.current = { ...current, endIndex: releaseIdx };
+    }
+
+    finishDrag();
+  };
+
   const hoverPos: [number, number] | null =
     hoverIndex !== null ? pointAt(hoverIndex) : null;
+
+  const selectionFromX: number | null = drag
+    ? pointAt(Math.min(drag.startIndex, drag.endIndex))[0]
+    : null;
+  const selectionToX: number | null = drag
+    ? pointAt(Math.max(drag.startIndex, drag.endIndex))[0]
+    : null;
 
   /*
    * Rendered as a bare <svg>, not wrapped in a div. The old
@@ -137,14 +395,32 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   return (
     <svg
       ref={svgRef}
+      data-testid={SPARKLINE_TEST_ID}
       width={props.width}
       height={props.height}
       viewBox={`0 0 ${props.width} ${props.height}`}
-      className="block cursor-crosshair"
+      className={`block cursor-crosshair ${canSelect ? "select-none" : ""}`}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onDoubleClick={props.onTimeRangeReset}
     >
       <polygon points={fillPoints} fill={props.fillColor} />
+      {selectionFromX !== null &&
+      selectionToX !== null &&
+      selectionToX > selectionFromX ? (
+        <rect
+          data-testid={SPARKLINE_SELECTION_TEST_ID}
+          x={selectionFromX}
+          y={0}
+          width={selectionToX - selectionFromX}
+          height={props.height}
+          fill="rgba(99,102,241,0.12)"
+          stroke="rgba(99,102,241,0.5)"
+          strokeWidth={1}
+        />
+      ) : null}
       <polyline
         points={points}
         fill="none"
@@ -228,6 +504,16 @@ export interface ValueWidgetViewProps {
   warningThreshold: number | undefined;
   criticalThreshold: number | undefined;
   trendDirection: DashboardValueTrendDirection | undefined;
+
+  /*
+   * Drag across the sparkline: zooms the board to the window the dragged
+   * points cover, the gesture every time-series panel on a dashboard
+   * answers to. Unset (edit mode, a host that owns no range), the
+   * sparkline only inspects on hover.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Double-click on the sparkline. Set only while there is a zoom to undo.
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
@@ -369,8 +655,16 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * query that is still empty.
    */
   if (props.value === null) {
+    /*
+     * A zoom into a quiet stretch lands here with no sparkline left to
+     * double-click, so the empty state takes the double-click instead (it is
+     * only armed while there is a zoom to undo).
+     */
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+      <div
+        className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden"
+        onDoubleClick={props.onTimeRangeReset}
+      >
         {showStateIcon && (
           <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
             <div className="h-5 w-5 text-gray-300">
@@ -691,6 +985,8 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
             color={sparklineColor}
             fillColor={sparklineFill}
             onHoverPoint={handleHoverPoint}
+            onTimeRangeSelect={props.onTimeRangeSelect}
+            onTimeRangeReset={props.onTimeRangeReset}
           />
         </div>
       )}

@@ -30,6 +30,7 @@ import DashboardStackingLayers, {
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -365,7 +366,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return <BlankCanvasElement isEditMode={props.isEditMode} />;
   }
 
-  return (
+  const canvas: ReactElement = (
     <div>
       <div
         style={{
@@ -475,6 +476,16 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       )}
     </div>
   );
+
+  /*
+   * Widgets zoom the board only through the shell's own handlers above
+   * (onDashboardTimeRangeSelect / Reset), which every time-series widget
+   * receives and gates on edit mode itself. Nothing a surrounding page
+   * might offer (TimeRangeZoomScope) may reach a chart on the board: a
+   * panel without the board's handlers, in edit mode say, must stay inert
+   * rather than retime a page whose range the board does not follow.
+   */
+  return <TimeRangeZoomProvider zoom={null}>{canvas}</TimeRangeZoomProvider>;
 };
 
 export default DashboardCanvas;

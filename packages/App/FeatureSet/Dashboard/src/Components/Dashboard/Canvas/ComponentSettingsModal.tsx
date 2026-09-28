@@ -18,6 +18,12 @@ import ArgumentsForm from "./ArgumentsForm";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 
 export interface ComponentProps {
   title: string;
@@ -74,6 +80,46 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       ro.disconnect();
     };
   }, []);
+
+  /*
+   * The preview zooms ITSELF, never the board behind the modal. A drag on
+   * the previewed chart narrows this preview's own copy of the board's
+   * range, a double-click (or "Reset zoom" above it) puts it back, and the
+   * dashboard keeps the range it had: the board is not what is being
+   * edited, and retiming it from inside a settings dialog would leave it
+   * zoomed with its reset hidden (edit mode hides the toolbar's).
+   */
+  const [previewRange, setPreviewRange] = useState<RangeStartAndEndDateTime>(
+    props.dashboardStartAndEndDate,
+  );
+
+  /*
+   * A new board range starts the preview over from it. Compared by value
+   * against the last board range seen, not against the preview's own
+   * (zoomed) range, so a parent re-render that hands down an equal range
+   * cannot knock the preview out of its zoom.
+   */
+  const boardRangeRef: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(props.dashboardStartAndEndDate);
+
+  useEffect(() => {
+    if (
+      TimeRangeZoomUtil.isSameRange(
+        boardRangeRef.current,
+        props.dashboardStartAndEndDate,
+      )
+    ) {
+      return;
+    }
+
+    boardRangeRef.current = props.dashboardStartAndEndDate;
+    setPreviewRange(props.dashboardStartAndEndDate);
+  }, [props.dashboardStartAndEndDate]);
+
+  const previewZoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: previewRange,
+    onTimeRangeChange: setPreviewRange,
+  });
 
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
@@ -156,12 +202,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                   Live Preview
                 </h4>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Updates as you edit
+              <div className="flex items-center gap-2">
+                {/* Shown only while the preview is zoomed. */}
+                <TimeRangeZoomProvider zoom={previewZoom}>
+                  <ResetTimeRangeZoomButton />
+                </TimeRangeZoomProvider>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  Updates as you edit
+                </div>
               </div>
             </div>
             <div
@@ -197,8 +249,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     dashboardComponentWidthInPx={previewWidth - 32}
                     dashboardComponentHeightInPx={previewHeight}
                     dashboardViewConfig={props.dashboardViewConfig}
-                    dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+                    dashboardStartAndEndDate={previewRange}
                     metricTypes={props.metrics.metricTypes}
+                    /*
+                     * The preview's own zoom (above), never the board's: the
+                     * widget hands its drag and double-click here exactly as
+                     * it hands them to the dashboard on the board.
+                     */
+                    onDashboardTimeRangeSelect={previewZoom.zoomToTimeRange}
+                    onDashboardTimeRangeReset={previewZoom.resetZoom}
+                    isDashboardTimeRangeZoomed={previewZoom.isZoomed}
                     dndActiveMode={null}
                     isAnyGestureActive={false}
                     onMovePointerDown={() => {}}
