@@ -13,9 +13,12 @@ import {
   getRulePassRateText,
   getRuleSentence,
   getRuleTitle,
+  hasNoSeveritiesLeft,
   hasServerId,
   isRuleKnown,
   CHANNEL_ICONS,
+  NO_SEVERITIES_LEFT_LABEL,
+  NO_SEVERITIES_LEFT_WARNING,
 } from "./ComplianceView";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -114,6 +117,8 @@ const without: <T>(
 // Readiness-style chips: rounded-md, ring, text-xs - never a full pill.
 const NEUTRAL_CHIP_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
+const WARNING_CHIP_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200";
 
 const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -342,26 +347,44 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     const showsEverySeverity: boolean =
       rule.appliesToAllSeverities || rule.severities.length === 0;
 
+    let severityChips: ReactElement | Array<ReactElement> =
+      rule.severities.map(getSeverityChip);
+
+    if (hasNoSeveritiesLeft(rule)) {
+      /*
+       * Not "All incident severities": its severities were deleted, and it
+       * checks none of them. Amber, because it is waiting on an admin.
+       */
+      severityChips = (
+        <li
+          data-testid="compliance-rule-no-severities-left"
+          className={WARNING_CHIP_CLASS_NAME}
+        >
+          <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
+          {NO_SEVERITIES_LEFT_LABEL}
+        </li>
+      );
+    } else if (showsEverySeverity) {
+      severityChips = (
+        <li
+          data-testid="compliance-rule-all-severities"
+          className={NEUTRAL_CHIP_CLASS_NAME}
+        >
+          <Icon icon={IconProp.Squares} className="h-3 w-3 text-gray-400" />
+          {getAllSeveritiesLabel(
+            rule.severityKind || ComplianceRule.getSeverityKind(rule.ruleType),
+          )}
+        </li>
+      );
+    }
+
     return (
       <ul
         aria-label="Rule scope"
         data-testid="compliance-rule-scope"
         className="mt-2.5 flex flex-wrap items-center gap-1.5"
       >
-        {showsEverySeverity ? (
-          <li
-            data-testid="compliance-rule-all-severities"
-            className={NEUTRAL_CHIP_CLASS_NAME}
-          >
-            <Icon icon={IconProp.Squares} className="h-3 w-3 text-gray-400" />
-            {getAllSeveritiesLabel(
-              rule.severityKind ||
-                ComplianceRule.getSeverityKind(rule.ruleType),
-            )}
-          </li>
-        ) : (
-          rule.severities.map(getSeverityChip)
-        )}
+        {severityChips}
         <li
           data-testid="compliance-rule-channel"
           className={NEUTRAL_CHIP_CLASS_NAME}
@@ -389,7 +412,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     rule: TeamComplianceRuleJSON,
     shownEnabled: boolean,
   ): ReactElement => {
-    if (!isRuleKnown(rule)) {
+    /*
+     * Unrecognised, or on with no severities left: the server checks nobody
+     * against either, so there is no pass rate to show.
+     */
+    if (!isRuleKnown(rule) || (shownEnabled && hasNoSeveritiesLeft(rule))) {
       return (
         <p
           data-testid="compliance-rule-pass-rate"
@@ -525,48 +552,72 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     const isSaving: boolean = shown.isSaving;
     const isEnabled: boolean = shown.enabled;
     const toggleLabelId: string = `compliance-rule-toggle-label-${rule.settingId}`;
+    const openEditForm: () => void = (): void => {
+      setFormState({ mode: "edit", settingId: rule.settingId });
+    };
+
+    /*
+     * A rule with no severities left gets no switch. Turned on as it stands
+     * it would check nothing it was written for - and, read as "every
+     * severity", copy the team's every-severity rule. Choosing new severities
+     * is the way back, so that is what is offered in the switch's place.
+     */
+    let enableControl: ReactElement = <></>;
+
+    if (canUpdate && hasNoSeveritiesLeft(rule)) {
+      enableControl = (
+        <Button
+          title="Choose severities"
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Small}
+          ariaLabel={`Choose severities for ${label}`}
+          dataTestId={`compliance-rule-choose-severities-${rule.settingId}`}
+          onClick={openEditForm}
+        />
+      );
+    } else if (canUpdate) {
+      enableControl = (
+        <div
+          className={isSaving ? "pointer-events-none opacity-60" : ""}
+          aria-busy={isSaving}
+        >
+          <span id={toggleLabelId} className="sr-only">
+            {`Check members against ${label}`}
+          </span>
+          {/*
+           * initialValue as well as value: Toggle only mirrors `value`
+           * from an effect, so without it the switch paints "off" for a
+           * frame before flipping on. The request is built from what the
+           * page shows, not from the switch's own copy of it.
+           *
+           * disabled while saving: the wrapper's pointer-events stop a
+           * mouse, but not Space or Enter on the switch that still has
+           * focus. Refused inside Toggle, such a press cannot flip the
+           * switch's own copy of its value away from `value` either.
+           */}
+          <Toggle
+            value={isEnabled}
+            initialValue={isEnabled}
+            disabled={isSaving}
+            ariaLabelledby={toggleLabelId}
+            dataTestId={`compliance-rule-toggle-${rule.settingId}`}
+            onChange={() => {
+              if (isSaving) {
+                return;
+              }
+
+              setRuleEnabled(rule, !isEnabled).catch(() => {
+                // setRuleEnabled reports its own failure on the row.
+              });
+            }}
+          />
+        </div>
+      );
+    }
 
     return (
       <div className="flex items-center gap-1">
-        {canUpdate ? (
-          <div
-            className={isSaving ? "pointer-events-none opacity-60" : ""}
-            aria-busy={isSaving}
-          >
-            <span id={toggleLabelId} className="sr-only">
-              {`Check members against ${label}`}
-            </span>
-            {/*
-             * initialValue as well as value: Toggle only mirrors `value`
-             * from an effect, so without it the switch paints "off" for a
-             * frame before flipping on. The request is built from what the
-             * page shows, not from the switch's own copy of it.
-             *
-             * disabled while saving: the wrapper's pointer-events stop a
-             * mouse, but not Space or Enter on the switch that still has
-             * focus. Refused inside Toggle, such a press cannot flip the
-             * switch's own copy of its value away from `value` either.
-             */}
-            <Toggle
-              value={isEnabled}
-              initialValue={isEnabled}
-              disabled={isSaving}
-              ariaLabelledby={toggleLabelId}
-              dataTestId={`compliance-rule-toggle-${rule.settingId}`}
-              onChange={() => {
-                if (isSaving) {
-                  return;
-                }
-
-                setRuleEnabled(rule, !isEnabled).catch(() => {
-                  // setRuleEnabled reports its own failure on the row.
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
+        {enableControl}
         {canUpdate ? (
           <Button
             icon={IconProp.Edit}
@@ -575,9 +626,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             ariaLabel={`Edit ${label}`}
             tooltip="Edit rule"
             dataTestId={`compliance-rule-edit-${rule.settingId}`}
-            onClick={() => {
-              setFormState({ mode: "edit", settingId: rule.settingId });
-            }}
+            onClick={openEditForm}
           />
         ) : (
           <></>
@@ -608,8 +657,18 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     const title: string = getRuleTitle(rule);
     const label: string = getRuleLabel(rule);
     const shown: ShownToggle = getShownToggle(rule);
-    // Active as the switch shows it: known, and on (or being turned on).
-    const isActive: boolean = shown.enabled && isRuleKnown(rule);
+    /*
+     * A rule with no severities left says why on the row, in full: nobody
+     * paused it on purpose, and it waits on an admin. Its warning is that
+     * explanation, so it is not repeated behind a "Warning" chip as well.
+     */
+    const noSeveritiesLeft: boolean = hasNoSeveritiesLeft(rule);
+    /*
+     * Active as the switch shows it: known, with severities to check, and on
+     * (or being turned on).
+     */
+    const isActive: boolean =
+      shown.enabled && isRuleKnown(rule) && !noSeveritiesLeft;
     const titleId: string = `compliance-rule-title-${rule.settingId}`;
     const toggleError: string | undefined = toggleErrors[rule.settingId];
 
@@ -663,7 +722,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                     Paused
                   </span>
                 )}
-                {rule.warnings.length > 0 ? (
+                {rule.warnings.length > 0 && !noSeveritiesLeft ? (
                   <Tooltip text={rule.warnings.join(" ")}>
                     <span
                       tabIndex={0}
@@ -691,6 +750,23 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                 {getRuleSentence(rule)}
               </p>
               {getScopeChips(rule)}
+              {noSeveritiesLeft ? (
+                /* A div, not a p: Icon renders a div, which a p cannot hold. */
+                <div
+                  data-testid={`compliance-rule-no-severities-left-note-${rule.settingId}`}
+                  className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-amber-700"
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+                  />
+                  <span>
+                    {rule.warnings.join(" ") || NO_SEVERITIES_LEFT_WARNING}
+                  </span>
+                </div>
+              ) : (
+                <></>
+              )}
               {toggleError ? (
                 <p
                   role="alert"
@@ -838,7 +914,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
       {ruleToDelete ? (
         <ConfirmModal
           title="Delete this rule?"
-          description={`"${getRuleLabel(ruleToDelete)}" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.`}
+          description={
+            hasNoSeveritiesLeft(ruleToDelete)
+              ? `"${getRuleLabel(ruleToDelete)}" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.`
+              : `"${getRuleLabel(ruleToDelete)}" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.`
+          }
           submitButtonText="Delete rule"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isDeleting}

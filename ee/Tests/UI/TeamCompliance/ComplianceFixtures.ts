@@ -110,6 +110,51 @@ export const alertRule: (
   });
 };
 
+export const EVERY_SEVERITY_CALL_RULE_ID: string =
+  "00000000-0000-4000-8000-0000000000a5";
+export const NO_SEVERITIES_LEFT_RULE_ID: string =
+  "00000000-0000-4000-8000-0000000000a6";
+
+// The server's warning on a rule whose every severity has been deleted.
+export const SEVERITIES_DELETED_WARNING: string =
+  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
+
+// "Call for incidents" for every incident severity.
+export const callForEveryIncidentRule: (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+) => TeamComplianceRuleJSON = (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+): TeamComplianceRuleJSON => {
+  return callForIncidentsRule({
+    settingId: EVERY_SEVERITY_CALL_RULE_ID,
+    appliesToAllSeverities: true,
+    severities: [],
+    ...(overrides || {}),
+  });
+};
+
+/*
+ * "Call for incidents" whose every severity has since been deleted, exactly
+ * as the server sends it: paused, no severities, NOT every severity, no
+ * counts, and the warning saying why - sent although the rule is paused.
+ */
+export const noSeveritiesLeftRule: (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+) => TeamComplianceRuleJSON = (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+): TeamComplianceRuleJSON => {
+  return callForIncidentsRule({
+    settingId: NO_SEVERITIES_LEFT_RULE_ID,
+    enabled: false,
+    appliesToAllSeverities: false,
+    severities: [],
+    compliantCount: 0,
+    nonCompliantCount: 0,
+    warnings: [SEVERITIES_DELETED_WARNING],
+    ...(overrides || {}),
+  });
+};
+
 export const buildMember: (
   overrides?: Partial<TeamMemberComplianceJSON>,
 ) => TeamMemberComplianceJSON = (

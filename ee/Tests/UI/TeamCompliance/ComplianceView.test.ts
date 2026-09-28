@@ -5,8 +5,10 @@ import {
   ComplianceVerdict,
   ComplianceVerdictKind,
   MemberStatusFilter,
+  NO_SEVERITIES_LEFT_WARNING,
   PROJECT_SWITCHED_CHANNELS,
   RuleWarningGroup,
+  areAllRulesPaused,
   countMembersByStatus,
   countOf,
   filterMembers,
@@ -19,6 +21,7 @@ import {
   getMemberFirstName,
   getMemberIssueForRule,
   getNextRuleSquareIndex,
+  getNoActiveRulesAdvice,
   getRuleChannel,
   getRuleIcon,
   getRuleLabel,
@@ -30,6 +33,7 @@ import {
   getRuleWarningGroups,
   getSelfFix,
   getSelfFixes,
+  hasNoSeveritiesLeft,
   hasServerId,
   isFixedInProjectNotificationSettings,
   isRuleActive,
@@ -50,13 +54,16 @@ import {
   JANE_ID,
   OMAR_ID,
   PRIYA_ID,
+  SEVERITIES_DELETED_WARNING,
   alertRule,
   buildMember,
   buildRule,
   buildStatus,
+  callForEveryIncidentRule,
   callForIncidentsRule,
   emailRule,
   issue,
+  noSeveritiesLeftRule,
   standardStatus,
 } from "./ComplianceFixtures";
 import { PROJECT_CHANNEL_SWITCHES } from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
@@ -98,6 +105,8 @@ const summary: (overrides: Partial<ComplianceSummary>) => ComplianceSummary = (
     ruleCount: 2,
     activeRuleCount: 2,
     pausedRuleCount: 0,
+    resumableRuleCount: 0,
+    noSeveritiesLeftRuleCount: 0,
     unrecognisedRuleCount: 0,
     ...overrides,
   };
@@ -262,12 +271,9 @@ describe("rule presentation", () => {
     expect(getRuleLabel(alertRule())).toBe(
       "Alert on-call rules (all alert severities)",
     );
-    // Selected severities all deleted: enforced as every severity, so named so.
-    expect(
-      getRuleLabel(
-        callForIncidentsRule({ severities: [], appliesToAllSeverities: false }),
-      ),
-    ).toBe("Call for incidents (all incident severities)");
+    expect(getRuleLabel(callForEveryIncidentRule())).toBe(
+      "Call for incidents (all incident severities)",
+    );
     // The kind comes from the catalog when the payload leaves it out.
     expect(getRuleLabel(alertRule({ severityKind: null }))).toBe(
       "Alert on-call rules (all alert severities)",
@@ -300,13 +306,28 @@ describe("rule presentation", () => {
     );
   });
 
-  test("a rule whose selected severities are all gone reads as every severity", () => {
+  /*
+   * The server pauses a rule whose every severity was deleted and sends it
+   * with no severities and NOT every severity. It checks none, so it must not
+   * claim to check every one.
+   */
+  test("a rule whose selected severities are all gone says so, not every severity", () => {
+    expect(getRuleSentence(noSeveritiesLeftRule())).toBe(
+      "Every member has an incident on-call rule that notifies them by Call for severities that have since been deleted.",
+    );
+    expect(getRuleSentence(noSeveritiesLeftRule())).not.toContain(
+      "every incident severity",
+    );
     expect(
       getRuleSentence(
-        callForIncidentsRule({ severities: [], appliesToAllSeverities: false }),
+        noSeveritiesLeftRule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannel: null,
+          severityKind: ComplianceSeverityKind.Alert,
+        }),
       ),
     ).toBe(
-      "Every member has an incident on-call rule that notifies them by Call for every incident severity.",
+      "Every member has an alert on-call rule for severities that have since been deleted.",
     );
   });
 
@@ -405,6 +426,101 @@ describe("rule presentation", () => {
   });
 });
 
+/*
+ * A rule whose every severity was deleted is paused by the server and sent
+ * with no severities and NOT every severity. Read as an every-severity rule it
+ * would be named like the team's real one, and one click on its switch would
+ * turn it into a copy of it.
+ */
+describe("a rule whose every severity was deleted", () => {
+  test("is told apart by its shape: an on-call rule with no severities that is not an every-severity rule", () => {
+    expect(hasNoSeveritiesLeft(noSeveritiesLeftRule())).toBe(true);
+    // The shape says it, whatever the switch says.
+    expect(hasNoSeveritiesLeft(noSeveritiesLeftRule({ enabled: true }))).toBe(
+      true,
+    );
+    expect(
+      hasNoSeveritiesLeft(
+        noSeveritiesLeftRule({
+          ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+          notificationChannel: null,
+          severityKind: ComplianceSeverityKind.Alert,
+        }),
+      ),
+    ).toBe(true);
+
+    expect(hasNoSeveritiesLeft(callForEveryIncidentRule())).toBe(false);
+    expect(hasNoSeveritiesLeft(alertRule())).toBe(false);
+    expect(hasNoSeveritiesLeft(callForIncidentsRule())).toBe(false);
+    // Method rules and unknown rules have no severities to lose.
+    expect(hasNoSeveritiesLeft(emailRule())).toBe(false);
+    expect(
+      hasNoSeveritiesLeft(
+        buildRule({ ruleType: "HasCarrierPigeon" as ComplianceRuleType }),
+      ),
+    ).toBe(false);
+  });
+
+  test("is never named like the team's every-severity rule of the same type and channel", () => {
+    const deleted: TeamComplianceRuleJSON = noSeveritiesLeftRule();
+    const every: TeamComplianceRuleJSON = callForEveryIncidentRule();
+
+    expect(getRuleTitle(deleted)).toBe(getRuleTitle(every));
+    expect(getRuleLabel(deleted)).toBe(
+      "Call for incidents (no severities left)",
+    );
+    expect(getRuleLabel(every)).toBe(
+      "Call for incidents (all incident severities)",
+    );
+    expect(
+      getRuleLabel(
+        noSeveritiesLeftRule({
+          ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+          notificationChannel: null,
+          severityKind: ComplianceSeverityKind.Alert,
+        }),
+      ),
+    ).toBe("Alert episode on-call rules (no severities left)");
+  });
+
+  /*
+   * The server checks nobody against it, whatever its switch says - so the
+   * page never counts it as a rule members are measured against.
+   */
+  test("is never active, even switched on", () => {
+    const switchedOn: TeamComplianceRuleJSON = noSeveritiesLeftRule({
+      enabled: true,
+    });
+
+    expect(isRuleActive(noSeveritiesLeftRule())).toBe(false);
+    expect(isRuleActive(switchedOn)).toBe(false);
+    expect(getActiveRules([switchedOn, emailRule()])).toEqual([emailRule()]);
+
+    const counts: ComplianceSummary = summarizeCompliance(
+      buildStatus({
+        complianceSettings: [switchedOn],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(counts).toMatchObject({
+      ruleCount: 1,
+      activeRuleCount: 0,
+      pausedRuleCount: 0,
+      resumableRuleCount: 0,
+      noSeveritiesLeftRuleCount: 1,
+      unrecognisedRuleCount: 0,
+    });
+    expect(getComplianceVerdict(counts).detail).toBe(
+      "Nobody is being checked right now. This team's rule has no severities left: every severity it was scoped to has been deleted. Edit it to choose new severities, or delete it.",
+    );
+  });
+
+  test("the page's own words for it, when the server sends none, are the server's", () => {
+    expect(NO_SEVERITIES_LEFT_WARNING).toBe(SEVERITIES_DELETED_WARNING);
+  });
+});
+
 describe("the verdict", () => {
   test("summarises the payload", () => {
     const status: TeamComplianceStatusJSON = standardStatus();
@@ -414,16 +530,27 @@ describe("the verdict", () => {
         settingId: "unknown",
         ruleType: "HasCarrierPigeon" as ComplianceRuleType,
       }),
+      buildRule({
+        settingId: "unknown-paused",
+        ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+        enabled: false,
+      }),
+      noSeveritiesLeftRule(),
     );
 
     expect(summarizeCompliance(status)).toEqual({
       memberCount: 3,
       compliantCount: 1,
       attentionCount: 2,
-      ruleCount: 4,
+      ruleCount: 6,
       activeRuleCount: 2,
-      pausedRuleCount: 1,
-      unrecognisedRuleCount: 1,
+      // What the page shows as "(3 paused)": every rule switched off.
+      pausedRuleCount: 3,
+      // Only the alert rule would check anybody if it were turned on.
+      resumableRuleCount: 1,
+      noSeveritiesLeftRuleCount: 1,
+      // On or off, a rule of an unknown type is never checked.
+      unrecognisedRuleCount: 2,
     });
   });
 
@@ -440,12 +567,22 @@ describe("the verdict", () => {
   test("every rule paused", () => {
     expect(
       getComplianceVerdict(
-        summary({ ruleCount: 3, activeRuleCount: 0, pausedRuleCount: 3 }),
+        summary({
+          ruleCount: 3,
+          activeRuleCount: 0,
+          pausedRuleCount: 3,
+          resumableRuleCount: 3,
+        }),
       ).headline,
     ).toBe("All 3 rules are paused");
     expect(
       getComplianceVerdict(
-        summary({ ruleCount: 1, activeRuleCount: 0, pausedRuleCount: 1 }),
+        summary({
+          ruleCount: 1,
+          activeRuleCount: 0,
+          pausedRuleCount: 1,
+          resumableRuleCount: 1,
+        }),
       ).headline,
     ).toBe("The only rule is paused");
   });
@@ -503,6 +640,7 @@ describe("the verdict", () => {
         ruleCount: 2,
         activeRuleCount: 0,
         pausedRuleCount: 1,
+        resumableRuleCount: 1,
         unrecognisedRuleCount: 1,
       }),
     );
@@ -516,11 +654,163 @@ describe("the verdict", () => {
   test("every rule paused keeps its advice to turn one on", () => {
     expect(
       getComplianceVerdict(
-        summary({ ruleCount: 2, activeRuleCount: 0, pausedRuleCount: 2 }),
+        summary({
+          ruleCount: 2,
+          activeRuleCount: 0,
+          pausedRuleCount: 2,
+          resumableRuleCount: 2,
+        }),
       ).detail,
     ).toBe(
       "Nobody is being checked right now. Turn a rule on to see who meets it.",
     );
+  });
+
+  /*
+   * From real payloads, not count stubs: "turn a rule on" is advice only
+   * where turning one on would check somebody.
+   */
+  describe("advice when nothing is checked", () => {
+    const pigeon: (
+      overrides?: Partial<TeamComplianceRuleJSON>,
+    ) => TeamComplianceRuleJSON = (
+      overrides?: Partial<TeamComplianceRuleJSON>,
+    ): TeamComplianceRuleJSON => {
+      return buildRule({
+        settingId: "pigeon",
+        ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+        ...(overrides || {}),
+      });
+    };
+
+    const verdictFor: (
+      rules: Array<TeamComplianceRuleJSON>,
+    ) => ComplianceVerdict = (
+      rules: Array<TeamComplianceRuleJSON>,
+    ): ComplianceVerdict => {
+      return getComplianceVerdict(
+        summarizeCompliance(
+          buildStatus({
+            complianceSettings: rules,
+            userComplianceStatuses: [buildMember()],
+          }),
+        ),
+      );
+    };
+
+    const allPausedFor: (rules: Array<TeamComplianceRuleJSON>) => boolean = (
+      rules: Array<TeamComplianceRuleJSON>,
+    ): boolean => {
+      return areAllRulesPaused(
+        summarizeCompliance(buildStatus({ complianceSettings: rules })),
+      );
+    };
+
+    test("a paused rule of an unrecognised type, alone: delete it - turning it on checks nobody", () => {
+      const verdict: ComplianceVerdict = verdictFor([
+        pigeon({ enabled: false }),
+      ]);
+
+      expect(verdict.kind).toBe(ComplianceVerdictKind.NoActiveRules);
+      expect(verdict.headline).toBe("No rule is being checked");
+      expect(verdict.detail).toBe(
+        "Nobody is being checked right now. This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+      );
+      expect(verdict.detail).not.toContain("Turn");
+      expect(allPausedFor([pigeon({ enabled: false })])).toBe(false);
+    });
+
+    test("a paused and an enabled rule of an unrecognised type: both unrecognised, neither to turn on", () => {
+      const rules: Array<TeamComplianceRuleJSON> = [
+        pigeon({ settingId: "pigeon-1", enabled: false }),
+        pigeon({ settingId: "pigeon-2", enabled: true }),
+      ];
+      const verdict: ComplianceVerdict = verdictFor(rules);
+
+      expect(verdict.detail).toBe(
+        "Nobody is being checked right now. All 2 of this team's rules are of a type this version does not recognise, so they are not checked. Delete them and add a supported rule.",
+      );
+      expect(verdict.detail).not.toContain("paused");
+      expect(allPausedFor(rules)).toBe(false);
+    });
+
+    test("a paused unrecognised rule beside a paused known one: turn the known one on, replace the other", () => {
+      const rules: Array<TeamComplianceRuleJSON> = [
+        emailRule({ enabled: false }),
+        pigeon({ enabled: false }),
+      ];
+
+      expect(verdictFor(rules).detail).toBe(
+        "Nobody is being checked right now. 1 rule is paused and 1 rule is of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised one.",
+      );
+      expect(allPausedFor(rules)).toBe(false);
+    });
+
+    test("a rule with no severities left, alone: edit it - turning it on checks nobody", () => {
+      const verdict: ComplianceVerdict = verdictFor([noSeveritiesLeftRule()]);
+
+      expect(verdict.kind).toBe(ComplianceVerdictKind.NoActiveRules);
+      expect(verdict.headline).toBe("No rule is being checked");
+      expect(verdict.detail).toBe(
+        "Nobody is being checked right now. This team's rule has no severities left: every severity it was scoped to has been deleted. Edit it to choose new severities, or delete it.",
+      );
+      expect(verdict.detail).not.toContain("Turn");
+      expect(allPausedFor([noSeveritiesLeftRule()])).toBe(false);
+    });
+
+    test("several rules with no severities left", () => {
+      expect(
+        verdictFor([
+          noSeveritiesLeftRule({ settingId: "a" }),
+          noSeveritiesLeftRule({
+            settingId: "b",
+            ruleType: ComplianceRuleType.HasAlertOnCallRules,
+            severityKind: ComplianceSeverityKind.Alert,
+          }),
+        ]).detail,
+      ).toBe(
+        "Nobody is being checked right now. All 2 of this team's rules have no severities left: every severity they were scoped to has been deleted. Edit them to choose new severities, or delete them.",
+      );
+    });
+
+    test("a rule with no severities left beside a paused one: turn that one on, or edit this one", () => {
+      expect(
+        verdictFor([emailRule({ enabled: false }), noSeveritiesLeftRule()])
+          .detail,
+      ).toBe(
+        "Nobody is being checked right now. 1 rule is paused and 1 rule has no severities left. Turn a paused rule on, or edit the one with no severities left to choose new severities.",
+      );
+    });
+
+    test("all three at once", () => {
+      expect(
+        verdictFor([
+          emailRule({ enabled: false }),
+          noSeveritiesLeftRule(),
+          pigeon(),
+          pigeon({ settingId: "pigeon-2", enabled: false }),
+        ]).detail,
+      ).toBe(
+        "Nobody is being checked right now. 1 rule is paused, 1 rule has no severities left and 2 rules are of a type this version does not recognise. Turn a paused rule on, edit the one with no severities left to choose new severities, or replace the unrecognised ones.",
+      );
+    });
+
+    test("only rules that turning on would check make 'every rule is paused'", () => {
+      const rules: Array<TeamComplianceRuleJSON> = [
+        emailRule({ enabled: false }),
+        callForIncidentsRule({ enabled: false }),
+      ];
+
+      expect(allPausedFor(rules)).toBe(true);
+      expect(verdictFor(rules).headline).toBe("All 2 rules are paused");
+      expect(allPausedFor([])).toBe(false);
+    });
+
+    test("with nothing to go on, the advice is still a sentence", () => {
+      expect(
+        getNoActiveRulesAdvice(summary({ ruleCount: 1, activeRuleCount: 0 })),
+      ).toBe("Turn a rule on to see who meets it.");
+    });
   });
 
   test("nobody on the team", () => {
@@ -939,12 +1229,68 @@ describe("rule warnings", () => {
     },
   );
 
-  test("the switchable channels are exactly Call, SMS and Telegram - the ones whose send path honours the project switch", () => {
+  /*
+   * Call, SMS and Telegram: switched off, nobody is notified that way.
+   * WhatsApp: switched off, nobody can add a WhatsApp number, the only way to
+   * meet a WhatsApp rule. All four are fixed in Notification Settings.
+   */
+  test("the switchable channels are exactly Call, SMS, WhatsApp and Telegram", () => {
     expect([...PROJECT_SWITCHED_CHANNELS]).toEqual([
       ComplianceNotificationChannel.Call,
       ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.WhatsApp,
       ComplianceNotificationChannel.Telegram,
     ]);
+  });
+
+  test("a WhatsApp rule's warning is fixed in project notification settings, as a method rule or an on-call rule", () => {
+    const groups: Array<RuleWarningGroup> = getRuleWarningGroups([
+      buildRule({
+        settingId: "whatsapp-method",
+        ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
+        warnings: ["WhatsApp is switched off for this project."],
+      }),
+      callForIncidentsRule({
+        notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        warnings: ["WhatsApp is switched off for this project."],
+      }),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(isFixedInProjectNotificationSettings(groups[0]!)).toBe(true);
+    expect(isFixedInProjectNotificationSettings(groups[1]!)).toBe(true);
+  });
+
+  /*
+   * Nobody paused it on purpose, and it stays paused until an admin edits it:
+   * its warning is the only way anyone hears of it. An ordinary paused rule's
+   * warnings still wait until it is turned back on.
+   */
+  test("a rule with no severities left interrupts the page though paused; an ordinary paused rule still waits", () => {
+    const groups: Array<RuleWarningGroup> = getRuleWarningGroups([
+      noSeveritiesLeftRule(),
+      alertRule({ enabled: false, warnings: ["paused problem"] }),
+      callForEveryIncidentRule({ enabled: false, warnings: ["paused Call"] }),
+      buildRule({
+        settingId: "pigeon",
+        ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+        enabled: false,
+        warnings: ["This rule type is not recognised, so it is not checked."],
+      }),
+    ]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.title).toBe("Call for incidents (no severities left)");
+    expect(groups[0]!.warnings).toEqual([SEVERITIES_DELETED_WARNING]);
+    // A Call rule, but its fix is the rule, not the project's Call switch.
+    expect(groups[0]!.channel).toBe(ComplianceNotificationChannel.Call);
+    expect(isFixedInProjectNotificationSettings(groups[0]!)).toBe(false);
+  });
+
+  test("a rule with no severities left and no warning has nothing to interrupt the page with", () => {
+    expect(
+      getRuleWarningGroups([noSeveritiesLeftRule({ warnings: [] })]),
+    ).toEqual([]);
   });
 
   test("the page and the server agree on which channels a project switch can make unsatisfiable", () => {
@@ -1167,6 +1513,58 @@ describe("parsing the payload", () => {
         nonCompliantRules: [],
       },
     ]);
+  });
+
+  test("a rule with no severities left arrives as one", () => {
+    const parsed: TeamComplianceStatusJSON = parseComplianceStatus(
+      JSON.parse(
+        JSON.stringify(
+          buildStatus({
+            complianceSettings: [
+              noSeveritiesLeftRule(),
+              callForEveryIncidentRule(),
+            ],
+          }),
+        ),
+      ) as unknown as JSONObject,
+    );
+
+    expect(parsed.complianceSettings).toEqual([
+      noSeveritiesLeftRule(),
+      callForEveryIncidentRule(),
+    ]);
+    expect(hasNoSeveritiesLeft(parsed.complianceSettings[0]!)).toBe(true);
+    expect(hasNoSeveritiesLeft(parsed.complianceSettings[1]!)).toBe(false);
+  });
+
+  /*
+   * An API from before severity scopes sends no appliesToAllSeverities. Its
+   * on-call rules had no scope - every severity - and must not be read as
+   * rules with no severities left, which would take their switches away.
+   */
+  test("an on-call rule from an API without severity scopes applies to every severity", () => {
+    const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+      complianceSettings: [
+        { settingId: "a", ruleType: "HasIncidentOnCallRules", enabled: true },
+        { settingId: "b", ruleType: "HasNotificationEmailMethod" },
+        { settingId: "c", ruleType: "HasCarrierPigeon" },
+        {
+          settingId: "d",
+          ruleType: "HasIncidentOnCallRules",
+          severities: [{ id: "s1", name: "Sev 1" }],
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(
+      parsed.complianceSettings.map((rule: TeamComplianceRuleJSON) => {
+        return rule.appliesToAllSeverities;
+      }),
+    ).toEqual([true, false, false, false]);
+    expect(hasNoSeveritiesLeft(parsed.complianceSettings[0]!)).toBe(false);
+    expect(getRuleLabel(parsed.complianceSettings[0]!)).toBe(
+      "Incident on-call rules (all incident severities)",
+    );
   });
 
   test("the severity kind survives for both kinds", () => {

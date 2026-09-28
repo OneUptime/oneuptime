@@ -21,6 +21,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * member can ever pass however carefully they set themselves up. Said once, at
  * the top, with the rule it is about and a way to the setting that fixes it,
  * so nobody spends an afternoon chasing members over a project switch.
+ *
+ * A rule whose every severity was deleted is listed here too, though paused:
+ * nobody paused it on purpose, and it checks nothing until an admin edits it.
+ * Its fix is the rule itself, so it never brings the settings link.
  */
 export interface ComponentProps {
   rules: Array<TeamComplianceRuleJSON>;

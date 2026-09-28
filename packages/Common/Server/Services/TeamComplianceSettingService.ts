@@ -46,6 +46,22 @@ export const DUPLICATE_COMPLIANCE_RULE_MESSAGE: string =
   "This team already has a compliance rule that checks exactly the same thing. Edit that rule instead of adding another.";
 
 /*
+ * The key a severity delete sets to true in TeamComplianceSetting.options on
+ * a rule it left with none of the severities it was scoped to (see SEVERITY
+ * DELETES below). Such a rule checks nothing until an admin picks new
+ * severities: it is paused, it cannot be turned back on as it is, it is no
+ * duplicate of anything, and the compliance page says why. Any update that
+ * changes the rule's scope removes the key.
+ */
+export const SEVERITIES_DELETED_OPTION: string = "severitiesDeleted";
+
+export const SEVERITIES_DELETED_ENABLE_MESSAGE: string =
+  "Every severity this rule was scoped to has been deleted. Edit the rule to choose new severities before turning it back on.";
+
+export const OPTIONS_DIFFER_MESSAGE: string =
+  "These compliance rules carry different options, so their scope cannot be changed in one update. Update them one at a time.";
+
+/*
  * The two severity relations, and the model each one's items are written as.
  * Every list a payload carries for them is rewritten through
  * normaliseSeverityLists before anything is checked.
@@ -152,9 +168,12 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
   }
 
   /*
-   * Toggling a rule on or off touches none of the fields that define it, so it
-   * returns before reading anything: a disable must never fail because of the
-   * rule's configuration.
+   * Toggling a rule on or off touches none of the fields that define it, so a
+   * disable returns before reading anything: it must never fail because of
+   * the rule's configuration. Turning a rule ON reads one thing - whether a
+   * severity delete left it with nothing to check (SEVERITIES_DELETED_OPTION)
+   * - because turning such a rule on as it is would make it check every
+   * severity of its kind, a rule nobody wrote.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -169,6 +188,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       data["alertSeverities"] !== undefined;
 
     if (!changesScope) {
+      if (data["enabled"] === true) {
+        await this.assertNoRuleLeftWithoutSeveritiesIsTurnedOn(updateBy);
+      }
+
       return { updateBy, carryForward: null };
     }
 
@@ -207,20 +230,15 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
      * update lands. Scoped to the caller's project when there is one, so the
      * rows of another project are never checked, let alone described.
      */
-    const query: JSONObject = { ...(updateBy.query as JSONObject) };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
     const existingSettings: Array<Model> = await this.findBy({
-      query: query,
+      query: TeamComplianceSettingService.getTargetQuery(updateBy),
       select: {
         _id: true,
         teamId: true,
         projectId: true,
         ruleType: true,
         notificationChannel: true,
+        options: true,
         incidentSeverities: {
           _id: true,
         },
@@ -268,6 +286,35 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
      */
     TeamComplianceSettingService.normaliseSeverityLists(data);
 
+    /*
+     * Every list this update sends is written to every row it matches, so it
+     * is checked against the project of every one of those rows - by the
+     * list's own kind, not by the row's type. A row whose stored type this
+     * build does not recognise (legacy data, or written by a newer build) is
+     * skipped by the scope checks below, and the relation save would
+     * otherwise link it to another project's severity unchecked.
+     */
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const existing of existingSettings) {
+      if (existing.projectId) {
+        projectIds.set(existing.projectId.toString(), existing.projectId);
+      }
+    }
+
+    for (const projectId of projectIds.values()) {
+      for (const list of SEVERITY_LISTS) {
+        if (data[list.key] === undefined) {
+          continue;
+        }
+
+        await this.assertSeveritiesBelongToProject(projectId, {
+          severityKind: list.kind,
+          severityIds: TeamComplianceSettingService.getIds(data[list.key]),
+        });
+      }
+    }
+
     for (const existing of existingSettings) {
       const ruleType: ComplianceRuleType | undefined =
         newRuleType ||
@@ -295,7 +342,22 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
             : existing.alertSeverities,
       });
 
-      await this.assertSeveritiesBelongToProject(existing.projectId, scope);
+      /*
+       * A list this update sends was checked above; one it keeps is the
+       * stored list, re-checked here because a type change can make a list
+       * the rule did not use until now its scope.
+       */
+      const isScopeListSent: boolean = SEVERITY_LISTS.some(
+        (list: { key: string; kind: ComplianceSeverityKind }): boolean => {
+          return (
+            list.kind === scope.severityKind && data[list.key] !== undefined
+          );
+        },
+      );
+
+      if (!isScopeListSent) {
+        await this.assertSeveritiesBelongToProject(existing.projectId, scope);
+      }
 
       await this.assertNoIdenticalRule({
         teamId: existing.teamId,
@@ -305,7 +367,173 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * The admin has chosen what the rule checks now - new severities, or
+     * deliberately every severity - so a rule a severity delete left empty
+     * is an ordinary rule again, in the same write.
+     */
+    TeamComplianceSettingService.clearSeveritiesDeletedMark(
+      data,
+      existingSettings,
+    );
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An update that turns a rule on without re-scoping it is refused when a
+   * severity delete left the rule with nothing to check: turned on as it is,
+   * it would check every severity of its kind. The caller's permission is
+   * checked first, as for a scope change, so the refusal describes nothing
+   * to a caller who may not change the rule.
+   */
+  private async assertNoRuleLeftWithoutSeveritiesIsTurnedOn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (!updateBy.props.isRoot && !updateBy.props.isMasterAdmin) {
+      await this.assertMayUpdate(updateBy);
+    }
+
+    const rules: Array<Model> = await this.findBy({
+      query: TeamComplianceSettingService.getTargetQuery(updateBy),
+      select: {
+        _id: true,
+        ruleType: true,
+        options: true,
+        incidentSeverities: {
+          _id: true,
+        },
+        alertSeverities: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      rules.some((rule: Model): boolean => {
+        return TeamComplianceSettingService.isLeftWithoutSeverities(rule);
+      })
+    ) {
+      throw new BadDataException(SEVERITIES_DELETED_ENABLE_MESSAGE);
+    }
+  }
+
+  /*
+   * The update's own query, narrowed to the caller's project when there is
+   * one - a copy, so the caller's query object is left as it was.
+   */
+  private static getTargetQuery(updateBy: UpdateBy<Model>): JSONObject {
+    const query: JSONObject = { ...(updateBy.query as JSONObject) };
+
+    if (updateBy.props.tenantId) {
+      query["projectId"] = updateBy.props.tenantId;
+    }
+
+    return query;
+  }
+
+  /*
+   * True when TeamComplianceSetting.options carries SEVERITIES_DELETED_OPTION.
+   * Exported for the compliance status, which lists such a rule as paused
+   * with nothing to check.
+   */
+  public static hasSeveritiesDeletedMark(options: unknown): boolean {
+    return (
+      TeamComplianceSettingService.isPlainObject(options) &&
+      options[SEVERITIES_DELETED_OPTION] === true
+    );
+  }
+
+  /*
+   * A rule a severity delete left with nothing to check: marked, of a type
+   * scoped by severity, and still without a severity of its kind. A mark on a
+   * rule that has severities again - it lost a race with a re-scope - is
+   * stale, and the rule is judged by the severities it has.
+   */
+  public static isLeftWithoutSeverities(rule: Model): boolean {
+    const kind: ComplianceSeverityKind | undefined =
+      ComplianceRule.getSeverityKind(rule.ruleType);
+
+    return (
+      Boolean(kind) &&
+      TeamComplianceSettingService.hasSeveritiesDeletedMark(rule.options) &&
+      TeamComplianceSettingService.getSeverityIdsOfKind(rule, kind!).length ===
+        0
+    );
+  }
+
+  /*
+   * Writes `options` without SEVERITIES_DELETED_OPTION, keeping every other
+   * key: the options sent with the update when it sends any, else the
+   * options stored on the rows it changes. `data` is written to every row
+   * the update matches, so stored options are only rewritten when those rows
+   * agree on them - otherwise one row's options would overwrite another's.
+   */
+  private static clearSeveritiesDeletedMark(
+    data: JSONObject,
+    existingSettings: Array<Model>,
+  ): void {
+    if (data["options"] !== undefined) {
+      if (
+        TeamComplianceSettingService.isPlainObject(data["options"]) &&
+        SEVERITIES_DELETED_OPTION in data["options"]
+      ) {
+        data["options"] = TeamComplianceSettingService.withoutMark(
+          data["options"],
+        );
+      }
+
+      return;
+    }
+
+    const isAnyMarked: boolean = existingSettings.some(
+      (existing: Model): boolean => {
+        return TeamComplianceSettingService.hasSeveritiesDeletedMark(
+          existing.options,
+        );
+      },
+    );
+
+    if (!isAnyMarked) {
+      return;
+    }
+
+    const cleared: Array<JSONObject | null> = existingSettings.map(
+      (existing: Model): JSONObject | null => {
+        return TeamComplianceSettingService.isPlainObject(existing.options)
+          ? TeamComplianceSettingService.withoutMark(existing.options)
+          : null;
+      },
+    );
+
+    const first: string = JSON.stringify(cleared[0] ?? null);
+
+    if (
+      cleared.some((options: JSONObject | null): boolean => {
+        return JSON.stringify(options) !== first;
+      })
+    ) {
+      throw new BadDataException(OPTIONS_DIFFER_MESSAGE);
+    }
+
+    data["options"] = cleared[0] ?? null;
+  }
+
+  // A copy of `options` without the mark; null when nothing else is left.
+  private static withoutMark(options: JSONObject): JSONObject | null {
+    const rest: JSONObject = { ...options };
+    delete rest[SEVERITIES_DELETED_OPTION];
+
+    return Object.keys(rest).length > 0 ? rest : null;
+  }
+
+  private static isPlainObject(value: unknown): value is JSONObject {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
   }
 
   /*
@@ -317,17 +545,31 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
    * members against a rule nobody wrote.
    *
    * The severity services therefore ask, before the delete and while the join
-   * rows still say what each rule was scoped to, which enabled rules are
-   * scoped only to severities that are about to go
-   * (getRulesScopedOnlyTo), and once the delete has actually happened they
-   * pause those that were left with none (pauseRulesLeftWithoutSeverities).
-   * A paused rule is listed as "Paused" on the Compliance page, for an admin
-   * to re-scope or delete. Pausing only after the delete means a delete that
-   * is refused - by the permission layer, or because incidents still use the
-   * severity - pauses nothing.
+   * rows still say what each rule was scoped to, which rules reference any of
+   * the severities about to go (getRulesScopedToAnyOf), and once the delete
+   * has actually happened they have those that were left with none paused
+   * and marked (pauseRulesLeftWithoutSeverities, SEVERITIES_DELETED_OPTION).
+   * The Compliance page lists a marked rule as having lost its severities,
+   * for an admin to re-scope or delete; it cannot be turned back on as it is.
+   * Pausing only after the delete means a delete that is refused - by the
+   * permission layer, or because incidents still use the severity - pauses
+   * nothing.
+   *
+   * ANY reference is carried forward, not only rules scoped to nothing but
+   * the severities this delete removes: two deletes running side by side -
+   * the two severities of a "Critical and Major" rule, deleted by Terraform
+   * in parallel - each see the other's severity still attached before
+   * either commits, so neither would carry the rule, and it would be left
+   * scoped to nothing and checking everything. Each request re-reads after
+   * its own delete has committed, so whichever commits last sees the rule
+   * empty and pauses it. A rule that still has another severity is left
+   * alone by the re-read.
+   *
+   * Paused rules are carried too: turning one on later must not make it
+   * check every severity either.
    */
   @CaptureSpan()
-  public async getRulesScopedOnlyTo(data: {
+  public async getRulesScopedToAnyOf(data: {
     severityKind: ComplianceSeverityKind;
     severities: Array<DeletedSeverity>;
   }): Promise<Array<string>> {
@@ -363,12 +605,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         query: {
           projectId: new ObjectID(projectId),
           ruleType: new Includes(ruleTypes),
-          enabled: true,
         },
         select: {
           _id: true,
           ruleType: true,
-          enabled: true,
           incidentSeverities: {
             _id: true,
           },
@@ -384,18 +624,13 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       });
 
       for (const rule of rules) {
-        const severityIds: Array<string> =
+        if (
+          rule._id &&
+          ComplianceRule.getSeverityKind(rule.ruleType) === data.severityKind &&
           TeamComplianceSettingService.getSeverityIdsOfKind(
             rule,
             data.severityKind,
-          );
-
-        if (
-          rule._id &&
-          rule.enabled === true &&
-          ComplianceRule.getSeverityKind(rule.ruleType) === data.severityKind &&
-          severityIds.length > 0 &&
-          severityIds.every((id: string): boolean => {
+          ).some((id: string): boolean => {
             return deletedIds.has(id);
           })
         ) {
@@ -408,11 +643,13 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
   }
 
   /*
-   * The second half of a severity delete: of the rules getRulesScopedOnlyTo
-   * named, pause the ones that are now left with no severity of their kind.
-   * Re-read rather than assumed, so a rule whose severity survived (the
-   * delete matched fewer rows than the lookup did) or that was re-scoped in
-   * the meantime stays as it is.
+   * The second half of a severity delete: of the rules getRulesScopedToAnyOf
+   * named, pause and mark (SEVERITIES_DELETED_OPTION) the ones now left with
+   * no severity of their kind, in one write per rule's own options so every
+   * other key they hold is kept. Re-read rather than assumed, so a rule
+   * whose severity survived (the delete matched fewer rows than the lookup
+   * did, another of its severities is still there, or it was re-scoped in the
+   * meantime) stays as it is.
    */
   @CaptureSpan()
   public async pauseRulesLeftWithoutSeverities(data: {
@@ -431,6 +668,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         _id: true,
         ruleType: true,
         enabled: true,
+        options: true,
         incidentSeverities: {
           _id: true,
         },
@@ -445,42 +683,73 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       },
     });
 
-    const toPause: Array<string> = [];
+    // Rule ids by the options they are written with, marked.
+    const toPause: Map<string, { options: JSONObject; ids: Array<string> }> =
+      new Map<string, { options: JSONObject; ids: Array<string> }>();
+    const paused: Array<string> = [];
 
     for (const rule of rules) {
       if (
-        rule._id &&
-        rule.enabled === true &&
-        ComplianceRule.getSeverityKind(rule.ruleType) === data.severityKind &&
+        !rule._id ||
+        ComplianceRule.getSeverityKind(rule.ruleType) !== data.severityKind ||
         TeamComplianceSettingService.getSeverityIdsOfKind(
           rule,
           data.severityKind,
-        ).length === 0
+        ).length > 0
       ) {
-        toPause.push(rule._id.toString());
+        continue;
       }
+
+      const isAlreadyPausedAndMarked: boolean =
+        rule.enabled === false &&
+        TeamComplianceSettingService.hasSeveritiesDeletedMark(rule.options);
+
+      if (isAlreadyPausedAndMarked) {
+        continue;
+      }
+
+      const options: JSONObject = {
+        ...(TeamComplianceSettingService.isPlainObject(rule.options)
+          ? rule.options
+          : {}),
+        [SEVERITIES_DELETED_OPTION]: true,
+      };
+
+      const key: string = JSON.stringify(options);
+      const group: { options: JSONObject; ids: Array<string> } = toPause.get(
+        key,
+      ) || { options: options, ids: [] };
+
+      group.ids.push(rule._id.toString());
+      toPause.set(key, group);
+      paused.push(rule._id.toString());
     }
 
-    if (toPause.length === 0) {
-      return [];
-    }
-
-    // An enabled-only update: the update hook reads nothing for it.
-    await this.updateBy({
-      query: {
-        _id: new Includes(toPause),
-      },
-      data: {
+    for (const group of toPause.values()) {
+      /*
+       * Neither the type, the channel nor a severity list: the update hook
+       * reads nothing for it. (Cast: the write type of a JSON column is too
+       * deep for the compiler to spell out.)
+       */
+      const pause: JSONObject = {
         enabled: false,
-      },
-      limit: toPause.length,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+        options: group.options,
+      };
 
-    return toPause;
+      await this.updateBy({
+        query: {
+          _id: new Includes(group.ids),
+        },
+        data: pause as unknown as UpdateBy<Model>["data"],
+        limit: group.ids.length,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return paused;
   }
 
   /*
@@ -781,7 +1050,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
    */
   private async assertSeveritiesBelongToProject(
     projectId: ObjectID,
-    scope: ComplianceRuleScope,
+    scope: {
+      severityKind: ComplianceSeverityKind | null;
+      severityIds: Array<string>;
+    },
   ): Promise<void> {
     if (scope.severityIds.length === 0 || !scope.severityKind) {
       return;
@@ -841,6 +1113,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         _id: true,
         ruleType: true,
         notificationChannel: true,
+        options: true,
         incidentSeverities: {
           _id: true,
         },
@@ -856,6 +1129,16 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
     });
 
     for (const sibling of siblings) {
+      /*
+       * A rule a severity delete left with nothing to check is stored with
+       * no severities, which is also how a rule for EVERY severity is
+       * stored. It checks nothing and cannot be turned on until it is
+       * re-scoped - when it is compared again - so it duplicates nothing.
+       */
+      if (TeamComplianceSettingService.isLeftWithoutSeverities(sibling)) {
+        continue;
+      }
+
       const siblingScope: ComplianceRuleScope =
         TeamComplianceSettingService.getScope({
           ruleType: data.scope.ruleType,

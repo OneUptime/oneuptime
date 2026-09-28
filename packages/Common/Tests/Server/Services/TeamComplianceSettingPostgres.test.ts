@@ -8,7 +8,9 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import TeamComplianceSettingService, {
+  DeletedSeverity,
   DUPLICATE_COMPLIANCE_RULE_MESSAGE,
+  SEVERITIES_DELETED_ENABLE_MESSAGE,
 } from "../../../Server/Services/TeamComplianceSettingService";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -20,6 +22,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import ComplianceNotificationChannel from "../../../Types/Team/ComplianceNotificationChannel";
+import { ComplianceSeverityKind } from "../../../Types/Team/ComplianceRule";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import UserType from "../../../Types/UserType";
 import { DataSource, Logger } from "typeorm";
@@ -63,10 +66,11 @@ import { DataSource, Logger } from "typeorm";
  * The production TeamComplianceSettingService runs unchanged: its hooks, the
  * permission layer (as root, and as signed-in users), and the relation save -
  * and so do IncidentSeverityService and AlertSeverityService, whose deletes
- * pause a rule scoped only to the severity instead of leaving it to widen to
- * every severity. Only realtime and workflow triggers are stubbed, and - for
- * the signed-in half - the enterprise licence check, which reads a licence no
- * test database has. Every statement Postgres rejects is recorded through the
+ * pause a rule left with no severity instead of leaving it to widen to every
+ * severity - and mark it, so it cannot be turned back on as it is or be
+ * mistaken for a duplicate. Only realtime and workflow triggers are stubbed,
+ * and - for the signed-in half - the enterprise licence check, which reads a
+ * licence no test database has. Every statement Postgres rejects is recorded through the
  * DataSource's logger and fails the test, even when a caller catches it.
  */
 const describePostgres: typeof describe =
@@ -94,6 +98,11 @@ const ALERT_JOIN_TABLE: string = "TeamComplianceSettingAlertSeverity";
 
 const FOREIGN_SEVERITY_MESSAGE: string =
   "One or more of the selected incident severities do not exist in this project.";
+const FOREIGN_ALERT_SEVERITY_MESSAGE: string =
+  "One or more of the selected alert severities do not exist in this project.";
+
+// What a severity delete writes into the options of a rule it emptied.
+const MARKED: JSONObject = { severitiesDeleted: true };
 
 interface ForeignKeyRow {
   table: string;
@@ -555,6 +564,74 @@ describePostgres(
         incidentSeverityIds: await joinRows(INCIDENT_JOIN_TABLE, settingId),
         alertSeverityIds: await joinRows(ALERT_JOIN_TABLE, settingId),
       };
+    }
+
+    // The rule's options column, as Postgres holds it.
+    async function storedOptions(settingId: ObjectID): Promise<unknown> {
+      const rows: Array<SqlRow> = await database.query(
+        `SELECT "options" FROM "${schema}"."TeamComplianceSetting" WHERE "_id" = $1`,
+        [settingId.toString()],
+      );
+
+      return rows[0]?.["options"];
+    }
+
+    /*
+     * Runs `deletes` side by side, holding each one's rule lookup until every
+     * one of them has looked: what two requests (or two App replicas)
+     * deleting at the same moment do. Without the hold, Promise.all may run
+     * one delete to completion before the other looks, which hides the race.
+     */
+    async function deleteSideBySide(
+      deletes: Array<() => Promise<unknown>>,
+    ): Promise<void> {
+      const lookup: (typeof TeamComplianceSettingService)["getRulesScopedToAnyOf"] =
+        TeamComplianceSettingService.getRulesScopedToAnyOf.bind(
+          TeamComplianceSettingService,
+        );
+
+      let arrived: number = 0;
+      let releaseAll: () => void = (): void => {
+        return;
+      };
+      const everyoneHasLooked: Promise<void> = new Promise<void>(
+        (resolve: () => void): void => {
+          releaseAll = resolve;
+        },
+      );
+
+      const spy: jest.SpyInstance = jest
+        .spyOn(TeamComplianceSettingService, "getRulesScopedToAnyOf")
+        .mockImplementation(
+          async (data: {
+            severityKind: ComplianceSeverityKind;
+            severities: Array<DeletedSeverity>;
+          }): Promise<Array<string>> => {
+            const found: Array<string> = await lookup(data);
+
+            arrived++;
+
+            if (arrived === deletes.length) {
+              releaseAll();
+            }
+
+            await everyoneHasLooked;
+
+            return found;
+          },
+        );
+
+      try {
+        await Promise.all(
+          deletes.map((run: () => Promise<unknown>): Promise<unknown> => {
+            return run();
+          }),
+        );
+      } finally {
+        spy.mockRestore();
+      }
+
+      expect(arrived).toBe(deletes.length);
     }
 
     async function countRules(): Promise<number> {
@@ -1212,7 +1289,7 @@ describePostgres(
         });
       }
 
-      test("toggling enabled reads nothing and leaves the scope alone", async () => {
+      test("toggling enabled leaves the scope alone; switching off reads nothing, switching on reads only the row", async () => {
         const id: ObjectID = await callForCriticalAndMajor();
 
         const findBy: jest.SpyInstance = jest.spyOn(
@@ -1239,6 +1316,8 @@ describePostgres(
             alertSeverityIds: [],
           });
 
+          expect(findBy).not.toHaveBeenCalled();
+
           await updateRule(id, { enabled: true });
 
           expect((await stored(id))?.enabled).toBe(true);
@@ -1246,7 +1325,8 @@ describePostgres(
             ids([critical, major]),
           );
 
-          expect(findBy).not.toHaveBeenCalled();
+          // Whether a severity delete emptied it: one read of the row.
+          expect(findBy).toHaveBeenCalledTimes(1);
           expect(incidentCount).not.toHaveBeenCalled();
           expect(alertCount).not.toHaveBeenCalled();
         } finally {
@@ -1497,7 +1577,11 @@ describePostgres(
           incidentSeverityIds: [],
           alertSeverityIds: [],
         });
+        expect(await storedOptions(onlyCritical)).toEqual(MARKED);
         expect((await stored(episodeOnlyCritical))?.enabled).toBe(false);
+        expect(await storedOptions(episodeOnlyCritical)).toEqual(MARKED);
+        expect(await storedOptions(criticalAndMajor)).toBeNull();
+        expect(await storedOptions(everySeverity)).toBeNull();
 
         expect(await stored(criticalAndMajor)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
@@ -1534,6 +1618,180 @@ describePostgres(
           alertSeverityIds: [],
         });
         expect((await stored(incidentRule))?.enabled).toBe(true);
+      });
+
+      test.each([
+        ["incident", false],
+        ["alert", true],
+      ])(
+        "two %s severity deletes side by side - the two severities of one rule - pause and mark it",
+        async (_label: string, isAlert: boolean) => {
+          const both: ObjectID = isAlert
+            ? await createRule({
+                ruleType: ComplianceRuleType.HasAlertOnCallRules,
+                notificationChannel: ComplianceNotificationChannel.Call,
+                alertSeverities: asStrings([criticalAlert, warningAlert]),
+              })
+            : await createRule({
+                ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+                notificationChannel: ComplianceNotificationChannel.Call,
+                incidentSeverities: asStrings([critical, major]),
+              });
+
+          // A rule with a severity neither delete touches.
+          const keepsMinor: ObjectID = await createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannel: ComplianceNotificationChannel.Push,
+            incidentSeverities: asStrings([critical, minor]),
+          });
+
+          await deleteSideBySide(
+            (isAlert ? [criticalAlert, warningAlert] : [critical, major]).map(
+              (id: ObjectID): (() => Promise<unknown>) => {
+                return (): Promise<unknown> => {
+                  return isAlert
+                    ? AlertSeverityService.deleteOneById({
+                        id: id,
+                        props: ROOT,
+                      })
+                    : IncidentSeverityService.deleteOneById({
+                        id: id,
+                        props: ROOT,
+                      });
+                };
+              },
+            ),
+          );
+
+          expect(await stored(both)).toMatchObject({
+            enabled: false,
+            incidentSeverityIds: [],
+            alertSeverityIds: [],
+          });
+          expect(await storedOptions(both)).toEqual(MARKED);
+
+          expect(await stored(keepsMinor)).toMatchObject({
+            enabled: true,
+            incidentSeverityIds: isAlert
+              ? ids([critical, minor])
+              : ids([minor]),
+          });
+          expect(await storedOptions(keepsMinor)).toBeNull();
+        },
+      );
+
+      test("a rule an admin had paused is marked too, so switching it on later cannot widen it", async () => {
+        const paused: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: asStrings([critical]),
+          enabled: false,
+        });
+
+        await IncidentSeverityService.deleteOneById({
+          id: critical,
+          props: ROOT,
+        });
+
+        expect(await storedOptions(paused)).toEqual(MARKED);
+
+        await expect(updateRule(paused, { enabled: true })).rejects.toThrow(
+          SEVERITIES_DELETED_ENABLE_MESSAGE,
+        );
+        expect((await stored(paused))?.enabled).toBe(false);
+      });
+
+      /*
+       * The rule a delete emptied is stored with no severities - exactly how
+       * the team's real "every severity" rule of the same type and channel
+       * is stored. It must neither block that rule's edit form as a
+       * duplicate, nor be switched back on as a second copy of it.
+       */
+      test("a rule a delete emptied duplicates nothing, cannot be switched on as it is, and is re-scoped from its edit form", async () => {
+        const everySeverity: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+        const onlyCritical: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await IncidentSeverityService.deleteOneById({
+          id: critical,
+          props: ROOT,
+        });
+
+        // The every-severity rule's edit form sends its whole scope.
+        await updateRule(everySeverity, {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: [],
+          alertSeverities: [],
+          enabled: false,
+        });
+
+        expect((await stored(everySeverity))?.enabled).toBe(false);
+
+        await expect(
+          updateRule(onlyCritical, { enabled: true }),
+        ).rejects.toThrow(SEVERITIES_DELETED_ENABLE_MESSAGE);
+
+        expect((await stored(onlyCritical))?.enabled).toBe(false);
+        expect(await storedOptions(onlyCritical)).toEqual(MARKED);
+
+        // The emptied rule's edit form: new severities, switched back on.
+        await updateRule(onlyCritical, {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: asJson([major]),
+          alertSeverities: [],
+          enabled: true,
+        });
+
+        expect(await stored(onlyCritical)).toEqual({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          enabled: true,
+          incidentSeverityIds: ids([major]),
+          alertSeverityIds: [],
+        });
+        expect(await storedOptions(onlyCritical)).toBeNull();
+
+        // An ordinary rule again: it can now be switched off and on.
+        await updateRule(onlyCritical, { enabled: false });
+        await updateRule(onlyCritical, { enabled: true });
+        expect((await stored(onlyCritical))?.enabled).toBe(true);
+      });
+
+      test("re-scoping an emptied rule keeps every other option it carries", async () => {
+        const onlyCritical: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."TeamComplianceSetting" SET "options" = $1 WHERE "_id" = $2`,
+          [JSON.stringify({ note: "keep me" }), onlyCritical.toString()],
+        );
+
+        await IncidentSeverityService.deleteOneById({
+          id: critical,
+          props: ROOT,
+        });
+
+        expect(await storedOptions(onlyCritical)).toEqual({
+          note: "keep me",
+          ...MARKED,
+        });
+
+        await updateRule(onlyCritical, {
+          incidentSeverities: asJson([minor]),
+        });
+
+        expect(await storedOptions(onlyCritical)).toEqual({ note: "keep me" });
       });
 
       test("a delete the database refuses - the severity is still in use - pauses nothing", async () => {
@@ -1816,6 +2074,97 @@ describePostgres(
         );
 
         expect(await countRules()).toBe(3);
+      });
+
+      /*
+       * A row whose stored rule type this build does not recognise - legacy
+       * data, or written by a newer build before a rollback - still gets
+       * whatever severity list an update sends written to it, so the list is
+       * checked against the row's project by its own kind.
+       */
+      test("cannot link another project's severity to a rule of an unrecognised type", async () => {
+        const admin: DatabaseCommonInteractionProps = memberProps(projectId, [
+          Permission.ProjectAdmin,
+        ]);
+
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."TeamComplianceSetting" SET "ruleType" = 'LegacyRule' WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+        await expect(
+          updateRule(
+            id,
+            { incidentSeverities: asJson([otherProjectCritical]) },
+            admin,
+          ),
+        ).rejects.toThrow(FOREIGN_SEVERITY_MESSAGE);
+
+        await expect(
+          updateRule(
+            id,
+            { alertSeverities: asJson([otherProjectCriticalAlert]) },
+            admin,
+          ),
+        ).rejects.toThrow(FOREIGN_ALERT_SEVERITY_MESSAGE);
+
+        expect(await countJoinRows()).toBe(0);
+
+        // This project's own severities are still accepted.
+        await updateRule(id, { incidentSeverities: asJson([critical]) }, admin);
+
+        expect(await joinRows(INCIDENT_JOIN_TABLE, id)).toEqual(
+          ids([critical]),
+        );
+      });
+
+      test("a project admin cannot switch a rule a delete emptied back on, but can re-scope it", async () => {
+        const admin: DatabaseCommonInteractionProps = memberProps(projectId, [
+          Permission.ProjectAdmin,
+        ]);
+
+        const onlyCritical: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await IncidentSeverityService.deleteOneById({
+          id: critical,
+          props: admin,
+        });
+
+        await expect(
+          updateRule(onlyCritical, { enabled: true }, admin),
+        ).rejects.toThrow(SEVERITIES_DELETED_ENABLE_MESSAGE);
+
+        // A caller with no say in the project is refused before any read.
+        await expect(
+          updateRule(
+            onlyCritical,
+            { enabled: true },
+            {
+              ...memberProps(otherProjectId, [Permission.ProjectAdmin]),
+              tenantId: projectId,
+            },
+          ),
+        ).rejects.toThrow(NotAuthorizedException);
+
+        await updateRule(
+          onlyCritical,
+          { incidentSeverities: asJson([major]), enabled: true },
+          admin,
+        );
+
+        expect(await stored(onlyCritical)).toMatchObject({
+          enabled: true,
+          incidentSeverityIds: ids([major]),
+        });
+        expect(await storedOptions(onlyCritical)).toBeNull();
       });
 
       test("cannot rescope another project's rule", async () => {

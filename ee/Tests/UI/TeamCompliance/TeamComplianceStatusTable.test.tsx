@@ -46,6 +46,7 @@ import {
   callForIncidentsRule,
   emailRule,
   issue,
+  noSeveritiesLeftRule,
   standardStatus,
 } from "./ComplianceFixtures";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
@@ -911,6 +912,60 @@ describe("nothing to list", () => {
     ).toHaveTextContent(
       "No rule on this team can be checked right now, so none of its 2 members are being checked. 1 rule is paused and 1 rule is of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised one.",
     );
+  });
+
+  /*
+   * Turning a paused rule of an unrecognised type on only makes it an
+   * enabled rule of an unrecognised type: still nobody is checked.
+   */
+  test("a paused rule of an unrecognised type is not one to turn back on", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [
+            buildRule({
+              settingId: "pigeon",
+              ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+              enabled: false,
+            }),
+          ],
+          userComplianceStatuses: [buildMember()],
+        })}
+      />,
+    );
+
+    const message: HTMLElement = screen.getByTestId(
+      "compliance-members-no-active-rules",
+    );
+
+    expect(message).toHaveTextContent(
+      "No rule on this team can be checked right now, so none of its 1 member is being checked. This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+    );
+    expect(message).not.toHaveTextContent("Every rule on this team is paused");
+    expect(message).not.toHaveTextContent("Turn a rule back on");
+  });
+
+  test("a rule with no severities left is edited, not turned back on", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [noSeveritiesLeftRule()],
+          userComplianceStatuses: [
+            buildMember(),
+            buildMember({ userId: OMAR_ID }),
+          ],
+        })}
+      />,
+    );
+
+    const message: HTMLElement = screen.getByTestId(
+      "compliance-members-no-active-rules",
+    );
+
+    expect(message).toHaveTextContent(
+      "No rule on this team can be checked right now, so none of its 2 members are being checked. This team's rule has no severities left: every severity it was scoped to has been deleted. Edit it to choose new severities, or delete it.",
+    );
+    expect(message).not.toHaveTextContent("Turn a rule back on");
   });
 
   test("a paused-only team hides stale failure reasons", () => {

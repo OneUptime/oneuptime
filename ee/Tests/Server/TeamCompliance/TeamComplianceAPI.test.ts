@@ -52,6 +52,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
+import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -586,6 +587,8 @@ interface StubSetting {
   notificationChannel?: ComplianceNotificationChannel | undefined;
   incidentSeverities?: Array<StubSeverity> | undefined;
   alertSeverities?: Array<StubSeverity> | undefined;
+  // The row's options JSON (NULL when unset).
+  options?: Record<string, unknown> | undefined;
 }
 
 /*
@@ -656,6 +659,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
           createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
           incidentSeverities: relation(stubSetting.incidentSeverities),
           alertSeverities: relation(stubSetting.alertSeverities),
+          options: stubSetting.options || null,
         };
       },
     );
@@ -1637,6 +1641,79 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
     });
     expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
     expect(userCallFindBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A severity delete that removed every severity a rule was scoped to
+   * pauses the rule and marks it (options.severitiesDeleted). With no
+   * severities left it would otherwise read, and be sent, as a rule for
+   * every severity - beside the team's real every-severity rule, which it
+   * would duplicate.
+   */
+  test("a rule whose severities were all deleted is sent as applying to none, with the warning, and checked against nobody", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          enabled: false,
+          options: { severitiesDeleted: true },
+        },
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          enabled: true,
+        },
+      ],
+      members: [ada],
+      rules: [],
+      incidentSeverities: [critical],
+      alertSeverities: [],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+    const [emptied, everySeverity]: Array<Record<string, unknown>> =
+      rulesOf(payload);
+
+    expect(emptied).toEqual({
+      settingId: expect.any(String),
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: false,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      severityKind: ComplianceSeverityKind.Incident,
+      appliesToAllSeverities: false,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [
+        "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.",
+      ],
+    });
+    expect(everySeverity).toMatchObject({
+      appliesToAllSeverities: true,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+
+    // Ada fails only the real rule.
+    expect(
+      (
+        statusFor(payload, ada)["nonCompliantRules"] as Array<
+          Record<string, unknown>
+        >
+      ).map((issue: Record<string, unknown>): unknown => {
+        return issue["settingId"];
+      }),
+    ).toEqual([everySeverity!["settingId"]]);
+
+    // The settings read asks for the options that carry the mark.
+    expect(
+      (
+        complianceSettingFindBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select["options"],
+    ).toBe(true);
   });
 
   test("a team that does not exist is refused rather than described", async () => {

@@ -48,6 +48,7 @@ import ComplianceRuleFormModal, {
   getChannelDropdownOptions,
   getComplianceRuleFormFields,
   getCreateInitialValues,
+  getProjectSwitchNote,
   getRulePreviewText,
   getRuleTypeCardOptions,
   getValuesForRuleType,
@@ -508,7 +509,7 @@ describe("the live preview", () => {
   test.each([
     [ComplianceNotificationChannel.Call, true],
     [ComplianceNotificationChannel.SMS, true],
-    [ComplianceNotificationChannel.WhatsApp, false],
+    [ComplianceNotificationChannel.WhatsApp, true],
     [ComplianceNotificationChannel.Telegram, true],
     [ComplianceNotificationChannel.Push, false],
     [ComplianceNotificationChannel.Email, false],
@@ -539,6 +540,53 @@ describe("the live preview", () => {
     ).toBe(
       "Call notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.",
     );
+  });
+
+  test.each([
+    [ComplianceNotificationChannel.Call, "Call"],
+    [ComplianceNotificationChannel.SMS, "SMS"],
+    [ComplianceNotificationChannel.Telegram, "Telegram"],
+  ])(
+    "switched off, %s reaches nobody - and the note says so",
+    (channel: ComplianceNotificationChannel, label: string) => {
+      const note: string = `${label} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`;
+
+      expect(getProjectSwitchNote(channel)).toBe(note);
+      expect(
+        getRulePreviewText(
+          valuesFor(ComplianceRuleType.HasIncidentOnCallRules, {
+            notificationChannel: channel,
+          }),
+        )?.notes,
+      ).toEqual([note]);
+    },
+  );
+
+  /*
+   * Switched off, WhatsApp still pages numbers verified before - so "nobody
+   * will be reached" would be untrue. What it does stop is adding a number,
+   * the only way to meet a WhatsApp rule.
+   */
+  test("a WhatsApp rule says members cannot add a number until the project switches WhatsApp on", () => {
+    const note: string =
+      "Members cannot add a WhatsApp number until WhatsApp is switched on for the project in Project Settings > Notification Settings.";
+
+    expect(getProjectSwitchNote(ComplianceNotificationChannel.WhatsApp)).toBe(
+      note,
+    );
+    expect(
+      getRulePreviewText(
+        valuesFor(ComplianceRuleType.HasAlertOnCallRules, {
+          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        }),
+      )?.notes,
+    ).toEqual([note]);
+    expect(
+      getRulePreviewText(
+        valuesFor(ComplianceRuleType.HasNotificationWhatsAppMethod),
+      )?.notes,
+    ).toEqual([note]);
+    expect(note).not.toContain("nobody will be reached");
   });
 
   test("a paused rule says so", () => {

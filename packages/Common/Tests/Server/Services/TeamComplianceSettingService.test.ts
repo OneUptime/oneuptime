@@ -2,6 +2,9 @@ import TeamComplianceSettingService, {
   ComplianceRuleScope,
   DeletedSeverity,
   DUPLICATE_COMPLIANCE_RULE_MESSAGE,
+  OPTIONS_DIFFER_MESSAGE,
+  SEVERITIES_DELETED_ENABLE_MESSAGE,
+  SEVERITIES_DELETED_OPTION,
   TeamComplianceSettingService as TeamComplianceSettingServiceClass,
 } from "../../../Server/Services/TeamComplianceSettingService";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
@@ -57,7 +60,11 @@ import { FindOperator } from "typeorm";
  *  - duplicates are judged on content (order, repeats and id case do not
  *    matter), legacy "no channel, every severity" rows included, while a
  *    different channel, severity set, rule type or team is a different rule;
- *  - an update that only toggles `enabled` reads nothing at all;
+ *  - an update that only switches a rule off reads nothing at all; one that
+ *    switches it on reads only whether a severity delete left it with
+ *    nothing to check, and refuses that;
+ *  - a rule a severity delete emptied (options.severitiesDeleted) duplicates
+ *    nothing, and any re-scope clears the mark in the same write;
  *  - an update that changes the scope re-validates it, compares against
  *    siblings excluding the row itself, reads only inside the caller's
  *    project, and a rule type change clears the options the new type does not
@@ -312,6 +319,8 @@ interface StoredRuleInput {
   alertSeverityIds?: Array<string> | undefined;
   // Stored rules are enabled unless a test pauses one.
   enabled?: boolean | undefined;
+  // The row's options JSON; unset (NULL) unless a test gives it some.
+  options?: JSONObject | undefined;
   omitTeam?: boolean | undefined;
   omitProject?: boolean | undefined;
 }
@@ -335,6 +344,10 @@ const storedRule: (input: StoredRuleInput) => TeamComplianceSetting = (
   (setting as unknown as Record<string, unknown>)["notificationChannel"] =
     input.notificationChannel === undefined ? null : input.notificationChannel;
   setting.enabled = input.enabled === undefined ? true : input.enabled;
+
+  if (input.options !== undefined) {
+    setting.options = input.options;
+  }
 
   setting.incidentSeverities = (input.incidentSeverityIds || []).map(
     (id: string): IncidentSeverity => {
@@ -1101,6 +1114,8 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       _id: true,
       ruleType: true,
       notificationChannel: true,
+      // A rule a severity delete emptied is no duplicate: see below.
+      options: true,
       incidentSeverities: { _id: true },
       alertSeverities: { _id: true },
     });
@@ -1437,10 +1452,22 @@ const INCIDENT_CALL_CRITICAL: StoredRuleInput = {
   incidentSeverityIds: [CRITICAL_INCIDENT],
 };
 
+/*
+ * "Call for Critical incidents" after Critical was deleted: the join row
+ * cascaded away, and pauseRulesLeftWithoutSeverities paused and marked it.
+ */
+const EMPTIED_BY_DELETE: StoredRuleInput = {
+  id: SETTING_ID,
+  ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+  notificationChannel: ComplianceNotificationChannel.Call,
+  enabled: false,
+  options: { [SEVERITIES_DELETED_OPTION]: true },
+};
+
 describe("TeamComplianceSettingService onBeforeUpdate - updates that do not touch the scope", () => {
   test.each([
     ["switching a rule off", { enabled: false }],
-    ["switching a rule on", { enabled: true }],
+    ["switching a paused rule off again", { enabled: false, options: {} }],
     ["editing the unused options JSON", { options: { note: "x" } }],
   ])(
     "%s reads nothing and passes the update through untouched",
@@ -1466,6 +1493,359 @@ describe("TeamComplianceSettingService onBeforeUpdate - updates that do not touc
 
     await expect(update({ enabled: false })).resolves.toBeDefined();
     expectNoReads();
+  });
+
+  test("a disable never fails on a rule a severity delete emptied either, and reads nothing", async () => {
+    store({ ...EMPTIED_BY_DELETE });
+
+    await expect(update({ enabled: false })).resolves.toBeDefined();
+    expectNoReads();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rules a severity delete left with nothing to check.
+ * ---------------------------------------------------------------------------
+ *
+ * pauseRulesLeftWithoutSeverities pauses such a rule and marks it
+ * (options.severitiesDeleted). With no severities left it is stored exactly
+ * like a rule for EVERY severity of its kind, so turned back on as it is it
+ * would check every severity - and it would look like a duplicate of the
+ * team's real "every severity" rule of the same type and channel.
+ */
+
+describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () => {
+  test("a rule a severity delete emptied cannot be turned back on as it is", async () => {
+    store({ ...EMPTIED_BY_DELETE });
+
+    await expect(update({ enabled: true })).rejects.toThrow(
+      new BadDataException(SEVERITIES_DELETED_ENABLE_MESSAGE),
+    );
+    expect(SEVERITIES_DELETED_ENABLE_MESSAGE).toBe(
+      "Every severity this rule was scoped to has been deleted. Edit the rule to choose new severities before turning it back on.",
+    );
+  });
+
+  test("an ordinary rule - scoped, or for every severity - is turned on", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      id: SIBLING_SETTING_ID,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      enabled: false,
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      enabled: true,
+    });
+
+    await expect(onBeforeUpdate(updateBy)).resolves.toBeDefined();
+    expect(dataOf(updateBy)).toEqual({ enabled: true });
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor({ enabled: true }, { query: { _id: SIBLING_SETTING_ID } }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("reads only the rows being turned on, inside the caller's project, as root, with what the check needs", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      enabled: true,
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(settingsFindBy).toHaveBeenCalledTimes(1);
+
+    const read: JSONObject = findByCalls()[0]!;
+    expect(read["query"]).toEqual({ _id: SETTING_ID, projectId: PROJECT_ID });
+    expect(read["select"]).toEqual({
+      _id: true,
+      ruleType: true,
+      options: true,
+      incidentSeverities: { _id: true },
+      alertSeverities: { _id: true },
+    });
+    expect(read["limit"]).toBe(LIMIT_PER_PROJECT);
+    expect(read["props"]).toEqual({ isRoot: true });
+    // The caller's own query object is left alone.
+    expect(updateBy.query).toEqual({ _id: SETTING_ID });
+    expect(incidentSeverityCountBy).not.toHaveBeenCalled();
+  });
+
+  test("a marked rule in another project is not read, so it does not block the caller", async () => {
+    store({
+      ...EMPTIED_BY_DELETE,
+      projectId: OTHER_PROJECT_ID,
+      teamId: OTHER_TEAM_ID,
+    });
+
+    await expect(update({ enabled: true })).resolves.toBeDefined();
+  });
+
+  test("root is held to it too: nothing may turn such a rule into an every-severity rule", async () => {
+    store({ ...EMPTIED_BY_DELETE });
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor({ enabled: true }, { props: { isRoot: true } }),
+      ),
+    ).rejects.toThrow(SEVERITIES_DELETED_ENABLE_MESSAGE);
+  });
+
+  test("a bulk switch-on is refused when any row it matches was emptied", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      ...EMPTIED_BY_DELETE,
+      id: SIBLING_SETTING_ID,
+    });
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor(
+          { enabled: true },
+          { query: { teamId: TEAM_ID }, props: { isRoot: true } },
+        ),
+      ),
+    ).rejects.toThrow(SEVERITIES_DELETED_ENABLE_MESSAGE);
+  });
+
+  test.each<[string, StoredRuleInput]>([
+    [
+      "a stale mark on a rule that has severities again",
+      { ...EMPTIED_BY_DELETE, incidentSeverityIds: [MAJOR_INCIDENT] },
+    ],
+    [
+      "a mark on a method rule, which has no severities to lose",
+      {
+        id: SETTING_ID,
+        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+        enabled: false,
+        options: { [SEVERITIES_DELETED_OPTION]: true },
+      },
+    ],
+    [
+      "a mark that is not `true`",
+      { ...EMPTIED_BY_DELETE, options: { [SEVERITIES_DELETED_OPTION]: "yes" } },
+    ],
+  ])(
+    "%s does not block turning the rule on",
+    async (_label: string, row: StoredRuleInput) => {
+      store(row);
+
+      await expect(update({ enabled: true })).resolves.toBeDefined();
+    },
+  );
+
+  test("an alert rule emptied by an alert severity delete is held to it too", async () => {
+    store({
+      id: SETTING_ID,
+      ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      enabled: false,
+      options: { [SEVERITIES_DELETED_OPTION]: true },
+      // A stray severity of the other kind is not a scope.
+      incidentSeverityIds: [CRITICAL_INCIDENT],
+    });
+
+    await expect(update({ enabled: true })).rejects.toThrow(
+      SEVERITIES_DELETED_ENABLE_MESSAGE,
+    );
+  });
+});
+
+describe("TeamComplianceSettingService onBeforeUpdate - re-scoping a rule a severity delete emptied", () => {
+  test("the edit form's save - new severities, and enabled - is accepted and clears the mark in the same write", async () => {
+    store({ ...EMPTIED_BY_DELETE });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [{ _id: MAJOR_INCIDENT }],
+      alertSeverities: [],
+      enabled: true,
+    });
+
+    await expect(onBeforeUpdate(updateBy)).resolves.toBeDefined();
+
+    expect(dataOf(updateBy)["enabled"]).toBe(true);
+    expect(dataOf(updateBy)["options"]).toBeNull();
+    expect(
+      writtenIds(dataOf(updateBy)["incidentSeverities"], IncidentSeverity),
+    ).toEqual([MAJOR_INCIDENT]);
+  });
+
+  test.each<[string, Record<string, unknown>]>([
+    ["new severities", { incidentSeverities: [MAJOR_INCIDENT] }],
+    [
+      "deliberately every severity, from the edit form",
+      { incidentSeverities: [], enabled: true },
+    ],
+    [
+      "a new channel",
+      { notificationChannel: ComplianceNotificationChannel.Push },
+    ],
+    [
+      "a new rule type",
+      { ruleType: ComplianceRuleType.HasNotificationEmailMethod },
+    ],
+  ])(
+    "%s clears the mark",
+    async (_label: string, data: Record<string, unknown>) => {
+      store({ ...EMPTIED_BY_DELETE });
+
+      const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+        ...data,
+      });
+
+      await onBeforeUpdate(updateBy);
+
+      expect(dataOf(updateBy)["options"]).toBeNull();
+    },
+  );
+
+  test("every other option the rule carries is kept", async () => {
+    store({
+      ...EMPTIED_BY_DELETE,
+      options: { [SEVERITIES_DELETED_OPTION]: true, note: "keep me" },
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      incidentSeverities: [MAJOR_INCIDENT],
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)["options"]).toEqual({ note: "keep me" });
+  });
+
+  test("options sent with the re-scope are written, without the mark", async () => {
+    store({ ...EMPTIED_BY_DELETE });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      incidentSeverities: [MAJOR_INCIDENT],
+      options: { [SEVERITIES_DELETED_OPTION]: true, note: "sent" },
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)["options"]).toEqual({ note: "sent" });
+  });
+
+  test("a re-scope of an unmarked rule leaves its options alone", async () => {
+    store({ ...INCIDENT_CALL_CRITICAL, options: { note: "untouched" } });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      incidentSeverities: [MAJOR_INCIDENT],
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect("options" in dataOf(updateBy)).toBe(false);
+  });
+
+  test("a re-scope over rows that disagree on their options is refused rather than overwrite one row's options with another's", async () => {
+    store(
+      { ...EMPTIED_BY_DELETE },
+      {
+        ...INCIDENT_CALL_CRITICAL,
+        id: SIBLING_SETTING_ID,
+        notificationChannel: ComplianceNotificationChannel.SMS,
+        options: { note: "the sibling's own" },
+      },
+    );
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor(
+          { incidentSeverities: [MINOR_INCIDENT] },
+          { query: { teamId: TEAM_ID }, props: { isRoot: true } },
+        ),
+      ),
+    ).rejects.toThrow(new BadDataException(OPTIONS_DIFFER_MESSAGE));
+  });
+
+  test("the re-scoped rule is still checked for duplicates, and refused like any other", async () => {
+    store(
+      { ...EMPTIED_BY_DELETE },
+      {
+        ...INCIDENT_CALL_CRITICAL,
+        id: SIBLING_SETTING_ID,
+        incidentSeverityIds: [MAJOR_INCIDENT],
+      },
+    );
+
+    await expect(
+      update({ incidentSeverities: [MAJOR_INCIDENT], enabled: true }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+  });
+});
+
+describe("TeamComplianceSettingService - a rule a severity delete emptied duplicates nothing", () => {
+  test("the team's real 'every severity' rule of the same type and channel can still be saved from its edit form", async () => {
+    // What the delete left: no severities, paused, marked.
+    store(
+      { ...EMPTIED_BY_DELETE, id: SIBLING_SETTING_ID },
+      {
+        id: SETTING_ID,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    );
+
+    await expect(
+      update({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverities: [],
+        alertSeverities: [],
+        enabled: false,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a new 'every severity' rule of the same type and channel may be added beside it", async () => {
+    store({ ...EMPTIED_BY_DELETE, id: SIBLING_SETTING_ID });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("an unmarked rule with no severities - a real 'every severity' rule, paused or not - is still a duplicate", async () => {
+    store({
+      ...EMPTIED_BY_DELETE,
+      id: SIBLING_SETTING_ID,
+      options: undefined,
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+  });
+
+  test("a stale mark on a rule that has severities again does not hide it from the duplicate check", async () => {
+    store({
+      ...EMPTIED_BY_DELETE,
+      id: SIBLING_SETTING_ID,
+      incidentSeverityIds: [MAJOR_INCIDENT],
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverities: [MAJOR_INCIDENT],
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
   });
 });
 
@@ -1500,6 +1880,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       projectId: true,
       ruleType: true,
       notificationChannel: true,
+      options: true,
       incidentSeverities: { _id: true },
       alertSeverities: { _id: true },
     });
@@ -1694,6 +2075,95 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
 
     expect(siblingReads()).toEqual([]);
     expect(incidentSeverityCountBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The relation save writes a sent list to the row whatever its type, so
+   * the list is checked by its own kind against the row's project even when
+   * the row's type is one this build does not recognise.
+   */
+  test.each<[string, Record<string, unknown>, string]>([
+    [
+      "incident",
+      { incidentSeverities: [{ _id: FOREIGN_INCIDENT }] },
+      FOREIGN_INCIDENT_SEVERITY_MESSAGE,
+    ],
+    [
+      "alert",
+      { alertSeverities: [{ _id: FOREIGN_ALERT }] },
+      FOREIGN_ALERT_SEVERITY_MESSAGE,
+    ],
+  ])(
+    "another project's %s severity sent to a rule whose stored type is not recognised is refused",
+    async (_label: string, data: Record<string, unknown>, message: string) => {
+      store({ id: SETTING_ID, ruleType: "LegacyRule" });
+
+      await expect(update({ ...data })).rejects.toThrow(
+        new BadDataException(message),
+      );
+      expect(siblingReads()).toEqual([]);
+    },
+  );
+
+  test("this project's severities sent to such a rule are checked against the row's project and accepted", async () => {
+    store({ id: SETTING_ID, ruleType: "LegacyRule" });
+
+    await expect(
+      update({
+        incidentSeverities: [CRITICAL_INCIDENT],
+        alertSeverities: [CRITICAL_ALERT],
+      }),
+    ).resolves.toBeDefined();
+
+    expect(
+      countCalls(incidentSeverityCountBy).map((call: JSONObject) => {
+        return [
+          String((call["query"] as JSONObject)["projectId"]),
+          includedIds(call["query"] as JSONObject),
+        ];
+      }),
+    ).toEqual([[PROJECT_ID.toString(), [CRITICAL_INCIDENT]]]);
+    expect(
+      countCalls(alertSeverityCountBy).map((call: JSONObject) => {
+        return includedIds(call["query"] as JSONObject);
+      }),
+    ).toEqual([[CRITICAL_ALERT]]);
+  });
+
+  test("a root update over rows of two projects checks a sent list against each project, once per project", async () => {
+    store(
+      { id: SETTING_ID, ruleType: "LegacyRule" },
+      {
+        id: OTHER_PROJECT_SETTING_ID,
+        ruleType: "LegacyRule",
+        projectId: OTHER_PROJECT_ID,
+        teamId: OTHER_TEAM_ID,
+      },
+      { id: SIBLING_SETTING_ID, ruleType: "LegacyRule" },
+    );
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor(
+          { incidentSeverities: [CRITICAL_INCIDENT] },
+          { query: { ruleType: "LegacyRule" }, props: { isRoot: true } },
+        ),
+      ),
+    ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
+
+    expect(
+      countCalls(incidentSeverityCountBy).map((call: JSONObject): string => {
+        return String((call["query"] as JSONObject)["projectId"]);
+      }),
+    ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
+  });
+
+  test("a list the update sends is checked once, not again as the row's scope", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    await update({ incidentSeverities: [MAJOR_INCIDENT] });
+
+    expect(incidentSeverityCountBy).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -2378,6 +2848,13 @@ describe("TeamComplianceSettingService.resolveSentSeverityIds", () => {
  * check first.
  */
 
+const EDITORS_OF_EMPTIED_RULES: Array<
+  [string, DatabaseCommonInteractionProps]
+> = [
+  ["a team editor", EDITOR_PROPS],
+  ["a project admin", memberProps([Permission.ProjectAdmin])],
+];
+
 describe("TeamComplianceSettingService - the caller's permission is checked before anything is read", () => {
   const OUTSIDERS: Array<[string, DatabaseCommonInteractionProps]> = [
     ["a signed-in user with no permission in the project", OUTSIDER_PROPS],
@@ -2456,7 +2933,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
   );
 
   test.each(OUTSIDERS)(
-    "update: %s toggling a rule gets nothing from this hook - it reads nothing, and _updateBy's own check refuses the write",
+    "update: %s switching a rule off gets nothing from this hook - it reads nothing, and _updateBy's own check refuses the write",
     async (_label: string, props: DatabaseCommonInteractionProps) => {
       store(INCIDENT_CALL_CRITICAL);
 
@@ -2465,6 +2942,44 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
       ).resolves.toBeDefined();
 
       expectNoReads();
+    },
+  );
+
+  test.each(OUTSIDERS)(
+    "update: %s switching a rule on is refused before anything is read, so the refusal cannot tell an emptied rule from any other",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      store({ ...EMPTIED_BY_DELETE });
+
+      await expect(
+        onBeforeUpdate(updateByFor({ enabled: true }, { props: props })),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      expectNoReads();
+    },
+  );
+
+  test.each(EDITORS_OF_EMPTIED_RULES)(
+    "update: %s re-scoping an emptied rule writes options the update check _updateBy repeats allows",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      store({ ...EMPTIED_BY_DELETE });
+
+      const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor(
+        { incidentSeverities: [MAJOR_INCIDENT], enabled: true },
+        { props: props },
+      );
+
+      await onBeforeUpdate(updateBy);
+
+      expect("options" in dataOf(updateBy)).toBe(true);
+
+      await expect(
+        ModelPermission.checkUpdateQueryPermissions(
+          TeamComplianceSetting,
+          { _id: SETTING_ID },
+          updateBy.data,
+          props,
+        ),
+      ).resolves.toBeDefined();
     },
   );
 
@@ -2608,8 +3123,8 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
  * A rule's severity scope lives only in join rows, which cascade away with
  * the severity, and a rule with no severity left reads as a rule for every
  * severity of its kind. IncidentSeverityService and AlertSeverityService ask
- * which rules are scoped only to what they are about to delete, and pause
- * those once the delete has happened.
+ * which rules reference what they are about to delete, and once the delete
+ * has happened pause and mark those left with no severity.
  */
 
 const RULE_CRITICAL_ONLY: string = "77777777-7777-4777-8777-000000000001";
@@ -2621,6 +3136,7 @@ const RULE_PAUSED: string = "77777777-7777-4777-8777-000000000005";
 const RULE_ALERT: string = "77777777-7777-4777-8777-000000000006";
 const RULE_METHOD: string = "77777777-7777-4777-8777-000000000007";
 const RULE_OTHER_PROJECT: string = "77777777-7777-4777-8777-000000000008";
+const RULE_MAJOR_ONLY: string = "77777777-7777-4777-8777-000000000009";
 
 const deleting: (
   ids: Array<string>,
@@ -2634,7 +3150,9 @@ const deleting: (
   });
 };
 
-describe("TeamComplianceSettingService - a severity delete pauses the rules scoped only to it", () => {
+const MARKED: JSONObject = { [SEVERITIES_DELETED_OPTION]: true };
+
+describe("TeamComplianceSettingService - a severity delete pauses and marks the rules it leaves with no severity", () => {
   let settingsUpdateBy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -2692,39 +3210,58 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
         teamId: OTHER_TEAM_ID,
         incidentSeverityIds: [FOREIGN_INCIDENT],
       },
+      {
+        id: RULE_MAJOR_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        incidentSeverityIds: [MAJOR_INCIDENT],
+      },
     );
   });
 
-  test("finds the enabled rules of the severity's kind whose every selected severity is being deleted", async () => {
+  /*
+   * ANY reference, not only rules scoped to nothing but what this delete
+   * removes: two deletes side by side each still see the other's severity
+   * attached, and a rule neither carried would be left empty and enabled.
+   */
+  test("finds every rule of the severity's kind that references a severity being deleted - paused ones too", async () => {
     expect(
-      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
         severityKind: ComplianceSeverityKind.Incident,
         severities: deleting([CRITICAL_INCIDENT]),
-      }),
-    ).toEqual([RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY]);
-
-    // Deleting both of a rule's severities leaves it with none too.
-    expect(
-      await TeamComplianceSettingService.getRulesScopedOnlyTo({
-        severityKind: ComplianceSeverityKind.Incident,
-        severities: deleting([MAJOR_INCIDENT.toUpperCase(), CRITICAL_INCIDENT]),
       }),
     ).toEqual([
       RULE_CRITICAL_ONLY,
       RULE_EPISODE_CRITICAL_ONLY,
       RULE_CRITICAL_AND_MAJOR,
+      RULE_PAUSED,
     ]);
 
     expect(
-      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([MAJOR_INCIDENT.toUpperCase()]),
+      }),
+    ).toEqual([RULE_CRITICAL_AND_MAJOR, RULE_MAJOR_ONLY]);
+
+    expect(
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
         severityKind: ComplianceSeverityKind.Alert,
         severities: deleting([CRITICAL_ALERT]),
       }),
     ).toEqual([RULE_ALERT]);
+
+    // A severity no rule names carries nothing.
+    expect(
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([MINOR_INCIDENT]),
+      }),
+    ).toEqual([]);
   });
 
-  test("reads the project's enabled rules of that kind's types, as root, with their severities", async () => {
-    await TeamComplianceSettingService.getRulesScopedOnlyTo({
+  test("reads the project's rules of that kind's types, enabled or not, as root, with their severities", async () => {
+    await TeamComplianceSettingService.getRulesScopedToAnyOf({
       severityKind: ComplianceSeverityKind.Alert,
       severities: deleting([CRITICAL_ALERT]),
     });
@@ -2734,13 +3271,8 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
     const read: JSONObject = findByCalls()[0]!;
     const query: JSONObject = read["query"] as JSONObject;
 
-    expect(Object.keys(query).sort()).toEqual([
-      "enabled",
-      "projectId",
-      "ruleType",
-    ]);
+    expect(Object.keys(query).sort()).toEqual(["projectId", "ruleType"]);
     expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
-    expect(query["enabled"]).toBe(true);
     expect((query["ruleType"] as Includes).values).toEqual([
       ComplianceRuleType.HasAlertOnCallRules,
       ComplianceRuleType.HasAlertEpisodeOnCallRules,
@@ -2748,7 +3280,6 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
     expect(read["select"]).toEqual({
       _id: true,
       ruleType: true,
-      enabled: true,
       incidentSeverities: { _id: true },
       alertSeverities: { _id: true },
     });
@@ -2758,7 +3289,7 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
 
   test("a delete across projects checks each project's rules against its own severities", async () => {
     expect(
-      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
         severityKind: ComplianceSeverityKind.Incident,
         severities: [
           ...deleting([FOREIGN_INCIDENT]),
@@ -2772,7 +3303,7 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
 
   test("nothing being deleted reads nothing", async () => {
     expect(
-      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
         severityKind: ComplianceSeverityKind.Incident,
         severities: [{ _id: CRITICAL_INCIDENT }, { projectId: PROJECT_ID }],
       }),
@@ -2781,7 +3312,7 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
     expect(settingsFindBy).not.toHaveBeenCalled();
   });
 
-  test("after the delete: pauses, in one enabled-only root update, the named rules left with no severity of their kind", async () => {
+  test("after the delete: pauses and marks, as root, the named rules left with no severity of their kind", async () => {
     // What the cascade leaves behind.
     storedSettings = [];
     store(
@@ -2795,12 +3326,13 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
         ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
       },
       {
-        // Re-scoped in the meantime: it has a severity again.
+        // Another of its severities is still there.
         id: RULE_CRITICAL_AND_MAJOR,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         incidentSeverityIds: [MAJOR_INCIDENT],
       },
       {
+        // Paused by an admin before the delete: marked all the same.
         id: RULE_PAUSED,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         enabled: false,
@@ -2824,22 +3356,169 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
           RULE_EVERY_SEVERITY,
         ],
       }),
-    ).toEqual([RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY]);
+    ).toEqual([RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY, RULE_PAUSED]);
 
     const read: JSONObject = findByCalls()[0]!;
     expect((read["query"] as JSONObject)["_id"]).toBeInstanceOf(Includes);
+    expect(read["select"]).toEqual({
+      _id: true,
+      ruleType: true,
+      enabled: true,
+      options: true,
+      incidentSeverities: { _id: true },
+      alertSeverities: { _id: true },
+    });
     expect(read["props"]).toEqual({ isRoot: true });
 
+    // Rules with the same options are paused in one write.
     expect(settingsUpdateBy).toHaveBeenCalledTimes(1);
 
     const write: JSONObject = settingsUpdateBy.mock.calls[0]![0] as JSONObject;
     expect(((write["query"] as JSONObject)["_id"] as Includes).values).toEqual([
       RULE_CRITICAL_ONLY,
       RULE_EPISODE_CRITICAL_ONLY,
+      RULE_PAUSED,
     ]);
-    expect(write["data"]).toEqual({ enabled: false });
-    expect(write["limit"]).toBe(2);
+    expect(write["data"]).toEqual({ enabled: false, options: MARKED });
+    expect(write["limit"]).toBe(3);
     expect(write["props"]).toEqual({ isRoot: true });
+  });
+
+  test("the mark is added to whatever else a rule's options hold, one write per set of options", async () => {
+    storedSettings = [];
+    store(
+      {
+        id: RULE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        options: { note: "first" },
+      },
+      {
+        id: RULE_EPISODE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+        options: { note: "second" },
+      },
+    );
+
+    await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+      severityKind: ComplianceSeverityKind.Incident,
+      settingIds: [RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY],
+    });
+
+    expect(
+      settingsUpdateBy.mock.calls.map((call: Array<unknown>) => {
+        const write: JSONObject = call[0] as JSONObject;
+        return [
+          ((write["query"] as JSONObject)["_id"] as Includes).values,
+          write["data"],
+        ];
+      }),
+    ).toEqual([
+      [
+        [RULE_CRITICAL_ONLY],
+        { enabled: false, options: { note: "first", ...MARKED } },
+      ],
+      [
+        [RULE_EPISODE_CRITICAL_ONLY],
+        { enabled: false, options: { note: "second", ...MARKED } },
+      ],
+    ]);
+  });
+
+  test("a rule already paused and marked is not written again", async () => {
+    storedSettings = [];
+    store({
+      id: RULE_CRITICAL_ONLY,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: false,
+      options: MARKED,
+    });
+
+    expect(
+      await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+        severityKind: ComplianceSeverityKind.Incident,
+        settingIds: [RULE_CRITICAL_ONLY],
+      }),
+    ).toEqual([]);
+    expect(settingsUpdateBy).not.toHaveBeenCalled();
+  });
+
+  test("the pause write reads nothing through the update hook, so it cannot fail on the rule's configuration", async () => {
+    storedSettings = [];
+    store({
+      id: RULE_CRITICAL_ONLY,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+    });
+
+    const pauseWrite: UpdateBy<TeamComplianceSetting> = {
+      query: { _id: new Includes([RULE_CRITICAL_ONLY]) },
+      data: { enabled: false, options: MARKED },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<TeamComplianceSetting>;
+
+    settingsFindBy.mockClear();
+
+    await onBeforeUpdate(pauseWrite);
+
+    expect(settingsFindBy).not.toHaveBeenCalled();
+    expect(dataOf(pauseWrite)).toEqual({ enabled: false, options: MARKED });
+  });
+
+  /*
+   * Two deletes side by side, of the two severities of a "Critical and
+   * Major" rule: both look the rule up before either deletes, so each sees
+   * the other's severity still attached. Only the delete that finishes last
+   * sees the rule empty - and it pauses it.
+   */
+  test("two deletes that both look up before either deletes: the rule is paused exactly once, by the last", async () => {
+    const lookups: Array<Array<string>> = [
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([CRITICAL_INCIDENT]),
+      }),
+      await TeamComplianceSettingService.getRulesScopedToAnyOf({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([MAJOR_INCIDENT]),
+      }),
+    ];
+
+    for (const lookup of lookups) {
+      expect(lookup).toContain(RULE_CRITICAL_AND_MAJOR);
+    }
+
+    // Critical's delete commits first: Major is still attached.
+    storedSettings = [];
+    store({
+      id: RULE_CRITICAL_AND_MAJOR,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      incidentSeverityIds: [MAJOR_INCIDENT],
+    });
+
+    expect(
+      await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+        severityKind: ComplianceSeverityKind.Incident,
+        settingIds: lookups[0]!,
+      }),
+    ).toEqual([]);
+
+    // Then Major's: nothing is left.
+    storedSettings = [];
+    store({
+      id: RULE_CRITICAL_AND_MAJOR,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+    });
+
+    expect(
+      await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+        severityKind: ComplianceSeverityKind.Incident,
+        settingIds: lookups[1]!,
+      }),
+    ).toEqual([RULE_CRITICAL_AND_MAJOR]);
+
+    expect(settingsUpdateBy).toHaveBeenCalledTimes(1);
   });
 
   test("nothing named reads nothing; nothing left empty writes nothing", async () => {
@@ -2857,6 +3536,64 @@ describe("TeamComplianceSettingService - a severity delete pauses the rules scop
       }),
     ).toEqual([]);
     expect(settingsUpdateBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("TeamComplianceSettingService.hasSeveritiesDeletedMark / isLeftWithoutSeverities", () => {
+  test("only a `true` under the key is the mark", () => {
+    expect(SEVERITIES_DELETED_OPTION).toBe("severitiesDeleted");
+
+    for (const options of [
+      undefined,
+      null,
+      {},
+      { severitiesDeleted: false },
+      { severitiesDeleted: "true" },
+      [true],
+      "severitiesDeleted",
+    ]) {
+      expect(
+        TeamComplianceSettingServiceClass.hasSeveritiesDeletedMark(options),
+      ).toBe(false);
+    }
+
+    expect(
+      TeamComplianceSettingServiceClass.hasSeveritiesDeletedMark({
+        severitiesDeleted: true,
+        note: "x",
+      }),
+    ).toBe(true);
+  });
+
+  test("a rule is left without severities only when marked, scoped by severity, and empty of its own kind", () => {
+    const isLeft: (input: StoredRuleInput) => boolean = (
+      input: StoredRuleInput,
+    ): boolean => {
+      return TeamComplianceSettingServiceClass.isLeftWithoutSeverities(
+        storedRule(input),
+      );
+    };
+
+    expect(isLeft({ ...EMPTIED_BY_DELETE })).toBe(true);
+    // Enabled or not: the mark is about the scope, not the switch.
+    expect(isLeft({ ...EMPTIED_BY_DELETE, enabled: true })).toBe(true);
+    // A severity of the other kind is not a scope.
+    expect(
+      isLeft({ ...EMPTIED_BY_DELETE, alertSeverityIds: [CRITICAL_ALERT] }),
+    ).toBe(true);
+    expect(
+      isLeft({ ...EMPTIED_BY_DELETE, incidentSeverityIds: [MAJOR_INCIDENT] }),
+    ).toBe(false);
+    expect(isLeft({ ...EMPTIED_BY_DELETE, options: undefined })).toBe(false);
+    expect(
+      isLeft({
+        ...EMPTIED_BY_DELETE,
+        ruleType: ComplianceRuleType.HasNotificationCallMethod,
+      }),
+    ).toBe(false);
+    expect(isLeft({ ...EMPTIED_BY_DELETE, ruleType: "LegacyRule" })).toBe(
+      false,
+    );
   });
 });
 

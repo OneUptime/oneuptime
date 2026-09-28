@@ -85,21 +85,33 @@ export const UNKNOWN_RULE_TYPE_WARNING: string =
   "This rule type is not recognised, so it is not checked.";
 
 /*
- * The Project columns that stop a channel's pages being SENT for the whole
- * project: CallService, SmsService and TelegramService refuse to send while
- * theirs is off, so a member who meets a rule on that channel is still never
- * notified by it - which is what the rule's warning says.
+ * Why a rule a severity delete left with nothing to check
+ * (TeamComplianceSetting.options.severitiesDeleted) is paused. Given even
+ * though the rule is disabled: it is the only thing on the page that says
+ * the rule cannot simply be switched back on.
+ */
+export const SEVERITIES_DELETED_WARNING: string =
+  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
+
+/*
+ * The Project columns that switch a channel off for the whole project, and
+ * so stop members meeting - or being paged by - a rule on it:
+ *
+ *  - Call, SMS and Telegram: CallService, SmsService and TelegramService
+ *    refuse to SEND while theirs is off, so a member who meets a rule on that
+ *    channel is still never notified by it.
+ *  - WhatsApp: WhatsAppService still sends to numbers verified before the
+ *    switch went off, but UserWhatsAppService refuses to ADD a number while
+ *    it is off - and it is off by default - so a member without a number
+ *    cannot meet the rule at all. Its warning says that instead
+ *    (getChannelSwitchedOffWarning).
  *
  * Push, Email, Slack, Microsoft Teams and webhooks have no such switch.
- * WhatsApp has one (Project.enableWhatsAppNotifications), but it is NOT
- * listed: only creating a WhatsApp number checks it, while WhatsAppService
- * sends to numbers that are already verified whatever it says. A warning that
- * "members will not be notified by WhatsApp" would be untrue, so none is
- * given. Add it here if the send path ever honours the switch.
  */
 export type ProjectChannelSwitch =
   | "enableCallNotifications"
   | "enableSmsNotifications"
+  | "enableWhatsAppNotifications"
   | "enableTelegramNotifications";
 
 export const PROJECT_CHANNEL_SWITCHES: Readonly<
@@ -107,8 +119,12 @@ export const PROJECT_CHANNEL_SWITCHES: Readonly<
 > = {
   [ComplianceNotificationChannel.Call]: "enableCallNotifications",
   [ComplianceNotificationChannel.SMS]: "enableSmsNotifications",
+  [ComplianceNotificationChannel.WhatsApp]: "enableWhatsAppNotifications",
   [ComplianceNotificationChannel.Telegram]: "enableTelegramNotifications",
 };
+
+export const WHATSAPP_SWITCHED_OFF_WARNING: string =
+  "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
 
 // A severity, as a rule's selection or the project's severity list has it.
 export interface ComplianceSeverityInput {
@@ -134,6 +150,11 @@ export interface ComplianceRuleInput {
   createdAt?: Date | undefined;
   incidentSeverities: Array<ComplianceSeverityInput>;
   alertSeverities: Array<ComplianceSeverityInput>;
+  /*
+   * The row's options.severitiesDeleted: a severity delete left the rule
+   * with none of the severities it was scoped to, and paused it.
+   */
+  severitiesDeleted?: boolean | undefined;
 }
 
 // A team member who resolves to a user, in team-member order.
@@ -248,6 +269,12 @@ export interface ResolvedComplianceRule {
    * project, most severe first. Empty means every severity of that kind.
    */
   severities: Array<ComplianceSeverityInput>;
+  /*
+   * A severity delete left this on-call rule with none of the severities it
+   * was scoped to: it checks nothing - it does NOT apply to every severity -
+   * until an admin picks new ones. Never set on a rule that has severities.
+   */
+  severitiesDeleted: boolean;
   createdAt: Date | undefined;
 }
 
@@ -350,17 +377,25 @@ export default class TeamComplianceEvaluator {
   }
 
   /*
+   * Whether members are checked against the rule: it is enabled, of a type
+   * this server recognises, and has not lost its severities to a delete.
+   */
+  public static isChecked(rule: ResolvedComplianceRule): boolean {
+    return rule.enabled && Boolean(rule.definition) && !rule.severitiesDeleted;
+  }
+
+  /*
    * Exactly what has to be read for these rules, and nothing more: a team that
    * only checks "has a verified email" must not pay for a readiness pass, a
-   * rule read or a project read on every render. Disabled and unrecognised
-   * rules are not evaluated, so they cost nothing either.
+   * rule read or a project read on every render. Rules that are not checked
+   * (disabled, unrecognised, or left without severities) cost nothing either.
    */
   public static planLoads(
     rules: Array<ResolvedComplianceRule>,
   ): ComplianceLoadPlan {
     const active: Array<ResolvedComplianceRule> = rules.filter(
       (rule: ResolvedComplianceRule): boolean => {
-        return rule.enabled && Boolean(rule.definition);
+        return TeamComplianceEvaluator.isChecked(rule);
       },
     );
 
@@ -510,7 +545,7 @@ export default class TeamComplianceEvaluator {
       const issues: Array<TeamComplianceIssueJSON> = [];
 
       rules.forEach((rule: ResolvedComplianceRule, index: number): void => {
-        if (!rule.enabled || !rule.definition) {
+        if (!TeamComplianceEvaluator.isChecked(rule)) {
           return;
         }
 
@@ -569,9 +604,11 @@ export default class TeamComplianceEvaluator {
 
   /*
    * What is wrong with the rule itself rather than with any member. Only
-   * enabled rules are checked for a switched-off channel - a paused rule
-   * warns about nothing - but an unrecognised rule always says so, because
-   * otherwise nothing on the page explains why it is never checked.
+   * checked rules are checked for a switched-off channel - a paused rule
+   * warns about nothing - but an unrecognised rule, and one whose severities
+   * were all deleted, always say so, enabled or not: otherwise nothing on the
+   * page explains why it is never checked, or that switching it back on is
+   * not the fix.
    */
   public static getRuleWarnings(
     rule: ResolvedComplianceRule,
@@ -579,6 +616,10 @@ export default class TeamComplianceEvaluator {
   ): Array<string> {
     if (!rule.definition) {
       return [UNKNOWN_RULE_TYPE_WARNING];
+    }
+
+    if (rule.severitiesDeleted) {
+      return [SEVERITIES_DELETED_WARNING];
     }
 
     if (!rule.enabled || !projectSwitches) {
@@ -604,9 +645,18 @@ export default class TeamComplianceEvaluator {
     return [TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel)];
   }
 
+  /*
+   * What the channel's project switch being off does to the rule - see
+   * PROJECT_CHANNEL_SWITCHES: WhatsApp stops members adding a number, the
+   * others stop pages being sent.
+   */
   public static getChannelSwitchedOffWarning(
     channel: ComplianceNotificationChannel,
   ): string {
+    if (channel === ComplianceNotificationChannel.WhatsApp) {
+      return WHATSAPP_SWITCHED_OFF_WARNING;
+    }
+
     const label: string = TeamComplianceEvaluator.channelLabel(channel);
 
     return `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. Turn them on in Project Settings > Notification Settings.`;
@@ -657,6 +707,15 @@ export default class TeamComplianceEvaluator {
       notificationChannel: notificationChannel,
       severityKind: severityKind,
       severities: severities,
+      /*
+       * Only on a rule scoped by severity that has none left: a mark on a
+       * rule that has severities again is stale, and the rule is judged by
+       * what it has.
+       */
+      severitiesDeleted:
+        rule.severitiesDeleted === true &&
+        severityKind !== null &&
+        severities.length === 0,
       createdAt: rule.createdAt,
     };
   }
@@ -873,7 +932,7 @@ export default class TeamComplianceEvaluator {
     const definition: ComplianceRuleDefinition | undefined = rule.definition;
 
     if (
-      !rule.enabled ||
+      !TeamComplianceEvaluator.isChecked(rule) ||
       !definition ||
       definition.category !== ComplianceRuleCategory.OnCallRule ||
       !rule.notificationChannel ||
@@ -1111,7 +1170,7 @@ export default class TeamComplianceEvaluator {
     outcome: RuleOutcome,
     projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null,
   ): TeamComplianceRuleJSON {
-    const isEvaluated: boolean = rule.enabled && Boolean(rule.definition);
+    const isEvaluated: boolean = TeamComplianceEvaluator.isChecked(rule);
 
     return {
       settingId: rule.settingId,
@@ -1119,8 +1178,11 @@ export default class TeamComplianceEvaluator {
       enabled: rule.enabled,
       notificationChannel: rule.notificationChannel,
       severityKind: rule.severityKind,
+      // A rule left without severities applies to none, not to all.
       appliesToAllSeverities:
-        rule.severityKind !== null && rule.severities.length === 0,
+        rule.severityKind !== null &&
+        rule.severities.length === 0 &&
+        !rule.severitiesDeleted,
       severities: rule.severities.map(
         (severity: ComplianceSeverityInput): TeamComplianceSeverityJSON => {
           return {

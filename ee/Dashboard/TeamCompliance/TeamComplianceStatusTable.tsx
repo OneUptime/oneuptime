@@ -11,10 +11,10 @@ import {
   getMemberFirstName,
   getMemberIssueForRule,
   getNextRuleSquareIndex,
+  getNoActiveRulesAdvice,
   getRuleLabel,
   getRuleTitle,
   getSelfFixes,
-  getUnrecognisedRulesAdvice,
   summarizeCompliance,
 } from "./ComplianceView";
 import UserElement from "@oneuptime/dashboard/Components/User/User";
@@ -459,9 +459,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     /*
      * With no rule active nobody is being checked, and a list of green
      * "Compliant" chips would claim a clean bill of health nobody earned.
-     * "Paused" is only said when every rule is: a rule of a type this build
-     * does not recognise is ON, and telling the admin to turn it back on
-     * sends them to a switch that is already on.
+     * "Turn a rule back on" is only said when turning any rule on would
+     * check somebody: not for a rule of a type this build does not recognise
+     * (on or off, it is never checked), nor for one whose every severity was
+     * deleted (it has to be edited first).
      */
     if (activeRules.length === 0) {
       const summary: ComplianceSummary = summarizeCompliance(props.status);
@@ -477,7 +478,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
             {areAllRulesPaused(summary)
               ? `Every rule on this team is paused, so ${nobody}. Turn a rule back on to see who meets it.`
-              : `No rule on this team can be checked right now, so ${nobody}. ${getUnrecognisedRulesAdvice(summary)}`}
+              : `No rule on this team can be checked right now, so ${nobody}. ${getNoActiveRulesAdvice(summary)}`}
           </p>
         </div>
       );

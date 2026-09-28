@@ -17,7 +17,9 @@ import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import type DatabaseService from "Common/Server/Services/DatabaseService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import ProjectService from "Common/Server/Services/ProjectService";
-import TeamComplianceSettingService from "Common/Server/Services/TeamComplianceSettingService";
+import TeamComplianceSettingService, {
+  TeamComplianceSettingService as TeamComplianceSettingRules,
+} from "Common/Server/Services/TeamComplianceSettingService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
 import UserCallService from "Common/Server/Services/UserCallService";
@@ -216,9 +218,11 @@ interface ChannelRuleData {
  *    (with the owner of every method each rule names), and ONE read per
  *    channel - per thousand referenced methods - of the method rows those
  *    rules point at.
- *  - the project's channel switches, when a rule relies on Call, SMS or
- *    Telegram: with the channel switched off for the project, a member who
- *    meets the rule is still never notified that way, and the rule says so.
+ *  - the project's channel switches, when a rule relies on Call, SMS,
+ *    WhatsApp or Telegram: with the channel switched off for the project, a
+ *    member who meets a Call, SMS or Telegram rule is still never notified
+ *    that way, and nobody can add the WhatsApp number a WhatsApp rule asks
+ *    for - and the rule says so.
  *
  * TENANT SCOPING. Every read is made with `isRoot: true`, because this page
  * deliberately reports on people the reader may have no permission to read
@@ -274,6 +278,8 @@ export default class TeamComplianceService {
           ruleType: true,
           enabled: true,
           notificationChannel: true,
+          // Carries the mark a severity delete leaves on a rule it emptied.
+          options: true,
           createdAt: true,
           incidentSeverities: {
             _id: true,
@@ -1014,6 +1020,9 @@ export default class TeamComplianceService {
       ),
       alertSeverities: TeamComplianceService.toSeverityInputs(
         setting.alertSeverities,
+      ),
+      severitiesDeleted: TeamComplianceSettingRules.hasSeveritiesDeletedMark(
+        setting.options,
       ),
     };
   }

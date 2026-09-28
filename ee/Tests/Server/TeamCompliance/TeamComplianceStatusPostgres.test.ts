@@ -4,7 +4,9 @@ import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSe
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
-import TeamComplianceSettingService from "Common/Server/Services/TeamComplianceSettingService";
+import TeamComplianceSettingService, {
+  SEVERITIES_DELETED_ENABLE_MESSAGE,
+} from "Common/Server/Services/TeamComplianceSettingService";
 import UpdateBy from "Common/Server/Types/Database/UpdateBy";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
@@ -107,6 +109,12 @@ const JOIN_TABLES: Array<string> = [
 
 const CALL_SWITCHED_OFF_WARNING: string =
   "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
+
+const WHATSAPP_SWITCHED_OFF_WARNING: string =
+  "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
+
+const SEVERITIES_DELETED_WARNING: string =
+  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
 
 type SqlRow = Record<string, unknown>;
 
@@ -1014,7 +1022,8 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
    * "Critical" through IncidentSeverityService therefore PAUSES "Call for
    * Critical incidents" instead of letting it widen to every incident
    * severity and fail the whole team against a rule nobody wrote. The page
-   * lists it as paused, for an admin to re-scope or delete.
+   * lists it as paused with no severities - not "all severities" - and says
+   * why, for an admin to re-scope or delete.
    */
   test("deleting a rule's only severity pauses the rule instead of widening it to every severity", async () => {
     await createRule("call-for-critical", {
@@ -1040,9 +1049,11 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         "call-for-critical",
         expect.objectContaining({
           enabled: false,
+          appliesToAllSeverities: false,
+          severities: [],
           compliantCount: 0,
           nonCompliantCount: 0,
-          warnings: [],
+          warnings: [SEVERITIES_DELETED_WARNING],
         }),
       ],
       [
@@ -1115,10 +1126,109 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   });
 
   /*
-   * Project.enableWhatsAppNotifications (off on this project) only stops
-   * members adding a number; WhatsAppService still sends to verified ones.
+   * Emptied by a delete, the rule is stored with no severities - as the
+   * team's real "every severity" rule of the same type and channel is. It
+   * must not be switched back on as a second copy of that rule; the edit
+   * form re-scopes it, and it is checked again.
    */
-  test("a WhatsApp rule carries no 'switched off' warning", async () => {
+  test("a rule a delete emptied cannot be switched back on as it is; re-scoped from its edit form, it is checked again", async () => {
+    await createRule("call-for-every-incident", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+    await createRule("call-for-critical", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [critical],
+    });
+
+    await IncidentSeverityService.deleteOneById({
+      id: critical,
+      props: { isRoot: true },
+    });
+
+    let status: TeamComplianceStatusJSON = await getStatus();
+
+    expect(
+      rulesByName(status).map(
+        ([name, rule]: [string, RuleSummary]): [string, boolean, boolean] => {
+          return [name, rule.enabled, rule.appliesToAllSeverities];
+        },
+      ),
+    ).toEqual([
+      ["call-for-every-incident", true, true],
+      ["call-for-critical", false, false],
+    ]);
+
+    const emptiedId: ObjectID = new ObjectID(
+      status.complianceSettings[1]!.settingId,
+    );
+    const everyIncidentId: ObjectID = new ObjectID(
+      status.complianceSettings[0]!.settingId,
+    );
+
+    await expect(
+      TeamComplianceSettingService.updateOneById({
+        id: emptiedId,
+        data: { enabled: true },
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(SEVERITIES_DELETED_ENABLE_MESSAGE);
+
+    // The real every-severity rule's edit form still saves.
+    const everyIncidentForm: UpdateBy<TeamComplianceSetting>["data"] = {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [],
+      alertSeverities: [],
+      enabled: true,
+    } as unknown as UpdateBy<TeamComplianceSetting>["data"];
+
+    await TeamComplianceSettingService.updateOneById({
+      id: everyIncidentId,
+      data: everyIncidentForm,
+      props: { isRoot: true },
+    });
+
+    // The emptied rule's edit form: a new severity, switched back on.
+    const rescope: UpdateBy<TeamComplianceSetting>["data"] = {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [{ _id: major.toString() }],
+      alertSeverities: [],
+      enabled: true,
+    } as unknown as UpdateBy<TeamComplianceSetting>["data"];
+
+    await TeamComplianceSettingService.updateOneById({
+      id: emptiedId,
+      data: rescope,
+      props: { isRoot: true },
+    });
+
+    status = await getStatus();
+
+    expect(rulesByName(status)[1]).toEqual([
+      "call-for-critical",
+      expect.objectContaining({
+        enabled: true,
+        appliesToAllSeverities: false,
+        severities: [
+          { id: major.toString(), name: "Major Incident", color: "#FFA500" },
+        ],
+        compliantCount: 0,
+        nonCompliantCount: 6,
+        warnings: [CALL_SWITCHED_OFF_WARNING],
+      }),
+    ]);
+  });
+
+  /*
+   * Project.enableWhatsAppNotifications is off on this project (its
+   * default). WhatsAppService still sends to numbers verified before it went
+   * off, but nobody can add a number while it is off - so a WhatsApp rule
+   * says members cannot meet it, not that pages stop.
+   */
+  test("a WhatsApp rule warns that members cannot add a number while WhatsApp is switched off", async () => {
     await createRule("verified-whatsapp", {
       ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
     });
@@ -1128,7 +1238,23 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
       incidentSeverities: [critical],
     });
 
-    const status: TeamComplianceStatusJSON = await getStatus();
+    let status: TeamComplianceStatusJSON = await getStatus();
+
+    expect(
+      status.complianceSettings.map((rule: TeamComplianceRuleJSON) => {
+        return rule.warnings;
+      }),
+    ).toEqual([
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+    ]);
+
+    await database.query(
+      `UPDATE "${schema}"."Project" SET "enableWhatsAppNotifications" = true WHERE "_id" = $1`,
+      [projectId.toString()],
+    );
+
+    status = await getStatus();
 
     expect(
       status.complianceSettings.map((rule: TeamComplianceRuleJSON) => {

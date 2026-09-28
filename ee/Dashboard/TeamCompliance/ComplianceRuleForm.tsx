@@ -168,6 +168,22 @@ const countSelected: (value: unknown) => number = (value: unknown): number => {
   return Array.isArray(value) ? value.length : 0;
 };
 
+/*
+ * What a project's switch for the rule's channel means for the rule, in the
+ * words that are true of that channel. Switched off, Call, SMS and Telegram
+ * reach nobody. WhatsApp still pages numbers verified before it was switched
+ * off, but no member can add a number - the only way to meet a WhatsApp rule.
+ */
+export const getProjectSwitchNote: (
+  channel: ComplianceNotificationChannel,
+) => string = (channel: ComplianceNotificationChannel): string => {
+  if (channel === ComplianceNotificationChannel.WhatsApp) {
+    return "Members cannot add a WhatsApp number until WhatsApp is switched on for the project in Project Settings > Notification Settings.";
+  }
+
+  return `${ComplianceRule.getChannelDefinition(channel)?.label || channel} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`;
+};
+
 export interface RulePreviewText {
   title: string;
   sentence: string;
@@ -227,9 +243,7 @@ export const getRulePreviewText: (
     definition?.methodChannel;
 
   if (switchedChannel && PROJECT_SWITCHED_CHANNELS.includes(switchedChannel)) {
-    notes.push(
-      `${ComplianceRule.getChannelDefinition(switchedChannel)?.label || switchedChannel} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`,
-    );
+    notes.push(getProjectSwitchNote(switchedChannel));
   }
 
   if (values.enabled === false) {

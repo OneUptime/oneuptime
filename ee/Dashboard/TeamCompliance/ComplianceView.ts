@@ -56,17 +56,18 @@ const ON_CALL_RULE_ICONS: Partial<Record<ComplianceRuleType, IconProp>> = {
  * The channels a project can switch off in Project Settings > Notification
  * Settings. A rule on one of these can be unsatisfiable for reasons no member
  * can fix, which is what the server's rule warnings say - and why the page
- * links to that settings page when one of them is involved.
+ * links to that settings page when one of them is involved. The same list as
+ * the server's PROJECT_CHANNEL_SWITCHES.
  *
- * WhatsApp has a switch too, but the send path does not honour it (only adding
- * a number does), so the server gives no WhatsApp warning and the page makes
- * no claim about it either - the same list as the server's
- * PROJECT_CHANNEL_SWITCHES.
+ * Call, SMS and Telegram: switched off, nobody is notified that way. WhatsApp:
+ * switched off, nobody can ADD a WhatsApp number - which is the only way to
+ * meet a WhatsApp rule - so it is fixed on the same settings page.
  */
 export const PROJECT_SWITCHED_CHANNELS: ReadonlyArray<ComplianceNotificationChannel> =
   [
     ComplianceNotificationChannel.Call,
     ComplianceNotificationChannel.SMS,
+    ComplianceNotificationChannel.WhatsApp,
     ComplianceNotificationChannel.Telegram,
   ];
 
@@ -99,15 +100,47 @@ export const isRuleKnown: (rule: RuleIdentity) => boolean = (
 };
 
 /*
+ * An on-call rule whose every selected severity has since been deleted. The
+ * server pauses such a rule - it checks nothing until an admin picks new
+ * severities - and sends it with no severities and appliesToAllSeverities
+ * false. No other rule has that shape: an on-call rule that was scoped to no
+ * severities applies to every severity, and says so.
+ *
+ * It must never read as an "every severity" rule. It is not one, a team can
+ * hold a real one of the same type and channel beside it, and turning it back
+ * on as it stands would only make a copy of that rule.
+ */
+export const hasNoSeveritiesLeft: (rule: TeamComplianceRuleJSON) => boolean = (
+  rule: TeamComplianceRuleJSON,
+): boolean => {
+  return (
+    ComplianceRule.supportsSeverityScope(rule.ruleType) &&
+    !rule.appliesToAllSeverities &&
+    rule.severities.length === 0
+  );
+};
+
+// The scope chip of a rule that has no severities left.
+export const NO_SEVERITIES_LEFT_LABEL: string = "No severities left";
+
+/*
+ * What the page says about a rule with no severities left when the server did
+ * not say it itself - the server's own warning, word for word.
+ */
+export const NO_SEVERITIES_LEFT_WARNING: string =
+  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
+
+/*
  * A rule members are actually measured against. A paused rule is listed but
  * not checked, and a rule whose type this build does not recognise is not
  * checked either (the server passes every member on it and says so in a
- * warning), so neither may count towards the verdict.
+ * warning), nor is one with no severities left, whatever its switch says -
+ * so none of them may count towards the verdict.
  */
 export const isRuleActive: (rule: TeamComplianceRuleJSON) => boolean = (
   rule: TeamComplianceRuleJSON,
 ): boolean => {
-  return rule.enabled && isRuleKnown(rule);
+  return rule.enabled && isRuleKnown(rule) && !hasNoSeveritiesLeft(rule);
 };
 
 export const getActiveRules: (
@@ -196,20 +229,29 @@ export const getRuleTitle: (rule: RuleIdentity) => string = (
 
 /*
  * The rule as the sentence a reviewer reads. An on-call rule scoped to no
- * severities - or whose selected severities have all since been deleted -
- * reads as "every severity", which is what the server then enforces.
+ * severities reads as "every severity", which is what the server enforces.
+ * A rule whose selected severities have all since been deleted says so rather
+ * than claiming every severity: it checks none.
  */
 export const getRuleSentence: (rule: TeamComplianceRuleJSON) => string = (
   rule: TeamComplianceRuleJSON,
 ): string => {
+  let severityNames: Array<string> = rule.severities.map(
+    (severity: TeamComplianceSeverityJSON): string => {
+      return severity.name || severity.id;
+    },
+  );
+
+  if (rule.appliesToAllSeverities) {
+    severityNames = [];
+  } else if (hasNoSeveritiesLeft(rule)) {
+    severityNames = ["severities that have since been deleted"];
+  }
+
   return ComplianceRule.describe({
     ruleType: rule.ruleType,
     notificationChannel: rule.notificationChannel,
-    severityNames: rule.appliesToAllSeverities
-      ? []
-      : rule.severities.map((severity: TeamComplianceSeverityJSON): string => {
-          return severity.name || severity.id;
-        }),
+    severityNames: severityNames,
   });
 };
 
@@ -228,7 +270,9 @@ export const getAllSeveritiesLabel: (
  * hold several rules of one type and channel - Call for Critical incidents
  * and Call for Major incidents - and the title alone names them all alike, so
  * an on-call rule's name carries its severity scope: "Call for incidents
- * (Critical Incident)", "Incident on-call rules (all incident severities)".
+ * (Critical Incident)", "Incident on-call rules (all incident severities)",
+ * "Call for incidents (no severities left)" - the last never named like the
+ * team's every-severity rule of the same type and channel.
  * The rules card's heading stays the short title; the sentence and the scope
  * chips under it already say the rest.
  */
@@ -239,6 +283,10 @@ export const getRuleLabel: (rule: TeamComplianceRuleJSON) => string = (
 
   if (!ComplianceRule.supportsSeverityScope(rule.ruleType)) {
     return title;
+  }
+
+  if (hasNoSeveritiesLeft(rule)) {
+    return `${title} (${NO_SEVERITIES_LEFT_LABEL.toLowerCase()})`;
   }
 
   if (rule.appliesToAllSeverities || rule.severities.length === 0) {
@@ -318,10 +366,22 @@ export interface ComplianceSummary {
   attentionCount: number;
   ruleCount: number;
   activeRuleCount: number;
+  // Every rule that is switched off, whatever else is true of it.
   pausedRuleCount: number;
   /*
-   * Rules switched on but of a type this build does not recognise: listed,
-   * never checked, and not paused either - turning them "on" changes nothing.
+   * The paused rules that turning on would actually check someone against:
+   * of a type this build knows, and with severities left to check.
+   */
+  resumableRuleCount: number;
+  /*
+   * Rules whose every severity has been deleted: paused, and nothing to
+   * check until they are edited to choose new severities, whatever their
+   * switch says (see hasNoSeveritiesLeft).
+   */
+  noSeveritiesLeftRuleCount: number;
+  /*
+   * Rules of a type this build does not recognise, switched on or off: listed,
+   * never checked - and turning one on changes nothing.
    */
   unrecognisedRuleCount: number;
 }
@@ -331,70 +391,142 @@ export const summarizeCompliance: (
 ) => ComplianceSummary = (
   status: TeamComplianceStatusJSON,
 ): ComplianceSummary => {
+  const rules: Array<TeamComplianceRuleJSON> = status.complianceSettings;
   const compliantCount: number = status.userComplianceStatuses.filter(
     (member: TeamMemberComplianceJSON): boolean => {
       return member.isCompliant;
     },
   ).length;
+  const countRules: (
+    matches: (rule: TeamComplianceRuleJSON) => boolean,
+  ) => number = (
+    matches: (rule: TeamComplianceRuleJSON) => boolean,
+  ): number => {
+    return rules.filter(matches).length;
+  };
 
   return {
     memberCount: status.userComplianceStatuses.length,
     compliantCount: compliantCount,
     attentionCount: status.userComplianceStatuses.length - compliantCount,
-    ruleCount: status.complianceSettings.length,
-    activeRuleCount: getActiveRules(status.complianceSettings).length,
-    pausedRuleCount: status.complianceSettings.filter(
+    ruleCount: rules.length,
+    activeRuleCount: getActiveRules(rules).length,
+    pausedRuleCount: countRules((rule: TeamComplianceRuleJSON): boolean => {
+      return !rule.enabled;
+    }),
+    resumableRuleCount: countRules((rule: TeamComplianceRuleJSON): boolean => {
+      return !rule.enabled && isRuleKnown(rule) && !hasNoSeveritiesLeft(rule);
+    }),
+    noSeveritiesLeftRuleCount: countRules(hasNoSeveritiesLeft),
+    unrecognisedRuleCount: countRules(
       (rule: TeamComplianceRuleJSON): boolean => {
-        return !rule.enabled;
+        return !isRuleKnown(rule);
       },
-    ).length,
-    unrecognisedRuleCount: status.complianceSettings.filter(
-      (rule: TeamComplianceRuleJSON): boolean => {
-        return rule.enabled && !isRuleKnown(rule);
-      },
-    ).length,
+    ),
   };
 };
 
 /*
  * Why nothing is being checked when a team has rules but none is active, and
- * what to do about it. "Turn a rule on" is only advice while some rule is
- * actually paused: an enabled rule of a type this build does not recognise is
- * already on, and turning it off and on again changes nothing. Shared by the
- * hero and the members section so the two can never disagree.
+ * what to do about it. "Turn a rule on" is only advice where turning one on
+ * would check somebody: not for a rule of a type this build does not
+ * recognise (on or off, it is never checked), and not for a rule whose every
+ * severity was deleted (it has nothing to check until it is edited). Shared
+ * by the hero and the members section so the two can never disagree.
  */
 export const areAllRulesPaused: (summary: ComplianceSummary) => boolean = (
   summary: ComplianceSummary,
 ): boolean => {
-  return summary.ruleCount > 0 && summary.pausedRuleCount === summary.ruleCount;
+  return (
+    summary.ruleCount > 0 && summary.resumableRuleCount === summary.ruleCount
+  );
 };
 
-export const getUnrecognisedRulesAdvice: (
+// "A, or B", "A, B, or C": the ways out, as one choice.
+const joinAsChoice: (items: Array<string>) => string = (
+  items: Array<string>,
+): string => {
+  if (items.length <= 1) {
+    return items[0] || "";
+  }
+
+  return `${items.slice(0, -1).join(", ")}, or ${items[items.length - 1]}`;
+};
+
+const capitalize: (text: string) => string = (text: string): string => {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
   summary: ComplianceSummary,
-) => string = (summary: ComplianceSummary): string => {
+): string => {
+  const resumable: number = summary.resumableRuleCount;
+  const noSeveritiesLeft: number = summary.noSeveritiesLeftRuleCount;
   const unrecognised: number = summary.unrecognisedRuleCount;
-  const paused: number = summary.pausedRuleCount;
   const isOrAre: (count: number) => string = (count: number): string => {
     return count === 1 ? "is" : "are";
   };
+  const itOrThem: (count: number) => string = (count: number): string => {
+    return count === 1 ? "it" : "them";
+  };
+  // "This team's rule is", "All 2 of this team's rules are".
+  const everyRule: (count: number, verb: string, verbs: string) => string = (
+    count: number,
+    verb: string,
+    verbs: string,
+  ): string => {
+    return count === 1
+      ? `This team's rule ${verb}`
+      : `All ${count} of this team's rules ${verbs}`;
+  };
 
-  if (paused === 0) {
-    return `${
-      unrecognised === 1
-        ? "This team's rule is"
-        : `All ${unrecognised} of this team's rules are`
-    } of a type this version does not recognise, so ${
-      unrecognised === 1 ? "it is" : "they are"
-    } not checked. Delete ${unrecognised === 1 ? "it" : "them"} and add a supported rule.`;
+  if (resumable === 0 && noSeveritiesLeft === 0 && unrecognised === 0) {
+    return "Turn a rule on to see who meets it.";
   }
 
-  return `${countOf(paused, "rule")} ${isOrAre(paused)} paused and ${countOf(
-    unrecognised,
-    "rule",
-  )} ${isOrAre(unrecognised)} of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised ${pluralize(
-    unrecognised,
-    "one",
-  )}.`;
+  if (resumable === 0 && noSeveritiesLeft === 0) {
+    return `${everyRule(unrecognised, "is", "are")} of a type this version does not recognise, so ${
+      unrecognised === 1 ? "it is" : "they are"
+    } not checked. Delete ${itOrThem(unrecognised)} and add a supported rule.`;
+  }
+
+  if (resumable === 0 && unrecognised === 0) {
+    return `${everyRule(noSeveritiesLeft, "has", "have")} no severities left: every severity ${
+      noSeveritiesLeft === 1 ? "it was" : "they were"
+    } scoped to has been deleted. Edit ${itOrThem(
+      noSeveritiesLeft,
+    )} to choose new severities, or delete ${itOrThem(noSeveritiesLeft)}.`;
+  }
+
+  const states: Array<string> = [];
+  const choices: Array<string> = [];
+
+  if (resumable > 0) {
+    states.push(`${countOf(resumable, "rule")} ${isOrAre(resumable)} paused`);
+    choices.push("turn a paused rule on");
+  }
+
+  if (noSeveritiesLeft > 0) {
+    states.push(
+      `${countOf(noSeveritiesLeft, "rule")} ${
+        noSeveritiesLeft === 1 ? "has" : "have"
+      } no severities left`,
+    );
+    choices.push(
+      `edit the ${pluralize(noSeveritiesLeft, "one")} with no severities left to choose new severities`,
+    );
+  }
+
+  if (unrecognised > 0) {
+    states.push(
+      `${countOf(unrecognised, "rule")} ${isOrAre(
+        unrecognised,
+      )} of a type this version does not recognise`,
+    );
+    choices.push(`replace the unrecognised ${pluralize(unrecognised, "one")}`);
+  }
+
+  return `${joinAsProse(states)}. ${capitalize(joinAsChoice(choices))}.`;
 };
 
 export enum ComplianceVerdictKind {
@@ -440,7 +572,7 @@ export const getComplianceVerdict: (
         : "No rule is being checked",
       detail: areAllRulesPaused(summary)
         ? "Nobody is being checked right now. Turn a rule on to see who meets it."
-        : `Nobody is being checked right now. ${getUnrecognisedRulesAdvice(summary)}`,
+        : `Nobody is being checked right now. ${getNoActiveRulesAdvice(summary)}`,
     };
   }
 
@@ -789,7 +921,9 @@ export interface RuleWarningGroup {
 /*
  * The warnings worth interrupting the page for: those on rules that are
  * actually being checked. A paused rule's problems wait until it is turned
- * back on.
+ * back on - except a rule paused because every severity it was scoped to was
+ * deleted. Nobody paused that one on purpose, and it stays paused until an
+ * admin edits it, so its warning is the only way anyone hears of it.
  */
 export const getRuleWarningGroups: (
   rules: Array<TeamComplianceRuleJSON>,
@@ -798,7 +932,9 @@ export const getRuleWarningGroups: (
 ): Array<RuleWarningGroup> => {
   return rules
     .filter((rule: TeamComplianceRuleJSON): boolean => {
-      return rule.enabled && rule.warnings.length > 0;
+      return (
+        (rule.enabled || hasNoSeveritiesLeft(rule)) && rule.warnings.length > 0
+      );
     })
     .map((rule: TeamComplianceRuleJSON): RuleWarningGroup => {
       return {
@@ -810,11 +946,17 @@ export const getRuleWarningGroups: (
     });
 };
 
+/*
+ * Whether the way out of a warning is a project switch. Never for a rule with
+ * no severities left, whatever its channel: that one is fixed by editing the
+ * rule itself.
+ */
 export const isFixedInProjectNotificationSettings: (
   group: RuleWarningGroup,
 ) => boolean = (group: RuleWarningGroup): boolean => {
-  return Boolean(
-    group.channel && PROJECT_SWITCHED_CHANNELS.includes(group.channel),
+  return (
+    !hasNoSeveritiesLeft(group.rule) &&
+    Boolean(group.channel && PROJECT_SWITCHED_CHANNELS.includes(group.channel))
   );
 };
 
@@ -909,6 +1051,13 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   const ruleType: string = asString(json["ruleType"]);
   const channel: string = asString(json["notificationChannel"]);
   const severityKind: string = asString(json["severityKind"]);
+  const severities: Array<TeamComplianceSeverityJSON> = asObjects(
+    json["severities"],
+  )
+    .map(parseSeverity)
+    .filter((severity: TeamComplianceSeverityJSON): boolean => {
+      return Boolean(severity.id);
+    });
 
   return {
     settingId:
@@ -923,12 +1072,18 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
       severityKind === ComplianceSeverityKind.Alert
         ? severityKind
         : null,
-    appliesToAllSeverities: json["appliesToAllSeverities"] === true,
-    severities: asObjects(json["severities"])
-      .map(parseSeverity)
-      .filter((severity: TeamComplianceSeverityJSON): boolean => {
-        return Boolean(severity.id);
-      }),
+    /*
+     * An API from before severity scopes sends no such field. Its on-call
+     * rules had no scope, so they applied to every severity. They must not be
+     * read as rules with no severities left (see hasNoSeveritiesLeft), which
+     * would take their switches away.
+     */
+    appliesToAllSeverities:
+      typeof json["appliesToAllSeverities"] === "boolean"
+        ? json["appliesToAllSeverities"]
+        : severities.length === 0 &&
+          ComplianceRule.supportsSeverityScope(ruleType),
+    severities: severities,
     compliantCount: asCount(json["compliantCount"]),
     nonCompliantCount: asCount(json["nonCompliantCount"]),
     warnings: asStrings(json["warnings"]),

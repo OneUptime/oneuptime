@@ -1,17 +1,21 @@
 import { Service as AlertSeverityServiceClass } from "../../../Server/Services/AlertSeverityService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import { Service as IncidentSeverityServiceClass } from "../../../Server/Services/IncidentSeverityService";
-import TeamComplianceSettingService from "../../../Server/Services/TeamComplianceSettingService";
+import TeamComplianceSettingService, {
+  SEVERITIES_DELETED_OPTION,
+} from "../../../Server/Services/TeamComplianceSettingService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import logger from "../../../Server/Utils/Logger";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import TeamComplianceSetting from "../../../Models/DatabaseModels/TeamComplianceSetting";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { ComplianceSeverityKind } from "../../../Types/Team/ComplianceRule";
+import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -27,10 +31,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  *  - BEFORE the delete - the only moment the join rows still say what each
  *    rule was scoped to - read the severities the delete will remove and ask
- *    TeamComplianceSettingService which enabled rules are scoped only to them;
+ *    TeamComplianceSettingService which rules reference any of them;
  *  - AFTER the delete has actually happened, have those rules that are left
- *    with no severity paused. A delete that is refused (the permission layer,
- *    or incidents still using the severity) therefore pauses nothing.
+ *    with no severity paused and marked. A delete that is refused (the
+ *    permission layer, or incidents still using the severity) therefore
+ *    pauses nothing.
  *
  * TeamComplianceSettingService's side - which rules, and the pause itself - is
  * pinned in TeamComplianceSettingService.test.ts; this file pins that both
@@ -43,6 +48,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const SEVERITY_ID: string = "5e000000-0000-4000-8000-000000000001";
+const OTHER_SEVERITY_ID: string = "5e000000-0000-4000-8000-000000000002";
 const SCOPED_RULE_ID: string = "77777777-7777-4777-8777-000000000001";
 
 type SeverityModel = IncidentSeverity | AlertSeverity;
@@ -76,6 +82,8 @@ interface SeverityServiceInternals {
 interface SeverityServiceCase {
   label: string;
   kind: ComplianceSeverityKind;
+  // A rule type scoped by this kind of severity.
+  ruleType: ComplianceRuleType;
   build: () => DatabaseService<SeverityModel>;
   row: () => SeverityModel;
 }
@@ -84,6 +92,7 @@ const CASES: Array<SeverityServiceCase> = [
   {
     label: "IncidentSeverityService",
     kind: ComplianceSeverityKind.Incident,
+    ruleType: ComplianceRuleType.HasIncidentOnCallRules,
     build: (): DatabaseService<SeverityModel> => {
       return new IncidentSeverityServiceClass() as unknown as DatabaseService<SeverityModel>;
     },
@@ -98,6 +107,7 @@ const CASES: Array<SeverityServiceCase> = [
   {
     label: "AlertSeverityService",
     kind: ComplianceSeverityKind.Alert,
+    ruleType: ComplianceRuleType.HasAlertOnCallRules,
     build: (): DatabaseService<SeverityModel> => {
       return new AlertSeverityServiceClass() as unknown as DatabaseService<SeverityModel>;
     },
@@ -118,11 +128,13 @@ const SIGNED_IN: DatabaseCommonInteractionProps = {
 
 const deleteByFor: (
   props: DatabaseCommonInteractionProps,
+  severityId?: string,
 ) => DeleteBy<SeverityModel> = (
   props: DatabaseCommonInteractionProps,
+  severityId?: string,
 ): DeleteBy<SeverityModel> => {
   return {
-    query: { _id: SEVERITY_ID },
+    query: { _id: severityId || SEVERITY_ID },
     limit: 1,
     skip: 0,
     props: props,
@@ -134,12 +146,12 @@ afterEach(() => {
 });
 
 describe.each(CASES)(
-  "$label - deleting a severity pauses the compliance rules scoped only to it",
+  "$label - deleting a severity pauses the compliance rules it leaves with no severity",
   (testCase: SeverityServiceCase) => {
     let service: DatabaseService<SeverityModel>;
     let internals: SeverityServiceInternals;
     let findBy: jest.SpyInstance;
-    let getRulesScopedOnlyTo: jest.SpyInstance;
+    let getRulesScopedToAnyOf: jest.SpyInstance;
     let pauseRules: jest.SpyInstance;
     let rearrangeOrder: jest.SpyInstance;
     let events: Array<string>;
@@ -153,8 +165,8 @@ describe.each(CASES)(
         .spyOn(service, "findBy")
         .mockResolvedValue([testCase.row()] as never);
 
-      getRulesScopedOnlyTo = jest
-        .spyOn(TeamComplianceSettingService, "getRulesScopedOnlyTo")
+      getRulesScopedToAnyOf = jest
+        .spyOn(TeamComplianceSettingService, "getRulesScopedToAnyOf")
         .mockImplementation((): Promise<Array<string>> => {
           events.push("find scoped rules");
           return Promise.resolve([SCOPED_RULE_ID]);
@@ -172,7 +184,7 @@ describe.each(CASES)(
         .mockResolvedValue(undefined as never);
     });
 
-    test("before the delete, the severities it removes are read as root and the rules scoped only to them are looked up", async () => {
+    test("before the delete, the severities it removes are read as root and the rules that reference them are looked up", async () => {
       const onDelete: OnDelete<SeverityModel> = await internals.onBeforeDelete(
         deleteByFor(SIGNED_IN),
       );
@@ -190,12 +202,12 @@ describe.each(CASES)(
       expect(read["skip"]).toBe(0);
       expect(read["props"]).toEqual({ isRoot: true });
 
-      expect(getRulesScopedOnlyTo).toHaveBeenCalledTimes(1);
+      expect(getRulesScopedToAnyOf).toHaveBeenCalledTimes(1);
 
       const lookup: {
         severityKind: ComplianceSeverityKind;
         severities: Array<SeverityModel>;
-      } = getRulesScopedOnlyTo.mock.calls[0]![0] as {
+      } = getRulesScopedToAnyOf.mock.calls[0]![0] as {
         severityKind: ComplianceSeverityKind;
         severities: Array<SeverityModel>;
       };
@@ -217,7 +229,7 @@ describe.each(CASES)(
     test("a root delete is looked up too - it only skips the re-ranking", async () => {
       await internals.onBeforeDelete(deleteByFor({ isRoot: true }));
 
-      expect(getRulesScopedOnlyTo).toHaveBeenCalledTimes(1);
+      expect(getRulesScopedToAnyOf).toHaveBeenCalledTimes(1);
     });
 
     test("after the delete, the rules carried forward are handed over to be paused", async () => {
@@ -234,8 +246,8 @@ describe.each(CASES)(
       });
     });
 
-    test("with no rule scoped only to the severity, nothing is paused", async () => {
-      getRulesScopedOnlyTo.mockResolvedValue([] as never);
+    test("with no rule referencing the severity, nothing is paused", async () => {
+      getRulesScopedToAnyOf.mockResolvedValue([] as never);
 
       const onDelete: OnDelete<SeverityModel> = await internals.onBeforeDelete(
         deleteByFor(SIGNED_IN),
@@ -333,9 +345,144 @@ describe.each(CASES)(
           }),
         ).rejects.toThrow();
 
-        expect(getRulesScopedOnlyTo).toHaveBeenCalledTimes(1);
+        expect(getRulesScopedToAnyOf).toHaveBeenCalledTimes(1);
         expect(pauseRules).not.toHaveBeenCalled();
       });
+    });
+  },
+);
+
+/*
+ * Two deletes side by side - Terraform destroys resources in parallel, or two
+ * admins clean up at once - of the two severities of a rule scoped to both.
+ * Both look the rule up before either deletes, so each sees the other's
+ * severity still attached. Carrying forward only rules scoped to nothing but
+ * what one delete removes carried the rule in neither, and it was left
+ * enabled with no severities: a rule for EVERY severity that nobody wrote.
+ * Here TeamComplianceSettingService runs for real over an in-memory rule
+ * whose join rows cascade away as each delete commits.
+ */
+describe.each(CASES)(
+  "$label - two deletes of one rule's severities, side by side",
+  (testCase: SeverityServiceCase) => {
+    let service: DatabaseService<SeverityModel>;
+    let internals: SeverityServiceInternals;
+    let attached: Array<string>;
+    let settingsUpdateBy: jest.SpyInstance;
+
+    const severityRow: (id: string) => SeverityModel = (
+      id: string,
+    ): SeverityModel => {
+      const severity: SeverityModel = testCase.row();
+      severity._id = id;
+      return severity;
+    };
+
+    // The rule as the settings reads see it: its join rows as they stand.
+    const storedRule: () => TeamComplianceSetting =
+      (): TeamComplianceSetting => {
+        const rule: TeamComplianceSetting = new TeamComplianceSetting();
+        rule._id = SCOPED_RULE_ID;
+        rule.projectId = PROJECT_ID;
+        rule.ruleType = testCase.ruleType;
+        rule.enabled = true;
+
+        const severities: Array<SeverityModel> = attached.map(
+          (id: string): SeverityModel => {
+            return severityRow(id);
+          },
+        );
+
+        if (testCase.kind === ComplianceSeverityKind.Incident) {
+          rule.incidentSeverities = severities as Array<IncidentSeverity>;
+          rule.alertSeverities = [];
+        } else {
+          rule.alertSeverities = severities as Array<AlertSeverity>;
+          rule.incidentSeverities = [];
+        }
+
+        return rule;
+      };
+
+    beforeEach(() => {
+      attached = [SEVERITY_ID, OTHER_SEVERITY_ID];
+      service = testCase.build();
+      internals = service as unknown as SeverityServiceInternals;
+
+      jest.spyOn(service, "findBy").mockImplementation(((findBy: {
+        query: JSONObject;
+      }) => {
+        return Promise.resolve([severityRow(String(findBy.query["_id"]))]);
+      }) as never);
+
+      jest
+        .spyOn(TeamComplianceSettingService, "findBy")
+        .mockImplementation((() => {
+          return Promise.resolve([storedRule()]);
+        }) as never);
+
+      settingsUpdateBy = jest
+        .spyOn(TeamComplianceSettingService, "updateBy")
+        .mockResolvedValue(1 as never);
+
+      jest
+        .spyOn(internals, "rearrangeOrder")
+        .mockResolvedValue(undefined as never);
+    });
+
+    // What the database does when the delete of `id` commits.
+    const cascade: (id: string) => void = (id: string): void => {
+      attached = attached.filter((attachedId: string): boolean => {
+        return attachedId !== id;
+      });
+    };
+
+    test("the rule is carried by both, and paused and marked once - by whichever delete commits last", async () => {
+      const first: OnDelete<SeverityModel> = await internals.onBeforeDelete(
+        deleteByFor(SIGNED_IN, SEVERITY_ID),
+      );
+      const second: OnDelete<SeverityModel> = await internals.onBeforeDelete(
+        deleteByFor(SIGNED_IN, OTHER_SEVERITY_ID),
+      );
+
+      for (const onDelete of [first, second]) {
+        expect(
+          (onDelete.carryForward as { complianceSettingIds: Array<string> })
+            .complianceSettingIds,
+        ).toEqual([SCOPED_RULE_ID]);
+      }
+
+      cascade(SEVERITY_ID);
+      await internals.onDeleteSuccess(first, [new ObjectID(SEVERITY_ID)]);
+
+      // The other severity is still attached: nothing to pause yet.
+      expect(settingsUpdateBy).not.toHaveBeenCalled();
+
+      cascade(OTHER_SEVERITY_ID);
+      await internals.onDeleteSuccess(second, [
+        new ObjectID(OTHER_SEVERITY_ID),
+      ]);
+
+      expect(settingsUpdateBy).toHaveBeenCalledTimes(1);
+
+      const write: JSONObject = settingsUpdateBy.mock
+        .calls[0]![0] as JSONObject;
+      expect(write["data"]).toEqual({
+        enabled: false,
+        options: { [SEVERITIES_DELETED_OPTION]: true },
+      });
+      expect(write["props"]).toEqual({ isRoot: true });
+    });
+
+    test("deleting only one of the two leaves the rule alone", async () => {
+      const onDelete: OnDelete<SeverityModel> = await internals.onBeforeDelete(
+        deleteByFor(SIGNED_IN, SEVERITY_ID),
+      );
+
+      cascade(SEVERITY_ID);
+      await internals.onDeleteSuccess(onDelete, [new ObjectID(SEVERITY_ID)]);
+
+      expect(settingsUpdateBy).not.toHaveBeenCalled();
     });
   },
 );

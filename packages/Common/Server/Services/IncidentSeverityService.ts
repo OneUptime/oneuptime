@@ -159,7 +159,7 @@ export class Service extends DatabaseService<Model> {
       // Only a signed-in delete re-ranks the severities that remain.
       incidentSeverity: deleteBy.props.isRoot ? null : severities[0] || null,
       complianceSettingIds:
-        await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        await TeamComplianceSettingService.getRulesScopedToAnyOf({
           severityKind: ComplianceSeverityKind.Incident,
           severities: severities,
         }),
@@ -198,9 +198,10 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * The severity is gone, so a compliance rule that was scoped only to it
-     * now reads as a rule for every incident severity. Pause it instead. The
-     * delete has already happened, so a failure here is logged rather than
-     * reported as a failed delete.
+     * (and to severities other deletes have already removed) now reads as a
+     * rule for every incident severity. Pause and mark it instead; a rule with
+     * another severity left is left alone. The delete has already happened,
+     * so a failure here is logged rather than reported as a failed delete.
      */
     const complianceSettingIds: Array<string> =
       carryForward?.complianceSettingIds || [];

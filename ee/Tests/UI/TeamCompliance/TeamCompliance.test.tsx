@@ -105,19 +105,24 @@ import {
   EMAIL_REASON,
   EMAIL_RULE_ID,
   EVALUATED_AT,
+  EVERY_SEVERITY_CALL_RULE_ID,
   JANE_ID,
+  NO_SEVERITIES_LEFT_RULE_ID,
   OMAR_ID,
   PAUSED_RULE_ID,
   PRIYA_ID,
   PROJECT_ID,
+  SEVERITIES_DELETED_WARNING,
   TEAM_ID,
   alertRule,
   buildMember,
   buildRule,
   buildStatus,
+  callForEveryIncidentRule,
   callForIncidentsRule,
   emailRule,
   issue,
+  noSeveritiesLeftRule,
   standardStatus,
 } from "./ComplianceFixtures";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
@@ -900,6 +905,119 @@ describe("the verdict", () => {
     ).toHaveTextContent(advice);
   });
 
+  /*
+   * Turning a paused rule of an unrecognised type on only makes it an
+   * enabled rule of an unrecognised type: nobody is checked either way.
+   */
+  test("a paused rule of an unrecognised type, alone: delete it, never 'turn a rule on'", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "pigeon",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+            enabled: false,
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const advice: string =
+      "This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.";
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "No rule is being checked",
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      advice,
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).not.toHaveTextContent(
+      "Turn a rule on",
+    );
+
+    const members: HTMLElement = screen.getByTestId(
+      "compliance-members-no-active-rules",
+    );
+
+    expect(members).toHaveTextContent(advice);
+    expect(members).not.toHaveTextContent("Every rule on this team is paused");
+    expect(members).not.toHaveTextContent("Turn a rule back on");
+  });
+
+  test("a paused and an enabled rule of an unrecognised type: both called unrecognised", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "pigeon-1",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+            enabled: false,
+          }),
+          buildRule({
+            settingId: "pigeon-2",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const advice: string =
+      "All 2 of this team's rules are of a type this version does not recognise, so they are not checked. Delete them and add a supported rule.";
+
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      advice,
+    );
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toHaveTextContent(advice);
+    expect(screen.getByTestId("compliance-hero-subline")).not.toHaveTextContent(
+      "paused",
+    );
+  });
+
+  test("the only rule has no severities left: edit it, never 'turn a rule on'", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [noSeveritiesLeftRule()],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const advice: string =
+      "This team's rule has no severities left: every severity it was scoped to has been deleted. Edit it to choose new severities, or delete it.";
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "No rule is being checked",
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      advice,
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).not.toHaveTextContent(
+      "Turn a rule on",
+    );
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toHaveTextContent(advice);
+  });
+
+  test("a rule with no severities left still counts as paused beside active rules", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ compliantCount: 1 }),
+          noSeveritiesLeftRule(),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      "Checked against 1 active rule (1 paused)",
+    );
+  });
+
   test("a team with nobody on it", async () => {
     await renderPage(buildStatus({ complianceSettings: [emailRule()] }));
 
@@ -1031,6 +1149,79 @@ describe("rule warnings", () => {
     expect(
       screen.queryByTestId("compliance-rule-warnings"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Switched off, WhatsApp lets nobody add a number - the only way to meet a
+   * WhatsApp rule - so its warning brings the way to the switch too.
+   */
+  test("a WhatsApp rule's warning links to the project's notification settings", async () => {
+    const warning: string =
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
+
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "whatsapp",
+            ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
+            warnings: [warning],
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(
+      screen.getByTestId("compliance-rule-warning-whatsapp"),
+    ).toHaveTextContent(`Verified WhatsApp: ${warning}`);
+    expect(
+      within(screen.getByTestId("compliance-rule-warnings")).getByRole("link", {
+        name: /Open notification settings/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * Nobody paused it on purpose and it checks nothing until an admin edits
+   * it, so its warning is said at once - while an ordinary paused rule's
+   * warnings still wait for it to be turned back on.
+   */
+  test("a rule with no severities left is said at once, though paused; an ordinary paused rule still waits", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ compliantCount: 1 }),
+          alertRule({
+            settingId: PAUSED_RULE_ID,
+            enabled: false,
+            warnings: ["A paused rule's problem."],
+          }),
+          noSeveritiesLeftRule(),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const banner: HTMLElement = screen.getByTestId("compliance-rule-warnings");
+
+    expect(banner).toHaveTextContent("1 rule has a problem members cannot fix");
+    expect(
+      screen.getByTestId(
+        `compliance-rule-warning-${NO_SEVERITIES_LEFT_RULE_ID}`,
+      ),
+    ).toHaveTextContent(
+      `Call for incidents (no severities left): ${SEVERITIES_DELETED_WARNING}`,
+    );
+    expect(
+      screen.queryByTestId(`compliance-rule-warning-${PAUSED_RULE_ID}`),
+    ).not.toBeInTheDocument();
+    // A Call rule - but the fix is the rule, not the project's Call switch.
+    expect(
+      within(banner).queryByRole("link", {
+        name: /Open notification settings/,
+      }),
+    ).toBeNull();
   });
 
   test("no warnings, no banner", async () => {
@@ -1903,6 +2094,256 @@ describe("two rules of one type and channel", () => {
     expect(
       screen.getByTestId("compliance-members-rule-filter"),
     ).toHaveTextContent("FailingCall for incidents (Critical Incident)");
+  });
+});
+
+describe("a rule whose every severity was deleted", () => {
+  /*
+   * The team's "Call for incidents" for every severity, and a "Call for
+   * incidents" the server paused because every severity it was scoped to was
+   * deleted. Read as every severity, the second would be named like the first
+   * and one press of its switch would make it a copy of it.
+   */
+  const everyAndDeleted: () => TeamComplianceStatusJSON =
+    (): TeamComplianceStatusJSON => {
+      return buildStatus({
+        complianceSettings: [
+          callForEveryIncidentRule({ compliantCount: 1 }),
+          noSeveritiesLeftRule(),
+        ],
+        userComplianceStatuses: [buildMember()],
+      });
+    };
+
+  const EVERY_LABEL: string = "Call for incidents (all incident severities)";
+  const DELETED_LABEL: string = "Call for incidents (no severities left)";
+
+  test("same title, different names - on the row, its switch, and its buttons", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(everyAndDeleted());
+
+    expect(
+      screen
+        .getAllByTestId("compliance-rule-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual(["Call for incidents", "Call for incidents"]);
+
+    const every: HTMLElement = ruleRow(EVERY_SEVERITY_CALL_RULE_ID);
+    const deleted: HTMLElement = ruleRow(NO_SEVERITIES_LEFT_RULE_ID);
+
+    expect(screen.getByRole("listitem", { name: EVERY_LABEL })).toBe(every);
+    expect(screen.getByRole("listitem", { name: DELETED_LABEL })).toBe(deleted);
+
+    for (const [row, label] of [
+      [every, EVERY_LABEL],
+      [deleted, DELETED_LABEL],
+    ] as Array<[HTMLElement, string]>) {
+      expect(
+        within(row).getByRole("button", { name: `Edit ${label}` }),
+      ).toBeInTheDocument();
+      expect(
+        within(row).getByRole("button", { name: `Delete ${label}` }),
+      ).toBeInTheDocument();
+    }
+
+    // Only the every-severity rule has a switch.
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(within(every).getByRole("switch")).toHaveAccessibleName(
+      `Check members against ${EVERY_LABEL}`,
+    );
+  });
+
+  test("its scope says no severities are left, never 'All incident severities'", async () => {
+    await renderPage(everyAndDeleted());
+
+    const deleted: HTMLElement = ruleRow(NO_SEVERITIES_LEFT_RULE_ID);
+
+    expect(
+      within(deleted).getByTestId("compliance-rule-no-severities-left"),
+    ).toHaveTextContent("No severities left");
+    expect(
+      within(deleted).queryByTestId("compliance-rule-all-severities"),
+    ).toBeNull();
+    expect(
+      within(deleted).getByTestId("compliance-rule-channel"),
+    ).toHaveTextContent("Call");
+    expect(
+      within(deleted).getByTestId("compliance-rule-sentence"),
+    ).toHaveTextContent(
+      "Every member has an incident on-call rule that notifies them by Call for severities that have since been deleted.",
+    );
+    expect(
+      within(deleted).getByTestId("compliance-rule-paused"),
+    ).toBeInTheDocument();
+
+    const every: HTMLElement = ruleRow(EVERY_SEVERITY_CALL_RULE_ID);
+
+    expect(
+      within(every).getByTestId("compliance-rule-all-severities"),
+    ).toHaveTextContent("All incident severities");
+    expect(
+      within(every).queryByTestId("compliance-rule-no-severities-left"),
+    ).toBeNull();
+  });
+
+  test("the row says why it is paused, in full", async () => {
+    await renderPage(everyAndDeleted());
+
+    const deleted: HTMLElement = ruleRow(NO_SEVERITIES_LEFT_RULE_ID);
+
+    expect(
+      within(deleted).getByTestId(
+        `compliance-rule-no-severities-left-note-${NO_SEVERITIES_LEFT_RULE_ID}`,
+      ),
+    ).toHaveTextContent(SEVERITIES_DELETED_WARNING);
+    // Said once, in the open - not again behind a "Warning" chip.
+    expect(
+      within(deleted).queryByTestId("compliance-rule-warning-chip"),
+    ).toBeNull();
+  });
+
+  test("the note is valid HTML: no block element (Icon renders a div) inside a paragraph", async () => {
+    await renderPage(everyAndDeleted());
+
+    expect(document.querySelectorAll("p div, p ul, p li, p p")).toHaveLength(0);
+  });
+
+  test("the row explains itself even when the server sends no warning", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [noSeveritiesLeftRule({ warnings: [] })],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(
+      screen.getByTestId(
+        `compliance-rule-no-severities-left-note-${NO_SEVERITIES_LEFT_RULE_ID}`,
+      ),
+    ).toHaveTextContent(SEVERITIES_DELETED_WARNING);
+  });
+
+  test("in the switch's place, a way to choose new severities: it opens the rule's edit form", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(everyAndDeleted());
+
+    const updateById: jest.SpyInstance = jest.spyOn(ModelAPI, "updateById");
+
+    fireEvent.click(
+      within(ruleRow(NO_SEVERITIES_LEFT_RULE_ID)).getByRole("button", {
+        name: `Choose severities for ${DELETED_LABEL}`,
+      }),
+    );
+
+    expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
+      "Edit compliance rule",
+    );
+    expect(capturedFormModal?.modelIdToEdit?.toString()).toBe(
+      NO_SEVERITIES_LEFT_RULE_ID,
+    );
+    // Nothing is switched on behind the admin's back.
+    expect(updateById).not.toHaveBeenCalled();
+
+    await act(async () => {
+      capturedFormModal?.onSuccess?.(new TeamComplianceSetting());
+    });
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("the Edit button opens the same form", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(everyAndDeleted());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `Edit ${DELETED_LABEL}` }),
+    );
+
+    expect(capturedFormModal?.modelIdToEdit?.toString()).toBe(
+      NO_SEVERITIES_LEFT_RULE_ID,
+    );
+  });
+
+  test("the delete confirmation names it, and does not offer pausing a paused rule", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(everyAndDeleted());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `Delete ${DELETED_LABEL}` }),
+    );
+
+    const description: HTMLElement = screen.getByTestId(
+      "confirm-modal-description",
+    );
+
+    expect(description).toHaveTextContent(
+      `"${DELETED_LABEL}" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.`,
+    );
+    expect(description).not.toHaveTextContent("pause it instead");
+  });
+
+  /*
+   * The server checks nobody against it even when its switch is on, so the
+   * row shows no pass rate, offers no switch, and the members section gives
+   * it no square.
+   */
+  test("switched on, it is still not checked, and still has no switch", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ compliantCount: 1 }),
+          noSeveritiesLeftRule({ enabled: true }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const deleted: HTMLElement = ruleRow(NO_SEVERITIES_LEFT_RULE_ID);
+
+    expect(
+      within(deleted).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent(/^Not checked$/);
+    expect(within(deleted).queryByRole("switch")).toBeNull();
+    expect(
+      within(deleted).getByRole("button", {
+        name: `Choose severities for ${DELETED_LABEL}`,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      "Checked against 1 active rule",
+    );
+    const jane: HTMLElement = screen.getByTestId(
+      `compliance-member-${JANE_ID}`,
+    );
+
+    expect(
+      within(jane).getByTestId(`compliance-member-rule-${EMAIL_RULE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      within(jane).queryByTestId(
+        `compliance-member-rule-${NO_SEVERITIES_LEFT_RULE_ID}`,
+      ),
+    ).toBeNull();
+  });
+
+  test("a reader sees why, and nothing to press", async () => {
+    mockPermissions = READER;
+    await renderPage(everyAndDeleted());
+
+    const deleted: HTMLElement = ruleRow(NO_SEVERITIES_LEFT_RULE_ID);
+
+    expect(
+      within(deleted).getByTestId(
+        `compliance-rule-no-severities-left-note-${NO_SEVERITIES_LEFT_RULE_ID}`,
+      ),
+    ).toBeInTheDocument();
+    expect(within(deleted).queryByRole("button")).toBeNull();
+    expect(within(deleted).queryByRole("switch")).toBeNull();
   });
 });
 

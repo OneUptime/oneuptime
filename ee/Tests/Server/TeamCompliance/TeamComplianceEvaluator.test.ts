@@ -10,8 +10,10 @@ import TeamComplianceEvaluator, {
   PROJECT_CHANNEL_SWITCHES,
   ProjectChannelSwitch,
   ResolvedComplianceRule,
+  SEVERITIES_DELETED_WARNING,
   TeamComplianceEvaluationInput,
   UNKNOWN_RULE_TYPE_WARNING,
+  WHATSAPP_SWITCHED_OFF_WARNING,
 } from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
@@ -104,10 +106,14 @@ function rule(data: {
   alertSeverities?: Array<ComplianceSeverityInput> | undefined;
   settingId?: string | undefined;
   createdAt?: Date | undefined;
+  severitiesDeleted?: boolean | undefined;
 }): ComplianceRuleInput {
   settingCounter++;
 
   return {
+    ...(data.severitiesDeleted !== undefined
+      ? { severitiesDeleted: data.severitiesDeleted }
+      : {}),
     settingId:
       data.settingId ||
       `5e771000-0000-4000-8000-${settingCounter.toString().padStart(12, "0")}`,
@@ -618,10 +624,10 @@ describe("planLoads", () => {
     [ComplianceNotificationChannel.Call, "enableCallNotifications"],
     [ComplianceNotificationChannel.SMS, "enableSmsNotifications"],
     /*
-     * WhatsApp has a project switch, but the send path does not honour it,
-     * so it is not read: see PROJECT_CHANNEL_SWITCHES.
+     * WhatsApp's switch does not stop pages being sent, but it stops members
+     * adding a number: see PROJECT_CHANNEL_SWITCHES.
      */
-    [ComplianceNotificationChannel.WhatsApp, undefined],
+    [ComplianceNotificationChannel.WhatsApp, "enableWhatsAppNotifications"],
     [ComplianceNotificationChannel.Telegram, "enableTelegramNotifications"],
     [ComplianceNotificationChannel.Push, undefined],
     [ComplianceNotificationChannel.Email, undefined],
@@ -2432,13 +2438,14 @@ describe("evaluate - rule warnings", () => {
   });
 
   /*
-   * Project.enableWhatsAppNotifications only stops members ADDING a WhatsApp
-   * number: WhatsAppService still sends to numbers already verified, and
-   * UserNotificationRuleService delivers WhatsApp rules without looking at
-   * it. Telling admins "members will not be notified by WhatsApp" would be
-   * the opposite of what happens, so a WhatsApp rule never warns about it.
+   * Project.enableWhatsAppNotifications does not stop WhatsAppService sending
+   * to numbers verified before it went off - so "members will not be
+   * notified by WhatsApp" would be untrue - but UserWhatsAppService refuses
+   * to ADD a number while it is off, and it is off by default. A member
+   * without a number can then never meet a WhatsApp rule, and that is what
+   * the warning says.
    */
-  test("WhatsApp switched off is not a warning: pages still go out through it", () => {
+  test("WhatsApp switched off warns that members cannot add a number - not that pages stop", () => {
     const result: TeamComplianceStatusJSON = evaluate({
       rules: [
         rule({ ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod }),
@@ -2447,19 +2454,60 @@ describe("evaluate - rule warnings", () => {
           notificationChannel: ComplianceNotificationChannel.WhatsApp,
         }),
       ],
-      projectSwitches: {
-        enableWhatsAppNotifications: false,
-      } as unknown as Partial<Record<ProjectChannelSwitch, boolean>>,
+      projectSwitches: { enableWhatsAppNotifications: false },
     });
 
-    for (const complianceRule of result.complianceSettings) {
-      expect(complianceRule.warnings).toEqual([]);
-    }
+    expect(WHATSAPP_SWITCHED_OFF_WARNING).toBe(
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.",
+    );
 
     expect(
-      PROJECT_CHANNEL_SWITCHES[ComplianceNotificationChannel.WhatsApp],
-    ).toBe(undefined);
+      result.complianceSettings.map(
+        (complianceRule: TeamComplianceRuleJSON) => {
+          return complianceRule.warnings;
+        },
+      ),
+    ).toEqual([
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+    ]);
+
+    expect(
+      TeamComplianceEvaluator.getChannelSwitchedOffWarning(
+        ComplianceNotificationChannel.WhatsApp,
+      ),
+    ).not.toContain("will not be notified");
   });
+
+  test("WhatsApp switched on warns about nothing", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
+            }),
+          ],
+          projectSwitches: { enableWhatsAppNotifications: true },
+        }),
+      ).warnings,
+    ).toEqual([]);
+  });
+
+  test.each([
+    [ComplianceNotificationChannel.Call],
+    [ComplianceNotificationChannel.SMS],
+    [ComplianceNotificationChannel.Telegram],
+  ])(
+    "%s keeps the 'will not be notified' warning: its send path honours the switch",
+    (channel: ComplianceNotificationChannel) => {
+      expect(
+        TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel),
+      ).toBe(
+        `${channel} notifications are switched off for this project, so members will not be notified by ${channel} even when they meet this rule. Turn them on in Project Settings > Notification Settings.`,
+      );
+    },
+  );
 
   test("channels with no project switch, and on-call rules for any channel, never warn", () => {
     const result: TeamComplianceStatusJSON = evaluate({
@@ -2509,5 +2557,203 @@ describe("evaluate - rule warnings", () => {
         }),
       ).warnings,
     ).toEqual([]);
+  });
+});
+
+/*
+ * ------------------------------------------------------------------------- *
+ * A rule a severity delete left with nothing to check.
+ * -------------------------------------------------------------------------
+ *
+ * Deleting every severity an on-call rule was scoped to leaves it with no
+ * severities - which is also how a rule for EVERY severity is stored. The
+ * severity delete pauses it and marks it (options.severitiesDeleted); the
+ * page must show it as checking nothing, never as "all severities", and say
+ * why it cannot just be switched back on.
+ */
+
+describe("a rule whose severities were all deleted", () => {
+  const EMPTIED: () => ComplianceRuleInput = (): ComplianceRuleInput => {
+    return rule({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      enabled: false,
+      severitiesDeleted: true,
+    });
+  };
+
+  test("is listed paused, applying to NO severity, with a warning that says why", () => {
+    expect(SEVERITIES_DELETED_WARNING).toBe(
+      "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.",
+    );
+
+    const listed: TeamComplianceRuleJSON = onlyRule(
+      evaluate({ rules: [EMPTIED()], members: [member(ADA, "Ada")] }),
+    );
+
+    expect(listed).toMatchObject({
+      enabled: false,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      severityKind: ComplianceSeverityKind.Incident,
+      appliesToAllSeverities: false,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [SEVERITIES_DELETED_WARNING],
+    });
+  });
+
+  test("sits beside the team's real 'every severity' rule of the same type and channel without looking like it", () => {
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [
+        EMPTIED(),
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        }),
+      ],
+      members: [member(ADA, "Ada")],
+    });
+
+    expect(
+      result.complianceSettings.map((listed: TeamComplianceRuleJSON) => {
+        return [
+          listed.appliesToAllSeverities,
+          listed.warnings,
+          listed.compliantCount + listed.nonCompliantCount,
+        ];
+      }),
+    ).toEqual([
+      [false, [SEVERITIES_DELETED_WARNING], 0],
+      [true, [], 1],
+    ]);
+  });
+
+  test("is not checked even if it is somehow enabled: members pass it, and nothing is loaded for it", () => {
+    const emptied: ComplianceRuleInput = {
+      ...EMPTIED(),
+      enabled: true,
+    };
+
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [emptied],
+      members: [member(ADA, "Ada")],
+      projectSwitches: { enableCallNotifications: false },
+    });
+
+    expect(statusOf(result, ADA)).toMatchObject({
+      isCompliant: true,
+      nonCompliantRules: [],
+    });
+    expect(onlyRule(result)).toMatchObject({
+      enabled: true,
+      appliesToAllSeverities: false,
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      // Its own warning, not the switched-off one: it checks nothing.
+      warnings: [SEVERITIES_DELETED_WARNING],
+    });
+
+    expect(plan([emptied])).toEqual({
+      needsCoverage: false,
+      methodChannels: [],
+      onCallChannels: [],
+      onCallRuleTypes: [],
+      onCallSeverityKinds: [],
+      projectSwitches: [],
+    });
+
+    // The same with no channel: no readiness pass either.
+    expect(
+      plan([
+        rule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          severitiesDeleted: true,
+        }),
+      ]).needsCoverage,
+    ).toBe(false);
+  });
+
+  test("is resolved as severitiesDeleted, and never checked", () => {
+    const resolved: ResolvedComplianceRule = resolveOne(EMPTIED());
+
+    expect(resolved.severitiesDeleted).toBe(true);
+    expect(
+      TeamComplianceEvaluator.isChecked({ ...resolved, enabled: true }),
+    ).toBe(false);
+  });
+
+  test("a stale mark on a rule that has severities again is ignored: the rule is checked on them", () => {
+    const rescoped: ComplianceRuleInput = rule({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [MAJOR],
+      severitiesDeleted: true,
+    });
+
+    expect(resolveOne(rescoped).severitiesDeleted).toBe(false);
+
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [rescoped],
+      members: [member(ADA, "Ada")],
+    });
+
+    expect(onlyRule(result)).toMatchObject({
+      appliesToAllSeverities: false,
+      severities: [{ id: MAJOR.id, name: "Major Incident", color: "#dc2626" }],
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+    expect(reasonsOf(result, ADA)).toEqual([
+      "No Call rule for incident severities: Major Incident",
+    ]);
+  });
+
+  test("a mark on a rule type with no severity scope means nothing", () => {
+    const method: ComplianceRuleInput = rule({
+      ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+      severitiesDeleted: true,
+    });
+
+    expect(resolveOne(method).severitiesDeleted).toBe(false);
+    expect(
+      onlyRule(evaluate({ rules: [method], members: [member(ADA, "Ada")] })),
+    ).toMatchObject({
+      appliesToAllSeverities: false,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+  });
+
+  test("an unrecognised rule says only that it is unrecognised", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({ ruleType: "HasCarrierPigeon", severitiesDeleted: true }),
+          ],
+        }),
+      ).warnings,
+    ).toEqual([UNKNOWN_RULE_TYPE_WARNING]);
+  });
+
+  test("an unmarked rule with no severities is still a rule for every severity", () => {
+    const everySeverity: TeamComplianceRuleJSON = onlyRule(
+      evaluate({
+        rules: [
+          rule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannel: ComplianceNotificationChannel.Call,
+            enabled: false,
+            severitiesDeleted: false,
+          }),
+        ],
+      }),
+    );
+
+    expect(everySeverity).toMatchObject({
+      appliesToAllSeverities: true,
+      warnings: [],
+    });
   });
 });
