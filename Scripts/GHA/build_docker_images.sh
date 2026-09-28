@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=Scripts/GHA/retry.sh
 source "${SCRIPT_DIR}/retry.sh"
+# shellcheck source=Scripts/GHA/base_images.sh
+source "${SCRIPT_DIR}/base_images.sh"
 
 usage() {
 	cat <<'EOF'
@@ -136,6 +138,40 @@ if grep -qiE '^[[:space:]]*FROM[[:space:]].*[[:space:]]AS[[:space:]]+enterprise[
 	USES_EDITION_TARGETS=true
 fi
 
+# Pull the Node base images from Docker Hub rather than public.ecr.aws.
+#
+# `--build-context <ref>=docker-image://<other>` substitutes an image outright:
+# BuildKit resolves <ref> to <other> and never asks <ref>'s registry about it.
+# That is what makes this work where warm_base_images.sh cannot -- these builds
+# run on a docker-container buildx builder, which has its own content store and
+# does not read the daemon's, so an image seeded into the local store is
+# invisible to it.
+#
+# Why Docker Hub is the better source *here* specifically: every caller of this
+# script logs in to Docker Hub first (release.yml and test-release.yaml both run
+# Scripts/GHA/docker_login.sh before building), and an authenticated Docker Hub
+# pull has a per-account allowance rather than the shared anonymous data quota
+# that public.ecr.aws kept refusing us on. The Dockerfiles still name ECR, which
+# is the right default for anyone building this repo without credentials.
+#
+# Set ONEUPTIME_KEEP_ECR_BASE_IMAGES=true to switch this off and pull from ECR.
+BASE_IMAGE_CONTEXT_ARGS=()
+if [[ "${ONEUPTIME_KEEP_ECR_BASE_IMAGES:-false}" != "true" ]]; then
+	while read -r ecr_base_image; do
+		[[ -n "$ecr_base_image" ]] || continue
+
+		if ! hub_base_image="$(hub_mirror_for "$ecr_base_image")"; then
+			# Not a docker/library image, so there is no mapping for it. Leave
+			# it to ECR rather than guess at a substitute.
+			echo "ℹ️  ${ecr_base_image} has no Docker Hub original to substitute; pulling it from public.ecr.aws."
+			continue
+		fi
+
+		BASE_IMAGE_CONTEXT_ARGS+=(--build-context "${ecr_base_image}=docker-image://${hub_base_image}")
+		echo "ℹ️  Substituting ${hub_base_image} for ${ecr_base_image}."
+	done < <(collect_ecr_base_images "$DOCKERFILE")
+fi
+
 build_variant() {
 	local variant_prefix="$1"       # "" for community, "enterprise-" for enterprise
 	local edition="$2"              # "community" or "enterprise"
@@ -192,6 +228,7 @@ build_variant() {
 		--provenance=mode=max \
 		"${tag_args[@]}" \
 		"${edition_args[@]}" \
+		"${BASE_IMAGE_CONTEXT_ARGS[@]+"${BASE_IMAGE_CONTEXT_ARGS[@]}"}" \
 		--label "com.oneuptime.edition=${edition}" \
 		--build-arg "GIT_SHA=${GIT_SHA}" \
 		--build-arg "APP_VERSION=${VERSION}" \

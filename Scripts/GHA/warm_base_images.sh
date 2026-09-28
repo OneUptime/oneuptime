@@ -41,15 +41,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=Scripts/GHA/retry.sh
 source "${SCRIPT_DIR}/retry.sh"
+# shellcheck source=Scripts/GHA/base_images.sh
+source "${SCRIPT_DIR}/base_images.sh"
 
 # The docker client to drive. Overridable so Scripts/GHA/Tests can substitute a
 # stub and exercise the fallback without a daemon or a network.
 DOCKER="${WARM_BASE_IMAGES_DOCKER:-docker}"
-
-# The registry whose quota is the problem, and the mirror it copies. Both are
-# prefixes of a full image reference.
-ECR_LIBRARY_PREFIX="public.ecr.aws/docker/library/"
-HUB_LIBRARY_PREFIX="docker.io/library/"
 
 # ECR gets a short ladder rather than retry.sh's default minutes. A data quota
 # is not going to free up while we wait, and we have a mirror standing by, so
@@ -62,57 +59,6 @@ if [[ "$#" -eq 0 ]]; then
 	echo "Usage: warm_base_images.sh <dockerfile> [<dockerfile>...]" >&2
 	exit 1
 fi
-
-# Collects the ECR base images referenced by the given Dockerfiles.
-#
-# Only public.ecr.aws references are returned: everything else either already
-# comes from Docker Hub (which is not the registry failing) or is an earlier
-# build stage by name, which must not be pulled at all.
-collect_ecr_base_images() {
-	local dockerfile token
-	local -a found=()
-
-	for dockerfile in "$@"; do
-		# Field 2 of a FROM line is the image, except that `--platform=...` and
-		# friends come first, so skip leading flags. Anything after the image
-		# (`AS <stage>`) is ignored.
-		while read -r line; do
-			local -a fields=()
-			read -ra fields <<< "$line" || true
-			local index=1
-			while (( index < ${#fields[@]} )); do
-				token="${fields[index]}"
-				if [[ "$token" == --* ]]; then
-					index=$(( index + 1 ))
-					continue
-				fi
-				break
-			done
-			(( index < ${#fields[@]} )) || continue
-			token="${fields[index]}"
-			[[ "$token" == public.ecr.aws/* ]] || continue
-			found+=("$token")
-		done < <(grep -iE '^[[:space:]]*FROM[[:space:]]' "$dockerfile" || true)
-	done
-
-	# Dedupe: the App Dockerfile names the same base image in several stages, and
-	# pulling it once is enough.
-	if (( ${#found[@]} > 0 )); then
-		printf '%s\n' "${found[@]}" | sort -u
-	fi
-}
-
-# Maps an ECR library reference to the Docker Hub image it mirrors.
-# Fails for anything outside docker/library, which we have no mirror mapping for.
-hub_mirror_for() {
-	local image="$1"
-
-	if [[ "$image" != "${ECR_LIBRARY_PREFIX}"* ]]; then
-		return 1
-	fi
-
-	echo "${HUB_LIBRARY_PREFIX}${image#"${ECR_LIBRARY_PREFIX}"}"
-}
 
 # Makes one base image resolvable locally under the name the Dockerfile uses.
 warm_image() {
