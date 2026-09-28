@@ -285,6 +285,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Monitors, hosts, Kubernetes clusters, Docker hosts, and services that events created from this template should pre-populate.",
         }}
+        createEditModalWidth={ModalWidth.Medium}
         isEditable={true}
         formFields={[
           {

@@ -74,7 +74,8 @@ interface ServiceCase {
   buildModelInstance: () => Incident | Alert;
   /*
    * What the Affected Resources edit modal submits for this model: every
-   * relation its picker edits, and never serviceLevelObjectives.
+   * relation it edits (the alert's single monitor has a dropdown of its own
+   * beside the picker), and never serviceLevelObjectives.
    */
   editModalPayload: () => Record<string, unknown>;
 }
@@ -131,6 +132,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
     },
     editModalPayload: (): Record<string, unknown> => {
       return {
+        monitor: idStub(),
         hosts: [idStub()],
         kubernetesClusters: [],
         dockerHosts: [],

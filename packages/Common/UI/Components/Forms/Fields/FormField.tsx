@@ -499,6 +499,15 @@ const FormField: <T extends GenericObject>(
                 id={props.field.id}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
+                /*
+                 * A field its form locks (an alert's monitor, when that
+                 * monitor raised the alert) must not open, change or clear.
+                 * Only field.disabled: the form-wide props.isDisabled also
+                 * covers the form's own dropdown-options load, which
+                 * EntityDropdown never waits on because it searches the
+                 * server itself.
+                 */
+                disabled={props.field.disabled}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -532,6 +541,7 @@ const FormField: <T extends GenericObject>(
                 id={props.field.id}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
+                disabled={props.field.disabled}
                 onChange={async (
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
