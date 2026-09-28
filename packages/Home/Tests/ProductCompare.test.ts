@@ -394,3 +394,60 @@ describe("Comparison pages, as rendered, use no retired edition language", () =>
     expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toEqual([]);
   });
 });
+
+/*
+ * Paid plans are priced per user per month (Utils/Pricing.ts), and a seat is
+ * each unique team member in the project. Comparison copy used to tell buyers
+ * the opposite - "no per-seat fees", "$0 per user", "seats included",
+ * "unlimited users" - and to price Growth as a flat ~$99/mo tier. Saying
+ * on-call is included rather than a paid add-on, or that there is no cap on
+ * team members, is still fine.
+ */
+const NO_SEAT_PRICING_CLAIM: RegExp =
+  /\bno (?:extra |additional )?per[- ](?:seat|user|responder|person)\b|\bwithout per[- ](?:seat|user)\b|\bnot per[- ]seat\b|\bseats? included\b|\$0 per user|\bunlimited (?:users|user seats|team members|team seats|teammates|responders)\b|\bdoes not charge per user\b|\bnot seats\b|\binstead of per[- ](?:user|seat)\b|\bwithout (?:cost scaling|growing the bill)\b|\bfree to add\b|\bnever inflates\b/i;
+
+const FLAT_GROWTH_PRICE_CLAIM: RegExp =
+  /\bGrowth\b[^."]{0,40}\$99\b|\$99\b[^."]{0,20}\bGrowth\b/i;
+
+type SeatPricingDenialsFunction = (copy: Array<string>) => Array<string>;
+
+const seatPricingDenialsIn: SeatPricingDenialsFunction = (
+  copy: Array<string>,
+): Array<string> => {
+  return copy.filter((text: string) => {
+    return (
+      NO_SEAT_PRICING_CLAIM.test(text) || FLAT_GROWTH_PRICE_CLAIM.test(text)
+    );
+  });
+};
+
+describe("Comparison pages do not deny per-user pricing", () => {
+  test.each(slugs)(
+    "%s does not say OneUptime has no per-seat pricing",
+    (slug: string) => {
+      expect(
+        seatPricingDenialsIn(oneUptimeCopyOf(ProductCompare(slug))),
+      ).toEqual([]);
+    },
+  );
+
+  test.each([
+    "Add team members without cost scaling",
+    "OneUptime charges a flat $1 per active monitor with no per-seat fees",
+    "About $50/mo for 50 active monitors, seats included",
+    "~$600 / year for 50 monitors, $0 per user",
+    "OneUptime with unlimited users and monitoring included",
+    "No. OneUptime pricing is based on usage, not seats.",
+    "Predictable Growth tier around $99/mo, status pages included",
+  ])("the retired wording is caught: %s", (text: string) => {
+    expect(seatPricingDenialsIn([text])).toEqual([text]);
+  });
+
+  test.each([
+    "Built-in on-call rotations and escalations included, not a separate paid add-on",
+    "Paid plans from $22 per user per month, with no cap on team members",
+    "Status pages with unlimited subscribers included, not a seat-based add-on",
+  ])("accurate wording passes: %s", (text: string) => {
+    expect(seatPricingDenialsIn([text])).toEqual([]);
+  });
+});
