@@ -177,7 +177,7 @@ describe("the notice always has somewhere to send the user", () => {
     expect(AVAILABILITY).toContain(
       "const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy>",
     );
-    expect(AVAILABILITY).toContain("PageMap.SETTINGS_AI_CREDITS");
+    expect(AVAILABILITY).toContain("PageMap.SETTINGS_AI_FEATURES");
     expect(AVAILABILITY).toContain("PageMap.SETTINGS_AI_LLM_PROVIDERS");
     expect(AVAILABILITY).toContain("PageMap.SETTINGS_BILLING");
   });

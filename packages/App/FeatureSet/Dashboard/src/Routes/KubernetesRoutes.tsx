@@ -39,7 +39,10 @@ import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
-import KubernetesClusterViewAI from "../Pages/Kubernetes/View/AI";
+import KubernetesClusterViewAiAgent, {
+  KubernetesClusterViewAiRedirect,
+} from "../Pages/Kubernetes/View/AI/Agent";
+import KubernetesClusterViewAiInsights from "../Pages/Kubernetes/View/AI/Insights";
 import KubernetesClusterViewRecommendations from "../Pages/Kubernetes/View/Recommendations";
 import KubernetesClusterViewCosts from "../Pages/Kubernetes/View/Costs";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
@@ -593,7 +596,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* Insights */}
+        {/* Resource Usage (the cluster's resource charts) */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS,
@@ -608,13 +611,41 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI access */}
+        {/*
+         * AI. ":id/ai" was the single AI page before the section had two;
+         * it now sends old links and bookmarks to the AI agent page.
+         */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI)}
+          element={<KubernetesClusterViewAiRedirect />}
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
           element={
-            <KubernetesClusterViewAI
+            <KubernetesClusterViewAiInsights
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route
+              }
             />
           }
         />

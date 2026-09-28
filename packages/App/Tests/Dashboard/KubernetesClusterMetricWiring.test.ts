@@ -353,7 +353,7 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
   test("every summary card has a tooltip of its own", () => {
     const cards: string = between(
       OVERVIEW,
-      '<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">',
+      '<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">',
       "<ResourceActivityCards",
     );
 
@@ -374,6 +374,15 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
       ["Agent Status", "agentStatus"],
     ]);
     expect(countOf(OVERVIEW, "<InfoCard")).toBe(5);
+
+    /*
+     * The sixth card, beside Agent Status, is the Kubernetes AI agent's own
+     * component; its (i) comes from the same record.
+     */
+    expectCode(
+      OVERVIEW,
+      `<KubernetesAiAgentOverviewCard clusterId={modelId} tooltip={${CLUSTER_RECORD}.aiAgent} />`,
+    );
   });
 
   test("pod health and the two top-consumer lists put an (i) beside their title", () => {
