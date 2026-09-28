@@ -138,21 +138,58 @@ describe.each([
       expect(countOf(code, "renderChartCard({")).toBe(6);
     });
 
-    test("the loaded chart card names the gesture on hover", () => {
+    test("each chart section names the gesture on hover, beside its heading", () => {
+      const sections: string = between(
+        code,
+        "const renderCharts:",
+        "const renderTopContainers:",
+      );
+      const hint: string =
+        '<TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />';
+      const headings: Array<string> = [
+        "Availability",
+        "Container resource usage",
+        "Network",
+      ];
+      // Each section, from its `group` root on: the hover reveals the hint.
+      const chunks: Array<string> = sections
+        .split('<div className="group mb-6">')
+        .slice(1);
+
+      expect(chunks).toHaveLength(headings.length);
+      chunks.forEach((chunk: string, index: number): void => {
+        // The heading row: title and subtitle on the left, the hint right.
+        expect(chunk).toMatch(
+          /^ <div className="mb-3 flex items-center justify-between gap-4"> <div> <h2 /,
+        );
+        const row: string = chunk.slice(0, chunk.indexOf(hint) + hint.length);
+        expect(row).toContain(headings[index]!);
+        expect(row).toContain(`</p> </div> ${hint}`);
+      });
+
+      expect(countOf(code, "<TimeRangeZoomHint")).toBe(headings.length);
+    });
+
+    test("the chart cards' own headers are left as they were", () => {
+      /*
+       * Four resource cards share a row; a hint in their narrow headers -
+       * invisible, yet still taking its width - pushed their titles onto
+       * two lines.
+       */
       const card: string = between(
         code,
         "const renderChartCard:",
         "const renderCharts:",
       );
-      const loaded: string = card.slice(
-        card.indexOf("const xAxis: ChartXAxis"),
-      );
 
-      expect(loaded).toContain(
-        '<div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">',
-      );
-      expect(loaded).toContain("<TimeRangeZoomHint revealOnHover={true} />");
-      expect(countOf(code, "<TimeRangeZoomHint")).toBe(1);
+      expect(card).not.toContain("TimeRangeZoomHint");
+      expect(card).not.toContain("group");
+      expect(
+        countOf(
+          card,
+          '<div className="flex items-center justify-between mb-3">',
+        ),
+      ).toBe(2);
     });
 
     test("every fetch reads the page's range, and a zoom or a reset refetches", () => {

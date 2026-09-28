@@ -1190,28 +1190,21 @@ const PodmanHostOverview: FunctionComponent<
     };
 
     /*
-     * The chart takes the page's zoom (TimeRangeZoomScope below): a drag
-     * retimes every card, tile and list on the page, a double-click puts
-     * the range back. The hint names the gesture while the pointer is over
-     * the card (the root's `group`), so the row of cards stays quiet.
+     * No zoom handlers of its own: the chart takes the page's zoom
+     * (TimeRangeZoomScope below), so a drag retimes every card, tile and
+     * list on the page and a double-click puts the range back.
      */
     return (
-      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex min-w-0 items-center gap-2">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
             {renderTitle()}
             {params.headerExtra ?? null}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <TimeRangeZoomHint revealOnHover={true} />
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-            >
-              <Icon
-                icon={params.icon}
-                className={`h-3.5 w-3.5 ${colors.text}`}
-              />
-            </div>
+          <div
+            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          >
+            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
           </div>
         </div>
         <LineChartElement
@@ -1282,10 +1275,18 @@ const PodmanHostOverview: FunctionComponent<
         </span>
       );
 
+    /*
+     * Each section names the drag-to-zoom gesture on the right of its
+     * heading, while the pointer is over the section (its `group`). Not in
+     * the cards' own headers: four resource cards share a row, and a hint
+     * there - invisible, yet still taking its width - pushed their titles
+     * onto two lines. Below lg the hint would wrap the subtitles when it
+     * grows to name the double-click, and tablets rarely hover anyway.
+     */
     return (
       <Fragment>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Availability
@@ -1295,6 +1296,7 @@ const PodmanHostOverview: FunctionComponent<
                 selected time range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Availability",
@@ -1307,8 +1309,8 @@ const PodmanHostOverview: FunctionComponent<
             description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Container resource usage
@@ -1317,6 +1319,7 @@ const PodmanHostOverview: FunctionComponent<
                 Aggregated across containers over the selected time range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
@@ -1349,14 +1352,15 @@ const PodmanHostOverview: FunctionComponent<
             })}
           </div>
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Network</h2>
               <p className="text-xs text-gray-500">
                 Aggregate receive / transmit rate across all containers
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Network",

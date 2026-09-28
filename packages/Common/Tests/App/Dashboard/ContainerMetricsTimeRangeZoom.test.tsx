@@ -27,14 +27,14 @@ import React, { ReactElement } from "react";
  *
  * Rendered for real down to the charts (EmbeddedMetricCard, MetricView,
  * MetricCharts and ChartGroup) over a fake metrics API; only the leaf
- * chart wrappers are stood in for (see ChartZoomStandIn).
+ * chart wrappers are stood in for (see ContainerChartZoomStandIn).
  */
 
 jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   return (
     jest.requireActual(
-      "./ChartZoomStandIn",
-    ) as typeof import("./ChartZoomStandIn")
+      "./ContainerChartZoomStandIn",
+    ) as typeof import("./ContainerChartZoomStandIn")
   ).chartModuleStandIn(
     "line",
     jest.requireActual("../../../UI/Components/Charts/Line/LineChart"),
@@ -43,8 +43,8 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
 jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
   return (
     jest.requireActual(
-      "./ChartZoomStandIn",
-    ) as typeof import("./ChartZoomStandIn")
+      "./ContainerChartZoomStandIn",
+    ) as typeof import("./ContainerChartZoomStandIn")
   ).chartModuleStandIn(
     "area",
     jest.requireActual("../../../UI/Components/Charts/Area/AreaChart"),
@@ -53,8 +53,8 @@ jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
 jest.mock("../../../UI/Components/Charts/Bar/BarChart", () => {
   return (
     jest.requireActual(
-      "./ChartZoomStandIn",
-    ) as typeof import("./ChartZoomStandIn")
+      "./ContainerChartZoomStandIn",
+    ) as typeof import("./ContainerChartZoomStandIn")
   ).chartModuleStandIn(
     "bar",
     jest.requireActual("../../../UI/Components/Charts/Bar/BarChart"),
@@ -132,7 +132,7 @@ import {
   windowOfChart,
   windowText,
   zoomOfChart,
-} from "./ChartZoomStandIn";
+} from "./ContainerChartZoomStandIn";
 
 const NOW: Date = new Date("2026-09-24T12:00:00.000Z");
 const HOUR_START: Date = new Date("2026-09-24T11:00:00.000Z");

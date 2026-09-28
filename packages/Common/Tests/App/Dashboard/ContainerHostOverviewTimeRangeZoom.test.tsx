@@ -23,7 +23,7 @@ import React, { ReactElement } from "react";
  * The pages are rendered for real over a fake analytics server that only
  * answers with the rows inside the window it is asked for, so what the
  * tiles and lists show proves which window they were computed from. Only
- * the chart itself is stood in for (see ChartZoomStandIn): it resolves its
+ * the chart itself is stood in for (see ContainerChartZoomStandIn): it resolves its
  * zoom exactly the way LineChartElement does and offers the two gestures.
  */
 
@@ -46,8 +46,8 @@ function mockStubModule(testId: string): {
 jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   return (
     jest.requireActual(
-      "./ChartZoomStandIn",
-    ) as typeof import("./ChartZoomStandIn")
+      "./ContainerChartZoomStandIn",
+    ) as typeof import("./ContainerChartZoomStandIn")
   ).chartModuleStandIn(
     "line",
     jest.requireActual("../../../UI/Components/Charts/Line/LineChart"),
@@ -89,7 +89,7 @@ import {
   windowOfChart,
   windowText,
   zoomOfChart,
-} from "./ChartZoomStandIn";
+} from "./ContainerChartZoomStandIn";
 
 /*
  * ---------------------------------------------------------------------------
@@ -308,6 +308,27 @@ async function flush(): Promise<void> {
   });
 }
 
+// Each chart section's heading, and the charts in it.
+const SECTIONS: Array<[string, Array<string>]> = [
+  ["Availability", ["Availability"]],
+  [
+    "Container resource usage",
+    ["Avg CPU", "Peak CPU", "Avg Memory", "Peak Memory"],
+  ],
+  ["Network", ["Network"]],
+];
+
+// A chart section: its heading row (with the zoom hint) and its cards.
+function section(heading: string): HTMLElement {
+  return screen
+    .getByRole("heading", { level: 2, name: heading })
+    .closest("div.group") as HTMLElement;
+}
+
+function hintOf(heading: string): HTMLElement {
+  return within(section(heading)).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
+}
+
 // The card a chart sits in, found by the chart's title.
 function chartCard(title: string): HTMLElement {
   const cards: Array<HTMLElement> = screen
@@ -474,22 +495,40 @@ describe.each(RUNTIME_CASES)(
         expect(zoom.onTimeRangeSelect).toBe(zooms[0]!.onTimeRangeSelect);
       }
 
-      for (const title of CHART_TITLES) {
-        const card: HTMLElement = chartCard(title);
+      for (const [heading, titles] of SECTIONS) {
+        const hint: HTMLElement = hintOf(heading);
 
-        // Revealed on hover of the card, which is what `group` is for.
-        expect(card).toHaveClass("group");
-        expect(
-          within(card).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-        ).toHaveTextContent("Drag to zoom");
-        expect(
-          within(card).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-        ).not.toHaveTextContent("double-click");
+        expect(hint).toHaveTextContent("Drag to zoom");
+        expect(hint).not.toHaveTextContent("double-click");
+        // Shown while the pointer is over the section, on screens that hover.
+        expect(hint).toHaveClass(
+          "opacity-0",
+          "group-hover:opacity-100",
+          "max-lg:hidden",
+        );
+        // In the section's heading row, beside its title...
+        expect(hint.parentElement).toContainElement(
+          screen.getByRole("heading", { level: 2, name: heading }),
+        );
+
+        /*
+         * ...and not in the cards: four of them share a row, and a hint in
+         * their narrow headers pushed the titles onto two lines.
+         */
+        for (const title of titles) {
+          expect(section(heading)).toContainElement(chartCard(title));
+          expect(chartCard(title)).not.toHaveClass("group");
+          expect(
+            within(chartCard(title)).queryByTestId(
+              TIME_RANGE_ZOOM_HINT_TEST_ID,
+            ),
+          ).toBeNull();
+        }
       }
 
-      // Exactly one hint per chart card; tiles and lists carry none.
+      // One hint per chart section; the tiles and lists carry none.
       expect(screen.getAllByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveLength(
-        CHART_TITLES.length,
+        SECTIONS.length,
       );
       expect(pickerLabel()).toBe("Past 30 Minutes");
       expect(resetButtons()).toHaveLength(0);
@@ -572,9 +611,11 @@ describe.each(RUNTIME_CASES)(
 
       for (const title of CHART_TITLES) {
         expect(zoomOf(title).onTimeRangeReset).toBeInstanceOf(Function);
-        expect(
-          within(chartCard(title)).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-        ).toHaveTextContent("Drag to zoom · double-click to reset");
+      }
+      for (const [heading] of SECTIONS) {
+        expect(hintOf(heading)).toHaveTextContent(
+          "Drag to zoom · double-click to reset",
+        );
       }
     });
 
