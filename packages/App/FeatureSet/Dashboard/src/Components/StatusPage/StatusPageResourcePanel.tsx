@@ -1476,6 +1476,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             setDeleteError("");
             setResourceToDelete(statusPageResource);
           }}
+          onShowId={(statusPageResource: StatusPageResource) => {
+            setResourceToShowIdFor(statusPageResource);
+          }}
         />
       );
     }

@@ -1571,12 +1571,12 @@ describe("event notes: permissions", () => {
     });
     expect(
       within(card("Monitoring.")).getByRole("menuitem", { name: "Edit note" }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
     expect(
       within(card("Monitoring.")).getByRole("menuitem", {
         name: "Delete note",
       }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
     expect(
       within(card("Monitoring.")).getByRole("menuitem", {
         name: "Copy note ID",

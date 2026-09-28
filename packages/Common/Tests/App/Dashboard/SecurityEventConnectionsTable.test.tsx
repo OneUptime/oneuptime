@@ -156,6 +156,15 @@ const RESELLER_MESSAGE: string =
 const EMPTY_STATE_ID: string = "security-event-connections-empty-state";
 const NO_CREATE_REASON: string =
   "You do not have permission to create connections.";
+const NO_UPDATE_REASON: string =
+  "You do not have permission to update connections.";
+// The row actions a member without update permission finds locked.
+const WRITE_ACTIONS: Array<string> = [
+  "Test connection",
+  "Run now",
+  "Edit",
+  "Update credentials",
+];
 
 /*
  * The empty state's provider tiles in catalog order, written out so a
@@ -362,6 +371,46 @@ function tableProps(): ModelTableProps<BaseModel> {
 
 function row(name: string = "Acme Okta"): HTMLElement {
   return screen.getByTestId(name);
+}
+
+/*
+ * A row shows one action as its button and folds every other action into a
+ * ⋯ menu beside it. The button is View Error when the row has an error to
+ * read and Test connection when it does not, so Run now, Diagnostics, Edit
+ * and Update credentials are reached the way a person reaches them: open
+ * that row's menu, then pick the item. The menu is portalled to the body,
+ * so it is found on the screen rather than inside the row.
+ */
+function openRowMenu(current: HTMLElement): HTMLElement {
+  fireEvent.click(within(current).getByTestId("row-actions-more-button"));
+  return screen.getByRole("menu");
+}
+
+function clickRowMenuItem(current: HTMLElement, title: string): void {
+  fireEvent.click(
+    within(openRowMenu(current)).getByRole("menuitem", { name: title }),
+  );
+}
+
+function menuItemTitles(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+/*
+ * A locked menu item is aria-disabled rather than natively disabled, so it
+ * stays reachable from the keyboard, and the reason it is locked is its own
+ * accessible description whether or not the tooltip is showing. Every locked
+ * item gives the same reason, and jsdom never finishes a tooltip's exit
+ * transition, so the reason is read from the item rather than from whichever
+ * tooltip happens to be on the page.
+ */
+function expectLockedMenuItem(item: HTMLElement, reason: string): void {
+  expect(item).toHaveAttribute("aria-disabled", "true");
+  expect(item).toHaveAccessibleDescription(reason);
 }
 
 function postCall(index: number = 0): JSONObject {
@@ -1043,39 +1092,99 @@ describe("SecurityEventConnectionsTable", () => {
     expect(row("Acme Okta")).not.toHaveTextContent("Alerts and detections");
   });
 
+  /*
+   * A row used to be a strip of six outlined buttons. It is now one button
+   * and a ⋯ menu: the error when there is one to read, otherwise Test
+   * connection, with every other action in the menu in the order the table
+   * lists them. Nothing here is destructive, so the menu has no red tail.
+   */
+  test.each([
+    { layout: "desktop", isMobile: false },
+    { layout: "mobile", isMobile: true },
+  ])(
+    "$layout rows show one action as a button and the rest in a ⋯ menu",
+    ({ isMobile }: { isMobile: boolean }): void => {
+      mockIsMobile = isMobile;
+      renderTable([
+        connection(),
+        connection({
+          _id: "44444444-4444-4444-8444-444444444444",
+          name: "Failing Okta",
+          lastError: "Okta System Log request failed (HTTP 401)",
+        }),
+      ]);
+
+      const healthy: HTMLElement = within(row()).getByTestId("row-actions");
+      expect(within(healthy).getAllByRole("button")).toEqual([
+        within(healthy).getByRole("button", { name: "Test connection" }),
+        within(healthy).getByRole("button", { name: "More actions" }),
+      ]);
+      const healthyMenu: HTMLElement = openRowMenu(row());
+      expect(menuItemTitles(healthyMenu)).toEqual([
+        "Run now",
+        "Diagnostics",
+        "Edit",
+        "Update credentials",
+      ]);
+      fireEvent.keyDown(
+        within(healthyMenu).getByRole("menuitem", { name: "Run now" }),
+        { key: "Escape" },
+      );
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+      const failing: HTMLElement = within(row("Failing Okta")).getByTestId(
+        "row-actions",
+      );
+      expect(within(failing).getAllByRole("button")).toEqual([
+        within(failing).getByRole("button", { name: "View Error" }),
+        within(failing).getByRole("button", { name: "More actions" }),
+      ]);
+      expect(menuItemTitles(openRowMenu(row("Failing Okta")))).toEqual([
+        "Test connection",
+        "Run now",
+        "Diagnostics",
+        "Edit",
+        "Update credentials",
+      ]);
+      // Opening a menu is not running anything in it.
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(API.post).not.toHaveBeenCalled();
+    },
+  );
+
   test("read-only members keep View Error and Diagnostics while every write action is locked", (): void => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: false,
-      disabledReason: "You do not have permission to update connections.",
+      disabledReason: NO_UPDATE_REASON,
     });
     renderTable([
       connection({ lastError: "Okta System Log request failed (HTTP 401)" }),
     ]);
 
+    // The error is the row's one button, and reading it needs no permission.
     const current: HTMLElement = row();
-    for (const title of [
-      "Test connection",
-      "Run now",
-      "Edit",
-      "Update credentials",
-    ]) {
-      expect(
-        within(current).getByRole("button", { name: title }),
-      ).toBeDisabled();
-    }
-    expect(
-      within(current).getByRole("button", { name: "Diagnostics" }),
-    ).toBeEnabled();
     expect(
       within(current).getByRole("button", { name: "View Error" }),
+    ).toBeEnabled();
+
+    const menu: HTMLElement = openRowMenu(current);
+    for (const title of WRITE_ACTIONS) {
+      const item: HTMLElement = within(menu).getByRole("menuitem", {
+        name: title,
+      });
+      expectLockedMenuItem(item, NO_UPDATE_REASON);
+      // Locked is inert: picking it opens nothing and sends nothing.
+      fireEvent.click(item);
+    }
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Diagnostics" }),
     ).toBeEnabled();
 
     const button: CardButtonSchema = tableProps().cardProps
       ?.buttons?.[0] as CardButtonSchema;
     expect(button.disabled).toBe(true);
-    expect(button.tooltip).toBe(
-      "You do not have permission to update connections.",
-    );
+    expect(button.tooltip).toBe(NO_UPDATE_REASON);
     expect(API.post).not.toHaveBeenCalled();
   });
 
@@ -1175,7 +1284,7 @@ describe("SecurityEventConnectionsTable", () => {
       );
     renderTable([connection()]);
 
-    fireEvent.click(within(row()).getByRole("button", { name: "Run now" }));
+    clickRowMenuItem(row(), "Run now");
 
     expect(
       await screen.findByRole("dialog", {
@@ -1198,7 +1307,7 @@ describe("SecurityEventConnectionsTable", () => {
   test("Diagnostics shows the same health wording and UTC times with a local-time title", async (): Promise<void> => {
     renderTable([connection()]);
 
-    fireEvent.click(within(row()).getByRole("button", { name: "Diagnostics" }));
+    clickRowMenuItem(row(), "Diagnostics");
 
     const dialog: HTMLElement = await screen.findByRole("dialog", {
       name: "Connection diagnostics: Acme Okta",
@@ -1219,11 +1328,7 @@ describe("SecurityEventConnectionsTable", () => {
       .mockResolvedValue(googleConnection({ alertingOnly: false }));
     renderTable([googleConnection({ alertingOnly: false })]);
 
-    fireEvent.click(
-      within(row("Customer SecOps")).getByRole("button", {
-        name: "Diagnostics",
-      }),
-    );
+    clickRowMenuItem(row("Customer SecOps"), "Diagnostics");
     const dialog: HTMLElement = await screen.findByRole("dialog", {
       name: "Connection diagnostics: Customer SecOps",
     });
@@ -1247,7 +1352,7 @@ describe("SecurityEventConnectionsTable", () => {
   test("Diagnostics Test connection clears the previous checklist when a re-run fails", async (): Promise<void> => {
     renderTable([connection()]);
 
-    fireEvent.click(within(row()).getByRole("button", { name: "Diagnostics" }));
+    clickRowMenuItem(row(), "Diagnostics");
     const dialog: HTMLElement = await screen.findByRole("dialog", {
       name: "Connection diagnostics: Acme Okta",
     });
@@ -1289,7 +1394,7 @@ describe("SecurityEventConnectionsTable", () => {
   test("Edit and Update credentials open the form modal in the matching mode", async (): Promise<void> => {
     renderTable([connection()]);
 
-    fireEvent.click(within(row()).getByRole("button", { name: "Edit" }));
+    clickRowMenuItem(row(), "Edit");
     const edit: HTMLElement = await screen.findByRole("dialog", {
       name: "Edit connection: Acme Okta",
     });
@@ -1301,9 +1406,9 @@ describe("SecurityEventConnectionsTable", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    fireEvent.click(
-      within(row()).getByRole("button", { name: "Update credentials" }),
-    );
+    // The menu closed behind the first pick; the second opens it again.
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    clickRowMenuItem(row(), "Update credentials");
     const credentials: HTMLElement = await screen.findByRole("dialog", {
       name: "Update credentials: Acme Okta",
     });
@@ -1679,20 +1784,25 @@ describe("Last Error actions", () => {
     test("allows read-only members to view and copy errors while update actions remain disabled", async (): Promise<void> => {
       jest.spyOn(PermissionGate, "check").mockReturnValue({
         isAllowed: false,
-        disabledReason: "You do not have permission to update connections.",
+        disabledReason: NO_UPDATE_REASON,
       });
       const error: string =
         "Google SecOps alerts fetch failed (HTTP 403): permission denied";
       renderTable([errorConnection("Production", error)]);
 
-      for (const title of [
-        "Test connection",
-        "Run now",
-        "Edit",
-        "Update credentials",
-      ]) {
-        expect(screen.getByRole("button", { name: title })).toBeDisabled();
+      const menu: HTMLElement = openRowMenu(screen.getByTestId("Production"));
+      for (const title of WRITE_ACTIONS) {
+        expectLockedMenuItem(
+          within(menu).getByRole("menuitem", { name: title }),
+          NO_UPDATE_REASON,
+        );
       }
+      // Diagnostics is the one item left to focus; Escape leaves from there.
+      fireEvent.keyDown(
+        within(menu).getByRole("menuitem", { name: "Diagnostics" }),
+        { key: "Escape" },
+      );
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "View Error" })).toBeEnabled();
 
       const dialog: HTMLElement = openError();

@@ -5,7 +5,9 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -46,6 +48,28 @@ export type ComponentProps = PageComponentProps;
  */
 const PAYMENT_PROCESSING_MESSAGE: string =
   "Your bank is still processing a payment for this invoice. Some banks (for example cards issued in India) take up to 2 days to confirm recurring card payments. You do not need to pay again - the invoice will update automatically once the bank confirms.";
+
+/*
+ * An invoice that is settled, not yet issued, or cancelled has nothing left to
+ * pay. Every other status - open, uncollectible, even a missing one - may
+ * still owe money, so it gets the Pay Invoice action.
+ */
+const NOT_PAYABLE_INVOICE_STATUSES: Array<InvoiceStatus> = [
+  InvoiceStatus.Paid,
+  InvoiceStatus.Draft,
+  InvoiceStatus.Void,
+  InvoiceStatus.Deleted,
+];
+
+type IsInvoicePayableFunction = (invoice: BillingInvoice) => boolean;
+
+const isInvoicePayable: IsInvoicePayableFunction = (
+  invoice: BillingInvoice,
+): boolean => {
+  return !NOT_PAYABLE_INVOICE_STATUSES.includes(
+    invoice["status"] as InvoiceStatus,
+  );
+};
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
@@ -175,9 +199,60 @@ const Settings: FunctionComponent<ComponentProps> = (
           showRefreshButton={true}
           selectMoreFields={{
             currencyCode: true,
+            /*
+             * No column shows the link any more - the Download action reads
+             * it - so it has to be asked for here or every row would lose
+             * its Download.
+             */
+            downloadableLink: true,
             paymentProviderCustomerId: true,
             paymentProviderInvoiceId: true,
           }}
+          actionButtons={[
+            {
+              title: "Download",
+              icon: IconProp.Download,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              isVisible: (item: BillingInvoice): boolean => {
+                return Boolean(item["downloadableLink"]);
+              },
+              onClick: (
+                item: BillingInvoice,
+                onCompleteAction: VoidFunction,
+              ) => {
+                Navigation.navigate(item["downloadableLink"] as URL);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "Pay Invoice",
+              icon: IconProp.Billing,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              /*
+               * An invoice that still owes money is the one thing on this
+               * page that needs doing, so paying it is the row's button and
+               * Download waits in the ⋯ menu. Settled invoices have no Pay
+               * Invoice, and Download takes the button back.
+               */
+              placement: ActionButtonPlacement.Primary,
+              isVisible: isInvoicePayable,
+              onClick: async (
+                item: BillingInvoice,
+                onCompleteAction: VoidFunction,
+              ) => {
+                /*
+                 * payInvoice reports its own failures in the page's error
+                 * dialog, and swaps the whole table for the page loader
+                 * while it runs - that loader is this action's spinner.
+                 */
+                await payInvoice(
+                  item["paymentProviderCustomerId"] as string,
+                  item["paymentProviderInvoiceId"] as string,
+                );
+                onCompleteAction();
+              },
+            },
+          ]}
           onFetchSuccess={async () => {
             if (ProjectUtil.isSubscriptionInactive()) {
               // fetch project and check subscription again.
@@ -294,49 +369,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                     text={Text.uppercaseFirstLetter(item["status"] as string)}
                     color={Yellow}
                   />
-                );
-              },
-            },
-            {
-              field: {
-                downloadableLink: true,
-              },
-              title: "Actions",
-              type: FieldType.Text,
-
-              getElement: (item: BillingInvoice) => {
-                return (
-                  <div>
-                    {item["downloadableLink"] ? (
-                      <Button
-                        icon={IconProp.Download}
-                        onClick={() => {
-                          Navigation.navigate(item["downloadableLink"] as URL);
-                        }}
-                        title="Download"
-                      />
-                    ) : (
-                      <></>
-                    )}
-
-                    {item["status"] !== InvoiceStatus.Paid &&
-                    item["status"] !== InvoiceStatus.Draft &&
-                    item["status"] !== InvoiceStatus.Void &&
-                    item["status"] !== InvoiceStatus.Deleted ? (
-                      <Button
-                        icon={IconProp.Billing}
-                        onClick={async () => {
-                          await payInvoice(
-                            item["paymentProviderCustomerId"] as string,
-                            item["paymentProviderInvoiceId"] as string,
-                          );
-                        }}
-                        title="Pay Invoice"
-                      />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
                 );
               },
             },

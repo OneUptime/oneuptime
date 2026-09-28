@@ -1,4 +1,4 @@
-import { AddKubernetesAiAgentAndAiDefaults1796000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796000000000-AddKubernetesAiAgentAndAiDefaults";
+import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import KubernetesAiAgent from "../../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
@@ -42,7 +42,7 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
  * Fake QueryRunner only.
  */
 
-const OWN_CLASS_NAME: string = "AddKubernetesAiAgentAndAiDefaults1796000000000";
+const OWN_CLASS_NAME: string = "AddKubernetesAiAgentAndAiDefaults1796100000000";
 
 // The last migration registered before this one.
 const REGISTERED_BEFORE_IT: string =
@@ -50,7 +50,7 @@ const REGISTERED_BEFORE_IT: string =
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
-  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796000000000-AddKubernetesAiAgentAndAiDefaults.ts",
+  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults.ts",
 );
 
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
@@ -75,7 +75,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddKubernetesAiAgentAndAiDefaults1796000000000()[direction](
+  await new AddKubernetesAiAgentAndAiDefaults1796100000000()[direction](
     queryRunner,
   );
 
@@ -137,14 +137,14 @@ describe("AddKubernetesAiAgentAndAiDefaults migration - identity and registratio
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddKubernetesAiAgentAndAiDefaults1796000000000().name).toBe(
+    expect(new AddKubernetesAiAgentAndAiDefaults1796100000000().name).toBe(
       OWN_CLASS_NAME,
     );
   });
 
   test("is registered exactly once", () => {
     expect(SchemaMigrations).toContain(
-      AddKubernetesAiAgentAndAiDefaults1796000000000,
+      AddKubernetesAiAgentAndAiDefaults1796100000000,
     );
     expect(
       registeredNames.filter((name: string): boolean => {

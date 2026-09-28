@@ -23,7 +23,7 @@ Classification happens per telemetry batch, from **resource attributes**, at ing
 3. Otherwise, if it carries `device.manufacturer` and **no** `host.name` or `host.id`, it is **mobile** RUM.
 4. Otherwise it is not RUM at all — it is treated as a backend Service.
 
-Backend services never set `browser.*`, `device.id` or `device.model.identifier`, which is what makes those a clean signal rather than a heuristic. `device.manufacturer` is the one exception: it doubles as the make of a physical machine on a host's inventory item, so it only marks a batch as mobile when the resource carries no host identity. A phone never reports `host.name` or `host.id`; a server always does. See [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-serial-number-make-model).
+Backend services never set `browser.*`, `device.id` or `device.model.identifier`, which is what makes those a clean signal rather than a heuristic. `device.manufacturer` is the one exception: it doubles as the make of a physical machine on a host's inventory item, so it only marks a batch as mobile when the resource carries no host identity. A phone never reports `host.name` or `host.id`; a server always does. See [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware).
 
 Once a batch is classified as RUM, the application's identity is its **`service.name`**. OneUptime looks for a RUM application in the project with that identifier (case-insensitively) and creates one if there is none. Client telemetry is owned entirely by its RUM application — it is never also listed as a backend Service, so nothing is double-counted.
 

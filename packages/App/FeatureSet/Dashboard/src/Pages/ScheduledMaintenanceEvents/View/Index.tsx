@@ -8,6 +8,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -789,6 +790,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 "Monitors, services and infrastructure this maintenance affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {

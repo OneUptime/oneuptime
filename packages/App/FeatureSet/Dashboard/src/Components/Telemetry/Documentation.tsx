@@ -777,7 +777,7 @@ function getProfileInstallSnippet(lang: Language): {
         code: `dotnet add package Pyroscope
 
 # Download the native profiler library:
-curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/v0.13.0-pyroscope/pyroscope.0.13.0-glibc-x86_64.tar.gz | tar xvz -C .`,
+curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-1.5.1/pyroscope.1.5.1-glibc-x86_64.tar.gz | tar xvz -C .`,
         language: "bash",
       };
     case "ruby":
@@ -886,10 +886,11 @@ func main() {
 # (run from the directory the profiler was extracted into):
 export PYROSCOPE_APPLICATION_NAME=my-service
 export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_PYROSCOPE_URL>
-export PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN>
-# pyroscope-dotnet 1.5 and later ignore PYROSCOPE_AUTH_TOKEN; use instead:
-# export PYROSCOPE_BASIC_AUTH_USER=oneuptime
-# export PYROSCOPE_BASIC_AUTH_PASSWORD=<YOUR_ONEUPTIME_TOKEN>
+# Both must be set, or the profiler sends no credentials:
+export PYROSCOPE_BASIC_AUTH_USER=oneuptime
+export PYROSCOPE_BASIC_AUTH_PASSWORD=<YOUR_ONEUPTIME_TOKEN>
+# pyroscope-dotnet 1.4 and earlier take the token as
+# PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN> instead.
 export PYROSCOPE_PROFILING_ENABLED=1
 export CORECLR_ENABLE_PROFILING=1
 export CORECLR_PROFILER={BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}

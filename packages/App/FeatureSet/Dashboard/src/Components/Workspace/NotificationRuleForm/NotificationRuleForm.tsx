@@ -189,7 +189,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         },
         title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Chats to Post To`,
         description: hasConnectedChats
-          ? `Only chats that the OneUptime app has been added to are listed here. To add more, open the chat in ${getWorkspaceTypeDisplayName(props.workspaceType)} and add the OneUptime app to it.`
+          ? `Only chats that the OneUptime app has been added to are listed here. To add more, open the chat in ${getWorkspaceTypeDisplayName(props.workspaceType)} and add the OneUptime app to it. A group chat listed by its members' names, or under an old name, picks up its current name when you click Refresh Chats in Project Settings > Workspace > ${getWorkspaceTypeDisplayName(props.workspaceType)}, as long as ${getWorkspaceTypeDisplayName(props.workspaceType)} lets OneUptime read it.`
           : `No chats are connected yet. Open ${getWorkspaceTypeDisplayName(props.workspaceType)}, go to the chat you want to notify, and add the OneUptime app to it — the chat will then appear here.`,
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: true,

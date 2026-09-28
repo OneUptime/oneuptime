@@ -7,6 +7,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { Green, Red } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -124,6 +125,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           {
             title: t("pages.settings.aiAgents.showIdKey"),
             buttonStyleType: ButtonStyleType.NORMAL,
+            // Reveals the ID and key for copying - a utility, never the row button.
+            placement: ActionButtonPlacement.MoreMenu,
             onClick: async (
               item: AIAgent,
               onCompleteAction: VoidFunction,

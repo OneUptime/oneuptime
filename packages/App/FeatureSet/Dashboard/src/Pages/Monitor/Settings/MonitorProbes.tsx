@@ -4,6 +4,7 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -224,6 +225,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {
               title: "Show ID and Key",
               buttonStyleType: ButtonStyleType.NORMAL,
+              // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
+              placement: ActionButtonPlacement.MoreMenu,
               onClick: async (
                 item: Probe,
                 onCompleteAction: VoidFunction,

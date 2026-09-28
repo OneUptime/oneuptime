@@ -71,7 +71,7 @@ Hosts are auto-discovered from the OTel \`host.name\` resource attribute. Once y
 
 …OneUptime will register the host automatically and start populating the Overview, Metrics, Processes, and Logs tabs.
 
-The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. \`host.ip\`, \`host.arch\`, \`host.id\`, \`os.type\` and \`os.description\` all come from the \`resourcedetection\` processor in Step 1; serial number, make and model have no detector and are stamped on separately (see below).
+The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. \`host.ip\`, \`host.mac\`, \`host.arch\`, \`host.id\`, \`os.type\`, \`os.description\` and \`os.version\` all come from the \`resourcedetection\` processor in Step 1; serial number, make, model and firmware version have no detector and are stamped on separately (see below).
 
 ## Step 1 — Save the collector config
 
@@ -131,9 +131,15 @@ processors:
         # Inventory item, so enable it here.
         host.ip:
           enabled: true
+        # host.mac and os.version are opt-in as well, and fill the
+        # MAC address and OS version rows of the Inventory item.
+        host.mac:
+          enabled: true
         os.type:
           enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   batch:
 
@@ -179,11 +185,11 @@ service:
 
 The host above shows up tagged \`team:payments\`, \`env:production\`, and \`region:us-east-1\`. Labels are matched case-insensitively, so an existing manually-created \`Production\` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the collector.
 
-## Optional — Record the machine's serial number, make and model
+## Optional — Record the machine's serial number, make, model and firmware version
 
-The config above already fills the machine's IP addresses, architecture, machine id and OS description onto its **Inventory** item, which is what a CMDB export reads.
+The config above already fills the machine's IP addresses, MAC addresses, architecture, machine id, OS description and OS version onto its **Inventory** item, which is what a CMDB export reads.
 
-Serial number, make and model are different: **no resource detector can produce them.** They come from the machine's firmware — WMI on Windows, DMI on Linux — and the collector runs unprivileged on Linux, so it cannot read them itself. Read them once at provisioning time and stamp them onto the resource:
+Serial number, make, model and firmware (BIOS / UEFI) version are different: **no resource detector can produce them.** They come from the machine's firmware — WMI on Windows, DMI on Linux — and the collector runs unprivileged on Linux, so it cannot read them itself. Read them once at provisioning time and stamp them onto the resource:
 
 \`\`\`yaml
 processors:
@@ -198,6 +204,9 @@ processors:
       - key: device.model.name
         value: "OptiPlex 7090"
         action: upsert
+      - key: device.firmware.version
+        value: "1.21.0"
+        action: upsert
 
 service:
   pipelines:
@@ -205,9 +214,9 @@ service:
       processors: [resourcedetection, resource/oneuptime-hardware, batch]
 \`\`\`
 
-The values are the machine's own, so they are written once by whatever provisions it. The Windows install method below prints the exact block for the machine you run it on; on Linux read \`/sys/class/dmi/id/product_serial\`, \`sys_vendor\` and \`product_name\` as root, and on macOS use \`ioreg\` and \`sysctl -n hw.model\`.
+The values are the machine's own, so they are written once by whatever provisions it. The Windows install method below prints the exact block for the machine you run it on; on Linux read \`/sys/class/dmi/id/product_serial\`, \`sys_vendor\` and \`product_name\` as root (\`bios_version\` is readable by anyone), and on macOS use \`ioreg\`, \`sysctl -n hw.model\` and the **System Firmware Version** line of \`system_profiler SPHardwareDataType\`.
 
-\`host.manufacturer\` and \`host.model.name\` are accepted as alternative spellings and stored under the \`device.*\` keys above, so a config written either way ends up in one place.
+\`host.manufacturer\`, \`host.model.name\`, \`host.firmware.version\` and \`host.bios.version\` are accepted as alternative spellings and stored under the \`device.*\` keys above (and \`device.serial_number\` under \`host.serial_number\`), so a config written either way ends up in one place.
 
 > **Don't set \`device.manufacturer\` on a mobile app's resource and a host's from the same config.** On a resource that carries no \`host.name\` or \`host.id\`, \`device.manufacturer\` still marks the batch as mobile Real User Monitoring.
 `;
@@ -472,9 +481,9 @@ Restart-Service otelcol-contrib
 
 The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type. If you set \`include_services\` but still see every service, the collector hasn't picked up the edit — restart the service and give the Services tab a few minutes to refresh its rolling window.
 
-## Step 4 — Record the serial number, make and model
+## Step 4 — Record the serial number, make, model and firmware version
 
-These three come from WMI, which no resource detector reads. Run this from an elevated PowerShell prompt on the machine — it queries WMI and prints the exact YAML for *this* machine:
+These four come from WMI, which no resource detector reads. Run this from an elevated PowerShell prompt on the machine — it queries WMI and prints the exact YAML for *this* machine:
 
 \`\`\`powershell
 $bios = Get-CimInstance -ClassName Win32_BIOS
@@ -499,6 +508,9 @@ function Format-YamlValue($value) {
       - key: device.model.name
         value: $(Format-YamlValue $cs.Model)
         action: upsert
+      - key: device.firmware.version
+        value: $(Format-YamlValue $bios.SMBIOSBIOSVersion)
+        action: upsert
 "@
 \`\`\`
 
@@ -517,7 +529,7 @@ Restart-Service otelcol-contrib
 
 Use \`Get-CimInstance\`, not the deprecated \`Get-WmiObject\` — it is absent from PowerShell 7 and later. Values are emitted in single quotes with any embedded quote doubled, so a serial or model containing punctuation stays valid YAML. A field the firmware leaves empty prints as \`''\`; drop that attribute rather than shipping a blank one.
 
-Within a few minutes the machine's **Inventory** item shows \`host.serial_number\`, \`device.manufacturer\` and \`device.model.name\` under **Details**, alongside the IP addresses and machine id the detector already supplies. Run this again after a motherboard swap — the values are stamped, not detected, so they do not update themselves.
+Within a few minutes the machine's **Inventory** item shows \`host.serial_number\`, \`device.manufacturer\`, \`device.model.name\` and \`device.firmware.version\` under **Details**, alongside the IP and MAC addresses and machine id the detector already supplies. Run this again after a motherboard swap or a BIOS update — the values are stamped, not detected, so they do not update themselves.
 `;
 
     case "kubernetes":

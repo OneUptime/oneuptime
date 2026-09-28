@@ -1,9 +1,8 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
-import Button, { ButtonSize } from "../Button/Button";
+import RowActions from "../ActionButton/RowActions";
 import Detail from "../Detail/Detail";
 import Field from "../Detail/Field";
 import Icon, { ThickProp } from "../Icon/Icon";
-import ConfirmModal from "../Modal/ConfirmModal";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useState, useEffect } from "react";
@@ -31,14 +30,6 @@ type ListRowFunction = <T extends GenericObject>(
 const ListRow: ListRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
-    props.actionButtons?.map(() => {
-      return false;
-    }) || [],
-  );
-
-  const [error, setError] = useState<string>("");
-
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -96,71 +87,14 @@ const ListRow: ListRowFunction = <T extends GenericObject>(
           )}
         </div>
 
-        <div
-          className={
-            props.enableDragAndDrop ? `flex mt-5 ml-5` : `flex mt-5 -ml-3`
-          }
-        >
-          {props.actionButtons?.map(
-            (button: ActionButtonSchema<T>, i: number) => {
-              if (button.isVisible && !button.isVisible(props.item)) {
-                return <></>;
-              }
-
-              // Hide button on mobile if hideOnMobile is true
-              if (button.hideOnMobile && isMobile) {
-                return <></>;
-              }
-
-              return (
-                <div key={i}>
-                  <Button
-                    buttonSize={ButtonSize.Small}
-                    title={button.title}
-                    icon={button.icon}
-                    buttonStyle={button.buttonStyleType}
-                    isLoading={isButtonLoading[i]}
-                    disabled={button.disabled}
-                    tooltip={button.tooltip}
-                    onClick={() => {
-                      if (button.disabled) {
-                        return;
-                      }
-
-                      if (button.onClick) {
-                        isButtonLoading[i] = true;
-                        setIsButtonLoading(isButtonLoading);
-                        button.onClick(
-                          props.item,
-                          () => {
-                            // on action complete
-                            isButtonLoading[i] = false;
-                            setIsButtonLoading(isButtonLoading);
-                          },
-                          (err: Error) => {
-                            isButtonLoading[i] = false;
-                            setIsButtonLoading(isButtonLoading);
-                            setError((err as Error).message);
-                          },
-                        );
-                      }
-                    }}
-                  />
-                </div>
-              );
-            },
-          )}
-        </div>
-        {error && (
-          <ConfirmModal
-            title={`Error`}
-            description={error}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              return setError("");
-            }}
+        <div className={props.enableDragAndDrop ? `mt-5 ml-8` : `mt-5`}>
+          <RowActions<T>
+            item={props.item}
+            actionButtons={props.actionButtons}
+            isMobile={isMobile}
+            className="justify-start"
           />
-        )}
+        </div>
       </div>
     );
   };

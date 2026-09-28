@@ -1,5 +1,5 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
-import { AddKubernetesAiAgentAndAiDefaults1796000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796000000000-AddKubernetesAiAgentAndAiDefaults";
+import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -120,7 +120,7 @@ const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
   {
     table: "KubernetesCluster",
     property: "isAiInvestigationEnabled",
-    migration: new AddKubernetesAiAgentAndAiDefaults1796000000000(),
+    migration: new AddKubernetesAiAgentAndAiDefaults1796100000000(),
   },
 ];
 

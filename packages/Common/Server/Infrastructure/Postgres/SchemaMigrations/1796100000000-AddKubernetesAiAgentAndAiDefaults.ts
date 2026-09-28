@@ -41,10 +41,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * operator made, and flipping them back could switch AI on or off for
  * somebody who chose it.
  */
-export class AddKubernetesAiAgentAndAiDefaults1796000000000
+export class AddKubernetesAiAgentAndAiDefaults1796100000000
   implements MigrationInterface
 {
-  public name: string = "AddKubernetesAiAgentAndAiDefaults1796000000000";
+  public name: string = "AddKubernetesAiAgentAndAiDefaults1796100000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
