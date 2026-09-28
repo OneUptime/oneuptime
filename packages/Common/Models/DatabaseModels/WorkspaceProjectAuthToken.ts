@@ -43,6 +43,13 @@ export interface MicrosoftTeamsChat {
    * shipped.
    */
   memberAadObjectIds?: Array<string> | undefined;
+  /*
+   * Display names of the human members, captured from the chat roster. Kept
+   * so the name can be rebuilt from the roster when a group chat's topic is
+   * cleared in Teams, without another roster call. Absent on records captured
+   * before this shipped.
+   */
+  memberNames?: Array<string> | undefined;
 }
 
 /*

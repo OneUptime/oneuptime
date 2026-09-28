@@ -85,8 +85,9 @@ If policy forbids inbound connectivity, the complete Teams bot integration canno
 - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
 - **Channel.Create.Group** - Allows the bot to create channels when needed
 - **TeamsAppInstallation.Read.Group** - Allows OneUptime to confirm the app is installed in a team it is about to post to
+- **ChatSettings.Read.Chat** - Allows OneUptime to read the name of group chats the app is added to. Teams does not send a group chat's name to the bot, so without it a named group chat is listed by its members' names
 
-If you uploaded the app manifest before this permission existed, download it again from **Project Settings > Workspace > Microsoft Teams** and re-upload it to pick it up.
+If you uploaded the app manifest before these permissions existed, download it again from **Project Settings > Workspace > Microsoft Teams** and re-upload it to pick it up.
 
 3. Click "Grant admin consent" for your organization
 

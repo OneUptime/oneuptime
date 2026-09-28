@@ -22,7 +22,6 @@ import {
 } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
 
@@ -38,17 +37,38 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [sendingTestCount, setSendingTestCount] = useState<number>(0);
+  const [namePermissionDeniedCount, setNamePermissionDeniedCount] =
+    useState<number>(0);
 
-  const loadChats: PromiseVoidFunction = async (): Promise<void> => {
+  type LoadChatsFunction = (options?: {
+    refreshNames?: boolean | undefined;
+  }) => Promise<void>;
+
+  /*
+   * The first load only reads what is stored. Refresh Chats also asks
+   * Microsoft for the current name of every group chat, which is how a group
+   * chat listed by its members' names picks up its real name.
+   */
+  const loadChats: LoadChatsFunction = async (options?: {
+    refreshNames?: boolean | undefined;
+  }): Promise<void> => {
     try {
       setError("");
       setIsLoading(true);
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+        options?.refreshNames
+          ? await API.post<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute(
+                "/microsoft-teams/chats/refresh",
+              ),
+              data: {},
+              headers: ModelAPI.getCommonHeaders(),
+            })
+          : await API.get<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
+              headers: ModelAPI.getCommonHeaders(),
+            });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -72,6 +92,12 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
         });
 
       setChats(list);
+
+      if (options?.refreshNames) {
+        setNamePermissionDeniedCount(
+          Number(data["chatNamePermissionDeniedCount"]) || 0,
+        );
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     } finally {
@@ -118,7 +144,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
               ? "Wait for the test notification to finish sending."
               : undefined,
           onClick: () => {
-            loadChats().catch((err: Exception) => {
+            loadChats({ refreshNames: true }).catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
             });
           },
@@ -298,6 +324,25 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 );
               })}
             </ul>
+            {namePermissionDeniedCount > 0 && (
+              <div
+                role="status"
+                className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+              >
+                Microsoft Teams would not share the name of{" "}
+                {namePermissionDeniedCount === 1
+                  ? "1 group chat"
+                  : `${namePermissionDeniedCount} group chats`}
+                , so {namePermissionDeniedCount === 1 ? "it is" : "they are"}{" "}
+                listed by member names. Reading a chat&apos;s name needs the{" "}
+                <span className="font-mono">ChatSettings.Read.Chat</span>{" "}
+                permission, which Teams grants when the OneUptime app in that
+                chat is updated.{" "}
+                {BILLING_ENABLED
+                  ? "Update the OneUptime app in those chats in Microsoft Teams, then click Refresh Chats."
+                  : "Download the app manifest again from Project Settings > Workspace > Microsoft Teams, upload it to Microsoft Teams as an update, update the OneUptime app in those chats, then click Refresh Chats."}
+              </div>
+            )}
             <p className="text-xs text-gray-500">
               To connect more chats, add the OneUptime app to a chat in
               Microsoft Teams and click Refresh Chats. Removing the app from a

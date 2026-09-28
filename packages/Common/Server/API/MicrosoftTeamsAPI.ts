@@ -32,7 +32,9 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsUtil, {
+  MicrosoftTeamsChatNameRefreshResult,
+} from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
 import path from "path";
@@ -187,6 +189,15 @@ export default class MicrosoftTeamsAPI {
               name: "ChatMember.Read.Chat",
             },
             /*
+             * Lets OneUptime read a group chat's name. Teams does not put it on
+             * bot activities, so without this group chats are listed by their
+             * members' names.
+             */
+            {
+              type: "Application",
+              name: "ChatSettings.Read.Chat",
+            },
+            /*
              * Lets OneUptime confirm, per team, that the installed OneUptime app
              * is the package built from THIS deployment before telling an admin
              * their app is missing. Without it the installed-apps read falls back
@@ -207,6 +218,24 @@ export default class MicrosoftTeamsAPI {
     };
 
     return manifest;
+  }
+
+  // The chat list shape the Chats card reads, sorted by name.
+  private static serializeChats(
+    chats: Record<string, MicrosoftTeamsChat>,
+  ): Array<JSONObject> {
+    return Object.values(chats)
+      .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
+        return a.name.localeCompare(b.name);
+      })
+      .map((chat: MicrosoftTeamsChat) => {
+        return {
+          id: chat.id,
+          name: chat.name,
+          chatType: chat.chatType,
+          addedAt: chat.addedAt || null,
+        };
+      });
   }
 
   private static getUserSignInRedirectUri(): string {
@@ -1634,18 +1663,41 @@ export default class MicrosoftTeamsAPI {
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            chats: Object.values(availableChats)
-              .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
-                return a.name.localeCompare(b.name);
-              })
-              .map((chat: MicrosoftTeamsChat) => {
-                return {
-                  id: chat.id,
-                  name: chat.name,
-                  chatType: chat.chatType,
-                  addedAt: chat.addedAt || null,
-                };
-              }),
+            chats: MicrosoftTeamsAPI.serializeChats(availableChats),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * "Refresh Chats". Chats still cannot be listed, but the name of each
+     * stored group chat can be re-read from Graph — which is what fixes a
+     * group chat listed under its member names, and picks up renames.
+     * Returns the same list as GET, plus how many names could not be read so
+     * the page can say why.
+     */
+    router.post(
+      "/microsoft-teams/chats/refresh",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          const refreshResult: MicrosoftTeamsChatNameRefreshResult =
+            await MicrosoftTeamsUtil.refreshChatNamesForProject({
+              projectId: projectId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            chats: MicrosoftTeamsAPI.serializeChats(refreshResult.chats),
+            chatNamePermissionDeniedCount: refreshResult.permissionDeniedCount,
+            chatNameFailedCount: refreshResult.failedCount,
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);

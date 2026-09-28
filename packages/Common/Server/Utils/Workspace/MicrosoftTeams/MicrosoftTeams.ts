@@ -165,6 +165,39 @@ export const MICROSOFT_TEAMS_INSTALL_READ_PERMISSION: string =
   "TeamsAppInstallation.ReadForTeam.All";
 
 /*
+ * The resource-specific (per chat) permission that lets OneUptime read a group
+ * chat's name (its Graph "topic") with the app-only token. Bot Framework
+ * activities from group chats do not carry the name, so without this a group
+ * chat can only be named after its members. It is granted per chat when the
+ * app is installed or updated there with a manifest that requests it.
+ */
+export const MICROSOFT_TEAMS_CHAT_TOPIC_READ_PERMISSION: string =
+  "ChatSettings.Read.Chat";
+
+export enum MicrosoftTeamsChatTopicLookupStatus {
+  Found = "Found", // the chat has a name in Teams.
+  NoTopic = "NoTopic", // the chat exists but nobody has named it.
+  PermissionDenied = "PermissionDenied",
+  Unknown = "Unknown",
+}
+
+export interface MicrosoftTeamsChatTopicLookup {
+  status: MicrosoftTeamsChatTopicLookupStatus;
+  topic?: string | undefined; // set only when status is Found.
+}
+
+export interface MicrosoftTeamsChatNameRefreshResult {
+  chats: Record<string, MicrosoftTeamsChat>;
+  // Group chats whose name Microsoft refused to share (permission missing).
+  permissionDeniedCount: number;
+  // Group chats whose name could not be read for any other reason.
+  failedCount: number;
+}
+
+// How many Graph chat lookups Refresh Chats runs at once.
+const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY: number = 5;
+
+/*
  * Microsoft's wording when the Bot Framework refuses a proactive post because
  * the app is not a member of the target conversation. Matched case-insensitively
  * so we can replace it with something the admin can act on.
@@ -4604,6 +4637,15 @@ All monitoring checks are passing normally.`;
       ) {
         return false;
       }
+
+      /*
+       * Group chats captured before rosters were stored were also captured
+       * before their name was read from Graph, so they are listed by member
+       * names even when the chat is named. Re-capture them once.
+       */
+      if (chat.chatType === "groupChat" && chat.memberNames === undefined) {
+        return false;
+      }
     }
 
     return true;
@@ -4667,7 +4709,7 @@ All monitoring checks are passing normally.`;
       }
 
       // Resolve a human friendly name for the chat.
-      const topic: string | undefined = conversation["name"] as
+      let topic: string | undefined = conversation["name"] as
         | string
         | undefined;
 
@@ -4721,6 +4763,29 @@ All monitoring checks are passing normally.`;
         logger.debug(err);
       }
 
+      /*
+       * Teams leaves conversation.name off group chat activities, so a named
+       * group chat would otherwise be listed by its members. Graph has the
+       * name; ask it. Personal chats have no name to find.
+       */
+      if (chatType === "groupChat" && !(topic && topic.trim())) {
+        const projectId: ObjectID | null = await this.getAnyProjectIdForTenant({
+          tenantId: tenantId,
+        });
+
+        if (projectId) {
+          const lookup: MicrosoftTeamsChatTopicLookup =
+            await this.getGroupChatTopicFromGraph({
+              projectId: projectId,
+              chatId: chatId,
+            });
+
+          if (lookup.status === MicrosoftTeamsChatTopicLookupStatus.Found) {
+            topic = lookup.topic;
+          }
+        }
+      }
+
       const chat: MicrosoftTeamsChat = {
         id: chatId,
         name: this.getChatDisplayName({
@@ -4732,6 +4797,9 @@ All monitoring checks are passing normally.`;
         serviceUrl: activityServiceUrl,
         addedAt: OneUptimeDate.getCurrentDate().toISOString(),
         memberAadObjectIds: memberAadObjectIds,
+        memberNames: memberNames.filter((name: string) => {
+          return Boolean(name && name.trim());
+        }),
       };
 
       await this.saveChatToProjectAuthTokens({
@@ -4873,6 +4941,292 @@ All monitoring checks are passing normally.`;
         ...miscData.availableChats,
       };
       delete availableChats[data.chatId];
+      miscData.availableChats = availableChats;
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  /*
+   * Any project connected to this tenant. Bot activities identify the tenant,
+   * not the project, and a Graph app token only needs a project to find the
+   * tenant's connection — every project of a tenant yields the same token.
+   */
+  private static async getAnyProjectIdForTenant(data: {
+    tenantId: string;
+  }): Promise<ObjectID | null> {
+    try {
+      const projectAuths: Array<WorkspaceProjectAuthToken> =
+        await WorkspaceProjectAuthTokenService.findBy({
+          query: {
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            workspaceProjectId: data.tenantId,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const projectAuth of projectAuths) {
+        if (projectAuth.projectId) {
+          return projectAuth.projectId;
+        }
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not find a project connected to Microsoft Teams tenant ${data.tenantId}:`,
+      );
+      logger.debug(err);
+    }
+
+    return null;
+  }
+
+  /*
+   * Reads a group chat's name from Graph (GET /chats/{id}). Only group chats
+   * are looked up: their Bot Framework conversation id is also their Graph
+   * chat id, and they are the only chats that can be named.
+   *
+   * Never throws. A refusal comes back as PermissionDenied — the app-only
+   * token needs ChatSettings.Read.Chat, granted per chat, and chats the app
+   * was added to before the manifest requested it do not have it.
+   */
+  @CaptureSpan()
+  public static async getGroupChatTopicFromGraph(data: {
+    projectId: ObjectID;
+    chatId: string;
+  }): Promise<MicrosoftTeamsChatTopicLookup> {
+    if (!data.chatId) {
+      return { status: MicrosoftTeamsChatTopicLookupStatus.Unknown };
+    }
+
+    try {
+      const accessToken: string = await this.getValidAccessToken({
+        authToken: "",
+        projectId: data.projectId,
+      });
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(
+              data.chatId,
+            )}?$select=id,topic,chatType`,
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        if (this.isGraphPermissionDeniedResponse(response)) {
+          logger.debug(
+            `Cannot read the name of Microsoft Teams chat ${data.chatId}: Microsoft Graph denied the request. The OneUptime app in that chat needs the ${MICROSOFT_TEAMS_CHAT_TOPIC_READ_PERMISSION} permission — update the app in the chat so Teams grants it.`,
+          );
+          return {
+            status: MicrosoftTeamsChatTopicLookupStatus.PermissionDenied,
+          };
+        }
+
+        logger.debug(`Could not read Microsoft Teams chat ${data.chatId}:`);
+        logger.debug(response);
+        return { status: MicrosoftTeamsChatTopicLookupStatus.Unknown };
+      }
+
+      const topic: unknown = response.data?.["topic"];
+
+      if (typeof topic === "string" && topic.trim()) {
+        return {
+          status: MicrosoftTeamsChatTopicLookupStatus.Found,
+          topic: topic.trim(),
+        };
+      }
+
+      return { status: MicrosoftTeamsChatTopicLookupStatus.NoTopic };
+    } catch (err) {
+      logger.debug(`Error reading Microsoft Teams chat ${data.chatId}:`);
+      logger.debug(err);
+      return { status: MicrosoftTeamsChatTopicLookupStatus.Unknown };
+    }
+  }
+
+  /*
+   * What "Refresh Chats" does. Microsoft does not let an app list chats, but
+   * it does let it read one it is in — so every stored group chat is re-read,
+   * which fixes chats captured under their member names and picks up renames.
+   *
+   * A chat whose topic was cleared goes back to its member names when the
+   * roster was stored with it; a record from before rosters were stored keeps
+   * its current name rather than degrading to a bare "Group chat".
+   */
+  @CaptureSpan()
+  public static async refreshChatNamesForProject(data: {
+    projectId: ObjectID;
+  }): Promise<MicrosoftTeamsChatNameRefreshResult> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    const storedChats: Record<string, MicrosoftTeamsChat> =
+      (projectAuth?.miscData as MicrosoftTeamsMiscData | undefined)
+        ?.availableChats || {};
+
+    const result: MicrosoftTeamsChatNameRefreshResult = {
+      chats: { ...storedChats },
+      permissionDeniedCount: 0,
+      failedCount: 0,
+    };
+
+    const tenantId: string | undefined = projectAuth?.workspaceProjectId;
+
+    const groupChats: Array<MicrosoftTeamsChat> = Object.values(
+      storedChats,
+    ).filter((chat: MicrosoftTeamsChat) => {
+      return Boolean(chat && chat.id && chat.chatType === "groupChat");
+    });
+
+    if (!tenantId || groupChats.length === 0) {
+      return result;
+    }
+
+    const renamedChats: Record<string, string> = {};
+
+    for (
+      let index: number = 0;
+      index < groupChats.length;
+      index += MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY
+    ) {
+      const batch: Array<MicrosoftTeamsChat> = groupChats.slice(
+        index,
+        index + MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY,
+      );
+
+      const lookups: Array<MicrosoftTeamsChatTopicLookup> = await Promise.all(
+        batch.map((chat: MicrosoftTeamsChat) => {
+          return this.getGroupChatTopicFromGraph({
+            projectId: data.projectId,
+            chatId: chat.id,
+          });
+        }),
+      );
+
+      batch.forEach((chat: MicrosoftTeamsChat, batchIndex: number) => {
+        const lookup: MicrosoftTeamsChatTopicLookup = lookups[batchIndex]!;
+
+        let name: string | undefined = undefined;
+
+        if (lookup.status === MicrosoftTeamsChatTopicLookupStatus.Found) {
+          name = this.getChatDisplayName({
+            chatType: chat.chatType,
+            topic: lookup.topic,
+            memberNames: chat.memberNames || [],
+          });
+        } else if (
+          lookup.status === MicrosoftTeamsChatTopicLookupStatus.NoTopic
+        ) {
+          if (chat.memberNames && chat.memberNames.length > 0) {
+            name = this.getChatDisplayName({
+              chatType: chat.chatType,
+              memberNames: chat.memberNames,
+            });
+          }
+        } else if (
+          lookup.status === MicrosoftTeamsChatTopicLookupStatus.PermissionDenied
+        ) {
+          result.permissionDeniedCount++;
+        } else {
+          result.failedCount++;
+        }
+
+        if (name && name !== chat.name) {
+          renamedChats[chat.id] = name;
+          result.chats[chat.id] = { ...chat, name: name };
+        }
+      });
+    }
+
+    if (Object.keys(renamedChats).length > 0) {
+      await this.renameChatsInProjectAuthTokens({
+        tenantId: tenantId,
+        chatNames: renamedChats,
+      });
+    }
+
+    return result;
+  }
+
+  /*
+   * Sets the name of chats already stored for a tenant, on every connected
+   * project. Only the name is written, onto the record as it is now — a chat
+   * removed or re-captured while names were being looked up is neither
+   * resurrected nor rolled back.
+   */
+  @CaptureSpan()
+  public static async renameChatsInProjectAuthTokens(data: {
+    tenantId: string;
+    chatNames: Record<string, string>;
+  }): Promise<void> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData = {
+        ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
+      } as MicrosoftTeamsMiscData;
+
+      const availableChats: Record<string, MicrosoftTeamsChat> = {
+        ...(miscData.availableChats || {}),
+      };
+
+      let changed: boolean = false;
+
+      for (const [chatId, name] of Object.entries(data.chatNames)) {
+        const existingChat: MicrosoftTeamsChat | undefined =
+          availableChats[chatId];
+
+        if (!existingChat || existingChat.name === name) {
+          continue;
+        }
+
+        availableChats[chatId] = { ...existingChat, name: name };
+        changed = true;
+      }
+
+      if (!changed) {
+        continue;
+      }
+
       miscData.availableChats = availableChats;
 
       await WorkspaceProjectAuthTokenService.updateOneById({
