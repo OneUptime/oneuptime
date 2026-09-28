@@ -79,19 +79,23 @@ describe("Zooming Into a Time Range docs", () => {
     expect(page).toContain("**Reset zoom**");
   });
 
-  it("quotes the hint charts show, word for word", () => {
+  it("quotes the hints charts show", () => {
     const page: string = readPage(ZOOM_PAGE);
-    const hint: string = readSource(
+    // The chart-card hint, and ChartGroup's own header hint.
+    const cardHint: string = readSource(
       "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint.tsx",
     );
+    const groupHint: string = readSource(
+      "Common/UI/Components/Charts/ChartGroup/ChartGroup.tsx",
+    );
 
-    for (const words of [
-      "Drag to zoom",
-      "Drag to zoom · double-click to reset",
-    ]) {
-      expect(hint).toContain(`"${words}"`);
-      expect(page).toContain(`**${words}**`);
-    }
+    expect(cardHint).toContain('"Drag to zoom"');
+    expect(cardHint).toContain('"Double-click to reset"');
+    expect(groupHint).toContain('"Drag to zoom · double-click to reset"');
+    expect(groupHint).toContain('"Drag to zoom"');
+
+    expect(page).toContain("**Drag to zoom**");
+    expect(page).toContain("**double-click to reset**");
   });
 
   it("promises what the zoom hook does: one reset returns the ORIGINAL range", () => {

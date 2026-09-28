@@ -525,16 +525,18 @@ describe("cluster Insights: three cards, one zoom", () => {
     );
 
     expect(hint).toHaveTextContent("Drag to zoom");
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).toBe(
-      within(card(NETWORK)).getByTestId("line-chart").closest(".group"),
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).toBe(
+      within(card(NETWORK))
+        .getByTestId("line-chart")
+        .closest('[class~="group/zoomhint"]'),
     );
 
     await dragAcross(card(NETWORK), DRAG_START, DRAG_END);
 
     expect(
       within(card(NETWORK)).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-    ).toHaveTextContent("Drag to zoom · double-click to reset");
+    ).toHaveTextContent("Double-click to reset");
   });
 
   test("a zoom into a stretch with no traffic can be undone by double-clicking the empty chart", async () => {

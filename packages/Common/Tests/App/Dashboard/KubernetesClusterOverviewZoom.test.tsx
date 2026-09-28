@@ -508,7 +508,7 @@ function chartCard(title: string): HTMLElement {
   const cards: Array<HTMLElement> = screen
     .getAllByText(title, { selector: "span" })
     .map((span: HTMLElement): HTMLElement | null => {
-      return span.closest(".group");
+      return span.closest('[class~="group/zoomhint"]');
     })
     .filter((card: HTMLElement | null): card is HTMLElement => {
       return card !== null && within(card).queryByTestId("line-chart") !== null;
@@ -686,7 +686,7 @@ describe("cluster Overview before any zoom", () => {
       );
 
       expect(hint).toHaveTextContent("Drag to zoom");
-      expect(hint).toHaveClass("group-hover:opacity-100");
+      expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
       expect(hint).toHaveClass("pointer-events-none");
     }
   });
@@ -792,7 +792,7 @@ describe("dragging across a cluster Overview chart", () => {
     for (const title of CHART_TITLES) {
       expect(
         within(chartCard(title)).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-      ).toHaveTextContent("Drag to zoom · double-click to reset");
+      ).toHaveTextContent("Double-click to reset");
     }
 
     const zoomedRenders: Array<ChartZoomRecord> =
@@ -1195,10 +1195,10 @@ describe("ClusterChartCard on its own", () => {
     const hint: HTMLElement = screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
 
     expect(hint).toHaveTextContent("Drag to zoom");
-    expect(hint).toHaveClass("group-hover:opacity-100");
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
     expect(hint).toHaveClass("absolute");
-    expect(hint.closest(".group")).toBe(
-      screen.getByTestId("line-chart").closest(".group"),
+    expect(hint.closest('[class~="group/zoomhint"]')).toBe(
+      screen.getByTestId("line-chart").closest('[class~="group/zoomhint"]'),
     );
   });
 
@@ -1211,7 +1211,7 @@ describe("ClusterChartCard on its own", () => {
 
     expect(screen.queryByTestId("line-chart")).toBeNull();
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
   });
 });

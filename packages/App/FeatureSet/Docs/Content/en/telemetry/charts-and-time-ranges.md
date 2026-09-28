@@ -36,8 +36,8 @@ back for keyboard users and on touch screens.
   go of the mouse outside the chart — the drag still counts.
 - **Double-clicking a page that isn't zoomed does nothing.**
 
-A **Drag to zoom** hint appears on a chart card when you point at it, and reads
-**Drag to zoom · double-click to reset** while a zoom is active.
+A **Drag to zoom** hint appears on a chart when you point at it. While a zoom
+is active, the hint tells you to **double-click to reset**.
 
 ## Where it works
 

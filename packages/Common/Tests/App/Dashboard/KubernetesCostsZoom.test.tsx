@@ -276,7 +276,7 @@ function latestWindowOf(mock: MockFunction): string {
 function spendChart(): HTMLElement {
   const chart: HTMLElement | null = screen
     .queryByTestId("line-chart")
-    ?.closest(".group") as HTMLElement | null;
+    ?.closest('[class~="group/zoomhint"]') as HTMLElement | null;
 
   if (!chart) {
     throw new Error("The spend chart is not drawn");
@@ -649,9 +649,9 @@ describe("KubernetesCostTrendChart", () => {
 
     const hint: HTMLElement = screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
 
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).toBe(
-      screen.getByTestId("line-chart").closest(".group"),
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).toBe(
+      screen.getByTestId("line-chart").closest('[class~="group/zoomhint"]'),
     );
   });
 

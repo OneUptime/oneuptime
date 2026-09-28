@@ -295,7 +295,7 @@ const KubernetesClusterInsights: FunctionComponent<
          * The throughput chart has no header of its own to name the drag
          * in, so the hint gets a slim row above it, revealed on hover.
          */}
-        <div className="group">
+        <div className="group/zoomhint">
           <div className="mb-1 flex justify-end">
             <TimeRangeZoomHint revealOnHover={true} className="leading-3" />
           </div>

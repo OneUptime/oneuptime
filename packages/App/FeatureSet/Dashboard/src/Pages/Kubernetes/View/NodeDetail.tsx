@@ -401,7 +401,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
                * and a double-click on any of them undoes it.
                */
               return (
-                <div className="group mt-4">
+                <div className="group/zoomhint mt-4">
                   <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                     <span>Network Throughput</span>
                     <InfoTooltip

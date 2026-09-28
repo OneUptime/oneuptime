@@ -391,7 +391,7 @@ function metricWindow(): string {
 function networkSection(): HTMLElement {
   const section: HTMLElement | null = screen
     .getByText("Network Throughput")
-    .closest(".group");
+    .closest('[class~="group/zoomhint"]');
 
   if (!section) {
     throw new Error("No Network Throughput section");
@@ -536,7 +536,7 @@ describe("the node Metrics tab: the metric charts and the network chart zoom tog
     );
 
     expect(hint).toHaveTextContent("Drag to zoom");
-    expect(hint).toHaveClass("group-hover:opacity-100");
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
     expect(hint).toHaveClass("ml-auto");
     // In the header row, beside the title and its (i).
     expect(hint.parentElement).toBe(
@@ -547,7 +547,7 @@ describe("the node Metrics tab: the metric charts and the network chart zoom tog
 
     expect(
       within(networkSection()).getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID),
-    ).toHaveTextContent("Drag to zoom · double-click to reset");
+    ).toHaveTextContent("Double-click to reset");
   });
 
   test("picking a range in the tab's picker ends the zoom", async () => {

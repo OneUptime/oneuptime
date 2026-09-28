@@ -238,7 +238,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
 
   if (!props.chartWindow) {
     return (
-      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-48 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -268,7 +268,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   };
 
   return (
-    <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.data}

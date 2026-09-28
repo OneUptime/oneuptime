@@ -129,7 +129,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="group">
+    <div className="group/zoomhint">
       {/*
        * The chart has no header of its own to name the drag in, so the
        * hint gets a slim row above it, revealed on hover.

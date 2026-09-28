@@ -188,7 +188,7 @@ describe("cluster Overview: the page in the issue", () => {
     );
     expectCode(header, '<div className="relative flex items-center');
     // The skeleton and the chart both reveal it on hover of the card.
-    expect(countOf(card, 'className="group rounded-xl')).toBe(2);
+    expect(countOf(card, 'className="group/zoomhint rounded-xl')).toBe(2);
   });
 
   test("a change of range - a zoom, a reset, a pick - reloads every golden chart and tile for it", () => {
@@ -346,7 +346,7 @@ describe("Insights, Control Plane and Service Mesh: one zoom for every card", ()
     expectCode(INSIGHTS, HINT_IMPORT);
     expectCode(
       networkCard,
-      '<div className="group"> <div className="mb-1 flex justify-end"> <TimeRangeZoomHint revealOnHover={true} className="leading-3" /> </div> <KubernetesNetworkThroughputChart',
+      '<div className="group/zoomhint"> <div className="mb-1 flex justify-end"> <TimeRangeZoomHint revealOnHover={true} className="leading-3" /> </div> <KubernetesNetworkThroughputChart',
     );
     expectNoCode(chart, "onTimeRangeSelect");
     expectCode(
@@ -417,7 +417,7 @@ describe("the Costs pages: the spend chart zooms the page", () => {
     );
     const chartReturn: string = between(
       COST_TREND_CHART,
-      'return ( <div className="group">',
+      'return ( <div className="group/zoomhint">',
       "export default KubernetesCostTrendChart;",
     );
 
@@ -452,7 +452,7 @@ describe("resource detail Metrics tabs: the tab's card keeps the zoom", () => {
     );
 
     expectCode(NODE_DETAIL, HINT_IMPORT);
-    expectCode(extra, '<div className="group mt-4">');
+    expectCode(extra, '<div className="group/zoomhint mt-4">');
     expectCode(
       extra,
       '<TimeRangeZoomHint revealOnHover={true} className="ml-auto font-normal" />',
