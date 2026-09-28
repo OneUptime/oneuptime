@@ -10,10 +10,6 @@ function getDefaultConfig(): CLIConfig {
   return {
     currentContext: "",
     contexts: {},
-    defaults: {
-      output: "table",
-      limit: 10,
-    },
   };
 }
 

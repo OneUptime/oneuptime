@@ -147,10 +147,6 @@ Legitimasjon lagres i `~/.oneuptime/config.json` med begrensede tillatelser (`06
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
