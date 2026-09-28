@@ -12,6 +12,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -217,6 +218,21 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     alertEpisodeState?.subjectId === modelIdString
       ? alertEpisodeState.value
       : undefined;
+  /*
+   * Toggled to make the details card read its row again: its Monitor row,
+   * and through it the header's Monitor fact, after the Affected Resources
+   * card changed or cleared the monitor.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
+  /*
+   * The alert's monitor cannot be changed or cleared when a monitor raised the
+   * alert: that monitor resolves the alert when it recovers, and the server
+   * refuses the edit (AlertService.onBeforeUpdate). Read with the page's own
+   * row, which lands before any card renders, so the Edit modal never offers
+   * the monitor even for a moment. An automatic alert with no monitor (an SLO
+   * burn-rate or security-event alert) can still be given one.
+   */
+  const [isMonitorLocked, setIsMonitorLocked] = useState<boolean>(false);
 
   const [aiInvestigationStatus, setAIInvestigationStatus] =
     useState<AIInvestigationStatusState>({
@@ -403,6 +419,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
               color: true,
             },
+            // Whether the Affected Resources card may edit the monitor.
+            isCreatedAutomatically: true,
+            monitorId: true,
           },
         }),
       ]);
@@ -477,6 +496,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setIsPrivate(alert?.isPrivate || false);
+
+      setIsMonitorLocked(
+        Boolean(alert?.isCreatedAutomatically && alert?.monitorId),
+      );
 
       setAlertTitle(alert?.title || undefined);
       setAlertStartedAt(alert?.createdAt || undefined);
@@ -905,6 +928,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: "Key facts about this alert.",
               headerLayout: "stacked",
             }}
+            refresher={detailsRefresher}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
@@ -1039,8 +1063,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   /*
-                   * Alert.monitor is a singular relation set at creation, so it
-                   * gets its own row separate from the multi-resource picker.
+                   * Alert.monitor is a single relation, edited with its own
+                   * dropdown on the Affected Resources card, so it gets its
+                   * own row here too.
                    */
                   field: {
                     monitor: {
@@ -1149,23 +1174,58 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 "Monitors, services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
+              /*
+               * The save can have set, moved or cleared the monitor. This card
+               * reads its row again by itself, but the details card's Monitor
+               * row (which also feeds the header's Monitor fact) and the
+               * page's monitor lock are read elsewhere, so both read again;
+               * and the change is a new feed entry.
+               */
+              setDetailsRefresher((current: boolean): boolean => {
+                return !current;
+              });
+              refreshData();
               refreshFeed();
             }}
             formFields={[
               {
                 /*
-                 * Alert.monitor is singular and set at creation; this picker
-                 * edits only the ManyToMany affected resources. The monitor is
-                 * shown below but never loaded into this form, so saving here
-                 * cannot change it.
+                 * Alert.monitor is a single relation, so it gets a dropdown of
+                 * its own rather than a place in the picker below, as on the
+                 * Create page. ModelForm loads it as an id and saves it back
+                 * as a relation; clearing the dropdown saves null, which
+                 * removes the monitor.
+                 */
+                field: { monitor: true },
+                title: "Monitor",
+                description: isMonitorLocked
+                  ? "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed."
+                  : "Select the monitor affected by this alert.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: Monitor,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                // The Create page's wording, which every locale translates.
+                placeholder: "Select Monitor",
+                disabled: isMonitorLocked,
+              },
+              {
+                /*
+                 * The picker edits the ManyToMany affected resources. It is
+                 * anchored on `hosts`; its payload is split back into each
+                 * relation by the onChange below.
                  */
                 field: { hosts: true },
-                title: "",
+                title: "Other Affected Resources",
                 description:
-                  "Search and attach hosts, clusters, container hosts, or services affected by this alert.",
+                  "Search and attach hosts, clusters, container hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -1344,7 +1404,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 {
                   field: {
                     /*
-                     * Shown, never edited, like the SLOs below. The alert's
+                     * Edited with the Monitor dropdown above. The alert's
                      * "created" feed item names its monitor under Resources
                      * Affected; left out here, a monitor's alert read "No
                      * resources affected" right beside that feed item.
