@@ -323,7 +323,7 @@ const SECTIONS: Array<[string, Array<string>]> = [
 function section(heading: string): HTMLElement {
   return screen
     .getByRole("heading", { level: 2, name: heading })
-    .closest("div.group") as HTMLElement;
+    .closest('div[class~="group/zoomhint"]') as HTMLElement;
 }
 
 function hintOf(heading: string): HTMLElement {
@@ -504,7 +504,7 @@ describe.each(RUNTIME_CASES)(
         // Shown while the pointer is over the section, on screens that hover.
         expect(hint).toHaveClass(
           "opacity-0",
-          "group-hover:opacity-100",
+          "group-hover/zoomhint:opacity-100",
           "max-lg:hidden",
         );
         // In the section's heading row, beside its title...
@@ -614,9 +614,7 @@ describe.each(RUNTIME_CASES)(
         expect(zoomOf(title).onTimeRangeReset).toBeInstanceOf(Function);
       }
       for (const [heading] of SECTIONS) {
-        expect(hintOf(heading)).toHaveTextContent(
-          "Drag to zoom · double-click to reset",
-        );
+        expect(hintOf(heading)).toHaveTextContent("Double-click to reset");
       }
     });
 

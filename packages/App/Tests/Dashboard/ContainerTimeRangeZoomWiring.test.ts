@@ -151,9 +151,9 @@ describe.each([
         "Container resource usage",
         "Network",
       ];
-      // Each section, from its `group` root on: the hover reveals the hint.
+      // Each section, from its group/zoomhint root on: the hover reveals the hint.
       const chunks: Array<string> = sections
-        .split('<div className="group mb-6">')
+        .split('<div className="group/zoomhint mb-6">')
         .slice(1);
 
       expect(chunks).toHaveLength(headings.length);
