@@ -11,6 +11,7 @@ import {
   Label,
   BarChart as RechartsBarChart,
   Legend as RechartsLegend,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -18,6 +19,7 @@ import {
   YAxis,
 } from "recharts";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import { CHART_DATA_POINT_DATE_KEY } from "../Types/ChartDataPoint";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import type { AxisDomain } from "recharts/types/util/types";
@@ -659,6 +661,15 @@ type BaseEventProps = {
 
 type BarChartEventProps = BaseEventProps | null | undefined;
 
+/*
+ * Subset of the recharts MouseHandlerDataParam passed to chart-level
+ * mouse handlers — just the fields range selection needs.
+ */
+type RangeSelectionChartState = {
+  activeTooltipIndex?: number | string | null | undefined;
+  activeLabel?: string | number | undefined;
+};
+
 interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
@@ -693,9 +704,17 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
   formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
   /**
-   * Double-click on the plot surface. Bar charts have no drag-to-select of
-   * their own, but they sit on the same dashboards as line/area panels and
-   * must offer the same way out of a board-wide zoom.
+   * Drag across bars to select the time window they cover: calls back with
+   * [start of the first bar, end of the last bar), the same window the
+   * line and area charts hand out. A press and release on one bar is a
+   * plain click and keeps its old meaning. Only a horizontal chart whose
+   * rows carry their bucket start (CHART_DATA_POINT_DATE_KEY, as the
+   * time-series wrapper's rows do) can select; a vertical chart ignores it.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /**
+   * Double-click on the plot surface: the way out of whatever
+   * drag-to-select produced, on this chart or a neighbouring one.
    */
   onTimeRangeReset?: (() => void) | undefined;
 }
@@ -741,6 +760,7 @@ const BarChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      onTimeRangeSelect,
       onTimeRangeReset,
       ...other
     } = props;
@@ -753,6 +773,27 @@ const BarChart: React.ForwardRefExoticComponent<
     );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+
+    /*
+     * Drag-to-select needs the category axis to be the time axis, which is
+     * only true in horizontal layout.
+     */
+    const canSelectRange: boolean =
+      Boolean(onTimeRangeSelect) && layout !== "vertical";
+    const [rangeSelectionStart, setRangeSelectionStart] = React.useState<
+      string | null
+    >(null);
+    const [rangeSelectionEnd, setRangeSelectionEnd] = React.useState<
+      string | null
+    >(null);
+    const isRangeSelecting: React.MutableRefObject<boolean> =
+      React.useRef<boolean>(false);
+    const rangeSelectionStartIndexRef: React.MutableRefObject<number | null> =
+      React.useRef<number | null>(null);
+    const rangeSelectionEndIndexRef: React.MutableRefObject<number | null> =
+      React.useRef<number | null>(null);
+    const suppressNextClickRef: React.MutableRefObject<boolean> =
+      React.useRef<boolean>(false);
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -804,6 +845,10 @@ const BarChart: React.ForwardRefExoticComponent<
       React.useCallback(
         (data: any, _: any, event: React.MouseEvent): void => {
           event.stopPropagation();
+          // Ignore the click that immediately follows a drag-to-select.
+          if (suppressNextClickRef.current) {
+            return;
+          }
           if (!onValueChange) {
             return;
           }
@@ -851,15 +896,178 @@ const BarChart: React.ForwardRefExoticComponent<
     };
 
     const handleChartClick: () => void = (): void => {
+      // Ignore the click that immediately follows a drag-to-select.
+      if (suppressNextClickRef.current) {
+        return;
+      }
       setActiveBar(undefined);
       setActiveLegend(undefined);
       onValueChange?.(null);
     };
 
+    function getRowIndexFromChartState(
+      chartState: RangeSelectionChartState | null | undefined,
+    ): number | null {
+      const activeTooltipIndex: number | string | null | undefined =
+        chartState?.activeTooltipIndex;
+      const numericIndex: number =
+        typeof activeTooltipIndex === "number"
+          ? activeTooltipIndex
+          : Number(activeTooltipIndex);
+      if (
+        activeTooltipIndex !== undefined &&
+        activeTooltipIndex !== null &&
+        Number.isInteger(numericIndex) &&
+        numericIndex >= 0 &&
+        numericIndex < data.length
+      ) {
+        return numericIndex;
+      }
+      // Fall back to matching activeLabel against the row labels.
+      if (chartState?.activeLabel !== undefined) {
+        const rowIndex: number = data.findIndex(
+          (row: Record<string, unknown>) => {
+            return row[index] === chartState.activeLabel;
+          },
+        );
+        return rowIndex >= 0 ? rowIndex : null;
+      }
+      return null;
+    }
+
+    function getBucketDateAtIndex(rowIndex: number): Date | null {
+      const rawDate: unknown = data[rowIndex]?.[CHART_DATA_POINT_DATE_KEY];
+      return typeof rawDate === "number" ? new Date(rawDate) : null;
+    }
+
+    function clearRangeSelection(): void {
+      isRangeSelecting.current = false;
+      rangeSelectionStartIndexRef.current = null;
+      rangeSelectionEndIndexRef.current = null;
+      setRangeSelectionStart(null);
+      setRangeSelectionEnd(null);
+    }
+
+    function handleRangeSelectMouseDown(
+      chartState: RangeSelectionChartState,
+    ): void {
+      if (!canSelectRange) {
+        return;
+      }
+      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      const rowLabel: unknown = data[rowIndex]?.[index];
+      if (typeof rowLabel !== "string") {
+        return;
+      }
+      isRangeSelecting.current = true;
+      rangeSelectionStartIndexRef.current = rowIndex;
+      rangeSelectionEndIndexRef.current = rowIndex;
+      setRangeSelectionStart(rowLabel);
+      setRangeSelectionEnd(null);
+    }
+
+    function handleRangeSelectMouseMove(
+      chartState: RangeSelectionChartState,
+      mouseEvent: React.MouseEvent<SVGGraphicsElement>,
+    ): void {
+      if (!isRangeSelecting.current) {
+        return;
+      }
+      // Button was released outside the chart — abandon the selection.
+      if (mouseEvent && mouseEvent.buttons === 0) {
+        clearRangeSelection();
+        return;
+      }
+      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      const rowLabel: unknown = data[rowIndex]?.[index];
+      if (typeof rowLabel !== "string") {
+        return;
+      }
+      rangeSelectionEndIndexRef.current = rowIndex;
+      setRangeSelectionEnd(rowLabel);
+    }
+
+    function handleRangeSelectMouseUp(
+      chartState?: RangeSelectionChartState | null,
+    ): void {
+      if (!isRangeSelecting.current) {
+        return;
+      }
+
+      /*
+       * recharts hands mouseup the bar under the pointer at release, which
+       * is more current than the last mousemove it got round to rendering.
+       */
+      const releaseIndex: number | null = getRowIndexFromChartState(chartState);
+      const startIndex: number | null = rangeSelectionStartIndexRef.current;
+      const endIndex: number | null =
+        releaseIndex !== null
+          ? releaseIndex
+          : rangeSelectionEndIndexRef.current;
+      clearRangeSelection();
+
+      /*
+       * A plain click (the pointer never left the starting bar) keeps
+       * behaving exactly as before — only a real drag selects a range.
+       */
+      if (startIndex === null || endIndex === null || startIndex === endIndex) {
+        return;
+      }
+
+      /*
+       * The browser fires a click right after mouseup; swallow it so a
+       * drag doesn't also toggle a bar or legend selection. Cleared on a
+       * timeout so a never-delivered click can't suppress a later one.
+       */
+      suppressNextClickRef.current = true;
+      setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
+
+      if (!onTimeRangeSelect) {
+        return;
+      }
+
+      const lowerIndex: number = Math.min(startIndex, endIndex);
+      const upperIndex: number = Math.max(startIndex, endIndex);
+      const startDate: Date | null = getBucketDateAtIndex(lowerIndex);
+      const lastBucketDate: Date | null = getBucketDateAtIndex(upperIndex);
+      if (!startDate || !lastBucketDate) {
+        return;
+      }
+
+      /*
+       * Cover the full final bar: its end is its start plus one bucket
+       * width, derived from adjacent row dates.
+       */
+      const adjacentDate: Date | null =
+        upperIndex > 0
+          ? getBucketDateAtIndex(upperIndex - 1)
+          : getBucketDateAtIndex(upperIndex + 1);
+      const bucketWidthInMs: number = adjacentDate
+        ? Math.abs(lastBucketDate.getTime() - adjacentDate.getTime())
+        : 0;
+
+      onTimeRangeSelect(
+        startDate,
+        new Date(lastBucketDate.getTime() + bucketWidthInMs),
+      );
+    }
+
     return (
       <div
         ref={forwardedRef}
-        className={cx("flex-1 w-full", className)}
+        className={cx(
+          "flex-1 w-full",
+          canSelectRange && "cursor-crosshair",
+          className,
+        )}
         data-tremor-id="tremor-raw"
         {...other}
       >
@@ -879,6 +1087,13 @@ const BarChart: React.ForwardRefExoticComponent<
                * accidentally sync with every other one.
                */
               {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
+              {...(canSelectRange
+                ? {
+                    onMouseDown: handleRangeSelectMouseDown,
+                    onMouseMove: handleRangeSelectMouseMove,
+                    onMouseUp: handleRangeSelectMouseUp,
+                  }
+                : {})}
               {...(hasOnValueChange && (activeLegend || activeBar)
                 ? {
                     onClick: handleChartClick,
@@ -1172,6 +1387,17 @@ const BarChart: React.ForwardRefExoticComponent<
                * lives in the chip's hover card.
                */}
               {annotations.layer}
+              {/* Live drag-to-select highlight */}
+              {rangeSelectionStart && rangeSelectionEnd ? (
+                <ReferenceArea
+                  x1={rangeSelectionStart}
+                  x2={rangeSelectionEnd}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              ) : null}
             </RechartsBarChart>
           </ResponsiveContainer>
           {annotations.overlay}
