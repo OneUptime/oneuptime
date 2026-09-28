@@ -288,9 +288,7 @@ describe("Proxmox VE native OTLP push — ingest (issue #4101)", () => {
     expect(spies.discoverProxmox).toHaveBeenCalledTimes(1);
     const attributes: JSONArray =
       spies.discoverProxmox.mock.calls[0]![0].attributes;
-    expect(stringAttr(attributes, "proxmox.cluster.name")).toEqual([
-      "homelab",
-    ]);
+    expect(stringAttr(attributes, "proxmox.cluster.name")).toEqual(["homelab"]);
   });
 
   test("the batch is routed with no service.name, so it lands on the cluster instead of a phantom 'proxmox-ve' Service", async () => {

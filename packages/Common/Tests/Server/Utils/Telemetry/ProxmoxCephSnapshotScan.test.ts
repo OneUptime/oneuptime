@@ -741,11 +741,7 @@ describe("ProxmoxCephSnapshotScan - counts from the inventory (native push)", ()
 
   test("backup-coverage counts are unaffected (the native push never sends them)", () => {
     const buffers: ProxmoxBuffers = proxmoxBuffers();
-    feedPartial(
-      buffers,
-      "pve_not_backed_up_total",
-      datapoint({ value: 2 }),
-    );
+    feedPartial(buffers, "pve_not_backed_up_total", datapoint({ value: 2 }));
     expect(
       deriveProxmoxClusterSnapshotExtras(
         proxmoxEntries(buffers),

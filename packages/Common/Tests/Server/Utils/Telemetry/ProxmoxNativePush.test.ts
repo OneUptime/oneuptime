@@ -319,9 +319,7 @@ describe("isProxmoxNativePushResource", () => {
 
   test("the Proxmox Agent's resource is not a native push", () => {
     expect(
-      isProxmoxNativePushResource(
-        attrs({ "proxmox.cluster.name": "homelab" }),
-      ),
+      isProxmoxNativePushResource(attrs({ "proxmox.cluster.name": "homelab" })),
     ).toBe(false);
   });
 
@@ -388,9 +386,7 @@ describe("resolveProxmoxNativePushClusterName", () => {
 describe("normalizeProxmoxNativePushInPlace — resource identity", () => {
   test("stamps proxmox.cluster.name from PVE's own proxmox.cluster", () => {
     const envelope: JSONObject = normalized(nodePush());
-    expect(resourceAttr(envelope, "proxmox.cluster.name")).toEqual([
-      "homelab",
-    ]);
+    expect(resourceAttr(envelope, "proxmox.cluster.name")).toEqual(["homelab"]);
   });
 
   test("keeps a user-supplied proxmox.cluster.name as the only one", () => {
@@ -417,9 +413,10 @@ describe("normalizeProxmoxNativePushInPlace — resource identity", () => {
 
   test("keeps a service.name the user chose deliberately", () => {
     const envelope: JSONObject = pveResource([]);
-    (
-      (envelope["resource"] as JSONObject)["attributes"] as JSONArray
-    ).push({ key: "service.name", value: { stringValue: "my-proxmox" } });
+    ((envelope["resource"] as JSONObject)["attributes"] as JSONArray).push({
+      key: "service.name",
+      value: { stringValue: "my-proxmox" },
+    });
     normalized(envelope);
     expect(resourceAttr(envelope, "service.name")).toEqual(["my-proxmox"]);
   });
@@ -823,12 +820,12 @@ describe("normalizeProxmoxNativePushInPlace — storage push", () => {
   const series: Array<Series> = pveSeries(normalized(storagePush()));
 
   test("storage maps onto storage/<node>/<storage>, pve-exporter's id format", () => {
-    expect(find(series, "pve_disk_usage_bytes", "storage/pve1/local").value).toBe(
-      40 * GIB,
-    );
-    expect(find(series, "pve_disk_size_bytes", "storage/pve1/local").value).toBe(
-      100 * GIB,
-    );
+    expect(
+      find(series, "pve_disk_usage_bytes", "storage/pve1/local").value,
+    ).toBe(40 * GIB);
+    expect(
+      find(series, "pve_disk_size_bytes", "storage/pve1/local").value,
+    ).toBe(100 * GIB);
     expect(
       find(series, "pve_disk_usage_bytes", "storage/pve1/local-zfs").value,
     ).toBe(450 * GIB);
@@ -869,19 +866,21 @@ describe("normalizeProxmoxNativePushInPlace — idempotency", () => {
 
   test("a push already translated upstream (e.g. by a collector) is not doubled", () => {
     const envelope: JSONObject = pveResource([
-      gauge("proxmox_vm_cpu", 0.5, guestLabels({
-        vmid: "100",
-        type: "qemu",
-        name: "web",
-      })),
+      gauge(
+        "proxmox_vm_cpu",
+        0.5,
+        guestLabels({
+          vmid: "100",
+          type: "qemu",
+          name: "web",
+        }),
+      ),
       gauge("pve_cpu_usage_ratio", 0.5, { id: "qemu/100" }),
     ]);
     const series: Array<Series> = pveSeries(normalized(envelope));
     expect(series).toHaveLength(1);
     // The cluster identity is still filled in.
-    expect(resourceAttr(envelope, "proxmox.cluster.name")).toEqual([
-      "homelab",
-    ]);
+    expect(resourceAttr(envelope, "proxmox.cluster.name")).toEqual(["homelab"]);
   });
 
   test("a multi-resource payload is rewritten block by block", () => {
@@ -1051,13 +1050,20 @@ describe("translated pushes feed the Proxmox inventory", () => {
  */
 describe("built-in alert templates on a native push", () => {
   const SERVED: Array<string> = [
-    "pve-node-offline",
-    "pve-quorum-risk",
     "pve-node-high-cpu",
     "pve-node-high-memory",
     "pve-guest-high-cpu",
     "pve-storage-near-full",
     "pve-lxc-disk-near-full",
+  ];
+  /*
+   * Their series resolve, but each node pushes only its own status: a
+   * node that goes down stops pushing instead of reporting pve_up = 0, so
+   * these two cannot see it. The docs say so and point at the agent.
+   */
+  const SILENT_WHEN_A_NODE_DIES: Array<string> = [
+    "pve-node-offline",
+    "pve-quorum-risk",
   ];
   // Data the native push does not carry at all.
   const NOT_SERVED: Array<string> = [
@@ -1099,7 +1105,8 @@ describe("built-in alert templates on a native push", () => {
           string,
           string
         >,
-        groupBy: (q.metricQueryData.groupByAttributeKeys || []) as Array<string>,
+        groupBy: (q.metricQueryData.groupByAttributeKeys ||
+          []) as Array<string>,
       };
     });
   }
@@ -1135,25 +1142,47 @@ describe("built-in alert templates on a native push", () => {
           return t.id;
         })
         .sort(),
-    ).toEqual([...SERVED, ...NOT_SERVED].sort());
+    ).toEqual([...SERVED, ...SILENT_WHEN_A_NODE_DIES, ...NOT_SERVED].sort());
   });
 
-  test.each(SERVED)("%s finds every series it queries", (id: string) => {
-    const template: ProxmoxAlertTemplate = getAllProxmoxAlertTemplates().find(
-      (t: ProxmoxAlertTemplate) => {
-        return t.id === id;
-      },
-    )!;
-    expect(served(template)).toBe(true);
-  });
+  test.each([...SERVED, ...SILENT_WHEN_A_NODE_DIES])(
+    "%s finds every series it queries",
+    (id: string) => {
+      const template: ProxmoxAlertTemplate = getAllProxmoxAlertTemplates().find(
+        (t: ProxmoxAlertTemplate) => {
+          return t.id === id;
+        },
+      )!;
+      expect(served(template)).toBe(true);
+    },
+  );
+
+  test.each(SILENT_WHEN_A_NODE_DIES)(
+    "%s only ever sees nodes that are pushing, all of them up",
+    (id: string) => {
+      expect(
+        getAllProxmoxAlertTemplates().some((t: ProxmoxAlertTemplate) => {
+          return t.id === id;
+        }),
+      ).toBe(true);
+      const nodeUp: Array<Series> = series.filter((s: Series) => {
+        return s.name === "pve_up" && s.labels["pve.scope"] === "node";
+      });
+      expect(nodeUp.length).toBeGreaterThan(0);
+      for (const s of nodeUp) {
+        expect(s.value).toBe("1");
+      }
+    },
+  );
 
   test.each(NOT_SERVED)(
     "%s needs data the native push does not send",
     (id: string) => {
-      const template: ProxmoxAlertTemplate =
-        getAllProxmoxAlertTemplates().find((t: ProxmoxAlertTemplate) => {
+      const template: ProxmoxAlertTemplate = getAllProxmoxAlertTemplates().find(
+        (t: ProxmoxAlertTemplate) => {
           return t.id === id;
-        })!;
+        },
+      )!;
       expect(served(template)).toBe(false);
     },
   );

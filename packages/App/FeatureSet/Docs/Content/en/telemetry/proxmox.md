@@ -78,7 +78,7 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | Variable                            | Required              | Description                                                                                                                                                                                                   |
 | ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                                  |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                          |
 | `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
 | `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
 | `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
@@ -187,12 +187,26 @@ Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pu
 | Path     | `/otlp/v1/metrics`                                                   |
 | Headers  | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}`            |
 
-Two trade-offs to be aware of:
+Add it once — every node of the cluster pushes its own metrics. Nothing else to configure: OneUptime recognizes the native push and translates it into the same `pve_*` series the agent sends, so:
 
-1. **Cluster discovery.** The agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute on every metric. With the native push, set the metric server's _Resource Attributes_ option to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself — without it the metrics ingest into your project but no Proxmox cluster appears.
-2. **Different metric names.** The native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox metric catalog and alert templates target the `pve_*` names, so the agent path is recommended; the native push is great as a zero-install way to get raw metrics into [Metrics Explorer](/docs/monitor/metrics-monitor) and custom dashboards.
+- the cluster registers itself under your Proxmox cluster name (a standalone node registers under its node name),
+- the Nodes, Guests and Storage pages, the overview charts, the metric catalog and the CPU / memory / storage alert templates work the same as with the agent,
+- the original `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series stay available in [Metrics Explorer](/docs/monitor/metrics-monitor) for anything else PVE reports (load average, swap, pressure stall, per-NIC traffic, …).
 
-You can also run both: native push for low-latency raw metrics, agent for discovery, the Proxmox dashboard pages, and alert templates.
+If you set `proxmox.cluster.name` under _Resource Attributes_ before, it keeps being used — the cluster keeps its name.
+
+### What the native push cannot do
+
+The native push only sends what each node knows about itself, so part of what the agent collects has no native equivalent:
+
+| Needs the agent                 | Why                                                                                                                                                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Detecting a node that went down | A node that dies stops pushing; it cannot report itself down. Its row drops out of the inventory after about 15 minutes, but the **Node Offline** and **Cluster Quorum at Risk** templates never fire. The agent asks the cluster about every node. |
+| HA state                        | Not pushed — the **HA State Error** template needs the agent.                                                                                                                                                                                       |
+| Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent.                                                                                                                                        |
+| Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.                                                                                                                                                      |
+
+If you need those, run the agent instead. Use one or the other for a cluster: running both reports every resource twice.
 
 ## Run as a systemd Service
 

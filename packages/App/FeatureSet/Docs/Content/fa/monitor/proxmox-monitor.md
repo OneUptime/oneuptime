@@ -204,7 +204,7 @@
 2. مقادیر `ONEUPTIME_URL`، `ONEUPTIME_TELEMETRY_INGESTION_KEY`، `PROXMOX_CLUSTER_NAME` و جزئیات API ‏Proxmox را به‌عنوان متغیر محیطی بدهید
 3. منتظر خودثبت شدن خوشه بمانید (حدود یک دقیقه پس از نخستین برداشت)
 
-> ‏Proxmox VE ‏۹ به بالا می‌تواند سنجه‌ها را از راه کارساز سنجه توکار OpenTelemetry خودش هم بومی بفرستد — [جایگزین بدون نصب](/docs/telemetry/proxmox) را در راهنمای عامل ببینید. ارسال بومی نام سنجه‌های متفاوتی به کار می‌برد (`proxmox_*` به‌جای `pve_*`)، پس قالب‌ها و فهرست این صفحه برای مسیر عامل صدق می‌کنند.
+> ‏Proxmox VE ‏۹ به بالا می‌تواند سنجه‌ها را از راه کارساز سنجه توکار OpenTelemetry خودش هم بومی بفرستد — [جایگزین بدون نصب](/docs/telemetry/proxmox) را در راهنمای عامل ببینید. OneUptime ارسال بومی را به همان سری‌های `pve_*` ترجمه می‌کند، پس فهرست و قالب‌های CPU، حافظه و ذخیره‌سازی این صفحه با آن هم کار می‌کنند. Node Offline، Cluster Quorum at Risk، Guest Down، HA State Error، Guest Not Backed Up و Replication Failing به داده‌ای نیاز دارند که فقط عامل گردآوری می‌کند.
 
 ## رفع اشکال
 
