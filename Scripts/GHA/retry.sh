@@ -72,10 +72,10 @@ retry_with_backoff() {
 # Registry *reads* fail differently from the pushes above, so they get their own
 # helper rather than reusing the one written for the push burst.
 #
-# The SBOM job walks every layer of all twelve published images on both
-# architectures — 24 scans, back to back, each one fetching every blob. That is
-# a read-rate problem rather than a secondary-limit problem, and GHCR says so
-# plainly:
+# The SBOM job walks every layer of twelve of the thirteen published images
+# (home is skipped), plus the App's enterprise tag, on both architectures — 26
+# scans, back to back, each one fetching every blob. That is a read-rate problem
+# rather than a secondary-limit problem, and GHCR says so plainly:
 #
 #   oci-registry: GET https://ghcr.io/v2/oneuptime/home/blobs/sha256:ea1eb2d3…:
 #   TOOMANYREQUESTS: retry-after: 390.000224ms
@@ -91,7 +91,7 @@ retry_with_backoff() {
 # the retry is *conditional*, which matters much more here than it does for a
 # push. A read that fails because the tag was never pushed (MANIFEST_UNKNOWN),
 # because the token cannot see it (UNAUTHORIZED), or because the platform is not
-# in the index will fail identically forever. Retrying all 24 scans through the
+# in the index will fail identically forever. Retrying all 26 scans through the
 # full backoff would turn a build that should go red in a minute into one that
 # grinds for the better part of an hour before reporting the same thing.
 #
