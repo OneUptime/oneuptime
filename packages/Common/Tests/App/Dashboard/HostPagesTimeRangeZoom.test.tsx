@@ -509,7 +509,7 @@ describe("Host overview: one zoom for the whole page", () => {
 
     // The Resource usage section holds the four cards the hint speaks for.
     const resourceSection: HTMLElement = hints[1]!.closest(
-      ".group",
+      '[class~="group/zoomhint"]',
     ) as HTMLElement;
     expect(resourceSection).toHaveTextContent("Resource usage");
     expect(
@@ -546,7 +546,7 @@ describe("Host overview: one zoom for the whole page", () => {
     expect(resetZoomButtons()).toHaveLength(1);
     expectOneSharedZoom({ zoomed: true });
     for (const hint of zoomHints()) {
-      expect(hint).toHaveTextContent("Drag to zoom · double-click to reset");
+      expect(hint).toHaveTextContent("Double-click to reset");
     }
   });
 
@@ -882,9 +882,7 @@ describe("Host process view: one zoom for the whole page", () => {
     );
     expect(pickerLabel()).toBe(customRangeLabel(at("11:44"), at("11:52")));
     expectOneSharedZoom({ zoomed: true });
-    expect(zoomHints()[0]).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
-    );
+    expect(zoomHints()[0]).toHaveTextContent("Double-click to reset");
   });
 
   test("a double-click on another chart puts Past 30 Minutes back", async () => {

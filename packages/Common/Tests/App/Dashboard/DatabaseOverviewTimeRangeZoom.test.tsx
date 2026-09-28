@@ -625,7 +625,7 @@ describe("Database Overview: one zoom for every chart on the page", () => {
       }
     });
     for (const hint of screen.getAllByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)) {
-      expect(hint).toHaveTextContent("Drag to zoom · double-click to reset");
+      expect(hint).toHaveTextContent("Double-click to reset");
     }
   });
 

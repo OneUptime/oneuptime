@@ -613,8 +613,8 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
 
     const hint: HTMLElement = screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
     expect(hint).toHaveTextContent(/^Drag to zoom$/);
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).toContainElement(
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).toContainElement(
       screen.getByText("Bandwidth Over Time"),
     );
   });
@@ -670,7 +670,7 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     expect(pickerLabel()).toBe(TimeRange.CUSTOM);
     expect(resetButtons()).toHaveLength(1);
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
     // The card says which window it describes.
     expect(

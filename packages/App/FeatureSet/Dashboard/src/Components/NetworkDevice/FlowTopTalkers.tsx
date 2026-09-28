@@ -688,8 +688,8 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
             </div>
 
             {data.series.length > 0 ? (
-              // `group`: the chart's "Drag to zoom" hint shows on hover.
-              <div className="group mb-6">
+              // The named group: the chart's "Drag to zoom" hint shows on hover.
+              <div className="group/zoomhint mb-6">
                 <FlowSectionTitle
                   title="Bandwidth Over Time"
                   description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowBandwidth}

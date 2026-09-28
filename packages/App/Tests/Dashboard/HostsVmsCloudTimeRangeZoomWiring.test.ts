@@ -246,7 +246,9 @@ describe("section hints on the pages with rows of chart cards", () => {
         countOf(source, "<TimeRangeZoomHint revealOnHover={true} />"),
       ).toBe(sections);
       // Each hint's section is a hover group, or the hint never shows.
-      expect(countOf(source, '<div className="group mb-6">')).toBe(sections);
+      expect(countOf(source, '<div className="group/zoomhint mb-6">')).toBe(
+        sections,
+      );
     },
   );
 

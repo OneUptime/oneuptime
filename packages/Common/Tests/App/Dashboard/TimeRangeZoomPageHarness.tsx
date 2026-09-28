@@ -427,13 +427,13 @@ export function zoomHints(): Array<HTMLElement> {
 }
 
 /*
- * A hint revealed on hover must sit inside an ancestor with Tailwind's
- * `group` class, or it would never become visible.
+ * A hint revealed on hover must sit inside an ancestor with the named
+ * Tailwind group (group/zoomhint), or it would never become visible.
  */
 export function expectRevealedOnHoverOf(hint: HTMLElement): HTMLElement {
-  expect(hint).toHaveClass("group-hover:opacity-100");
+  expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
 
-  const group: HTMLElement | null = hint.closest(".group");
+  const group: HTMLElement | null = hint.closest('[class~="group/zoomhint"]');
 
   expect(group).not.toBeNull();
 

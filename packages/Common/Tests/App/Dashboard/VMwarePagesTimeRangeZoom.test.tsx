@@ -416,9 +416,7 @@ describe("VMware vCenter overview: one zoom for the resource-usage charts", () =
     expect(pickerLabel()).toBe(customRangeLabel(at("11:36"), at("11:44")));
     expect(resetZoomButtons()).toHaveLength(1);
     expectOneSharedZoom({ zoomed: true });
-    expect(zoomHints()[0]).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
-    );
+    expect(zoomHints()[0]).toHaveTextContent("Double-click to reset");
   });
 
   test("a double-click on another chart puts the half hour back", async () => {

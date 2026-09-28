@@ -1733,7 +1733,7 @@ const HostOverview: FunctionComponent<
      */
     return (
       <Fragment>
-        <div className="group mb-6">
+        <div className="group/zoomhint mb-6">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
@@ -1757,7 +1757,7 @@ const HostOverview: FunctionComponent<
             description: HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="group mb-6">
+        <div className="group/zoomhint mb-6">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">

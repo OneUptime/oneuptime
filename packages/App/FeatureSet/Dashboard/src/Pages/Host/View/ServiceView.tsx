@@ -766,7 +766,7 @@ const HostServiceView: FunctionComponent<
      * at its right, shown while the pointer is over the heading or chart.
      */
     return (
-      <div className="group mb-6">
+      <div className="group/zoomhint mb-6">
         <div className="mb-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1">

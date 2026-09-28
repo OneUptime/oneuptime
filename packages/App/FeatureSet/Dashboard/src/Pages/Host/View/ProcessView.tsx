@@ -1054,7 +1054,7 @@ const HostProcessView: FunctionComponent<
      * to hold the hint beside a title and the icon without wrapping it.
      */
     return (
-      <div className="group mb-6">
+      <div className="group/zoomhint mb-6">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">

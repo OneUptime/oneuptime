@@ -146,7 +146,7 @@ describe("Network device Traffic: the top-talkers card's range is the page's", (
       '<TimeRangeZoomHint revealOnHover={true} className="ml-auto" />',
     );
     expect(code).toContain(
-      '<div className="group mb-6"> <FlowSectionTitle title="Bandwidth Over Time"',
+      '<div className="group/zoomhint mb-6"> <FlowSectionTitle title="Bandwidth Over Time"',
     );
   });
 
