@@ -38,8 +38,10 @@ import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
  * user already built on them keeps working.
  *
  * What the native push does not carry (HA state, start-on-boot, backup
- * coverage, replication, the PVE view of other nodes) cannot be derived
- * and is not invented here.
+ * coverage, replication) cannot be derived and is not invented here.
+ * The one thing a node cannot say about itself — that it is down — is
+ * said for it by the nodes still alive: see
+ * appendProxmoxSiblingReportsInPlace below and ProxmoxNativeNodeLiveness.
  */
 
 // The service.name every PVE native push stamps on its resource.
@@ -378,8 +380,8 @@ class DerivedSeries {
 
     /*
      * A node that pushes is up — pve-exporter reports its own view the
-     * same way. (A node that is down pushes nothing at all; see the
-     * docs for what that means for node-offline alerting.)
+     * same way. A node that is down pushes nothing at all; its live
+     * siblings report it (appendProxmoxSiblingReportsInPlace).
      */
     if (identity.scope === "node") {
       if (this.nodeTimeUnixNano === undefined) {
@@ -668,4 +670,230 @@ export function normalizeProxmoxNativePushInPlace(
       (scopeMetric["metrics"] as JSONArray).push(...derived.toMetrics());
     }
   }
+}
+
+/*
+ * ------------------------------------------------------------------
+ * Reporting the nodes that have stopped reporting
+ * ------------------------------------------------------------------
+ *
+ * A native-push node that dies goes quiet — nothing ever says pve_up = 0
+ * for it. The nodes still alive speak for it: a live node's own status
+ * push carries, next to its own pve_up = 1, a pve_up = 0 for every
+ * sibling that has gone quiet (ProxmoxNativeNodeLiveness decides which).
+ * That is what pve-exporter does for the agent — one node's view reports
+ * the dead ones — so the unchanged Node Offline and Cluster Quorum at
+ * Risk monitors now fire on a native push too.
+ *
+ * The reports sit in their own scopeMetrics entry, named
+ * PROXMOX_SIBLING_REPORT_SCOPE_NAME, and every datapoint carries
+ * `oneuptime.proxmox.inferred = not-reporting`, so they can always be
+ * told apart from what a node said itself. The inventory fold skips
+ * them: a report must never refresh the silent node's "last seen".
+ *
+ * Quorum at Risk is Σ pve_up ÷ Σ pve_node_info over every row of a
+ * minute, so each node must weigh the same in the denominator. Every
+ * live node contributes one pve_node_info = 1 per push. With L live
+ * reporters each reporting D silent nodes on each of their pushes, each
+ * report carries pve_node_info = D ÷ L in total (split across the silent
+ * nodes), so every "round" of pushes adds exactly D to the denominator
+ * and 0 to the numerator: the ratio is L ÷ (L + D), as with the agent.
+ * The weights are multiples of 2^-16, so any sum of them is exact in
+ * floating point, whatever order ClickHouse adds them in — which keeps
+ * the 50 % boundary (L = D) exact.
+ * ------------------------------------------------------------------
+ */
+
+export const PROXMOX_SIBLING_REPORT_SCOPE_NAME: string =
+  "oneuptime.proxmox.sibling-report";
+
+// Marks every reported datapoint as inferred, not measured.
+export const PROXMOX_INFERRED_ATTRIBUTE: string = "oneuptime.proxmox.inferred";
+export const PROXMOX_INFERRED_NOT_REPORTING: string = "not-reporting";
+
+const WEIGHT_UNITS_PER_NODE: number = 65536; // 2^16
+
+export function isProxmoxSiblingReportScope(
+  scopeMetric: JSONValue | undefined,
+): boolean {
+  const scope: JSONValue | undefined =
+    scopeMetric && typeof scopeMetric === "object"
+      ? (scopeMetric as JSONObject)["scope"]
+      : undefined;
+  return Boolean(
+    scope &&
+      typeof scope === "object" &&
+      (scope as JSONObject)["name"] === PROXMOX_SIBLING_REPORT_SCOPE_NAME,
+  );
+}
+
+/*
+ * The node a native-push block is the own status push of, and the
+ * timestamps of its own pve_up points — or null for anything else
+ * (guest / storage pushes, agent blocks, other telemetry). Reads the
+ * block after normalizeProxmoxNativePushInPlace.
+ */
+export function readProxmoxNativeNodeStatus(
+  envelope: JSONValue | undefined,
+): { nodeName: string; timeUnixNanos: Array<JSONValue> } | null {
+  if (!envelope || typeof envelope !== "object") {
+    return null;
+  }
+  const resource: JSONObject | undefined = (envelope as JSONObject)[
+    "resource"
+  ] as JSONObject | undefined;
+  const attributes: JSONArray | undefined = resource?.["attributes"] as
+    | JSONArray
+    | undefined;
+  if (!isProxmoxNativePushResource(attributes)) {
+    return null;
+  }
+  const nodeName: string | null = readAttributeString(
+    attributes,
+    "proxmox.node",
+  );
+  const scopeMetrics: JSONValue = (envelope as JSONObject)["scopeMetrics"];
+  if (!nodeName || !Array.isArray(scopeMetrics)) {
+    return null;
+  }
+
+  const ownId: string = `node/${nodeName}`;
+  const timeUnixNanos: Array<JSONValue> = [];
+  for (const scopeMetric of scopeMetrics) {
+    if (isProxmoxSiblingReportScope(scopeMetric)) {
+      continue;
+    }
+    const metrics: JSONValue = (scopeMetric as JSONObject)?.["metrics"];
+    if (!Array.isArray(metrics)) {
+      continue;
+    }
+    for (const metric of metrics) {
+      if ((metric as JSONObject)?.["name"] !== "pve_up") {
+        continue;
+      }
+      for (const point of metricDataPoints(metric as JSONObject)) {
+        const datapoint: JSONObject | null =
+          point && typeof point === "object" ? (point as JSONObject) : null;
+        if (
+          datapoint &&
+          readAttributeString(
+            datapoint["attributes"] as JSONArray | undefined,
+            "id",
+          ) === ownId
+        ) {
+          timeUnixNanos.push(datapoint["timeUnixNano"] ?? null);
+        }
+      }
+    }
+  }
+
+  return timeUnixNanos.length > 0 ? { nodeName, timeUnixNanos } : null;
+}
+
+/*
+ * Each silent node's pve_node_info weight in one report: D ÷ L in total,
+ * in whole 2^-16 units, split as evenly as possible (the first nodes in
+ * the given order take the remainder). With L = D the weights add up to
+ * exactly 1.
+ */
+export function splitProxmoxSiblingInfoWeights(
+  silentNodes: Array<string>,
+  reporterCount: number,
+): Array<{ nodeName: string; weight: number }> {
+  if (silentNodes.length === 0 || reporterCount < 1) {
+    return [];
+  }
+  const totalUnits: number = Math.round(
+    (silentNodes.length * WEIGHT_UNITS_PER_NODE) / reporterCount,
+  );
+  const baseUnits: number = Math.floor(totalUnits / silentNodes.length);
+  const remainder: number = totalUnits - baseUnits * silentNodes.length;
+  return silentNodes.map((nodeName: string, index: number) => {
+    return {
+      nodeName,
+      weight: (baseUnits + (index < remainder ? 1 : 0)) / WEIGHT_UNITS_PER_NODE,
+    };
+  });
+}
+
+/*
+ * Append the "not reporting" reports to a node's own status push: per
+ * own pve_up point, pve_up = 0 and a pve_node_info weight for every
+ * silent sibling, at that point's timestamp, with the exact labels the
+ * sibling's own push would carry. Idempotent.
+ */
+export function appendProxmoxSiblingReportsInPlace(
+  envelope: JSONObject,
+  report: {
+    silentNodes: Array<string>;
+    reporterCount: number;
+    timeUnixNanos: Array<JSONValue>;
+  },
+): void {
+  const scopeMetrics: JSONValue = envelope["scopeMetrics"];
+  if (
+    !Array.isArray(scopeMetrics) ||
+    report.silentNodes.length === 0 ||
+    report.timeUnixNanos.length === 0 ||
+    scopeMetrics.some((scopeMetric: JSONValue) => {
+      return isProxmoxSiblingReportScope(scopeMetric);
+    })
+  ) {
+    return;
+  }
+
+  const upPoints: Array<JSONObject> = [];
+  const infoPoints: Array<JSONObject> = [];
+  const inferred: JSONObject = stringAttribute(
+    PROXMOX_INFERRED_ATTRIBUTE,
+    PROXMOX_INFERRED_NOT_REPORTING,
+  );
+
+  for (const { nodeName, weight } of splitProxmoxSiblingInfoWeights(
+    report.silentNodes,
+    report.reporterCount,
+  )) {
+    const identity: ResourceIdentity | null = identityOf({
+      scope: "node",
+      datapointAttributes: [],
+      resourceNode: nodeName,
+    });
+    if (!identity) {
+      continue;
+    }
+    for (const timeUnixNano of report.timeUnixNanos) {
+      upPoints.push(
+        gaugePoint({
+          value: "0",
+          valueKey: "asInt",
+          timeUnixNano,
+          attributes: [...identityAttributes(identity), inferred],
+        }),
+      );
+      infoPoints.push(
+        gaugePoint({
+          value: weight,
+          valueKey: "asDouble",
+          timeUnixNano,
+          attributes: [
+            ...identityAttributes(identity),
+            ...identity.labels,
+            inferred,
+          ],
+        }),
+      );
+    }
+  }
+
+  if (upPoints.length === 0) {
+    return;
+  }
+
+  (scopeMetrics as JSONArray).push({
+    scope: { name: PROXMOX_SIBLING_REPORT_SCOPE_NAME, version: "1" },
+    metrics: [
+      { name: "pve_up", gauge: { dataPoints: upPoints } },
+      { name: "pve_node_info", gauge: { dataPoints: infoPoints } },
+    ],
+  });
 }

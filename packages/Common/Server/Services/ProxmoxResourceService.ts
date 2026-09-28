@@ -7,6 +7,9 @@ import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
+import { ProxmoxRosterNode } from "../Utils/Telemetry/ProxmoxNativeNodeLiveness";
+
+const NODE_ID_PREFIX: string = "node/";
 
 /*
  * ------------------------------------------------------------------
@@ -313,6 +316,15 @@ export class Service extends DatabaseService<Model> {
    * than olderThan. Returns the number of deleted rows. Only called by
    * the cleanup worker for clusters that are still connected — a
    * disconnected cluster keeps its last-known inventory.
+   *
+   * Exception: a Node that its live siblings are still reporting as not
+   * reporting (Proxmox VE native push — markNodesNotReporting) is kept,
+   * so it stays on the pages as Offline and keeps its alert open. Only
+   * markNodesNotReporting refreshes updatedAt on such a row without
+   * moving lastSeenAt, so "isUp is false and updatedAt is recent" means
+   * exactly "still being reported". Once the reports stop — the node
+   * returned, was removed, or passed the retention window — the row ages
+   * out like any other.
    */
   @CaptureSpan()
   public async deleteStaleForCluster(data: {
@@ -321,7 +333,10 @@ export class Service extends DatabaseService<Model> {
   }): Promise<number> {
     const result: Array<{ affected?: number }> | { affected?: number } =
       await this.getRepository().manager.query(
-        `DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2`,
+        `DELETE FROM "ProxmoxResource"
+         WHERE "proxmoxClusterId" = $1
+           AND "lastSeenAt" < $2
+           AND NOT ("kind" = 'Node' AND "isUp" IS FALSE AND "updatedAt" >= $2)`,
         [data.proxmoxClusterId.toString(), data.olderThan],
       );
 
@@ -341,6 +356,154 @@ export class Service extends DatabaseService<Model> {
     }
 
     return affected;
+  }
+
+  /**
+   * The cluster's nodes, for deciding which ones have stopped reporting
+   * (ProxmoxNativeNodeLiveness). A node silent for longer than the
+   * retention window drops out, so a node removed from the cluster stops
+   * being reported after at most that long even if nobody removes it.
+   */
+  @CaptureSpan()
+  public async getNodeRoster(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<Array<ProxmoxRosterNode>> {
+    const seenSince: Date = OneUptimeDate.addRemoveHours(
+      data.now || OneUptimeDate.getCurrentDate(),
+      -this.getSilentNodeRetentionHours(),
+    );
+    const rows: Array<{ externalId: string; lastSeenAt: Date | string }> =
+      await this.getRepository().manager.query(
+        `SELECT "externalId", "lastSeenAt" FROM "ProxmoxResource"
+         WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+           AND "kind" = 'Node' AND "deletedAt" IS NULL
+           AND "lastSeenAt" >= $3`,
+        [data.projectId.toString(), data.proxmoxClusterId.toString(), seenSince],
+      );
+
+    const roster: Array<ProxmoxRosterNode> = [];
+    for (const row of rows) {
+      if (!row.externalId || !row.externalId.startsWith(NODE_ID_PREFIX)) {
+        continue;
+      }
+      const nodeName: string = row.externalId.substring(NODE_ID_PREFIX.length);
+      const lastSeenAt: Date = new Date(row.lastSeenAt);
+      if (!nodeName || isNaN(lastSeenAt.getTime())) {
+        continue;
+      }
+      roster.push({ nodeName, lastSeenAt });
+    }
+    return roster;
+  }
+
+  /**
+   * Mark nodes that their live siblings report as not reporting
+   * (Proxmox VE native push) as Offline. Touches isUp, uptimeSeconds and
+   * updatedAt only — never lastSeenAt or metricsUpdatedAt, which stay
+   * the node's own last push. The node's next push flips it back through
+   * bulkUpsert (a newer lastSeenAt, isUp = true). A row the node itself
+   * refreshed after `silentBefore` is left alone, so a late report can
+   * never mark a live node down. Returns the number of rows written.
+   */
+  @CaptureSpan()
+  public async markNodesNotReporting(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    nodeNames: Array<string>;
+    // The report's own time minus the silence window, on the PVE clock.
+    silentBefore: Date;
+  }): Promise<number> {
+    if (data.nodeNames.length === 0) {
+      return 0;
+    }
+    const externalIds: Array<string> = data.nodeNames.map(
+      (nodeName: string) => {
+        return truncateShortText(`${NODE_ID_PREFIX}${nodeName}`) as string;
+      },
+    );
+
+    /*
+     * The updatedAt refresh (at most once a minute while the node stays
+     * reported) is what keeps the row through deleteStaleForCluster.
+     */
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "ProxmoxResource"
+       SET "isUp" = false, "uptimeSeconds" = NULL, "updatedAt" = now()
+       WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+         AND "kind" = 'Node' AND "externalId" = ANY($3)
+         AND "deletedAt" IS NULL
+         AND "lastSeenAt" < $4
+         AND ("isUp" IS DISTINCT FROM false
+              OR "updatedAt" < now() - interval '60 seconds')`,
+      [
+        data.projectId.toString(),
+        data.proxmoxClusterId.toString(),
+        externalIds,
+        data.silentBefore,
+      ],
+    );
+
+    // Postgres driver returns [rows, affected] for UPDATE — normalize.
+    if (Array.isArray(result) && typeof result[1] === "number") {
+      return result[1];
+    }
+    return 0;
+  }
+
+  /**
+   * Remove a node that has stopped reporting — for a node taken out of
+   * the cluster for good, which OneUptime cannot tell apart from a dead
+   * one on the Proxmox VE native push. Its siblings stop reporting it
+   * within a minute and its Node Offline alert resolves. A node that is
+   * still up is never removed (it would reappear on its next push);
+   * returns false then, or when there is no such node.
+   */
+  @CaptureSpan()
+  public async removeOfflineNode(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    externalId: string;
+  }): Promise<boolean> {
+    if (!data.externalId.startsWith(NODE_ID_PREFIX)) {
+      return false;
+    }
+    const result: unknown = await this.getRepository().manager.query(
+      `DELETE FROM "ProxmoxResource"
+       WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+         AND "kind" = 'Node' AND "externalId" = $3
+         AND "isUp" IS FALSE`,
+      [
+        data.projectId.toString(),
+        data.proxmoxClusterId.toString(),
+        data.externalId,
+      ],
+    );
+
+    // Postgres driver returns [rows, affected] for DELETE — normalize.
+    return Array.isArray(result) && typeof result[1] === "number"
+      ? result[1] > 0
+      : false;
+  }
+
+  /**
+   * How long a node that stopped reporting is still reported (and kept
+   * as Offline) before it is treated as gone. 7 days by default — long
+   * enough to outlast a weekend, short enough that a node removed from
+   * the cluster without using "Remove node" eventually lets go. Tune via
+   * PVE_SILENT_NODE_RETENTION_HOURS (min 1).
+   */
+  public getSilentNodeRetentionHours(): number {
+    const raw: string | undefined =
+      process.env["PVE_SILENT_NODE_RETENTION_HOURS"];
+    if (raw) {
+      const parsed: number = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed >= 1) {
+        return parsed;
+      }
+    }
+    return 7 * 24;
   }
 
   /**
