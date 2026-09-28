@@ -14,6 +14,11 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export type ChartCardColor =
   | "blue"
@@ -70,19 +75,25 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 ): ReactElement => {
   const colors: { bg: string; ring: string; text: string } =
     colorClasses[props.iconColor];
+  // The page's drag-to-zoom (TimeRangeZoomScope), which the chart takes.
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
 
   const header: ReactElement = (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between gap-2 mb-3">
       <div className="flex min-w-0 items-center gap-1">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           {props.title}
         </span>
         <InfoTooltip label={props.title} text={props.description} />
       </div>
-      <div
-        className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-      >
-        <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+      <div className="flex shrink-0 items-center gap-2">
+        <TimeRangeZoomHint revealOnHover={true} />
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
       </div>
     </div>
   );
@@ -93,7 +104,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 
   if (props.loading || !props.windowStart || !props.windowEnd) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-44 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -101,10 +112,18 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   }
 
   if (!hasData) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart to
+     * double-click. The empty plot area takes the double-click instead, so
+     * the way back is where the reader's pointer already is.
+     */
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
-        <div className="flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400">
+        <div
+          className="flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400"
+          onDoubleClick={pageZoom?.onTimeRangeReset}
+        >
           No data in this time range
         </div>
       </div>
@@ -139,7 +158,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.series}
