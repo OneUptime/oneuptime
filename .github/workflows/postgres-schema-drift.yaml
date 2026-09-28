@@ -327,3 +327,41 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit
+
+      # Clones the migrated TeamComplianceSetting table and its two severity
+      # join tables (with their migrated foreign keys) into an isolated schema.
+      # Rules scoped by severity and channel must land as join rows whatever
+      # shape the ids arrive in, duplicates and foreign severities must be
+      # refused, updates must replace the join rows, and deleting a severity
+      # must pause a rule scoped only to it rather than widen it.
+      - name: Test team compliance rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEAM_COMPLIANCE_TESTS: "true"
+          TEAM_COMPLIANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAM_COMPLIANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAM_COMPLIANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TeamComplianceSettingPostgres.test.ts --forceExit
+
+      # The Enterprise half: GET /team/compliance-status/:teamId end to end -
+      # rules written through the real settings service, members' notification
+      # rules and methods seeded as rows, and every query the ee status service
+      # builds run by Postgres. ee's jest resolves Common and App from their
+      # own installs, so both are installed first.
+      - name: Install App and ee for the Enterprise Postgres suite
+        run: |
+          cd packages/App && npm install
+          cd ../../ee && npm ci --ignore-scripts
+      - name: Test team compliance status on migrated Postgres (Enterprise)
+        working-directory: ee
+        env:
+          RUN_POSTGRES_TEAM_COMPLIANCE_TESTS: "true"
+          TEAM_COMPLIANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAM_COMPLIANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAM_COMPLIANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/TeamCompliance/TeamComplianceStatusPostgres.test.ts
+          --selectProjects server --runInBand --forceExit

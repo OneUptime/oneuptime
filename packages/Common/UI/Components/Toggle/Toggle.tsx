@@ -22,6 +22,13 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   tooltip?: string | undefined;
   ariaLabelledby?: string | undefined;
+  /*
+   * Presses are ignored and the switch says so (aria-disabled) - while the
+   * value it shows is being saved, say. Deliberately not the native
+   * `disabled` attribute: that would throw keyboard focus off a switch the
+   * user just pressed, and it is still the element they are on.
+   */
+  disabled?: boolean | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -59,6 +66,13 @@ const Toggle: FunctionComponent<ComponentProps> = (
       "bg-indigo-600 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
   }
 
+  if (props.disabled) {
+    buttonClassName = buttonClassName.replace(
+      "cursor-pointer",
+      "cursor-not-allowed",
+    );
+  }
+
   let toggleClassName: string =
     "translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out";
 
@@ -72,6 +86,17 @@ const Toggle: FunctionComponent<ComponentProps> = (
       <div className="flex items-center">
         <button
           onClick={() => {
+            /*
+             * Before handleChange, which flips the switch's own copy of its
+             * value: flipped and then refused by the caller, that copy would
+             * no longer match `value`, and nothing re-syncs it until `value`
+             * itself changes - a disabled switch pressed from the keyboard
+             * would go on showing the state it was refused.
+             */
+            if (props.disabled) {
+              return;
+            }
+
             if (props.onFocus) {
               props.onFocus();
             }
@@ -105,6 +130,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
           className={buttonClassName}
           role="switch"
           aria-checked={isChecked ? "true" : "false"}
+          aria-disabled={props.disabled ? "true" : undefined}
           aria-labelledby={props.ariaLabelledby || labelId}
           aria-describedby={props.error ? errorId : undefined}
           aria-invalid={props.error ? "true" : undefined}
