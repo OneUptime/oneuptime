@@ -1,8 +1,10 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -12,6 +14,7 @@ import {
   getServiceInfo,
 } from "../../../Utils/TraceDetailPresentation";
 import {
+  FULL_VIEWPORT,
   SpanTree,
   TimeViewport,
   WaterfallNode,
@@ -44,7 +47,9 @@ interface Mark {
 /*
  * The whole trace at a glance: every span as a hairline in tree order. Drag
  * across it to zoom the waterfall into that slice of time; click to move the
- * zoomed window. The buttons do the same from the keyboard.
+ * zoomed window; double-click to go back to the whole trace, like every
+ * other zoomable chart (issue #4105). The buttons do the same from the
+ * keyboard.
  */
 const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -55,6 +60,45 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
   const dragAnchorRef: React.MutableRefObject<number | null> = useRef<
     number | null
   >(null);
+
+  /*
+   * A click on a zoomed track pans, but the browser delivers both clicks of
+   * a double-click before the double-click itself. So the pan waits out
+   * DOUBLE_CLICK_DISAMBIGUATION_MS, and a second press or the double-click
+   * cancels it: a double-click resets without first dragging the window
+   * across the track twice.
+   */
+  const pendingPanRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The pan runs after a delay; it must use the window as it is by then.
+  const latestViewportRef: React.MutableRefObject<TimeViewport> =
+    useRef<TimeViewport>(props.viewport);
+  latestViewportRef.current = props.viewport;
+  const latestOnViewportChangeRef: React.MutableRefObject<
+    (viewport: TimeViewport) => void
+  > = useRef<(viewport: TimeViewport) => void>(props.onViewportChange);
+  latestOnViewportChangeRef.current = props.onViewportChange;
+
+  const cancelPendingPan: () => boolean = (): boolean => {
+    if (pendingPanRef.current === null) {
+      return false;
+    }
+
+    clearTimeout(pendingPanRef.current);
+    pendingPanRef.current = null;
+    return true;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingPanRef.current !== null) {
+        clearTimeout(pendingPanRef.current);
+        pendingPanRef.current = null;
+      }
+    };
+  }, []);
 
   const { tree } = props;
 
@@ -120,13 +164,23 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
         ref={trackRef}
         className="relative flex-1 cursor-crosshair touch-none select-none overflow-hidden rounded-md border border-gray-200 bg-white"
         style={{ height: `${MINIMAP_HEIGHT_PX}px` }}
-        title="Drag across the trace to zoom into that time range"
-        aria-label="Trace overview. Drag to zoom into a time range."
+        title={
+          isZoomed
+            ? "Drag across the trace to zoom into that time range. Double-click to see the whole trace."
+            : "Drag across the trace to zoom into that time range"
+        }
+        aria-label={
+          isZoomed
+            ? "Trace overview. Drag to zoom into a time range, double-click to see the whole trace."
+            : "Trace overview. Drag to zoom into a time range."
+        }
         role="img"
         onPointerDown={(event: React.PointerEvent<HTMLDivElement>) => {
           if (event.button !== 0) {
             return;
           }
+          // A second press before the first click panned replaces it.
+          cancelPendingPan();
           const fraction: number = fractionAt(event.clientX);
           dragAnchorRef.current = fraction;
           event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -152,13 +206,20 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
           const fraction: number = fractionAt(event.clientX);
           if (Math.abs(fraction - anchor) < CLICK_TOLERANCE) {
             if (isZoomed) {
-              const width: number = props.viewport.end - props.viewport.start;
-              props.onViewportChange(
-                clampViewport({
-                  start: Math.min(1 - width, Math.max(0, fraction - width / 2)),
-                  end: Math.min(1, Math.max(width, fraction + width / 2)),
-                }),
-              );
+              pendingPanRef.current = setTimeout(() => {
+                pendingPanRef.current = null;
+                const viewport: TimeViewport = latestViewportRef.current;
+                const width: number = viewport.end - viewport.start;
+                latestOnViewportChangeRef.current(
+                  clampViewport({
+                    start: Math.min(
+                      1 - width,
+                      Math.max(0, fraction - width / 2),
+                    ),
+                    end: Math.min(1, Math.max(width, fraction + width / 2)),
+                  }),
+                );
+              }, DOUBLE_CLICK_DISAMBIGUATION_MS);
             }
             return;
           }
@@ -172,6 +233,14 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
         onPointerCancel={() => {
           dragAnchorRef.current = null;
           setDragWindow(null);
+        }}
+        onDoubleClick={() => {
+          cancelPendingPan();
+          // Nothing to undo: a stray double-click leaves the waterfall be.
+          if (isFullViewport(latestViewportRef.current)) {
+            return;
+          }
+          props.onViewportChange(FULL_VIEWPORT);
         }}
       >
         <svg
@@ -245,7 +314,7 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
             className="ml-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
             data-testid="trace-reset-zoom"
             onClick={() => {
-              props.onViewportChange({ start: 0, end: 1 });
+              props.onViewportChange(FULL_VIEWPORT);
             }}
           >
             Reset zoom
