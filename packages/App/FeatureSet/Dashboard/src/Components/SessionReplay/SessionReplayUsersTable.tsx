@@ -20,6 +20,9 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { SessionReplayUsersCursorDto } from "Common/Types/Rum/SessionReplayApi";
 import { VoidFunction } from "Common/Types/FunctionTypes";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Table from "Common/UI/Components/Table/Table";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -29,6 +32,7 @@ import StatusBadge, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -68,7 +72,8 @@ import { RUM_REPLAY_USERS_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumM
  * Every row answers "who had trouble, and where do I click to see it":
  * the whole row (or its Sessions action) hands the person's identity
  * filter to the page, which opens the session list on it, and Watch
- * latest opens their newest recording without a second request.
+ * latest - in the row's ⋯ menu - opens their newest recording without a
+ * second request.
  */
 
 export const SESSION_REPLAY_USERS_PAGE_SIZE: number = 50;
@@ -92,6 +97,13 @@ export interface SessionReplayUsersTableProps {
 
 interface SessionReplayUsersTableRow extends SessionReplayUserRollup {
   cells: Array<ReactElement>;
+  /*
+   * The newest recording, when Watch latest belongs in the row's ⋯ menu -
+   * that is, when Sessions holds the row's button. Null otherwise: either
+   * there is no recording to open, or Watch latest is the row's button
+   * itself (see getUserRollupCells).
+   */
+  watchLatestMenuRoute: Route | null;
 }
 
 interface UserRowContext {
@@ -143,6 +155,57 @@ function handoffFor(
     identifiedUserLabel: row.identifiedUserLabel ?? "",
   };
 }
+
+/*
+ * Where Watch latest sits on a row. With a person to filter by, Sessions is
+ * the row's button and Watch latest waits in the ⋯ menu beside it. With
+ * nobody to filter by - the unlinked bucket - it is the only thing the row
+ * can do, so it is the row's button instead: a menu of one would only add a
+ * click. This returns the menu's route, and null in that second case.
+ */
+export function getWatchLatestMenuRoute(
+  row: SessionReplayUserRollup,
+  rumApplicationId: string,
+): Route | null {
+  if (!describeRow(row).filter) {
+    return null;
+  }
+
+  return routeForSession(rumApplicationId, row.lastSessionId);
+}
+
+/*
+ * The row's ⋯ menu: Watch latest, whenever Sessions holds the row's button.
+ * Sessions itself stays the Actions cell's own button rather than an entry
+ * here, because its title names the person on that row and a row action's
+ * tooltip is one string for the whole table. The split never sees it, so
+ * Watch latest is pinned to the menu - left to the split, as the only
+ * action it knows of, it would become a second button beside Sessions.
+ */
+const SESSION_REPLAY_USER_ROW_ACTIONS: Array<
+  ActionButtonSchema<SessionReplayUsersTableRow>
+> = [
+  {
+    title: "Watch latest",
+    icon: IconProp.Play,
+    buttonStyleType: ButtonStyleType.OUTLINE,
+    placement: ActionButtonPlacement.MoreMenu,
+    tooltip: "Watch this person's newest session",
+    isVisible: (row: SessionReplayUsersTableRow): boolean => {
+      return Boolean(row.watchLatestMenuRoute);
+    },
+    onClick: (
+      row: SessionReplayUsersTableRow,
+      onCompleteAction: VoidFunction,
+    ): void => {
+      if (row.watchLatestMenuRoute) {
+        Navigation.navigate(row.watchLatestMenuRoute);
+      }
+
+      onCompleteAction();
+    },
+  },
+];
 
 function getUserRollupCells(
   row: SessionReplayUserRollup,
@@ -289,38 +352,43 @@ function getUserRollupCells(
         <span className="text-sm text-gray-500">Clean</span>
       )}
     </div>,
+    /*
+     * The row's one button: Sessions when there is a person to filter by,
+     * with Watch latest in the ⋯ menu the Table draws beside it (see
+     * getWatchLatestMenuRoute); otherwise Watch latest itself, still a real
+     * link so Cmd-click and middle-click open the player in a new tab.
+     */
     <div key="5">
-      <div className="flex flex-col items-end gap-1">
-        {user.filter && (
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-            title={`List every session from ${user.text}`}
-            data-testid="session-user-view-sessions"
-            onClick={(): void => {
-              context.onViewUserSessions(
-                handoffFor(
-                  row,
-                  user.filter as Partial<SessionReplayAdvancedFilters>,
-                ),
-              );
-            }}
-          >
-            <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-            Sessions
-          </button>
-        )}
-        {watchRoute && (
-          <Link
-            to={watchRoute}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:underline"
-            title={`Watch the newest session (${row.lastSessionId.slice(0, 8)})`}
-          >
-            <Icon icon={IconProp.Play} className="h-3 w-3" />
-            <span data-testid="session-user-watch-latest">Watch latest</span>
-          </Link>
-        )}
-      </div>
+      {user.filter ? (
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+          title={`List every session from ${user.text}`}
+          data-testid="session-user-view-sessions"
+          onClick={(): void => {
+            context.onViewUserSessions(
+              handoffFor(
+                row,
+                user.filter as Partial<SessionReplayAdvancedFilters>,
+              ),
+            );
+          }}
+        >
+          <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
+          Sessions
+        </button>
+      ) : watchRoute ? (
+        <Link
+          to={watchRoute}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+          title={`Watch the newest session (${row.lastSessionId.slice(0, 8)})`}
+        >
+          <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+          <span data-testid="session-user-watch-latest">Watch latest</span>
+        </Link>
+      ) : (
+        <></>
+      )}
     </div>,
   ];
 }
@@ -340,6 +408,20 @@ function getUserRollupRowProps(
     }
 
     const target: HTMLElement | null = event.target as HTMLElement | null;
+
+    /*
+     * The row's ⋯ menu is portalled to document.body, but React still
+     * bubbles its clicks up the component tree to this row. A click that
+     * landed outside the row's own elements - on the menu's padding, say -
+     * is not a click on the row.
+     */
+    if (
+      target instanceof Node &&
+      event.currentTarget instanceof Node &&
+      !event.currentTarget.contains(target)
+    ) {
+      return;
+    }
 
     /* A click on a link or button inside the row is that control's, not the row's. */
     if (
@@ -557,7 +639,14 @@ const SessionReplayUsersTable: FunctionComponent<
     useMemo((): Array<SessionReplayUsersTableRow> => {
       return rows.map(
         (row: SessionReplayUserRollup): SessionReplayUsersTableRow => {
-          return { ...row, cells: getUserRollupCells(row, context) };
+          return {
+            ...row,
+            cells: getUserRollupCells(row, context),
+            watchLatestMenuRoute: getWatchLatestMenuRoute(
+              row,
+              context.rumApplicationId,
+            ),
+          };
         },
       );
     }, [rows, context]);
@@ -591,6 +680,7 @@ const SessionReplayUsersTable: FunctionComponent<
         id="session-replay-users-table"
         data={tableRows}
         columns={SESSION_REPLAY_USER_COLUMNS}
+        actionButtons={SESSION_REPLAY_USER_ROW_ACTIONS}
         getRowProps={(
           row: SessionReplayUsersTableRow,
         ): React.HTMLAttributes<HTMLElement> => {

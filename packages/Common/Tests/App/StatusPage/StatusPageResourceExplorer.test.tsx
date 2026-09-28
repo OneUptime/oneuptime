@@ -1063,6 +1063,104 @@ describe("Status Page > Resources", () => {
         screen.getByTestId("status-page-resource-panel-grid-badge"),
       ).toBeInTheDocument();
     });
+
+    /*
+     * A grid chip carries what a list row does - edit, and a ⋯ with the id and
+     * the removal - and the pane answers each the same way whichever of the two
+     * it came from.
+     */
+    describe("a grid chip's ⋯", () => {
+      type OpenGridChipMenuFunction = (name: string) => Promise<HTMLElement>;
+
+      const openGridChipMenu: OpenGridChipMenuFunction = async (
+        name: string,
+      ): Promise<HTMLElement> => {
+        const chip: HTMLElement = screen
+          .queryAllByTestId("status-page-resource-grid-cell-item")
+          .find((candidate: HTMLElement) => {
+            return (candidate.textContent || "").includes(name);
+          })!;
+
+        fireEvent.click(
+          within(chip).getByTestId("status-page-resource-grid-more"),
+        );
+        await flushEffects();
+
+        return screen.getByRole("menu");
+      };
+
+      type SetUpGridFunction = () => Promise<void>;
+
+      const setUpGrid: SetUpGridFunction = async (): Promise<void> => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "loose", monitorName: "Loose" }),
+            makeResource({
+              id: "grid-a",
+              groupId: GRID_ID,
+              monitorName: "Auth US",
+              rowAxisValue: "Auth",
+              columnAxisValue: "US-East",
+            }),
+            makeResource({
+              id: "grid-b",
+              groupId: GRID_ID,
+              monitorName: "API EU",
+              rowAxisValue: "API",
+              columnAxisValue: "EU-West",
+            }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectGroup("Grid Group");
+      };
+
+      test("shows the id of the chip it was opened from", async () => {
+        await setUpGrid();
+
+        const menu: HTMLElement = await openGridChipMenu("API EU");
+
+        fireEvent.click(
+          within(menu).getByRole("menuitem", { name: "Show ID" }),
+        );
+        await flushEffects();
+
+        expect(
+          screen.getByText("Status Page Resource ID: grid-b"),
+        ).toBeInTheDocument();
+      });
+
+      test("removing asks first, then deletes only that chip's resource", async () => {
+        await setUpGrid();
+
+        const menu: HTMLElement = await openGridChipMenu("API EU");
+
+        fireEvent.click(
+          within(menu).getByRole("menuitem", {
+            name: "Remove from status page",
+          }),
+        );
+        await flushEffects();
+
+        expect(
+          screen.getByText("Remove resource from status page"),
+        ).toBeInTheDocument();
+        expect(mockDeleteItem).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByText("Remove"));
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(1);
+        });
+
+        expect(mockDeleteItem.mock.calls[0]![0].id.toString()).toBe("grid-b");
+      });
+    });
   });
 
   describe("changing a group", () => {
