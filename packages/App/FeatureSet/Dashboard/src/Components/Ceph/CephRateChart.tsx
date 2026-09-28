@@ -16,6 +16,10 @@ import {
 import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
@@ -44,6 +48,10 @@ import {
  * fetched over the window, deltas are clamped at counter resets, and
  * per-bucket rates are summed across all matching series (e.g. across
  * all pools).
+ *
+ * The line chart takes the zoom of the page (or card) around it on its
+ * own, so a drag here retimes whatever the window came from; the window
+ * then comes back down as startDate/endDate (issue #4105).
  */
 
 export interface CephRateChartSeries {
@@ -76,6 +84,8 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // The zoom the chart takes from the page or card around it.
+  const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
 
   const startMs: number = props.startDate.getTime();
   const endMs: number = props.endDate.getTime();
@@ -176,8 +186,17 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
   }
 
   if (series.length === 0) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart left to
+     * double-click. The empty plot area takes the double-click instead,
+     * so the way back is where the reader's pointer already is (the same
+     * as ChartCard's empty state). The reset is only set while zoomed.
+     */
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+      <div
+        className="flex h-48 items-center justify-center text-sm text-gray-400"
+        onDoubleClick={zoom?.onTimeRangeReset}
+      >
         {props.emptyMessage || "No data reported for the selected time range."}
       </div>
     );

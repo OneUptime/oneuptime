@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -28,6 +27,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * Curated MetricView presets sharing one time-range state — the Ceph
@@ -271,7 +271,18 @@ const CephClusterInsights: FunctionComponent<
   const clusterName: string = cluster.name;
 
   return (
-    <Fragment>
+    /*
+     * The four cards share the page's one range, so they share one zoom
+     * too: a drag on a chart in any card zooms every card, and a
+     * double-click on a chart in any card (or "Reset zoom" beside any
+     * card's picker) puts the range back, even after a zoom made in
+     * another card. A card's Refresh re-sends the zoomed range unchanged,
+     * so it keeps the zoom.
+     */
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.ChartBar, "Capacity")}
         description="Cluster-wide capacity usage and per-pool stored bytes."
@@ -352,7 +363,7 @@ const CephClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
