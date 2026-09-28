@@ -3,11 +3,14 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import ClusterAccessNotice, {
+  CLUSTER_AI_AGENT_PAGE_LINK_TEXT,
+  CLUSTER_KUBECTL_RUNNER_NAME,
   ClusterAccessNoticeRow,
   DATA_ONLY_RUN_TEXT,
   describeFinishedRunKubectlUsage,
   FinishedRunKubectlUsage,
   getClusterAccessSignature,
+  getClusterAiAgentPageRoute,
   parseClusterAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterAccessNotice";
 import { KubectlActivitySummary } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
@@ -36,7 +39,7 @@ const INVESTIGATION_DISABLED_GAP: KubernetesAiAccessGap = {
   title: "Investigation is off",
   description: "AI may not run kubectl on this cluster.",
   nextStep:
-    "Turn on 'Let AI investigate with kubectl' on the cluster's AI page.",
+    "Turn on 'Investigate with kubectl' on the cluster's AI agent page (AI → Agent).",
   blocks: "investigation",
 };
 
@@ -56,6 +59,8 @@ function makeStatus(
     clusterName: "prod-east",
     runner: null,
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -158,7 +163,7 @@ describe("describeFinishedRunKubectlUsage", () => {
     expect(usage?.tone).toBe("failed");
     expect(usage?.text).not.toContain("ran 3");
     expect(usage?.text).toBe(
-      "OneUptime AI tried 3 read-only kubectl commands, but none ran on the cluster — the cluster's Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
+      "OneUptime AI tried 3 read-only kubectl commands, but none ran on the cluster — the cluster's AI agent or Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
     );
     expect(usageText(activity({ notRun: 1 }))).toContain(
       "did not pick it up, or it was refused",
@@ -200,10 +205,10 @@ describe("describeFinishedRunKubectlUsage", () => {
   });
 
   /*
-   * IP-1: the cluster's Runner took the command, kubectl finished, and the
-   * result never came back (a lost result POST, a Runner killed right
-   * after). It may have run, so it is never "did not pick it up, or it was
-   * refused" — and never "ran" either.
+   * IP-1: the cluster's AI agent or Runner took the command, kubectl
+   * finished, and the result never came back (a lost result POST, a pod
+   * killed right after). It may have run, so it is never "did not pick it
+   * up, or it was refused" — and never "ran" either.
    */
   test("never says a command whose result never came back was not picked up or refused", () => {
     const usage: FinishedRunKubectlUsage | null =
@@ -211,19 +216,19 @@ describe("describeFinishedRunKubectlUsage", () => {
 
     expect(usage?.tone).toBe("failed");
     expect(usage?.text).toBe(
-      "OneUptime AI tried 1 read-only kubectl command, but no result came back from the cluster — the cluster's Runner took it but never reported back, so whether it ran is unknown. This investigation used OneUptime data only; see Investigation activity for why.",
+      "OneUptime AI tried 1 read-only kubectl command, but no result came back from the cluster — the cluster's AI agent or Runner took it but never reported back, so whether it ran is unknown. This investigation used OneUptime data only; see Investigation activity for why.",
     );
     expect(usage?.text).not.toContain("did not pick");
     expect(usage?.text).not.toContain("refused");
     expect(usage?.text).not.toContain("none ran");
     expect(usageText(activity({ unknown: 2 }))).toContain(
-      "the cluster's Runner took them but never reported back, so whether they ran is unknown",
+      "the cluster's AI agent or Runner took them but never reported back, so whether they ran is unknown",
     );
   });
 
   test("names commands that could not run and commands whose result never came back apart", () => {
     expect(usageText(activity({ notRun: 1, unknown: 2 }))).toBe(
-      "OneUptime AI tried 3 read-only kubectl commands, but no result came back from the cluster — 1 could not run (the cluster's Runner did not pick it up, or it was refused), and the Runner took 2 more but never reported back. This investigation used OneUptime data only; see Investigation activity for why.",
+      "OneUptime AI tried 3 read-only kubectl commands, but no result came back from the cluster — 1 could not run (the cluster's AI agent or Runner did not pick it up, or it was refused), and 2 more were picked up but never reported back. This investigation used OneUptime data only; see Investigation activity for why.",
     );
     expect(
       usageText(activity({ executed: 1, succeeded: 0, notRun: 1, unknown: 1 })),
@@ -243,8 +248,61 @@ describe("describeFinishedRunKubectlUsage", () => {
   // Negative control: without the new bucket, the wording is unchanged.
   test("keeps the never-ran wording when every command was unclaimed or refused", () => {
     expect(usageText(activity({ notRun: 2, unknown: 0 }))).toBe(
-      "OneUptime AI tried 2 read-only kubectl commands, but none ran on the cluster — the cluster's Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
+      "OneUptime AI tried 2 read-only kubectl commands, but none ran on the cluster — the cluster's AI agent or Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
     );
+  });
+});
+
+/*
+ * A run's kubectl commands go to whatever reached the cluster when it ran:
+ * the Kubernetes AI agent, the chart's previous in-cluster Runner, or an
+ * advanced Runner an operator bound. The run's events do not say which,
+ * and the cluster's current target may have changed since, so the notice
+ * names both rather than blaming the wrong one.
+ */
+describe("who took a run's commands", () => {
+  test("is named as the cluster's AI agent or Runner", () => {
+    expect(CLUSTER_KUBECTL_RUNNER_NAME).toBe(
+      "the cluster's AI agent or Runner",
+    );
+  });
+
+  test("every sentence about commands that did not come back names both", () => {
+    for (const summary of [
+      activity({ notRun: 1 }),
+      activity({ notRun: 3 }),
+      activity({ unknown: 1 }),
+      activity({ unknown: 2 }),
+      activity({ notRun: 1, unknown: 1 }),
+      activity({ notRun: 2, unknown: 3 }),
+    ]) {
+      const text: string = usageText(summary);
+      expect(text).toContain(CLUSTER_KUBECTL_RUNNER_NAME);
+      // Never the agent alone, never "the agent" as a stand-in for it.
+      expect(text).not.toMatch(/the cluster's AI agent (?!or Runner)/);
+      expect(text).not.toContain("the agent took");
+      expect(text).not.toContain("the Runner took");
+    }
+  });
+
+  test("says how many more were picked up but never reported back, in the right number", () => {
+    expect(usageText(activity({ notRun: 1, unknown: 1 }))).toContain(
+      "and 1 more was picked up but never reported back",
+    );
+    expect(usageText(activity({ notRun: 2, unknown: 3 }))).toContain(
+      "2 could not run (the cluster's AI agent or Runner did not pick them up, or they were refused), and 3 more were picked up but never reported back",
+    );
+  });
+
+  // Commands that reached kubectl need no one named: kubectl answered.
+  test("is not named when every command reached kubectl", () => {
+    for (const summary of [
+      activity({ executed: 2, succeeded: 2 }),
+      activity({ executed: 3, succeeded: 0 }),
+      activity({ executed: 2, succeeded: 1, notRun: 1 }),
+    ]) {
+      expect(usageText(summary)).not.toContain(CLUSTER_KUBECTL_RUNNER_NAME);
+    }
   });
 });
 
@@ -288,7 +346,7 @@ describe("parseClusterAccess", () => {
         {
           ...INVESTIGATION_DISABLED_GAP,
           description:
-            "Someone who can view this Kubernetes cluster can see the details on its AI page.",
+            "Someone who can view this Kubernetes cluster can see the details on its AI agent page.",
         },
       ],
     };
@@ -310,10 +368,10 @@ describe("parseClusterAccess", () => {
     );
     expect(gapRow).toHaveTextContent("Why: Investigation is off.");
     expect(gapRow).toHaveTextContent(
-      "What to do: Turn on 'Let AI investigate with kubectl'",
+      "What to do: Turn on 'Investigate with kubectl'",
     );
     expect(
-      within(gapRow).getByText("Give OneUptime AI access to this cluster"),
+      within(gapRow).getByText("Open the cluster's AI agent page"),
     ).toBeInTheDocument();
   });
 });
@@ -452,7 +510,7 @@ describe("ClusterAccessNotice", () => {
       );
       expect(noticeText()).toContain("Why: Investigation is off.");
       expect(noticeText()).toContain(
-        "What to do: Turn on 'Let AI investigate with kubectl'",
+        "What to do: Turn on 'Investigate with kubectl'",
       );
     });
 
@@ -717,11 +775,16 @@ describe("ClusterAccessNotice", () => {
     );
 
     expect(screen.getByTestId("cluster-access-unreachable")).toHaveTextContent(
-      "(1 more to fix on the cluster's AI page.)",
+      "(1 more to fix on the cluster's AI agent page.)",
     );
   });
 
-  test("links every cluster to its AI page", () => {
+  /*
+   * The cluster's AI page is now two: AI → Insights and AI → Agent. The
+   * notice's links go where access is fixed — the AI agent page — and not
+   * to ".../ai", which only redirects there.
+   */
+  test("links every cluster to its AI agent page", () => {
     render(
       <ClusterAccessNotice
         clusterAccess={[
@@ -741,15 +804,24 @@ describe("ClusterAccessNotice", () => {
     ).getByText("prod-east");
     expect(reachableLink.closest("a")).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai`,
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/agent`,
     );
 
     const fixLink: HTMLElement = within(
       screen.getByTestId("cluster-access-unreachable"),
-    ).getByText("Give OneUptime AI access to this cluster");
+    ).getByText(CLUSTER_AI_AGENT_PAGE_LINK_TEXT);
     expect(fixLink.closest("a")).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/kubernetes/${OTHER_CLUSTER_ID}/ai`,
+      `/dashboard/${PROJECT_ID}/kubernetes/${OTHER_CLUSTER_ID}/ai/agent`,
+    );
+    expect(CLUSTER_AI_AGENT_PAGE_LINK_TEXT).toBe(
+      "Open the cluster's AI agent page",
+    );
+  });
+
+  test("the AI agent page route is the cluster's AI → Agent", () => {
+    expect(getClusterAiAgentPageRoute(CLUSTER_ID).toString()).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/agent`,
     );
   });
 

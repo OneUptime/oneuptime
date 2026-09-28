@@ -1,0 +1,22 @@
+# A 14.0.x release that ran the in-cluster Runner read-only
+# (--set aiAccess.enabled=true), upgraded with --reuse-values: the agent
+# replaces the Runner, still read-only.
+aiAgent: null
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: false
+    namespaces: []
+    nodeOperations: true
+  image:
+    repository: oneuptime/runner
+    tag: ""
+    pullPolicy: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  extraEnv: []

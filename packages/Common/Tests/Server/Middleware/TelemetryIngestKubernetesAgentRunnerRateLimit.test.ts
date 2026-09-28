@@ -1,5 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import TelemetryIngest, {
+  DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE,
   DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE,
   getEffectiveRequestsPerMinuteLimit,
   TelemetryRequest,
@@ -21,7 +22,9 @@ import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
 } from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
-import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestSurface, {
+  IDENTITY_REGISTRATION_SURFACES,
+} from "../../../Types/Telemetry/TelemetryIngestSurface";
 
 /*
  * The Kubernetes agent Runner registration endpoint is reached with the
@@ -41,6 +44,10 @@ import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurf
  *      no limiter call.
  *   4. A registration request over the default is refused 429 like any other
  *      rate-limited request, Retry-After included.
+ *   5. The Kubernetes AI agent registration, which mints the agent key the
+ *      same way, gets exactly the same default: the rule is keyed on
+ *      IDENTITY_REGISTRATION_SURFACES, not on one enum member, so a new
+ *      identity surface cannot quietly go unlimited.
  *
  * Same module-boundary mocks as the browser key guard suite: no Postgres, no
  * Redis.
@@ -95,8 +102,12 @@ const ALL_SURFACES: Array<TelemetryIngestSurface> = Object.values(
 
 const NON_REGISTRATION_SURFACES: Array<TelemetryIngestSurface> =
   ALL_SURFACES.filter((surface: TelemetryIngestSurface): boolean => {
-    return surface !== TelemetryIngestSurface.KubernetesAgentRunner;
+    return !IDENTITY_REGISTRATION_SURFACES.has(surface);
   });
+
+const REGISTRATION_SURFACES: Array<TelemetryIngestSurface> = Array.from(
+  IDENTITY_REGISTRATION_SURFACES,
+);
 
 type BuildPolicyFunction = (
   overrides: Partial<TelemetryIngestionKeyPolicy>,
@@ -354,5 +365,97 @@ describe("TelemetryIngest Kubernetes agent Runner registration rate limit", () =
         expect(result.next).toHaveBeenCalledTimes(1);
       }
     });
+  });
+});
+
+describe("TelemetryIngest identity registration surfaces share one rate limit rule", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (TelemetryIngestionKeyService.markUsed as MockFn).mockResolvedValue(
+      undefined as never,
+    );
+
+    limiterAnswers(TelemetryIngestionKeyLimitOutcome.Allowed);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the identity surfaces are exactly the Runner and the Kubernetes AI agent registrations", () => {
+    expect([...REGISTRATION_SURFACES].sort()).toEqual(
+      [
+        TelemetryIngestSurface.KubernetesAgentRunner,
+        TelemetryIngestSurface.KubernetesAiAgent,
+      ].sort(),
+    );
+    expect(
+      NON_REGISTRATION_SURFACES.length + REGISTRATION_SURFACES.length,
+    ).toBe(ALL_SURFACES.length);
+  });
+
+  test("the shipped default is one number under both names", () => {
+    expect(DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE).toBe(30);
+    expect(DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE).toBe(
+      DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE,
+    );
+  });
+
+  test("a server key with no configured limit gets the registration default on the Kubernetes AI agent surface", () => {
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        buildServerPolicy({ requestsPerMinuteLimit: null }),
+        TelemetryIngestSurface.KubernetesAiAgent,
+      ),
+    ).toBe(DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE);
+
+    // An explicit per-key limit still wins there.
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        buildServerPolicy({ requestsPerMinuteLimit: 3 }),
+        TelemetryIngestSurface.KubernetesAiAgent,
+      ),
+    ).toBe(3);
+  });
+
+  test.each(REGISTRATION_SURFACES)(
+    "an unlimited server key IS rate limited at 30/min through the middleware on %s",
+    async (surface: TelemetryIngestSurface) => {
+      resolveTo(buildServerPolicy({ requestsPerMinuteLimit: null }));
+
+      const result: RunResult = await run(surface);
+
+      expect(
+        TelemetryIngestionKeyRateLimiter.consume as MockFn,
+      ).toHaveBeenCalledTimes(1);
+      expect(firstConsumeCallArgs()["limitPerMinute"]).toBe(30);
+      expect(firstConsumeCallArgs()["ingestionKeyId"]?.toString()).toBe(
+        INGESTION_KEY_ID,
+      );
+      expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a Kubernetes AI agent registration over the default is refused 429 with Retry-After", async () => {
+    resolveTo(buildServerPolicy({ requestsPerMinuteLimit: null }));
+    limiterAnswers(TelemetryIngestionKeyLimitOutcome.RateLimited, {
+      retryAfterSeconds: 17,
+      isFirstRejectionInWindow: false,
+    });
+
+    const result: RunResult = await run(
+      TelemetryIngestSurface.KubernetesAiAgent,
+    );
+
+    expect(result.next).not.toHaveBeenCalled();
+
+    const error: Error = (Response.sendErrorResponse as MockFn).mock
+      .calls[0]?.[2] as Error;
+    expect(error).toBeInstanceOf(TooManyRequestsException);
+    expect(error.message).not.toContain(SENTINEL_TOKEN);
+    expect(result.setHeader).toHaveBeenCalledWith("Retry-After", "17");
+    expect((result.req as TelemetryRequest).projectId).toBeUndefined();
   });
 });

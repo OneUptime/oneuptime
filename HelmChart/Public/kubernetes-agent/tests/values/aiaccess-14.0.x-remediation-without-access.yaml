@@ -1,0 +1,28 @@
+# A 14.0.x release whose stored aiAccess.remediation.enabled is true while
+# aiAccess.enabled stayed false (the Runner was never deployed, so its write
+# access never existed), and which also listed a namespace and turned node
+# operations off. Write access does not carry over: the agent comes up
+# read-only, and a later --set aiAgent.remediation.enabled=true binds
+# cluster-wide rather than resurrecting the stored list. nodeOperations is
+# the exception: a stored bool is carried whatever the stored writes were,
+# because keeping node operations off is never the riskier reading.
+aiAgent: null
+aiAccess:
+  enabled: false
+  remediation:
+    enabled: true
+    namespaces:
+      - web
+    nodeOperations: false
+  image:
+    repository: oneuptime/runner
+    tag: ""
+    pullPolicy: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  extraEnv: []

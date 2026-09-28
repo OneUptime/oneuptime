@@ -1,6 +1,7 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
+import KubernetesAiAgent from "./KubernetesAiAgent";
 import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
@@ -908,6 +909,7 @@ const AllModelTypes: Array<{
   StatusPageSCIMLog,
 
   KubernetesCluster,
+  KubernetesAiAgent,
   KubernetesClusterOwnerTeam,
   KubernetesClusterOwnerUser,
   KubernetesResource,

@@ -91,6 +91,8 @@ function readyCluster(
       posture: { inCluster: true, allowWrites: false },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -1246,6 +1248,74 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
     );
     // A job was enqueued, so it counts against the per-run cap.
     expect(toolkit.getCommandsRun()).toBe(1);
+  });
+
+  /*
+   * The same unclaimed command on a cluster reached through its Kubernetes
+   * AI agent: the text names the agent, never "its Runner".
+   */
+  it("names the Kubernetes AI agent, not a Runner, when the agent left the command unclaimed", async () => {
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [
+          readyCluster({
+            runner: {
+              id: RUNNER_ID.toString(),
+              name: "Kubernetes AI agent",
+              kind: "ai_agent",
+              isOnline: true,
+              canRunAiCommands: true,
+              posture: { inCluster: true, allowWrites: false },
+            },
+          }),
+        ],
+      });
+
+    const before: ToolCallOutcome = await getTool(
+      toolkit,
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+    ).execute({});
+    expect(before.textForLlm).toContain(
+      "read-only kubectl via the Kubernetes AI agent",
+    );
+
+    const outcome: ToolCallOutcome = await runOn(toolkit);
+
+    expect(outcome.errorMessage).toBe(
+      'kubectl was not run on cluster "prod-us": its Kubernetes AI agent did not pick up the command in time.',
+    );
+    expect(outcome.textForLlm).toContain(
+      "its Kubernetes AI agent did not pick up",
+    );
+    expect(outcome.textForLlm).toContain(
+      "the cluster's Kubernetes AI agent did not respond",
+    );
+    expect(outcome.textForLlm).not.toContain("Runner");
+
+    // The breaker speaks of the agent too.
+    const second: ToolCallOutcome = await runOn(toolkit);
+    expect(second.textForLlm).toMatch(/^The Kubernetes AI agent, which serves/);
+    expect(second.errorMessage).toBe(
+      'kubectl was not run on cluster "prod-us": its Kubernetes AI agent did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.',
+    );
+
+    const list: ToolCallOutcome = await getTool(
+      toolkit,
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+    ).execute({});
+    expect(list.textForLlm).toContain(
+      "its Kubernetes AI agent did not pick up an earlier command",
+    );
+
+    // The command went to the agent's row id with no credential.
+    const data: Record<string, unknown> = enqueue.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+    expect(String(data["targetAgentId"])).toBe(RUNNER_ID.toString());
+    expect(data["credentialId"]).toBeUndefined();
   });
 
   it("trips a per-cluster breaker: the next command fails at once, enqueues nothing and spends nothing", async () => {

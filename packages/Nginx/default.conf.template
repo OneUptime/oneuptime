@@ -1755,6 +1755,30 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         client_max_body_size 50M;
     }
 
+    # The Kubernetes AI agent's mount (KUBERNETES_AI_AGENT_INGRESS_PATH in
+    # App/FeatureSet/Runbook/Index.ts): register, heartbeat, claim-next-job,
+    # job heartbeat/result and disconnect. The agent runs in a customer's
+    # cluster and reaches this over the public URL, so, like /runner-ingest,
+    # it needs its own location: the catch-all `location /` would hand every
+    # request to the marketing Home service when billing is enabled.
+    location /kubernetes-ai-agent-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        # A job result carries kubectl's output, far larger than a heartbeat.
+        client_max_body_size 50M;
+    }
+
     location /l/ { # Short URL for Link Shortener
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};

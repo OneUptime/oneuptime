@@ -128,6 +128,7 @@ describe("which templates build Node images", () => {
     // it exists so a detection bug cannot make every check below vacuous.
     expect(nodeTemplates()).toEqual([
       "Tests/Dockerfile.tpl",
+      "agents/KubernetesAIAgent/Dockerfile.tpl",
       "agents/KubernetesCostAgent/Dockerfile.tpl",
       "agents/KubernetesLogTailer/Dockerfile.tpl",
       "packages/App/Dockerfile.tpl",
@@ -497,6 +498,124 @@ describe("Runner", () => {
         return /\bupdate-ca-certificates\b/.test(line);
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * The Kubernetes AI agent runs in every cluster that installs the
+ * kubernetes-agent chart, by default, with a ServiceAccount that can read the
+ * whole cluster. So it ships as little as it can: node, tini, the CA store and
+ * one kubectl binary that was checked against a pinned digest in a stage of
+ * its own. (KubernetesAiAccessDocsKubectlPin.test.ts holds that pin equal to
+ * the Runner's.)
+ */
+describe("Kubernetes AI agent", () => {
+  const template = "agents/KubernetesAIAgent/Dockerfile.tpl";
+  const KUBECTL_COPY =
+    /^COPY --from=(\S+) \/usr\/local\/bin\/kubectl \/usr\/local\/bin\/kubectl$/;
+
+  function shippedLines(environment) {
+    const stages = stagesOf(template, environment);
+    const [chain] = shippedStages(stages);
+    return {
+      stages,
+      chain,
+      lines: [...chain].reverse().flatMap((stage) => {
+        return stage.instructions;
+      }),
+    };
+  }
+
+  test("is a template the repository builds", () => {
+    expect(TEMPLATES).toContain(template);
+  });
+
+  test("copies kubectl in from a stage that does not ship", () => {
+    const { stages, chain, lines } = shippedLines("production");
+    const copies = lines.filter((line) => {
+      return KUBECTL_COPY.test(line);
+    });
+    expect(copies).toHaveLength(1);
+
+    const donorName = KUBECTL_COPY.exec(copies[0])[1].toLowerCase();
+    const donor = stages.find((stage) => {
+      return stage.name === donorName;
+    });
+    expect(donor).toBeDefined();
+    expect(
+      chain.map((stage) => {
+        return stage.name;
+      }),
+    ).not.toContain(donorName);
+  });
+
+  test("the download stage checks the binary against its pinned sha256 before installing it", () => {
+    const { stages, lines } = shippedLines("production");
+    const donorName = KUBECTL_COPY.exec(
+      lines.find((line) => {
+        return KUBECTL_COPY.test(line);
+      }),
+    )[1].toLowerCase();
+    const donor = stages.find((stage) => {
+      return stage.name === donorName;
+    });
+
+    // One instruction downloads, verifies and installs, so a failed check
+    // fails the build before anything reaches /usr/local/bin.
+    const download = donor.instructions.filter((line) => {
+      return /https:\/\/dl\.k8s\.io\/release\//.test(line);
+    });
+    expect(download).toHaveLength(1);
+    const verify = download[0].search(/\bsha256sum -c\b/);
+    const install = download[0].search(
+      /\binstall\b[^&|;]*\s\/usr\/local\/bin\/kubectl\b/,
+    );
+    expect(verify).toBeGreaterThan(-1);
+    expect(install).toBeGreaterThan(verify);
+
+    // Both architectures are pinned, in this stage, to a full digest.
+    for (const arch of ["AMD64", "ARM64"]) {
+      expect(donor.instructions).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            new RegExp(`^ARG KUBECTL_SHA256_${arch}=[0-9a-f]{64}$`),
+          ),
+        ]),
+      );
+    }
+  });
+
+  test.each(ENVIRONMENTS)(
+    "%s: installs nothing from the OS beyond the CA store and tini (no download tool ships)",
+    (environment) => {
+      const { lines } = shippedLines(environment);
+      expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
+        "ca-certificates",
+        "tini",
+      ]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: runs as the image's non-root node user (UID 1000, what the chart's securityContext asks for)",
+    (environment) => {
+      const users = shippedLines(environment).lines.filter((line) => {
+        return /^USER /.test(line);
+      });
+      expect(users[users.length - 1]).toBe("USER node");
+    },
+  );
+
+  test("production starts the compiled agent under tini, not ts-node", () => {
+    const { lines } = shippedLines("production");
+    const commands = lines.filter((line) => {
+      return /^CMD /.test(line);
+    });
+    expect(commands[commands.length - 1]).toMatch(
+      /^CMD \[ ?"node", "build\/dist\/Index\.js" ?\]$/,
+    );
+    expect(lines).toContain('ENTRYPOINT ["/sbin/tini", "--"]');
+    expect(lines).toContain("RUN npm run compile");
   });
 });
 

@@ -14,11 +14,20 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React from "react";
 import InvestigationPanel, {
   InvestigationSubjectType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import { AI_INVESTIGATION_PANEL_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
+import {
+  SettingsAction,
+  getSettingsAction,
+  parseInvestigationNotStartedReason,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedCard";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -70,6 +79,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const EVALUATED_AT: string = "2026-09-17T12:24:00.000Z";
 const NEXT_EVALUATED_AT: string = "2026-09-17T12:25:00.000Z";
+const AI_DISABLED_WHO_CAN_ACT: string =
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.";
+const NO_CREDITS_WHO_CAN_ACT: string =
+  "A project owner or someone with Manage Billing can add AI credits.";
 
 interface ReasonExample {
   code: InvestigationNotStartedCode;
@@ -97,6 +110,13 @@ const REASONS: Array<ReasonExample> = [
     title: "No AI provider is configured",
     description: "No project or global model provider was available.",
     nextStep: "Configure a model provider for future investigations.",
+  },
+  {
+    code: "insufficient_ai_balance",
+    title: "The project is out of AI credits",
+    description:
+      "The project uses OneUptime's AI provider and has no AI credits left.",
+    nextStep: "Add AI credits or turn on auto-recharge.",
   },
   {
     code: "severity_below_threshold",
@@ -711,17 +731,157 @@ describe("investigation settings actions", () => {
     );
   });
 
-  test("links the project AI switch to AI credits settings", async () => {
+  /*
+   * The switch moved to Project Settings → AI Features, which every install
+   * shows. AI Credits is listed only when billing is on, so on a self-hosted
+   * install the old link led to a page the menu never offered.
+   */
+  test("links the project AI switch to the AI Features settings page", async () => {
+    postMock.mockResolvedValue(noRunResponse(reasonFor("ai_disabled")));
+    renderPanel();
+    await flush();
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Go to Project Settings → AI Features",
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/${PROJECT_ID.toString()}/settings/ai-features`),
+    );
+    expect(link.getAttribute("href")).not.toContain("ai-credits");
+  });
+
+  test("links an empty AI balance to AI credits", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(reasonFor("insufficient_ai_balance")),
+    );
+    renderPanel("incident");
+    await flush();
+
+    expect(screen.getByText("The project is out of AI credits")).toBeVisible();
+    expect(
+      screen.getByText("Add AI credits or turn on auto-recharge."),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Add AI credits" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/${PROJECT_ID.toString()}/settings/ai-credits`),
+    );
+  });
+
+  test.each([
+    [Permission.ProjectOwner, true],
+    [Permission.ManageProjectBilling, true],
+    [Permission.ProjectAdmin, false],
+    [Permission.ProjectMember, false],
+  ])(
+    "offers the AI Features link to %s only when they can flip the switch (%s)",
+    async (permission: Permission, offered: boolean) => {
+      jest
+        .mocked(PermissionUtil.getAllPermissions)
+        .mockReturnValue([permission]);
+      postMock.mockResolvedValue(noRunResponse(reasonFor("ai_disabled")));
+      renderPanel();
+      await flush();
+
+      expect(
+        screen.queryByRole("link", {
+          name: "Go to Project Settings → AI Features",
+        }) !== null,
+      ).toBe(offered);
+      expect(screen.queryByText(AI_DISABLED_WHO_CAN_ACT) !== null).toBe(
+        !offered,
+      );
+    },
+  );
+
+  /*
+   * Only a project owner or Manage Billing may flip Project.enableAi, so a
+   * Project Admin who cannot use the link must not be told "a project
+   * administrator" can fix it — that sends them to ask themselves.
+   */
+  test("tells a Project Admin who can turn AI on, without claiming an administrator can", async () => {
+    jest
+      .mocked(PermissionUtil.getAllPermissions)
+      .mockReturnValue([Permission.ProjectAdmin]);
+    postMock.mockResolvedValue(noRunResponse(reasonFor("ai_disabled")));
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText(AI_DISABLED_WHO_CAN_ACT)).toBeVisible();
+    expect(screen.queryByText(/project administrator/i)).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  test.each([
+    [Permission.ProjectOwner, true],
+    [Permission.ManageProjectBilling, true],
+    [Permission.ProjectAdmin, false],
+    [Permission.Viewer, false],
+  ])(
+    "offers the AI credits link to %s only when they can recharge (%s)",
+    async (permission: Permission, offered: boolean) => {
+      jest
+        .mocked(PermissionUtil.getAllPermissions)
+        .mockReturnValue([permission]);
+      postMock.mockResolvedValue(
+        noRunResponse(reasonFor("insufficient_ai_balance")),
+      );
+      renderPanel();
+      await flush();
+
+      expect(
+        screen.queryByRole("link", { name: "Add AI credits" }) !== null,
+      ).toBe(offered);
+      expect(screen.queryByText(NO_CREDITS_WHO_CAN_ACT) !== null).toBe(
+        !offered,
+      );
+    },
+  );
+
+  test("tells a Project Admin who can add AI credits, without claiming an administrator can", async () => {
+    jest
+      .mocked(PermissionUtil.getAllPermissions)
+      .mockReturnValue([Permission.ProjectAdmin]);
+    postMock.mockResolvedValue(
+      noRunResponse(reasonFor("insufficient_ai_balance")),
+    );
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText(NO_CREDITS_WHO_CAN_ACT)).toBeVisible();
+    expect(screen.queryByText(/project administrator/i)).toBeNull();
+  });
+
+  test("still sends a viewer who cannot configure a provider to an administrator", async () => {
+    jest
+      .mocked(PermissionUtil.getAllPermissions)
+      .mockReturnValue([Permission.Viewer]);
+    postMock.mockResolvedValue(noRunResponse(reasonFor("provider_missing")));
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(
+      screen.getByText("A project administrator can review these settings."),
+    ).toBeVisible();
+  });
+
+  test("shows no who-can-act sentence to someone who has the link", async () => {
+    jest
+      .mocked(PermissionUtil.getAllPermissions)
+      .mockReturnValue([Permission.ProjectOwner]);
     postMock.mockResolvedValue(noRunResponse(reasonFor("ai_disabled")));
     renderPanel();
     await flush();
 
     expect(
-      screen.getByRole("link", { name: "Review project AI settings" }),
-    ).toHaveAttribute(
-      "href",
-      expect.stringContaining(`/${PROJECT_ID.toString()}/settings/ai-credits`),
-    );
+      screen.getByRole("link", {
+        name: "Go to Project Settings → AI Features",
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText(AI_DISABLED_WHO_CAN_ACT)).toBeNull();
   });
 
   test("keeps the reason available to viewers without offering settings they cannot change", async () => {
@@ -757,5 +917,181 @@ describe("investigation settings actions", () => {
     expect(
       screen.queryByText("A project administrator can review these settings."),
     ).toBeNull();
+  });
+});
+
+describe("which settings page each reason points at", () => {
+  function actionFor(
+    code: InvestigationNotStartedCode,
+    subjectType: "incident" | "alert" = "incident",
+  ): SettingsAction | null {
+    return getSettingsAction(code, subjectType);
+  }
+
+  /*
+   * whoCanAct names the roles by hand, so this pins the column's update list:
+   * if it changes, the sentence has to change with it.
+   */
+  test("the AI switch: AI Features, for whoever may update Project.enableAi", () => {
+    expect(actionFor("ai_disabled")).toEqual({
+      label: "Go to Project Settings → AI Features",
+      page: PageMap.SETTINGS_AI_FEATURES,
+      permissions:
+        new Project().getColumnAccessControlFor("enableAi")?.update || [],
+      whoCanAct: AI_DISABLED_WHO_CAN_ACT,
+    });
+    expect(actionFor("ai_disabled")!.permissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+    ]);
+  });
+
+  test("no AI credits: AI Credits, for whoever may recharge", () => {
+    expect(actionFor("insufficient_ai_balance")).toEqual({
+      label: "Add AI credits",
+      page: PageMap.SETTINGS_AI_CREDITS,
+      permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+      whoCanAct: NO_CREDITS_WHO_CAN_ACT,
+    });
+  });
+
+  test.each<[InvestigationNotStartedCode]>([
+    ["ai_disabled"],
+    ["insufficient_ai_balance"],
+    ["provider_missing"],
+    ["automatic_investigation_disabled"],
+    ["severity_below_threshold"],
+    ["monitor_cooldown"],
+    ["daily_budget_exhausted"],
+    ["no_run_recorded"],
+  ])(
+    "%s: the no-link sentence only credits an administrator when an administrator can act",
+    (code: InvestigationNotStartedCode) => {
+      const action: SettingsAction = actionFor(code)!;
+
+      expect(action.whoCanAct.trim()).not.toBe("");
+      const creditsAdministrator: boolean = action.whoCanAct
+        .toLowerCase()
+        .includes("project administrator");
+
+      expect(creditsAdministrator).toBe(
+        action.permissions.includes(Permission.ProjectAdmin),
+      );
+    },
+  );
+
+  test("the AI switch's no-link sentence says where the switch is", () => {
+    expect(actionFor("ai_disabled")!.whoCanAct).toContain(
+      "Project Settings → AI Features",
+    );
+  });
+
+  test("no provider: LLM providers", () => {
+    expect(actionFor("provider_missing")!.page).toBe(
+      PageMap.SETTINGS_AI_LLM_PROVIDERS,
+    );
+  });
+
+  test.each<[InvestigationNotStartedCode]>([
+    ["automatic_investigation_disabled"],
+    ["severity_below_threshold"],
+    ["monitor_cooldown"],
+    ["daily_budget_exhausted"],
+    ["no_run_recorded"],
+  ])(
+    "%s: the subject's own AI settings",
+    (code: InvestigationNotStartedCode) => {
+      expect(actionFor(code, "incident")!.page).toBe(
+        PageMap.INCIDENTS_SETTINGS_AI,
+      );
+      expect(actionFor(code, "alert")!.page).toBe(PageMap.ALERTS_SETTINGS_AI);
+    },
+  );
+
+  test.each<[InvestigationNotStartedCode]>([
+    ["budget_check_failed"],
+    ["enqueue_failed"],
+    ["eligibility_check_failed"],
+  ])(
+    "%s: no settings page fixes a service error",
+    (code: InvestigationNotStartedCode) => {
+      expect(actionFor(code)).toBeNull();
+    },
+  );
+
+  test("no reason sends anyone to AI Credits to turn AI on", () => {
+    const codes: Array<InvestigationNotStartedCode> = REASONS.map(
+      (example: ReasonExample): InvestigationNotStartedCode => {
+        return example.code;
+      },
+    );
+
+    for (const code of codes) {
+      const action: SettingsAction | null = actionFor(code);
+      if (action?.page === PageMap.SETTINGS_AI_CREDITS) {
+        expect(code).toBe("insufficient_ai_balance");
+      }
+    }
+  });
+});
+
+/*
+ * The card treats a code it does not know as "no explanation", so a reason
+ * the server learns to send (insufficient_ai_balance was the latest) must be
+ * added to the card's list at the same time — or every such incident shows
+ * the generic fallback. Read from the type's source so a new code cannot be
+ * added there alone.
+ */
+describe("the card knows every reason the server can send", () => {
+  const typeSource: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Types",
+      "AI",
+      "InvestigationNotStartedReason.ts",
+    ),
+    "utf8",
+  );
+  const unionSource: string = (typeSource.match(
+    /export type InvestigationNotStartedCode =([\s\S]*?);/,
+  ) || [])[1] as string;
+  const codes: Array<string> = Array.from(
+    (unionSource || "").matchAll(/\|\s*"([a-z_]+)"/g),
+  ).map((match: RegExpMatchArray): string => {
+    return match[1] as string;
+  });
+
+  test("reads the union from the type's source", () => {
+    expect(codes).toContain("ai_disabled");
+    expect(codes).toContain("insufficient_ai_balance");
+    expect(codes.length).toBe(REASONS.length);
+  });
+
+  test.each(
+    codes.map((code: string): [string] => {
+      return [code];
+    }),
+  )("parses %s", (code: string) => {
+    expect(
+      parseInvestigationNotStartedReason({
+        code,
+        title: "Title",
+        description: "Description",
+        nextStep: "Next step",
+        source: "current_configuration",
+        evaluatedAt: EVALUATED_AT,
+      }),
+    ).not.toBeNull();
+  });
+
+  test("every reason has an example in this suite", () => {
+    expect(
+      REASONS.map((example: ReasonExample): string => {
+        return example.code;
+      }).sort(),
+    ).toEqual([...codes].sort());
   });
 });

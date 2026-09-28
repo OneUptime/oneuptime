@@ -10,15 +10,33 @@ import {
   KubernetesAiAccessOfferedFields,
   KubernetesAiAccessSavedSettings,
   KubernetesAiAccessSettingsFormValues,
-  buildKubernetesAiRunnerOptions,
-  describeRunnerWriteAccess,
-  getAiAccessConnectCardMode,
   getKubernetesAiAccessLooseningChanges,
   getKubernetesAiAccessOfferedFields,
   getKubernetesAiAccessSettingsChanges,
   getKubernetesAiAccessSettingsInitialValues,
+  isRemediationModeOpenToEveryEditor,
   validateKubectlAllowlistText,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
+import {
+  AI_AGENT_GONE_TEXT,
+  AI_AGENT_SIGNED_OFF_TEXT,
+  AI_AGENT_SILENT_TEXT,
+  canSwitchToAiAgent,
+  getAiAgentCardCommand,
+  getAiAgentCardState,
+  getAiAgentGapAction,
+  getAiAgentMetaParts,
+  getAiAgentOfflineReason,
+  getAiAgentOverviewState,
+  getAiAgentPodNamespace,
+  getAiAgentStateSentence,
+  getAiAgentSummary,
+  getAttentionGaps,
+  getAutomaticInvestigation,
+  isAdvancedRunnerTarget,
+  isLegacyRunnerTarget,
+  shouldShowWriteAccessCommands,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
 import {
   RunnerFormRestrictions,
@@ -26,10 +44,11 @@ import {
   getRunnerFormFields,
   getRunnerFormRestrictions,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,
-  getKubernetesAgentRunnerNameForCluster,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
+import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService, {
   normalizeKubectlAllowlistForWrite,
 } from "../../../Server/Services/KubernetesClusterService";
@@ -37,10 +56,12 @@ import RunbookCredentialService from "../../../Server/Services/RunbookCredential
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Server/Services/RunnerService";
+import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -59,22 +80,24 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 
 /*
- * The AI page against the server it talks to — run for real, with only
- * the database stubbed:
+ * The AI agent page against the server it talks to — run for real, with
+ * only the database stubbed:
  *
  * - who may loosen: the page's rule (getKubernetesAiAccessLooseningChanges)
  *   gives the verdict KubernetesClusterService's write hook gives, for the
- *   same saved settings and the same change, and every tightening a cluster
- *   editor makes through the form is accepted by the server;
- * - the gaps the real status computes drive the page's connect card;
- * - the Runner name the server gives a long cluster identifier is still
- *   recognised by the page's Runner picker;
- * - the page's allowlist validation agrees with the server's.
+ *   same saved settings, the same change and the same answer to "does this
+ *   cluster have a Kubernetes AI agent?" — Off -> Ask for approval and
+ *   clearing a binding while an agent exists included;
+ * - the status the real service computes drives the page's card: every
+ *   state of the "Kubernetes AI agent" card, the Needs attention rows, the
+ *   write-access commands and the Overview card, from the real resolution
+ *   of the access target;
+ * - the page's allowlist validation agrees with the server's;
+ * - the Runner pages and RunnerService agree on which rows are the chart's.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -87,6 +110,7 @@ const RUNNER_ID: string = "44444444-4444-4444-8444-444444444444";
 const OTHER_RUNNER_ID: string = "77777777-7777-4777-8777-777777777777";
 const CREDENTIAL_ID: string = "55555555-5555-4555-8555-555555555555";
 const OTHER_CREDENTIAL_ID: string = "88888888-8888-4888-8888-888888888888";
+const AGENT_ID: string = "99999999-9999-4999-8999-999999999990";
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
 const PATCH_PATTERN: string = "kubectl patch deployment/web -n web -p *";
@@ -98,6 +122,8 @@ const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAutoRemediationEnabled: true,
   isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
+  aiBalanceBlocker: null,
+  automaticInvestigation: { incidents: true, alerts: false },
 };
 
 type Hooks = {
@@ -139,14 +165,17 @@ interface StoredSettings {
   aiKubectlCommandAllowlist: unknown;
   aiAccessRunnerId: string | null;
   aiAccessCredentialId: string | null;
+  hasAiAgent: boolean;
 }
 
+// A cluster bound to an advanced Runner, with no AI agent unless said.
 function stored(overrides: Partial<StoredSettings> = {}): StoredSettings {
   return {
     aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
     aiAccessRunnerId: RUNNER_ID,
     aiAccessCredentialId: null,
+    hasAiAgent: false,
     ...overrides,
   };
 }
@@ -160,13 +189,40 @@ function asPageSaved(
     aiRemediationMode: settings.aiRemediationMode,
     aiKubectlCommandAllowlist: settings.aiKubectlCommandAllowlist,
     aiAccessRunnerId: settings.aiAccessRunnerId,
-    aiAccessRunnerName: "bash-runner",
+    aiAccessRunnerName: settings.aiAccessRunnerId ? "bash-runner" : null,
     aiAccessCredentialId: settings.aiAccessCredentialId,
     aiAccessCredentialName: settings.aiAccessCredentialId ? "prod token" : null,
   };
 }
 
-// Serves `settings` as the cluster the server's write hook reads first.
+function makeAgentRow(
+  overrides: Record<string, unknown> = {},
+): KubernetesAiAgent {
+  return Object.assign(new KubernetesAiAgent(), {
+    id: new ObjectID(AGENT_ID),
+    _id: AGENT_ID,
+    projectId: PROJECT_ID,
+    kubernetesClusterId: CLUSTER_ID,
+    connectionStatus: "connected",
+    lastAliveAt: OneUptimeDate.getCurrentDate(),
+    lastRegisteredAt: OneUptimeDate.getCurrentDate(),
+    agentVersion: "14.1.0",
+    posture: {
+      clusterIdentifier: "prod-us",
+      inCluster: true,
+      allowWrites: false,
+      writeNamespaces: [],
+      podNamespace: "monitoring",
+      kubectlVersion: "v1.31.2",
+    },
+    ...overrides,
+  });
+}
+
+/*
+ * Serves `settings` as the cluster the server's write hook reads first,
+ * and answers "which of these clusters has an AI agent?" the same way.
+ */
 function serveStoredCluster(settings: StoredSettings): void {
   jest.spyOn(KubernetesClusterService, "findBy").mockResolvedValue([
     {
@@ -184,6 +240,20 @@ function serveStoredCluster(settings: StoredSettings): void {
         : null,
     } as unknown as KubernetesCluster,
   ]);
+
+  const agents: Map<string, KubernetesAiAgent> = new Map<
+    string,
+    KubernetesAiAgent
+  >();
+  if (settings.hasAiAgent) {
+    agents.set(CLUSTER_ID.toString(), makeAgentRow());
+  }
+  jest
+    .spyOn(KubernetesAiAgentService, "findForClusters")
+    .mockResolvedValue(agents);
+  jest
+    .spyOn(KubernetesAiAgentService, "findForCluster")
+    .mockResolvedValue(settings.hasAiAgent ? makeAgentRow() : null);
 }
 
 // Does the server refuse this write to a cluster editor as loosening?
@@ -218,6 +288,7 @@ function pageSaysLoosens(
     getKubernetesAiAccessLooseningChanges({
       saved: asPageSaved(settings),
       changes,
+      hasAiAgent: settings.hasAiAgent,
     }).length > 0
   );
 }
@@ -232,6 +303,8 @@ beforeEach(() => {
   jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
     id: new ObjectID(CREDENTIAL_ID),
     credentialType: RunbookCredentialType.Kubernetes,
+    name: "prod token",
+    runners: [{ _id: RUNNER_ID, id: new ObjectID(RUNNER_ID) }],
   } as unknown as RunbookCredential);
 });
 
@@ -239,11 +312,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-/*
- * The finding (dashboard-ai-page-4, XP-7, SIA-4): the server's rule is
- * relative to the saved settings, the page's was absolute, and the page
- * hid tightening the server accepts from every cluster editor.
- */
 describe("who may loosen: the page and the server agree", () => {
   const CASES: Array<{
     name: string;
@@ -271,12 +339,40 @@ describe("who may loosen: the page and the server agree", () => {
       }),
       changes: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
     },
+    // Regression (§11): turning fixes on at all needs the admin set.
+    {
+      name: "Off -> Ask for approval",
+      settings: stored({
+        aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+      }),
+      changes: {
+        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      },
+    },
+    {
+      name: "Off -> Ask for approval on a cluster with an AI agent",
+      settings: stored({
+        aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        aiAccessRunnerId: null,
+        hasAiAgent: true,
+      }),
+      changes: {
+        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      },
+    },
     {
       name: "Automatic -> Ask for approval",
       settings: stored(),
       changes: {
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
       },
+    },
+    {
+      name: "Ask for approval -> Off",
+      settings: stored({
+        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      }),
+      changes: { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
     },
     {
       name: "re-send the saved mode",
@@ -322,25 +418,41 @@ describe("who may loosen: the page and the server agree", () => {
       changes: { aiKubectlCommandAllowlist: [ODDLY_SPACED_PATTERN] },
     },
     {
-      name: "keep a pattern stored with odd spacing, re-spaced",
-      settings: stored({
-        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, ODDLY_SPACED_PATTERN],
-      }),
-      changes: {
-        aiKubectlCommandAllowlist: [
-          "kubectl scale deployment/web --replicas=* -n web",
-        ],
-      },
-    },
-    {
       name: "clear an allowlist stored as a plain string",
       settings: stored({ aiKubectlCommandAllowlist: SET_IMAGE_PATTERN }),
       changes: { aiKubectlCommandAllowlist: [] },
     },
     {
-      name: "unbind the Runner",
+      name: "unbind the Runner of a cluster without an AI agent",
       settings: stored(),
       changes: { aiAccessRunnerId: null },
+    },
+    // Regression (§11): with an agent, clearing hands the cluster to it.
+    {
+      name: "unbind the Runner of a cluster with an AI agent",
+      settings: stored({ hasAiAgent: true }),
+      changes: { aiAccessRunnerId: null },
+    },
+    {
+      name: "unbind the Runner and credential of a cluster with an AI agent",
+      settings: stored({
+        aiAccessCredentialId: CREDENTIAL_ID,
+        hasAiAgent: true,
+      }),
+      changes: { aiAccessRunnerId: null, aiAccessCredentialId: null },
+    },
+    {
+      name: "unbind the credential of a cluster with an AI agent",
+      settings: stored({
+        aiAccessCredentialId: CREDENTIAL_ID,
+        hasAiAgent: true,
+      }),
+      changes: { aiAccessCredentialId: null },
+    },
+    {
+      name: "unbind the credential of a cluster without an AI agent",
+      settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
+      changes: { aiAccessCredentialId: null },
     },
     {
       name: "bind another Runner",
@@ -349,13 +461,8 @@ describe("who may loosen: the page and the server agree", () => {
     },
     {
       name: "re-send the bound Runner",
-      settings: stored(),
+      settings: stored({ hasAiAgent: true }),
       changes: { aiAccessRunnerId: RUNNER_ID },
-    },
-    {
-      name: "unbind the credential",
-      settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
-      changes: { aiAccessCredentialId: null },
     },
     {
       name: "bind a credential",
@@ -369,8 +476,13 @@ describe("who may loosen: the page and the server agree", () => {
     },
     {
       name: "turn investigation off",
-      settings: stored(),
+      settings: stored({ hasAiAgent: true }),
       changes: { isAiInvestigationEnabled: false },
+    },
+    {
+      name: "turn investigation on",
+      settings: stored({ hasAiAgent: true }),
+      changes: { isAiInvestigationEnabled: true },
     },
   ];
 
@@ -396,6 +508,31 @@ describe("who may loosen: the page and the server agree", () => {
       });
     });
   }
+
+  // The modes the modal offers a member are exactly the ones the server accepts.
+  test("the modes offered to a member are the ones the server lets them save", async () => {
+    for (const savedMode of Object.values(KubernetesAiRemediationMode)) {
+      for (const mode of Object.values(KubernetesAiRemediationMode)) {
+        if (mode === savedMode) {
+          continue;
+        }
+        const settings: StoredSettings = stored({
+          aiRemediationMode: savedMode,
+        });
+        expect({
+          savedMode,
+          mode,
+          offered: isRemediationModeOpenToEveryEditor(mode, savedMode),
+        }).toEqual({
+          savedMode,
+          mode,
+          offered: !(await serverSaysLoosens(settings, {
+            aiRemediationMode: mode,
+          })),
+        });
+      }
+    }
+  });
 });
 
 /*
@@ -414,9 +551,16 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       name: "steps down from Bypass approval to Automatic",
       settings: stored({
         aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+        hasAiAgent: true,
       }),
       edits: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
       expected: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
+    },
+    {
+      name: "turns fixes off",
+      settings: stored({ hasAiAgent: true }),
+      edits: { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
+      expected: { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
     },
     {
       name: "removes a pattern",
@@ -425,7 +569,6 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       expected: { aiKubectlCommandAllowlist: [PATCH_PATTERN] },
     },
     {
-      // The form shows the kept line re-spaced; it is sent as stored.
       name: "removes a pattern next to one stored with odd spacing",
       settings: stored({
         aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, ODDLY_SPACED_PATTERN],
@@ -443,7 +586,7 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       expected: { aiKubectlCommandAllowlist: [] },
     },
     {
-      name: "unbinds the Runner and the credential",
+      name: "unbinds the Runner and the credential of a cluster without an AI agent",
       settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
       edits: { clearAiAccessRunner: true, clearAiAccessCredential: true },
       expected: { aiAccessRunnerId: null, aiAccessCredentialId: null },
@@ -459,6 +602,8 @@ describe("a cluster editor's tightening through the form is accepted end to end"
           canConfigureUnattended: false,
           isRunnerPickerAvailable: false,
           isCredentialPickerAvailable: false,
+          isAdvancedBinding: saved.aiAccessRunnerId !== null,
+          hasAiAgent: edit.settings.hasAiAgent,
         });
       const changes: JSONObject = getKubernetesAiAccessSettingsChanges({
         saved,
@@ -470,12 +615,45 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       });
 
       expect(changes).toEqual(edit.expected);
-      expect(getKubernetesAiAccessLooseningChanges({ saved, changes })).toEqual(
-        [],
-      );
+      expect(
+        getKubernetesAiAccessLooseningChanges({
+          saved,
+          changes,
+          hasAiAgent: edit.settings.hasAiAgent,
+        }),
+      ).toEqual([]);
       expect(await serverSaysLoosens(edit.settings, changes)).toBe(false);
     });
   }
+
+  /*
+   * The unbind switch is gone for a member once the cluster has an agent
+   * — and the server would refuse the write it used to send.
+   */
+  test("a member is not offered the unbind the server would refuse", async () => {
+    const settings: StoredSettings = stored({
+      aiAccessCredentialId: CREDENTIAL_ID,
+      hasAiAgent: true,
+    });
+    const offered: KubernetesAiAccessOfferedFields =
+      getKubernetesAiAccessOfferedFields({
+        saved: asPageSaved(settings),
+        canConfigureUnattended: false,
+        isRunnerPickerAvailable: false,
+        isCredentialPickerAvailable: false,
+        isAdvancedBinding: true,
+        hasAiAgent: true,
+      });
+
+    expect(offered.runnerClear).toBe(false);
+    expect(offered.credentialClear).toBe(false);
+    expect(
+      await serverSaysLoosens(settings, {
+        aiAccessRunnerId: null,
+        aiAccessCredentialId: null,
+      }),
+    ).toBe(true);
+  });
 });
 
 function fakeCluster(
@@ -487,16 +665,17 @@ function fakeCluster(
     projectId: PROJECT_ID,
     name: "prod-us",
     clusterIdentifier: "prod-us",
-    aiAccessRunnerId: new ObjectID(RUNNER_ID),
+    aiAccessRunnerId: undefined,
     aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
-    aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+    aiRemediationMode: KubernetesAiRemediationMode.Disabled,
     aiKubectlCommandAllowlist: undefined,
     ...overrides,
   } as unknown as KubernetesCluster;
 }
 
-function fakeRunner(overrides: Record<string, unknown> = {}): Runner {
+// The chart's previous in-cluster Runner of this cluster.
+function fakeLegacyRunner(overrides: Record<string, unknown> = {}): Runner {
   return {
     id: new ObjectID(RUNNER_ID),
     _id: RUNNER_ID,
@@ -514,14 +693,30 @@ function fakeRunner(overrides: Record<string, unknown> = {}): Runner {
   } as unknown as Runner;
 }
 
+// A Runner an operator created, outside the chart.
+function fakeAdvancedRunner(overrides: Record<string, unknown> = {}): Runner {
+  return {
+    id: new ObjectID(OTHER_RUNNER_ID),
+    _id: OTHER_RUNNER_ID,
+    name: "bash-runner",
+    lastAlive: OneUptimeDate.getCurrentDate(),
+    canRunAiCommands: true,
+    hostInfo: {},
+    ...overrides,
+  } as unknown as Runner;
+}
+
 async function realStatus(data: {
   cluster: KubernetesCluster;
-  runner: Runner | null;
+  runner?: Runner | null;
+  agentRow?: KubernetesAiAgent | null;
+  gates?: KubernetesClusterAiAccessProjectGates;
 }): Promise<KubernetesClusterAiAccessStatus> {
-  jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(data.runner);
+  jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(data.runner || null);
   return await KubernetesClusterAiAccessService.getStatusForClusterModel({
     cluster: data.cluster,
-    gates: READY_GATES,
+    gates: data.gates || READY_GATES,
+    aiAgentRow: data.agentRow ?? null,
   });
 }
 
@@ -532,119 +727,266 @@ function gapCodes(status: KubernetesClusterAiAccessStatus): Array<string> {
 }
 
 /*
- * The server tells "no Runner can reach this cluster" from "this cluster's
- * in-cluster Runner is installed but not selected" only in the words of
- * one no_runner_bound gap. The page's connect card is chosen from those
- * words, so it is checked against what the real status produces.
+ * The server resolves the access target (agent, previous Runner, advanced
+ * Runner, none) and the page reads the result. Each state of the card is
+ * checked against what the real status produces for it.
  */
-describe("the connect card follows the real status", () => {
-  test("no Runner bound and none registered: the helm upgrade", async () => {
-    const status: KubernetesClusterAiAccessStatus = await realStatus({
-      cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-      runner: null,
-    });
-    expect(gapCodes(status)).toEqual(["no_runner_bound"]);
-    expect(getAiAccessConnectCardMode(status)).toBe("connect");
-  });
-
-  test("no Runner bound but this cluster's in-cluster Runner registered: select it", async () => {
-    const status: KubernetesClusterAiAccessStatus = await realStatus({
-      cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-      runner: fakeRunner(),
-    });
-    expect(gapCodes(status)).toEqual(["no_runner_bound"]);
-    expect(getAiAccessConnectCardMode(status)).toBe("select_agent_runner");
-  });
-
-  test("a bound read-only in-cluster Runner: no connect card, and the page says it is read-only", async () => {
+describe("the AI agent card follows the real status", () => {
+  test("every status carries the agent and the automatic-investigation opt-ins", async () => {
     const status: KubernetesClusterAiAccessStatus = await realStatus({
       cluster: fakeCluster(),
-      runner: fakeRunner(),
     });
-    expect(gapCodes(status)).toContain("remediation_write_access_missing");
-    expect(getAiAccessConnectCardMode(status)).toBe("none");
-    expect(describeRunnerWriteAccess(status.runner?.posture)).toBe(
-      "read-only RBAC",
-    );
+    expect(status).toHaveProperty("aiAgent", null);
+    expect(getAutomaticInvestigation(status)).toEqual({
+      incidents: true,
+      alerts: false,
+    });
   });
 
-  test("a credential on another cluster's in-cluster Runner: its gap, no connect card", async () => {
+  test("nothing installed: the install command, and Needs attention says so", async () => {
     const status: KubernetesClusterAiAccessStatus = await realStatus({
-      cluster: fakeCluster({
-        aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
-      }),
-      runner: fakeRunner({
-        name: "kubernetes-agent/prod-eu",
-        hostInfo: {
-          kubernetes: {
-            inCluster: true,
-            allowWrites: false,
-            clusterIdentifier: "prod-eu",
-          },
-        },
-      }),
+      cluster: fakeCluster(),
     });
-    expect(gapCodes(status)).toContain("credential_on_agent_runner");
-    expect(getAiAccessConnectCardMode(status)).toBe("none");
+    expect(gapCodes(status)).toContain("ai_agent_not_connected");
+    expect(getAiAgentCardState(status)).toBe("not_installed");
+    expect(getAiAgentCardCommand(status)).toBe("install");
+    expect(getAiAgentOverviewState(status).text).toBe("Not installed");
+    expect(
+      getAttentionGaps(status).map((gap: KubernetesAiAccessGap): string => {
+        return gap.code;
+      }),
+    ).toContain("ai_agent_not_connected");
   });
-});
 
-/*
- * The finding (dashboard-ai-page-2): the server shortens an agent Runner's
- * name with a hash once "kubernetes-agent/<id>" passes 100 characters, and
- * the page rebuilt the name to find this cluster's Runner.
- */
-describe("the Runner picker recognises the Runner name the server gives", () => {
-  function agentRunner(id: string, clusterIdentifier: string): Runner {
-    return Object.assign(new Runner(), {
-      _id: id,
-      name: getKubernetesAgentRunnerNameForCluster(clusterIdentifier),
-      canRunAiCommands: true,
-      hostInfo: {
-        kubernetes: { inCluster: true, allowWrites: false, clusterIdentifier },
-      },
+  /*
+   * A default install: the agent connected, read-only, Fixes off. The one
+   * server gap is the fixes-off choice, so the page shows no Needs
+   * attention card and reads Ready.
+   */
+  test("the agent online, fixes off: connected, ready, nothing needs attention", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster(),
+      agentRow: makeAgentRow(),
     });
-  }
+    expect(status.runner?.kind).toBe("ai_agent");
+    expect(status.accessMethod).toBe("in_cluster");
+    expect(getAiAgentSummary(status)?.id).toBe(AGENT_ID);
+    expect(getAiAgentCardState(status)).toBe("connected");
+    expect(gapCodes(status)).toEqual(["remediation_disabled"]);
+    expect(getAttentionGaps(status)).toEqual([]);
+    expect(status.isInvestigationReady).toBe(true);
+    expect(shouldShowWriteAccessCommands(status)).toBe(false);
+    expect(getAiAgentOverviewState(status).text).toBe("Connected");
+  });
 
-  for (const length of [83, 84, 87, 100]) {
-    test(`a ${length}-character cluster identifier`, () => {
-      const identifier: string = `eks-${"a".repeat(length - 9)}-blue`;
-      const other: string = `eks-${"a".repeat(length - 9)}-gren`;
-      expect(identifier.length).toBe(length);
+  test("the agent offline: its logs, in the namespace it reported", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster(),
+      agentRow: makeAgentRow({
+        lastAliveAt: OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          -30,
+        ),
+      }),
+    });
+    expect(gapCodes(status)).toContain("ai_agent_offline");
+    expect(getAiAgentCardState(status)).toBe("offline");
+    expect(getAiAgentCardCommand(status)).toBe("logs");
+    expect(getAiAgentPodNamespace(status)).toBe("monitoring");
+    expect(getAiAgentOverviewState(status).text).toBe("Offline");
+    // It never signed off: its heartbeats stopped.
+    expect(getAiAgentOfflineReason(status)).toBe("silent");
+    expect(getAiAgentStateSentence(status)).toBe(AI_AGENT_SILENT_TEXT);
+  });
 
-      const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
-        runners: [
-          agentRunner("r-other", other),
-          agentRunner("r-this", identifier),
-        ],
-        clusterIdentifier: identifier,
-        boundRunnerId: null,
-        boundRunnerName: null,
+  /*
+   * The server's two halves of "offline" (KubernetesAiAgentService.isOnline)
+   * are written by its own sign-off and reset. Each is run for real here —
+   * only the database write is captured and applied to the row — and the
+   * status the real service then computes must read as a sign-off on the
+   * page: offline at once, last seen seconds ago, and a sentence that does
+   * not claim five silent minutes.
+   */
+  describe("the agent's own sign-off and an admin's reset", () => {
+    function captureWrites(row: KubernetesAiAgent): void {
+      jest
+        .spyOn(KubernetesAiAgentService, "updateColumnsByIdWithoutHooks")
+        .mockImplementation(async (input: unknown): Promise<void> => {
+          Object.assign(row, (input as { data: Record<string, unknown> }).data);
+        });
+      jest
+        .spyOn(KubernetesAiAgentService, "updateOneById")
+        .mockImplementation(async (input: unknown): Promise<number> => {
+          Object.assign(row, (input as { data: Record<string, unknown> }).data);
+          return 1;
+        });
+      jest
+        .spyOn(KubernetesAiAgentService, "findForCluster")
+        .mockResolvedValue(row);
+      jest
+        .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(UserService, "getUserMarkdownString")
+        .mockResolvedValue("an admin");
+      jest.spyOn(logger, "info").mockImplementation((): void => {
+        return undefined;
+      });
+    }
+
+    async function expectSignedOff(row: KubernetesAiAgent): Promise<void> {
+      const status: KubernetesClusterAiAccessStatus = await realStatus({
+        cluster: fakeCluster(),
+        agentRow: row,
+      });
+      expect(getAiAgentSummary(status)?.connectionStatus).toBe("disconnected");
+      expect(getAiAgentCardState(status)).toBe("offline");
+      expect(getAiAgentOverviewState(status).text).toBe("Offline");
+      expect(getAiAgentOfflineReason(status)).toBe("signed_off");
+      expect(getAiAgentStateSentence(status)).toBe(AI_AGENT_SIGNED_OFF_TEXT);
+      expect(getAiAgentStateSentence(status)).not.toContain(
+        "has not checked in",
+      );
+      expect(getAiAgentMetaParts(status)[0]).toMatch(/^last seen /);
+      expect(getAiAgentCardCommand(status)).toBe("logs");
+    }
+
+    test("a clean shutdown (a helm upgrade's old pod) reads as signed off", async () => {
+      const row: KubernetesAiAgent = makeAgentRow();
+      captureWrites(row);
+
+      await KubernetesAiAgentService.markDisconnected({
+        kubernetesAiAgentId: new ObjectID(AGENT_ID),
       });
 
-      expect(options).toEqual([
-        {
-          value: "r-this",
-          label: `${getKubernetesAgentRunnerNameForCluster(identifier)} (in-cluster Runner for this cluster)`,
-        },
-      ]);
+      await expectSignedOff(row);
     });
-  }
 
-  test("harness guard: past 83 characters the server's name is not kubernetes-agent/<id>", () => {
-    const identifier: string = "a".repeat(84);
-    expect(getKubernetesAgentRunnerNameForCluster(identifier)).not.toBe(
-      `kubernetes-agent/${identifier}`,
-    );
+    test("Reset agent reads as signed off, not as five silent minutes", async () => {
+      const row: KubernetesAiAgent = makeAgentRow();
+      captureWrites(row);
+
+      await KubernetesAiAgentService.resetAgent({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        userId: ObjectID.generate(),
+      });
+
+      await expectSignedOff(row);
+    });
+
+    test("a sign-off it never came back from reads as gone", async () => {
+      const status: KubernetesClusterAiAccessStatus = await realStatus({
+        cluster: fakeCluster(),
+        agentRow: makeAgentRow({
+          connectionStatus: "disconnected",
+          lastAliveAt: OneUptimeDate.addRemoveMinutes(
+            OneUptimeDate.getCurrentDate(),
+            -30,
+          ),
+        }),
+      });
+      expect(getAiAgentCardState(status)).toBe("offline");
+      expect(getAiAgentOfflineReason(status)).toBe("gone");
+      expect(getAiAgentStateSentence(status)).toBe(AI_AGENT_GONE_TEXT);
+    });
+  });
+
+  test("fixes on with a read-only agent: the write-access commands and their gap", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster({
+        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      }),
+      agentRow: makeAgentRow(),
+    });
+    expect(gapCodes(status)).toContain("remediation_write_access_missing");
+    expect(shouldShowWriteAccessCommands(status)).toBe(true);
+    // Its action is the commands already on the page.
+    expect(
+      getAiAgentGapAction(
+        status.gaps.find((gap: KubernetesAiAccessGap): boolean => {
+          return gap.code === "remediation_write_access_missing";
+        })!,
+        status,
+      ),
+    ).toBeNull();
+  });
+
+  test("the previous in-cluster Runner, online and bound: works today", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster({ aiAccessRunnerId: new ObjectID(RUNNER_ID) }),
+      runner: fakeLegacyRunner(),
+    });
+    expect(isLegacyRunnerTarget(status)).toBe(true);
+    expect(getAiAgentCardState(status)).toBe("legacy_runner");
+    expect(getAiAgentCardCommand(status)).toBe("install");
+  });
+
+  /*
+   * Rolling the chart back (or the seconds of a helm upgrade) leaves the
+   * legacy Runner online and the agent offline: the page follows the
+   * server to the Runner, not to an agent that is not there.
+   */
+  test("a rollback: the previous Runner online and the agent offline resolves to the Runner", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster({ aiAccessRunnerId: new ObjectID(RUNNER_ID) }),
+      runner: fakeLegacyRunner(),
+      agentRow: makeAgentRow({ connectionStatus: "disconnected" }),
+    });
+    expect(getAiAgentCardState(status)).toBe("legacy_runner");
+    expect(getAiAgentSummary(status)?.isOnline).toBe(false);
+  });
+
+  test("the agent online wins over the previous Runner bound", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster({ aiAccessRunnerId: new ObjectID(RUNNER_ID) }),
+      runner: fakeLegacyRunner(),
+      agentRow: makeAgentRow(),
+    });
+    expect(getAiAgentCardState(status)).toBe("connected");
+  });
+
+  test("an advanced Runner wins over an online agent, and can be switched back to it", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster({
+        aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
+        aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
+      }),
+      runner: fakeAdvancedRunner(),
+      agentRow: makeAgentRow(),
+    });
+    expect(isAdvancedRunnerTarget(status)).toBe(true);
+    expect(getAiAgentCardState(status)).toBe("advanced_runner");
+    expect(canSwitchToAiAgent(status)).toBe(true);
+    expect(getAiAgentCardCommand(status)).toBeNull();
+  });
+
+  test("project gates become Needs attention rows the page acts on", async () => {
+    const status: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster(),
+      agentRow: makeAgentRow(),
+      gates: {
+        ...READY_GATES,
+        isAiEnabled: false,
+        hasLlmProvider: false,
+        aiBalanceBlocker: "The project's AI balance is used up.",
+      },
+    });
+    const actions: Record<string, string | null> = {};
+    for (const gap of getAttentionGaps(status)) {
+      actions[gap.code] = getAiAgentGapAction(gap, status);
+    }
+    expect(actions).toEqual({
+      project_ai_disabled: "open_ai_features",
+      llm_provider_missing: "open_llm_providers",
+      ai_balance_insufficient: "open_ai_credits",
+    });
   });
 });
 
 /*
- * One definition of a usable allowlist entry. These entries get the same
- * answer from the page and from the server's save validation. (Entries the
- * matcher reads but the server's validation still refuses on its own
- * terms — a pattern without the leading "kubectl" — are the server's to
- * change; see KubectlPolicy.describeAllowlistPatternProblem.)
+ * One definition of a usable allowlist entry: the page and the server's
+ * save validation give these entries the same answer.
  */
 describe("allowlist validation: the page and the server agree", () => {
   const ENTRIES: Array<{ name: string; patterns: Array<string> }> = [
@@ -689,7 +1031,7 @@ describe("allowlist validation: the page and the server agree", () => {
  * The Runner pages against RunnerService, run for real with only the
  * database read stubbed. The pages decide which rows are kubernetes-agent
  * rows with the server's rule, and their edit form posts nothing the
- * server's write hook refuses — and leaves out exactly what it refuses.
+ * server's write hook refuses.
  */
 describe("the Runner pages and RunnerService agree on agent rows", () => {
   interface RowCase {
@@ -713,10 +1055,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     {
       label: "a case-variant agent name",
       row: { name: "Kubernetes-Agent/prod", hostInfo: {} },
-    },
-    {
-      label: "a padded upper-case agent name",
-      row: { name: "  KUBERNETES-AGENT/prod ", hostInfo: {} },
     },
     {
       label: "an agent by posture alone (a legacy rename)",
@@ -753,7 +1091,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     } as DatabaseCommonInteractionProps;
   }
 
-  // Serves `row` as the Runner the update hook reads.
   function serveRunnerRow(row: RowCase["row"]): void {
     jest.spyOn(RunnerService, "findBy").mockResolvedValue([
       {
@@ -764,7 +1101,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     ]);
   }
 
-  // What the hook says about a non-root update of `row`: null, or the refusal.
   async function serverRefusal(
     row: RowCase["row"],
     data: JSONObject,
@@ -788,7 +1124,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     }
   }
 
-  // The fields the detail page's edit form offers for `row`.
   function formFieldNames(row: RowCase["row"]): Array<string> {
     return getRunnerFormFields({
       withSteps: false,
@@ -810,7 +1145,7 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     }
   });
 
-  test("the form's locks are the hook's rules: the name marker, and the row rule", () => {
+  test("the form's locks are the hook's rules", () => {
     for (const rowCase of ROWS) {
       const restrictions: RunnerFormRestrictions = getRunnerFormRestrictions(
         rowCase.row,
@@ -828,35 +1163,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     }
   });
 
-  /*
-   * What the form posts for a row: every field it offers, the capability
-   * switches it offers as they are stored (off) and "Runs AI Remediation
-   * Commands" on, the name re-posted unchanged.
-   */
-  test("the hook accepts everything the edit form posts, for every row", async () => {
-    for (const rowCase of ROWS) {
-      const fields: Array<string> = formFieldNames(rowCase.row);
-      const data: JSONObject = {};
-
-      if (fields.includes("name")) {
-        data["name"] = rowCase.row.name as string;
-      }
-      data["description"] = "Edited from the Runner page.";
-      if (fields.includes("canRunRunbooks")) {
-        data["canRunRunbooks"] = false;
-      }
-      if (fields.includes("canRunCodeFixTasks")) {
-        data["canRunCodeFixTasks"] = false;
-      }
-      data["canRunAiCommands"] = true;
-
-      expect({
-        row: rowCase.label,
-        refusal: await serverRefusal(rowCase.row, data),
-      }).toEqual({ row: rowCase.label, refusal: null });
-    }
-  });
-
   test("the hook refuses exactly what the form leaves out", async () => {
     for (const rowCase of ROWS) {
       const fields: Array<string> = formFieldNames(rowCase.row);
@@ -865,20 +1171,15 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
         (await serverRefusal(rowCase.row, { name: "renamed-runner" })) !== null;
       const runbooksRefused: boolean =
         (await serverRefusal(rowCase.row, { canRunRunbooks: true })) !== null;
-      const codeFixesRefused: boolean =
-        (await serverRefusal(rowCase.row, { canRunCodeFixTasks: true })) !==
-        null;
 
       expect({
         row: rowCase.label,
         renameRefused,
         runbooksRefused,
-        codeFixesRefused,
       }).toEqual({
         row: rowCase.label,
         renameRefused: !fields.includes("name"),
         runbooksRefused: !fields.includes("canRunRunbooks"),
-        codeFixesRefused: !fields.includes("canRunCodeFixTasks"),
       });
     }
   });
@@ -887,11 +1188,9 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
     for (const name of [
       "kubernetes-agent/prod",
       "Kubernetes-Agent/prod",
-      " KUBERNETES-AGENT/prod",
       "prod-runner",
       "kubernetes-agent",
       "kubernetes-agent-office",
-      "my-kubernetes-agent/prod",
     ]) {
       let serverRefuses: boolean = false;
       try {

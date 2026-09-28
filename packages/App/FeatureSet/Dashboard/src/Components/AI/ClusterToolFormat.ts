@@ -133,7 +133,7 @@ export function getClusterEvidenceNote(
   toolName: string | null | undefined,
 ): string | null {
   if (toolName === RUN_KUBECTL_TOOL_NAME) {
-    return "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI page lists every kubectl command OneUptime AI ran there.";
+    return "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Insights page (AI → Insights) lists every kubectl command OneUptime AI ran there.";
   }
 
   if (toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {

@@ -49,6 +49,7 @@ import {
   KubernetesAiAccessGapCode,
   KubernetesAiAccessRunnerSummary,
   KubernetesClusterAiAccessStatus,
+  getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
@@ -544,22 +545,21 @@ export type InvestigationPanelClusterAccess = Pick<
  * identifier the Runner reported.
  */
 export const RESTRICTED_GAP_DESCRIPTION: string =
-  "Someone who can view this Kubernetes cluster can see the details on its AI page.";
+  "Someone who can view this Kubernetes cluster can see the details on its AI agent page (AI → Agent).";
 
 /*
  * Stand in for a gap's next step on a row whose viewer cannot read the
- * cluster. The service's next steps are written for the cluster's AI page
- * and may name the Runner to select ('Select the kubernetes-agent Runner
- * "kubernetes-agent/<cluster identifier>" …'), the credential, or the
- * cluster identifier — none of which such a viewer is shown — and point at
- * a page they cannot open. A project-level gap is fixed in Project
- * Settings instead.
+ * cluster. The service's next steps are written for the cluster's AI agent
+ * page and may name the Runner, the credential, the agent's namespace or
+ * the cluster identifier — none of which such a viewer is shown — and
+ * point at a page they cannot open. A project-level gap is fixed in
+ * Project Settings instead.
  */
 export const RESTRICTED_GAP_NEXT_STEP: string =
-  "Ask someone who can edit this Kubernetes cluster's AI access to fix it on the cluster's AI page.";
+  "Ask someone who can edit this Kubernetes cluster's AI access to fix it on the cluster's AI agent page (AI → Agent).";
 
 export const RESTRICTED_PROJECT_GAP_NEXT_STEP: string =
-  "Ask a project admin to change this under Project Settings → AI.";
+  "Ask a project owner or admin to change this in Project Settings (AI Features, AI Credits or LLM Providers).";
 
 /*
  * The gaps fixed in Project Settings rather than on the cluster. Every
@@ -571,6 +571,7 @@ const PROJECT_LEVEL_GAP_CODES: ReadonlyArray<KubernetesAiAccessGapCode> = [
   "project_auto_remediation_disabled",
   "project_ai_command_execution_disabled",
   "llm_provider_missing",
+  "ai_balance_insufficient",
 ];
 
 // The next step a viewer who cannot read the cluster sees for a gap.
@@ -586,7 +587,7 @@ export function getRestrictedGapNextStep(code: string): string {
  * credential.
  */
 export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
-  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on the cluster's AI page.";
+  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on the cluster's AI agent page (AI → Agent).";
 
 function toPanelRunnerSummary(
   runner: KubernetesAiAccessRunnerSummary | null,
@@ -598,6 +599,12 @@ function toPanelRunnerSummary(
   return {
     id: runner.id,
     name: runner.name,
+    /*
+     * Which kind of target it is: the panel names the Kubernetes AI agent
+     * and a Runner differently, and accessMethod ("in_cluster" for both
+     * the agent and the previous in-cluster Runner) cannot tell them apart.
+     */
+    kind: getKubernetesAiAccessTargetKind(runner) || undefined,
     isOnline: runner.isOnline,
     lastAliveAt: runner.lastAliveAt,
     canRunAiCommands: runner.canRunAiCommands,

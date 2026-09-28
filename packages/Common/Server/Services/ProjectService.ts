@@ -554,7 +554,39 @@ export class ProjectService extends DatabaseService<Model> {
       data.data.alertEpisodeNumberPrefix = "AE-";
     }
 
+    this.applyNewProjectAiDefaults(data.data);
+
     return Promise.resolve({ createBy: data, carryForward: null });
+  }
+
+  /*
+   * A new project starts with AI investigating its incidents and alerts:
+   * both automatic-investigation opt-ins are turned on unless the create
+   * request set them itself (a request that says false keeps false). The
+   * columns' database default stays false, so projects that existed before
+   * this are never switched on by an upgrade, and a create that bypasses
+   * this hook entirely gets the old behaviour rather than a surprise.
+   *
+   * Postmortem drafting is deliberately NOT turned on here: it is its own
+   * opt-in (enableAutomaticPostmortemDraft), off by default.
+   */
+  public applyNewProjectAiDefaults(data: {
+    enableAutomaticIncidentInvestigation?: boolean | null | undefined;
+    enableAutomaticAlertInvestigation?: boolean | null | undefined;
+  }): void {
+    if (
+      data.enableAutomaticIncidentInvestigation === undefined ||
+      data.enableAutomaticIncidentInvestigation === null
+    ) {
+      data.enableAutomaticIncidentInvestigation = true;
+    }
+
+    if (
+      data.enableAutomaticAlertInvestigation === undefined ||
+      data.enableAutomaticAlertInvestigation === null
+    ) {
+      data.enableAutomaticAlertInvestigation = true;
+    }
   }
 
   /*
