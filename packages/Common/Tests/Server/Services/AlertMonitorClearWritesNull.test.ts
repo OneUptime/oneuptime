@@ -211,6 +211,7 @@ describe("AlertService.updateOneById hands TypeORM the cleared monitor", () => {
   let saveMock: MockFunction;
   let updateMock: MockFunction;
   let isCreatedAutomatically: boolean = false;
+  let storedMonitorId: string | null = OLD_MONITOR_ID;
 
   // The Workflow "Update Alert" component writes this way; so can the API.
   const ROOT_PROPS: DatabaseCommonInteractionProps = {
@@ -222,13 +223,18 @@ describe("AlertService.updateOneById hands TypeORM the cleared monitor", () => {
     const alert: Alert = new Alert();
     alert._id = ALERT_ID;
     alert.projectId = PROJECT_ID;
-    alert.monitorId = new ObjectID(OLD_MONITOR_ID);
+
+    if (storedMonitorId) {
+      alert.monitorId = new ObjectID(storedMonitorId);
+    }
+
     alert.isCreatedAutomatically = isCreatedAutomatically;
     return alert;
   }
 
   beforeEach(() => {
     isCreatedAutomatically = false;
+    storedMonitorId = OLD_MONITOR_ID;
 
     // The guard's read of the matched alerts.
     jest.spyOn(AlertService, "findBy").mockImplementation((async (): Promise<
@@ -369,5 +375,35 @@ describe("AlertService.updateOneById hands TypeORM the cleared monitor", () => {
 
     expect(saveMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("for an automatic alert with no monitor, attaching one is refused and nothing is written", async () => {
+    isCreatedAutomatically = true;
+    storedMonitorId = null;
+
+    await expect(update({ monitor: { _id: NEW_MONITOR_ID } })).rejects.toThrow(
+      /a monitor cannot be attached to it/,
+    );
+
+    expect(saveMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("for an automatic alert with no monitor, the card's payload still saves the rest", async () => {
+    isCreatedAutomatically = true;
+    storedMonitorId = null;
+
+    // The Monitor field is hidden, but submitted with the null it loaded.
+    await update({ monitor: null, hosts: [{ _id: HOST_ID }], services: [] });
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+
+    const saved: Record<string, unknown> = saveMock.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(saved["monitor"]).toBeNull();
+    expect(saved["hosts"]).toBeDefined();
   });
 });

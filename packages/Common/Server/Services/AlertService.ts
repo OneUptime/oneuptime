@@ -337,15 +337,20 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * An alert's monitor can be set, changed or cleared after the alert is
-   * created, except on an alert raised automatically that has a monitor. The
-   * monitor that raised it finds its open alerts by monitor (MonitorAlert):
-   * it dedupes each new breach against them and resolves them when it
-   * recovers. Moved to another monitor, or cleared, such an alert would never
-   * be resolved automatically, and the monitor it came from would raise a
-   * duplicate on its next breach. Giving a monitor to an automatic alert that
-   * has none (an SLO burn-rate or security-event alert) moves nothing, so it
-   * passes.
+   * A manual alert's monitor can be set, changed or cleared after the alert
+   * is created. An alert raised automatically keeps the monitor it was raised
+   * with:
+   *
+   *   - Raised by a monitor, it keeps that one. The monitor finds its open
+   *     alerts by monitor (MonitorAlert): it dedupes each new breach against
+   *     them and resolves them when it recovers. Moved to another monitor, or
+   *     cleared, the alert would never be resolved automatically, and the
+   *     monitor it came from would raise a duplicate on its next breach.
+   *   - Raised without one (an SLO burn-rate or security-event alert), or left
+   *     without one when its monitor was deleted, it gets none. A monitor
+   *     attached to it would find it among its own open alerts though it
+   *     never raised it, and the rule above would then lock the alert to that
+   *     monitor for good.
    *
    * Every caller is checked, root included: the workflow "Update Alert"
    * component writes as root, and no server code moves an alert's monitor on
@@ -409,9 +414,21 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      if (alert.isCreatedAutomatically && oldMonitorId) {
+      /*
+       * Only a real change gets here. Re-saving what the alert already has
+       * passes, including the null of an automatic alert with no monitor:
+       * the dashboard hides the Monitor field for such an alert, but
+       * ModelForm still submits the value it loaded.
+       *
+       * The message for an alert with no monitor says only that it has none,
+       * not that it was raised without one: a monitor's alert whose monitor
+       * was deleted reaches it too.
+       */
+      if (alert.isCreatedAutomatically) {
         throw new BadDataException(
-          "This alert was raised automatically by its monitor, so its monitor cannot be changed or removed. That monitor resolves the alert when it recovers: moved to another monitor, the alert would stay open, and the monitor would raise a duplicate alert on its next breach.",
+          oldMonitorId
+            ? "This alert was raised automatically by its monitor, so its monitor cannot be changed or removed. That monitor resolves the alert when it recovers: moved to another monitor, the alert would stay open, and the monitor would raise a duplicate alert on its next breach."
+            : "This alert was raised automatically and has no monitor, so a monitor cannot be attached to it. An alert raised automatically cannot be given a monitor after it is raised.",
         );
       }
 

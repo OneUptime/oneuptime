@@ -39,7 +39,11 @@ const CREATE_PAGE: string = "Pages/Alerts/Create.tsx";
 const UNLOCKED_DESCRIPTION: string =
   "Select the monitor affected by this alert.";
 
-// Its description on an alert its monitor raised, where it is locked.
+/*
+ * Its description on an alert raised automatically, where it is locked. An
+ * automatic alert with no monitor is not offered the field at all, so there
+ * is no third wording to translate.
+ */
 const LOCKED_DESCRIPTION: string =
   "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed.";
 
@@ -204,7 +208,7 @@ describe("Alert page, Affected Resources card: Monitor field translations", () =
 
     expect(fields).toContain('title: "Monitor"');
     expect(fields).toContain(
-      `description: isMonitorLocked ? "${LOCKED_DESCRIPTION}" : "${UNLOCKED_DESCRIPTION}"`,
+      `description: isCreatedAutomatically ? "${LOCKED_DESCRIPTION}" : "${UNLOCKED_DESCRIPTION}"`,
     );
     expect(fields).toContain('placeholder: "Select Monitor"');
     expect(fields).toContain('title: "Other Affected Resources"');

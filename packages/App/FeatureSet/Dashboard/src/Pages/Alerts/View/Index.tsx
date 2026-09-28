@@ -225,14 +225,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   /*
-   * The alert's monitor cannot be changed or cleared when a monitor raised the
-   * alert: that monitor resolves the alert when it recovers, and the server
-   * refuses the edit (AlertService.onBeforeUpdate). Read with the page's own
+   * An alert raised automatically keeps the monitor it was raised with: the
+   * server refuses to set, change or clear it (AlertService.onBeforeUpdate).
+   * With a monitor, the Affected Resources card shows it locked and says why.
+   * Without one (an SLO burn-rate or security-event alert, or one whose
+   * monitor was deleted), the card leaves the Monitor field out: there is
+   * nothing to show and nothing that may be picked. Read with the page's own
    * row, which lands before any card renders, so the Edit modal never offers
-   * the monitor even for a moment. An automatic alert with no monitor (an SLO
-   * burn-rate or security-event alert) can still be given one.
+   * the monitor even for a moment.
    */
-  const [isMonitorLocked, setIsMonitorLocked] = useState<boolean>(false);
+  const [isCreatedAutomatically, setIsCreatedAutomatically] =
+    useState<boolean>(false);
+  const [hasMonitor, setHasMonitor] = useState<boolean>(false);
 
   const [aiInvestigationStatus, setAIInvestigationStatus] =
     useState<AIInvestigationStatusState>({
@@ -497,9 +501,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setIsPrivate(alert?.isPrivate || false);
 
-      setIsMonitorLocked(
-        Boolean(alert?.isCreatedAutomatically && alert?.monitorId),
-      );
+      setIsCreatedAutomatically(Boolean(alert?.isCreatedAutomatically));
+      setHasMonitor(Boolean(alert?.monitorId));
 
       setAlertTitle(alert?.title || undefined);
       setAlertStartedAt(alert?.createdAt || undefined);
@@ -1179,11 +1182,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             editButtonText="Edit"
             onSaveSuccess={() => {
               /*
-               * The save can have set, moved or cleared the monitor. This card
-               * reads its row again by itself, but the details card's Monitor
-               * row (which also feeds the header's Monitor fact) and the
-               * page's monitor lock are read elsewhere, so both read again;
-               * and the change is a new feed entry.
+               * The save can have set, moved or cleared a manual alert's
+               * monitor. This card reads its row again by itself, but the
+               * details card's Monitor row (which also feeds the header's
+               * Monitor fact) and the page's own row, which decides how the
+               * Monitor field is offered, are read elsewhere, so both read
+               * again; and the change is a new feed entry.
                */
               setDetailsRefresher((current: boolean): boolean => {
                 return !current;
@@ -1202,7 +1206,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                  */
                 field: { monitor: true },
                 title: "Monitor",
-                description: isMonitorLocked
+                description: isCreatedAutomatically
                   ? "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed."
                   : "Select the monitor affected by this alert.",
                 fieldType: FormFieldSchemaType.Dropdown,
@@ -1214,7 +1218,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 required: false,
                 // The Create page's wording, which every locale translates.
                 placeholder: "Select Monitor",
-                disabled: isMonitorLocked,
+                disabled: isCreatedAutomatically,
+                /*
+                 * Hidden, not locked, on an automatic alert with no monitor.
+                 * ModelForm still loads the field and submits the null it
+                 * holds, which the server reads as no change.
+                 */
+                showIf: (): boolean => {
+                  return !isCreatedAutomatically || hasMonitor;
+                },
               },
               {
                 /*

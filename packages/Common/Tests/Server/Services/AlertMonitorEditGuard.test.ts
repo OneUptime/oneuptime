@@ -12,12 +12,18 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * An alert's monitor can be set, changed or cleared after the alert is
- * created (the dashboard's Affected Resources card, the API, a workflow),
- * except on an alert raised automatically that has a monitor: that monitor
- * finds its open alerts by monitor, dedupes new breaches against them and
- * resolves them when it recovers. Moved or cleared, such an alert would stay
- * open forever and the monitor would raise a duplicate.
+ * A manual alert's monitor can be set, changed or cleared after the alert is
+ * created (the dashboard's Affected Resources card, the API, a workflow). An
+ * alert raised automatically keeps the monitor it was raised with:
+ *
+ *   - raised by a monitor, it keeps that one. The monitor finds its open
+ *     alerts by monitor, dedupes new breaches against them and resolves them
+ *     when it recovers; moved or cleared, the alert would stay open forever
+ *     and the monitor would raise a duplicate.
+ *   - raised without one (an SLO burn-rate or security-event alert), or left
+ *     without one when its monitor was deleted, it gets none. A monitor
+ *     attached to it would find it among its own open alerts, and the alert
+ *     would then be locked to a monitor that never raised it.
  *
  * These tests drive the real AlertService.onBeforeUpdate against a stubbed
  * alert table (AlertService.findBy). Reference validation and custom field
@@ -36,6 +42,9 @@ const USER_ID: ObjectID = new ObjectID("0193c0de-eeee-4aaa-8bbb-0000000000c1");
 
 const LOCKED_MONITOR: RegExp =
   /raised automatically by its monitor, so its monitor cannot be changed or removed/;
+
+const NO_MONITOR_TO_ATTACH: RegExp =
+  /raised automatically and has no monitor, so a monitor cannot be attached to it/;
 
 type OnBeforeUpdate = (updateBy: UpdateBy<Alert>) => Promise<OnUpdate<Alert>>;
 
@@ -131,7 +140,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AlertService.onBeforeUpdate: an automatic alert's monitor is locked", () => {
+describe("AlertService.onBeforeUpdate: an automatic alert with a monitor keeps it", () => {
   test.each([
     ["the monitorId column", { monitorId: NEW_MONITOR_ID }],
     ["the relation object", { monitor: { _id: NEW_MONITOR_ID } }],
@@ -216,24 +225,6 @@ describe("AlertService.onBeforeUpdate: an automatic alert's monitor is locked", 
     expect(changes).toEqual({});
   });
 
-  test("an automatic alert without a monitor (an SLO burn-rate alert) can be given one", async () => {
-    stored = [storedAlert({ isCreatedAutomatically: true, monitorId: null })];
-
-    const changes: Record<string, MonitorChangeShape> = await monitorChangesOf({
-      monitor: { _id: NEW_MONITOR_ID },
-    });
-
-    expect(Object.keys(changes)).toEqual([ALERT_ID]);
-    expect(idOf(changes[ALERT_ID]!.oldMonitorId)).toBeNull();
-    expect(idOf(changes[ALERT_ID]!.newMonitorId)).toBe(NEW_MONITOR_ID);
-  });
-
-  test("an automatic alert without a monitor may be saved with none", async () => {
-    stored = [storedAlert({ isCreatedAutomatically: true, monitorId: null })];
-
-    expect(await monitorChangesOf({ monitor: null })).toEqual({});
-  });
-
   test("a payload that spells the monitor two different ways is refused", async () => {
     stored = [storedAlert({ isCreatedAutomatically: false, monitorId: null })];
 
@@ -251,6 +242,121 @@ describe("AlertService.onBeforeUpdate: an automatic alert's monitor is locked", 
         monitor: null,
       }),
     ).rejects.toThrow("Conflicting Monitor references were provided.");
+  });
+});
+
+/*
+ * An automatic alert that has no monitor: an SLO burn-rate or security-event
+ * alert, or a monitor's alert whose monitor was deleted (the column is set
+ * to NULL). It keeps having none.
+ */
+describe("AlertService.onBeforeUpdate: an automatic alert without a monitor gets none", () => {
+  beforeEach(() => {
+    stored = [storedAlert({ isCreatedAutomatically: true, monitorId: null })];
+  });
+
+  test.each([
+    ["the monitorId column", { monitorId: NEW_MONITOR_ID }],
+    ["the relation object", { monitor: { _id: NEW_MONITOR_ID } }],
+    ["an ObjectID", { monitorId: new ObjectID(NEW_MONITOR_ID) }],
+    [
+      "a Monitor instance",
+      { monitor: new Monitor(new ObjectID(NEW_MONITOR_ID)) },
+    ],
+  ])(
+    "refuses to attach one through %s",
+    async (_label: string, data: JSONObject) => {
+      await expect(runBeforeUpdate(data)).rejects.toThrow(NO_MONITOR_TO_ATTACH);
+    },
+  );
+
+  test("the refusal is a 400 that says why, raised before anything else runs", async () => {
+    let error: unknown = null;
+
+    try {
+      await runBeforeUpdate({
+        title: "Renamed",
+        monitor: { _id: NEW_MONITOR_ID },
+      });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).toContain(
+      "An alert raised automatically cannot be given a monitor after it is raised.",
+    );
+    // It has no monitor to keep, so it is not told it has one.
+    expect((error as Error).message).not.toMatch(LOCKED_MONITOR);
+    expect(validateReferences).not.toHaveBeenCalled();
+    expect(applyMappings).not.toHaveBeenCalled();
+  });
+
+  test("the refusal does not claim the alert was raised without a monitor", async () => {
+    /*
+     * A monitor's alert whose monitor was deleted is stored exactly like an
+     * SLO or security-event alert: automatic, with no monitor. It was raised
+     * by a monitor, so the message must hold for it too.
+     */
+    let error: unknown = null;
+
+    try {
+      await runBeforeUpdate({ monitorId: NEW_MONITOR_ID });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadDataException);
+
+    const message: string = (error as Error).message;
+
+    expect(message).not.toMatch(/without a monitor/);
+    expect(message).not.toMatch(/keeps the monitor it was raised with/);
+    expect(message).toMatch(NO_MONITOR_TO_ATTACH);
+  });
+
+  const callers: Array<[string, DatabaseCommonInteractionProps]> = [
+    // The workflow "Update Alert" component writes this way.
+    ["root with a tenant", { isRoot: true, tenantId: PROJECT_ID }],
+    ["root with no tenant", { isRoot: true }],
+    [
+      "a master admin",
+      { tenantId: PROJECT_ID, userId: USER_ID, isMasterAdmin: true },
+    ],
+  ];
+
+  test.each(callers)(
+    "refuses %s too",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      await expect(
+        runBeforeUpdate({ monitorId: NEW_MONITOR_ID }, props),
+      ).rejects.toThrow(NO_MONITOR_TO_ATTACH);
+    },
+  );
+
+  test.each([
+    ["monitor: null", { monitor: null }],
+    ["monitorId: null", { monitorId: null }],
+    ["an empty monitorId", { monitorId: "" }],
+  ])(
+    "may be saved with none, as %s",
+    async (_label: string, data: JSONObject) => {
+      expect(await monitorChangesOf(data)).toEqual({});
+    },
+  );
+
+  test("saving the rest of the card, with the Monitor field hidden, is allowed", async () => {
+    /*
+     * The dashboard hides the field for this alert, but ModelForm still
+     * submits it with the null it loaded.
+     */
+    const changes: Record<string, MonitorChangeShape> = await monitorChangesOf({
+      monitor: null,
+      hosts: [{ _id: "0193c0de-eeee-4aaa-8bbb-0000000000d1" }],
+      services: [],
+    });
+
+    expect(changes).toEqual({});
   });
 });
 
@@ -443,6 +549,27 @@ describe("AlertService.onBeforeUpdate: an update matching several alerts", () =>
         title: "Checkout slow",
       }),
     ).rejects.toThrow(LOCKED_MONITOR);
+  });
+
+  test("is refused when any one of them is an automatic alert without a monitor", async () => {
+    stored = [
+      storedAlert({
+        id: ALERT_ID,
+        isCreatedAutomatically: false,
+        monitorId: OLD_MONITOR_ID,
+      }),
+      storedAlert({
+        id: SECOND_ALERT_ID,
+        isCreatedAutomatically: true,
+        monitorId: null,
+      }),
+    ];
+
+    await expect(
+      runBeforeUpdate({ monitorId: NEW_MONITOR_ID }, MEMBER_PROPS, {
+        title: "Checkout slow",
+      }),
+    ).rejects.toThrow(NO_MONITOR_TO_ATTACH);
   });
 
   test("records a change for each alert whose monitor moves, and none for one already there", async () => {
