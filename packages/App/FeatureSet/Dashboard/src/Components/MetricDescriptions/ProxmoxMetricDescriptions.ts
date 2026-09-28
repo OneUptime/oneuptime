@@ -148,7 +148,7 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
 
   // Node detail.
   nodeStatus:
-    "Online or Offline, as Proxmox last reported for this node. If the agent stops sending data, this keeps showing the last known state.",
+    "Online or Offline, as Proxmox last reported for this node; on Proxmox's built-in metric push, a node that stops sending data turns Offline about 2 minutes later, reported by the nodes still sending. If the agent or the whole cluster stops sending data, this keeps showing the last known state.",
   nodeUptime:
     "How long this node had been running since it last booted, as of its latest report.",
   nodeCpu:
@@ -196,7 +196,7 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
 
   // Nodes list.
   nodesTableStatus:
-    "Online or Offline, as Proxmox last reported for each node.",
+    "Online or Offline, as Proxmox last reported for each node. On Proxmox's built-in metric push, a node that stops sending data turns Offline about 2 minutes later while the other nodes keep reporting, and stays listed for up to 7 days.",
   nodesTableCpu:
     "How busy each node's processors are, as a share of all its CPU cores, at its latest report. Shows N/A when the node has sent no update in the last 15 minutes.",
   nodesTableMemory:

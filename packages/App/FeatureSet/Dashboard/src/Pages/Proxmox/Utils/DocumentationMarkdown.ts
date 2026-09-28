@@ -239,7 +239,9 @@ Proxmox VE 9.0 and later can push metrics directly to OneUptime via the built-in
 
 Nothing else to configure. OneUptime translates the native push into the same \`pve_*\` series the agent sends: the cluster registers itself under your Proxmox cluster name (a standalone node under its node name), and these pages, the metric catalog and the CPU / memory / storage alert templates work as with the agent. The original \`proxmox_*\` series stay available in Metrics Explorer.
 
-Each node only pushes its own status, so a node that goes down goes silent instead of reporting itself down — the Node Offline and Quorum at Risk templates cannot see it. HA state, start-on-boot (used by Guest Down), backup coverage and replication are not pushed either. Use the agent if you need those, and use one or the other for a cluster: running both reports every resource twice.
+Each node only pushes its own status, so a node that goes down cannot report itself down — the nodes still alive report it for it. It shows Offline on these pages about 2 minutes after its last report, Node Offline fires after about 5 minutes and Quorum at Risk counts it as offline; its next report brings it back. This means "stopped reporting": a hung \`pvestatd\`, a stopped \`pmxcfs\` or a cut network to OneUptime look the same. A standalone host or a whole cluster going silent has nobody left to report it, so the cluster turns Disconnected instead, as when the agent stops. A node silent for more than 7 days is no longer reported. For a node you took out of the cluster, use **Remove node** on its page — otherwise it stays Offline for up to 7 days. The reports are marked \`oneuptime.proxmox.inferred=not-reporting\` in Metrics Explorer.
+
+HA state, start-on-boot (used by Guest Down), backup coverage and replication are not pushed. Use the agent if you need those, and use one or the other for a cluster: running both reports every resource twice.
 
 ## Upgrading the Agent
 

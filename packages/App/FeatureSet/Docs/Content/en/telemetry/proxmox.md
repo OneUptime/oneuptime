@@ -195,16 +195,36 @@ Add it once — every node of the cluster pushes its own metrics. Nothing else t
 
 If you set `proxmox.cluster.name` under _Resource Attributes_ before, it keeps being used — the cluster keeps its name.
 
+### When a node stops reporting
+
+Each node pushes only its own status, so a node that goes down cannot say so itself. The nodes that are still alive report it for it:
+
+- About 2 minutes after its last report, the node shows **Offline** on the Nodes page. Its **Last Seen** keeps the time of its own last report.
+- After about 5 minutes, **Node Offline** fires for it, and **Cluster Quorum at Risk** counts it as offline.
+- With its next report it is **Online** again and its alert recovers.
+
+Offline here means the node **stopped reporting**, not necessarily that it is down. A node that is up but whose `pvestatd` is hung or killed, whose cluster file system (`pmxcfs`) is down, or whose network to OneUptime is cut is reported the same way.
+
+What it cannot cover:
+
+- **A standalone host, or a whole cluster going silent at once.** Nobody is left to report it, so no per-node alert fires. The cluster turns **Disconnected** instead, the same as when the agent stops.
+- **A node silent for more than 7 days** is no longer reported. Its alert resolves and it drops off the Nodes page.
+- **A node you take out of the cluster** looks the same as a dead one. Use **Remove node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
+- **The node's guests and storage.** Only the node itself is kept as Offline; its VMs, containers and storage drop off their pages about 15 minutes after its last report. Guests that HA restarts on another node come back under that node.
+
+After a OneUptime ingest outage, no node reports its siblings until one of them has pushed again for 2 minutes, so the outage itself never pages for every node — and a node that was already Offline stays Offline through it.
+
+In [Metrics Explorer](/docs/monitor/metrics-monitor) these reports are the `pve_up` = 0 points labelled `oneuptime.proxmox.inferred` = `not-reporting`, so you can always tell them apart from what a node said about itself.
+
 ### What the native push cannot do
 
 The native push only sends what each node knows about itself, so part of what the agent collects has no native equivalent:
 
-| Needs the agent                 | Why                                                                                                                                                                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Detecting a node that went down | A node that dies stops pushing; it cannot report itself down. Its row drops out of the inventory after about 15 minutes, but the **Node Offline** and **Cluster Quorum at Risk** templates never fire. The agent asks the cluster about every node. |
-| HA state                        | Not pushed — the **HA State Error** template needs the agent.                                                                                                                                                                                       |
-| Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent.                                                                                                                                        |
-| Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.                                                                                                                                                      |
+| Needs the agent                 | Why                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| HA state                        | Not pushed — the **HA State Error** template needs the agent.                                                |
+| Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent. |
+| Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.               |
 
 If you need those, run the agent instead. Use one or the other for a cluster: running both reports every resource twice.
 
