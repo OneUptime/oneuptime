@@ -455,6 +455,201 @@ describe("GlobalCache.deleteKeyIfValue", () => {
   });
 });
 
+/*
+ * getStrings backs the Proxmox native-push silent-node check
+ * (ProxmoxNativeNodeLiveness): every live node's status push reads the
+ * liveness key of each of its siblings. That is on the metrics ingest hot
+ * path, so it must stay ONE round-trip however large the cluster, and the
+ * reply must stay positional — the caller zips it back onto the node names,
+ * so a reply that dropped or reordered a missing key would pin one node's
+ * liveness on another and report a live node as down (or a dead one as up).
+ */
+type MgetMockClient = MockClient & {
+  mget: jest.Mock;
+};
+
+describe("GlobalCache.getStrings", () => {
+  let client: MgetMockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(1),
+      mget: jest.fn().mockResolvedValue([]),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("reads every key in ONE MGET, namespaced exactly as getString does", async () => {
+    client.mget.mockResolvedValue(["1", "2", "3"]);
+
+    await GlobalCache.getStrings("ns", ["a", "b", "c"]);
+
+    expect(client.mget).toHaveBeenCalledTimes(1);
+    expect(client.mget).toHaveBeenCalledWith(["ns-a", "ns-b", "ns-c"]);
+    // One GET per key would be N round-trips on the ingest hot path.
+    expect(client.get).not.toHaveBeenCalled();
+  });
+
+  test("uses the same key getString and setString use", async () => {
+    client.get.mockResolvedValue("x");
+
+    await GlobalCache.setString("proxmox", "p:c:pve1", "x", {
+      expiresInSeconds: 120,
+    });
+    await GlobalCache.getString("proxmox", "p:c:pve1");
+    await GlobalCache.getStrings("proxmox", ["p:c:pve1"]);
+
+    const setKey: unknown = (client.set.mock.calls[0] as Array<unknown>)[0];
+    const getKey: unknown = (client.get.mock.calls[0] as Array<unknown>)[0];
+    const mgetKeys: unknown = (client.mget.mock.calls[0] as Array<unknown>)[0];
+
+    expect(setKey).toBe("proxmox-p:c:pve1");
+    expect(getKey).toBe(setKey);
+    expect(mgetKeys).toEqual([setKey]);
+  });
+
+  test("returns the values positionally, null where a key is missing", async () => {
+    client.mget.mockResolvedValue(["1,2", null, "5,6", null]);
+
+    await expect(
+      GlobalCache.getStrings("ns", ["a", "b", "c", "d"]),
+    ).resolves.toEqual(["1,2", null, "5,6", null]);
+  });
+
+  test("returns all nulls when no key exists", async () => {
+    client.mget.mockResolvedValue([null, null, null]);
+
+    await expect(
+      GlobalCache.getStrings("ns", ["a", "b", "c"]),
+    ).resolves.toEqual([null, null, null]);
+  });
+
+  // getString reads an empty value as missing; getStrings must agree.
+  test("reads an empty-string value as null, like getString", async () => {
+    client.mget.mockResolvedValue(["", "x", ""]);
+
+    await expect(
+      GlobalCache.getStrings("ns", ["a", "b", "c"]),
+    ).resolves.toEqual([null, "x", null]);
+  });
+
+  test("keeps duplicate keys at their own positions", async () => {
+    client.mget.mockResolvedValue(["v", "w", "v"]);
+
+    await expect(
+      GlobalCache.getStrings("ns", ["a", "b", "a"]),
+    ).resolves.toEqual(["v", "w", "v"]);
+    expect(client.mget).toHaveBeenCalledWith(["ns-a", "ns-b", "ns-a"]);
+  });
+
+  /*
+   * One entry per REQUESTED key, whatever the reply: a short reply (a
+   * proxy, a driver change) pads with null rather than shifting or
+   * shortening the result, and a long one is cut to the keys asked for.
+   */
+  test("always returns exactly one entry per requested key", async () => {
+    client.mget.mockResolvedValue(["1"]);
+    await expect(
+      GlobalCache.getStrings("ns", ["a", "b", "c"]),
+    ).resolves.toEqual(["1", null, null]);
+
+    client.mget.mockResolvedValue(["1", "2", "3", "4"]);
+    await expect(GlobalCache.getStrings("ns", ["a", "b"])).resolves.toEqual([
+      "1",
+      "2",
+    ]);
+
+    client.mget.mockResolvedValue([undefined, "2"]);
+    await expect(GlobalCache.getStrings("ns", ["a", "b"])).resolves.toEqual([
+      null,
+      "2",
+    ]);
+  });
+
+  test("stays one round-trip for a large cluster", async () => {
+    const keys: Array<string> = [];
+    for (let i: number = 0; i < 500; i++) {
+      keys.push(`node-${i}`);
+    }
+    client.mget.mockResolvedValue(
+      keys.map((key: string) => {
+        return `value-${key}`;
+      }),
+    );
+
+    const values: Array<string | null> = await GlobalCache.getStrings(
+      "ns",
+      keys,
+    );
+
+    expect(client.mget).toHaveBeenCalledTimes(1);
+    expect(values).toHaveLength(500);
+    expect(values[0]).toBe("value-node-0");
+    expect(values[499]).toBe("value-node-499");
+  });
+
+  test("does not mutate the caller's key array", async () => {
+    const keys: Array<string> = ["a", "b"];
+    client.mget.mockResolvedValue(["1", "2"]);
+
+    await GlobalCache.getStrings("ns", keys);
+
+    expect(keys).toEqual(["a", "b"]);
+  });
+
+  test("no keys: returns [] without a Redis call", async () => {
+    await expect(GlobalCache.getStrings("ns", [])).resolves.toEqual([]);
+    expect(client.mget).not.toHaveBeenCalled();
+  });
+
+  // Nothing to read, so nothing to fail: an empty sibling list is not an error.
+  test("no keys: returns [] even when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.getStrings("ns", [])).resolves.toEqual([]);
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.getStrings("ns", ["a"])).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.mget).not.toHaveBeenCalled();
+  });
+
+  test("throws when there is no client at all", async () => {
+    (Redis.getClient as jest.Mock).mockReturnValue(null);
+
+    await expect(GlobalCache.getStrings("ns", ["a"])).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.mget).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The caller decides what an MGET failure means (the silent-node check
+   * reports nothing); getStrings must not swallow it into "every key is
+   * missing", which would read as "every sibling is silent".
+   */
+  test("propagates an MGET failure instead of returning nulls", async () => {
+    client.mget.mockRejectedValue(new Error("ETIMEDOUT"));
+
+    await expect(GlobalCache.getStrings("ns", ["a", "b"])).rejects.toThrow(
+      "ETIMEDOUT",
+    );
+  });
+});
+
 describe("GlobalCache.getAndDeleteString", () => {
   let client: MockClient;
 
