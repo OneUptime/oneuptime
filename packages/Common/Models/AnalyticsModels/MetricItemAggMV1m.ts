@@ -170,8 +170,16 @@ GROUP BY projectId, name, primaryEntityId, bucketTime`,
        * states stay on a single shard — no cross-shard partial-state merge.
        */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
-      tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
+      /*
+       * No ttl_only_drop_parts, for the same reason as the raw Metric table
+       * this MV aggregates: monitor metrics and telemetry metrics share a
+       * partition with retentions that differ by an order of magnitude, so a
+       * part never expires as a whole. The per-dimension MVs
+       * (…ByService / …ByHostV2 / …ByContainer / …ByK8sCluster) are not
+       * affected -- monitor metrics carry none of those dimensions and never
+       * reach them.
+       */
+      tableSettings: "non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
       includeBaseColumns: false,
       defaultSortColumn: "bucketTime",
