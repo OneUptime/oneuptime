@@ -166,8 +166,8 @@ The Pyroscope .NET profiler is a native CLR profiler: it needs no code changes a
 
 ```dockerfile
 FROM alpine:3.20 AS pyroscope-profiler
-ARG PYROSCOPE_DOTNET_VERSION=0.13.0
-ADD https://github.com/grafana/pyroscope-dotnet/releases/download/v${PYROSCOPE_DOTNET_VERSION}-pyroscope/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz /tmp/pyroscope.tar.gz
+ARG PYROSCOPE_DOTNET_VERSION=1.5.1
+ADD https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-${PYROSCOPE_DOTNET_VERSION}/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz /tmp/pyroscope.tar.gz
 RUN mkdir -p /pyroscope && tar -xzf /tmp/pyroscope.tar.gz -C /pyroscope
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
@@ -186,10 +186,13 @@ Then point it at OneUptime, for example in your Kubernetes / Helm environment:
 PYROSCOPE_APPLICATION_NAME=my-service
 PYROSCOPE_PROFILING_ENABLED=1
 PYROSCOPE_SERVER_ADDRESS=https://oneuptime.com/pyroscope
-PYROSCOPE_AUTH_TOKEN=YOUR_ONEUPTIME_INGESTION_TOKEN
+PYROSCOPE_BASIC_AUTH_USER=oneuptime
+PYROSCOPE_BASIC_AUTH_PASSWORD=YOUR_ONEUPTIME_INGESTION_TOKEN
 ```
 
-How the token is passed depends on the profiler release:
+The ingestion token goes in the basic-auth password. The user name can be any non-empty value, but the profiler sends no credentials at all unless both are set. To send the token as a header instead, set `PYROSCOPE_HTTP_HEADERS={"x-oneuptime-token":"YOUR_ONEUPTIME_INGESTION_TOKEN"}`.
+
+How the token is passed depends on the profiler release. 1.5 and later ignore `PYROSCOPE_AUTH_TOKEN`, so if you upgrade from an older release and keep that setting, every upload is rejected with `401`:
 
 | pyroscope-dotnet release | Uploads to                              | Token setting                                                                                                                                                     |
 | ------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -197,7 +200,7 @@ How the token is passed depends on the profiler release:
 | v0.14 to 1.4             | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_AUTH_TOKEN`                                                                                                                                            |
 | 1.5 and later            | `/pyroscope/push.v1.PusherService/Push` | `PYROSCOPE_BASIC_AUTH_USER=oneuptime` and `PYROSCOPE_BASIC_AUTH_PASSWORD=<token>` (both must be set), or `PYROSCOPE_HTTP_HEADERS={"x-oneuptime-token":"<token>"}` |
 
-From 1.x the release tags are named `pyroscope-<version>` (for example `https://github.com/grafana/pyroscope-dotnet/releases/download/pyroscope-1.5.1/pyroscope.1.5.1-glibc-x86_64.tar.gz`); the profiler GUID and file names are unchanged.
+Releases before 1.0 are tagged `v<version>-pyroscope` instead of `pyroscope-<version>` (for example `https://github.com/grafana/pyroscope-dotnet/releases/download/v0.13.0-pyroscope/pyroscope.0.13.0-glibc-x86_64.tar.gz`); the profiler GUID and file names are the same in every release.
 
 CPU profiling is on by default. Wall-time, allocation, exception and lock-contention profiling are opt-in: set `PYROSCOPE_PROFILING_WALLTIME_ENABLED`, `PYROSCOPE_PROFILING_ALLOCATION_ENABLED`, `PYROSCOPE_PROFILING_EXCEPTION_ENABLED` or `PYROSCOPE_PROFILING_LOCK_ENABLED` to `true`. Static labels go in `PYROSCOPE_LABELS` (`key:value,key:value`).
 
