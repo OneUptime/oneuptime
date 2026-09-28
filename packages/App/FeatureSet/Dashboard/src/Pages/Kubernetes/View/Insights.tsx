@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -34,6 +33,8 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 
 interface MetricSpec {
   variable: string;
@@ -258,8 +259,18 @@ const KubernetesClusterInsights: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
+  /*
+   * Issue #4105: the three cards share the page's range, so a drag on any
+   * chart in them - the network chart included - narrows all three, and a
+   * double-click on any of them (or Reset zoom beside any card's picker)
+   * puts the range back. The page, not each card, keeps the zoom; a card
+   * keeping its own could not undo a zoom made in another card.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute & Storage")}
         description="CPU, memory and filesystem usage across all nodes in the cluster."
@@ -280,11 +291,20 @@ const KubernetesClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       >
-        <KubernetesNetworkThroughputChart
-          clusterIdentifier={clusterIdentifier}
-          startDate={startAndEndDate.startValue}
-          endDate={startAndEndDate.endValue}
-        />
+        {/*
+         * The throughput chart has no header of its own to name the drag
+         * in, so the hint gets a slim row above it, revealed on hover.
+         */}
+        <div className="group">
+          <div className="mb-1 flex justify-end">
+            <TimeRangeZoomHint revealOnHover={true} className="leading-3" />
+          </div>
+          <KubernetesNetworkThroughputChart
+            clusterIdentifier={clusterIdentifier}
+            startDate={startAndEndDate.startValue}
+            endDate={startAndEndDate.endValue}
+          />
+        </div>
       </EmbeddedMetricCard>
 
       <EmbeddedMetricCard
@@ -295,7 +315,7 @@ const KubernetesClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
