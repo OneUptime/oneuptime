@@ -71,8 +71,14 @@ export default class MicrosoftTeamsAPI {
       $schema:
         "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
       manifestVersion: "1.23",
+      /*
+       * Teams only takes an uploaded package as an update when its version is
+       * higher than the installed one. Release images carry APP_VERSION; a
+       * build without it uses this fallback, so bump it whenever the manifest
+       * changes (1.6.0: ChatSettings.Read.Chat added).
+       */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.5.0"
+        ? "1.6.0"
         : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
@@ -1675,8 +1681,11 @@ export default class MicrosoftTeamsAPI {
      * "Refresh Chats". Chats still cannot be listed, but the name of each
      * stored group chat can be re-read from Graph — which is what fixes a
      * group chat listed under its member names, and picks up renames.
-     * Returns the same list as GET, plus how many names could not be read so
-     * the page can say why.
+     * Returns the same list as GET, plus which chats' names could not be read
+     * (Microsoft refused, or failed) so the page can mark them and say why.
+     *
+     * Member access, like the list: it changes nothing but the stored display
+     * names, and concurrent refreshes of a project share one run.
      */
     router.post(
       "/microsoft-teams/chats/refresh",
@@ -1694,10 +1703,28 @@ export default class MicrosoftTeamsAPI {
               projectId: projectId,
             });
 
+          // Only chats that are still listed (one may be removed mid-refresh).
+          const listed: (chatIds: Array<string>) => Array<string> = (
+            chatIds: Array<string>,
+          ): Array<string> => {
+            return chatIds.filter((chatId: string) => {
+              return Boolean(refreshResult.chats[chatId]);
+            });
+          };
+
+          const permissionDeniedChatIds: Array<string> = listed(
+            refreshResult.permissionDeniedChatIds,
+          );
+          const failedChatIds: Array<string> = listed(
+            refreshResult.failedChatIds,
+          );
+
           return Response.sendJsonObjectResponse(req, res, {
             chats: MicrosoftTeamsAPI.serializeChats(refreshResult.chats),
-            chatNamePermissionDeniedCount: refreshResult.permissionDeniedCount,
-            chatNameFailedCount: refreshResult.failedCount,
+            chatNamePermissionDeniedChatIds: permissionDeniedChatIds,
+            chatNamePermissionDeniedCount: permissionDeniedChatIds.length,
+            chatNameFailedChatIds: failedChatIds,
+            chatNameFailedCount: failedChatIds.length,
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);

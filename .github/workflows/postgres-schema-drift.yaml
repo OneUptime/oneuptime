@@ -343,6 +343,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit
 
+      # Clones the migrated WorkspaceProjectAuthToken table into an isolated
+      # schema and runs the Microsoft Teams chat store against it with only
+      # Graph and the Bot Framework faked (#4106). A group chat's Teams name,
+      # its first three member names and its member count must land in
+      # miscData on every project of the tenant and on no other; a re-capture
+      # must keep the connection date and a Teams name Graph will not read
+      # again; a Refresh Chats rename must write the name and Teams name onto
+      # the record as it is now (a chat removed meanwhile is not resurrected)
+      # with one Graph token and one write per row; and a long name cut where
+      # an emoji sits must still be a jsonb value Postgres accepts.
+      - name: Test Microsoft Teams group chat names on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MICROSOFT_TEAMS_CHAT_TESTS: "true"
+          MICROSOFT_TEAMS_CHAT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MICROSOFT_TEAMS_CHAT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MICROSOFT_TEAMS_CHAT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workspace/MicrosoftTeamsGroupChatNamesPostgres.test.ts --forceExit
+
       # Clones the migrated TeamComplianceSetting table and its two severity
       # join tables (with their migrated foreign keys) into an isolated schema.
       # Rules scoped by severity and channel must land as join rows whatever

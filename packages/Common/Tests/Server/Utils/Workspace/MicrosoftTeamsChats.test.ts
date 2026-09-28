@@ -196,13 +196,14 @@ beforeEach(() => {
   (TeamsInfo.getMembers as jest.Mock).mockReset();
 
   /*
-   * Group chat capture also asks Graph for the chat's name, which needs a
-   * project of the tenant. No project here keeps these tests off the
-   * database and Graph; MicrosoftTeamsGroupChatNames.test.ts covers that path.
+   * Chat capture reads the tenant's stored chat and, for group chats, asks
+   * Graph for the chat's name, which needs a project of the tenant. No
+   * project and no stored chat here keeps these tests off the database and
+   * Graph; MicrosoftTeamsGroupChatNames.test.ts covers that path.
    */
   jest
-    .spyOn(MicrosoftTeamsUtil as any, "getAnyProjectIdForTenant")
-    .mockResolvedValue(null as never);
+    .spyOn(MicrosoftTeamsUtil as any, "getTenantChatContext")
+    .mockResolvedValue({ projectId: null, storedChat: undefined } as never);
 });
 
 describe("MicrosoftTeamsUtil.getChatDisplayName", () => {
@@ -1912,6 +1913,7 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/amer/",
           memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -1945,6 +1947,9 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           name: "Chat",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/teams/",
+          // A complete record, so only the serviceUrl makes it stale.
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -1964,6 +1969,9 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
       name: "Chat",
       chatType: "groupChat",
       serviceUrl: "https://smba.trafficmanager.net/amer/",
+      // A complete record, so only the missing row makes it stale.
+      memberNames: ["Alice", "Bob"],
+      memberCount: 2,
     };
     mockAuthRows([{ "19:x@thread.v2": chat }, {}]);
 
@@ -1996,6 +2004,7 @@ describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/teams/",
           memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     ]);
@@ -2084,6 +2093,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - chat backfill", () => {
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/emea/",
           memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     } as any;
@@ -2120,6 +2130,9 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - chat backfill", () => {
           name: "Alice, Bob",
           chatType: "groupChat",
           serviceUrl: "https://smba.trafficmanager.net/OLD/",
+          // A complete record, so only the serviceUrl makes it stale.
+          memberNames: ["Alice", "Bob"],
+          memberCount: 2,
         },
       },
     } as any;
