@@ -40,10 +40,22 @@ export class Service extends DatabaseService<AlertStateTimeline> {
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
+    /*
+     * A project may legitimately define more than one resolved state: the
+     * flag means "customer impact has ended", and states after it (a
+     * post-incident review stage, for example) carry it too. Without a sort
+     * the database is free to return either of them, so pick the earliest by
+     * `order` — the first state that means the impact is over. `order` is the
+     * lifecycle position: it is required on create, cannot be changed
+     * afterwards, and every other read of the state list is ordered by it.
+     */
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
         projectId: projectId,
         isResolvedState: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
       },
       props: {
         isRoot: true,
