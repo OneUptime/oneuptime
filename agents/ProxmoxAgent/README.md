@@ -165,10 +165,9 @@ Proxmox VE 9.0 and later can push metrics directly to OneUptime via the built-in
 - **Path**: `/otlp/v1/metrics`
 - **Headers**: `{"x-oneuptime-token": "your-telemetry-ingestion-key"}`
 
-Two trade-offs to be aware of:
+Nothing else to configure. OneUptime recognizes the native push and translates it into the same `pve_*` series this agent sends: the cluster registers itself under your Proxmox cluster name (a standalone node under its node name), and the Nodes / Guests / Storage pages, the overview charts, the metric catalog and the CPU / memory / storage alert templates work unchanged. The original `proxmox_*` series stay available in Metrics Explorer. A `proxmox.cluster.name` resource attribute you set earlier keeps being used.
 
-1. **Cluster discovery**: the agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute. With the native push, set *Resource Attributes* to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself; without it the metrics ingest but no Proxmox cluster appears.
-2. **Metric names differ**: the native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox monitor catalog and alert templates target the `pve_*` names.
+What only the agent can do: each node pushes only its own status, so a node that goes down goes silent instead of reporting itself down — the **Node Offline** and **Cluster Quorum at Risk** templates cannot see it. HA state, start-on-boot (used by **Guest Down**), backup coverage and replication are not pushed at all. Use one or the other for a cluster: running both reports every resource twice.
 
 See the [Proxmox telemetry docs](https://oneuptime.com/docs/telemetry/proxmox) for the full walkthrough.
 

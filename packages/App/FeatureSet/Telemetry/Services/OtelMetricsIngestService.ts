@@ -110,7 +110,12 @@ import {
   computeProxmoxGuestBackedUp,
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
+  proxmoxClusterCountsFromInventory,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  isProxmoxNativePushResource,
+  normalizeProxmoxNativePushInPlace,
+} from "Common/Server/Utils/Telemetry/ProxmoxNativePush";
 import {
   VMWARE_SNAPSHOT_METRIC_NAMES,
   VMwareResourceBufferEntry,
@@ -775,6 +780,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
+      /*
+       * Proxmox VE's built-in OpenTelemetry push speaks its own dialect
+       * (proxmox_* names, no `id` label, `proxmox.cluster` instead of
+       * `proxmox.cluster.name`). Translate it to the pve_* shape the
+       * Proxmox pages, catalog and alert templates read — before cluster
+       * discovery, routing and the snapshot scan see the batch.
+       */
+      normalizeProxmoxNativePushInPlace(resourceMetrics);
+
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
@@ -974,6 +988,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+
+          /*
+           * A PVE native push describes one node's node, guest or storage
+           * status per request, so the Proxmox cluster counts are
+           * recounted from the stored inventory rather than this block.
+           */
+          const proxmoxNativePush: boolean = isProxmoxNativePushResource(
+            resourceAttributes_raw,
+          );
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -1608,6 +1631,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: proxmoxResourceMetricsBuffer,
                             clusterBuffer: proxmoxClusterSnapshotBuffer,
+                            countsFromInventory: proxmoxNativePush,
                           });
                         }
 
@@ -3342,6 +3366,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
          */
         const extras: ProxmoxClusterSnapshotExtras =
           deriveProxmoxClusterSnapshotExtras(entries, snap);
+
+        /*
+         * A partial-by-design batch (PVE native push) is recounted from
+         * the inventory it just wrote to, which spans every node's pushes.
+         */
+        if (snap?.countsFromInventory && entries.length > 0) {
+          Object.assign(
+            extras,
+            proxmoxClusterCountsFromInventory(
+              await ProxmoxResourceService.getInventorySummary({
+                projectId: data.projectId,
+                proxmoxClusterId: new ObjectID(clusterIdStr),
+              }),
+            ),
+          );
+        }
 
         if (Object.keys(extras).length > 0) {
           await ProxmoxClusterService.updateLastSeen(

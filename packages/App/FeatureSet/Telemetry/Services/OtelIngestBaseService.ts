@@ -585,9 +585,12 @@ export default abstract class OtelIngestBaseService {
    *      service.instance.id in their resource processor and stamp only
    *      `proxmox.cluster.name` / `ceph.cluster.name`, so their batches
    *      land here instead of registering a phantom Service via #1.
-   *      Caveat: sources that keep a service.name (e.g. the PVE 9+
-   *      native OTLP push, which stamps service.name="proxmox-ve")
-   *      still route via #1 — cluster discovery and the
+   *      The PVE 9+ native OTLP push stamps service.name="proxmox-ve";
+   *      the metrics ingest drops it (and fills proxmox.cluster.name
+   *      from PVE's own proxmox.cluster) before routing — see
+   *      ProxmoxNativePush.normalizeProxmoxNativePushInPlace — so it
+   *      lands here too. Any other source that keeps a service.name
+   *      still routes via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
    *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,

@@ -204,7 +204,7 @@ To use Proxmox monitoring, you need to:
 2. Pass `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `PROXMOX_CLUSTER_NAME`, and the Proxmox API details as environment variables
 3. Wait for the cluster to auto-register (about a minute after the first scrape)
 
-> Proxmox VE 9+ can also push metrics natively via its built-in OpenTelemetry metric server — see the [zero-install alternative](/docs/telemetry/proxmox) in the agent guide. The native push uses different metric names (`proxmox_*` instead of `pve_*`), so the templates and catalog on this page apply to the agent path.
+> Proxmox VE 9+ can also push metrics natively via its built-in OpenTelemetry metric server — see the [zero-install alternative](/docs/telemetry/proxmox) in the agent guide. OneUptime translates the native push into the same `pve_*` series, so the catalog and the CPU, memory and storage templates on this page work with it too. Node Offline, Cluster Quorum at Risk, Guest Down, HA State Error, Guest Not Backed Up and Replication Failing need data only the agent collects.
 
 ## Troubleshooting
 
