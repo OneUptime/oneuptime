@@ -121,8 +121,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
 
   moreMenu.forEach((entry: IndexedActionButton<T>, position: number) => {
     const isDestructive: boolean = isDestructiveActionButton(entry.button);
-    const previous: IndexedActionButton<T> | undefined =
-      moreMenu[position - 1];
+    const previous: IndexedActionButton<T> | undefined = moreMenu[position - 1];
 
     // A gap between the everyday actions and the destructive ones below them.
     if (

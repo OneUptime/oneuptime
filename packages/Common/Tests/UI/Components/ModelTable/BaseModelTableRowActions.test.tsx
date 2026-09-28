@@ -203,8 +203,7 @@ describe("BaseModelTable row actions", () => {
       .getAllByRole("button")
       .map((button: HTMLElement) => {
         return (
-          button.getAttribute("aria-label") ||
-          (button.textContent || "").trim()
+          button.getAttribute("aria-label") || (button.textContent || "").trim()
         );
       });
   };
@@ -354,9 +353,9 @@ describe("BaseModelTable row actions", () => {
     expect(within(menu).getByRole("menuitem", { name: /Delete/ })).toHaveClass(
       "text-red-600",
     );
-    expect(within(menu).getByRole("menuitem", { name: "Edit" })).not.toHaveClass(
-      "text-red-600",
-    );
+    expect(
+      within(menu).getByRole("menuitem", { name: "Edit" }),
+    ).not.toHaveClass("text-red-600");
   });
 
   test("a table's own actions go in the menu behind View", async () => {

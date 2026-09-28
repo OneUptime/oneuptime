@@ -193,8 +193,7 @@ describe("Table row actions, desktop", () => {
 
     renderTable({ actions });
 
-    const rowActions: Array<HTMLElement> =
-      screen.getAllByTestId("row-actions");
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
 
     expect(rowActions).toHaveLength(2);
     expect(buttonLabels(rowActions[0]!)).toEqual([
@@ -229,8 +228,7 @@ describe("Table row actions, desktop", () => {
 
     renderTable({ actions });
 
-    const rowActions: Array<HTMLElement> =
-      screen.getAllByTestId("row-actions");
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
 
     expect(menuLabels(openMenuIn(rowActions[0]!))).toEqual([
       "Show ID",
@@ -253,8 +251,7 @@ describe("Table row actions, desktop", () => {
 
     renderTable({ actions: mocks.actions });
 
-    const rowActions: Array<HTMLElement> =
-      screen.getAllByTestId("row-actions");
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
 
     fireEvent.click(
       within(openMenuIn(rowActions[1]!)).getByRole("menuitem", {
@@ -324,8 +321,7 @@ describe("Table row actions, mobile cards", () => {
 
     renderTable({ actions });
 
-    const rowActions: Array<HTMLElement> =
-      screen.getAllByTestId("row-actions");
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
 
     expect(rowActions).toHaveLength(2);
     expect(document.querySelector("table")).toBeNull();
@@ -390,8 +386,7 @@ describe("List cards", () => {
       />,
     );
 
-    const rowActions: Array<HTMLElement> =
-      screen.getAllByTestId("row-actions");
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
 
     expect(rowActions).toHaveLength(2);
     expect(buttonLabels(rowActions[1]!)).toEqual([

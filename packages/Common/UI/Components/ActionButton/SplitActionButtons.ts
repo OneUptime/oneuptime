@@ -1,4 +1,6 @@
-import ActionButtonSchema, { ActionButtonPlacement } from "./ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "./ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import GenericObject from "../../../Types/GenericObject";
 

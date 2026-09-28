@@ -436,9 +436,9 @@ describe("MoreMenu, portalled", () => {
       });
 
       act(() => {
-        within(menu).getByRole("menuitem", { name: "Edit" }).dispatchEvent(
-          pressEvent,
-        );
+        within(menu)
+          .getByRole("menuitem", { name: "Edit" })
+          .dispatchEvent(pressEvent);
       });
 
       expect(wasPressConsumedByAnAnchoredPopup(pressEvent)).toBe(false);

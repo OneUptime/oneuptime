@@ -472,10 +472,9 @@ describe("RowActions", () => {
         },
       ]);
 
-      const removeItem: HTMLElement = within(openMenu()).getByRole(
-        "menuitem",
-        { name: /Remove from Project/ },
-      );
+      const removeItem: HTMLElement = within(openMenu()).getByRole("menuitem", {
+        name: /Remove from Project/,
+      });
 
       expect(removeItem).toBeDisabled();
 

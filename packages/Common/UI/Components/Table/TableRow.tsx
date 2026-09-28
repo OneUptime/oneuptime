@@ -191,10 +191,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     : null;
 
                   return (
-                    <div
-                      key={i}
-                      className="flex flex-wrap items-center gap-2"
-                    >
+                    <div key={i} className="flex flex-wrap items-center gap-2">
                       {customAction}
                       <RowActions<T>
                         item={props.item}

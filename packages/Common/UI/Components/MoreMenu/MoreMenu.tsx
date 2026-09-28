@@ -674,9 +674,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
                 position: "fixed",
                 top: portaledMenuPosition?.top,
                 bottom: portaledMenuPosition?.bottom,
-                left: portaledMenuPosition
-                  ? portaledMenuPosition.left
-                  : 0,
+                left: portaledMenuPosition ? portaledMenuPosition.left : 0,
                 right: portaledMenuPosition?.right,
                 zIndex: DROPDOWN_MENU_Z_INDEX,
                 visibility: portaledMenuPosition ? "visible" : "hidden",

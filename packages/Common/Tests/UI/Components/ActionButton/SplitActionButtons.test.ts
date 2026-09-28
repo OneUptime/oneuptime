@@ -52,9 +52,13 @@ const SHOW_ID: ActionButtonSchema<Row> = action(
   ButtonStyleType.OUTLINE,
   { hideOnMobile: true, placement: ActionButtonPlacement.MoreMenu },
 );
-const VIEW: ActionButtonSchema<Row> = action("View User", ButtonStyleType.NORMAL, {
-  placement: ActionButtonPlacement.Primary,
-});
+const VIEW: ActionButtonSchema<Row> = action(
+  "View User",
+  ButtonStyleType.NORMAL,
+  {
+    placement: ActionButtonPlacement.Primary,
+  },
+);
 const EDIT: ActionButtonSchema<Row> = action("Edit", ButtonStyleType.OUTLINE);
 const DELETE: ActionButtonSchema<Row> = action(
   "Remove from Project",
@@ -77,7 +81,9 @@ const split: SplitFunction = (
   });
 };
 
-type TitlesFunction = (entries: Array<IndexedActionButton<Row>>) => Array<string>;
+type TitlesFunction = (
+  entries: Array<IndexedActionButton<Row>>,
+) => Array<string>;
 
 const titles: TitlesFunction = (
   entries: Array<IndexedActionButton<Row>>,
@@ -257,7 +263,10 @@ describe("splitActionButtons", () => {
         ]);
 
         expect(result.primary?.button.title).toBe("Open");
-        expect(titles(result.moreMenu)).toEqual(["Edit", "Remove from Project"]);
+        expect(titles(result.moreMenu)).toEqual([
+          "Edit",
+          "Remove from Project",
+        ]);
       },
     );
 
@@ -282,7 +291,10 @@ describe("splitActionButtons", () => {
       ]);
 
       expect(result.primary).toBeNull();
-      expect(titles(result.moreMenu)).toEqual(["Revoke", "Remove from Project"]);
+      expect(titles(result.moreMenu)).toEqual([
+        "Revoke",
+        "Remove from Project",
+      ]);
     });
 
     test("a destructive action is promoted only when explicitly marked Primary", () => {
@@ -376,7 +388,9 @@ describe("splitActionButtons", () => {
         DELETE,
       ]);
 
-      expect(titles(result.moreMenu)).not.toContain(result.primary?.button.title);
+      expect(titles(result.moreMenu)).not.toContain(
+        result.primary?.button.title,
+      );
       expect(result.moreMenu.length + 1).toBe(4);
     });
   });
@@ -408,9 +422,9 @@ describe("splitActionButtons", () => {
     });
 
     test("hideOnMobile actions are dropped on mobile only", () => {
-      expect(titles(split([SHOW_ID, VIEW], { isMobile: false }).moreMenu)).toEqual(
-        ["Show ID"],
-      );
+      expect(
+        titles(split([SHOW_ID, VIEW], { isMobile: false }).moreMenu),
+      ).toEqual(["Show ID"]);
       expect(split([SHOW_ID, VIEW], { isMobile: true }).moreMenu).toEqual([]);
     });
 
@@ -464,11 +478,15 @@ describe("isActionButtonVisible", () => {
   });
 
   test("isVisible returning false hides the action", () => {
-    const hidden: ActionButtonSchema<Row> = action("X", ButtonStyleType.OUTLINE, {
-      isVisible: () => {
-        return false;
+    const hidden: ActionButtonSchema<Row> = action(
+      "X",
+      ButtonStyleType.OUTLINE,
+      {
+        isVisible: () => {
+          return false;
+        },
       },
-    });
+    );
 
     expect(isActionButtonVisible(hidden, ROW, false)).toBe(false);
   });
