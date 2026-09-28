@@ -416,6 +416,13 @@ describe("SLO history charts: one zoom for the three charts", () => {
       expect(
         within(card as HTMLElement).getByTestId("line-chart"),
       ).toBeInTheDocument();
+      /*
+       * A row in the card body, in place of its top margin on desktop and
+       * not shown on a phone - not in the header, where it squeezed the
+       * description and left a gap under the title on a phone.
+       */
+      expect(hint.parentElement).toHaveClass("hidden", "md:flex", "h-4");
+      expect(hint.parentElement?.parentElement).toHaveClass("mt-4", "md:mt-0");
     }
   });
 

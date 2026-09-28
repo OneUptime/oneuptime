@@ -326,7 +326,7 @@ afterEach(() => {
 });
 
 describe("SloBudgetBurnDownCard: its own zoom", () => {
-  test("the chart can be dragged but has nothing to undo yet; the header names the gesture", async () => {
+  test("the chart can be dragged but has nothing to undo yet; the card names the gesture", async () => {
     await renderCard();
 
     expect(chart().zoom.onTimeRangeSelect).toBeInstanceOf(Function);
@@ -342,6 +342,9 @@ describe("SloBudgetBurnDownCard: its own zoom", () => {
         "slo-burn-down-chart",
       ),
     ).toBeInTheDocument();
+    // Above the chart, in place of the body's margin; not shown on a phone.
+    expect(hint.parentElement).toHaveClass("hidden", "md:flex", "h-4");
+    expect(hint.parentElement?.parentElement).toHaveClass("mt-4", "md:mt-0");
   });
 
   test("a drag narrows the card to the window dragged out, fetched at a finer bucket size", async () => {

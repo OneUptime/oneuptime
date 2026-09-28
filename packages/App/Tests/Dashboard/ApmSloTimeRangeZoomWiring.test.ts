@@ -267,9 +267,16 @@ describe("Error Budget History (Components/Slo/SloHistoryCharts.tsx)", () => {
     expect(pickerRow).toContain("<ResetTimeRangeZoomButton />");
   });
 
-  test("each card names the gesture on hover", () => {
-    expect(countOf(code, "<TimeRangeZoomHint revealOnHover={true} />")).toBe(3);
-    expect(countOf(code, '<Card className="group"')).toBe(3);
+  test("each card names the gesture on hover, from the row that replaces its body margin", () => {
+    expect(countOf(code, "<SloChartZoomHint />")).toBe(3);
+    expect(
+      countOf(
+        code,
+        '<Card className="group" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
+      ),
+    ).toBe(3);
+    // Not in the header: that squeezed the description beside the picker.
+    expect(code).not.toContain("TimeRangeZoomHint revealOnHover");
   });
 
   test("an empty chart takes the double-click while zoomed", () => {
@@ -362,18 +369,33 @@ describe("SLO overview burn-down (Components/Slo/SloBudgetBurnDownCard.tsx)", ()
     expect(code).toContain("windowEndDate: series.endDate,");
   });
 
-  test("the header offers Reset zoom and names the gesture; an empty zoom takes the double-click", () => {
-    const header: string = between(code, "rightElement={", "{getBody()}");
+  test("the header offers Reset zoom, the body names the gesture, and an empty zoom takes the double-click", () => {
+    const header: string = between(code, "rightElement={", "</div> }");
 
-    expect(header).toContain("<TimeRangeZoomHint revealOnHover={true} />");
     expect(header).toContain("<ResetTimeRangeZoomButton />");
     expect(header).toContain('title="Open metrics"');
-    expect(code).toContain('<Card className="group"');
+    expect(code).toContain(
+      '<Card className="group" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
+    );
+    expect(code).toContain("<SloChartZoomHint /> {getBody()}");
     expect(code).toContain("<div onDoubleClick={resetZoom}>");
   });
 
   test("still polls nothing of its own", () => {
     expect(code).not.toContain("setInterval(");
+  });
+});
+
+describe("the SLO chart cards' hint row (Components/Slo/SloChartZoomHint.tsx)", () => {
+  const code: string = readCode("Components/Slo/SloChartZoomHint.tsx");
+
+  test("takes the place of the card body's top margin on desktop, and is not shown on a phone", () => {
+    expect(code).toContain(
+      'export const SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME: string = "mt-4 md:mt-0";',
+    );
+    expect(code).toContain(
+      '<div className="hidden h-4 items-center justify-end md:flex"> <TimeRangeZoomHint revealOnHover={true} /> </div>',
+    );
   });
 });
 

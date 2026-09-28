@@ -4,6 +4,9 @@ import {
   getSloBurnDownZoomRange,
   getSloIdealBurnPointsInWindow,
 } from "./SloBurnDownZoom";
+import SloChartZoomHint, {
+  SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+} from "./SloChartZoomHint";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
 import useSloHistorySeries, {
@@ -39,7 +42,6 @@ import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
@@ -370,11 +372,11 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     <TimeRangeZoomProvider zoom={zoom}>
       <Card
         className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error budget burn-down"
         description={description}
         rightElement={
           <div className="flex items-center gap-2">
-            <TimeRangeZoomHint revealOnHover={true} />
             <ResetTimeRangeZoomButton />
             <SloOverviewActionLink
               title="Open metrics"
@@ -384,6 +386,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
+        <SloChartZoomHint />
         {getBody()}
       </Card>
     </TimeRangeZoomProvider>

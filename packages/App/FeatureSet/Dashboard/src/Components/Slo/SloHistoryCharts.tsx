@@ -1,3 +1,6 @@
+import SloChartZoomHint, {
+  SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+} from "./SloChartZoomHint";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -51,7 +54,6 @@ import useTimeRangeZoom, {
   TimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -539,7 +541,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   /*
    * Every chart below takes the zoom from here, and so does the "Reset
    * zoom" beside the picker. Each card names the gesture while the pointer
-   * is over it (the hint needs the card to be a `group`).
+   * is over it (SloChartZoomHint; the card is its hover `group`).
    */
   return (
     <TimeRangeZoomProvider zoom={zoom}>
@@ -562,11 +564,11 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
 
       <Card
         className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="SLI"
         description="Service Level Indicator over time, with the SLO target as a reference line."
         rightElement={
           <div className="flex items-center gap-2">
-            <TimeRangeZoomHint revealOnHover={true} />
             <RangeStartAndEndDateView
               dashboardStartAndEndDate={timeRange}
               onChange={(newRange: RangeStartAndEndDateTime) => {
@@ -577,6 +579,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
+        <SloChartZoomHint />
         {getChart({
           points: sliPoints,
           seriesName: "SLI %",
@@ -593,10 +596,11 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
 
       <Card
         className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error Budget Remaining"
         description="Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent."
-        rightElement={<TimeRangeZoomHint revealOnHover={true} />}
       >
+        <SloChartZoomHint />
         {getChart({
           points: budgetPoints,
           seriesName: "Budget Remaining %",
@@ -613,10 +617,11 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
 
       <Card
         className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Burn Rate"
         description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}
-        rightElement={<TimeRangeZoomHint revealOnHover={true} />}
       >
+        <SloChartZoomHint />
         {getChart({
           points: burnRatePoints,
           seriesName: "Burn Rate",
