@@ -278,7 +278,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div data-testid="compliance-rule-pass-rate" className="w-full sm:w-40">
-        <div className="flex items-baseline justify-between gap-2 text-xs">
+        <div className="flex items-baseline gap-1 text-xs">
           <span className="font-semibold tabular-nums text-gray-900">
             {`${rate.passing} of ${rate.total}`}
           </span>

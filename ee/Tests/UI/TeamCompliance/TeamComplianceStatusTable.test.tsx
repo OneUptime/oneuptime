@@ -47,14 +47,12 @@ import {
   issue,
   standardStatus,
 } from "./ComplianceFixtures";
-import Route from "Common/Types/API/Route";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
-import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 interface HarnessProps {
@@ -496,44 +494,31 @@ describe("large teams", () => {
 
 describe("the way to the fix", () => {
   test("the signed-in member is sent to their own settings for the first rule they fail", () => {
-    const navigate: jest.SpyInstance = jest
-      .spyOn(Navigation, "navigate")
-      .mockImplementation(() => {
-        return undefined;
-      });
-
     render(<Harness status={standardStatus()} currentUserId={OMAR_ID} />);
 
-    const button: HTMLElement = within(row(OMAR_ID)).getByTestId(
-      "compliance-member-fix-self",
-    );
+    expect(
+      within(row(OMAR_ID)).getByTestId("compliance-member-fix-self"),
+    ).toHaveTextContent("Open my incident on-call rules");
 
-    expect(button).toHaveTextContent("Open my incident on-call rules");
+    const link: HTMLElement = within(row(OMAR_ID)).getByRole("link", {
+      name: /Open my incident on-call rules/,
+    });
 
-    fireEvent.click(button);
-
-    expect(navigate).toHaveBeenCalledTimes(1);
-    expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
+    expect(link).toHaveAttribute(
+      "href",
       `/dashboard/${PROJECT_ID.toString()}/user-settings/incident-on-call-rules`,
     );
   });
 
   test("a failed method rule sends the member to their notification methods", () => {
-    const navigate: jest.SpyInstance = jest
-      .spyOn(Navigation, "navigate")
-      .mockImplementation(() => {
-        return undefined;
-      });
-
     render(<Harness status={standardStatus()} currentUserId={JANE_ID} />);
 
-    fireEvent.click(
-      within(row(JANE_ID)).getByRole("button", {
-        name: "Open my notification methods",
+    expect(
+      within(row(JANE_ID)).getByRole("link", {
+        name: /Open my notification methods/,
       }),
-    );
-
-    expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
+    ).toHaveAttribute(
+      "href",
       `/dashboard/${PROJECT_ID.toString()}/user-settings/notification-methods`,
     );
   });

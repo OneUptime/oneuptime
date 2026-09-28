@@ -303,6 +303,12 @@ export const getComplianceRuleFormFields: () => Array<
       fieldType: FormFieldSchemaType.CardSelect,
       required: true,
       cardSelectOptions: getRuleTypeCardOptions(),
+      /*
+       * One column: the grid picks its column count from the VIEWPORT, so
+       * inside the modal three columns squeeze each card to a few words a
+       * line.
+       */
+      cardSelectSingleColumn: true,
       onChange: (
         value: string,
         currentValues: FormValues<TeamComplianceSetting>,

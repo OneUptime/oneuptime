@@ -520,6 +520,21 @@ describe("the verdict", () => {
     expect(time).toHaveAttribute("datetime", EVALUATED_AT);
   });
 
+  test("with nothing measured, the check time is its own sentence, not a clause trailing a full stop", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [],
+      }),
+    );
+
+    const subline: HTMLElement = screen.getByTestId("compliance-hero-subline");
+
+    expect(subline).toHaveTextContent(
+      /^Add a rule to say what everyone on this team must set up to be reachable - for example, a phone call for critical incidents\. Last checked .+ ago\.$/,
+    );
+    expect(subline.textContent).not.toContain(". ·");
+  });
+
   test("everyone compliant", async () => {
     const status: TeamComplianceStatusJSON = buildStatus({
       complianceSettings: [emailRule({ compliantCount: 2 })],

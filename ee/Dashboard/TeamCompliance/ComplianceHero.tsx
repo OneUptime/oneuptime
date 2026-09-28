@@ -125,15 +125,21 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    /*
+     * After "Checked against N active rules" the time reads as one clause;
+     * after a sentence (the states where nothing is measured) it gets a
+     * sentence of its own rather than trailing a full stop.
+     */
     return (
       <>
-        {" · checked "}
+        {isMeasured ? " · checked " : " Last checked "}
         <time
           dateTime={evaluatedAt.toISOString()}
           title={OneUptimeDate.getDateAsLocalFormattedString(evaluatedAt)}
         >
           {OneUptimeDate.fromNow(evaluatedAt)}
         </time>
+        {isMeasured ? "" : "."}
       </>
     );
   };

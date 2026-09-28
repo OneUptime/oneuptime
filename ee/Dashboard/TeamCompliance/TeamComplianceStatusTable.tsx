@@ -32,7 +32,6 @@ import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -66,6 +65,10 @@ export interface ComponentProps {
 
 // Members drawn at once; "Show more" adds this many again.
 export const MEMBER_PAGE_SIZE: number = 25;
+
+// Every "how to fix" link on a member row, the member's own included.
+const FIX_LINK_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 const STATUS_FILTER_OPTIONS: Array<{
   value: MemberStatusFilter;
@@ -254,19 +257,19 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     if (isSelf) {
       const fix: SelfFix = getSelfFix(member.nonCompliantRules[0]?.ruleType);
 
+      /*
+       * A link, like everyone else's fix: it goes somewhere, and it should look
+       * and behave (middle-click, copy link) like the rows around it.
+       */
       return (
-        <Button
-          title={fix.title}
-          icon={IconProp.Settings}
-          buttonSize={ButtonSize.Small}
-          buttonStyle={ButtonStyleType.OUTLINE}
-          dataTestId="compliance-member-fix-self"
-          onClick={() => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
-            );
-          }}
-        />
+        <Link
+          to={RouteUtil.populateRouteParams(RouteMap[fix.page] as Route)}
+          className={FIX_LINK_CLASS_NAME}
+        >
+          <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
+          <span data-testid="compliance-member-fix-self">{fix.title}</span>
+          <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+        </Link>
       );
     }
 
@@ -280,7 +283,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           RouteMap[PageMap.USER_VIEW_ON_CALL_READINESS] as Route,
           { modelId: member.userId },
         )}
-        className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className={FIX_LINK_CLASS_NAME}
       >
         <span data-testid="compliance-member-fix-link">
           {`Open ${getMemberFirstName(member)}'s on-call setup`}

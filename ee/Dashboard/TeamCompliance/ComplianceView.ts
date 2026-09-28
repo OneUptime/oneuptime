@@ -306,7 +306,7 @@ export const getComplianceVerdict: (
       badgeText: "No active rules",
       headline: "Nothing is being checked yet",
       detail:
-        "A rule says what everyone on this team must have set up to be reachable - a phone call for critical incidents, say.",
+        "Add a rule to say what everyone on this team must set up to be reachable - for example, a phone call for critical incidents.",
     };
   }
 
