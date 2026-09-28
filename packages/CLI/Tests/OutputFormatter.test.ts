@@ -108,6 +108,24 @@ describe("OutputFormatter", () => {
       expect(result).toBe("No data returned.");
     });
 
+    it.each([
+      { data: 42, expected: "42" },
+      { data: 0, expected: "0" },
+      { data: false, expected: "false" },
+      { data: "hello", expected: "hello" },
+    ])(
+      "should print scalar $data as-is in table mode",
+      ({
+        data,
+        expected,
+      }: {
+        data: number | boolean | string;
+        expected: string;
+      }) => {
+        expect(formatOutput(data, "table")).toBe(expected);
+      },
+    );
+
     it("should fallback to JSON for array of non-objects", () => {
       const data: string[] = ["a", "b", "c"];
       const result: string = formatOutput(data, "table");

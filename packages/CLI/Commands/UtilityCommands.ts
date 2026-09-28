@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import {
   CLIContext,
+  OutputFormat,
   ResolvedCredentials,
   ResourceInfo,
 } from "../Types/CLITypes";
@@ -9,8 +10,15 @@ import {
   CLIOptions,
   getResolvedCredentials,
 } from "../Core/ConfigManager";
-import { printInfo, printError } from "../Core/OutputFormatter";
+import {
+  createOutputOption,
+  formatOutput,
+  printInfo,
+  printError,
+  resolveOutputFormat,
+} from "../Core/OutputFormatter";
 import { discoverResources } from "./ResourceCommands";
+import { JSONObject } from "Common/Types/JSON";
 import Table from "cli-table3";
 import chalk from "chalk";
 import * as fs from "fs";
@@ -102,7 +110,8 @@ export function registerUtilityCommands(program: Command): void {
     .command("resources")
     .description("List all available resource types")
     .option("--type <type>", "Filter by model type: database, analytics")
-    .action((options: { type?: string }) => {
+    .addOption(createOutputOption())
+    .action((options: { type?: string }, cmd: Command) => {
       const resources: ResourceInfo[] = discoverResources();
 
       const filtered: ResourceInfo[] = options.type
@@ -110,6 +119,25 @@ export function registerUtilityCommands(program: Command): void {
             return r.modelType === options.type;
           })
         : resources;
+
+      const outputFormat: OutputFormat = resolveOutputFormat(cmd);
+
+      if (outputFormat === OutputFormat.JSON) {
+        const rows: Array<JSONObject> = filtered.map(
+          (r: ResourceInfo): JSONObject => {
+            return {
+              name: r.name,
+              singularName: r.singularName,
+              pluralName: r.pluralName,
+              modelType: r.modelType,
+              apiPath: r.apiPath,
+            };
+          },
+        );
+        // eslint-disable-next-line no-console
+        console.log(formatOutput(rows, outputFormat));
+        return;
+      }
 
       if (filtered.length === 0) {
         printInfo("No resources found.");

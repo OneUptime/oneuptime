@@ -6,7 +6,12 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import { ResourceInfo, ResolvedCredentials } from "../Types/CLITypes";
 import { executeApiRequest, ApiOperation } from "../Core/ApiClient";
 import { CLIOptions, getResolvedCredentials } from "../Core/ConfigManager";
-import { formatOutput, printSuccess } from "../Core/OutputFormatter";
+import {
+  createOutputOption,
+  formatOutput,
+  printSuccess,
+  resolveOutputFormat,
+} from "../Core/OutputFormatter";
 import { handleError } from "../Core/ErrorHandler";
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -106,15 +111,17 @@ function registerListCommand(
     .option("--limit <n>", "Max results to return", "10")
     .option("--skip <n>", "Number of results to skip", "0")
     .option("--sort <json>", "Sort order as JSON")
-    .option("-o, --output <format>", "Output format: json, table, wide")
+    .addOption(createOutputOption())
     .action(
-      async (options: {
-        query?: string;
-        limit: string;
-        skip: string;
-        sort?: string;
-        output?: string;
-      }) => {
+      async (
+        options: {
+          query?: string;
+          limit: string;
+          skip: string;
+          sort?: string;
+        },
+        cmd: Command,
+      ) => {
         try {
           const parentOpts: CLIOptions = getParentOptions(resourceCmd);
           const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
@@ -142,13 +149,7 @@ function registerListCommand(
               : result;
 
           // eslint-disable-next-line no-console
-          console.log(
-            formatOutput(
-              responseData,
-              options.output ??
-                resourceCmd.optsWithGlobals<{ output?: string }>().output,
-            ),
-          );
+          console.log(formatOutput(responseData, resolveOutputFormat(cmd)));
         } catch (error) {
           handleError(error);
         }
@@ -163,8 +164,8 @@ function registerGetCommand(
   resourceCmd
     .command("get <id>")
     .description(`Get a single ${resource.singularName} by ID`)
-    .option("-o, --output <format>", "Output format: json, table, wide")
-    .action(async (id: string, options: { output?: string }) => {
+    .addOption(createOutputOption())
+    .action(async (id: string, _options: unknown, cmd: Command) => {
       try {
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
         const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
@@ -183,13 +184,7 @@ function registerGetCommand(
         });
 
         // eslint-disable-next-line no-console
-        console.log(
-          formatOutput(
-            result,
-            options.output ??
-              resourceCmd.optsWithGlobals<{ output?: string }>().output,
-          ),
-        );
+        console.log(formatOutput(result, resolveOutputFormat(cmd)));
       } catch (error) {
         handleError(error);
       }
@@ -205,45 +200,37 @@ function registerCreateCommand(
     .description(`Create a new ${resource.singularName}`)
     .option("--data <json>", "Resource data as JSON")
     .option("--file <path>", "Read resource data from a JSON file")
-    .option("-o, --output <format>", "Output format: json, table, wide")
-    .action(
-      async (options: { data?: string; file?: string; output?: string }) => {
-        try {
-          let data: JSONObject;
+    .addOption(createOutputOption())
+    .action(async (options: { data?: string; file?: string }, cmd: Command) => {
+      try {
+        let data: JSONObject;
 
-          if (options.file) {
-            const fileContent: string = fs.readFileSync(options.file, "utf-8");
-            data = JSON.parse(fileContent) as JSONObject;
-          } else if (options.data) {
-            data = parseJsonArg(options.data);
-          } else {
-            throw new Error("Either --data or --file is required for create.");
-          }
-
-          const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-          const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
-
-          const result: JSONValue = await executeApiRequest({
-            apiUrl: creds.apiUrl,
-            apiKey: creds.apiKey,
-            apiPath: resource.apiPath,
-            operation: "create" as ApiOperation,
-            data,
-          });
-
-          // eslint-disable-next-line no-console
-          console.log(
-            formatOutput(
-              result,
-              options.output ??
-                resourceCmd.optsWithGlobals<{ output?: string }>().output,
-            ),
-          );
-        } catch (error) {
-          handleError(error);
+        if (options.file) {
+          const fileContent: string = fs.readFileSync(options.file, "utf-8");
+          data = JSON.parse(fileContent) as JSONObject;
+        } else if (options.data) {
+          data = parseJsonArg(options.data);
+        } else {
+          throw new Error("Either --data or --file is required for create.");
         }
-      },
-    );
+
+        const parentOpts: CLIOptions = getParentOptions(resourceCmd);
+        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
+
+        const result: JSONValue = await executeApiRequest({
+          apiUrl: creds.apiUrl,
+          apiKey: creds.apiKey,
+          apiPath: resource.apiPath,
+          operation: "create" as ApiOperation,
+          data,
+        });
+
+        // eslint-disable-next-line no-console
+        console.log(formatOutput(result, resolveOutputFormat(cmd)));
+      } catch (error) {
+        handleError(error);
+      }
+    });
 }
 
 function registerUpdateCommand(
@@ -254,8 +241,8 @@ function registerUpdateCommand(
     .command("update <id>")
     .description(`Update an existing ${resource.singularName}`)
     .requiredOption("--data <json>", "Fields to update as JSON")
-    .option("-o, --output <format>", "Output format: json, table, wide")
-    .action(async (id: string, options: { data: string; output?: string }) => {
+    .addOption(createOutputOption())
+    .action(async (id: string, options: { data: string }, cmd: Command) => {
       try {
         const data: JSONObject = parseJsonArg(options.data);
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
@@ -271,13 +258,7 @@ function registerUpdateCommand(
         });
 
         // eslint-disable-next-line no-console
-        console.log(
-          formatOutput(
-            result,
-            options.output ??
-              resourceCmd.optsWithGlobals<{ output?: string }>().output,
-          ),
-        );
+        console.log(formatOutput(result, resolveOutputFormat(cmd)));
       } catch (error) {
         handleError(error);
       }
@@ -320,7 +301,8 @@ function registerCountCommand(
     .command("count")
     .description(`Count ${resource.pluralName}`)
     .option("--query <json>", "Filter query as JSON")
-    .action(async (options: { query?: string }) => {
+    .addOption(createOutputOption())
+    .action(async (options: { query?: string }, cmd: Command) => {
       try {
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
         const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
@@ -333,19 +315,17 @@ function registerCountCommand(
           query: options.query ? parseJsonArg(options.query) : undefined,
         });
 
-        // Count response is typically { count: number }
-        if (
+        // Count response is typically { count: number }; print just the number
+        const count: JSONValue =
           result &&
           typeof result === "object" &&
           !Array.isArray(result) &&
           "count" in (result as JSONObject)
-        ) {
-          // eslint-disable-next-line no-console
-          console.log((result as JSONObject)["count"]);
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(result);
-        }
+            ? ((result as JSONObject)["count"] as JSONValue)
+            : result;
+
+        // eslint-disable-next-line no-console
+        console.log(formatOutput(count, resolveOutputFormat(cmd)));
       } catch (error) {
         handleError(error);
       }
