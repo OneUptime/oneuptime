@@ -28,7 +28,19 @@ import {
  * update" workflow trigger per row, and customers run workflows on incident
  * custom fields. A rename is a change of label, not of anyone's answers.
  *
- * Two things make it worth testing without a database. The statement is
+ * NOT the only cover this has, and deliberately not the same cover.
+ * Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts drives a real
+ * rename through IncidentCustomFieldService against a migrated Postgres and
+ * pins the outcome: values moved in Incident and IncidentTemplate, saved views
+ * rewritten, other projects untouched, no workflow fired. That is the stronger
+ * test of the two and it is where the behaviour lives. But it is opt-in
+ * (RUN_POSTGRES_INCIDENT_CUSTOM_FIELD_TESTS) and runs only in the
+ * postgres-schema-drift workflow, after that job has a migrated database to
+ * work with; it does not run in Common Test, so on an ordinary change to this
+ * file nothing here goes red. These tests do, and they cover the statement
+ * itself rather than its effect.
+ *
+ * Two things make that worth doing without a database. The statement is
  * assembled from entity metadata, and the claim that it is not an injection
  * surface rests on the names coming from metadata and every value being bound
  * -- assertable exactly here. And its second job is destructive: it *removes*
