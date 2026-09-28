@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -26,6 +25,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 /*
@@ -277,8 +277,20 @@ const DockerSwarmClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
+  /*
+   * The four cards share the page's range, so they share one zoom too
+   * (issue #4105): a drag on any chart narrows every card to the window
+   * dragged out, and a double-click on any chart - in the same card or
+   * another - or Reset zoom beside any card's picker puts back the range
+   * from before the first zoom. Without the scope each card would only
+   * remember its own drags, and a double-click on a different card would
+   * do nothing.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory utilization across every task running in the cluster."
@@ -314,7 +326,7 @@ const DockerSwarmClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
