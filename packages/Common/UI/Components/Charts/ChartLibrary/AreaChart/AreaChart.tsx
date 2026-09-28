@@ -24,7 +24,13 @@ import ExemplarPoint from "../../Types/ExemplarPoint";
 import FormattedExemplarPoint from "../Types/FormattedExemplarPoint";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
-import { CHART_DATA_POINT_DATE_KEY } from "../Types/ChartDataPoint";
+import useChartRangeSelection, {
+  ChartBucketWindow,
+  ChartRangeSelection,
+  RangeSelectionChartState,
+  getChartBucketWindow,
+  getChartRowIndex,
+} from "../Utils/UseChartRangeSelection";
 import { AxisDomain } from "recharts/types/util/types";
 
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
@@ -581,15 +587,6 @@ type BaseEventProps = {
 
 type AreaChartEventProps = BaseEventProps | null | undefined;
 
-/*
- * Subset of the recharts MouseHandlerDataParam passed to chart-level
- * mouse handlers — just the fields range selection needs.
- */
-type RangeSelectionChartState = {
-  activeTooltipIndex?: number | string | null | undefined;
-  activeLabel?: string | number | undefined;
-};
-
 interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>[];
@@ -719,21 +716,12 @@ const AreaChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const hasOnTimeRangeSelect: boolean = Boolean(onTimeRangeSelect);
-    const [rangeSelectionStart, setRangeSelectionStart] = React.useState<
-      string | null
-    >(null);
-    const [rangeSelectionEnd, setRangeSelectionEnd] = React.useState<
-      string | null
-    >(null);
-    const isRangeSelecting: React.MutableRefObject<boolean> =
-      React.useRef<boolean>(false);
-    const rangeSelectionStartIndexRef: React.MutableRefObject<number | null> =
-      React.useRef<number | null>(null);
-    const rangeSelectionEndIndexRef: React.MutableRefObject<number | null> =
-      React.useRef<number | null>(null);
-    const suppressNextClickRef: React.MutableRefObject<boolean> =
-      React.useRef<boolean>(false);
+    // Drag-to-select a time window; see useChartRangeSelection.
+    const rangeSelection: ChartRangeSelection = useChartRangeSelection({
+      data: data,
+      index: index,
+      onTimeRangeSelect: onTimeRangeSelect,
+    });
     const hasOnTimeRangeReset: boolean = Boolean(onTimeRangeReset);
     /*
      * A pending single-click, held open long enough for a second click to
@@ -775,9 +763,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       axisPaddingPx: paddingValue,
       scaleKind: "point",
       hasTopLegend: showLegend,
-      isClickSuppressed: (): boolean => {
-        return suppressNextClickRef.current;
-      },
+      isClickSuppressed: rangeSelection.isClickSuppressed,
     });
 
     const yAxisDomain: (number | "auto")[] = getYAxisDomain(
@@ -797,7 +783,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       event.stopPropagation();
 
       // Ignore the click that immediately follows a drag-to-select.
-      if (suppressNextClickRef.current) {
+      if (rangeSelection.isClickSuppressed()) {
         return;
       }
 
@@ -830,7 +816,7 @@ const AreaChart: React.ForwardRefExoticComponent<
 
     function onCategoryClick(dataKey: string): void {
       // Ignore the click that immediately follows a drag-to-select.
-      if (suppressNextClickRef.current) {
+      if (rangeSelection.isClickSuppressed()) {
         return;
       }
       if (!hasOnValueChange) {
@@ -854,151 +840,6 @@ const AreaChart: React.ForwardRefExoticComponent<
       setActiveDot(undefined);
     }
 
-    function getRowIndexFromChartState(
-      chartState: RangeSelectionChartState,
-    ): number | null {
-      const activeTooltipIndex: number | string | null | undefined =
-        chartState.activeTooltipIndex;
-      const numericIndex: number =
-        typeof activeTooltipIndex === "number"
-          ? activeTooltipIndex
-          : Number(activeTooltipIndex);
-      if (
-        activeTooltipIndex !== undefined &&
-        activeTooltipIndex !== null &&
-        Number.isInteger(numericIndex) &&
-        numericIndex >= 0 &&
-        numericIndex < data.length
-      ) {
-        return numericIndex;
-      }
-      // Fall back to matching activeLabel against the row labels.
-      if (chartState.activeLabel !== undefined) {
-        const rowIndex: number = data.findIndex(
-          (row: Record<string, unknown>) => {
-            return row[index] === chartState.activeLabel;
-          },
-        );
-        return rowIndex >= 0 ? rowIndex : null;
-      }
-      return null;
-    }
-
-    function getBucketDateAtIndex(rowIndex: number): Date | null {
-      const rawDate: unknown = data[rowIndex]?.[CHART_DATA_POINT_DATE_KEY];
-      return typeof rawDate === "number" ? new Date(rawDate) : null;
-    }
-
-    function handleRangeSelectMouseDown(
-      chartState: RangeSelectionChartState,
-    ): void {
-      if (!hasOnTimeRangeSelect) {
-        return;
-      }
-      const rowIndex: number | null = getRowIndexFromChartState(chartState);
-      if (rowIndex === null) {
-        return;
-      }
-      const rowLabel: unknown = data[rowIndex]?.[index];
-      if (typeof rowLabel !== "string") {
-        return;
-      }
-      isRangeSelecting.current = true;
-      rangeSelectionStartIndexRef.current = rowIndex;
-      rangeSelectionEndIndexRef.current = rowIndex;
-      setRangeSelectionStart(rowLabel);
-      setRangeSelectionEnd(null);
-    }
-
-    function handleRangeSelectMouseMove(
-      chartState: RangeSelectionChartState,
-      mouseEvent: React.MouseEvent<SVGGraphicsElement>,
-    ): void {
-      if (!isRangeSelecting.current) {
-        return;
-      }
-      // Button was released outside the chart — abandon the selection.
-      if (mouseEvent.buttons === 0) {
-        isRangeSelecting.current = false;
-        rangeSelectionStartIndexRef.current = null;
-        rangeSelectionEndIndexRef.current = null;
-        setRangeSelectionStart(null);
-        setRangeSelectionEnd(null);
-        return;
-      }
-      const rowIndex: number | null = getRowIndexFromChartState(chartState);
-      if (rowIndex === null) {
-        return;
-      }
-      const rowLabel: unknown = data[rowIndex]?.[index];
-      if (typeof rowLabel !== "string") {
-        return;
-      }
-      rangeSelectionEndIndexRef.current = rowIndex;
-      setRangeSelectionEnd(rowLabel);
-    }
-
-    function handleRangeSelectMouseUp(): void {
-      if (!isRangeSelecting.current) {
-        return;
-      }
-      isRangeSelecting.current = false;
-
-      const startIndex: number | null = rangeSelectionStartIndexRef.current;
-      const endIndex: number | null = rangeSelectionEndIndexRef.current;
-      rangeSelectionStartIndexRef.current = null;
-      rangeSelectionEndIndexRef.current = null;
-      setRangeSelectionStart(null);
-      setRangeSelectionEnd(null);
-
-      /*
-       * A plain click (pointer never left the starting bucket) must keep
-       * behaving exactly as before — only a real drag selects a range.
-       */
-      if (startIndex === null || endIndex === null || startIndex === endIndex) {
-        return;
-      }
-
-      /*
-       * The browser fires a click right after mouseup; swallow it so a
-       * drag doesn't also toggle legend/dot selection. Cleared on a
-       * timeout so a never-delivered click can't suppress a later one.
-       */
-      suppressNextClickRef.current = true;
-      setTimeout(() => {
-        suppressNextClickRef.current = false;
-      }, 0);
-
-      if (!onTimeRangeSelect) {
-        return;
-      }
-
-      const lowerIndex: number = Math.min(startIndex, endIndex);
-      const upperIndex: number = Math.max(startIndex, endIndex);
-      const startDate: Date | null = getBucketDateAtIndex(lowerIndex);
-      const lastBucketDate: Date | null = getBucketDateAtIndex(upperIndex);
-      if (!startDate || !lastBucketDate) {
-        return;
-      }
-
-      /*
-       * Cover the full final bucket: its end is its start plus one
-       * bucket width, derived from adjacent row dates.
-       */
-      const adjacentDate: Date | null =
-        upperIndex > 0
-          ? getBucketDateAtIndex(upperIndex - 1)
-          : getBucketDateAtIndex(upperIndex + 1);
-      const bucketWidthInMs: number = adjacentDate
-        ? Math.abs(lastBucketDate.getTime() - adjacentDate.getTime())
-        : 0;
-      const endDate: Date = new Date(
-        lastBucketDate.getTime() + bucketWidthInMs,
-      );
-
-      onTimeRangeSelect(startDate, endDate);
-    }
-
     /*
      * The plain-click path, split out so it can either run inline (no
      * reset handler) or be deferred behind the double-click window.
@@ -1018,28 +859,25 @@ const AreaChart: React.ForwardRefExoticComponent<
       if (!onBucketClick) {
         return;
       }
-      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      const rowIndex: number | null = getChartRowIndex(data, index, chartState);
       if (rowIndex === null) {
-        return;
-      }
-      const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
-      if (!bucketStart) {
         return;
       }
       /*
        * Cover the full bucket: width from adjacent row dates, the
        * same derivation drag-to-select uses.
        */
-      const adjacentBucketDate: Date | null =
-        rowIndex > 0
-          ? getBucketDateAtIndex(rowIndex - 1)
-          : getBucketDateAtIndex(rowIndex + 1);
-      const clickedBucketWidthInMs: number = adjacentBucketDate
-        ? Math.abs(bucketStart.getTime() - adjacentBucketDate.getTime())
-        : 0;
+      const bucket: ChartBucketWindow | null = getChartBucketWindow(
+        data,
+        rowIndex,
+        rowIndex,
+      );
+      if (!bucket) {
+        return;
+      }
       onBucketClick(
-        bucketStart,
-        new Date(bucketStart.getTime() + clickedBucketWidthInMs),
+        bucket.start,
+        bucket.end,
         (data[rowIndex] || {}) as Record<string, number | string>,
       );
     }
@@ -1049,7 +887,7 @@ const AreaChart: React.ForwardRefExoticComponent<
         ref={ref}
         className={cx(
           "flex-1 w-full",
-          hasOnTimeRangeSelect && "cursor-crosshair",
+          rangeSelection.canSelect && "cursor-crosshair select-none",
           className,
         )}
         {...other}
@@ -1070,16 +908,10 @@ const AreaChart: React.ForwardRefExoticComponent<
                * accidentally sync with every other one.
                */
               {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
-              {...(hasOnTimeRangeSelect
-                ? {
-                    onMouseDown: handleRangeSelectMouseDown,
-                    onMouseMove: handleRangeSelectMouseMove,
-                    onMouseUp: handleRangeSelectMouseUp,
-                  }
-                : {})}
+              {...rangeSelection.chartEventProps}
               onClick={(chartState: RangeSelectionChartState) => {
                 // Ignore the click that follows a drag-to-select.
-                if (suppressNextClickRef.current) {
+                if (rangeSelection.isClickSuppressed()) {
                   return;
                 }
                 if (!hasOnTimeRangeReset) {
@@ -1503,7 +1335,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                         // Never let an exemplar click also pin a bucket.
                         stopChartEventPropagation(...args);
                         // Ignore the click that follows a drag-to-select.
-                        if (suppressNextClickRef.current) {
+                        if (rangeSelection.isClickSuppressed()) {
                           return;
                         }
                         props.onExemplarClick?.(exemplar.original);
@@ -1525,10 +1357,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                 },
               )}
               {/* Live drag-to-select highlight */}
-              {rangeSelectionStart && rangeSelectionEnd ? (
+              {rangeSelection.selectionStartLabel &&
+              rangeSelection.selectionEndLabel ? (
                 <ReferenceArea
-                  x1={rangeSelectionStart}
-                  x2={rangeSelectionEnd}
+                  x1={rangeSelection.selectionStartLabel}
+                  x2={rangeSelection.selectionEndLabel}
                   fill="rgba(99,102,241,0.12)"
                   stroke="rgba(99,102,241,0.5)"
                   strokeWidth={1}
