@@ -151,9 +151,7 @@ const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const CLUSTER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const AGENT_ID: ObjectID = new ObjectID(
-  "66666666-6666-4666-8666-666666666666",
-);
+const AGENT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 type RouteCallResult = {
   thrownToNext: unknown;
@@ -163,9 +161,11 @@ async function callRoute(
   uri: string,
   body: JSONObject = { clusterId: CLUSTER_ID.toString() },
 ): Promise<RouteCallResult> {
-  const route: MockRoute | undefined = mockRoutes.find((candidate: MockRoute) => {
-    return candidate.method === "POST" && candidate.uri === uri;
-  });
+  const route: MockRoute | undefined = mockRoutes.find(
+    (candidate: MockRoute) => {
+      return candidate.method === "POST" && candidate.uri === uri;
+    },
+  );
 
   if (!route) {
     throw new Error(`Route POST ${uri} was never registered`);
@@ -183,7 +183,9 @@ async function callRoute(
     next as unknown as NextFunction,
   );
 
-  return { thrownToNext: next.mock.calls[0] ? next.mock.calls[0][0] : undefined };
+  return {
+    thrownToNext: next.mock.calls[0] ? next.mock.calls[0][0] : undefined,
+  };
 }
 
 function lastResponse(): JSONObject {
@@ -286,9 +288,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    jest
-      .spyOn(GlobalCache, "setStringIfNotExists")
-      .mockResolvedValue(true);
+    jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(true);
     jest.spyOn(GlobalCache, "deleteKeyIfValue").mockResolvedValue(true);
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
@@ -449,10 +449,8 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
 
       expect(result.thrownToNext).toBeUndefined();
       expect(resetSpy).toHaveBeenCalledTimes(1);
-      const call: Record<string, unknown> = resetSpy.mock.calls[0]![0] as Record<
-        string,
-        unknown
-      >;
+      const call: Record<string, unknown> = resetSpy.mock
+        .calls[0]![0] as Record<string, unknown>;
       expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
       expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
       expect(String(call["userId"])).toBe(USER_ID.toString());
@@ -602,7 +600,9 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
 
     beforeEach(() => {
       jobFind = jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
-      incidentFind = jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+      incidentFind = jest
+        .spyOn(IncidentService, "findBy")
+        .mockResolvedValue([]);
       alertFind = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
       runFind = jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
       suggestionFind = jest

@@ -229,7 +229,9 @@ const mockPolicy: MockPolicyFunction = (rules: Array<RuleRow>): void => {
   );
 };
 
-type RenderPageFunction = (rules: Array<RuleRow>) => Promise<Array<HTMLElement>>;
+type RenderPageFunction = (
+  rules: Array<RuleRow>,
+) => Promise<Array<HTMLElement>>;
 
 // Renders the page and waits for one card per level.
 const renderPage: RenderPageFunction = async (
@@ -296,9 +298,8 @@ describe("Escalation level actions: what the card shows", () => {
 
     for (const card of cards) {
       const actions: HTMLElement = within(card).getByTestId("row-actions");
-      const buttons: Array<HTMLElement> = within(actions).getAllByRole(
-        "button",
-      );
+      const buttons: Array<HTMLElement> =
+        within(actions).getAllByRole("button");
 
       expect(buttons).toHaveLength(2);
       expect(
@@ -410,7 +411,11 @@ describe("Escalation level actions: the ⋯ menu", () => {
 
     const menu: HTMLElement = openMenu(cards[0]!);
 
-    expect(menuItemLabels(menu)).toEqual(["Move up", "Move down", "Delete rule"]);
+    expect(menuItemLabels(menu)).toEqual([
+      "Move up",
+      "Move down",
+      "Delete rule",
+    ]);
     expect(menuItem(menu, "Move up")).toBeDisabled();
     expect(menuItem(menu, "Move down")).toBeDisabled();
     expect(menuItem(menu, "Delete rule")).toBeEnabled();
@@ -584,7 +589,9 @@ describe("Escalation level actions: each acts on its own level", () => {
     fireEvent.click(menuItem(openMenu(cards[1]!), "Delete rule"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("confirm-modal-description")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("confirm-modal-description"),
+      ).toBeInTheDocument();
     });
 
     const description: string =
@@ -608,7 +615,9 @@ describe("Escalation level actions: each acts on its own level", () => {
     fireEvent.click(menuItem(openMenu(cards[1]!), "Delete rule"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("confirm-modal-description")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("confirm-modal-description"),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Delete Rule" }));
@@ -632,7 +641,9 @@ describe("Escalation level actions: each acts on its own level", () => {
     fireEvent.click(menuItem(openMenu(cards[0]!), "Delete rule"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("confirm-modal-description")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("confirm-modal-description"),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
