@@ -77,6 +77,17 @@ jobs:
       # node:26-alpine3.24 through the real .dockerignore, the way every Node
       # image runs it. It needs the npm registry and docker.
       - run: cd Tests/Ops && npm install
+      # Both real-Docker tests above build FROM
+      # public.ecr.aws/docker/library/node:26-alpine3.24, and public.ecr.aws
+      # serves anonymous pullers from a shared data quota that a busy CI window
+      # exhausts -- that is run 36370235468, where both of them failed on a
+      # `docker build` that never got past its base image. The Dockerfiles are
+      # written inside the tests, so there is no file to read the FROM out of;
+      # name it here instead. Seeding the local image store is enough because
+      # these are plain `docker build`s: BuildKit resolves FROM from there
+      # without asking any registry.
+      - name: Warm the base image the real-Docker tests build FROM
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/node:26-alpine3.24
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"

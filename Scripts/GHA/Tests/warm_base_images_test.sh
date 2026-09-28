@@ -259,6 +259,45 @@ output="$(bash "$SCRIPT" "${WORK_DIR}/Dockerfile.missing" 2>&1)" || status=$?
 assert_eq 1 "$status" "fails on a Dockerfile path that does not exist"
 assert_contains "$output" "No such Dockerfile" "names the missing Dockerfile"
 
+# --- --image, for a build whose Dockerfile is written at run time. ---
+#
+# Tests/Ops builds real images from Dockerfiles it writes inside the test, so
+# there is no file to read the FROM out of -- and those builds went red on the
+# same quota (run 36370235468: EnterpriseEditionBuild and UpdateNpmCli, both
+# plain `docker build` from public.ecr.aws/docker/library/node:26-alpine3.24).
+new_docker_stub ecr
+status=0
+output="$(bash "$SCRIPT" --image public.ecr.aws/docker/library/node:26-alpine3.24 2>&1)" || status=$?
+assert_eq 0 "$status" "--image: warms an image named outright, with no Dockerfile at all"
+assert_contains "$(docker_calls)" "tag docker.io/library/node:26-alpine3.24 public.ecr.aws/docker/library/node:26-alpine3.24" "--image: falls back to Docker Hub for it too"
+
+new_docker_stub none
+status=0
+output="$(bash "$SCRIPT" --image public.ecr.aws/docker/library/node:26-alpine3.24 --image public.ecr.aws/docker/library/node:26-bookworm-slim 2>&1)" || status=$?
+assert_eq 0 "$status" "--image: accepts more than one"
+assert_eq 2 "$(docker_calls | grep -c 'pull public.ecr.aws')" "--image: warms each one"
+
+# A Dockerfile and an --image together, naming one image twice between them.
+new_docker_stub none
+dockerfile="$(write_dockerfile Dockerfile \
+	'FROM public.ecr.aws/docker/library/node:26-alpine3.24')"
+status=0
+output="$(bash "$SCRIPT" "$dockerfile" --image public.ecr.aws/docker/library/node:26-alpine3.24 2>&1)" || status=$?
+assert_eq 0 "$status" "--image: combines with a Dockerfile"
+assert_eq 1 "$(docker_calls | grep -c 'pull public.ecr.aws')" "--image: does not pull an image twice because both named it"
+
+new_docker_stub none
+status=0
+output="$(bash "$SCRIPT" --image 2>&1)" || status=$?
+assert_eq 1 "$status" "--image: fails when given no reference"
+assert_contains "$output" "needs an image reference" "--image: says what was missing"
+
+new_docker_stub none
+status=0
+output="$(bash "$SCRIPT" --not-a-flag 2>&1)" || status=$?
+assert_eq 1 "$status" "fails on an unknown option"
+assert_contains "$output" "Unknown option" "names the unknown option"
+
 # --- No arguments is a usage error, not a no-op success. ---
 new_docker_stub none
 status=0

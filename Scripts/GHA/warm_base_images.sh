@@ -33,7 +33,12 @@
 # not a valid substitute.
 #
 # Usage:
-#   warm_base_images.sh <dockerfile> [<dockerfile>...]
+#   warm_base_images.sh <dockerfile> [<dockerfile>...] [--image <reference>]...
+#
+# A Dockerfile contributes every public.ecr.aws image its FROM lines name.
+# --image names one outright, for a caller whose Dockerfile does not exist on
+# disk to be read: Tests/Ops writes its Dockerfiles at run time inside the test,
+# and those builds hit the same quota as any other.
 
 set -uo pipefail
 
@@ -55,10 +60,6 @@ DOCKER="${WARM_BASE_IMAGES_DOCKER:-docker}"
 # limit that clears, and by then it is the last thing we can try.
 ECR_RETRY_DELAYS="${WARM_BASE_IMAGES_ECR_DELAYS-5 20}"
 
-if [[ "$#" -eq 0 ]]; then
-	echo "Usage: warm_base_images.sh <dockerfile> [<dockerfile>...]" >&2
-	exit 1
-fi
 
 # Makes one base image resolvable locally under the name the Dockerfile uses.
 warm_image() {
@@ -108,26 +109,82 @@ warm_image() {
 	echo "✅ Tagged Docker Hub's ${mirror} as ${image} for the build to pick up locally"
 }
 
+usage() {
+	cat <<'EOF' >&2
+Usage: warm_base_images.sh [<dockerfile>...] [--image <reference>]...
+
+Seeds the public.ecr.aws base images into the local image store, from Docker Hub
+when ECR is over its anonymous data quota.
+
+	<dockerfile>          Warm every public.ecr.aws image its FROM lines name.
+	--image <reference>   Warm this image. Repeatable. For a build whose
+	                      Dockerfile is not on disk to be read.
+EOF
+}
+
 main() {
 	local -a images=()
+	local -a dockerfiles=()
 	local image dockerfile
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		--image)
+			if [[ -z "${2:-}" ]]; then
+				echo "❌ --image needs an image reference." >&2
+				return 1
+			fi
+			images+=("$2")
+			shift 2
+			;;
+		-h | --help)
+			usage
+			return 0
+			;;
+		--*)
+			echo "❌ Unknown option: $1" >&2
+			usage
+			return 1
+			;;
+		*)
+			dockerfiles+=("$1")
+			shift
+			;;
+		esac
+	done
+
+	if (( ${#dockerfiles[@]} == 0 && ${#images[@]} == 0 )); then
+		usage
+		return 1
+	fi
 
 	# Checked here rather than inside collect_ecr_base_images: that runs in a
 	# process substitution, whose exit status the `while read` loop below cannot
 	# see, so a bad path would otherwise warm nothing and still report success.
-	for dockerfile in "$@"; do
+	for dockerfile in "${dockerfiles[@]+"${dockerfiles[@]}"}"; do
 		if [[ ! -f "$dockerfile" ]]; then
 			echo "❌ No such Dockerfile: ${dockerfile}" >&2
 			return 1
 		fi
 	done
 
-	while read -r image; do
-		[[ -n "$image" ]] && images+=("$image")
-	done < <(collect_ecr_base_images "$@")
+	if (( ${#dockerfiles[@]} > 0 )); then
+		while read -r image; do
+			[[ -n "$image" ]] && images+=("$image")
+		done < <(collect_ecr_base_images "${dockerfiles[@]}")
+	fi
+
+	# Deduped: --image may name one a Dockerfile already contributed.
+	if (( ${#images[@]} > 0 )); then
+		local -a unique=()
+		while read -r image; do
+			[[ -n "$image" ]] && unique+=("$image")
+		done < <(printf '%s\n' "${images[@]}" | sort -u)
+		images=("${unique[@]}")
+	fi
 
 	if (( ${#images[@]} == 0 )); then
-		echo "No public.ecr.aws base images in: $*"
+		echo "No public.ecr.aws base images in: ${dockerfiles[*]}"
 		return 0
 	fi
 
