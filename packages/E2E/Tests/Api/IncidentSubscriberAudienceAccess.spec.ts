@@ -28,6 +28,22 @@ import URL from "Common/Types/API/URL";
  * The expectations are the middleware's own, not guesses:
  * requireUserAuthentication answers NotAuthenticatedException, which is
  * ExceptionCode 401, with UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE.
+ *
+ * The refusal is read off `message`, not `error`, and which one carries it is
+ * decided by HOW the request was refused rather than by the route:
+ *
+ *   - middleware that calls Response.sendErrorResponse itself -- which is what
+ *     requireUserAuthentication does, and so what this route answers with --
+ *     sends `{ message }`;
+ *   - an exception thrown inside a handler reaches next(err) and the
+ *     last-resort handler in StartServer, which sends `{ error }`.
+ *
+ * Hence UnauthenticatedAccess.spec.ts reading `error` for the CRUD routes,
+ * whose refusal is thrown by the read-permission layer deep inside the handler,
+ * and `message` for the invalid-access-token case, which is middleware again.
+ * Same 401, different envelope. Asserting the wrong one still sees a 401 and
+ * an empty string, so it fails as a missing message rather than as a route
+ * that is open.
  */
 
 const ROUTE: string = "/api/incident/subscriber-audience";
@@ -41,7 +57,7 @@ const JSON_HEADERS: { "content-type": string } = {
 };
 
 interface AudienceBody {
-  error?: unknown;
+  message?: unknown;
   statusPages?: unknown;
   excludedStatusPages?: unknown;
   counts?: unknown;
@@ -112,7 +128,7 @@ test.describe("API: the incident subscriber audience is behind authentication", 
       expectAuthenticationRefusal(response);
 
       const body: AudienceBody = await readBody(response);
-      expect(String(body.error || "")).toContain("Authentication required");
+      expect(String(body.message || "")).toContain("Authentication required");
       expectNoAudienceLeaked(body);
     });
   }
@@ -167,7 +183,7 @@ test.describe("API: the incident subscriber audience is behind authentication", 
     expectAuthenticationRefusal(response);
 
     const body: AudienceBody = await readBody(response);
-    expect(String(body.error || "")).toMatch(
+    expect(String(body.message || "")).toMatch(
       /Authentication required|AccessToken is invalid or expired/,
     );
     expectNoAudienceLeaked(body);
