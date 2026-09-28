@@ -14,7 +14,6 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -26,6 +25,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -666,7 +666,15 @@ const DatabaseServerOverview: FunctionComponent<
   ];
 
   return (
-    <Fragment>
+    /*
+     * One zoom for the whole page (issue #4105): a drag on any chart - the
+     * query charts, the runtime charts or an engine metric chart - narrows
+     * `timeRange`, and every tile, card and section below is fetched over
+     * that one range; a double-click on any chart, or "Reset zoom" beside
+     * the picker, puts the range back. The scope wraps the sections that
+     * render after ResourceOverview too, so they zoom and reset with it.
+     */
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {!isScoped || isIdOnly ? (
         <div className="mb-6">
           <DatabaseServerUnscopedBanner
@@ -775,7 +783,7 @@ const DatabaseServerOverview: FunctionComponent<
           windowEnd={chartWindow?.end ?? null}
         />
       </div>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

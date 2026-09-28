@@ -22,7 +22,12 @@ const MAX_FILLED_POINTS: number = 400;
 // Trailing Z or a ±hh:mm / ±hhmm offset — anything else is timezone-less.
 const TIMEZONE_SUFFIX_REGEX: RegExp = /z$|[+-]\d{2}:?\d{2}$/i;
 
-function parseBucketTime(value: string): number {
+/*
+ * Epoch milliseconds of a bucket (or window edge) string, NaN when it is
+ * not a date. Exported so the chart places points with the same parse the
+ * gap filling keyed them by.
+ */
+export function parseBucketTime(value: string): number {
   /*
    * ClickHouse DateTime strings carry no timezone marker but are UTC in
    * the standard deployment — append Z when no offset is present so JS
