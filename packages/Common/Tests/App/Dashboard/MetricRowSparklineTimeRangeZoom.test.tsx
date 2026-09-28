@@ -8,7 +8,11 @@ import { SparklinePoint } from "../../../../App/FeatureSet/Dashboard/src/Compone
 import { TimeRangeZoomProvider } from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { TimeRangeZoom } from "../../../UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import { TIME_RANGE_ZOOM_HINT_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import {
+  TIME_RANGE_ZOOM_HINT_RESET_TEXT,
+  TIME_RANGE_ZOOM_HINT_TEST_ID,
+  TIME_RANGE_ZOOM_HINT_TEXT,
+} from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import TimeRange from "../../../Types/Time/TimeRange";
 import ValueFormatter from "../../../Utils/ValueFormatter";
@@ -142,7 +146,9 @@ describe("metric list sparklines stay out of the page's zoom", () => {
     expect(
       screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeNull();
-    expect(row).not.toHaveTextContent("Drag to zoom");
+    // Neither of the words a hint would show, zoomed or not.
+    expect(row).not.toHaveTextContent(TIME_RANGE_ZOOM_HINT_TEXT);
+    expect(row).not.toHaveTextContent(TIME_RANGE_ZOOM_HINT_RESET_TEXT);
     expect(sparklineBox(row)).not.toHaveClass("cursor-crosshair");
     expect(row.querySelector(".cursor-crosshair")).toBeNull();
   });
