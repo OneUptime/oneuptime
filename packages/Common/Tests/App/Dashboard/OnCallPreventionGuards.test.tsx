@@ -1393,13 +1393,25 @@ describe("Escalation rules, wired: the delete confirmation says what it costs", 
     await waitFor(() => {
       /*
        * The name appears twice on purpose - once in the escalation summary and
-       * once on the rule card - so the wait is on the delete control, which
-       * exists exactly once per level and is the thing the next line clicks.
+       * once on the rule card - so the wait is on the card, which exists
+       * exactly once per level and holds the ⋯ menu the next lines open.
        */
-      expect(screen.getAllByLabelText("Delete rule").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByTestId("escalation-rule-card").length,
+      ).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getAllByLabelText("Delete rule")[0]!);
+    // Delete lives in the level's ⋯ menu now, not on the card.
+    fireEvent.click(
+      within(screen.getAllByTestId("escalation-rule-card")[0]!).getByTestId(
+        "row-actions-more-button",
+      ),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Delete rule",
+      }),
+    );
 
     await waitFor(() => {
       expect(
@@ -1456,13 +1468,25 @@ describe("Escalation rules, wired: the delete confirmation says what it costs", 
     await waitFor(() => {
       /*
        * The name appears twice on purpose - once in the escalation summary and
-       * once on the rule card - so the wait is on the delete control, which
-       * exists exactly once per level and is the thing the next line clicks.
+       * once on the rule card - so the wait is on the card, which exists
+       * exactly once per level and holds the ⋯ menu the next lines open.
        */
-      expect(screen.getAllByLabelText("Delete rule").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByTestId("escalation-rule-card").length,
+      ).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getAllByLabelText("Delete rule")[0]!);
+    // Delete lives in the level's ⋯ menu now, not on the card.
+    fireEvent.click(
+      within(screen.getAllByTestId("escalation-rule-card")[0]!).getByTestId(
+        "row-actions-more-button",
+      ),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Delete rule",
+      }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -1483,14 +1507,15 @@ describe("Escalation rules, wired: the delete confirmation says what it costs", 
  * "are you sure" and none of the arithmetic above ever ran. Every test passed.
  *
  * So these tests refuse to hand the modal its props. They render the real
- * component, wait for the real row, click the real Delete control, and assert on
+ * component, wait for the real row, click the real Delete control - the row's
+ * button, or an item in its ⋯ menu, wherever the row put it - and assert on
  * what a person would then be looking at. The only thing that can make them pass
  * is a delete that actually goes through the guard.
  *
  * The second assertion in each case is the one that catches the half-measure:
- * exactly ONE Delete control per row. `isDeleteable={true}` left alongside a
- * custom Delete action gives two, and whichever one the user reaches for first
- * decides whether they are told anything.
+ * exactly ONE Delete control per row, the ⋯ menu included. `isDeleteable={true}`
+ * left alongside a custom Delete action gives two, and whichever one the user
+ * reaches for first decides whether they are told anything.
  */
 
 interface MethodSurface {
@@ -1507,6 +1532,12 @@ interface MethodSurface {
   modalTitle: string;
   /* How the method is expected to be named in the sentence. */
   methodLabel: string;
+  /*
+   * What the row draws: its buttons in order (the ⋯ trigger reads "More
+   * actions"), and the items behind the ⋯ - none when there is no menu.
+   */
+  rowButtons: Array<string>;
+  menuItems: Array<string>;
 }
 
 type BuildRowFunction = (
@@ -1555,6 +1586,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Email",
     methodLabel: "Email: jane@example.com",
+    rowButtons: ["Delete"],
+    menuItems: [],
   },
   {
     name: "SMS",
@@ -1570,6 +1603,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Phone Number",
     methodLabel: "SMS: +15551230100",
+    rowButtons: ["Delete"],
+    menuItems: [],
   },
   {
     name: "Call",
@@ -1585,6 +1620,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Phone Number",
     methodLabel: "Call: +15551230199",
+    rowButtons: ["Delete"],
+    menuItems: [],
   },
   {
     name: "Push",
@@ -1599,6 +1636,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Device",
     methodLabel: "Push: Chrome on macOS",
+    rowButtons: ["Test Notification", "More actions"],
+    menuItems: ["Delete"],
   },
   {
     name: "WhatsApp",
@@ -1614,6 +1653,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete WhatsApp Number",
     methodLabel: "WhatsApp: +15551230123",
+    rowButtons: ["Delete"],
+    menuItems: [],
   },
   {
     name: "Telegram",
@@ -1629,6 +1670,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Telegram Account",
     methodLabel: "Telegram: @alexchen",
+    rowButtons: ["Delete"],
+    menuItems: [],
   },
   {
     name: "Slack",
@@ -1644,6 +1687,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Slack Account",
     methodLabel: "Slack: alexchen",
+    rowButtons: ["Send Test Message", "More actions"],
+    menuItems: ["Delete"],
   },
   {
     name: "Microsoft Teams",
@@ -1659,6 +1704,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Microsoft Teams Account",
     methodLabel: "Microsoft Teams: Alex Example",
+    rowButtons: ["Send Test Message", "More actions"],
+    menuItems: ["Delete"],
   },
   {
     name: "Webhook",
@@ -1673,6 +1720,13 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Webhook",
     methodLabel: "Webhook: Internal alerts",
+    rowButtons: ["Send Test", "More actions"],
+    /*
+     * Webhooks are editable, and ModelTable adds its Edit after the page's own
+     * actions - yet Delete still comes last, because destructive actions sink
+     * to the bottom of the menu.
+     */
+    menuItems: ["Edit", "Delete"],
   },
 ];
 
@@ -1741,21 +1795,69 @@ const mockMethodTable: MockMethodTableFunction = (
   );
 };
 
+/*
+ * Every Delete control the row offers, wherever the row put it. A row carries
+ * one action as a button and folds the rest into a ⋯ menu, so a method with
+ * nothing else to do (a verified email, a phone number) keeps Delete as its
+ * button, while one that can also send a test (a device, Slack, Teams, a
+ * webhook) gives the button to the test and puts Delete in the menu. These
+ * tests are about what Delete opens, not where it hangs - so the menu is opened
+ * whenever the row has one, which also puts its items on the page for the
+ * count that follows.
+ */
+type FindRowDeleteControlsFunction = (
+  rowActions: HTMLElement,
+) => Array<HTMLElement>;
+
+const findRowDeleteControls: FindRowDeleteControlsFunction = (
+  rowActions: HTMLElement,
+): Array<HTMLElement> => {
+  const moreButton: HTMLElement | null = within(rowActions).queryByTestId(
+    "row-actions-more-button",
+  );
+
+  const rowButtons: Array<HTMLElement> = within(rowActions).queryAllByRole(
+    "button",
+    { name: "Delete" },
+  );
+
+  if (!moreButton) {
+    return rowButtons;
+  }
+
+  fireEvent.click(moreButton);
+
+  return [
+    ...rowButtons,
+    ...within(screen.getByRole("menu")).queryAllByRole("menuitem", {
+      name: "Delete",
+    }),
+  ];
+};
+
 type OpenDeleteFunction = () => Promise<void>;
 
 const openDeleteConfirmation: OpenDeleteFunction = async (): Promise<void> => {
+  // The one row the table's list read returns, with its actions drawn.
   await waitFor(() => {
-    expect(screen.getAllByText("Delete").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("row-actions")).toHaveLength(1);
   });
 
+  const deleteControls: Array<HTMLElement> = findRowDeleteControls(
+    screen.getByTestId("row-actions"),
+  );
+
   /*
-   * Exactly one Delete control on the row. Two would mean the built-in delete
-   * was left switched on beside the guard, and a user reaching for the wrong one
-   * gets the generic confirmation and no numbers at all.
+   * Exactly one Delete control on the row, the ⋯ menu included. Two would mean
+   * the built-in delete was left switched on beside the guard, and a user
+   * reaching for the wrong one gets the generic confirmation and no numbers at
+   * all. And nothing else on the page reads "Delete" either - counted with the
+   * menu open, so a second one hiding in there is on the page to be counted.
    */
+  expect(deleteControls).toHaveLength(1);
   expect(screen.getAllByText("Delete")).toHaveLength(1);
 
-  fireEvent.click(screen.getByText("Delete"));
+  fireEvent.click(deleteControls[0]!);
 
   await waitFor(() => {
     expect(screen.getByTestId("confirm-modal-description")).toBeInTheDocument();
@@ -1785,9 +1887,71 @@ const clickInModal: ClickInModalFunction = (name: string): void => {
   );
 };
 
+/*
+ * What a control is called to a person: the ⋯ trigger by its aria-label, a
+ * labelled button or menu item by its text.
+ */
+type ControlLabelsFunction = (controls: Array<HTMLElement>) => Array<string>;
+
+const controlLabels: ControlLabelsFunction = (
+  controls: Array<HTMLElement>,
+): Array<string> => {
+  return controls.map((control: HTMLElement) => {
+    return (
+      control.getAttribute("aria-label") || (control.textContent || "").trim()
+    );
+  });
+};
+
+/* The labels behind the row's ⋯, or none when the row has no menu at all. */
+type ReadMenuItemsFunction = (rowActions: HTMLElement) => Array<string>;
+
+const readMenuItems: ReadMenuItemsFunction = (
+  rowActions: HTMLElement,
+): Array<string> => {
+  const moreButton: HTMLElement | null = within(rowActions).queryByTestId(
+    "row-actions-more-button",
+  );
+
+  if (!moreButton) {
+    return [];
+  }
+
+  fireEvent.click(moreButton);
+
+  return controlLabels(
+    within(screen.getByRole("menu")).getAllByRole("menuitem"),
+  );
+};
+
 describe.each(METHOD_SURFACES)(
   "$name methods, wired: deleting goes through the impact modal",
   (surface: MethodSurface) => {
+    /*
+     * Where Delete hangs. A row shows one button and a ⋯ menu with the rest,
+     * and Delete - the one action here that cannot be taken back - only earns
+     * the button when there is nothing else on the row to give it to. A method
+     * that can send a test gives the button to the test, and Delete goes behind
+     * the ⋯, still reachable, and still the only way to delete.
+     */
+    test("Delete is the row's button only when it is the row's only action", async () => {
+      signIn();
+      mockMethodTable(surface);
+
+      render(<surface.Component />);
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId("row-actions")).toHaveLength(1);
+      });
+
+      const rowActions: HTMLElement = screen.getByTestId("row-actions");
+
+      expect(controlLabels(within(rowActions).getAllByRole("button"))).toEqual(
+        surface.rowButtons,
+      );
+      expect(readMenuItems(rowActions)).toEqual(surface.menuItems);
+    });
+
     test("the Delete control opens the impact modal, with the real numbers", async () => {
       signIn();
       mockMethodTable(surface);
