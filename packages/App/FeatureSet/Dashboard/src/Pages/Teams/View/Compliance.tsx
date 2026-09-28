@@ -31,10 +31,10 @@ export const TEAM_COMPLIANCE_UPSELL: EnterprisePluginUpsellProps = {
         "Require members to keep email, SMS, push or voice methods configured.",
     },
     {
-      icon: IconProp.Bell,
-      title: "On-call coverage",
+      icon: IconProp.Call,
+      title: "Severity and channel rules",
       subtitle:
-        "Make sure every team has on-call policies and schedules in place.",
+        "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.",
     },
     {
       icon: IconProp.ClipboardDocumentList,

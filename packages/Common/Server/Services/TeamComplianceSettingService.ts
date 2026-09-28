@@ -58,7 +58,9 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
      * is sent, and a stray alert severity on an incident rule would otherwise
      * sit in the database looking like part of the rule.
      */
-    this.clearOptionsThatDoNotApply(createBy.data, ruleType);
+    this.clearOptionsThatDoNotApply(createBy.data, ruleType, {
+      clearUnsentOptions: false,
+    });
 
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
@@ -119,7 +121,15 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
     this.assertValidChannel(data["notificationChannel"]);
 
     if (newRuleType) {
-      this.clearOptionsThatDoNotApply(data, newRuleType);
+      /*
+       * A new type makes the row's STORED options stale too, not only the ones
+       * this update sends: switching "Call for Critical incidents" to
+       * "Verified email" must not leave Call and Critical on the row, to come
+       * back as the scope if the type is ever switched again.
+       */
+      this.clearOptionsThatDoNotApply(data, newRuleType, {
+        clearUnsentOptions: true,
+      });
     }
 
     /*
@@ -155,6 +165,32 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    if (!newRuleType) {
+      /*
+       * The type stays, so drop whatever this update sends that the type does
+       * not use - as create does - rather than store alert severities on an
+       * incident rule unvalidated. Only when every row being updated has the
+       * same type, because `data` is written to all of them.
+       */
+      const storedRuleTypes: Set<ComplianceRuleType> =
+        new Set<ComplianceRuleType>();
+
+      for (const existing of existingSettings) {
+        if (ComplianceRule.isKnownRuleType(existing.ruleType)) {
+          storedRuleTypes.add(existing.ruleType);
+        }
+      }
+
+      const storedRuleType: ComplianceRuleType | undefined =
+        Array.from(storedRuleTypes)[0];
+
+      if (storedRuleTypes.size === 1 && storedRuleType) {
+        this.clearOptionsThatDoNotApply(data, storedRuleType, {
+          clearUnsentOptions: false,
+        });
+      }
+    }
 
     for (const existing of existingSettings) {
       const ruleType: ComplianceRuleType | undefined =
@@ -249,7 +285,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
    * Severity ids from whatever shape a relation value arrives in: an id
    * string, an ObjectID, a model, or `{_id}` / `{id}` JSON - create hooks run
    * before the payload is normalised into models, so all of them occur.
-   * Sorted and de-duplicated so two lists compare by content.
+   * Sorted and de-duplicated so two lists compare by content, and lower-cased
+   * because Postgres compares uuids without case and hands them back lower
+   * case: "ABC..." sent by a client is the stored "abc...", and must not slip
+   * past the duplicate check as a different id.
    */
   public static getIds(value: unknown): Array<string> {
     if (!Array.isArray(value)) {
@@ -277,7 +316,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       }
 
       if (id && id.trim()) {
-        ids.add(id.trim());
+        ids.add(id.trim().toLowerCase());
       }
     }
 
@@ -307,9 +346,14 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * `clearUnsentOptions` also clears the options `data` does not mention, so
+   * an update writes them empty on the row instead of leaving what is stored.
+   */
   private clearOptionsThatDoNotApply(
     data: Model | JSONObject,
     ruleType: ComplianceRuleType,
+    options: { clearUnsentOptions: boolean },
   ): void {
     const target: JSONObject = data as JSONObject;
     const severityKind: ComplianceSeverityKind | undefined =
@@ -317,8 +361,9 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     if (!ComplianceRule.supportsChannel(ruleType)) {
       if (
-        target["notificationChannel"] !== undefined &&
-        target["notificationChannel"] !== null
+        options.clearUnsentOptions ||
+        (target["notificationChannel"] !== undefined &&
+          target["notificationChannel"] !== null)
       ) {
         target["notificationChannel"] = null;
       }
@@ -326,14 +371,14 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     if (
       severityKind !== ComplianceSeverityKind.Incident &&
-      target["incidentSeverities"] !== undefined
+      (options.clearUnsentOptions || target["incidentSeverities"] !== undefined)
     ) {
       target["incidentSeverities"] = [];
     }
 
     if (
       severityKind !== ComplianceSeverityKind.Alert &&
-      target["alertSeverities"] !== undefined
+      (options.clearUnsentOptions || target["alertSeverities"] !== undefined)
     ) {
       target["alertSeverities"] = [];
     }

@@ -1,23 +1,34 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
 
 /*
- * The team-compliance area of the Enterprise Dashboard plugin: the Compliance
- * page and the member status table, which moved to ee/ in the Community /
- * Enterprise split (core keeps a shell at the page's old path - see
- * packages/Common/Tests/App/Dashboard/AuditLogsAndComplianceShells.test.tsx).
- * The status table is not a plugin key: only the Compliance page renders it,
- * importing it from this directory.
+ * Teams > View > Compliance, the Enterprise page, end to end in the browser:
+ * one status read feeds the verdict, the rule warnings, the rules card and
+ * the members section; editors change rules in place and every change is
+ * followed by one re-read; viewers get the same page with nothing to press.
  *
- * The status table's rendering tests moved here from
- * packages/Common/Tests/App/Dashboard/UserEmailCallSites.test.tsx with the
- * table: UserElement can only show an email and an avatar it was given, and
- * the compliance table hand-builds its user object from the payload, so the id
- * and the email must both make it through.
+ * The page moved to ee/ in the Community / Enterprise split (core keeps a
+ * shell at the page's old path - see
+ * packages/Common/Tests/App/Dashboard/AuditLogsAndComplianceShells.test.tsx).
+ * The members section is not a plugin key: only the Compliance page renders
+ * it, importing it from this directory.
+ *
+ * The network is mocked at its two doors - API.get for the status read,
+ * ModelAPI for rule writes and the severity lookup - and ModelFormModal is a
+ * stub that records its props, so the form's configuration is asserted
+ * exactly (ComplianceRuleForm.test.tsx covers the form itself).
  */
 
 /*
@@ -29,143 +40,196 @@ jest.mock("Common/UI/Images/users/blank-profile.svg", () => {
   return "data:image/svg+xml;base64,////YXZhdGFy";
 });
 
+// The signed-in person's permissions, per test.
+let mockPermissions: Array<string> = [];
+
 jest.mock("Common/UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
       getAllPermissions: () => {
-        return [];
+        return mockPermissions;
       },
       getProjectPermissions: () => {
-        return [];
+        return null;
       },
       getGlobalPermissions: () => {
-        return [];
+        return null;
       },
     },
   };
 });
 
-type CapturedModelTableProps = {
-  query?: Record<string, unknown>;
-  onCreateSuccess?: (item: unknown) => Promise<unknown>;
-  onItemDeleted?: (item: unknown) => void;
+type CapturedFormModalProps = {
+  title?: string;
+  initialValues?: Record<string, unknown> | undefined;
+  modelIdToEdit?: { toString: () => string } | undefined;
   onBeforeCreate?: (item: Record<string, unknown>) => Promise<unknown>;
-  formFields?: Array<{ field?: Record<string, boolean> }>;
+  onSuccess?: (item: unknown) => void;
+  onClose?: () => void;
+  formProps?: { fields?: Array<unknown> };
 };
 
-let capturedModelTableProps: CapturedModelTableProps | null = null;
+let capturedFormModal: CapturedFormModalProps | null = null;
 
-jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
+jest.mock("Common/UI/Components/ModelFormModal/ModelFormModal", () => {
+  const react: typeof React = jest.requireActual("react");
+
   return {
     __esModule: true,
-    default: (props: CapturedModelTableProps): null => {
-      capturedModelTableProps = props;
-      return null;
+    default: (props: CapturedFormModalProps): ReactElement => {
+      capturedFormModal = props;
+      return react.createElement(
+        "div",
+        { "data-testid": "rule-form-modal" },
+        props.title,
+      );
     },
   };
 });
 
-import TeamComplianceStatusTable, {
-  TeamComplianceStatusTableRef,
-} from "../../../Dashboard/TeamCompliance/TeamComplianceStatusTable";
 import TeamViewCompliance from "../../../Dashboard/TeamCompliance/Compliance";
 import TeamCompliancePlugins from "../../../Dashboard/TeamCompliance/Plugins";
 import EnterpriseDashboardPlugins from "../../../Dashboard/Index";
+import { COMPLIANCE_RULE_PRESETS } from "../../../Dashboard/TeamCompliance/ComplianceRulePresets";
+import {
+  ALERT_RULE_ID,
+  CALL_REASON,
+  CALL_RULE_ID,
+  CRITICAL_ID,
+  EMAIL_REASON,
+  EMAIL_RULE_ID,
+  EVALUATED_AT,
+  JANE_ID,
+  OMAR_ID,
+  PAUSED_RULE_ID,
+  PRIYA_ID,
+  PROJECT_ID,
+  TEAM_ID,
+  alertRule,
+  buildMember,
+  buildRule,
+  buildStatus,
+  callForIncidentsRule,
+  emailRule,
+  issue,
+  standardStatus,
+} from "./ComplianceFixtures";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Project from "Common/Models/DatabaseModels/Project";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
+import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
+import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import {
+  TeamComplianceRuleJSON,
+  TeamComplianceStatusJSON,
+} from "Common/Types/Team/TeamComplianceStatus";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import UserUtil from "Common/UI/Utils/User";
 
-const PROJECT_ID: ObjectID = new ObjectID(
-  "00000000-0000-4000-8000-000000000001",
-);
-const TEAM_ID: ObjectID = new ObjectID("00000000-0000-4000-8000-000000000002");
-const USER_ID: string = "00000000-0000-4000-8000-000000000003";
+const EDITOR: Array<string> = [Permission.ProjectAdmin];
+// May read the team's rules but not change them.
+const READER: Array<string> = [Permission.ProjectMember];
 
-type ComplianceResponse = {
-  teamId: string;
-  teamName: string;
-  complianceSettings: Array<{ ruleType: string; enabled: boolean }>;
-  userComplianceStatuses: Array<{
-    userId: string;
-    userName: string;
-    userEmail: string;
-    isCompliant: boolean;
-    nonCompliantRules: Array<{ ruleType: string; reason: string }>;
-  }>;
+const SOMEONE_ELSE_ID: string = "00000000-0000-4000-8000-0000000000ff";
+
+const PAGE_PROPS: PageComponentProps = {
+  pageRoute: new Route("/dashboard/project-id/settings/teams/x/compliance"),
+  currentProject: Object.assign(new Project(), {
+    _id: PROJECT_ID.toString(),
+  }),
+  hasPaymentMethod: true,
 };
 
-const complianceResponse: () => ComplianceResponse = (): ComplianceResponse => {
-  return {
-    teamId: TEAM_ID.toString(),
-    teamName: "On-Call",
-    complianceSettings: [
-      { ruleType: "HasNotificationEmailMethod", enabled: true },
-    ],
-    userComplianceStatuses: [
-      {
-        userId: USER_ID,
-        userName: "Jane Doe",
-        userEmail: "jane@acme.com",
-        isCompliant: false,
-        nonCompliantRules: [
-          {
-            ruleType: "HasNotificationEmailMethod",
-            reason: "No email notification method",
-          },
-        ],
-      },
-    ],
+const CALL_WARNING: string =
+  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+}
+
+const deferred: <T>() => Deferred<T> = <T,>(): Deferred<T> => {
+  let resolve: (value: T) => void = () => {
+    return undefined;
   };
+  let reject: (error: unknown) => void = () => {
+    return undefined;
+  };
+  const promise: Promise<T> = new Promise<T>(
+    (res: (value: T) => void, rej: (error: unknown) => void) => {
+      resolve = res;
+      reject = rej;
+    },
+  );
+
+  return { promise: promise, resolve: resolve, reject: reject };
 };
 
-const EE_DASHBOARD_DIR: string = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "Dashboard",
-);
+const respondWith: (status: TeamComplianceStatusJSON) => never = (
+  status: TeamComplianceStatusJSON,
+): never => {
+  return { data: status } as never;
+};
 
-const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
-const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
-const IMPORT_SPECIFIER: RegExp =
-  /(?:from\s+|import\s*\(\s*|require\(\s*)["']([^"']+)["']/g;
-
-const importsOf: (file: string) => Array<string> = (
-  file: string,
-): Array<string> => {
-  const source: string = fs
-    .readFileSync(path.join(EE_DASHBOARD_DIR, "TeamCompliance", file), "utf8")
-    .replace(BLOCK_COMMENT, " ")
-    .replace(LINE_COMMENT, "$1");
-  const specifiers: Array<string> = [];
-  const pattern: RegExp = new RegExp(IMPORT_SPECIFIER.source, "g");
-  let match: RegExpExecArray | null = pattern.exec(source);
-
-  while (match) {
-    specifiers.push(match[1] as string);
-    match = pattern.exec(source);
-  }
-
-  return specifiers;
+/*
+ * A failing call, as a native async function: a rejection built here by
+ * mockRejectedValue is a zone.js promise (the Telemetry util loads zone.js)
+ * that zone reports as unhandled even though the page catches it.
+ */
+const failWith: (message: string) => () => Promise<never> = (
+  message: string,
+): (() => Promise<never>) => {
+  return async (): Promise<never> => {
+    throw new Error(message);
+  };
 };
 
 let apiGet: jest.SpyInstance;
 
+const renderPage: (status?: TeamComplianceStatusJSON) => Promise<void> = async (
+  status?: TeamComplianceStatusJSON,
+): Promise<void> => {
+  if (status) {
+    apiGet.mockResolvedValue(respondWith(status));
+  }
+
+  render(<TeamViewCompliance {...PAGE_PROPS} />);
+
+  await screen.findByTestId("team-compliance-page");
+};
+
+const ruleRow: (settingId: string) => HTMLElement = (
+  settingId: string,
+): HTMLElement => {
+  return screen.getByTestId(`compliance-rule-${settingId}`);
+};
+
 beforeEach(() => {
-  capturedModelTableProps = null;
+  capturedFormModal = null;
+  mockPermissions = [];
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
+  jest
+    .spyOn(UserUtil, "getUserId")
+    .mockReturnValue(new ObjectID(SOMEONE_ELSE_ID));
+  jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(false);
   apiGet = jest
     .spyOn(API, "get")
-    .mockResolvedValue({ data: complianceResponse() } as never);
+    .mockResolvedValue(respondWith(standardStatus()));
 });
 
 afterEach(() => {
@@ -173,27 +237,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("the member compliance status table", () => {
-  const renderTable: (
-    ref?: React.Ref<TeamComplianceStatusTableRef>,
-  ) => Promise<void> = async (
-    ref?: React.Ref<TeamComplianceStatusTableRef>,
-  ): Promise<void> => {
-    render(
-      ref ? (
-        <TeamComplianceStatusTable ref={ref} teamId={TEAM_ID} />
-      ) : (
-        <TeamComplianceStatusTable teamId={TEAM_ID} />
-      ),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-    });
-  };
-
-  test("asks the Enterprise compliance route about exactly this team", async () => {
-    await renderTable();
+describe("reading the status", () => {
+  test("asks the Enterprise compliance route about exactly this team, once", async () => {
+    await renderPage();
 
     expect(apiGet).toHaveBeenCalledTimes(1);
 
@@ -205,185 +251,1385 @@ describe("the member compliance status table", () => {
     );
   });
 
-  test("shows the member's email beside their name", async () => {
-    await renderTable();
+  test("the hero, the rules and the members all draw from that one read", async () => {
+    await renderPage();
 
-    expect(screen.getByTestId("user-email")).toHaveTextContent("jane@acme.com");
-  });
-
-  /*
-   * The row is hand-built from the compliance payload. Without the id the
-   * avatar route cannot be built and every member falls back to the blank
-   * picture, which reads as "nobody has a photo" rather than as a bug.
-   */
-  test("builds the avatar from the member's own id", async () => {
-    await renderTable();
-
-    expect(screen.getAllByRole("img")[0]).toHaveAttribute(
-      "src",
-      `/api/user/profile-picture/${USER_ID}`,
-    );
-  });
-
-  test("still shows why the member is non-compliant", async () => {
-    await renderTable();
-
-    expect(screen.getByText("Non-Compliant")).toBeInTheDocument();
-    expect(
-      screen.getByText(/No email notification method/),
-    ).toBeInTheDocument();
-  });
-
-  test("refresh() through the ref reads the status again", async () => {
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
-
-    await renderTable(tableRef);
+    expect(screen.getByTestId("compliance-hero")).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-rules-card")).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members")).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+
+  test("the first load draws the page's shape, not a spinner", async () => {
+    const pending: Deferred<never> = deferred<never>();
+    apiGet.mockReturnValue(pending.promise);
+
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
+
+    expect(
+      screen.getByRole("status", { name: "Loading team compliance" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("team-compliance-page")).toBeNull();
 
     await act(async () => {
-      tableRef.current?.refresh();
+      pending.resolve(respondWith(standardStatus()));
     });
 
-    expect(apiGet).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("team-compliance-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("compliance-skeleton")).toBeNull();
   });
 
-  test("shows nothing at all while the team has no compliance rules", async () => {
-    apiGet.mockResolvedValue({
-      data: { ...complianceResponse(), complianceSettings: [] },
-    } as never);
-
-    const { container } = render(
-      <TeamComplianceStatusTable teamId={TEAM_ID} />,
-    );
-
-    await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledTimes(1);
-    });
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
-  });
-
-  test("a first read that fails shows the error, not an endless spinner", async () => {
-    apiGet.mockRejectedValue(new Error("boom") as never);
+  test("a first read that fails shows the error, not an endless skeleton", async () => {
+    apiGet.mockImplementation(failWith("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
-    render(<TeamComplianceStatusTable teamId={TEAM_ID} />);
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
 
     expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-load-error")).toBeInTheDocument();
+    expect(screen.queryByTestId("compliance-skeleton")).toBeNull();
     expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
   });
 
-  test("a refresh that fails after a good read shows the error too", async () => {
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
+  test("retrying after a failed first read loads the page", async () => {
+    apiGet.mockImplementationOnce(failWith("boom"));
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
-    await renderTable(tableRef);
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
+    await screen.findByText("Compliance is down");
 
-    apiGet.mockRejectedValue(new Error("boom") as never);
+    fireEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(
+      await screen.findByTestId("team-compliance-page"),
+    ).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("Compliance is down")).not.toBeInTheDocument();
+  });
+
+  test("an HTTP error response is an error too", async () => {
+    const errorResponse: HTTPErrorResponse = Object.create(
+      HTTPErrorResponse.prototype,
+    );
+
+    apiGet.mockResolvedValue(errorResponse as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Not allowed");
+
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
+
+    expect(await screen.findByText("Not allowed")).toBeInTheDocument();
+  });
+
+  test("Refresh reads again; a failure keeps the last results and says so", async () => {
+    await renderPage();
+
+    apiGet.mockImplementationOnce(failWith("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
     await act(async () => {
-      tableRef.current?.refresh();
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
     });
 
-    expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledTimes(2);
+    expect(
+      await screen.findByTestId("compliance-hero-refresh-error"),
+    ).toHaveTextContent(
+      "Could not check again - showing the last results that loaded. Compliance is down",
+    );
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
   });
 
   test("a successful refresh after a failure clears the error", async () => {
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
+    await renderPage();
 
-    apiGet.mockRejectedValueOnce(new Error("boom") as never);
+    apiGet.mockImplementationOnce(failWith("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
-    render(<TeamComplianceStatusTable ref={tableRef} teamId={TEAM_ID} />);
-    expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
+    });
+    await screen.findByTestId("compliance-hero-refresh-error");
 
     await act(async () => {
-      tableRef.current?.refresh();
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
     });
 
-    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
-    expect(screen.queryByText("Compliance is down")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("compliance-hero-refresh-error"),
+      ).not.toBeInTheDocument();
+    });
+    expect(apiGet).toHaveBeenCalledTimes(3);
+  });
+
+  test("the refresh button spins while a read is in flight", async () => {
+    await renderPage();
+
+    const pending: Deferred<never> = deferred<never>();
+    apiGet.mockReturnValueOnce(pending.promise);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
+    });
+
+    expect(screen.getByTestId("compliance-hero-refresh")).toBeDisabled();
+
+    await act(async () => {
+      pending.resolve(respondWith(standardStatus()));
+    });
+
+    expect(screen.getByTestId("compliance-hero-refresh")).not.toBeDisabled();
+  });
+
+  test("another team is another answer: the old one is not shown while it loads", async () => {
+    const otherTeamId: ObjectID = new ObjectID(
+      "00000000-0000-4000-8000-0000000000ee",
+    );
+    const params: jest.SpyInstance = jest
+      .spyOn(Navigation, "getLastParamAsObjectID")
+      .mockReturnValue(TEAM_ID);
+
+    const { rerender } = render(<TeamViewCompliance {...PAGE_PROPS} />);
+    await screen.findByTestId("team-compliance-page");
+
+    const pending: Deferred<never> = deferred<never>();
+    apiGet.mockReturnValueOnce(pending.promise);
+    params.mockReturnValue(otherTeamId);
+
+    await act(async () => {
+      rerender(<TeamViewCompliance {...PAGE_PROPS} />);
+    });
+
+    expect(apiGet).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        apiGet.mock.calls[1]![0] as { url: { toString: () => string } }
+      ).url.toString(),
+    ).toContain(`/team/compliance-status/${otherTeamId.toString()}`);
+    expect(screen.getByTestId("compliance-skeleton")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`compliance-member-${JANE_ID}`),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending.resolve(respondWith(buildStatus({ teamName: "Other team" })));
+    });
+
+    expect(screen.getByTestId("team-compliance-page")).toBeInTheDocument();
+  });
+
+  test("re-rendering the same team reads nothing new", async () => {
+    const { rerender } = render(<TeamViewCompliance {...PAGE_PROPS} />);
+    await screen.findByTestId("team-compliance-page");
+
+    await act(async () => {
+      rerender(<TeamViewCompliance {...PAGE_PROPS} />);
+    });
+
+    expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+
+  test("an older answer that arrives late never replaces a newer one", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    const older: Deferred<never> = deferred<never>();
+    const newer: Deferred<never> = deferred<never>();
+    apiGet
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise);
+    jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
+
+    // Read 2: a refresh. Read 3: the refresh after pausing a rule.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("switch", {
+          name: "Check members against Verified email",
+        }),
+      );
+    });
+
+    const paused: TeamComplianceStatusJSON = standardStatus();
+    paused.complianceSettings[0]!.enabled = false;
+
+    await act(async () => {
+      newer.resolve(respondWith(paused));
+    });
+    await act(async () => {
+      older.resolve(respondWith(standardStatus()));
+    });
+
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-paused"),
+    ).toBeInTheDocument();
   });
 });
 
-describe("the Compliance page", () => {
-  const PAGE_PROPS: PageComponentProps = {
-    pageRoute: new Route("/dashboard/project-id/settings/teams/x/compliance"),
-    currentProject: Object.assign(new Project(), {
-      _id: PROJECT_ID.toString(),
-    }),
-    hasPaymentMethod: true,
-  };
+describe("the verdict", () => {
+  test("some members need attention", async () => {
+    await renderPage();
 
-  beforeEach(() => {
-    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
+    expect(screen.getByTestId("compliance-hero-badge")).toHaveTextContent(
+      "2 need attention",
+    );
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "1 of 3 members meets every rule",
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      /^Checked against 2 active rules · checked .+ ago$/,
+    );
+    expect(
+      screen.getByRole("img", {
+        name: "1 of 3 members compliant, 2 need attention",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-hero-bar")).toHaveTextContent(
+      "33% compliant67% need attention",
+    );
   });
 
-  test("lists this team's rules, in this project, and shows the member table", async () => {
-    render(<TeamViewCompliance {...PAGE_PROPS} />);
+  test("the fact strip", async () => {
+    await renderPage();
 
-    expect(capturedModelTableProps?.query).toEqual({
-      teamId: TEAM_ID,
-      projectId: PROJECT_ID,
+    expect(screen.getByTestId("compliance-fact-members")).toHaveTextContent(
+      "Members3",
+    );
+    expect(screen.getByTestId("compliance-fact-compliant")).toHaveTextContent(
+      "Compliant1",
+    );
+    expect(screen.getByTestId("compliance-fact-attention")).toHaveTextContent(
+      "Need attention2",
+    );
+    expect(screen.getByTestId("compliance-fact-rules")).toHaveTextContent(
+      "Active rules2",
+    );
+  });
+
+  test("the check time is a real <time>", async () => {
+    await renderPage();
+
+    const time: HTMLElement = screen
+      .getByTestId("compliance-hero-subline")
+      .querySelector("time") as HTMLElement;
+
+    expect(time).toHaveAttribute("datetime", EVALUATED_AT);
+  });
+
+  test("everyone compliant", async () => {
+    const status: TeamComplianceStatusJSON = buildStatus({
+      complianceSettings: [emailRule({ compliantCount: 2 })],
+      userComplianceStatuses: [
+        buildMember(),
+        buildMember({ userId: OMAR_ID, userName: "Omar Haddad" }),
+      ],
     });
-    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+
+    await renderPage(status);
+
+    expect(screen.getByTestId("compliance-hero-badge")).toHaveTextContent(
+      "All compliant",
+    );
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "All 2 members meet every rule",
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      "Checked against 1 active rule ·",
+    );
+    expect(
+      screen.getByTestId("compliance-hero-bar-compliant"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("compliance-hero-bar-attention"),
+    ).not.toBeInTheDocument();
   });
 
-  test("a new rule is created for this team and project", async () => {
-    render(<TeamViewCompliance {...PAGE_PROPS} />);
+  test("paused rules are counted separately", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings.push(
+      alertRule({ settingId: PAUSED_RULE_ID, enabled: false }),
+    );
+
+    await renderPage(status);
+
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      "Checked against 2 active rules (1 paused)",
+    );
+    expect(screen.getByTestId("compliance-fact-rules")).toHaveTextContent(
+      "Active rules21 paused",
+    );
+  });
+
+  test("no rules yet: a neutral verdict, and no members section", async () => {
+    await renderPage(buildStatus({ userComplianceStatuses: [buildMember()] }));
+
+    expect(screen.getByTestId("compliance-hero-badge")).toHaveTextContent(
+      "No active rules",
+    );
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "Nothing is being checked yet",
+    );
+    expect(screen.queryByTestId("compliance-hero-bar")).toBeNull();
+    // Nothing is measured, so the compliant counts are neither numbers nor green.
+    const compliant: HTMLElement = screen.getByTestId(
+      "compliance-fact-compliant",
+    );
+
+    expect(compliant).toHaveTextContent("Compliant—");
+    expect(compliant.querySelector("dd span")?.className).toContain(
+      "text-gray-900",
+    );
+    expect(within(compliant).queryByRole("button")).toBeNull();
+    expect(screen.queryByTestId("compliance-members")).toBeNull();
+  });
+
+  test("every rule paused", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ enabled: false }),
+          callForIncidentsRule({ enabled: false }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "All 2 rules are paused",
+    );
+    expect(screen.getByTestId("compliance-hero-badge")).toHaveTextContent(
+      "No active rules",
+    );
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toBeInTheDocument();
+  });
+
+  test("a team with nobody on it", async () => {
+    await renderPage(buildStatus({ complianceSettings: [emailRule()] }));
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "This team has no members to check",
+    );
+    expect(screen.getByText("No members on this team yet")).toBeInTheDocument();
+  });
+
+  test("pressing a count filters the members section, pressing it again clears it", async () => {
+    await renderPage();
+
+    const attention: HTMLElement = screen.getByRole("button", {
+      name: "Show the 2 members who need attention",
+    });
+
+    expect(attention).toHaveAttribute("aria-pressed", "false");
+    expect(attention).toHaveAttribute("aria-controls", "compliance-members");
+
+    fireEvent.click(attention);
+
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.queryByTestId(`compliance-member-${PRIYA_ID}`),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(attention);
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show the 1 compliant member" }),
+    );
+
+    expect(
+      screen.queryByTestId(`compliance-member-${JANE_ID}`),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a count of nobody is not pressable", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [emailRule({ compliantCount: 1 })],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(
+      within(screen.getByTestId("compliance-fact-attention")).queryByRole(
+        "button",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("rule warnings", () => {
+  test("a rule on a channel the project has switched off", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[1]!.warnings = [CALL_WARNING];
+
+    await renderPage(status);
+
+    const banner: HTMLElement = screen.getByTestId("compliance-rule-warnings");
+
+    expect(banner).toHaveAttribute("role", "alert");
+    expect(banner).toHaveTextContent("1 rule has a problem members cannot fix");
+    expect(
+      screen.getByTestId(`compliance-rule-warning-${CALL_RULE_ID}`),
+    ).toHaveTextContent(`Call for incidents: ${CALL_WARNING}`);
+    expect(
+      within(banner).getByRole("link", { name: /Open notification settings/ }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`,
+    );
+    expect(
+      within(ruleRow(CALL_RULE_ID)).getByTestId("compliance-rule-warning-chip"),
+    ).toHaveAttribute("aria-label", `Warning: ${CALL_WARNING}`);
+  });
+
+  test("several rules, and no settings link when no switchable channel is involved", async () => {
+    const status: TeamComplianceStatusJSON = buildStatus({
+      complianceSettings: [
+        buildRule({
+          settingId: "push",
+          ruleType: ComplianceRuleType.HasNotificationPushMethod,
+          warnings: ["Push is not configured for this server."],
+        }),
+        buildRule({
+          settingId: "pigeon",
+          ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+          warnings: ["This rule type is not recognised, so it is not checked."],
+        }),
+      ],
+      userComplianceStatuses: [buildMember()],
+    });
+
+    await renderPage(status);
+
+    expect(screen.getByTestId("compliance-rule-warnings")).toHaveTextContent(
+      "2 rules have problems members cannot fix",
+    );
+    expect(
+      screen.queryByTestId("compliance-rule-warnings-settings-link"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("compliance-rule-warning-pigeon"),
+    ).toHaveTextContent(
+      "HasCarrierPigeon: This rule type is not recognised, so it is not checked.",
+    );
+  });
+
+  test("a paused rule's warnings wait until it is turned back on", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[1]!.enabled = false;
+    status.complianceSettings[1]!.warnings = [CALL_WARNING];
+
+    await renderPage(status);
+
+    expect(
+      screen.queryByTestId("compliance-rule-warnings"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("no warnings, no banner", async () => {
+    await renderPage();
+
+    expect(
+      screen.queryByTestId("compliance-rule-warnings"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the rules card", () => {
+  test("a method rule", async () => {
+    await renderPage();
+
+    const row: HTMLElement = ruleRow(EMAIL_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Verified email",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-sentence"),
+    ).toHaveTextContent("Every member has a verified email address.");
+    expect(within(row).queryByTestId("compliance-rule-scope")).toBeNull();
+    expect(
+      within(row).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("2 of 3members meet it");
+    expect(
+      within(row).getByRole("img", { name: "2 of 3 members meet this rule" }),
+    ).toBeInTheDocument();
+  });
+
+  test("an on-call rule on a channel for chosen severities", async () => {
+    await renderPage();
+
+    const row: HTMLElement = ruleRow(CALL_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Call for incidents",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-sentence"),
+    ).toHaveTextContent(
+      "Every member has an incident on-call rule that notifies them by Call for Critical Incident and Major Incident.",
+    );
+
+    const scope: HTMLElement = within(row).getByTestId("compliance-rule-scope");
+
+    expect(scope).toHaveAttribute("aria-label", "Rule scope");
+    expect(
+      within(scope).getByTestId(`compliance-rule-severity-${CRITICAL_ID}`),
+    ).toHaveTextContent("Critical Incident");
+    // The severity's own colour marks its chip.
+    expect(
+      within(scope)
+        .getByTestId(`compliance-rule-severity-${CRITICAL_ID}`)
+        .querySelector("span[aria-hidden='true']"),
+    ).toHaveStyle({ backgroundColor: "#ff0000" });
+    expect(
+      within(scope).getByTestId("compliance-rule-channel"),
+    ).toHaveTextContent("Call");
+    expect(
+      within(scope).queryByTestId("compliance-rule-all-severities"),
+    ).toBeNull();
+  });
+
+  test("an any-channel rule for every severity", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings.push(alertRule({ compliantCount: 3 }));
+
+    await renderPage(status);
+
+    const row: HTMLElement = ruleRow(ALERT_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Alert on-call rules",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-all-severities"),
+    ).toHaveTextContent("All alert severities");
+    expect(
+      within(row).getByTestId("compliance-rule-channel"),
+    ).toHaveTextContent("Any channel");
+    expect(
+      within(row).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("3 of 3all meet it");
+    expect(within(row).queryByRole("button", { name: /Show the/ })).toBeNull();
+  });
+
+  test("episode rules", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "episodes",
+            ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+            notificationChannel: ComplianceNotificationChannel.SMS,
+            appliesToAllSeverities: true,
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(
+      within(ruleRow("episodes")).getByTestId("compliance-rule-title"),
+    ).toHaveTextContent("SMS for incident episodes");
+    expect(
+      within(ruleRow("episodes")).getByTestId("compliance-rule-all-severities"),
+    ).toHaveTextContent("All incident severities");
+  });
+
+  test("a paused rule", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings.push(
+      alertRule({ settingId: PAUSED_RULE_ID, enabled: false }),
+    );
+
+    await renderPage(status);
+
+    const row: HTMLElement = ruleRow(PAUSED_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-paused")).toHaveTextContent(
+      "Paused",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("Paused - not checked");
+  });
+
+  test("a rule type this build does not know", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "pigeon",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const row: HTMLElement = ruleRow("pigeon");
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "HasCarrierPigeon",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("Not checked");
+  });
+
+  test("a team with no members", async () => {
+    await renderPage(buildStatus({ complianceSettings: [emailRule()] }));
+
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("No members to check");
+  });
+
+  test("rules are listed in the order the server gives", async () => {
+    await renderPage();
+
+    expect(
+      screen
+        .getAllByTestId("compliance-rule-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual(["Verified email", "Call for incidents"]);
+  });
+});
+
+describe("who may change rules", () => {
+  test("an editor can add, pause, edit and delete", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    expect(screen.getByRole("button", { name: "Add rule" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("switch", {
+        name: "Check members against Verified email",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByRole("button", { name: "Edit Call for incidents" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete Call for incidents" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a reader sees the rules but nothing to press, and Add rule says why", async () => {
+    mockPermissions = READER;
+    await renderPage();
+
+    const add: HTMLElement = screen.getByRole("button", { name: "Add rule" });
+
+    expect(add).toBeDisabled();
+    expect(screen.queryByRole("switch")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Edit / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Delete / })).toBeNull();
+    expect(ruleRow(EMAIL_RULE_ID)).toBeInTheDocument();
+  });
+
+  test("before permissions load, nothing is offered and nothing is refused", async () => {
+    mockPermissions = [];
+    await renderPage();
+
+    expect(screen.queryByRole("button", { name: "Add rule" })).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+
+  test("an empty team for a reader: no recommendations, and who to ask", async () => {
+    mockPermissions = READER;
+    await renderPage(buildStatus());
+
+    expect(screen.getByTestId("compliance-rules-empty")).toHaveTextContent(
+      "ask a project admin to add one",
+    );
+    expect(screen.queryByTestId("compliance-presets")).toBeNull();
+    expect(screen.queryByTestId("compliance-rules-empty-add")).toBeNull();
+  });
+
+  test("a master admin may open other members' setup", async () => {
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    await renderPage();
+
+    expect(
+      within(screen.getByTestId(`compliance-member-${JANE_ID}`)).getByTestId(
+        "compliance-member-fix-link",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("so may anyone who can read members' notification rules", async () => {
+    mockPermissions = [Permission.ReadProjectUserNotificationRule];
+    await renderPage();
+
+    expect(
+      within(screen.getByTestId(`compliance-member-${OMAR_ID}`)).getByTestId(
+        "compliance-member-fix-link",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a plain member may not", async () => {
+    mockPermissions = READER;
+    await renderPage();
+
+    expect(screen.queryByTestId("compliance-member-fix-link")).toBeNull();
+  });
+
+  test("the signed-in member gets their own fix button", async () => {
+    jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(JANE_ID));
+    await renderPage();
+
+    expect(
+      within(screen.getByTestId(`compliance-member-${JANE_ID}`)).getByTestId(
+        "compliance-member-fix-self",
+      ),
+    ).toHaveTextContent("Open my notification methods");
+  });
+});
+
+describe("pausing and resuming a rule", () => {
+  test("saves only `enabled`, then reads the status once more", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    const updateById: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+    const paused: TeamComplianceStatusJSON = standardStatus();
+    paused.complianceSettings[0]!.enabled = false;
+    apiGet.mockResolvedValue(respondWith(paused));
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("switch", {
+          name: "Check members against Verified email",
+        }),
+      );
+    });
+
+    expect(updateById).toHaveBeenCalledTimes(1);
+
+    const call: {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    } = updateById.mock.calls[0]![0];
+
+    expect(call.modelType).toBe(TeamComplianceSetting);
+    expect(call.id.toString()).toBe(EMAIL_RULE_ID);
+    expect(call.data).toEqual({ enabled: false });
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-paused"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", {
+        name: "Check members against Verified email",
+      }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("a paused rule is turned back on", async () => {
+    mockPermissions = EDITOR;
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[0]!.enabled = false;
+    await renderPage(status);
+
+    const updateById: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("switch", {
+          name: "Check members against Verified email",
+        }),
+      );
+    });
+
+    expect(updateById.mock.calls[0]![0].data).toEqual({ enabled: true });
+  });
+
+  test("a failed save says so on the row, moves the switch back, and reads nothing", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    jest.spyOn(ModelAPI, "updateById").mockImplementation(failWith("nope"));
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Permission denied");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("switch", {
+          name: "Check members against Verified email",
+        }),
+      );
+    });
+
+    expect(
+      await screen.findByTestId(`compliance-rule-error-${EMAIL_RULE_ID}`),
+    ).toHaveTextContent("Could not pause this rule. Permission denied");
+    expect(
+      screen.getByRole("switch", {
+        name: "Check members against Verified email",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("adding and editing rules", () => {
+  test("Add rule opens the form enforced by default, for this team", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
+      "Add a compliance rule",
+    );
+    expect(capturedFormModal?.initialValues).toEqual({ enabled: true });
+    expect(capturedFormModal?.modelIdToEdit).toBeUndefined();
 
     const item: Record<string, unknown> = {};
-    await capturedModelTableProps?.onBeforeCreate?.(item);
+    await capturedFormModal?.onBeforeCreate?.(item);
 
     expect((item["teamId"] as ObjectID).toString()).toBe(TEAM_ID.toString());
     expect((item["projectId"] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
     );
-    await screen.findByText("Jane Doe");
   });
 
-  test("creating or deleting a rule refreshes the member table", async () => {
-    render(<TeamViewCompliance {...PAGE_PROPS} />);
-    await screen.findByText("Jane Doe");
+  test("the project comes from the page when it has one, else the session", async () => {
+    mockPermissions = EDITOR;
+    apiGet.mockResolvedValue(respondWith(standardStatus()));
+
+    render(
+      <TeamViewCompliance
+        pageRoute={PAGE_PROPS.pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+    await screen.findByTestId("team-compliance-page");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    const item: Record<string, unknown> = {};
+    await capturedFormModal?.onBeforeCreate?.(item);
+
+    expect((item["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test("a created rule closes the form and reads the status again", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    await act(async () => {
+      capturedFormModal?.onSuccess?.(new TeamComplianceSetting());
+    });
+
+    expect(screen.queryByTestId("rule-form-modal")).toBeNull();
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("closing the form changes nothing", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    act(() => {
+      capturedFormModal?.onClose?.();
+    });
+
+    expect(screen.queryByTestId("rule-form-modal")).toBeNull();
     expect(apiGet).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      await capturedModelTableProps?.onCreateSuccess?.({});
-    });
-    expect(apiGet).toHaveBeenCalledTimes(2);
-
-    await act(async () => {
-      capturedModelTableProps?.onItemDeleted?.({});
-    });
-    expect(apiGet).toHaveBeenCalledTimes(3);
   });
 
-  test("offers the same six rule types", () => {
-    render(<TeamViewCompliance {...PAGE_PROPS} />);
+  test("Edit opens that rule by its id, and saving reads the status again", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
 
-    const ruleTypeField: { dropdownOptions?: Array<{ value: string }> } =
-      (capturedModelTableProps?.formFields || [])[0] as {
-        dropdownOptions?: Array<{ value: string }>;
-      };
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit Call for incidents" }),
+    );
+
+    expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
+      "Edit compliance rule",
+    );
+    expect(capturedFormModal?.modelIdToEdit?.toString()).toBe(CALL_RULE_ID);
+    expect(capturedFormModal?.initialValues).toBeUndefined();
+
+    await act(async () => {
+      capturedFormModal?.onSuccess?.(new TeamComplianceSetting());
+    });
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe("deleting a rule", () => {
+  test("asks first, then deletes by id and reads the status again", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    const deleteItem: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+    apiGet.mockResolvedValue(
+      respondWith(
+        buildStatus({
+          complianceSettings: [standardStatus().complianceSettings[1]!],
+          userComplianceStatuses: standardStatus().userComplianceStatuses,
+        }),
+      ),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Verified email" }),
+    );
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      '"Verified email" stops being checked for everyone on this team.',
+    );
+    expect(deleteItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(deleteItem).toHaveBeenCalledTimes(1);
+    expect(deleteItem.mock.calls[0]![0].modelType).toBe(TeamComplianceSetting);
+    expect(deleteItem.mock.calls[0]![0].id.toString()).toBe(EMAIL_RULE_ID);
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByTestId("modal")).toBeNull();
+    expect(screen.queryByTestId(`compliance-rule-${EMAIL_RULE_ID}`)).toBeNull();
+  });
+
+  test("cancelling deletes nothing", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    const deleteItem: jest.SpyInstance = jest.spyOn(ModelAPI, "deleteItem");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Verified email" }),
+    );
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    expect(screen.queryByTestId("modal")).toBeNull();
+    expect(deleteItem).not.toHaveBeenCalled();
+    expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failed delete stays open and says why", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    jest.spyOn(ModelAPI, "deleteItem").mockImplementation(failWith("nope"));
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Rule is locked");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Verified email" }),
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
 
     expect(
-      (ruleTypeField.dropdownOptions || []).map(
-        (option: { value: string }): string => {
-          return option.value;
+      within(screen.getByTestId("modal")).getByText("Rule is locked"),
+    ).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+
+  test("deleting the rule the members are filtered by drops the filter", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+
+    jest.spyOn(ModelAPI, "deleteItem").mockResolvedValue(undefined as never);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete Verified email" }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("an empty team: recommended rules", () => {
+  const listResult: (id: string | null) => never = (
+    id: string | null,
+  ): never => {
+    return {
+      data: id ? [{ _id: id }] : [],
+      count: id ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    } as never;
+  };
+
+  beforeEach(() => {
+    mockPermissions = EDITOR;
+  });
+
+  test("the empty state explains rules and offers four recommendations", async () => {
+    await renderPage(buildStatus({ userComplianceStatuses: [buildMember()] }));
+
+    expect(screen.getByTestId("compliance-rules-empty")).toHaveTextContent(
+      "No compliance rules yet",
+    );
+    expect(
+      screen
+        .getAllByTestId(/^compliance-preset-/)
+        .map((preset: HTMLElement): string => {
+          return preset.textContent || "";
+        }),
+    ).toEqual(
+      COMPLIANCE_RULE_PRESETS.map(
+        (preset: { title: string; description: string }) => {
+          return `${preset.title}${preset.description}`;
         },
       ),
+    );
+    expect(
+      COMPLIANCE_RULE_PRESETS.map((preset: { title: string }) => {
+        return preset.title;
+      }),
     ).toEqual([
-      "HasNotificationEmailMethod",
-      "HasNotificationSMSMethod",
-      "HasNotificationCallMethod",
-      "HasNotificationPushMethod",
-      "HasIncidentOnCallRules",
-      "HasAlertOnCallRules",
+      "Call for critical incidents",
+      "Push for critical alerts",
+      "Incident on-call rules for every severity",
+      "Verified phone for calls",
     ]);
+  });
+
+  test("Call for critical incidents opens the form prefilled with the most severe incident severity", async () => {
+    await renderPage(buildStatus());
+
+    const getList: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "getList")
+      .mockResolvedValue(listResult(CRITICAL_ID));
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-call-for-critical-incidents"),
+      );
+    });
+
+    expect(getList).toHaveBeenCalledTimes(1);
+
+    const request: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+    } = getList.mock.calls[0]![0];
+
+    expect(request.modelType).toBe(IncidentSeverity);
+    expect(request.limit).toBe(1);
+    expect(request.skip).toBe(0);
+    expect(request.sort).toEqual({ order: SortOrder.Ascending });
+    expect(request.select).toEqual({ _id: true, name: true, order: true });
+    expect((request.query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+
+    // Opened, not created.
+    expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
+      "Add a compliance rule",
+    );
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [CRITICAL_ID],
+      enabled: true,
+    });
+  });
+
+  test("Push for critical alerts preselects the most severe alert severity", async () => {
+    await renderPage(buildStatus());
+
+    const getList: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "getList")
+      .mockResolvedValue(listResult("alert-high"));
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-push-for-critical-alerts"),
+      );
+    });
+
+    expect(getList.mock.calls[0]![0].modelType).toBe(AlertSeverity);
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      alertSeverities: ["alert-high"],
+      enabled: true,
+    });
+  });
+
+  test("when the severities cannot be read, the form opens with none preselected", async () => {
+    await renderPage(buildStatus());
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation(failWith("422"));
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-call-for-critical-incidents"),
+      );
+    });
+
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      enabled: true,
+    });
+  });
+
+  test("a project with no severities of that kind: none preselected", async () => {
+    await renderPage(buildStatus());
+
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue(listResult(null));
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-push-for-critical-alerts"),
+      );
+    });
+
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      enabled: true,
+    });
+  });
+
+  test("presets without a severity open straight away, with no lookup", async () => {
+    await renderPage(buildStatus());
+
+    const getList: jest.SpyInstance = jest.spyOn(ModelAPI, "getList");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(
+          "compliance-preset-incident-rules-for-every-severity",
+        ),
+      );
+    });
+
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+    });
+
+    act(() => {
+      capturedFormModal?.onClose?.();
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-verified-phone-for-calls"),
+      );
+    });
+
+    expect(capturedFormModal?.initialValues).toEqual({
+      ruleType: ComplianceRuleType.HasNotificationCallMethod,
+      enabled: true,
+    });
+    expect(getList).not.toHaveBeenCalled();
+  });
+
+  test("while a preset looks up its severity, the presets wait", async () => {
+    await renderPage(buildStatus());
+
+    const pending: Deferred<never> = deferred<never>();
+    jest.spyOn(ModelAPI, "getList").mockReturnValue(pending.promise);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("compliance-preset-call-for-critical-incidents"),
+      );
+    });
+
+    expect(
+      screen.getByTestId("compliance-preset-call-for-critical-incidents"),
+    ).toHaveAttribute("aria-busy", "true");
+    expect(
+      screen.getByTestId("compliance-preset-verified-phone-for-calls"),
+    ).toBeDisabled();
+    expect(screen.queryByTestId("rule-form-modal")).toBeNull();
+
+    await act(async () => {
+      pending.resolve(listResult(CRITICAL_ID));
+    });
+
+    expect(screen.getByTestId("rule-form-modal")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("compliance-preset-verified-phone-for-calls"),
+    ).not.toBeDisabled();
+  });
+
+  test("or build a custom rule from scratch", async () => {
+    await renderPage(buildStatus());
+
+    fireEvent.click(screen.getByTestId("compliance-rules-empty-add"));
+
+    expect(capturedFormModal?.initialValues).toEqual({ enabled: true });
+  });
+});
+
+describe("from a rule to the members failing it", () => {
+  test("shows who fails a rule, and pressing again shows everyone", async () => {
+    await renderPage();
+
+    const showFailing: HTMLElement = screen.getByTestId(
+      `compliance-rule-show-failing-${CALL_RULE_ID}`,
+    );
+
+    expect(showFailing).toHaveTextContent("Show the 2 who fail it");
+    expect(showFailing).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(showFailing);
+
+    expect(showFailing).toHaveAttribute("aria-pressed", "true");
+    expect(showFailing).toHaveTextContent("Showing who fails it");
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent("Call for incidents");
+    expect(
+      screen.queryByTestId(`compliance-member-${PRIYA_ID}`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${OMAR_ID}`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(showFailing);
+
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("the chip in the members section clears it too", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear the rule filter" }),
+    );
+
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("a rule filter replaces a 'Compliant' filter, which would hide everyone", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("once everybody passes the rule, the filter goes away", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    const fixed: TeamComplianceStatusJSON = standardStatus();
+    fixed.complianceSettings[0]!.compliantCount = 3;
+    fixed.complianceSettings[0]!.nonCompliantCount = 0;
+    fixed.userComplianceStatuses[2]!.nonCompliantRules = [
+      issue(fixed.complianceSettings[1]!, CALL_REASON),
+    ];
+    apiGet.mockResolvedValue(respondWith(fixed));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("compliance-members-rule-filter"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("the members section shows each failure with its reason", async () => {
+    await renderPage();
+
+    expect(
+      within(screen.getByTestId(`compliance-member-${JANE_ID}`)).getByTestId(
+        "compliance-member-issues",
+      ),
+    ).toHaveTextContent(`Verified email: ${EMAIL_REASON}`);
   });
 });
 
@@ -416,8 +1662,8 @@ describe("the team-compliance plugin keys", () => {
     ).toBe(lazyType);
   });
 
-  test("the lazy Compliance page still refreshes its member table when a rule changes", async () => {
-    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
+  test("the lazy Compliance page reads the status once and again after a rule changes", async () => {
+    mockPermissions = EDITOR;
 
     const CompliancePlugin: NonNullable<
       DashboardEnterprisePlugins["TeamCompliance"]
@@ -433,45 +1679,106 @@ describe("the team-compliance plugin keys", () => {
       </React.Suspense>,
     );
 
-    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledTimes(1);
 
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
     await act(async () => {
-      await capturedModelTableProps?.onCreateSuccess?.({});
+      capturedFormModal?.onSuccess?.(new TeamComplianceSetting());
     });
 
-    expect(apiGet).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
   });
 
   test("the lazy Compliance page resolves to the Enterprise page", async () => {
-    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
-
     const CompliancePlugin: NonNullable<
       DashboardEnterprisePlugins["TeamCompliance"]
     > = TeamCompliancePlugins.TeamCompliance!;
 
-    const page: ReactElement = (
+    render(
       <React.Suspense fallback={<div data-testid="loading" />}>
         <CompliancePlugin
           pageRoute={new Route("/dashboard/p/settings/teams/t/compliance")}
           currentProject={null}
           hasPaymentMethod={true}
         />
-      </React.Suspense>
+      </React.Suspense>,
     );
 
-    render(page);
-
-    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
-    expect(capturedModelTableProps?.query).toEqual({
-      teamId: TEAM_ID,
-      projectId: PROJECT_ID,
-    });
+    expect(
+      await screen.findByTestId("team-compliance-page"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-hero")).toBeInTheDocument();
   });
 });
 
+const EE_DASHBOARD_DIR: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Dashboard",
+);
+
+const TEAM_COMPLIANCE_DIR: string = path.join(
+  EE_DASHBOARD_DIR,
+  "TeamCompliance",
+);
+
+const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
+const IMPORT_SPECIFIER: RegExp =
+  /(?:from\s+|import\s*\(\s*|require\(\s*)["']([^"']+)["']/g;
+
+const sourceOf: (file: string) => string = (file: string): string => {
+  return fs
+    .readFileSync(path.join(TEAM_COMPLIANCE_DIR, file), "utf8")
+    .replace(BLOCK_COMMENT, " ")
+    .replace(LINE_COMMENT, "$1");
+};
+
+const importsOf: (file: string) => Array<string> = (
+  file: string,
+): Array<string> => {
+  const source: string = sourceOf(file);
+  const specifiers: Array<string> = [];
+  const pattern: RegExp = new RegExp(IMPORT_SPECIFIER.source, "g");
+  let match: RegExpExecArray | null = pattern.exec(source);
+
+  while (match) {
+    specifiers.push(match[1] as string);
+    match = pattern.exec(source);
+  }
+
+  return specifiers;
+};
+
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
+const TEAM_COMPLIANCE_FILES: Array<string> = fs
+  .readdirSync(TEAM_COMPLIANCE_DIR)
+  .filter((file: string): boolean => {
+    return TYPESCRIPT_FILE.test(file);
+  })
+  .sort();
+
 describe("the team-compliance screens' imports", () => {
-  test("the page takes the status table from ee/, never from core", () => {
+  test("the screens are where the rest of ee expects them", () => {
+    expect(TEAM_COMPLIANCE_FILES).toEqual(
+      expect.arrayContaining([
+        "Compliance.tsx",
+        "Plugins.ts",
+        "TeamComplianceStatusTable.tsx",
+      ]),
+    );
+  });
+
+  test("the page takes the members section from ee/, never from core", () => {
     const specifiers: Array<string> = importsOf("Compliance.tsx");
 
     expect(specifiers).toContain("./TeamComplianceStatusTable");
@@ -487,7 +1794,7 @@ describe("the team-compliance screens' imports", () => {
     expect(specifiers).not.toContain("./TeamComplianceStatusTable");
   });
 
-  test.each(["Compliance.tsx", "TeamComplianceStatusTable.tsx", "Plugins.ts"])(
+  test.each(TEAM_COMPLIANCE_FILES)(
     "%s never reads the plugins",
     (file: string) => {
       const specifiers: Array<string> = importsOf(file);
@@ -501,4 +1808,56 @@ describe("the team-compliance screens' imports", () => {
       );
     },
   );
+
+  test.each(TEAM_COMPLIANCE_FILES)(
+    "%s reaches core only as Common/... or @oneuptime/dashboard/...",
+    (file: string) => {
+      for (const specifier of importsOf(file)) {
+        expect(
+          specifier === "react" ||
+            specifier.startsWith("./") ||
+            specifier.startsWith("Common/") ||
+            specifier.startsWith("@oneuptime/dashboard/"),
+        ).toBe(true);
+      }
+    },
+  );
+
+  test.each(TEAM_COMPLIANCE_FILES)(
+    "%s makes no request of its own outside the refresh-aware clients",
+    (file: string) => {
+      const source: string = sourceOf(file);
+
+      expect(source).not.toMatch(/\bfetch\s*\(/);
+      expect(source).not.toMatch(/XMLHttpRequest/);
+      expect(importsOf(file)).not.toContain("Common/Utils/API");
+    },
+  );
+
+  test("only the page's status hook reads the compliance route", () => {
+    const readers: Array<string> = TEAM_COMPLIANCE_FILES.filter(
+      (file: string): boolean => {
+        return sourceOf(file).includes("/team/compliance-status/");
+      },
+    );
+
+    expect(readers).toEqual(["useTeamComplianceStatus.ts"]);
+  });
+});
+
+/*
+ * Pinned so a change to the fixture that every suite here leans on is a
+ * deliberate one.
+ */
+describe("the fixtures", () => {
+  test("describe a team with two active rules and three members", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+
+    expect(
+      status.complianceSettings.map((rule: TeamComplianceRuleJSON) => {
+        return rule.settingId;
+      }),
+    ).toEqual([EMAIL_RULE_ID, CALL_RULE_ID]);
+    expect(status.userComplianceStatuses).toHaveLength(3);
+  });
 });
