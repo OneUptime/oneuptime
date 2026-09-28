@@ -61,8 +61,11 @@ import {
   TEAM_ID,
 } from "./ComplianceFixtures";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
+import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRule, {
@@ -313,11 +316,62 @@ describe("switching rule kinds", () => {
       ),
     ).toEqual({
       ruleType: ComplianceRuleType.HasNotificationPushMethod,
-      notificationChannel: undefined,
+      // null, not undefined: a cleared channel has to reach the server.
+      notificationChannel: null,
       incidentSeverities: [],
       alertSeverities: [],
       enabled: true,
     });
+  });
+
+  /*
+   * Editing "Call for incidents": the admin clicks a method card, then goes
+   * back to "Incident on-call rules". The form shows "Any channel" - so the
+   * saved rule must be any channel too. With the channel left undefined the
+   * request body dropped the key, and the server kept the stored Call.
+   */
+  test("a channel cleared by a detour through a method card reaches the server as null", () => {
+    const afterMethodCard: Values = getValuesForRuleType(
+      scoped,
+      ComplianceRuleType.HasNotificationCallMethod,
+    );
+    const backOnCall: Values = getValuesForRuleType(
+      afterMethodCard,
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+
+    expect(backOnCall.notificationChannel).toBeNull();
+    // What the form then previews is what will be saved: any channel.
+    expect(getRulePreviewText(backOnCall)?.title).toBe(
+      "Incident on-call rules",
+    );
+
+    /*
+     * The body ModelForm's update sends, built the way it builds it: the
+     * form's values for its fields, as a model, through ModelAPI's
+     * BaseModel.toJSON and JSONFunctions.serialize.
+     */
+    const valuesToSend: JSONObject = { _id: CRITICAL_ID };
+
+    for (const field of getComplianceRuleFormFields()) {
+      const key: string = Object.keys(field.field || {})[0]!;
+      valuesToSend[key] = (backOnCall as JSONObject)[key];
+    }
+
+    const model: TeamComplianceSetting = BaseModel.fromJSON(
+      valuesToSend,
+      TeamComplianceSetting,
+    ) as TeamComplianceSetting;
+
+    const body: JSONObject = JSON.parse(
+      JSON.stringify(
+        JSONFunctions.serialize(BaseModel.toJSON(model, TeamComplianceSetting)),
+      ),
+    ) as JSONObject;
+
+    expect(body["ruleType"]).toBe(ComplianceRuleType.HasIncidentOnCallRules);
+    expect(Object.keys(body)).toContain("notificationChannel");
+    expect(body["notificationChannel"]).toBeNull();
   });
 
   test("to an alert rule keeps the channel and drops incident severities", () => {
@@ -454,7 +508,7 @@ describe("the live preview", () => {
   test.each([
     [ComplianceNotificationChannel.Call, true],
     [ComplianceNotificationChannel.SMS, true],
-    [ComplianceNotificationChannel.WhatsApp, true],
+    [ComplianceNotificationChannel.WhatsApp, false],
     [ComplianceNotificationChannel.Telegram, true],
     [ComplianceNotificationChannel.Push, false],
     [ComplianceNotificationChannel.Email, false],

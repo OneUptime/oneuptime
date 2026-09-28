@@ -7,6 +7,7 @@ import ComplianceRule, {
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
+  joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import type {
@@ -56,12 +57,16 @@ const ON_CALL_RULE_ICONS: Partial<Record<ComplianceRuleType, IconProp>> = {
  * Settings. A rule on one of these can be unsatisfiable for reasons no member
  * can fix, which is what the server's rule warnings say - and why the page
  * links to that settings page when one of them is involved.
+ *
+ * WhatsApp has a switch too, but the send path does not honour it (only adding
+ * a number does), so the server gives no WhatsApp warning and the page makes
+ * no claim about it either - the same list as the server's
+ * PROJECT_CHANNEL_SWITCHES.
  */
 export const PROJECT_SWITCHED_CHANNELS: ReadonlyArray<ComplianceNotificationChannel> =
   [
     ComplianceNotificationChannel.Call,
     ComplianceNotificationChannel.SMS,
-    ComplianceNotificationChannel.WhatsApp,
     ComplianceNotificationChannel.Telegram,
   ];
 
@@ -217,6 +222,39 @@ export const getAllSeveritiesLabel: (
 };
 
 /*
+ * The rule's name wherever it has to be told apart from every other rule on
+ * its own: a switch's or a button's accessible name, the delete confirmation,
+ * a warning line, the "Failing ..." chip, a member's result square. A team may
+ * hold several rules of one type and channel - Call for Critical incidents
+ * and Call for Major incidents - and the title alone names them all alike, so
+ * an on-call rule's name carries its severity scope: "Call for incidents for
+ * Critical Incident", "Incident on-call rules for all incident severities".
+ * The rules card's heading stays the short title; the sentence and the scope
+ * chips under it already say the rest.
+ */
+export const getRuleLabel: (rule: TeamComplianceRuleJSON) => string = (
+  rule: TeamComplianceRuleJSON,
+): string => {
+  const title: string = getRuleTitle(rule);
+
+  if (!ComplianceRule.supportsSeverityScope(rule.ruleType)) {
+    return title;
+  }
+
+  if (rule.appliesToAllSeverities || rule.severities.length === 0) {
+    return `${title} for ${getAllSeveritiesLabel(
+      rule.severityKind || ComplianceRule.getSeverityKind(rule.ruleType),
+    ).toLowerCase()}`;
+  }
+
+  return `${title} for ${joinAsProse(
+    rule.severities.map((severity: TeamComplianceSeverityJSON): string => {
+      return severity.name || severity.id;
+    }),
+  )}`;
+};
+
+/*
  * A rule's pass rate as the page states it. `total` is 0 for a paused or
  * unrecognised rule - neither is evaluated - and for a team with no members.
  */
@@ -242,6 +280,38 @@ export const getRulePassRate: (rule: TeamComplianceRuleJSON) => RulePassRate = (
   };
 };
 
+/*
+ * A rule's pass rate in words, as a bold count and the phrase after it:
+ * "All 5" + "meet it", "2 of 3" + "members meet it", "1 of 1" + "member meets
+ * it". `label` is the same sentence for the bar's accessible name. Only
+ * meaningful when `total` > 0.
+ */
+export interface RulePassRateText {
+  count: string;
+  caption: string;
+  label: string;
+}
+
+export const getRulePassRateText: (rate: RulePassRate) => RulePassRateText = (
+  rate: RulePassRate,
+): RulePassRateText => {
+  let count: string = `${rate.passing} of ${rate.total}`;
+  let phrase: string = `${pluralize(rate.total, "member")} ${
+    rate.passing === 1 || rate.total === 1 ? "meets" : "meet"
+  }`;
+
+  if (rate.failing === 0 && rate.total > 1) {
+    count = `All ${rate.total}`;
+    phrase = "meet";
+  }
+
+  return {
+    count: count,
+    caption: `${phrase} it`,
+    label: `${count} ${phrase} this rule`,
+  };
+};
+
 export interface ComplianceSummary {
   memberCount: number;
   compliantCount: number;
@@ -249,6 +319,11 @@ export interface ComplianceSummary {
   ruleCount: number;
   activeRuleCount: number;
   pausedRuleCount: number;
+  /*
+   * Rules switched on but of a type this build does not recognise: listed,
+   * never checked, and not paused either - turning them "on" changes nothing.
+   */
+  unrecognisedRuleCount: number;
 }
 
 export const summarizeCompliance: (
@@ -273,7 +348,53 @@ export const summarizeCompliance: (
         return !rule.enabled;
       },
     ).length,
+    unrecognisedRuleCount: status.complianceSettings.filter(
+      (rule: TeamComplianceRuleJSON): boolean => {
+        return rule.enabled && !isRuleKnown(rule);
+      },
+    ).length,
   };
+};
+
+/*
+ * Why nothing is being checked when a team has rules but none is active, and
+ * what to do about it. "Turn a rule on" is only advice while some rule is
+ * actually paused: an enabled rule of a type this build does not recognise is
+ * already on, and turning it off and on again changes nothing. Shared by the
+ * hero and the members section so the two can never disagree.
+ */
+export const areAllRulesPaused: (summary: ComplianceSummary) => boolean = (
+  summary: ComplianceSummary,
+): boolean => {
+  return summary.ruleCount > 0 && summary.pausedRuleCount === summary.ruleCount;
+};
+
+export const getUnrecognisedRulesAdvice: (
+  summary: ComplianceSummary,
+) => string = (summary: ComplianceSummary): string => {
+  const unrecognised: number = summary.unrecognisedRuleCount;
+  const paused: number = summary.pausedRuleCount;
+  const isOrAre: (count: number) => string = (count: number): string => {
+    return count === 1 ? "is" : "are";
+  };
+
+  if (paused === 0) {
+    return `${
+      unrecognised === 1
+        ? "This team's rule is"
+        : `All ${unrecognised} of this team's rules are`
+    } of a type this version does not recognise, so ${
+      unrecognised === 1 ? "it is" : "they are"
+    } not checked. Delete ${unrecognised === 1 ? "it" : "them"} and add a supported rule.`;
+  }
+
+  return `${countOf(paused, "rule")} ${isOrAre(paused)} paused and ${countOf(
+    unrecognised,
+    "rule",
+  )} ${isOrAre(unrecognised)} of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised ${pluralize(
+    unrecognised,
+    "one",
+  )}.`;
 };
 
 export enum ComplianceVerdictKind {
@@ -314,12 +435,12 @@ export const getComplianceVerdict: (
     return {
       kind: ComplianceVerdictKind.NoActiveRules,
       badgeText: "No active rules",
-      headline:
-        summary.pausedRuleCount === summary.ruleCount
-          ? `${summary.ruleCount === 1 ? "The only rule is" : `All ${summary.ruleCount} rules are`} paused`
-          : "No rule is being checked",
-      detail:
-        "Nobody is being checked right now. Turn a rule on to see who meets it.",
+      headline: areAllRulesPaused(summary)
+        ? `${summary.ruleCount === 1 ? "The only rule is" : `All ${summary.ruleCount} rules are`} paused`
+        : "No rule is being checked",
+      detail: areAllRulesPaused(summary)
+        ? "Nobody is being checked right now. Turn a rule on to see who meets it."
+        : `Nobody is being checked right now. ${getUnrecognisedRulesAdvice(summary)}`,
     };
   }
 
@@ -432,6 +553,53 @@ export const sortMembers: (
       return (a.userEmail || "").localeCompare(b.userEmail || "");
     },
   );
+};
+
+/*
+ * Where focus goes within a member's row of rule squares for a key pressed on
+ * the square at `current`, or null for a key the row leaves alone (Tab, say).
+ * The row is one tab stop with a roving tabindex - a stop per square would put
+ * members x rules stops between a keyboard user and the rest of the page - so
+ * the arrows (and Home / End) are how the squares, and their tooltips, are
+ * reached. Clamped, not wrapped, like the uptime strip's bars.
+ */
+export const getNextRuleSquareIndex: (data: {
+  key: string;
+  current: number;
+  count: number;
+}) => number | null = (data: {
+  key: string;
+  current: number;
+  count: number;
+}): number | null => {
+  if (data.count <= 0) {
+    return null;
+  }
+
+  const last: number = data.count - 1;
+  const current: number = Math.min(Math.max(data.current, 0), last);
+  let next: number;
+
+  switch (data.key) {
+    case "ArrowRight":
+    case "ArrowDown":
+      next = current + 1;
+      break;
+    case "ArrowLeft":
+    case "ArrowUp":
+      next = current - 1;
+      break;
+    case "Home":
+      next = 0;
+      break;
+    case "End":
+      next = last;
+      break;
+    default:
+      return null;
+  }
+
+  return Math.min(Math.max(next, 0), last);
 };
 
 export const getMemberIssueForRule: (
@@ -585,6 +753,32 @@ export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
   };
 };
 
+/*
+ * Every page the signed-in member has to visit to fix what they fail, once
+ * each, in the order their failures are listed (oldest rule first). A member
+ * failing both a method rule and an on-call rule needs both pages - one link
+ * for the first failure alone leaves the second without a way there.
+ */
+export const getSelfFixes: (
+  member: TeamMemberComplianceJSON,
+) => Array<SelfFix> = (member: TeamMemberComplianceJSON): Array<SelfFix> => {
+  const fixes: Array<SelfFix> = [];
+
+  for (const issue of member.nonCompliantRules) {
+    const fix: SelfFix = getSelfFix(issue.ruleType);
+
+    if (
+      !fixes.some((existing: SelfFix): boolean => {
+        return existing.page === fix.page;
+      })
+    ) {
+      fixes.push(fix);
+    }
+  }
+
+  return fixes;
+};
+
 export interface RuleWarningGroup {
   rule: TeamComplianceRuleJSON;
   title: string;
@@ -609,7 +803,7 @@ export const getRuleWarningGroups: (
     .map((rule: TeamComplianceRuleJSON): RuleWarningGroup => {
       return {
         rule: rule,
-        title: getRuleTitle(rule),
+        title: getRuleLabel(rule),
         warnings: rule.warnings,
         channel: getRuleChannel(rule),
       };
@@ -690,6 +884,24 @@ const parseSeverity: (json: JSONObject) => TeamComplianceSeverityJSON = (
   return severity;
 };
 
+/*
+ * An API from before rules had ids (an older replica answering during a
+ * rolling deploy) sends rules and failures without a settingId. Such a rule
+ * is given a made-up id so the page can still list it and key its rows - an
+ * id no request may ever carry, so nothing that writes to a rule is offered
+ * for it (see hasServerId).
+ */
+export const LEGACY_RULE_ID_PREFIX: string = "legacy-rule-";
+
+// Whether the rule's id is the server's own, i.e. whether it may be changed.
+export const hasServerId: (rule: TeamComplianceRuleJSON) => boolean = (
+  rule: TeamComplianceRuleJSON,
+): boolean => {
+  return (
+    Boolean(rule.settingId) && !rule.settingId.startsWith(LEGACY_RULE_ID_PREFIX)
+  );
+};
+
 const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   json: JSONObject,
   index: number,
@@ -699,7 +911,8 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   const severityKind: string = asString(json["severityKind"]);
 
   return {
-    settingId: asString(json["settingId"]) || `rule-${index}`,
+    settingId:
+      asString(json["settingId"]) || `${LEGACY_RULE_ID_PREFIX}${index}`,
     ruleType: ruleType as ComplianceRuleType,
     enabled: json["enabled"] === true,
     notificationChannel: channel
@@ -757,21 +970,108 @@ const parseMember: (json: JSONObject) => TeamMemberComplianceJSON = (
   return member;
 };
 
+/*
+ * A failure that arrived without the id of the rule it is about (the same
+ * older API) belongs to the rule of its type. That API allowed one rule per
+ * type, so the match is exact; when several rules share the type the failure
+ * cannot be placed and is left unmatched rather than pinned on the wrong one.
+ * Without this every failing member's squares would read "met" beside a
+ * "Needs attention" chip and the reason they fail.
+ */
+const withIssueRuleIds: (
+  member: TeamMemberComplianceJSON,
+  rules: Array<TeamComplianceRuleJSON>,
+) => TeamMemberComplianceJSON = (
+  member: TeamMemberComplianceJSON,
+  rules: Array<TeamComplianceRuleJSON>,
+): TeamMemberComplianceJSON => {
+  return {
+    ...member,
+    nonCompliantRules: member.nonCompliantRules.map(
+      (issue: TeamComplianceIssueJSON): TeamComplianceIssueJSON => {
+        if (issue.settingId) {
+          return issue;
+        }
+
+        const candidates: Array<TeamComplianceRuleJSON> = rules.filter(
+          (rule: TeamComplianceRuleJSON): boolean => {
+            return rule.ruleType === issue.ruleType;
+          },
+        );
+
+        return candidates.length === 1
+          ? { ...issue, settingId: candidates[0]!.settingId }
+          : issue;
+      },
+    ),
+  };
+};
+
+/*
+ * The same older API sent no pass counts at all. Counted from the members,
+ * an active rule's row says "0 of 1 member meets it" beside the member who
+ * fails it, rather than "No members to check". A payload that sends counts -
+ * even nonsense ones, which default to 0 - is taken at its word.
+ */
+const withCountsFromMembers: (
+  rule: TeamComplianceRuleJSON,
+  json: JSONObject,
+  members: Array<TeamMemberComplianceJSON>,
+) => TeamComplianceRuleJSON = (
+  rule: TeamComplianceRuleJSON,
+  json: JSONObject,
+  members: Array<TeamMemberComplianceJSON>,
+): TeamComplianceRuleJSON => {
+  if (
+    "compliantCount" in json ||
+    "nonCompliantCount" in json ||
+    !isRuleActive(rule)
+  ) {
+    return rule;
+  }
+
+  const failing: number = members.filter(
+    (member: TeamMemberComplianceJSON): boolean => {
+      return Boolean(getMemberIssueForRule(member, rule.settingId));
+    },
+  ).length;
+
+  return {
+    ...rule,
+    compliantCount: members.length - failing,
+    nonCompliantCount: failing,
+  };
+};
+
 export const parseComplianceStatus: (
   json: JSONObject,
 ) => TeamComplianceStatusJSON = (
   json: JSONObject,
 ): TeamComplianceStatusJSON => {
+  const ruleObjects: Array<JSONObject> = asObjects(json["complianceSettings"]);
+  const rules: Array<TeamComplianceRuleJSON> = ruleObjects.map(parseRule);
+
+  const members: Array<TeamMemberComplianceJSON> = asObjects(
+    json["userComplianceStatuses"],
+  )
+    .map(parseMember)
+    .filter((member: TeamMemberComplianceJSON): boolean => {
+      return Boolean(member.userId);
+    })
+    .map((member: TeamMemberComplianceJSON): TeamMemberComplianceJSON => {
+      return withIssueRuleIds(member, rules);
+    });
+
   return {
     teamId: asString(json["teamId"]),
     teamName: asString(json["teamName"]),
     evaluatedAt: asString(json["evaluatedAt"]),
-    complianceSettings: asObjects(json["complianceSettings"]).map(parseRule),
-    userComplianceStatuses: asObjects(json["userComplianceStatuses"])
-      .map(parseMember)
-      .filter((member: TeamMemberComplianceJSON): boolean => {
-        return Boolean(member.userId);
-      }),
+    complianceSettings: rules.map(
+      (rule: TeamComplianceRuleJSON, index: number): TeamComplianceRuleJSON => {
+        return withCountsFromMembers(rule, ruleObjects[index]!, members);
+      },
+    ),
+    userComplianceStatuses: members,
   };
 };
 

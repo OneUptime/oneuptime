@@ -18,14 +18,19 @@ import {
   getMemberDisplayName,
   getMemberFirstName,
   getMemberIssueForRule,
+  getNextRuleSquareIndex,
   getRuleChannel,
   getRuleIcon,
+  getRuleLabel,
   getRulePassRate,
+  getRulePassRateText,
   getRuleSentence,
   getRuleTitle,
   getRuleTypeIcon,
   getRuleWarningGroups,
   getSelfFix,
+  getSelfFixes,
+  hasServerId,
   isFixedInProjectNotificationSettings,
   isRuleActive,
   isRuleKnown,
@@ -54,6 +59,7 @@ import {
   issue,
   standardStatus,
 } from "./ComplianceFixtures";
+import { PROJECT_CHANNEL_SWITCHES } from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -92,6 +98,7 @@ const summary: (overrides: Partial<ComplianceSummary>) => ComplianceSummary = (
     ruleCount: 2,
     activeRuleCount: 2,
     pausedRuleCount: 0,
+    unrecognisedRuleCount: 0,
     ...overrides,
   };
 };
@@ -225,6 +232,62 @@ describe("rule presentation", () => {
     ).toBe("HasCarrierPigeon");
   });
 
+  /*
+   * Several rules of one type and channel are allowed (Call for Critical
+   * incidents, Call for Major incidents), and their titles are identical - so
+   * wherever one rule is named on its own (a switch, a button, the delete
+   * confirmation, a warning, a filter chip) the name carries the scope.
+   */
+  test("labels tell rules of one type and channel apart by their scope", () => {
+    const critical: TeamComplianceRuleJSON = callForIncidentsRule({
+      settingId: "critical",
+      severities: [{ id: "c", name: "Critical Incident" }],
+    });
+    const major: TeamComplianceRuleJSON = callForIncidentsRule({
+      settingId: "major",
+      severities: [{ id: "m", name: "Major Incident" }],
+    });
+
+    expect(getRuleTitle(critical)).toBe(getRuleTitle(major));
+    expect(getRuleLabel(critical)).toBe(
+      "Call for incidents for Critical Incident",
+    );
+    expect(getRuleLabel(major)).toBe("Call for incidents for Major Incident");
+    expect(getRuleLabel(callForIncidentsRule())).toBe(
+      "Call for incidents for Critical Incident and Major Incident",
+    );
+  });
+
+  test("an unscoped on-call rule's label says every severity of its kind", () => {
+    expect(getRuleLabel(alertRule())).toBe(
+      "Alert on-call rules for all alert severities",
+    );
+    // Selected severities all deleted: enforced as every severity, so named so.
+    expect(
+      getRuleLabel(
+        callForIncidentsRule({ severities: [], appliesToAllSeverities: false }),
+      ),
+    ).toBe("Call for incidents for all incident severities");
+    // The kind comes from the catalog when the payload leaves it out.
+    expect(getRuleLabel(alertRule({ severityKind: null }))).toBe(
+      "Alert on-call rules for all alert severities",
+    );
+    expect(
+      getRuleLabel(
+        callForIncidentsRule({ severities: [{ id: "sev-1", name: "" }] }),
+      ),
+    ).toBe("Call for incidents for sev-1");
+  });
+
+  test("method and unknown rules have no scope, so their label is their title", () => {
+    expect(getRuleLabel(emailRule())).toBe("Verified email");
+    expect(
+      getRuleLabel(
+        buildRule({ ruleType: "HasCarrierPigeon" as ComplianceRuleType }),
+      ),
+    ).toBe("HasCarrierPigeon");
+  });
+
   test("a scoped rule names its severities, in order, as prose", () => {
     expect(getRuleSentence(callForIncidentsRule())).toBe(
       "Every member has an incident on-call rule that notifies them by Call for Critical Incident and Major Incident.",
@@ -297,6 +360,36 @@ describe("rule presentation", () => {
     ).toEqual({ passing: 0, failing: 1, total: 1, passingPercent: 0 });
   });
 
+  test.each([
+    [5, 5, "All 5", "meet it", "All 5 meet this rule"],
+    [2, 2, "All 2", "meet it", "All 2 meet this rule"],
+    [1, 1, "1 of 1", "member meets it", "1 of 1 member meets this rule"],
+    [0, 1, "0 of 1", "member meets it", "0 of 1 member meets this rule"],
+    [0, 3, "0 of 3", "members meet it", "0 of 3 members meet this rule"],
+    [1, 3, "1 of 3", "members meets it", "1 of 3 members meets this rule"],
+    [2, 3, "2 of 3", "members meet it", "2 of 3 members meet this rule"],
+  ])(
+    "pass rate words: %i of %i",
+    (
+      passing: number,
+      total: number,
+      count: string,
+      caption: string,
+      label: string,
+    ) => {
+      expect(
+        getRulePassRateText(
+          getRulePassRate(
+            emailRule({
+              compliantCount: passing,
+              nonCompliantCount: total - passing,
+            }),
+          ),
+        ),
+      ).toEqual({ count: count, caption: caption, label: label });
+    },
+  );
+
   test("known and active rules", () => {
     const unknown: TeamComplianceRuleJSON = buildRule({
       ruleType: "HasCarrierPigeon" as ComplianceRuleType,
@@ -330,6 +423,7 @@ describe("the verdict", () => {
       ruleCount: 4,
       activeRuleCount: 2,
       pausedRuleCount: 1,
+      unrecognisedRuleCount: 1,
     });
   });
 
@@ -358,11 +452,75 @@ describe("the verdict", () => {
 
   test("only unrecognised rules enabled is not a clean bill of health", () => {
     const verdict: ComplianceVerdict = getComplianceVerdict(
-      summary({ ruleCount: 1, activeRuleCount: 0, pausedRuleCount: 0 }),
+      summary({
+        ruleCount: 1,
+        activeRuleCount: 0,
+        pausedRuleCount: 0,
+        unrecognisedRuleCount: 1,
+      }),
     );
 
     expect(verdict.kind).toBe(ComplianceVerdictKind.NoActiveRules);
     expect(verdict.headline).toBe("No rule is being checked");
+  });
+
+  /*
+   * An enabled rule of a type this build does not know is ON: "turn a rule
+   * on" sends the admin to a switch that is already on.
+   */
+  test("unrecognised rules that are on are not called paused, nor turned on", () => {
+    const one: ComplianceVerdict = getComplianceVerdict(
+      summary({
+        ruleCount: 1,
+        activeRuleCount: 0,
+        pausedRuleCount: 0,
+        unrecognisedRuleCount: 1,
+      }),
+    );
+
+    expect(one.detail).toBe(
+      "Nobody is being checked right now. This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+    );
+    expect(one.detail).not.toContain("Turn a rule on");
+
+    expect(
+      getComplianceVerdict(
+        summary({
+          ruleCount: 2,
+          activeRuleCount: 0,
+          pausedRuleCount: 0,
+          unrecognisedRuleCount: 2,
+        }),
+      ).detail,
+    ).toBe(
+      "Nobody is being checked right now. All 2 of this team's rules are of a type this version does not recognise, so they are not checked. Delete them and add a supported rule.",
+    );
+  });
+
+  test("paused and unrecognised rules together: turn one on, or replace the others", () => {
+    const verdict: ComplianceVerdict = getComplianceVerdict(
+      summary({
+        ruleCount: 2,
+        activeRuleCount: 0,
+        pausedRuleCount: 1,
+        unrecognisedRuleCount: 1,
+      }),
+    );
+
+    expect(verdict.headline).toBe("No rule is being checked");
+    expect(verdict.detail).toBe(
+      "Nobody is being checked right now. 1 rule is paused and 1 rule is of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised one.",
+    );
+  });
+
+  test("every rule paused keeps its advice to turn one on", () => {
+    expect(
+      getComplianceVerdict(
+        summary({ ruleCount: 2, activeRuleCount: 0, pausedRuleCount: 2 }),
+      ).detail,
+    ).toBe(
+      "Nobody is being checked right now. Turn a rule on to see who meets it.",
+    );
   });
 
   test("nobody on the team", () => {
@@ -587,6 +745,43 @@ describe("members", () => {
     });
   });
 
+  test("a row of rule squares: arrows, Home and End move, clamped; other keys are left alone", () => {
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowRight", current: 0, count: 3 }),
+    ).toBe(1);
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowDown", current: 1, count: 3 }),
+    ).toBe(2);
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowRight", current: 2, count: 3 }),
+    ).toBe(2);
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowLeft", current: 0, count: 3 }),
+    ).toBe(0);
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowUp", current: 2, count: 3 }),
+    ).toBe(1);
+    expect(getNextRuleSquareIndex({ key: "Home", current: 2, count: 3 })).toBe(
+      0,
+    );
+    expect(getNextRuleSquareIndex({ key: "End", current: 0, count: 3 })).toBe(
+      2,
+    );
+    // An index left past the end by a shrinking rule list still moves sanely.
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowLeft", current: 7, count: 3 }),
+    ).toBe(1);
+    expect(
+      getNextRuleSquareIndex({ key: "Tab", current: 0, count: 3 }),
+    ).toBeNull();
+    expect(
+      getNextRuleSquareIndex({ key: "Enter", current: 0, count: 3 }),
+    ).toBeNull();
+    expect(
+      getNextRuleSquareIndex({ key: "ArrowRight", current: 0, count: 0 }),
+    ).toBeNull();
+  });
+
   test("a member's issue for a rule", () => {
     const jane: TeamMemberComplianceJSON =
       standardStatus().userComplianceStatuses[2]!;
@@ -637,6 +832,67 @@ describe("where a member fixes themselves", () => {
     }
   });
 
+  /*
+   * A member failing a method rule and an on-call rule needs both pages; one
+   * link for the first failure left the second with no way there.
+   */
+  test("the signed-in member gets every page their failures need, once each, oldest first", () => {
+    const alert: TeamComplianceRuleJSON = alertRule();
+    const sms: TeamComplianceRuleJSON = buildRule({
+      settingId: "sms",
+      ruleType: ComplianceRuleType.HasNotificationSMSMethod,
+    });
+
+    expect(
+      getSelfFixes(
+        buildMember({
+          nonCompliantRules: [
+            issue(emailRule(), EMAIL_REASON),
+            issue(callForIncidentsRule(), CALL_REASON),
+            issue(sms, "No verified phone"),
+            issue(alert, "No alert rule"),
+            issue(
+              callForIncidentsRule({ settingId: "major-call" }),
+              CALL_REASON,
+            ),
+          ],
+        }),
+      ),
+    ).toEqual([
+      {
+        page: PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+        title: "Open my notification methods",
+      },
+      {
+        page: PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
+        title: "Open my incident on-call rules",
+      },
+      {
+        page: PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
+        title: "Open my alert on-call rules",
+      },
+    ]);
+
+    // The order follows the failures: an on-call failure listed first leads.
+    expect(
+      getSelfFixes(
+        buildMember({
+          nonCompliantRules: [
+            issue(alert, "No alert rule"),
+            issue(emailRule(), EMAIL_REASON),
+          ],
+        }),
+      ).map((fix: { page: PageMap }) => {
+        return fix.page;
+      }),
+    ).toEqual([
+      PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
+      PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+    ]);
+
+    expect(getSelfFixes(buildMember())).toEqual([]);
+  });
+
   test("an unknown or missing rule type falls back to the methods page", () => {
     expect(getSelfFix("HasCarrierPigeon").page).toBe(
       PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
@@ -659,7 +915,10 @@ describe("rule warnings", () => {
     ]);
 
     expect(groups).toHaveLength(1);
-    expect(groups[0]!.title).toBe("Call for incidents");
+    // Named with its scope: two Call rules for different severities differ.
+    expect(groups[0]!.title).toBe(
+      "Call for incidents for Critical Incident and Major Incident",
+    );
     expect(groups[0]!.warnings).toEqual([CALL_WARNING]);
     expect(groups[0]!.channel).toBe(ComplianceNotificationChannel.Call);
   });
@@ -680,13 +939,18 @@ describe("rule warnings", () => {
     },
   );
 
-  test("the switchable channels are exactly Call, SMS, WhatsApp and Telegram", () => {
+  test("the switchable channels are exactly Call, SMS and Telegram - the ones whose send path honours the project switch", () => {
     expect([...PROJECT_SWITCHED_CHANNELS]).toEqual([
       ComplianceNotificationChannel.Call,
       ComplianceNotificationChannel.SMS,
-      ComplianceNotificationChannel.WhatsApp,
       ComplianceNotificationChannel.Telegram,
     ]);
+  });
+
+  test("the page and the server agree on which channels a project switch can make unsatisfiable", () => {
+    expect([...PROJECT_SWITCHED_CHANNELS].sort()).toEqual(
+      Object.keys(PROJECT_CHANNEL_SWITCHES).sort(),
+    );
   });
 
   test("a method rule's channel counts too", () => {
@@ -755,24 +1019,104 @@ describe("parsing the payload", () => {
     });
 
     expect(parsed.complianceSettings[0]).toEqual({
-      settingId: "rule-0",
+      settingId: "legacy-rule-0",
       ruleType: "HasNotificationEmailMethod",
       enabled: true,
       notificationChannel: null,
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
+      // No counts sent: counted from the members, so the row agrees with them.
       compliantCount: 0,
-      nonCompliantCount: 0,
+      nonCompliantCount: 1,
       warnings: [],
     });
     // isCompliant missing: decided by whether any rule failed.
     expect(parsed.userComplianceStatuses[0]!.isCompliant).toBe(false);
+    /*
+     * The failure is matched to its rule by type (that API allowed one rule
+     * per type), so the member's square for it reads "not met" rather than
+     * "met" beside a "Needs attention" chip.
+     */
     expect(parsed.userComplianceStatuses[0]!.nonCompliantRules[0]).toEqual({
-      settingId: "",
+      settingId: "legacy-rule-0",
       ruleType: "HasNotificationEmailMethod",
       reason: EMAIL_REASON,
     });
+    expect(
+      getMemberIssueForRule(
+        parsed.userComplianceStatuses[0]!,
+        parsed.complianceSettings[0]!.settingId,
+      )?.reason,
+    ).toBe(EMAIL_REASON);
+    // The made-up id is never offered to anything that writes.
+    expect(hasServerId(parsed.complianceSettings[0]!)).toBe(false);
+    expect(hasServerId(emailRule())).toBe(true);
+  });
+
+  test("counts are only worked out when none were sent, and only for active rules", () => {
+    const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+      complianceSettings: [
+        { ruleType: "HasNotificationEmailMethod", enabled: true },
+        { ruleType: "HasNotificationSMSMethod", enabled: false },
+        { ruleType: "HasCarrierPigeon", enabled: true },
+        {
+          ruleType: "HasNotificationPushMethod",
+          enabled: true,
+          compliantCount: 5,
+          nonCompliantCount: 0,
+        },
+      ],
+      userComplianceStatuses: [
+        {
+          userId: JANE_ID,
+          nonCompliantRules: [
+            { ruleType: "HasNotificationEmailMethod", reason: EMAIL_REASON },
+          ],
+        },
+        { userId: OMAR_ID, nonCompliantRules: [] },
+        { userId: PRIYA_ID, nonCompliantRules: [] },
+      ],
+    } as unknown as JSONObject);
+
+    expect(
+      parsed.complianceSettings.map((rule: TeamComplianceRuleJSON) => {
+        return [rule.compliantCount, rule.nonCompliantCount];
+      }),
+    ).toEqual([
+      [2, 1],
+      [0, 0],
+      [0, 0],
+      [5, 0],
+    ]);
+  });
+
+  test("a failure without an id is left unmatched when several rules share its type", () => {
+    const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+      complianceSettings: [
+        { settingId: "a", ruleType: "HasIncidentOnCallRules", enabled: true },
+        { settingId: "b", ruleType: "HasIncidentOnCallRules", enabled: true },
+        { settingId: "c", ruleType: "HasNotificationEmailMethod" },
+      ],
+      userComplianceStatuses: [
+        {
+          userId: JANE_ID,
+          nonCompliantRules: [
+            { ruleType: "HasIncidentOnCallRules", reason: "No rule" },
+            { settingId: "b", ruleType: "HasIncidentOnCallRules", reason: "x" },
+            { ruleType: "HasNotificationEmailMethod", reason: EMAIL_REASON },
+          ],
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(
+      parsed.userComplianceStatuses[0]!.nonCompliantRules.map(
+        (entry: { settingId: string }) => {
+          return entry.settingId;
+        },
+      ),
+    ).toEqual(["", "b", "c"]);
   });
 
   test("junk is dropped or defaulted", () => {

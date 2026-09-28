@@ -85,13 +85,21 @@ export const UNKNOWN_RULE_TYPE_WARNING: string =
   "This rule type is not recognised, so it is not checked.";
 
 /*
- * The Project columns that switch a paid channel off for the whole project.
+ * The Project columns that stop a channel's pages being SENT for the whole
+ * project: CallService, SmsService and TelegramService refuse to send while
+ * theirs is off, so a member who meets a rule on that channel is still never
+ * notified by it - which is what the rule's warning says.
+ *
  * Push, Email, Slack, Microsoft Teams and webhooks have no such switch.
+ * WhatsApp has one (Project.enableWhatsAppNotifications), but it is NOT
+ * listed: only creating a WhatsApp number checks it, while WhatsAppService
+ * sends to numbers that are already verified whatever it says. A warning that
+ * "members will not be notified by WhatsApp" would be untrue, so none is
+ * given. Add it here if the send path ever honours the switch.
  */
 export type ProjectChannelSwitch =
   | "enableCallNotifications"
   | "enableSmsNotifications"
-  | "enableWhatsAppNotifications"
   | "enableTelegramNotifications";
 
 export const PROJECT_CHANNEL_SWITCHES: Readonly<
@@ -99,7 +107,6 @@ export const PROJECT_CHANNEL_SWITCHES: Readonly<
 > = {
   [ComplianceNotificationChannel.Call]: "enableCallNotifications",
   [ComplianceNotificationChannel.SMS]: "enableSmsNotifications",
-  [ComplianceNotificationChannel.WhatsApp]: "enableWhatsAppNotifications",
   [ComplianceNotificationChannel.Telegram]: "enableTelegramNotifications",
 };
 
@@ -160,6 +167,14 @@ export interface ComplianceNotificationRuleInput {
   isOptOut: boolean;
   // The method id in each channel column that is set on the row.
   methodIds: Partial<Record<ComplianceNotificationChannel, string>>;
+  /*
+   * True when ANY of the row's nine method relations - not only the channel
+   * being judged - points at a method row that exists and belongs to another
+   * user. The runtime refuses such a rule outright and sends nothing on any
+   * channel (UserNotificationRuleService.executeNotificationRuleItem, through
+   * getNotificationMethodsNotOwnedByRuleOwner), so it covers nothing here.
+   */
+  hasForeignMethod?: boolean | undefined;
 }
 
 // A notification method row a rule points at.
@@ -914,12 +929,15 @@ export default class TeamComplianceEvaluator {
    * needs a rule of the right type, for that severity, that is not an opt-out
    * and notifies them on the channel through a method row that exists in this
    * project, belongs to them and is verified (webhooks have no verification).
-   * The runtime refuses a rule whose method belongs to somebody else and
-   * skips an unverified method, so neither is coverage here either.
+   * The runtime skips an unverified method, and refuses a rule outright -
+   * every channel of it - when ANY method on it belongs to somebody else, so
+   * none of those is coverage here either.
    *
-   * A severity that is not covered is reported under the most useful of three
-   * headings - the member has a broken rule for it (fix the method), has opted
-   * out of it (undo that), or has nothing (add a rule) - in scope order.
+   * A severity that is not covered is reported under the most useful of four
+   * headings - the member has a broken rule for it (fix the method), a rule
+   * the runtime refuses because another of its methods is somebody else's
+   * (fix the rule), has opted out of it (undo that), or has nothing (add a
+   * rule) - in scope order.
    */
   private static evaluateChannelRule(
     rule: ChannelRuleContext,
@@ -932,6 +950,7 @@ export default class TeamComplianceEvaluator {
 
     const missing: Array<string> = [];
     const unverified: Array<string> = [];
+    const refused: Array<string> = [];
     const optedOut: Array<string> = [];
 
     for (const severity of rule.scope) {
@@ -946,6 +965,7 @@ export default class TeamComplianceEvaluator {
 
       let isCovered: boolean = false;
       let hasBrokenRule: boolean = false;
+      let hasRefusedRule: boolean = false;
       let hasOptOut: boolean = false;
 
       for (const row of rows) {
@@ -968,8 +988,14 @@ export default class TeamComplianceEvaluator {
           method.userId === userId &&
           (!rule.channel.hasVerification || method.isVerified)
         ) {
-          isCovered = true;
-          break;
+          if (!row.hasForeignMethod) {
+            isCovered = true;
+            break;
+          }
+
+          // Right method, but the runtime refuses the rule it is on.
+          hasRefusedRule = true;
+          continue;
         }
 
         /*
@@ -989,6 +1015,8 @@ export default class TeamComplianceEvaluator {
 
       if (hasBrokenRule) {
         unverified.push(name);
+      } else if (hasRefusedRule) {
+        refused.push(name);
       } else if (hasOptOut) {
         optedOut.push(name);
       } else {
@@ -1007,6 +1035,12 @@ export default class TeamComplianceEvaluator {
     if (unverified.length > 0) {
       sentences.push(
         `The ${rule.channel.label} rule for ${rule.subject} severities ${unverified.join(", ")} points at an unverified ${rule.channel.methodNoun}`,
+      );
+    }
+
+    if (refused.length > 0) {
+      sentences.push(
+        `The ${rule.channel.label} rule for ${rule.subject} severities ${refused.join(", ")} is never sent, because another notification method on it belongs to a different user`,
       );
     }
 

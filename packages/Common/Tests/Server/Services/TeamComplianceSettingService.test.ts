@@ -1,8 +1,10 @@
 import TeamComplianceSettingService, {
   ComplianceRuleScope,
+  DeletedSeverity,
   DUPLICATE_COMPLIANCE_RULE_MESSAGE,
   TeamComplianceSettingService as TeamComplianceSettingServiceClass,
 } from "../../../Server/Services/TeamComplianceSettingService";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -16,8 +18,12 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ComplianceNotificationChannel from "../../../Types/Team/ComplianceNotificationChannel";
 import ComplianceRule, {
@@ -26,6 +32,7 @@ import ComplianceRule, {
   ComplianceSeverityKind,
 } from "../../../Types/Team/ComplianceRule";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
+import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -61,6 +68,11 @@ import { FindOperator } from "typeorm";
  * The protected hooks are called directly, as the other service tests do; a
  * last block drives updateOneById - the path the API takes - to show that what
  * the hook normalises is what reaches the write.
+ *
+ * The caller is a signed-in team editor (EditProjectTeam) of the project
+ * unless a test says otherwise: the hooks check the caller's permission
+ * before they read anything, so a caller with no say in the project learns
+ * nothing about its severities or rules from what they refuse.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -172,9 +184,9 @@ let alertSeverityCountBy: jest.SpyInstance;
 
 /*
  * A query as DatabaseService would run it: every key must match, ids compare
- * as strings, and the one operator the service uses on this table -
- * QueryHelper.notEquals, a Raw "!=" carrying the excluded id as its only
- * parameter - excludes that row.
+ * as strings, Includes matches any of its values, and QueryHelper.notEquals -
+ * a Raw "!=" carrying the excluded id as its only parameter - excludes that
+ * row.
  */
 const matchesQuery: (
   row: TeamComplianceSetting,
@@ -183,6 +195,14 @@ const matchesQuery: (
   return Object.keys(query).every((key: string): boolean => {
     const expected: unknown = query[key];
     const actual: unknown = (row as unknown as Record<string, unknown>)[key];
+
+    if (expected instanceof Includes) {
+      return expected.values
+        .map((value: unknown): string => {
+          return String(value);
+        })
+        .includes(String(actual));
+    }
 
     if (expected instanceof FindOperator) {
       const excluded: Array<string> = Object.values(
@@ -228,6 +248,14 @@ const countSeverities: (
 
 beforeEach(() => {
   storedSettings = [];
+
+  /*
+   * TeamComplianceSetting is enterprise configuration, and the permission
+   * check asks the licence; no test machine holds one.
+   */
+  jest
+    .spyOn(EnterpriseEdition, "assertFeatureAvailableSync")
+    .mockReturnValue(undefined);
 
   settingsFindBy = jest
     .spyOn(TeamComplianceSettingService, "findBy")
@@ -282,6 +310,8 @@ interface StoredRuleInput {
   notificationChannel?: string | null | undefined;
   incidentSeverityIds?: Array<string> | undefined;
   alertSeverityIds?: Array<string> | undefined;
+  // Stored rules are enabled unless a test pauses one.
+  enabled?: boolean | undefined;
   omitTeam?: boolean | undefined;
   omitProject?: boolean | undefined;
 }
@@ -304,6 +334,7 @@ const storedRule: (input: StoredRuleInput) => TeamComplianceSetting = (
   (setting as unknown as Record<string, unknown>)["ruleType"] = input.ruleType;
   (setting as unknown as Record<string, unknown>)["notificationChannel"] =
     input.notificationChannel === undefined ? null : input.notificationChannel;
+  setting.enabled = input.enabled === undefined ? true : input.enabled;
 
   setting.incidentSeverities = (input.incidentSeverityIds || []).map(
     (id: string): IncidentSeverity => {
@@ -373,10 +404,61 @@ const newRule: (input: NewRuleInput) => TeamComplianceSetting = (
   return setting;
 };
 
-const createProps: DatabaseCommonInteractionProps = {
+// A signed-in user holding `permissions` in `project`, and nothing else.
+const memberProps: (
+  permissions: Array<Permission>,
+  project?: ObjectID,
+) => DatabaseCommonInteractionProps = (
+  permissions: Array<Permission>,
+  project?: ObjectID,
+): DatabaseCommonInteractionProps => {
+  const tenantId: ObjectID = project || PROJECT_ID;
+
+  const tenantPermission: UserTenantAccessPermission = {
+    projectId: tenantId,
+    _type: "UserTenantAccessPermission",
+    permissions: permissions.map((permission: Permission) => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+      };
+    }),
+  };
+
+  return {
+    tenantId: tenantId,
+    userId: USER_ID,
+    userType: UserType.User,
+    userTenantAccessPermission: {
+      [tenantId.toString()]: tenantPermission,
+    },
+  };
+};
+
+/*
+ * A team editor: Edit Teams, plus Read Teams to see what they edit. (An
+ * update is located by a query on the project, which only a reader of the
+ * rules may filter on - the update permission check refuses Edit Teams on
+ * its own, here and in _updateBy alike.)
+ */
+const EDITOR_PROPS: DatabaseCommonInteractionProps = memberProps([
+  Permission.ReadProjectTeam,
+  Permission.EditProjectTeam,
+]);
+
+/*
+ * Signed in, with the project named as the tenant, but no permission in it -
+ * what any user of another project can send.
+ */
+const OUTSIDER_PROPS: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
   userId: USER_ID,
+  userType: UserType.User,
 };
+
+const createProps: DatabaseCommonInteractionProps = EDITOR_PROPS;
 
 const createByFor: (
   data: TeamComplianceSetting,
@@ -443,7 +525,7 @@ const updateByFor: (
     data: data,
     limit: 1,
     skip: 0,
-    props: options?.props || { tenantId: PROJECT_ID, userId: USER_ID },
+    props: options?.props || EDITOR_PROPS,
   } as unknown as UpdateBy<TeamComplianceSetting>;
 };
 
@@ -516,6 +598,33 @@ const modelValue: (setting: TeamComplianceSetting, key: string) => unknown = (
   key: string,
 ): unknown => {
   return (setting as unknown as Record<string, unknown>)[key];
+};
+
+/*
+ * A severity list as the hooks leave it for the relation save: models of the
+ * list's own kind, each carrying nothing but its id. Returns those ids.
+ */
+const writtenIds: (
+  value: unknown,
+  modelType: typeof IncidentSeverity | typeof AlertSeverity,
+) => Array<string> = (
+  value: unknown,
+  modelType: typeof IncidentSeverity | typeof AlertSeverity,
+): Array<string> => {
+  expect(Array.isArray(value)).toBe(true);
+
+  return (value as Array<unknown>).map((item: unknown): string => {
+    expect(item).toBeInstanceOf(modelType);
+
+    const model: IncidentSeverity | AlertSeverity = item as
+      | IncidentSeverity
+      | AlertSeverity;
+
+    expect(model.name).toBeUndefined();
+    expect(model.projectId).toBeUndefined();
+
+    return String(model._id);
+  });
 };
 
 /*
@@ -680,7 +789,7 @@ describe("TeamComplianceSettingService onBeforeCreate - what may be created", ()
           projectId: null,
           incidentSeverities: [CRITICAL_INCIDENT],
         }),
-        { tenantId: PROJECT_ID, userId: USER_ID },
+        EDITOR_PROPS,
       ),
     );
 
@@ -706,7 +815,7 @@ describe("TeamComplianceSettingService onBeforeCreate - what may be created", ()
             projectId: OTHER_PROJECT_ID,
             incidentSeverities: [FOREIGN_INCIDENT],
           }),
-          { tenantId: PROJECT_ID, userId: USER_ID },
+          EDITOR_PROPS,
         ),
       ),
     ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
@@ -749,9 +858,12 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
       expect(result.createBy.data.notificationChannel).toBe(
         ComplianceNotificationChannel.Push,
       );
-      expect(modelValue(result.createBy.data, "incidentSeverities")).toEqual([
-        CRITICAL_INCIDENT,
-      ]);
+      expect(
+        writtenIds(
+          modelValue(result.createBy.data, "incidentSeverities"),
+          IncidentSeverity,
+        ),
+      ).toEqual([CRITICAL_INCIDENT]);
       expect(result.createBy.data.alertSeverities).toEqual([]);
     },
   );
@@ -769,9 +881,12 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
       expect(result.createBy.data.notificationChannel).toBe(
         ComplianceNotificationChannel.SMS,
       );
-      expect(modelValue(result.createBy.data, "alertSeverities")).toEqual([
-        CRITICAL_ALERT,
-      ]);
+      expect(
+        writtenIds(
+          modelValue(result.createBy.data, "alertSeverities"),
+          AlertSeverity,
+        ),
+      ).toEqual([CRITICAL_ALERT]);
       expect(result.createBy.data.incidentSeverities).toEqual([]);
     },
   );
@@ -1777,21 +1892,971 @@ describe("TeamComplianceSettingService onBeforeUpdate - options the stored type 
     });
   });
 
-  test("options the type does use are left exactly as sent", async () => {
+  test("options the type does use are kept, the severities as the ids they name", async () => {
     store(INCIDENT_CALL_CRITICAL);
 
-    const severities: Array<JSONObject> = [{ _id: MAJOR_INCIDENT }];
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
       notificationChannel: ComplianceNotificationChannel.Push,
-      incidentSeverities: severities,
+      incidentSeverities: [{ _id: MAJOR_INCIDENT }],
     });
 
     await onBeforeUpdate(updateBy);
 
-    expect(dataOf(updateBy)).toEqual({
-      notificationChannel: ComplianceNotificationChannel.Push,
-      incidentSeverities: severities,
+    expect(Object.keys(dataOf(updateBy)).sort()).toEqual([
+      "incidentSeverities",
+      "notificationChannel",
+    ]);
+    expect(dataOf(updateBy)["notificationChannel"]).toBe(
+      ComplianceNotificationChannel.Push,
+    );
+    expect(
+      writtenIds(dataOf(updateBy)["incidentSeverities"], IncidentSeverity),
+    ).toEqual([MAJOR_INCIDENT]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The severities that are checked are the severities that are written.
+ * ---------------------------------------------------------------------------
+ *
+ * The relation save writes whatever DatabaseService.sanitizeCreateOrUpdate
+ * reads out of each list item, and inserts one join row per item. The hooks
+ * used to check their OWN reading of the list and hand the list on as sent,
+ * so the two could disagree: an item the save reads by its `id` was checked
+ * by its `_id` or not at all - which let another project's severity through -
+ * and a repeat the check counted once was inserted twice, which the join
+ * table's primary key refuses.
+ */
+
+describe("TeamComplianceSettingService - the severities checked are the severities written", () => {
+  test("create: repeats and case collapse to one lower-case id each, handed to the save as models", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [
+        CRITICAL_INCIDENT.toUpperCase(),
+        { _id: CRITICAL_INCIDENT },
+        new ObjectID(MAJOR_INCIDENT),
+        CRITICAL_INCIDENT,
+      ],
     });
+
+    expect(
+      writtenIds(result.createBy.data.incidentSeverities, IncidentSeverity),
+    ).toEqual([CRITICAL_INCIDENT, MAJOR_INCIDENT]);
+    expect(
+      includedIds(
+        countCalls(incidentSeverityCountBy)[0]!["query"] as JSONObject,
+      ),
+    ).toEqual([CRITICAL_INCIDENT, MAJOR_INCIDENT]);
+  });
+
+  test("create: an alert list is written as alert severities", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      alertSeverities: [{ id: MAJOR_ALERT }, MAJOR_ALERT.toUpperCase()],
+    });
+
+    expect(
+      writtenIds(result.createBy.data.alertSeverities, AlertSeverity),
+    ).toEqual([MAJOR_ALERT]);
+  });
+
+  test("update: the list sent is normalised once, and each row is checked against exactly that", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      incidentSeverities: [
+        { _id: MAJOR_INCIDENT },
+        { _id: MAJOR_INCIDENT.toUpperCase() },
+      ],
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(
+      writtenIds(dataOf(updateBy)["incidentSeverities"], IncidentSeverity),
+    ).toEqual([MAJOR_INCIDENT]);
+    expect(
+      includedIds(
+        countCalls(incidentSeverityCountBy)[0]!["query"] as JSONObject,
+      ),
+    ).toEqual([MAJOR_INCIDENT]);
+  });
+
+  test("update: a multi-row update over rows of both kinds normalises both lists it sends", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      id: SIBLING_SETTING_ID,
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      alertSeverityIds: [CRITICAL_ALERT],
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor(
+      {
+        incidentSeverities: [MAJOR_INCIDENT, MAJOR_INCIDENT],
+        alertSeverities: [MAJOR_ALERT.toUpperCase(), { _id: MAJOR_ALERT }],
+      },
+      { query: { teamId: TEAM_ID } },
+    );
+
+    await onBeforeUpdate(updateBy);
+
+    expect(
+      writtenIds(dataOf(updateBy)["incidentSeverities"], IncidentSeverity),
+    ).toEqual([MAJOR_INCIDENT]);
+    expect(
+      writtenIds(dataOf(updateBy)["alertSeverities"], AlertSeverity),
+    ).toEqual([MAJOR_ALERT]);
+  });
+
+  const READ_BY_ID: Array<[string, JSONObject]> = [
+    ["a number _id", { _id: 1, id: FOREIGN_INCIDENT }],
+    ["a boolean _id", { _id: true, id: FOREIGN_INCIDENT }],
+    [
+      "an ObjectID _id naming this project's own severity",
+      {
+        _id: new ObjectID(CRITICAL_INCIDENT) as unknown as JSONObject,
+        id: FOREIGN_INCIDENT,
+      },
+    ],
+    ["an object _id", { _id: {}, id: FOREIGN_INCIDENT }],
+  ];
+
+  test.each(READ_BY_ID)(
+    "update: an item with %s is read by its id, as the save reads it - so another project's severity is refused",
+    async (_label: string, item: JSONObject) => {
+      store(INCIDENT_CALL_CRITICAL);
+
+      await expect(update({ incidentSeverities: [item] })).rejects.toThrow(
+        FOREIGN_INCIDENT_SEVERITY_MESSAGE,
+      );
+
+      expect(
+        includedIds(
+          countCalls(incidentSeverityCountBy)[0]!["query"] as JSONObject,
+        ),
+      ).toEqual([FOREIGN_INCIDENT]);
+    },
+  );
+
+  test.each(READ_BY_ID)(
+    "create: an item with %s is read by its id too",
+    async (_label: string, item: JSONObject) => {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          incidentSeverities: [item],
+        }),
+      ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
+    },
+  );
+
+  test("the same trick cannot dodge the duplicate check: a rule is compared by the id that would be written", async () => {
+    store({ ...INCIDENT_CALL_CRITICAL, id: SIBLING_SETTING_ID });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverities: [{ _id: 1, id: CRITICAL_INCIDENT }],
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+  });
+
+  const DROPPED_BY_THE_SAVE: Array<[string, unknown]> = [
+    [
+      "an ObjectID _id and no id (the save drops it: the rule would become 'every severity')",
+      { _id: new ObjectID(CRITICAL_INCIDENT) },
+    ],
+    ["a boolean _id and no id", { _id: true }],
+    ["an empty object", {}],
+    ["a name and no id", { name: "Critical" }],
+    ["a number", 7],
+    ["null", null],
+    ["a nested list", [CRITICAL_INCIDENT]],
+    ["a model with no id", new IncidentSeverity()],
+  ];
+
+  test.each(DROPPED_BY_THE_SAVE)(
+    "create: an item that names no severity - %s - is refused before anything is read",
+    async (_label: string, item: unknown) => {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          incidentSeverities: [CRITICAL_INCIDENT, item],
+        }),
+      ).rejects.toThrow(
+        new BadDataException(
+          "Every incident severity of a compliance rule must be a severity id.",
+        ),
+      );
+
+      expectNoReads();
+    },
+  );
+
+  test.each(DROPPED_BY_THE_SAVE)(
+    "update: an item that names no severity - %s - is refused, and nothing is checked or written",
+    async (_label: string, item: unknown) => {
+      store(INCIDENT_CALL_CRITICAL);
+
+      await expect(
+        update({ incidentSeverities: [MAJOR_INCIDENT, item] }),
+      ).rejects.toThrow(
+        "Every incident severity of a compliance rule must be a severity id.",
+      );
+
+      expect(incidentSeverityCountBy).not.toHaveBeenCalled();
+      expect(siblingReads()).toEqual([]);
+    },
+  );
+
+  test("the refusal names the list's own kind", async () => {
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        alertSeverities: [{ _id: true }],
+      }),
+    ).rejects.toThrow(
+      "Every alert severity of a compliance rule must be a severity id.",
+    );
+  });
+
+  test.each([
+    ["an id string", CRITICAL_INCIDENT],
+    ["a single {_id}", { _id: CRITICAL_INCIDENT }],
+    ["a number", 3],
+  ])(
+    "a severity 'list' that is %s is refused - the save would ignore it, the check read it as every severity",
+    async (_label: string, value: unknown) => {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          incidentSeverities: value,
+        }),
+      ).rejects.toThrow(
+        "The incident severities of a compliance rule must be a list of severity ids.",
+      );
+
+      store(INCIDENT_CALL_CRITICAL);
+
+      await expect(update({ incidentSeverities: value })).rejects.toThrow(
+        "The incident severities of a compliance rule must be a list of severity ids.",
+      );
+    },
+  );
+
+  test("null is an empty list, and is written as one", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      incidentSeverities: null,
+    });
+
+    expect(result.createBy.data.incidentSeverities).toEqual([]);
+  });
+
+  test("a list that is not sent stays unsent", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+    });
+
+    expect(modelValue(result.createBy.data, "incidentSeverities")).toBe(
+      undefined,
+    );
+    expect(modelValue(result.createBy.data, "alertSeverities")).toBe(undefined);
+  });
+});
+
+type SanitizeFunction = (
+  data: JSONObject,
+  props: DatabaseCommonInteractionProps,
+  isUpdate: boolean,
+) => Promise<JSONObject>;
+
+/*
+ * The valid severity ids DatabaseService.sanitizeCreateOrUpdate - what the
+ * relation save writes from - reads out of an incident severity list,
+ * trimmed and lower-cased.
+ */
+const writtenBySave: (list: Array<unknown>) => Promise<Array<string>> = async (
+  list: Array<unknown>,
+): Promise<Array<string>> => {
+  const service: TeamComplianceSettingServiceClass =
+    new TeamComplianceSettingServiceClass();
+
+  const sanitized: JSONObject = await (
+    service as unknown as { sanitizeCreateOrUpdate: SanitizeFunction }
+  ).sanitizeCreateOrUpdate(
+    { incidentSeverities: list } as JSONObject,
+    { isRoot: true },
+    true,
+  );
+
+  const written: unknown = sanitized["incidentSeverities"];
+
+  return (Array.isArray(written) ? written : [])
+    .map((item: unknown): string => {
+      return String((item as { _id?: unknown })._id)
+        .trim()
+        .toLowerCase();
+    })
+    .filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+};
+
+const resolveOrNull: (item: unknown) => Array<string> | null = (
+  item: unknown,
+): Array<string> | null => {
+  try {
+    return TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+      [item],
+      ComplianceSeverityKind.Incident,
+    );
+  } catch {
+    return null;
+  }
+};
+
+const MAJOR_INCIDENT_MODEL: IncidentSeverity = new IncidentSeverity();
+MAJOR_INCIDENT_MODEL._id = MAJOR_INCIDENT;
+
+describe("TeamComplianceSettingService.resolveSentSeverityIds", () => {
+  test("reads an item exactly as the relation save does: id string or ObjectID, else a string _id, else a string id", () => {
+    const model: IncidentSeverity = new IncidentSeverity();
+    model._id = MINOR_INCIDENT;
+
+    expect(
+      TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+        [
+          CRITICAL_INCIDENT,
+          new ObjectID(MAJOR_INCIDENT),
+          model,
+          { _id: CRITICAL_ALERT, id: FOREIGN_INCIDENT },
+          { _id: 1, id: MAJOR_ALERT },
+          { _id: new ObjectID(FOREIGN_ALERT), id: FOREIGN_INCIDENT },
+        ],
+        ComplianceSeverityKind.Incident,
+      ),
+    ).toEqual([
+      CRITICAL_INCIDENT,
+      MAJOR_INCIDENT,
+      MINOR_INCIDENT,
+      CRITICAL_ALERT,
+      MAJOR_ALERT,
+      FOREIGN_INCIDENT,
+    ]);
+  });
+
+  test("trims, lower-cases and de-duplicates, keeping the first occurrence", () => {
+    expect(
+      TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+        [
+          MINOR_INCIDENT,
+          ` ${CRITICAL_INCIDENT.toUpperCase()} `,
+          CRITICAL_INCIDENT,
+          { _id: MINOR_INCIDENT },
+          MAJOR_INCIDENT,
+        ],
+        ComplianceSeverityKind.Incident,
+      ),
+    ).toEqual([MINOR_INCIDENT, CRITICAL_INCIDENT, MAJOR_INCIDENT]);
+  });
+
+  test("null and an empty list are empty", () => {
+    for (const value of [null, []]) {
+      expect(
+        TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+          value,
+          ComplianceSeverityKind.Alert,
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test("an id that is not a uuid is refused by name", () => {
+    expect(() => {
+      TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+        ["not-a-uuid"],
+        ComplianceSeverityKind.Incident,
+      );
+    }).toThrow(/Invalid ID format: "not-a-uuid"/);
+
+    for (const blank of ["", "   "]) {
+      expect(() => {
+        TeamComplianceSettingServiceClass.resolveSentSeverityIds(
+          [blank],
+          ComplianceSeverityKind.Incident,
+        );
+      }).toThrow(/Invalid ID format/);
+    }
+  });
+
+  /*
+   * The property the hooks rely on, against the real sanitizer: whatever id
+   * this reads from an item is the id the save would write for it, and an
+   * item it refuses is one the save would write no severity for at all.
+   */
+  test.each<[string, unknown]>([
+    ["an id string", CRITICAL_INCIDENT],
+    ["an upper-case id string", MAJOR_INCIDENT.toUpperCase()],
+    ["an ObjectID", new ObjectID(MINOR_INCIDENT)],
+    ["{_id}", { _id: CRITICAL_INCIDENT }],
+    ["{id}", { id: MAJOR_INCIDENT }],
+    ["{_id, id}", { _id: CRITICAL_INCIDENT, id: FOREIGN_INCIDENT }],
+    ["{_id: number, id}", { _id: 1, id: FOREIGN_INCIDENT }],
+    ["{_id: true, id}", { _id: true, id: FOREIGN_INCIDENT }],
+    [
+      "{_id: ObjectID, id}",
+      { _id: new ObjectID(CRITICAL_INCIDENT), id: FOREIGN_INCIDENT },
+    ],
+    ["{_id: {}, id}", { _id: {}, id: FOREIGN_INCIDENT }],
+    ["{_id: ObjectID} alone", { _id: new ObjectID(CRITICAL_INCIDENT) }],
+    ["{_id: true} alone", { _id: true }],
+    ["{_id: ''} and an id", { _id: "", id: MINOR_INCIDENT }],
+    ["{}", {}],
+    ["{name}", { name: "Critical" }],
+    ["a number", 7],
+    ["null", null],
+    ["a nested list", [CRITICAL_INCIDENT]],
+    ["a model with an id", MAJOR_INCIDENT_MODEL],
+    ["a model with no id", new IncidentSeverity()],
+    ["not a uuid", "not-a-uuid"],
+    ["an empty string", ""],
+  ])(
+    "%s: the id it reads is the id the save writes",
+    async (_label: string, item: unknown) => {
+      const resolved: Array<string> | null = resolveOrNull(item);
+      const written: Array<string> = await writtenBySave([item]);
+
+      expect(resolved === null ? [] : resolved).toEqual(written);
+    },
+  );
+
+  test("a list the hooks have normalised is written by the save exactly as it was checked", async () => {
+    const createBy: CreateBy<TeamComplianceSetting> = createByFor(
+      newRule({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        incidentSeverities: [
+          { _id: 1, id: MAJOR_INCIDENT },
+          CRITICAL_INCIDENT.toUpperCase(),
+          { id: CRITICAL_INCIDENT },
+          new ObjectID(MAJOR_INCIDENT),
+        ],
+      }),
+    );
+
+    await onBeforeCreate(createBy);
+
+    const checked: Array<string> = includedIds(
+      countCalls(incidentSeverityCountBy)[0]!["query"] as JSONObject,
+    );
+
+    expect(
+      await writtenBySave(
+        createBy.data.incidentSeverities as unknown as Array<unknown>,
+      ),
+    ).toEqual([MAJOR_INCIDENT, CRITICAL_INCIDENT]);
+    expect([...checked].sort()).toEqual(
+      [MAJOR_INCIDENT, CRITICAL_INCIDENT].sort(),
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Who may ask.
+ * ---------------------------------------------------------------------------
+ *
+ * DatabaseService checks a caller's create and update permission only AFTER
+ * these hooks, and the hooks read as root in whichever project the request
+ * names. Their refusals - "that severity is not in this project", "that team
+ * already has this rule" - described another project's severities and rules
+ * to anyone signed in who named it. The hooks now make the same permission
+ * check first.
+ */
+
+describe("TeamComplianceSettingService - the caller's permission is checked before anything is read", () => {
+  const OUTSIDERS: Array<[string, DatabaseCommonInteractionProps]> = [
+    ["a signed-in user with no permission in the project", OUTSIDER_PROPS],
+    [
+      "a member who may only read the project's teams",
+      memberProps([Permission.ProjectMember, Permission.ReadProjectTeam]),
+    ],
+    [
+      "a team editor of another project who names this one",
+      {
+        ...memberProps(
+          [Permission.ReadProjectTeam, Permission.EditProjectTeam],
+          OTHER_PROJECT_ID,
+        ),
+        tenantId: PROJECT_ID,
+      },
+    ],
+  ];
+
+  test.each(OUTSIDERS)(
+    "create: %s is refused before any severity or rule is read, so the refusal says nothing about the project",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      // A rule the probe below would duplicate.
+      store({ ...INCIDENT_CALL_CRITICAL, id: SIBLING_SETTING_ID });
+
+      await expect(
+        onBeforeCreate(
+          createByFor(
+            newRule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannel: ComplianceNotificationChannel.Call,
+              incidentSeverities: [FOREIGN_INCIDENT],
+            }),
+            props,
+          ),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      await expect(
+        onBeforeCreate(
+          createByFor(
+            newRule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannel: ComplianceNotificationChannel.Call,
+              incidentSeverities: [CRITICAL_INCIDENT],
+            }),
+            props,
+          ),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      expectNoReads();
+    },
+  );
+
+  test.each(OUTSIDERS)(
+    "update: %s changing a rule's scope is refused before anything is read",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      store(INCIDENT_CALL_CRITICAL, {
+        ...INCIDENT_CALL_CRITICAL,
+        id: SIBLING_SETTING_ID,
+        notificationChannel: ComplianceNotificationChannel.Push,
+      });
+
+      for (const data of [
+        { incidentSeverities: [FOREIGN_INCIDENT] },
+        { notificationChannel: ComplianceNotificationChannel.Push },
+      ]) {
+        await expect(
+          onBeforeUpdate(updateByFor({ ...data }, { props: props })),
+        ).rejects.toThrow(NotAuthorizedException);
+      }
+
+      expectNoReads();
+    },
+  );
+
+  test.each(OUTSIDERS)(
+    "update: %s toggling a rule gets nothing from this hook - it reads nothing, and _updateBy's own check refuses the write",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      store(INCIDENT_CALL_CRITICAL);
+
+      await expect(
+        onBeforeUpdate(updateByFor({ enabled: false }, { props: props })),
+      ).resolves.toBeDefined();
+
+      expectNoReads();
+    },
+  );
+
+  const EDITORS: Array<[string, DatabaseCommonInteractionProps]> = [
+    ["a team editor", EDITOR_PROPS],
+    ["a project admin", memberProps([Permission.ProjectAdmin])],
+    ["a project owner", memberProps([Permission.ProjectOwner])],
+  ];
+
+  test.each(EDITORS)(
+    "create: %s passes, and what the hook leaves - cleared options included - passes the create check DatabaseService repeats",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      for (const input of [
+        {
+          ruleType: ComplianceRuleType.HasNotificationCallMethod,
+          notificationChannel: ComplianceNotificationChannel.SMS,
+          incidentSeverities: [FOREIGN_INCIDENT],
+          alertSeverities: [FOREIGN_ALERT],
+        },
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: [CRITICAL_INCIDENT, CRITICAL_INCIDENT],
+          alertSeverities: [FOREIGN_ALERT],
+        },
+      ]) {
+        const result: OnCreate<TeamComplianceSetting> = await onBeforeCreate(
+          createByFor(newRule(input), props),
+        );
+
+        expect((): void => {
+          ModelPermission.checkCreatePermissions(
+            TeamComplianceSetting,
+            result.createBy.data,
+            props,
+          );
+        }).not.toThrow();
+      }
+    },
+  );
+
+  test("create: Edit Teams on its own is enough to create a rule", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps([
+      Permission.EditProjectTeam,
+    ]);
+
+    const result: OnCreate<TeamComplianceSetting> = await onBeforeCreate(
+      createByFor(
+        newRule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Push,
+          alertSeverities: [CRITICAL_ALERT],
+          incidentSeverities: [CRITICAL_INCIDENT],
+        }),
+        props,
+      ),
+    );
+
+    expect((): void => {
+      ModelPermission.checkCreatePermissions(
+        TeamComplianceSetting,
+        result.createBy.data,
+        props,
+      );
+    }).not.toThrow();
+  });
+
+  test.each(EDITORS)(
+    "update: %s passes, and what the hook leaves passes the update check _updateBy repeats",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      store(INCIDENT_CALL_CRITICAL);
+
+      for (const data of [
+        { ruleType: ComplianceRuleType.HasNotificationEmailMethod },
+        {
+          incidentSeverities: [{ _id: MAJOR_INCIDENT }, MAJOR_INCIDENT],
+          alertSeverities: [FOREIGN_ALERT],
+        },
+        { notificationChannel: null },
+      ]) {
+        const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor(
+          { ...data },
+          { props: props },
+        );
+
+        await onBeforeUpdate(updateBy);
+
+        await expect(
+          ModelPermission.checkUpdateQueryPermissions(
+            TeamComplianceSetting,
+            { _id: SETTING_ID },
+            updateBy.data,
+            props,
+          ),
+        ).resolves.toBeDefined();
+      }
+    },
+  );
+
+  test("root and master-admin callers are not put through it", async () => {
+    const createCheck: jest.SpyInstance = jest.spyOn(
+      ModelPermission,
+      "checkCreatePermissions",
+    );
+    const updateCheck: jest.SpyInstance = jest.spyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    );
+
+    store(INCIDENT_CALL_CRITICAL);
+
+    await onBeforeCreate(
+      createByFor(
+        newRule({ ruleType: ComplianceRuleType.HasNotificationEmailMethod }),
+        { isRoot: true },
+      ),
+    );
+    await onBeforeCreate(
+      createByFor(
+        newRule({ ruleType: ComplianceRuleType.HasNotificationPushMethod }),
+        { isMasterAdmin: true, userId: USER_ID, tenantId: PROJECT_ID },
+      ),
+    );
+    await onBeforeUpdate(
+      updateByFor(
+        { notificationChannel: ComplianceNotificationChannel.Push },
+        { props: { isRoot: true } },
+      ),
+    );
+
+    expect(createCheck).not.toHaveBeenCalled();
+    expect(updateCheck).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Severity deletes.
+ * ---------------------------------------------------------------------------
+ *
+ * A rule's severity scope lives only in join rows, which cascade away with
+ * the severity, and a rule with no severity left reads as a rule for every
+ * severity of its kind. IncidentSeverityService and AlertSeverityService ask
+ * which rules are scoped only to what they are about to delete, and pause
+ * those once the delete has happened.
+ */
+
+const RULE_CRITICAL_ONLY: string = "77777777-7777-4777-8777-000000000001";
+const RULE_EPISODE_CRITICAL_ONLY: string =
+  "77777777-7777-4777-8777-000000000002";
+const RULE_CRITICAL_AND_MAJOR: string = "77777777-7777-4777-8777-000000000003";
+const RULE_EVERY_SEVERITY: string = "77777777-7777-4777-8777-000000000004";
+const RULE_PAUSED: string = "77777777-7777-4777-8777-000000000005";
+const RULE_ALERT: string = "77777777-7777-4777-8777-000000000006";
+const RULE_METHOD: string = "77777777-7777-4777-8777-000000000007";
+const RULE_OTHER_PROJECT: string = "77777777-7777-4777-8777-000000000008";
+
+const deleting: (
+  ids: Array<string>,
+  project?: ObjectID,
+) => Array<DeletedSeverity> = (
+  ids: Array<string>,
+  project?: ObjectID,
+): Array<DeletedSeverity> => {
+  return ids.map((id: string): DeletedSeverity => {
+    return { _id: id, projectId: project || PROJECT_ID };
+  });
+};
+
+describe("TeamComplianceSettingService - a severity delete pauses the rules scoped only to it", () => {
+  let settingsUpdateBy: jest.SpyInstance;
+
+  beforeEach(() => {
+    settingsUpdateBy = jest
+      .spyOn(TeamComplianceSettingService, "updateBy")
+      .mockResolvedValue(1 as never);
+
+    store(
+      {
+        id: RULE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverityIds: [CRITICAL_INCIDENT],
+      },
+      {
+        id: RULE_EPISODE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.SMS,
+        incidentSeverityIds: [CRITICAL_INCIDENT],
+      },
+      {
+        id: RULE_CRITICAL_AND_MAJOR,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Push,
+        incidentSeverityIds: [CRITICAL_INCIDENT, MAJOR_INCIDENT],
+      },
+      {
+        id: RULE_EVERY_SEVERITY,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Email,
+      },
+      {
+        id: RULE_PAUSED,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Slack,
+        incidentSeverityIds: [CRITICAL_INCIDENT],
+        enabled: false,
+      },
+      {
+        id: RULE_ALERT,
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        alertSeverityIds: [CRITICAL_ALERT],
+      },
+      {
+        // A stray severity on a method rule scopes nothing.
+        id: RULE_METHOD,
+        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+        incidentSeverityIds: [CRITICAL_INCIDENT],
+      },
+      {
+        id: RULE_OTHER_PROJECT,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        projectId: OTHER_PROJECT_ID,
+        teamId: OTHER_TEAM_ID,
+        incidentSeverityIds: [FOREIGN_INCIDENT],
+      },
+    );
+  });
+
+  test("finds the enabled rules of the severity's kind whose every selected severity is being deleted", async () => {
+    expect(
+      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([CRITICAL_INCIDENT]),
+      }),
+    ).toEqual([RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY]);
+
+    // Deleting both of a rule's severities leaves it with none too.
+    expect(
+      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: deleting([MAJOR_INCIDENT.toUpperCase(), CRITICAL_INCIDENT]),
+      }),
+    ).toEqual([
+      RULE_CRITICAL_ONLY,
+      RULE_EPISODE_CRITICAL_ONLY,
+      RULE_CRITICAL_AND_MAJOR,
+    ]);
+
+    expect(
+      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        severityKind: ComplianceSeverityKind.Alert,
+        severities: deleting([CRITICAL_ALERT]),
+      }),
+    ).toEqual([RULE_ALERT]);
+  });
+
+  test("reads the project's enabled rules of that kind's types, as root, with their severities", async () => {
+    await TeamComplianceSettingService.getRulesScopedOnlyTo({
+      severityKind: ComplianceSeverityKind.Alert,
+      severities: deleting([CRITICAL_ALERT]),
+    });
+
+    expect(settingsFindBy).toHaveBeenCalledTimes(1);
+
+    const read: JSONObject = findByCalls()[0]!;
+    const query: JSONObject = read["query"] as JSONObject;
+
+    expect(Object.keys(query).sort()).toEqual([
+      "enabled",
+      "projectId",
+      "ruleType",
+    ]);
+    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(query["enabled"]).toBe(true);
+    expect((query["ruleType"] as Includes).values).toEqual([
+      ComplianceRuleType.HasAlertOnCallRules,
+      ComplianceRuleType.HasAlertEpisodeOnCallRules,
+    ]);
+    expect(read["select"]).toEqual({
+      _id: true,
+      ruleType: true,
+      enabled: true,
+      incidentSeverities: { _id: true },
+      alertSeverities: { _id: true },
+    });
+    expect(read["limit"]).toBe(LIMIT_PER_PROJECT);
+    expect(read["props"]).toEqual({ isRoot: true });
+  });
+
+  test("a delete across projects checks each project's rules against its own severities", async () => {
+    expect(
+      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: [
+          ...deleting([FOREIGN_INCIDENT]),
+          ...deleting([FOREIGN_INCIDENT], OTHER_PROJECT_ID),
+        ],
+      }),
+    ).toEqual([RULE_OTHER_PROJECT]);
+
+    expect(settingsFindBy).toHaveBeenCalledTimes(2);
+  });
+
+  test("nothing being deleted reads nothing", async () => {
+    expect(
+      await TeamComplianceSettingService.getRulesScopedOnlyTo({
+        severityKind: ComplianceSeverityKind.Incident,
+        severities: [{ _id: CRITICAL_INCIDENT }, { projectId: PROJECT_ID }],
+      }),
+    ).toEqual([]);
+
+    expect(settingsFindBy).not.toHaveBeenCalled();
+  });
+
+  test("after the delete: pauses, in one enabled-only root update, the named rules left with no severity of their kind", async () => {
+    // What the cascade leaves behind.
+    storedSettings = [];
+    store(
+      {
+        id: RULE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      {
+        id: RULE_EPISODE_CRITICAL_ONLY,
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+      },
+      {
+        // Re-scoped in the meantime: it has a severity again.
+        id: RULE_CRITICAL_AND_MAJOR,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        incidentSeverityIds: [MAJOR_INCIDENT],
+      },
+      {
+        id: RULE_PAUSED,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        enabled: false,
+      },
+      {
+        // Not of the deleted kind.
+        id: RULE_ALERT,
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      },
+    );
+
+    expect(
+      await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+        severityKind: ComplianceSeverityKind.Incident,
+        settingIds: [
+          RULE_CRITICAL_ONLY,
+          RULE_EPISODE_CRITICAL_ONLY,
+          RULE_CRITICAL_AND_MAJOR,
+          RULE_PAUSED,
+          RULE_ALERT,
+          RULE_EVERY_SEVERITY,
+        ],
+      }),
+    ).toEqual([RULE_CRITICAL_ONLY, RULE_EPISODE_CRITICAL_ONLY]);
+
+    const read: JSONObject = findByCalls()[0]!;
+    expect((read["query"] as JSONObject)["_id"]).toBeInstanceOf(Includes);
+    expect(read["props"]).toEqual({ isRoot: true });
+
+    expect(settingsUpdateBy).toHaveBeenCalledTimes(1);
+
+    const write: JSONObject = settingsUpdateBy.mock.calls[0]![0] as JSONObject;
+    expect(((write["query"] as JSONObject)["_id"] as Includes).values).toEqual([
+      RULE_CRITICAL_ONLY,
+      RULE_EPISODE_CRITICAL_ONLY,
+    ]);
+    expect(write["data"]).toEqual({ enabled: false });
+    expect(write["limit"]).toBe(2);
+    expect(write["props"]).toEqual({ isRoot: true });
+  });
+
+  test("nothing named reads nothing; nothing left empty writes nothing", async () => {
+    await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+      severityKind: ComplianceSeverityKind.Incident,
+      settingIds: [],
+    });
+
+    expect(settingsFindBy).not.toHaveBeenCalled();
+
+    expect(
+      await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+        severityKind: ComplianceSeverityKind.Incident,
+        settingIds: [RULE_CRITICAL_AND_MAJOR],
+      }),
+    ).toEqual([]);
+    expect(settingsUpdateBy).not.toHaveBeenCalled();
   });
 });
 
@@ -2191,6 +3256,47 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
         props: { isRoot: true },
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+    expect(save).not.toHaveBeenCalled();
+    expect(repositoryUpdate).not.toHaveBeenCalled();
+  });
+  test("a repeated severity, in any case, reaches the relation save once and lower-cased", async () => {
+    await service.updateOneById({
+      id: new ObjectID(SETTING_ID),
+      data: {
+        incidentSeverities: [
+          { _id: MAJOR_INCIDENT.toUpperCase() },
+          { _id: MAJOR_INCIDENT },
+        ],
+      } as never,
+      props: { isRoot: true },
+    });
+
+    expect(save).toHaveBeenCalledTimes(1);
+
+    const written: Record<string, unknown> = save.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(
+      (written["incidentSeverities"] as Array<{ _id?: string }>).map(
+        (item: { _id?: string }): string | undefined => {
+          return item._id;
+        },
+      ),
+    ).toEqual([MAJOR_INCIDENT]);
+  });
+
+  test("another project's severity named by `id` behind a non-string `_id` is refused before anything is written", async () => {
+    await expect(
+      service.updateOneById({
+        id: new ObjectID(SETTING_ID),
+        data: {
+          incidentSeverities: [{ _id: 1, id: FOREIGN_INCIDENT }],
+        } as never,
+        props: EDITOR_PROPS,
+      }),
+    ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
 
     expect(save).not.toHaveBeenCalled();
     expect(repositoryUpdate).not.toHaveBeenCalled();

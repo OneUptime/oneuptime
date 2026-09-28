@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
+  RenderHookResult,
   act,
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -89,6 +91,9 @@ jest.mock("Common/UI/Components/ModelFormModal/ModelFormModal", () => {
 });
 
 import TeamViewCompliance from "../../../Dashboard/TeamCompliance/Compliance";
+import useTeamComplianceStatus, {
+  TeamComplianceStatusState,
+} from "../../../Dashboard/TeamCompliance/useTeamComplianceStatus";
 import TeamCompliancePlugins from "../../../Dashboard/TeamCompliance/Plugins";
 import EnterpriseDashboardPlugins from "../../../Dashboard/Index";
 import { COMPLIANCE_RULE_PRESETS } from "../../../Dashboard/TeamCompliance/ComplianceRulePresets";
@@ -122,6 +127,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -151,6 +157,10 @@ const PAGE_PROPS: PageComponentProps = {
   }),
   hasPaymentMethod: true,
 };
+
+// How the standard Call rule is named wherever it has to be told apart.
+const CALL_LABEL: string =
+  "Call for incidents for Critical Incident and Major Incident";
 
 const CALL_WARNING: string =
   "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
@@ -215,6 +225,29 @@ const ruleRow: (settingId: string) => HTMLElement = (
   settingId: string,
 ): HTMLElement => {
   return screen.getByTestId(`compliance-rule-${settingId}`);
+};
+
+const ruleSwitch: (label: string) => HTMLElement = (
+  label: string,
+): HTMLElement => {
+  return screen.getByRole("switch", {
+    name: `Check members against ${label}`,
+  });
+};
+
+// The standard fixture with some of its rules paused, as the server reports it.
+const withPaused: (settingIds: Array<string>) => TeamComplianceStatusJSON = (
+  settingIds: Array<string>,
+): TeamComplianceStatusJSON => {
+  const status: TeamComplianceStatusJSON = standardStatus();
+
+  for (const rule of status.complianceSettings) {
+    if (settingIds.includes(rule.settingId)) {
+      rule.enabled = false;
+    }
+  }
+
+  return status;
 };
 
 beforeEach(() => {
@@ -470,6 +503,181 @@ describe("reading the status", () => {
   });
 });
 
+describe("reloading, when reads overlap", () => {
+  /*
+   * A caller that saved something awaits reload() to know the page now shows
+   * a status read after its save. When a newer read overtook its own, that
+   * promise used to resolve at once with nothing written - and a toggle
+   * dropped its "saving" state and snapped back to the status from before.
+   */
+  const mountHook: () => Promise<
+    RenderHookResult<TeamComplianceStatusState, unknown>
+  > = async (): Promise<
+    RenderHookResult<TeamComplianceStatusState, unknown>
+  > => {
+    const hook: RenderHookResult<TeamComplianceStatusState, unknown> =
+      renderHook(() => {
+        return useTeamComplianceStatus(TEAM_ID);
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.status).not.toBeNull();
+    });
+
+    return hook;
+  };
+
+  test("an overtaken reload resolves only once the newest read has put its status on the page", async () => {
+    const hook: RenderHookResult<TeamComplianceStatusState, unknown> =
+      await mountHook();
+
+    const olderRead: Deferred<never> = deferred<never>();
+    const newerRead: Deferred<never> = deferred<never>();
+    apiGet
+      .mockReturnValueOnce(olderRead.promise)
+      .mockReturnValueOnce(newerRead.promise);
+
+    let olderSettled: boolean | null = null;
+    let newerSettled: boolean | null = null;
+
+    await act(async () => {
+      hook.result.current.reload().then((applied: boolean) => {
+        olderSettled = applied;
+      });
+      hook.result.current.reload().then((applied: boolean) => {
+        newerSettled = applied;
+      });
+    });
+
+    await act(async () => {
+      olderRead.resolve(respondWith(standardStatus()));
+    });
+
+    // Overtaken, and the newest read is still out: nothing is known yet.
+    expect(olderSettled).toBeNull();
+    expect(newerSettled).toBeNull();
+
+    await act(async () => {
+      newerRead.resolve(respondWith(withPaused([EMAIL_RULE_ID])));
+    });
+
+    expect(olderSettled).toBe(true);
+    expect(newerSettled).toBe(true);
+    expect(hook.result.current.status?.complianceSettings[0]!.enabled).toBe(
+      false,
+    );
+  });
+
+  test("when the newest read fails, every reload waiting on it says so", async () => {
+    const hook: RenderHookResult<TeamComplianceStatusState, unknown> =
+      await mountHook();
+
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+    const olderRead: Deferred<never> = deferred<never>();
+    apiGet
+      .mockReturnValueOnce(olderRead.promise)
+      .mockImplementationOnce(failWith("boom"));
+
+    const settled: Array<boolean> = [];
+
+    await act(async () => {
+      const older: Promise<boolean> = hook.result.current.reload();
+      const newer: Promise<boolean> = hook.result.current.reload();
+
+      olderRead.resolve(respondWith(standardStatus()));
+      settled.push(await older, await newer);
+    });
+
+    expect(settled).toEqual([false, false]);
+    expect(hook.result.current.error).toBe("Compliance is down");
+  });
+
+  test("a reload nobody overtook resolves to whether it loaded", async () => {
+    const hook: RenderHookResult<TeamComplianceStatusState, unknown> =
+      await mountHook();
+
+    let applied: boolean | null = null;
+
+    await act(async () => {
+      applied = await hook.result.current.reload();
+    });
+
+    expect(applied).toBe(true);
+  });
+});
+
+describe("an answer from an older API", () => {
+  /*
+   * During a rolling deploy a browser holding this bundle can be answered by
+   * an older App replica, whose payload has no rule ids, no counts and no
+   * scope. The page used to parse it and then contradict itself: the member's
+   * square for the rule she fails read "met" beside "Needs attention", and
+   * the rule's switch would have saved to a made-up id.
+   */
+  const legacyPayload: JSONObject = {
+    teamId: TEAM_ID.toString(),
+    teamName: "Legacy",
+    complianceSettings: [
+      { ruleType: "HasNotificationEmailMethod", enabled: true },
+    ],
+    userComplianceStatuses: [
+      {
+        userId: JANE_ID,
+        userName: "Jane Doe",
+        userEmail: "jane@acme.com",
+        nonCompliantRules: [
+          { ruleType: "HasNotificationEmailMethod", reason: EMAIL_REASON },
+        ],
+      },
+    ],
+  };
+
+  test("the page agrees with itself, and offers nothing that would write a made-up id", async () => {
+    mockPermissions = EDITOR;
+    const updateById: jest.SpyInstance = jest.spyOn(ModelAPI, "updateById");
+    const deleteItem: jest.SpyInstance = jest.spyOn(ModelAPI, "deleteItem");
+    apiGet.mockResolvedValue({ data: legacyPayload } as never);
+
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
+    await screen.findByTestId("team-compliance-page");
+
+    const jane: HTMLElement = screen.getByTestId(
+      `compliance-member-${JANE_ID}`,
+    );
+    const square: HTMLElement = within(jane).getByRole("img", {
+      name: /^Verified email: /,
+    });
+
+    expect(square).toHaveAttribute("data-result", "fail");
+    expect(square).toHaveAttribute(
+      "aria-label",
+      `Verified email: not met. ${EMAIL_REASON}`,
+    );
+    expect(jane).toHaveTextContent("0 of 1");
+    expect(
+      within(jane).getByTestId("compliance-member-status"),
+    ).toHaveTextContent("Needs attention");
+
+    const rule: HTMLElement = screen.getByRole("listitem", {
+      name: "Verified email",
+    });
+
+    expect(
+      within(rule).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent(/^0 of 1 member meets itShow the 1 who fails it$/);
+    expect(within(rule).queryByRole("switch")).toBeNull();
+    expect(within(rule).queryByRole("button", { name: /^Edit / })).toBeNull();
+    expect(within(rule).queryByRole("button", { name: /^Delete / })).toBeNull();
+    expect(rule).toHaveTextContent("Refresh the page to change this rule");
+    expect(screen.queryByRole("switch")).toBeNull();
+
+    // Adding a rule names no existing one, so it stays on offer.
+    expect(screen.getByRole("button", { name: "Add rule" })).not.toBeDisabled();
+    expect(updateById).not.toHaveBeenCalled();
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+});
+
 describe("the verdict", () => {
   test("some members need attention", async () => {
     await renderPage();
@@ -624,6 +832,74 @@ describe("the verdict", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * A rule of a type this build does not recognise is listed, switched ON,
+   * and not checked. "Turn a rule on" and "every rule is paused" both sent
+   * the admin to a switch that was already on.
+   */
+  test("an enabled rule of an unrecognised type: not checked, not called paused", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          buildRule({
+            settingId: "pigeon",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+          }),
+        ],
+        userComplianceStatuses: [
+          buildMember(),
+          buildMember({ userId: OMAR_ID }),
+        ],
+      }),
+    );
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "No rule is being checked",
+    );
+
+    const subline: HTMLElement = screen.getByTestId("compliance-hero-subline");
+
+    expect(subline).toHaveTextContent(
+      "Nobody is being checked right now. This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+    );
+    expect(subline).not.toHaveTextContent("Turn a rule on");
+
+    const members: HTMLElement = screen.getByTestId(
+      "compliance-members-no-active-rules",
+    );
+
+    expect(members).toHaveTextContent(
+      "No rule on this team can be checked right now, so none of its 2 members are being checked.",
+    );
+    expect(members).not.toHaveTextContent("paused");
+    expect(members).not.toHaveTextContent("Turn a rule back on");
+  });
+
+  test("a paused rule beside an unrecognised one: both said, in the hero and the members section", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ enabled: false }),
+          buildRule({
+            settingId: "pigeon",
+            ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const advice: string =
+      "1 rule is paused and 1 rule is of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised one.";
+
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      advice,
+    );
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toHaveTextContent(advice);
+  });
+
   test("a team with nobody on it", async () => {
     await renderPage(buildStatus({ complianceSettings: [emailRule()] }));
 
@@ -701,7 +977,7 @@ describe("rule warnings", () => {
     expect(banner).toHaveTextContent("1 rule has a problem members cannot fix");
     expect(
       screen.getByTestId(`compliance-rule-warning-${CALL_RULE_ID}`),
-    ).toHaveTextContent(`Call for incidents: ${CALL_WARNING}`);
+    ).toHaveTextContent(`${CALL_LABEL}: ${CALL_WARNING}`);
     expect(
       within(banner).getByRole("link", { name: /Open notification settings/ }),
     ).toHaveAttribute(
@@ -781,7 +1057,7 @@ describe("the rules card", () => {
     expect(within(row).queryByTestId("compliance-rule-scope")).toBeNull();
     expect(
       within(row).getByTestId("compliance-rule-pass-rate"),
-    ).toHaveTextContent("2 of 3members meet it");
+    ).toHaveTextContent("2 of 3 members meet it");
     expect(
       within(row).getByRole("img", { name: "2 of 3 members meet this rule" }),
     ).toBeInTheDocument();
@@ -840,8 +1116,55 @@ describe("the rules card", () => {
     ).toHaveTextContent("Any channel");
     expect(
       within(row).getByTestId("compliance-rule-pass-rate"),
-    ).toHaveTextContent("3 of 3all meet it");
+    ).toHaveTextContent("All 3 meet it");
+    expect(
+      within(row).getByRole("img", { name: "All 3 meet this rule" }),
+    ).toBeInTheDocument();
     expect(within(row).queryByRole("button", { name: /Show the/ })).toBeNull();
+  });
+
+  /*
+   * The row's headline number. It read "1 of 1 all meet it" and "0 of 1
+   * members meet it" before.
+   */
+  test("a one-member team's pass rate reads as English", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          emailRule({ compliantCount: 1 }),
+          callForIncidentsRule({ nonCompliantCount: 1 }),
+        ],
+        userComplianceStatuses: [
+          buildMember({
+            nonCompliantRules: [issue(callForIncidentsRule(), CALL_REASON)],
+          }),
+        ],
+      }),
+    );
+
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent(/^1 of 1 member meets it$/);
+    expect(
+      within(ruleRow(CALL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent(/^0 of 1 member meets itShow the 1 who fails it$/);
+    expect(
+      within(ruleRow(CALL_RULE_ID)).getByRole("img", {
+        name: "0 of 1 member meets this rule",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("nobody meeting a rule on a bigger team", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[1]!.compliantCount = 0;
+    status.complianceSettings[1]!.nonCompliantCount = 3;
+
+    await renderPage(status);
+
+    expect(
+      within(ruleRow(CALL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent(/^0 of 3 members meet it/);
   });
 
   test("episode rules", async () => {
@@ -941,10 +1264,15 @@ describe("who may change rules", () => {
       }),
     ).toHaveAttribute("aria-checked", "true");
     expect(
-      screen.getByRole("button", { name: "Edit Call for incidents" }),
+      screen.getByRole("button", { name: `Edit ${CALL_LABEL}` }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Delete Call for incidents" }),
+      screen.getByRole("button", { name: `Delete ${CALL_LABEL}` }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", {
+        name: `Check members against ${CALL_LABEL}`,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -1009,15 +1337,20 @@ describe("who may change rules", () => {
     expect(screen.queryByTestId("compliance-member-fix-link")).toBeNull();
   });
 
-  test("the signed-in member gets their own fix button", async () => {
+  test("the signed-in member gets their own fix links, one per page they need", async () => {
     jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(JANE_ID));
     await renderPage();
 
     expect(
-      within(screen.getByTestId(`compliance-member-${JANE_ID}`)).getByTestId(
-        "compliance-member-fix-self",
-      ),
-    ).toHaveTextContent("Open my notification methods");
+      within(screen.getByTestId(`compliance-member-${JANE_ID}`))
+        .getAllByTestId("compliance-member-fix-self")
+        .map((link: HTMLElement): string => {
+          return link.textContent || "";
+        }),
+    ).toEqual([
+      "Open my notification methods",
+      "Open my incident on-call rules",
+    ]);
   });
 });
 
@@ -1085,6 +1418,258 @@ describe("pausing and resuming a rule", () => {
     });
 
     expect(updateById.mock.calls[0]![0].data).toEqual({ enabled: true });
+  });
+
+  /*
+   * The wrapper's pointer-events stop a second CLICK while a save is in
+   * flight, but not Space or Enter on the switch that still has focus. That
+   * press used to flip the switch's own copy of its value and then be
+   * refused, leaving it showing ON beside a "Paused" rule - and the next
+   * press then did the opposite of what the switch showed.
+   */
+  test("a second press while the save is in flight changes nothing, and the switch keeps telling the truth", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    const save: Deferred<never> = deferred<never>();
+    const updateById: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockReturnValue(save.promise);
+    apiGet.mockResolvedValue(respondWith(withPaused([EMAIL_RULE_ID])));
+
+    const emailSwitch: HTMLElement = ruleSwitch("Verified email");
+
+    act(() => {
+      emailSwitch.focus();
+    });
+
+    await act(async () => {
+      fireEvent.click(emailSwitch);
+    });
+
+    expect(emailSwitch).toHaveAttribute("aria-checked", "false");
+    expect(emailSwitch).toHaveAttribute("aria-disabled", "true");
+
+    // Space on the focused switch, mid-save.
+    await act(async () => {
+      fireEvent.click(emailSwitch);
+    });
+
+    expect(emailSwitch).toHaveAttribute("aria-checked", "false");
+    expect(updateById).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      save.resolve({} as never);
+    });
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(emailSwitch).not.toHaveAttribute("aria-disabled");
+    });
+
+    // The same element throughout - never remounted - so focus stayed on it.
+    expect(ruleSwitch("Verified email")).toBe(emailSwitch);
+    expect(emailSwitch).toHaveFocus();
+    expect(emailSwitch).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-paused"),
+    ).toBeInTheDocument();
+
+    // The next press does what the switch shows: turns the rule back on.
+    updateById.mockResolvedValue({} as never);
+
+    await act(async () => {
+      fireEvent.click(emailSwitch);
+    });
+
+    expect(updateById).toHaveBeenCalledTimes(2);
+    expect(updateById.mock.calls[1]![0].data).toEqual({ enabled: true });
+  });
+
+  /*
+   * Pause rule A, then rule B before A's refresh is back: A's refresh is
+   * overtaken, and its answer dropped. A's switch used to fall back to the
+   * status from before its save - ON - until B's refresh landed.
+   */
+  test("pausing a second rule while the first refreshes never flips the first back on", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
+    const firstRead: Deferred<never> = deferred<never>();
+    const secondRead: Deferred<never> = deferred<never>();
+    apiGet
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    await act(async () => {
+      fireEvent.click(ruleSwitch("Verified email"));
+    });
+    await act(async () => {
+      fireEvent.click(ruleSwitch(CALL_LABEL));
+    });
+
+    expect(apiGet).toHaveBeenCalledTimes(3);
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(ruleSwitch(CALL_LABEL)).toHaveAttribute("aria-checked", "false");
+
+    // The older, overtaken read lands first.
+    await act(async () => {
+      firstRead.resolve(respondWith(standardStatus()));
+    });
+
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-paused"),
+    ).toBeInTheDocument();
+    // Overtaken is not failed: the newer read is still coming.
+    expect(
+      screen.queryByTestId(`compliance-rule-refresh-note-${EMAIL_RULE_ID}`),
+    ).toBeNull();
+
+    await act(async () => {
+      secondRead.resolve(
+        respondWith(withPaused([EMAIL_RULE_ID, CALL_RULE_ID])),
+      );
+    });
+
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(ruleSwitch(CALL_LABEL)).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.queryByTestId(`compliance-rule-refresh-note-${EMAIL_RULE_ID}`),
+    ).toBeNull();
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "All 2 rules are paused",
+    );
+  });
+
+  test("overlapping pauses whose newest refresh fails keep both rules paused, and say the results are older", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+    const firstRead: Deferred<never> = deferred<never>();
+    const secondRead: Deferred<never> = deferred<never>();
+    apiGet
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    await act(async () => {
+      fireEvent.click(ruleSwitch("Verified email"));
+    });
+    await act(async () => {
+      fireEvent.click(ruleSwitch(CALL_LABEL));
+    });
+    await act(async () => {
+      firstRead.resolve(respondWith(standardStatus()));
+    });
+    await act(async () => {
+      secondRead.reject(new Error("boom"));
+    });
+
+    await screen.findByTestId("compliance-hero-refresh-error");
+
+    for (const [settingId, label] of [
+      [EMAIL_RULE_ID, "Verified email"],
+      [CALL_RULE_ID, CALL_LABEL],
+    ] as Array<[string, string]>) {
+      expect(ruleSwitch(label)).toHaveAttribute("aria-checked", "false");
+      // Not locked: a failed refresh must never leave a switch unpressable.
+      expect(ruleSwitch(label)).not.toHaveAttribute("aria-disabled");
+      expect(
+        within(ruleRow(settingId)).getByTestId("compliance-rule-paused"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`compliance-rule-refresh-note-${settingId}`),
+      ).toHaveTextContent(
+        "Paused. The results could not be refreshed, so the counts on this page are from before this change.",
+      );
+    }
+  });
+
+  test("a save whose refresh fails keeps showing what was saved until a later read says otherwise", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+    apiGet.mockImplementationOnce(failWith("boom"));
+
+    await act(async () => {
+      fireEvent.click(ruleSwitch("Verified email"));
+    });
+    await screen.findByTestId("compliance-hero-refresh-error");
+
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("Paused - not checked");
+    expect(
+      screen.getByTestId(`compliance-rule-refresh-note-${EMAIL_RULE_ID}`),
+    ).toBeInTheDocument();
+
+    // The next read that lands is the truth - here, someone turned it back on.
+    apiGet.mockResolvedValue(respondWith(standardStatus()));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("compliance-hero-refresh"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(`compliance-rule-refresh-note-${EMAIL_RULE_ID}`),
+      ).toBeNull();
+    });
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  test("turning a rule on shows it on at once, without the empty counts of the paused rule it was", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(withPaused([EMAIL_RULE_ID]));
+
+    jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
+    const read: Deferred<never> = deferred<never>();
+    apiGet.mockReturnValueOnce(read.promise);
+
+    await act(async () => {
+      fireEvent.click(ruleSwitch("Verified email"));
+    });
+
+    expect(ruleSwitch("Verified email")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).queryByTestId("compliance-rule-paused"),
+    ).toBeNull();
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("Not checked yet");
+
+    await act(async () => {
+      read.resolve(respondWith(standardStatus()));
+    });
+
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("2 of 3 members meet it");
   });
 
   test("a failed save says so on the row, moves the switch back, and reads nothing", async () => {
@@ -1193,9 +1778,7 @@ describe("adding and editing rules", () => {
     mockPermissions = EDITOR;
     await renderPage();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Edit Call for incidents" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: `Edit ${CALL_LABEL}` }));
 
     expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
       "Edit compliance rule",
@@ -1210,6 +1793,116 @@ describe("adding and editing rules", () => {
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+describe("two rules of one type and channel", () => {
+  /*
+   * Call for Critical incidents and Call for Major incidents: both allowed,
+   * both titled "Call for incidents". Every control, the delete confirmation
+   * and the warnings have to say WHICH one.
+   */
+  const CRITICAL_CALL_ID: string = "00000000-0000-4000-8000-0000000000b1";
+  const MAJOR_CALL_ID: string = "00000000-0000-4000-8000-0000000000b2";
+
+  const twoCallRules: () => TeamComplianceStatusJSON =
+    (): TeamComplianceStatusJSON => {
+      return buildStatus({
+        complianceSettings: [
+          callForIncidentsRule({
+            settingId: CRITICAL_CALL_ID,
+            severities: [{ id: CRITICAL_ID, name: "Critical Incident" }],
+            compliantCount: 1,
+            warnings: [CALL_WARNING],
+          }),
+          callForIncidentsRule({
+            settingId: MAJOR_CALL_ID,
+            severities: [{ id: "major", name: "Major Incident" }],
+            compliantCount: 1,
+            warnings: [CALL_WARNING],
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      });
+    };
+
+  test("same title, different names", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(twoCallRules());
+
+    expect(
+      screen
+        .getAllByTestId("compliance-rule-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual(["Call for incidents", "Call for incidents"]);
+
+    for (const [settingId, label] of [
+      [CRITICAL_CALL_ID, "Call for incidents for Critical Incident"],
+      [MAJOR_CALL_ID, "Call for incidents for Major Incident"],
+    ] as Array<[string, string]>) {
+      const row: HTMLElement = ruleRow(settingId);
+
+      expect(screen.getByRole("listitem", { name: label })).toBe(row);
+      expect(within(row).getByRole("switch")).toHaveAccessibleName(
+        `Check members against ${label}`,
+      );
+      expect(
+        within(row).getByRole("button", { name: `Edit ${label}` }),
+      ).toBeInTheDocument();
+      expect(
+        within(row).getByRole("button", { name: `Delete ${label}` }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`compliance-rule-warning-${settingId}`),
+      ).toHaveTextContent(`${label}: ${CALL_WARNING}`);
+    }
+  });
+
+  test("the delete confirmation names the rule being deleted, scope and all", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(twoCallRules());
+
+    const deleteItem: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Delete Call for incidents for Major Incident",
+      }),
+    );
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      '"Call for incidents for Major Incident" stops being checked for everyone on this team.',
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(deleteItem.mock.calls[0]![0].id.toString()).toBe(MAJOR_CALL_ID);
+  });
+
+  test("the members section's filter chip names the scope too", async () => {
+    const status: TeamComplianceStatusJSON = twoCallRules();
+    status.complianceSettings[0]!.compliantCount = 0;
+    status.complianceSettings[0]!.nonCompliantCount = 1;
+    status.userComplianceStatuses[0]!.isCompliant = false;
+    status.userComplianceStatuses[0]!.nonCompliantRules = [
+      issue(status.complianceSettings[0]!, "No Call rule for Critical"),
+    ];
+
+    await renderPage(status);
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CRITICAL_CALL_ID}`),
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent("FailingCall for incidents for Critical Incident");
   });
 });
 
@@ -1362,6 +2055,18 @@ describe("an empty team: recommended rules", () => {
       "Incident on-call rules for every severity",
       "Verified phone for calls",
     ]);
+  });
+
+  test("the recommendations' heading is readable: AA contrast, not faint grey", async () => {
+    await renderPage(buildStatus());
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Recommended rules",
+    });
+
+    // gray-500 on white is 4.8:1; the gray-400 it was is 2.5:1.
+    expect(heading).toHaveClass("text-gray-500");
+    expect(heading).not.toHaveClass("text-gray-400");
   });
 
   test("Call for critical incidents opens the form prefilled with the most severe incident severity", async () => {
@@ -1606,6 +2311,77 @@ describe("from a rule to the members failing it", () => {
     expect(
       screen.getByTestId(`compliance-member-${JANE_ID}`),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Everyone failing a rule needs attention, so "Compliant" plus a rule
+   * filter is always nobody - "0 of 3 members" under a count that promised 1.
+   * Choosing Compliant drops the rule filter, wherever it is chosen.
+   */
+  test("choosing Compliant in the hero drops the rule filter", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    );
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show the 1 compliant member" }),
+    );
+
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("compliance-members-no-match"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("so does the members section's Compliant segment", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "1 of 3 members",
+    );
+    expect(
+      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("Needs attention keeps the rule filter: it narrows the same people", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`compliance-member-${OMAR_ID}`),
+    ).not.toBeInTheDocument();
   });
 
   test("once everybody passes the rule, the filter goes away", async () => {

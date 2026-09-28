@@ -185,6 +185,11 @@ interface StubRule {
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
+  // A method relation as the rule read joins it: just its owner.
+  userCall?: { userId?: ObjectID | undefined } | undefined;
+  userEmail?: { userId?: ObjectID | undefined } | undefined;
+  userSms?: { userId?: ObjectID | undefined } | undefined;
+  userWebhook?: { userId?: ObjectID | undefined } | undefined;
 }
 
 // A notification-method row (UserCall, UserPush, ...) as a method read hands it back.
@@ -390,6 +395,23 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userFindBy,
   ];
 }
+
+/*
+ * The owner of the method behind each of a rule's nine method relations,
+ * selected on the rule read itself - what the runtime checks before it sends
+ * anything on a rule.
+ */
+const METHOD_OWNER_SELECT: Record<string, unknown> = {
+  userCall: { userId: true },
+  userSms: { userId: true },
+  userPush: { userId: true },
+  userEmail: { userId: true },
+  userWhatsApp: { userId: true },
+  userTelegram: { userId: true },
+  userSlack: { userId: true },
+  userMicrosoftTeams: { userId: true },
+  userWebhook: { userId: true },
+};
 
 function stage(data: {
   settings?: Array<StubSetting> | undefined;
@@ -1452,6 +1474,7 @@ describe("on-call rules for one channel", () => {
       alertSeverityId: true,
       isOptOut: true,
       userCallId: true,
+      ...METHOD_OWNER_SELECT,
     });
     expect(call.sort).toEqual({ _id: SortOrder.Ascending });
     expect(call.limit).toBe(LIMIT_PER_PROJECT);
@@ -1494,6 +1517,7 @@ describe("on-call rules for one channel", () => {
       isOptOut: true,
       userCallId: true,
       userPushId: true,
+      ...METHOD_OWNER_SELECT,
     });
   });
 
@@ -1671,6 +1695,163 @@ describe("on-call rules for one channel", () => {
     },
   );
 
+  /*
+   * UserNotificationRuleService.executeNotificationRuleItem loads the owner of
+   * every one of a rule's nine methods and refuses the WHOLE rule - nothing
+   * is sent on any channel - when one of them is somebody else's. So a Call
+   * rule on Ada's own verified phone that also names Grace's email never
+   * rings Ada's phone. The owners are read the way the runtime reads them:
+   * joined on the rule read, which therefore stays ONE read.
+   */
+  test("a rule that also names another user's method on ANOTHER channel is refused, as the runtime refuses it", async () => {
+    stageCallRule({
+      rules: [
+        adaCallRule({
+          userCall: { userId: USER_ID },
+          userEmailId: ObjectID.generate(),
+          userEmail: { userId: OTHER_USER_ID },
+        }),
+      ],
+      methods: [{ _id: CALL_ID.toString(), userId: USER_ID, isVerified: true }],
+    });
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(reasonsOf(status, USER_ID)).toEqual([
+      "The Call rule for incident severities Critical is never sent, because another notification method on it belongs to a different user",
+    ]);
+
+    // Judged from the owners on the rule read: no other channel is read.
+    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
+    expect(userCallFindBy).toHaveBeenCalledTimes(1);
+    expect(userEmailFindBy).not.toHaveBeenCalled();
+  });
+
+  test("a method that no longer exists, or that is the member's own, is not a mismatch", async () => {
+    stageCallRule({
+      rules: [
+        adaCallRule({
+          userCall: { userId: USER_ID },
+          // Deleted email: the relation joins nothing.
+          userEmailId: ObjectID.generate(),
+          userSms: { userId: USER_ID },
+          userWebhook: {},
+        }),
+      ],
+      methods: [{ _id: CALL_ID.toString(), userId: USER_ID, isVerified: true }],
+    });
+
+    expect(statusOf(await read(), USER_ID).isCompliant).toBe(true);
+  });
+
+  test("a refused rule does not hide a working one for the same severity", async () => {
+    const secondPhone: ObjectID = ObjectID.generate();
+
+    stageCallRule({
+      rules: [
+        adaCallRule({
+          _id: "rule-refused",
+          userCallId: secondPhone,
+          userCall: { userId: USER_ID },
+          userWebhook: { userId: OTHER_USER_ID },
+        }),
+        adaCallRule({ userCall: { userId: USER_ID } }),
+      ],
+      methods: [
+        { _id: CALL_ID.toString(), userId: USER_ID, isVerified: true },
+        { _id: secondPhone.toString(), userId: USER_ID, isVerified: true },
+      ],
+    });
+
+    expect(statusOf(await read(), USER_ID).isCompliant).toBe(true);
+  });
+
+  /*
+   * The referenced method ids come from the members' own notification rules,
+   * which nothing caps, and an IN list costs one bind parameter per id -
+   * Postgres refuses a statement with more than 65,535. The lookup is
+   * therefore made METHOD_IDS_PER_READ ids at a time.
+   */
+  test("referenced methods are looked up a thousand ids at a time, and every chunk counts", async () => {
+    const methodIds: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 2500; index++) {
+      methodIds.push(ObjectID.generate());
+    }
+
+    // Ada's working rule points at the very last method referenced.
+    const rules: Array<StubRule> = methodIds.map(
+      (methodId: ObjectID, index: number): StubRule => {
+        return {
+          _id: `rule-${index}`,
+          userId: index === methodIds.length - 1 ? USER_ID : OTHER_USER_ID,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: CRITICAL_ID,
+          userCallId: methodId,
+        };
+      },
+    );
+
+    stageCallRule({ rules: rules, methods: [] });
+
+    const lastMethodId: string = methodIds[methodIds.length - 1]!.toString();
+
+    userCallFindBy.mockImplementation(((findBy: CapturedFindBy) => {
+      return Promise.resolve(
+        includedIds(findBy.query["_id"]).includes(lastMethodId)
+          ? [{ _id: lastMethodId, userId: USER_ID, isVerified: true }]
+          : [],
+      );
+    }) as never);
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    const reads: Array<CapturedFindBy> = callsOf(userCallFindBy);
+
+    expect(
+      reads.map((call: CapturedFindBy): number => {
+        return includedIds(call.query["_id"]).length;
+      }),
+    ).toEqual([1000, 1000, 500]);
+
+    for (const call of reads) {
+      expect(call.query["projectId"]).toBe(PROJECT_ID);
+      expect(call.props?.isRoot).toBe(true);
+    }
+
+    // Every id asked for exactly once, in the order the rules name them.
+    expect(
+      reads.flatMap((call: CapturedFindBy): Array<string> => {
+        return includedIds(call.query["_id"]);
+      }),
+    ).toEqual(
+      methodIds.map((methodId: ObjectID): string => {
+        return methodId.toString();
+      }),
+    );
+
+    expect(statusOf(status, USER_ID).isCompliant).toBe(true);
+  });
+
+  test("a thousand referenced methods are still ONE read", async () => {
+    const rules: Array<StubRule> = [];
+
+    for (let index: number = 0; index < 1000; index++) {
+      rules.push(
+        adaCallRule({ _id: `rule-${index}`, userCallId: ObjectID.generate() }),
+      );
+    }
+
+    stageCallRule({ rules: rules, methods: [] });
+
+    await read();
+
+    expect(userCallFindBy).toHaveBeenCalledTimes(1);
+    expect(includedIds(firstCall(userCallFindBy).query["_id"])).toHaveLength(
+      1000,
+    );
+  });
+
   test("rows of other rule types, other people or the other severity column cover nothing", async () => {
     /*
      * The read filters on rule type already; these rows are what a careless
@@ -1835,6 +2016,32 @@ describe("project channel switches", () => {
     expect(statusOf(status, USER_ID).isCompliant).toBe(true);
   });
 
+  /*
+   * Project.enableWhatsAppNotifications only stops members adding a WhatsApp
+   * number: WhatsAppService still sends to verified numbers with it off. So a
+   * WhatsApp rule never says members "will not be notified by WhatsApp".
+   */
+  test("WhatsApp switched off is no warning, and is not even read", async () => {
+    stage({
+      settings: [
+        setting({ ruleType: ComplianceRuleType.HasNotificationCallMethod }),
+        setting({ ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod }),
+      ],
+      members: [ADA],
+    });
+    projectFindOneById.mockResolvedValue({
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: false,
+    } as never);
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(
+      (projectFindOneById.mock.calls[0]![0] as CapturedFindOneById).select,
+    ).toEqual({ _id: true, enableCallNotifications: true });
+    expect(status.complianceSettings[1]!.warnings).toEqual([]);
+  });
+
   test("a switched-on channel warns about nothing", async () => {
     stage({
       settings: [
@@ -1892,6 +2099,17 @@ describe("project channel switches", () => {
     [
       "on-call rules for any channel",
       [setting({ ruleType: ComplianceRuleType.HasIncidentOnCallRules })],
+    ],
+    [
+      // Its switch does not stop pages being sent: see the test below.
+      "WhatsApp rules",
+      [
+        setting({ ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod }),
+        setting({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        }),
+      ],
     ],
     [
       "disabled Call and SMS rules",

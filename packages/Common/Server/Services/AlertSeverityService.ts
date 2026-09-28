@@ -5,10 +5,12 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import TeamComplianceSettingService from "./TeamComplianceSettingService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { ComplianceSeverityKind } from "../../Types/Team/ComplianceRule";
 import Model from "../../Models/DatabaseModels/AlertSeverity";
 import Queue, { QueueName } from "../Infrastructure/Queue";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -21,6 +23,14 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  */
 const BACKFILL_NOTIFICATION_RULES_JOB_NAME: string =
   "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities";
+
+// What a delete carries from onBeforeDelete to onDeleteSuccess.
+interface SeverityDeleteCarryForward {
+  // The deleted severity, for re-ranking the rest; signed-in deletes only.
+  alertSeverity: Model | null;
+  // Team compliance rules scoped only to severities this delete removes.
+  complianceSettingIds: Array<string>;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -113,24 +123,38 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    let alertSeverity: Model | null = null;
+    /*
+     * The severities this delete is about to remove, read while the team
+     * compliance rules scoped to them still say so: the join rows cascade
+     * away with the severity. See TeamComplianceSettingService.
+     */
+    const severities: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        _id: true,
+        order: true,
+        projectId: true,
+      },
+      limit: deleteBy.limit,
+      skip: deleteBy.skip,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (!deleteBy.props.isRoot) {
-      alertSeverity = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          projectId: true,
-        },
-      });
-    }
+    const carryForward: SeverityDeleteCarryForward = {
+      // Only a signed-in delete re-ranks the severities that remain.
+      alertSeverity: deleteBy.props.isRoot ? null : severities[0] || null,
+      complianceSettingIds:
+        await TeamComplianceSettingService.getRulesScopedOnlyTo({
+          severityKind: ComplianceSeverityKind.Alert,
+          severities: severities,
+        }),
+    };
 
     return {
       deleteBy,
-      carryForward: alertSeverity,
+      carryForward: carryForward,
     };
   }
 
@@ -140,7 +164,9 @@ export class Service extends DatabaseService<Model> {
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
-    const alertSeverity: Model | null = onDelete.carryForward;
+    const carryForward: SeverityDeleteCarryForward | null =
+      (onDelete.carryForward as SeverityDeleteCarryForward | null) || null;
+    const alertSeverity: Model | null = carryForward?.alertSeverity || null;
 
     if (!deleteBy.props.isRoot && alertSeverity) {
       if (alertSeverity && alertSeverity.order && alertSeverity.projectId) {
@@ -149,6 +175,29 @@ export class Service extends DatabaseService<Model> {
           alertSeverity.projectId,
           false,
         );
+      }
+    }
+
+    /*
+     * The severity is gone, so a compliance rule that was scoped only to it
+     * now reads as a rule for every alert severity. Pause it instead. The
+     * delete has already happened, so a failure here is logged rather than
+     * reported as a failed delete.
+     */
+    const complianceSettingIds: Array<string> =
+      carryForward?.complianceSettingIds || [];
+
+    if (complianceSettingIds.length > 0) {
+      try {
+        await TeamComplianceSettingService.pauseRulesLeftWithoutSeverities({
+          severityKind: ComplianceSeverityKind.Alert,
+          settingIds: complianceSettingIds,
+        });
+      } catch (err) {
+        logger.error(
+          "Could not pause the team compliance rules left without a severity by an alert severity delete. They now check every alert severity until they are edited.",
+        );
+        logger.error(err);
       }
     }
 

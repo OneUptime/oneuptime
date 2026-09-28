@@ -138,8 +138,16 @@ export const getValuesForRuleType: (
     ruleType: ruleType as TeamComplianceSetting["ruleType"],
   };
 
+  /*
+   * null, not undefined: the request body drops undefined keys, so an
+   * undefined channel never reaches the server and an edited rule keeps the
+   * channel it was saved with - even after the admin went to a method card
+   * and back, and the form showed "Any channel". null is sent, and clears it.
+   * (FormValues' types do not admit null for the column, which is nullable,
+   * hence Object.assign.)
+   */
   if (!ComplianceRule.supportsChannel(ruleType)) {
-    next.notificationChannel = undefined;
+    Object.assign(next, { notificationChannel: null });
   }
 
   const kind: ComplianceSeverityKind | undefined =

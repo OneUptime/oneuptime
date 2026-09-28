@@ -90,8 +90,26 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
     }
   };
 
-  const reload: () => Promise<void> = (): Promise<void> => {
+  const reload: () => Promise<boolean> = (): Promise<boolean> => {
     return compliance.reload();
+  };
+
+  /*
+   * The members section's status filter, from wherever it is chosen - the
+   * hero's counts or the section's own segments. "Compliant" and a rule
+   * filter can never both hold: everyone failing a rule needs attention, so
+   * the pair filters down to nobody under a count that promised somebody.
+   * Choosing Compliant drops the rule filter (the reverse of the guard in
+   * onShowFailing below).
+   */
+  const chooseMemberFilter: (filter: MemberStatusFilter) => void = (
+    filter: MemberStatusFilter,
+  ): void => {
+    setMemberFilter(filter);
+
+    if (filter === MemberStatusFilter.Compliant) {
+      setFailingRuleId(null);
+    }
   };
 
   if (!compliance.status) {
@@ -138,7 +156,7 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
         }}
         memberFilter={memberFilter}
         onShowMembers={(filter: MemberStatusFilter) => {
-          setMemberFilter(filter);
+          chooseMemberFilter(filter);
           scrollToMembers();
         }}
       />
@@ -170,7 +188,7 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
         <TeamComplianceStatusTable
           status={compliance.status}
           statusFilter={memberFilter}
-          onStatusFilterChange={setMemberFilter}
+          onStatusFilterChange={chooseMemberFilter}
           failingRuleId={failingRuleId}
           onClearFailingRule={() => {
             setFailingRuleId(null);

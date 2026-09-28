@@ -1,15 +1,21 @@
 import {
+  ComplianceSummary,
   MemberStatusCounts,
   MemberStatusFilter,
   SelfFix,
+  areAllRulesPaused,
   countMembersByStatus,
   filterMembers,
   getActiveRules,
   getMemberDisplayName,
   getMemberFirstName,
   getMemberIssueForRule,
+  getNextRuleSquareIndex,
+  getRuleLabel,
   getRuleTitle,
-  getSelfFix,
+  getSelfFixes,
+  getUnrecognisedRulesAdvice,
+  summarizeCompliance,
 } from "./ComplianceView";
 import UserElement from "@oneuptime/dashboard/Components/User/User";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
@@ -34,8 +40,10 @@ import Link from "Common/UI/Components/Link/Link";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -98,6 +106,137 @@ const STATUS_FILTER_OPTIONS: Array<{
   },
 ];
 
+interface MemberRuleResultsProps {
+  member: TeamMemberComplianceJSON;
+  // The active rules, in the rules card's order.
+  rules: Array<TeamComplianceRuleJSON>;
+  // The rule the list is narrowed to, whose square is picked out.
+  highlightedRuleId: string | null;
+}
+
+/*
+ * One square per active rule, in the rules card's order: a glance across a
+ * row says how close the member is, and hovering or focusing a square says
+ * which rule it is and - for a failure - why.
+ *
+ * The squares are ONE tab stop per member (a roving tabindex): with a stop
+ * per square, 25 members and 6 rules put 150 presses of Tab between a
+ * keyboard user and "Show more". Tab reaches the row's current square; the
+ * arrow keys, Home and End move between squares, and every square still opens
+ * its tooltip on focus - the only place a passing square names its rule.
+ */
+const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
+  props: MemberRuleResultsProps,
+): ReactElement => {
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const squareRefs: MutableRefObject<Array<HTMLSpanElement | null>> = useRef<
+    Array<HTMLSpanElement | null>
+  >([]);
+
+  const count: number = props.rules.length;
+  // A rule list that shrank under the stored square hands the stop back to the first.
+  const tabStopIndex: number = activeIndex < count ? activeIndex : 0;
+
+  const passing: number = props.rules.filter(
+    (rule: TeamComplianceRuleJSON): boolean => {
+      return !getMemberIssueForRule(props.member, rule.settingId);
+    },
+  ).length;
+
+  const moveFocus: (event: React.KeyboardEvent, index: number) => void = (
+    event: React.KeyboardEvent,
+    index: number,
+  ): void => {
+    const next: number | null = getNextRuleSquareIndex({
+      key: event.key,
+      current: index,
+      count: count,
+    });
+
+    if (next === null) {
+      // Not ours: Tab and the rest keep their normal meaning.
+      return;
+    }
+
+    event.preventDefault();
+    setActiveIndex(next);
+    squareRefs.current[next]?.focus();
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <ul
+        aria-label={`Rule results for ${getMemberDisplayName(props.member)}`}
+        data-testid="compliance-member-rule-results"
+        className="flex flex-wrap items-center gap-1"
+      >
+        {props.rules.map(
+          (rule: TeamComplianceRuleJSON, index: number): ReactElement => {
+            const issue: TeamComplianceIssueJSON | undefined =
+              getMemberIssueForRule(props.member, rule.settingId);
+            const ruleLabel: string = getRuleLabel(rule);
+            const label: string = issue
+              ? `${ruleLabel}: not met. ${issue.reason}`
+              : `${ruleLabel}: met`;
+            const isHighlighted: boolean =
+              props.highlightedRuleId === rule.settingId;
+
+            return (
+              <li key={rule.settingId} className="flex">
+                <Tooltip
+                  richContent={
+                    <div className="max-w-xs p-1 text-left">
+                      <p className="text-xs font-semibold text-gray-900">
+                        {ruleLabel}
+                      </p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
+                        {issue ? issue.reason : "Meets this rule."}
+                      </p>
+                    </div>
+                  }
+                  interactive={false}
+                >
+                  <span
+                    ref={(element: HTMLSpanElement | null) => {
+                      squareRefs.current[index] = element;
+                    }}
+                    tabIndex={index === tabStopIndex ? 0 : -1}
+                    role="img"
+                    aria-label={label}
+                    data-testid={`compliance-member-rule-${rule.settingId}`}
+                    data-result={issue ? "fail" : "pass"}
+                    onFocus={() => {
+                      setActiveIndex(index);
+                    }}
+                    onKeyDown={(event: React.KeyboardEvent) => {
+                      moveFocus(event, index);
+                    }}
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                      issue
+                        ? "bg-red-50 ring-red-200"
+                        : "bg-emerald-50 ring-emerald-200"
+                    } ${isHighlighted ? "outline outline-2 outline-offset-1 outline-indigo-500" : ""}`}
+                  >
+                    <Icon
+                      icon={issue ? IconProp.Close : IconProp.Check}
+                      className={`h-3 w-3 ${
+                        issue ? "text-red-600" : "text-emerald-600"
+                      }`}
+                    />
+                  </span>
+                </Tooltip>
+              </li>
+            );
+          },
+        )}
+      </ul>
+      <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+        {`${passing} of ${count}`}
+      </span>
+    </div>
+  );
+};
+
 const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -138,83 +277,6 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     );
   };
 
-  /*
-   * One square per active rule, in the rules card's order: a glance across a
-   * row says how close the member is, and hovering or focusing a square says
-   * which rule it is and - for a failure - why.
-   */
-  const getRuleResults: (member: TeamMemberComplianceJSON) => ReactElement = (
-    member: TeamMemberComplianceJSON,
-  ): ReactElement => {
-    const passing: number = activeRules.filter(
-      (rule: TeamComplianceRuleJSON): boolean => {
-        return !getMemberIssueForRule(member, rule.settingId);
-      },
-    ).length;
-
-    return (
-      <div className="flex items-center gap-2">
-        <ul
-          aria-label={`Rule results for ${getMemberDisplayName(member)}`}
-          data-testid="compliance-member-rule-results"
-          className="flex flex-wrap items-center gap-1"
-        >
-          {activeRules.map((rule: TeamComplianceRuleJSON): ReactElement => {
-            const issue: TeamComplianceIssueJSON | undefined =
-              getMemberIssueForRule(member, rule.settingId);
-            const title: string = getRuleTitle(rule);
-            const label: string = issue
-              ? `${title}: not met. ${issue.reason}`
-              : `${title}: met`;
-            const isHighlighted: boolean =
-              props.failingRuleId === rule.settingId;
-
-            return (
-              <li key={rule.settingId} className="flex">
-                <Tooltip
-                  richContent={
-                    <div className="max-w-xs p-1 text-left">
-                      <p className="text-xs font-semibold text-gray-900">
-                        {title}
-                      </p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
-                        {issue ? issue.reason : "Meets this rule."}
-                      </p>
-                    </div>
-                  }
-                  interactive={false}
-                >
-                  <span
-                    tabIndex={0}
-                    role="img"
-                    aria-label={label}
-                    data-testid={`compliance-member-rule-${rule.settingId}`}
-                    data-result={issue ? "fail" : "pass"}
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      issue
-                        ? "bg-red-50 ring-red-200"
-                        : "bg-emerald-50 ring-emerald-200"
-                    } ${isHighlighted ? "outline outline-2 outline-offset-1 outline-indigo-500" : ""}`}
-                  >
-                    <Icon
-                      icon={issue ? IconProp.Close : IconProp.Check}
-                      className={`h-3 w-3 ${
-                        issue ? "text-red-600" : "text-emerald-600"
-                      }`}
-                    />
-                  </span>
-                </Tooltip>
-              </li>
-            );
-          })}
-        </ul>
-        <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
-          {`${passing} of ${activeRules.length}`}
-        </span>
-      </div>
-    );
-  };
-
   const getStatusChip: (member: TeamMemberComplianceJSON) => ReactElement = (
     member: TeamMemberComplianceJSON,
   ): ReactElement => {
@@ -242,11 +304,13 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The way to the fix. The signed-in member gets a button to their own
-   * settings page for the first rule they fail. For anyone else, a viewer who
-   * may see that person's on-call setup gets a link to it (Users > View >
-   * On-call readiness, where the rules and methods can be repaired); everyone
-   * else gets no link to a page they could not open.
+   * The way to the fix. The signed-in member gets a link to each of their own
+   * settings pages that fixes something they fail - the notification methods
+   * page and the on-call rules page for a member failing one of each - once
+   * per page. For anyone else, a viewer who may see that person's on-call
+   * setup gets a link to it (Users > View > On-call readiness, where the rules
+   * and methods can be repaired); everyone else gets no link to a page they
+   * could not open.
    */
   const getFix: (member: TeamMemberComplianceJSON) => ReactElement = (
     member: TeamMemberComplianceJSON,
@@ -255,21 +319,28 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
       Boolean(props.currentUserId) && props.currentUserId === member.userId;
 
     if (isSelf) {
-      const fix: SelfFix = getSelfFix(member.nonCompliantRules[0]?.ruleType);
-
       /*
-       * A link, like everyone else's fix: it goes somewhere, and it should look
-       * and behave (middle-click, copy link) like the rows around it.
+       * Links, like everyone else's fix: they go somewhere, and they should
+       * look and behave (middle-click, copy link) like the rows around them.
        */
       return (
-        <Link
-          to={RouteUtil.populateRouteParams(RouteMap[fix.page] as Route)}
-          className={FIX_LINK_CLASS_NAME}
-        >
-          <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
-          <span data-testid="compliance-member-fix-self">{fix.title}</span>
-          <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
-        </Link>
+        <>
+          {getSelfFixes(member).map((fix: SelfFix): ReactElement => {
+            return (
+              <Link
+                key={fix.page}
+                to={RouteUtil.populateRouteParams(RouteMap[fix.page] as Route)}
+                className={FIX_LINK_CLASS_NAME}
+              >
+                <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
+                <span data-testid="compliance-member-fix-self">
+                  {fix.title}
+                </span>
+                <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+              </Link>
+            );
+          })}
+        </>
       );
     }
 
@@ -319,7 +390,11 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             />
           </div>
           <div className="flex flex-shrink-0 flex-wrap items-center gap-3 pl-11 sm:pl-0">
-            {getRuleResults(member)}
+            <MemberRuleResults
+              member={member}
+              rules={activeRules}
+              highlightedRuleId={props.failingRuleId}
+            />
             {getStatusChip(member)}
           </div>
         </div>
@@ -382,19 +457,27 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * With every rule paused nobody is being checked, and a list of green
+     * With no rule active nobody is being checked, and a list of green
      * "Compliant" chips would claim a clean bill of health nobody earned.
+     * "Paused" is only said when every rule is: a rule of a type this build
+     * does not recognise is ON, and telling the admin to turn it back on
+     * sends them to a switch that is already on.
      */
     if (activeRules.length === 0) {
+      const summary: ComplianceSummary = summarizeCompliance(props.status);
+      const nobody: string = `none of its ${members.length} ${
+        members.length === 1 ? "member is" : "members are"
+      } being checked`;
+
       return (
         <div
           data-testid="compliance-members-no-active-rules"
           className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center"
         >
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
-            {`Every rule on this team is paused, so none of its ${members.length} ${
-              members.length === 1 ? "member is" : "members are"
-            } being checked. Turn a rule back on to see who meets it.`}
+            {areAllRulesPaused(summary)
+              ? `Every rule on this team is paused, so ${nobody}. Turn a rule back on to see who meets it.`
+              : `No rule on this team can be checked right now, so ${nobody}. ${getUnrecognisedRulesAdvice(summary)}`}
           </p>
         </div>
       );
@@ -466,7 +549,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           >
             <span className="text-xs text-gray-500">Failing</span>
             <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 py-0.5 pl-2 pr-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-              {getRuleTitle(failingRule)}
+              {getRuleLabel(failingRule)}
               <button
                 type="button"
                 aria-label="Clear the rule filter"

@@ -72,6 +72,20 @@ type NotificationRuleMethodColumn = keyof UserNotificationRule &
     | "userWebhookId"
   );
 
+// The UserNotificationRule relation behind each of those columns.
+type NotificationRuleMethodRelation = keyof UserNotificationRule &
+  (
+    | "userCall"
+    | "userSms"
+    | "userPush"
+    | "userEmail"
+    | "userWhatsApp"
+    | "userTelegram"
+    | "userSlack"
+    | "userMicrosoftTeams"
+    | "userWebhook"
+  );
+
 /*
  * Where each channel's methods live. The nine method tables are different
  * models with the same three columns this file cares about (_id, userId,
@@ -81,6 +95,7 @@ type NotificationRuleMethodColumn = keyof UserNotificationRule &
 interface MethodChannelSource {
   service: DatabaseService<any>;
   ruleColumn: NotificationRuleMethodColumn;
+  ruleRelation: NotificationRuleMethodRelation;
   // False for webhooks, which have no verification step and no column for it.
   hasVerification: boolean;
 }
@@ -91,46 +106,55 @@ const METHOD_CHANNEL_SOURCES: Readonly<
   [ComplianceNotificationChannel.Call]: {
     service: UserCallService,
     ruleColumn: "userCallId",
+    ruleRelation: "userCall",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.SMS]: {
     service: UserSmsService,
     ruleColumn: "userSmsId",
+    ruleRelation: "userSms",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Push]: {
     service: UserPushService,
     ruleColumn: "userPushId",
+    ruleRelation: "userPush",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Email]: {
     service: UserEmailService,
     ruleColumn: "userEmailId",
+    ruleRelation: "userEmail",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.WhatsApp]: {
     service: UserWhatsAppService,
     ruleColumn: "userWhatsAppId",
+    ruleRelation: "userWhatsApp",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Telegram]: {
     service: UserTelegramService,
     ruleColumn: "userTelegramId",
+    ruleRelation: "userTelegram",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Slack]: {
     service: UserSlackService,
     ruleColumn: "userSlackId",
+    ruleRelation: "userSlack",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.MicrosoftTeams]: {
     service: UserMicrosoftTeamsService,
     ruleColumn: "userMicrosoftTeamsId",
+    ruleRelation: "userMicrosoftTeams",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Webhook]: {
     service: UserWebhookService,
     ruleColumn: "userWebhookId",
+    ruleRelation: "userWebhook",
     hasVerification: false,
   },
 };
@@ -142,6 +166,14 @@ const METHOD_CHANNEL_SOURCES: Readonly<
  * logged as an error, because a truncated read renders as fewer problems.
  */
 const MAX_PAGES_PER_READ: number = 500;
+
+/*
+ * The most method ids one read asks for. The ids come from the members' own
+ * notification rules, which nothing caps, and an IN list costs one bind
+ * parameter per id - Postgres refuses a statement with more than 65,535 - so
+ * one member with enough rules could otherwise break the page for everybody.
+ */
+export const METHOD_IDS_PER_READ: number = 1000;
 
 // Whatever a row's id arrives as: a model's `id` getter or a plain `_id`.
 interface RowWithId {
@@ -180,10 +212,12 @@ interface ChannelRuleData {
  *    responder set.
  *  - method rules: ONE read per channel of the members' verified methods.
  *  - on-call rules with a channel: the project's severities of the kinds
- *    needed, ONE read of the members' notification rules of the types needed,
- *    and ONE read per channel of the method rows those rules point at.
- *  - the project's channel switches, when a rule relies on Call, SMS, WhatsApp
- *    or Telegram: with the channel switched off for the project, a member who
+ *    needed, ONE read of the members' notification rules of the types needed
+ *    (with the owner of every method each rule names), and ONE read per
+ *    channel - per thousand referenced methods - of the method rows those
+ *    rules point at.
+ *  - the project's channel switches, when a rule relies on Call, SMS or
+ *    Telegram: with the channel switched off for the project, a member who
  *    meets the rule is still never notified that way, and the rule says so.
  *
  * TENANT SCOPING. Every read is made with `isRoot: true`, because this page
@@ -687,8 +721,12 @@ export default class TeamComplianceService {
   /*
    * ONE paged read of the members' notification rules of the types the
    * channel rules check, carrying just the columns needed to judge them: the
-   * severity columns, the opt-out flag and the method column of each channel
-   * being checked.
+   * severity columns, the opt-out flag, the method column of each channel
+   * being checked - and the OWNER of the method behind every one of the nine
+   * method relations, joined on the same read. The runtime selects exactly
+   * those owners too, and refuses the whole rule when any of them is not the
+   * rule's user (UserNotificationRuleService.executeNotificationRuleItem), so
+   * a Call rule that also names somebody else's email is never sent.
    */
   private static async loadNotificationRules(
     userIds: Array<ObjectID>,
@@ -706,6 +744,12 @@ export default class TeamComplianceService {
 
     for (const channel of plan.onCallChannels) {
       select[METHOD_CHANNEL_SOURCES[channel].ruleColumn] = true;
+    }
+
+    for (const source of Object.values(METHOD_CHANNEL_SOURCES)) {
+      (select as Record<string, unknown>)[source.ruleRelation] = {
+        userId: true,
+      };
     }
 
     const rows: Array<UserNotificationRule> =
@@ -755,6 +799,7 @@ export default class TeamComplianceService {
          */
         isOptOut: row.isOptOut === true,
         methodIds: methodIds,
+        hasForeignMethod: TeamComplianceService.hasForeignMethod(row, userId),
       });
     }
 
@@ -762,9 +807,38 @@ export default class TeamComplianceService {
   }
 
   /*
-   * The method rows the rules point at on one channel, in ONE read, scoped to
-   * this project. A rule pointing at a row that is not returned - deleted, or
-   * in another project - is a rule with no usable method.
+   * Exactly UserNotificationRuleService.getNotificationMethodsNotOwnedByRuleOwner:
+   * a relation counts only when its method row was loaded and names an owner,
+   * and that owner is not the rule's user. A method that no longer exists is
+   * not a mismatch, and - as at runtime - its project is not consulted.
+   */
+  private static hasForeignMethod(
+    row: UserNotificationRule,
+    ruleOwnerId: string,
+  ): boolean {
+    for (const source of Object.values(METHOD_CHANNEL_SOURCES)) {
+      const method: { userId?: ObjectID | string | undefined } | undefined =
+        row[source.ruleRelation] as
+          | { userId?: ObjectID | string | undefined }
+          | undefined;
+
+      const ownerId: string | undefined = TeamComplianceService.toIdString(
+        method?.userId,
+      );
+
+      if (ownerId && ownerId !== ruleOwnerId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * The method rows the rules point at on one channel, scoped to this
+   * project, in ONE read per METHOD_IDS_PER_READ ids (one read for any
+   * realistic team). A rule pointing at a row that is not returned - deleted,
+   * or in another project - is a rule with no usable method.
    */
   private static async loadReferencedMethods(
     channel: ComplianceNotificationChannel,
@@ -797,17 +871,28 @@ export default class TeamComplianceService {
       select["isVerified"] = true;
     }
 
-    const rows: Array<DatabaseBaseModel> =
-      await TeamComplianceService.readAllPages({
-        description: `${channel} notification methods referenced by notification rules`,
-        projectId: projectId,
-        service: source.service,
-        query: {
+    const rows: Array<DatabaseBaseModel> = [];
+
+    for (
+      let start: number = 0;
+      start < methodIds.length;
+      start += METHOD_IDS_PER_READ
+    ) {
+      rows.push(
+        ...(await TeamComplianceService.readAllPages({
+          description: `${channel} notification methods referenced by notification rules`,
           projectId: projectId,
-          _id: new Includes(methodIds),
-        },
-        select: select,
-      });
+          service: source.service,
+          query: {
+            projectId: projectId,
+            _id: new Includes(
+              methodIds.slice(start, start + METHOD_IDS_PER_READ),
+            ),
+          },
+          select: select,
+        })),
+      );
+    }
 
     for (const row of rows) {
       const methodId: string | undefined = TeamComplianceService.idOf(row);

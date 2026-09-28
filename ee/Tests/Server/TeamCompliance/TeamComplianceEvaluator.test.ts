@@ -617,7 +617,11 @@ describe("planLoads", () => {
   test.each<[ComplianceNotificationChannel, ProjectChannelSwitch | undefined]>([
     [ComplianceNotificationChannel.Call, "enableCallNotifications"],
     [ComplianceNotificationChannel.SMS, "enableSmsNotifications"],
-    [ComplianceNotificationChannel.WhatsApp, "enableWhatsAppNotifications"],
+    /*
+     * WhatsApp has a project switch, but the send path does not honour it,
+     * so it is not read: see PROJECT_CHANNEL_SWITCHES.
+     */
+    [ComplianceNotificationChannel.WhatsApp, undefined],
     [ComplianceNotificationChannel.Telegram, "enableTelegramNotifications"],
     [ComplianceNotificationChannel.Push, undefined],
     [ComplianceNotificationChannel.Email, undefined],
@@ -1280,6 +1284,110 @@ describe("on-call rules for one channel", () => {
       }),
     ).toBe(
       "The Call rule for incident severities Critical Incident points at an unverified phone number for calls",
+    );
+  });
+
+  /*
+   * The runtime checks the owner of ALL nine of a rule's methods before it
+   * sends anything, and refuses the whole rule when any one is somebody
+   * else's (UserNotificationRuleService.executeNotificationRuleItem). A Call
+   * rule on Ada's own verified phone that also names Grace's email therefore
+   * never rings Ada's phone - so it is not coverage for "Call for Critical".
+   */
+  test("a rule on the member's own verified method is NOT coverage when another method on it belongs to someone else", () => {
+    expect(
+      adaVerdict(CALL_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          { ...callRuleFor(CRITICAL), hasForeignMethod: true },
+        ],
+        methodsByChannel: methods(ComplianceNotificationChannel.Call, [
+          verifiedCall,
+        ]),
+      }),
+    ).toBe(
+      "The Call rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+    );
+  });
+
+  test("a refused rule is not coverage on any channel - a webhook rule included", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Webhook,
+          incidentSeverities: [CRITICAL],
+        }),
+        {
+          notificationRules: [
+            {
+              ...adaRuleFor({
+                ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+                kind: ComplianceSeverityKind.Incident,
+                severity: CRITICAL,
+                methodIds: {
+                  [ComplianceNotificationChannel.Webhook]: WEBHOOK_ID,
+                },
+              }),
+              hasForeignMethod: true,
+            },
+          ],
+          methodsByChannel: methods(ComplianceNotificationChannel.Webhook, [
+            { methodId: WEBHOOK_ID, userId: ADA, isVerified: true },
+          ]),
+        },
+      ),
+    ).toBe(
+      "The Webhook rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+    );
+  });
+
+  test("another rule for the severity that the runtime does send still covers it", () => {
+    expect(
+      adaVerdict(CALL_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          { ...callRuleFor(CRITICAL, CALL_ID_2), hasForeignMethod: true },
+          callRuleFor(CRITICAL, CALL_ID),
+        ],
+        methodsByChannel: methods(ComplianceNotificationChannel.Call, [
+          { methodId: CALL_ID_2, userId: ADA, isVerified: true },
+          verifiedCall,
+        ]),
+      }),
+    ).toBeNull();
+  });
+
+  test("the headings, in order: missing, then a broken method, then a refused rule, then an opt-out", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        }),
+        {
+          projectSeveritiesByKind: new Map<
+            ComplianceSeverityKind,
+            Array<ComplianceSeverityInput>
+          >([[ComplianceSeverityKind.Incident, [CRITICAL, MAJOR, MINOR]]]),
+          notificationRules: [
+            { ...callRuleFor(CRITICAL), hasForeignMethod: true },
+            callRuleFor(MAJOR, CALL_ID_2),
+            adaRuleFor({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+              kind: ComplianceSeverityKind.Incident,
+              severity: MINOR,
+              isOptOut: true,
+            }),
+          ],
+          methodsByChannel: methods(ComplianceNotificationChannel.Call, [
+            verifiedCall,
+            { methodId: CALL_ID_2, userId: ADA, isVerified: false },
+          ]),
+        },
+      ),
+    ).toBe(
+      "The Call rule for incident severities Major Incident points at an unverified phone number for calls. " +
+        "The Call rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user. " +
+        "Opted out of incident notifications for: Minor Incident",
     );
   });
 
@@ -2234,11 +2342,6 @@ describe("evaluate - rule warnings", () => {
     [ComplianceNotificationChannel.Call, "enableCallNotifications", "Call"],
     [ComplianceNotificationChannel.SMS, "enableSmsNotifications", "SMS"],
     [
-      ComplianceNotificationChannel.WhatsApp,
-      "enableWhatsAppNotifications",
-      "WhatsApp",
-    ],
-    [
       ComplianceNotificationChannel.Telegram,
       "enableTelegramNotifications",
       "Telegram",
@@ -2326,6 +2429,36 @@ describe("evaluate - rule warnings", () => {
         ComplianceNotificationChannel.SMS,
       ),
     ]);
+  });
+
+  /*
+   * Project.enableWhatsAppNotifications only stops members ADDING a WhatsApp
+   * number: WhatsAppService still sends to numbers already verified, and
+   * UserNotificationRuleService delivers WhatsApp rules without looking at
+   * it. Telling admins "members will not be notified by WhatsApp" would be
+   * the opposite of what happens, so a WhatsApp rule never warns about it.
+   */
+  test("WhatsApp switched off is not a warning: pages still go out through it", () => {
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [
+        rule({ ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod }),
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        }),
+      ],
+      projectSwitches: {
+        enableWhatsAppNotifications: false,
+      } as unknown as Partial<Record<ProjectChannelSwitch, boolean>>,
+    });
+
+    for (const complianceRule of result.complianceSettings) {
+      expect(complianceRule.warnings).toEqual([]);
+    }
+
+    expect(
+      PROJECT_CHANNEL_SWITCHES[ComplianceNotificationChannel.WhatsApp],
+    ).toBe(undefined);
   });
 
   test("channels with no project switch, and on-call rules for any channel, never warn", () => {

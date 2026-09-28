@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -47,6 +48,7 @@ import {
   issue,
   standardStatus,
 } from "./ComplianceFixtures";
+import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
   TeamComplianceRuleJSON,
@@ -207,15 +209,13 @@ describe("per-rule results", () => {
       `Verified email: not met. ${EMAIL_REASON}`,
     );
     expect(call).toHaveAttribute("data-result", "fail");
+    // Named with its scope, so two Call rules for different severities differ.
     expect(call).toHaveAttribute(
       "aria-label",
-      `Call for incidents: not met. ${CALL_REASON}`,
+      `Call for incidents for Critical Incident and Major Incident: not met. ${CALL_REASON}`,
     );
     expect(omarEmail).toHaveAttribute("data-result", "pass");
     expect(omarEmail).toHaveAttribute("aria-label", "Verified email: met");
-
-    // Keyboard users reach every square (the tooltip opens on focus).
-    expect(email).toHaveAttribute("tabindex", "0");
 
     const squares: Array<string> = within(
       within(row(JANE_ID)).getByTestId("compliance-member-rule-results"),
@@ -229,6 +229,98 @@ describe("per-rule results", () => {
       `compliance-member-rule-${EMAIL_RULE_ID}`,
       `compliance-member-rule-${CALL_RULE_ID}`,
     ]);
+  });
+
+  /*
+   * One tab stop per member, not one per square: 25 members and 6 rules made
+   * 150 presses of Tab before "Show more". The arrows, Home and End move
+   * between a member's squares, and each still opens its tooltip on focus -
+   * the only place a passing square names its rule.
+   */
+  test("a member's squares are one tab stop; the arrow keys move between them", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings.push(alertRule({ compliantCount: 3 }));
+
+    render(<Harness status={status} />);
+
+    const squares: Array<HTMLElement> = within(
+      within(row(JANE_ID)).getByTestId("compliance-member-rule-results"),
+    ).getAllByRole("img");
+
+    expect(squares).toHaveLength(3);
+    expect(
+      squares.map((square: HTMLElement): string | null => {
+        return square.getAttribute("tabindex");
+      }),
+    ).toEqual(["0", "-1", "-1"]);
+
+    // Across the whole list: one stop per member.
+    expect(
+      screen
+        .getAllByTestId("compliance-member-rule-results")
+        .map((results: HTMLElement): number => {
+          return results.querySelectorAll("[tabindex='0']").length;
+        }),
+    ).toEqual([1, 1, 1]);
+
+    act(() => {
+      squares[0]!.focus();
+    });
+    fireEvent.keyDown(squares[0]!, { key: "ArrowRight" });
+
+    expect(squares[1]).toHaveFocus();
+    expect(squares[1]).toHaveAttribute("tabindex", "0");
+    expect(squares[0]).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.keyDown(squares[1]!, { key: "End" });
+    expect(squares[2]).toHaveFocus();
+
+    // Clamped at the end, not wrapped.
+    fireEvent.keyDown(squares[2]!, { key: "ArrowRight" });
+    expect(squares[2]).toHaveFocus();
+
+    fireEvent.keyDown(squares[2]!, { key: "Home" });
+    expect(squares[0]).toHaveFocus();
+
+    fireEvent.keyDown(squares[0]!, { key: "ArrowLeft" });
+    expect(squares[0]).toHaveFocus();
+
+    // Tab is left to the browser.
+    const tab: boolean = fireEvent.keyDown(squares[0]!, { key: "Tab" });
+    expect(tab).toBe(true);
+
+    // Each row keeps its own stop.
+    expect(
+      within(row(OMAR_ID)).getByTestId(
+        `compliance-member-rule-${EMAIL_RULE_ID}`,
+      ),
+    ).toHaveAttribute("tabindex", "0");
+  });
+
+  test("a square reached by the arrow keys opens its tooltip", async () => {
+    jest.useFakeTimers();
+
+    try {
+      render(<Harness status={standardStatus()} />);
+
+      const squares: Array<HTMLElement> = within(
+        within(row(OMAR_ID)).getByTestId("compliance-member-rule-results"),
+      ).getAllByRole("img");
+
+      act(() => {
+        squares[0]!.focus();
+      });
+      fireEvent.keyDown(squares[0]!, { key: "ArrowRight" });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+
+      expect(squares[1]).toHaveFocus();
+      expect(screen.getByText(CALL_REASON, { selector: "p" })).toBeVisible();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test("a legend says what the squares mean, once", () => {
@@ -438,6 +530,72 @@ describe("filters and search", () => {
     expect(listedNames()).toHaveLength(3);
   });
 
+  test("the rule filter's chip names the rule with its scope", () => {
+    render(
+      <Harness status={standardStatus()} initialFailingRuleId={CALL_RULE_ID} />,
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent(
+      "FailingCall for incidents for Critical Incident and Major Incident",
+    );
+  });
+
+  /*
+   * Two rules of one type and channel, scoped to different severities: the
+   * same title, so every place that names one of them on its own needs the
+   * scope to tell them apart.
+   */
+  test("two Call rules for different severities get different names", () => {
+    const critical: TeamComplianceRuleJSON = callForIncidentsRule({
+      settingId: "call-critical",
+      severities: [{ id: "c", name: "Critical Incident" }],
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+    const major: TeamComplianceRuleJSON = callForIncidentsRule({
+      settingId: "call-major",
+      notificationChannel: ComplianceNotificationChannel.Call,
+      severities: [{ id: "m", name: "Major Incident" }],
+      compliantCount: 1,
+      nonCompliantCount: 0,
+    });
+
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [critical, major],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [issue(critical, "No Call rule for Critical")],
+            }),
+          ],
+        })}
+        initialFailingRuleId="call-critical"
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-rule-call-critical"),
+    ).toHaveAttribute(
+      "aria-label",
+      "Call for incidents for Critical Incident: not met. No Call rule for Critical",
+    );
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-rule-call-major"),
+    ).toHaveAttribute(
+      "aria-label",
+      "Call for incidents for Major Incident: met",
+    );
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent("FailingCall for incidents for Critical Incident");
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).not.toHaveTextContent("Major");
+  });
+
   test("a rule filter for a rule that is not listed shows no chip", () => {
     render(<Harness status={standardStatus()} initialFailingRuleId="gone" />);
 
@@ -523,6 +681,69 @@ describe("the way to the fix", () => {
     );
   });
 
+  /*
+   * Jane fails the email rule (created first) AND Call for incidents. One
+   * link to her notification methods left her no way to the on-call rules
+   * page the second failure needs.
+   */
+  test("a member failing a method rule and an on-call rule gets a link to each page", () => {
+    render(<Harness status={standardStatus()} currentUserId={JANE_ID} />);
+
+    expect(
+      within(row(JANE_ID))
+        .getAllByTestId("compliance-member-fix-self")
+        .map((link: HTMLElement): string => {
+          return link.textContent || "";
+        }),
+    ).toEqual([
+      "Open my notification methods",
+      "Open my incident on-call rules",
+    ]);
+    expect(
+      within(row(JANE_ID)).getByRole("link", {
+        name: /Open my incident on-call rules/,
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/incident-on-call-rules`,
+    );
+  });
+
+  test("two failures fixed on the same page get one link to it", () => {
+    const status: TeamComplianceStatusJSON = buildStatus({
+      complianceSettings: [
+        callForIncidentsRule(),
+        callForIncidentsRule({ settingId: "sms-incidents" }),
+        alertRule(),
+      ],
+      userComplianceStatuses: [
+        buildMember({
+          nonCompliantRules: [
+            issue(callForIncidentsRule(), CALL_REASON),
+            issue(
+              callForIncidentsRule({ settingId: "sms-incidents" }),
+              "No SMS rule",
+            ),
+            issue(alertRule(), "No alert rule"),
+          ],
+        }),
+      ],
+    });
+
+    render(<Harness status={status} currentUserId={JANE_ID} />);
+
+    expect(
+      within(row(JANE_ID))
+        .getAllByTestId("compliance-member-fix-self")
+        .map((link: HTMLElement): string => {
+          return link.textContent || "";
+        }),
+    ).toEqual([
+      "Open my incident on-call rules",
+      "Open my alert on-call rules",
+    ]);
+  });
+
   test("an admin gets a link to each member's on-call setup", () => {
     render(<Harness status={standardStatus()} canViewMemberSetup={true} />);
 
@@ -549,8 +770,8 @@ describe("the way to the fix", () => {
     );
 
     expect(
-      within(row(JANE_ID)).getByTestId("compliance-member-fix-self"),
-    ).toBeInTheDocument();
+      within(row(JANE_ID)).getAllByTestId("compliance-member-fix-self"),
+    ).toHaveLength(2);
     expect(
       within(row(JANE_ID)).queryByTestId("compliance-member-fix-link"),
     ).not.toBeInTheDocument();
@@ -636,6 +857,63 @@ describe("nothing to list", () => {
     expect(
       screen.getByTestId("compliance-members-no-active-rules"),
     ).toHaveTextContent("none of its 1 member is being checked");
+  });
+
+  /*
+   * An enabled rule of a type this build does not recognise is ON: "every
+   * rule is paused ... turn a rule back on" sends the admin to a switch that
+   * is already on.
+   */
+  test("an enabled rule of an unrecognised type is not called paused", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [
+            buildRule({
+              settingId: "pigeon",
+              ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+            }),
+          ],
+          userComplianceStatuses: [buildMember()],
+        })}
+      />,
+    );
+
+    const message: HTMLElement = screen.getByTestId(
+      "compliance-members-no-active-rules",
+    );
+
+    expect(message).toHaveTextContent(
+      "No rule on this team can be checked right now, so none of its 1 member is being checked. This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+    );
+    expect(message).not.toHaveTextContent("paused");
+    expect(message).not.toHaveTextContent("Turn a rule back on");
+  });
+
+  test("paused rules and an unrecognised one: says both, and what to do", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [
+            emailRule({ enabled: false }),
+            buildRule({
+              settingId: "pigeon",
+              ruleType: "HasCarrierPigeon" as ComplianceRuleType,
+            }),
+          ],
+          userComplianceStatuses: [
+            buildMember(),
+            buildMember({ userId: OMAR_ID }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toHaveTextContent(
+      "No rule on this team can be checked right now, so none of its 2 members are being checked. 1 rule is paused and 1 rule is of a type this version does not recognise. Turn a paused rule on, or replace the unrecognised one.",
+    );
   });
 
   test("a paused-only team hides stale failure reasons", () => {

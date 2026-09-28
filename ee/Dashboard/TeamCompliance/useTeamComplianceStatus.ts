@@ -46,8 +46,15 @@ export interface TeamComplianceStatusState {
    * failed over results that are still shown.
    */
   error: string;
-  // Never rejects - failures land in `error`.
-  reload: () => Promise<void>;
+  /*
+   * Reads again. Resolves once the NEWEST read has settled - its own, or one
+   * started after it - to true when that read put a fresh status on the
+   * page and false when it failed. So `await reload()` after a write means
+   * "the page now shows a status requested after the write", or "it could
+   * not be refreshed" - never "a newer read took over and nothing is known
+   * yet". Never rejects - failures land in `error`.
+   */
+  reload: () => Promise<boolean>;
 }
 
 const useTeamComplianceStatus: (
@@ -66,48 +73,82 @@ const useTeamComplianceStatus: (
    */
   const latestRequestId: MutableRefObject<number> = useRef<number>(0);
   const isMounted: MutableRefObject<boolean> = useRef<boolean>(true);
+  // The newest read, for callers whose own read was overtaken to wait on.
+  const latestRead: MutableRefObject<Promise<boolean> | null> =
+    useRef<Promise<boolean> | null>(null);
 
   const teamIdKey: string = teamId.toString();
 
-  const reload: () => Promise<void> = useCallback(async (): Promise<void> => {
-    latestRequestId.current += 1;
-    const requestId: number = latestRequestId.current;
+  // One read. True when it wrote a status; false when it failed or was overtaken.
+  const read: (requestId: number) => Promise<boolean> = useCallback(
+    async (requestId: number): Promise<boolean> => {
+      const isCurrent: () => boolean = (): boolean => {
+        return isMounted.current && requestId === latestRequestId.current;
+      };
 
-    const isCurrent: () => boolean = (): boolean => {
-      return isMounted.current && requestId === latestRequestId.current;
-    };
+      setIsLoading(true);
 
-    setIsLoading(true);
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get<JSONObject>({
+            url: getComplianceStatusUrl(new ObjectID(teamIdKey)),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-    try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: getComplianceStatusUrl(new ObjectID(teamIdKey)),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
 
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
+        if (!isCurrent()) {
+          return false;
+        }
+
+        setStatus(parseComplianceStatus((response.data || {}) as JSONObject));
+        setError("");
+
+        return true;
+      } catch (err) {
+        if (isCurrent()) {
+          setError(API.getFriendlyMessage(err as Error));
+        }
+
+        return false;
+      } finally {
+        if (isCurrent()) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [teamIdKey],
+  );
+
+  const reload: () => Promise<boolean> =
+    useCallback(async (): Promise<boolean> => {
+      latestRequestId.current += 1;
+
+      let awaited: Promise<boolean> = read(latestRequestId.current);
+      latestRead.current = awaited;
+
+      let applied: boolean = await awaited;
+
+      /*
+       * Overtaken: a newer read started while this one was in flight, and
+       * this one's answer was dropped. Wait for the newest instead - looping,
+       * as that one can be overtaken in turn - so a caller that saved
+       * something and awaits this never resumes on the status from BEFORE
+       * its save (a toggle would drop its "saving" state and snap back).
+       */
+      while (
+        isMounted.current &&
+        latestRead.current &&
+        latestRead.current !== awaited
+      ) {
+        awaited = latestRead.current;
+        applied = await awaited;
       }
 
-      if (!isCurrent()) {
-        return;
-      }
-
-      setStatus(parseComplianceStatus((response.data || {}) as JSONObject));
-      setError("");
-    } catch (err) {
-      if (!isCurrent()) {
-        return;
-      }
-
-      setError(API.getFriendlyMessage(err as Error));
-    } finally {
-      if (isCurrent()) {
-        setIsLoading(false);
-      }
-    }
-  }, [teamIdKey]);
+      return isMounted.current && applied;
+    }, [read]);
 
   useEffect(() => {
     isMounted.current = true;

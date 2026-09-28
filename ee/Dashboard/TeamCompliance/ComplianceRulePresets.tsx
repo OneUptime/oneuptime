@@ -167,7 +167,7 @@ const ComplianceRulePresets: FunctionComponent<ComponentProps> = (
     >
       <h3
         id="compliance-presets-heading"
-        className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+        className="text-xs font-semibold uppercase tracking-wide text-gray-500"
       >
         Recommended rules
       </h3>

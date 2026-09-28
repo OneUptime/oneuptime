@@ -1364,8 +1364,17 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       "incidentSeverityId",
       "isOptOut",
       "ruleType",
+      "userCall",
       "userCallId",
+      "userEmail",
       "userId",
+      "userMicrosoftTeams",
+      "userPush",
+      "userSlack",
+      "userSms",
+      "userTelegram",
+      "userWebhook",
+      "userWhatsApp",
     ]);
   });
 
