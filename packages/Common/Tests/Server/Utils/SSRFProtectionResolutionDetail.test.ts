@@ -12,6 +12,7 @@ import {
   test,
 } from "@jest/globals";
 import dns from "dns";
+import type { SpyInstance } from "jest-mock";
 import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
 /*
@@ -285,7 +286,7 @@ describe("SSRFProtection — how much a DNS-decided refusal says", () => {
 
   test("on SaaS the operator still learns the precise cause from the debug log", async () => {
     process.env[BILLING_ENV] = "true";
-    const debugSpy: jest.SpiedFunction<typeof logger.debug> = jest
+    const debugSpy: SpyInstance<typeof logger.debug> = jest
       .spyOn(logger, "debug")
       .mockImplementation((): void => {
         // Only the call is under test.
