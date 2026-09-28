@@ -284,13 +284,24 @@ if [ -n "$PODS" ]; then
       ev=$(kubectl get events -n "$NS" --field-selector "involvedObject.name=$pod" \
             -o jsonpath='{range .items[-3:]}{.reason}: {.message}{"\n"}{end}' 2>/dev/null | tail -3)
       [ -n "$ev" ] && printf '%s' "$ev" | while read -r l; do detail "$l"; done
+      # The Kubernetes AI agent's container is `ai-agent`, not otel-collector,
+      # and its image is the one a mirror most often lacks (it is the newest).
+      # A problem there never stops telemetry, so its advice says how to fix
+      # it or turn it off.
+      component=$(kubectl get pod "$pod" -n "$NS" -o jsonpath='{.metadata.labels.component}' 2>/dev/null)
+      container="otel-collector"
+      [ "$component" = "ai-agent" ] && container="ai-agent"
       case "$reason" in
         *CreateContainerConfigError*|*CreateContainerError*)
           add_finding "Pod $pod has a config error (often a missing/renamed Secret or key). Verify the api-key Secret exists — see the Token section." ;;
         *ImagePull*|*ErrImage*)
-          add_finding "Pod $pod cannot pull its image (ImagePullBackOff). Check image registry access / airgap mirror." ;;
+          if [ "$component" = "ai-agent" ]; then
+            add_finding "Pod $pod (Kubernetes AI agent) cannot pull oneuptime/kubernetes-ai-agent. Mirror it and set aiAgent.image.repository (and aiAgent.imagePullSecrets), or turn it off with --set aiAgent.enabled=false. Telemetry is not affected."
+          else
+            add_finding "Pod $pod cannot pull its image (ImagePullBackOff). Check image registry access / airgap mirror."
+          fi ;;
         *CrashLoop*)
-          add_finding "Pod $pod is CrashLooping. Inspect: kubectl logs -n $NS $pod -c otel-collector --previous" ;;
+          add_finding "Pod $pod is CrashLooping. Inspect: kubectl logs -n $NS $pod -c $container --previous" ;;
         *)
           [ "$phase" = "Pending" ] && add_finding "Pod $pod is Pending (no schedulable node / resources / tolerations). See events above." ;;
       esac
