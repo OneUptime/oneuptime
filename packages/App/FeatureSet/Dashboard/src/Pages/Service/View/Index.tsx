@@ -16,6 +16,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -369,6 +370,15 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const syncId: string = `service-${modelId.toString()}`;
 
+  /*
+   * A chart keeps its last lines on screen while a refresh or a zoom
+   * refetches; only the first load shows the skeleton. Every auto-refresh
+   * tick re-runs the metrics effect, and a chart swapped for its skeleton
+   * would throw away a drag-to-zoom the reader is in the middle of.
+   */
+  const spanChartsLoading: boolean = metricsLoading && !m;
+  const signalChartsLoading: boolean = metricsLoading && !logExceptionSignals;
+
   const charts: ReactElement = (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
@@ -385,7 +395,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         showLegend={true}
-        loading={metricsLoading}
+        loading={spanChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.requestsChart}
       />
       <ChartCard
@@ -403,7 +413,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         yFormatter={(n: number): string => {
           return formatDurationMs(n);
         }}
-        loading={metricsLoading}
+        loading={spanChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.latencyP95Chart}
       />
       <ChartCard
@@ -426,7 +436,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         showLegend={true}
-        loading={metricsLoading}
+        loading={signalChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.logsChart}
       />
       <ChartCard
@@ -449,7 +459,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         showLegend={true}
-        loading={metricsLoading}
+        loading={signalChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.exceptionsChart}
       />
       {runtimeCharts.map((chart: ProbedRuntimeChart): ReactElement => {
@@ -471,7 +481,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             yFormatter={(n: number): string => {
               return formatRuntimeValue(n, chart.def.unit);
             }}
-            loading={metricsLoading}
+            loading={metricsLoading && chart.series.length === 0}
             description={chart.def.description}
           />
         );
@@ -533,8 +543,16 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     { label: "Cloud Account ID", value: r.cloudAccountId },
   ];
 
+  /*
+   * Drag-to-zoom (issue #4105): a drag across any chart on the page sets
+   * the page's range to the window dragged out, and a double-click on any
+   * chart - or "Reset zoom" beside the picker - puts the range from before
+   * the zoom back. Every chart and tile is fetched from `timeRange`, so all
+   * of them follow; a zoomed (custom) range also stays put across
+   * auto-refresh ticks.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       <ResourceOverview
         icon={IconProp.SquareStack}
         title={(r.name as string) || "Service"}
@@ -732,7 +750,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelId: modelId,
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
