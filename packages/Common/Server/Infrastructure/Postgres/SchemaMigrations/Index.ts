@@ -20,6 +20,7 @@ import { AddStatusPageSubscriberUnsubscribeToken1795600000000 } from "./17956000
 import { AddStatusPageSubscriberIsAddedByTeam1795700000000 } from "./1795700000000-AddStatusPageSubscriberIsAddedByTeam";
 import { AddIncidentCustomFieldCreateAndNotificationSettings1795800000000 } from "./1795800000000-AddIncidentCustomFieldCreateAndNotificationSettings";
 import { AddSubscriberNotificationClaimedAt1795900000000 } from "./1795900000000-AddSubscriberNotificationClaimedAt";
+import { AddTeamComplianceRuleScope1796000000000 } from "./1796000000000-AddTeamComplianceRuleScope";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1240,4 +1241,5 @@ export default [
   AddStatusPageSubscriberIsAddedByTeam1795700000000,
   AddIncidentCustomFieldCreateAndNotificationSettings1795800000000,
   AddSubscriberNotificationClaimedAt1795900000000,
+  AddTeamComplianceRuleScope1796000000000,
 ];
