@@ -65,6 +65,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -666,10 +668,22 @@ const ProxmoxClusterOverview: FunctionComponent<
    * shared CounterRateUtils. Node/guest/storage series are split by
    * the `id` label prefix client-side (works with or without the
    * agent's pve.scope transform).
+   *
+   * A chart zoom, its reset, the picker and the auto-refresh timer can each
+   * start a load while another is in flight; only the most recently started
+   * one may commit, or a slow response for the window the reader just left
+   * would repaint the charts and tiles with it.
    */
+  const goldenLoadSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const loadGoldenMetrics: (clusterName: string) => Promise<void> = async (
     clusterName: string,
   ): Promise<void> => {
+    const seq: number = ++goldenLoadSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== goldenLoadSeqRef.current;
+    };
+
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -787,6 +801,10 @@ const ProxmoxClusterOverview: FunctionComponent<
           ),
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -1039,10 +1057,15 @@ const ProxmoxClusterOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
-      setGoldenError(API.getFriendlyMessage(err));
+      if (!isStale()) {
+        setGoldenError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsRefreshing(false);
-      setIsGoldenLoading(false);
+      // A superseded load leaves the spinner to the load that replaced it.
+      if (!isStale()) {
+        setIsRefreshing(false);
+        setIsGoldenLoading(false);
+      }
     }
   };
 
@@ -1856,9 +1879,14 @@ const ProxmoxClusterOverview: FunctionComponent<
       },
     };
 
+    /*
+     * Drag-to-zoom is named once, at the right of the section heading,
+     * while the pointer is over the section: four cards share a row, too
+     * narrow to hold the hint beside a title and the icon without wrapping.
+     */
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="group mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
               Cluster resource usage
@@ -1868,6 +1896,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               (network) over the selected time range
             </p>
           </div>
+          <TimeRangeZoomHint revealOnHover={true} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {renderChartCard({
@@ -2589,8 +2618,15 @@ const ProxmoxClusterOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out (the charts and the CPU / Memory tiles reload for it); a
+   * double-click on any chart, or Reset zoom beside the hero's picker, puts
+   * the range from before the zoom back. Inventory, health, replication and
+   * the linked Ceph card are the current state and stay as they are.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
 
       {/* Golden metrics — at-a-glance cluster health */}
@@ -2854,7 +2890,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

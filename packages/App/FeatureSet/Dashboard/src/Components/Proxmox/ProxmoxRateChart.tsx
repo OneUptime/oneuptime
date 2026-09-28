@@ -32,6 +32,10 @@ import {
   makeSeriesKeyFromAttributes,
   CounterRatePoint,
 } from "../../Utils/CounterRateUtils";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * Cumulative-counter → per-second-rate chart for Proxmox pages:
@@ -45,6 +49,12 @@ import {
  * fetched over the window, deltas are clamped at counter resets, and
  * per-bucket rates are summed across all matching series (e.g. across
  * all guests).
+ *
+ * Drag-to-zoom (issue #4105): the chart takes the zoom of whatever owns
+ * its window — the Insights page's scope, or the metrics card it sits in
+ * on the node and guest pages — so a drag here retimes everything that
+ * window drives, and a double-click puts it back. The window arrives
+ * through startDate / endDate like any other change of range.
  */
 
 export interface ProxmoxRateChartSeries {
@@ -75,6 +85,8 @@ const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // The zoom the chart itself takes; the empty state needs its reset.
+  const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
 
   const startMs: number = props.startDate.getTime();
   const endMs: number = props.endDate.getTime();
@@ -178,8 +190,17 @@ const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
   }
 
   if (series.length === 0) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart left to
+     * double-click; the empty box takes the double-click instead, so the
+     * way back is where the reader's pointer already is. The handler is
+     * only there while zoomed, so a stray double-click does nothing.
+     */
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+      <div
+        className="flex h-48 items-center justify-center text-sm text-gray-400"
+        onDoubleClick={zoom?.onTimeRangeReset}
+      >
         {props.emptyMessage || "No data reported for the selected time range."}
       </div>
     );
