@@ -227,8 +227,8 @@ export const getAllSeveritiesLabel: (
  * a warning line, the "Failing ..." chip, a member's result square. A team may
  * hold several rules of one type and channel - Call for Critical incidents
  * and Call for Major incidents - and the title alone names them all alike, so
- * an on-call rule's name carries its severity scope: "Call for incidents for
- * Critical Incident", "Incident on-call rules for all incident severities".
+ * an on-call rule's name carries its severity scope: "Call for incidents
+ * (Critical Incident)", "Incident on-call rules (all incident severities)".
  * The rules card's heading stays the short title; the sentence and the scope
  * chips under it already say the rest.
  */
@@ -242,16 +242,16 @@ export const getRuleLabel: (rule: TeamComplianceRuleJSON) => string = (
   }
 
   if (rule.appliesToAllSeverities || rule.severities.length === 0) {
-    return `${title} for ${getAllSeveritiesLabel(
+    return `${title} (${getAllSeveritiesLabel(
       rule.severityKind || ComplianceRule.getSeverityKind(rule.ruleType),
-    ).toLowerCase()}`;
+    ).toLowerCase()})`;
   }
 
-  return `${title} for ${joinAsProse(
+  return `${title} (${joinAsProse(
     rule.severities.map((severity: TeamComplianceSeverityJSON): string => {
       return severity.name || severity.id;
     }),
-  )}`;
+  )})`;
 };
 
 /*

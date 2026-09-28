@@ -160,7 +160,7 @@ const PAGE_PROPS: PageComponentProps = {
 
 // How the standard Call rule is named wherever it has to be told apart.
 const CALL_LABEL: string =
-  "Call for incidents for Critical Incident and Major Incident";
+  "Call for incidents (Critical Incident and Major Incident)";
 
 const CALL_WARNING: string =
   "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
@@ -1839,8 +1839,8 @@ describe("two rules of one type and channel", () => {
     ).toEqual(["Call for incidents", "Call for incidents"]);
 
     for (const [settingId, label] of [
-      [CRITICAL_CALL_ID, "Call for incidents for Critical Incident"],
-      [MAJOR_CALL_ID, "Call for incidents for Major Incident"],
+      [CRITICAL_CALL_ID, "Call for incidents (Critical Incident)"],
+      [MAJOR_CALL_ID, "Call for incidents (Major Incident)"],
     ] as Array<[string, string]>) {
       const row: HTMLElement = ruleRow(settingId);
 
@@ -1870,12 +1870,12 @@ describe("two rules of one type and channel", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Delete Call for incidents for Major Incident",
+        name: "Delete Call for incidents (Major Incident)",
       }),
     );
 
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      '"Call for incidents for Major Incident" stops being checked for everyone on this team.',
+      '"Call for incidents (Major Incident)" stops being checked for everyone on this team.',
     );
 
     await act(async () => {
@@ -1902,7 +1902,7 @@ describe("two rules of one type and channel", () => {
 
     expect(
       screen.getByTestId("compliance-members-rule-filter"),
-    ).toHaveTextContent("FailingCall for incidents for Critical Incident");
+    ).toHaveTextContent("FailingCall for incidents (Critical Incident)");
   });
 });
 

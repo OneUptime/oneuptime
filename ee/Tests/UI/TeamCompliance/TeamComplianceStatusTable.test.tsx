@@ -212,7 +212,7 @@ describe("per-rule results", () => {
     // Named with its scope, so two Call rules for different severities differ.
     expect(call).toHaveAttribute(
       "aria-label",
-      `Call for incidents for Critical Incident and Major Incident: not met. ${CALL_REASON}`,
+      `Call for incidents (Critical Incident and Major Incident): not met. ${CALL_REASON}`,
     );
     expect(omarEmail).toHaveAttribute("data-result", "pass");
     expect(omarEmail).toHaveAttribute("aria-label", "Verified email: met");
@@ -538,7 +538,7 @@ describe("filters and search", () => {
     expect(
       screen.getByTestId("compliance-members-rule-filter"),
     ).toHaveTextContent(
-      "FailingCall for incidents for Critical Incident and Major Incident",
+      "FailingCall for incidents (Critical Incident and Major Incident)",
     );
   });
 
@@ -580,17 +580,14 @@ describe("filters and search", () => {
       within(row(JANE_ID)).getByTestId("compliance-member-rule-call-critical"),
     ).toHaveAttribute(
       "aria-label",
-      "Call for incidents for Critical Incident: not met. No Call rule for Critical",
+      "Call for incidents (Critical Incident): not met. No Call rule for Critical",
     );
     expect(
       within(row(JANE_ID)).getByTestId("compliance-member-rule-call-major"),
-    ).toHaveAttribute(
-      "aria-label",
-      "Call for incidents for Major Incident: met",
-    );
+    ).toHaveAttribute("aria-label", "Call for incidents (Major Incident): met");
     expect(
       screen.getByTestId("compliance-members-rule-filter"),
-    ).toHaveTextContent("FailingCall for incidents for Critical Incident");
+    ).toHaveTextContent("FailingCall for incidents (Critical Incident)");
     expect(
       screen.getByTestId("compliance-members-rule-filter"),
     ).not.toHaveTextContent("Major");

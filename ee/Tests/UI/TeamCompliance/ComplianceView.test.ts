@@ -250,33 +250,33 @@ describe("rule presentation", () => {
 
     expect(getRuleTitle(critical)).toBe(getRuleTitle(major));
     expect(getRuleLabel(critical)).toBe(
-      "Call for incidents for Critical Incident",
+      "Call for incidents (Critical Incident)",
     );
-    expect(getRuleLabel(major)).toBe("Call for incidents for Major Incident");
+    expect(getRuleLabel(major)).toBe("Call for incidents (Major Incident)");
     expect(getRuleLabel(callForIncidentsRule())).toBe(
-      "Call for incidents for Critical Incident and Major Incident",
+      "Call for incidents (Critical Incident and Major Incident)",
     );
   });
 
   test("an unscoped on-call rule's label says every severity of its kind", () => {
     expect(getRuleLabel(alertRule())).toBe(
-      "Alert on-call rules for all alert severities",
+      "Alert on-call rules (all alert severities)",
     );
     // Selected severities all deleted: enforced as every severity, so named so.
     expect(
       getRuleLabel(
         callForIncidentsRule({ severities: [], appliesToAllSeverities: false }),
       ),
-    ).toBe("Call for incidents for all incident severities");
+    ).toBe("Call for incidents (all incident severities)");
     // The kind comes from the catalog when the payload leaves it out.
     expect(getRuleLabel(alertRule({ severityKind: null }))).toBe(
-      "Alert on-call rules for all alert severities",
+      "Alert on-call rules (all alert severities)",
     );
     expect(
       getRuleLabel(
         callForIncidentsRule({ severities: [{ id: "sev-1", name: "" }] }),
       ),
-    ).toBe("Call for incidents for sev-1");
+    ).toBe("Call for incidents (sev-1)");
   });
 
   test("method and unknown rules have no scope, so their label is their title", () => {
@@ -917,7 +917,7 @@ describe("rule warnings", () => {
     expect(groups).toHaveLength(1);
     // Named with its scope: two Call rules for different severities differ.
     expect(groups[0]!.title).toBe(
-      "Call for incidents for Critical Incident and Major Incident",
+      "Call for incidents (Critical Incident and Major Incident)",
     );
     expect(groups[0]!.warnings).toEqual([CALL_WARNING]);
     expect(groups[0]!.channel).toBe(ComplianceNotificationChannel.Call);
