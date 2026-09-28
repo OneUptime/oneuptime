@@ -22,7 +22,6 @@ import {
 } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
 
@@ -33,22 +32,89 @@ interface ChatItem {
   addedAt?: string | null;
 }
 
+type NamesOfGroupChatsFunction = (count: number) => string;
+
+const namesOfGroupChats: NamesOfGroupChatsFunction = (
+  count: number,
+): string => {
+  return count === 1
+    ? "the name of 1 group chat"
+    : `the names of ${count} group chats`;
+};
+
+type ReadIdsFunction = (value: unknown) => Array<string>;
+
+const readIds: ReadIdsFunction = (value: unknown): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item: unknown): item is string => {
+    return typeof item === "string" && Boolean(item);
+  });
+};
+
 const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
   const [chats, setChats] = useState<Array<ChatItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // A failed first load: there is no list to show.
   const [error, setError] = useState<string>("");
+  /*
+   * A failed Refresh Chats. The list that was already loaded stays up (with
+   * its Send Test buttons) under this message instead of being replaced.
+   */
+  const [refreshError, setRefreshError] = useState<string>("");
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [sendingTestCount, setSendingTestCount] = useState<number>(0);
+  /*
+   * Group chats whose name the last Refresh Chats could not read: Microsoft
+   * refused (the chat has not granted the permission), or the read failed.
+   */
+  const [namePermissionDeniedChatIds, setNamePermissionDeniedChatIds] =
+    useState<Array<string>>([]);
+  const [nameFailedChatIds, setNameFailedChatIds] = useState<Array<string>>([]);
+  /*
+   * What a screen reader hears when a refresh finishes. The list (and the
+   * notices in it) is swapped for a loader during every refresh, so a live
+   * region inside it would arrive already filled and go unannounced; this
+   * one stays mounted.
+   */
+  const [announcement, setAnnouncement] = useState<string>("");
 
-  const loadChats: PromiseVoidFunction = async (): Promise<void> => {
+  type LoadChatsFunction = (options?: {
+    refreshNames?: boolean | undefined;
+  }) => Promise<void>;
+
+  /*
+   * The first load only reads what is stored. Refresh Chats also asks
+   * Microsoft for the current name of every group chat, which is how a group
+   * chat listed by its members' names picks up its real name.
+   */
+  const loadChats: LoadChatsFunction = async (options?: {
+    refreshNames?: boolean | undefined;
+  }): Promise<void> => {
     try {
       setError("");
+      setRefreshError("");
       setIsLoading(true);
 
+      if (options?.refreshNames) {
+        setAnnouncement("");
+      }
+
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+        options?.refreshNames
+          ? await API.post<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute(
+                "/microsoft-teams/chats/refresh",
+              ),
+              data: {},
+              headers: ModelAPI.getCommonHeaders(),
+            })
+          : await API.get<JSONObject>({
+              url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/chats"),
+              headers: ModelAPI.getCommonHeaders(),
+            });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -72,8 +138,51 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
         });
 
       setChats(list);
+      setHasLoaded(true);
+
+      if (options?.refreshNames) {
+        const permissionDeniedChatIds: Array<string> = readIds(
+          data["chatNamePermissionDeniedChatIds"],
+        );
+        const failedChatIds: Array<string> = readIds(
+          data["chatNameFailedChatIds"],
+        );
+
+        setNamePermissionDeniedChatIds(permissionDeniedChatIds);
+        setNameFailedChatIds(failedChatIds);
+
+        let summary: string = "Chat names refreshed.";
+
+        if (permissionDeniedChatIds.length > 0) {
+          summary += ` Microsoft Teams did not let OneUptime read ${namesOfGroupChats(
+            permissionDeniedChatIds.length,
+          )}.`;
+        }
+
+        if (failedChatIds.length > 0) {
+          summary += ` OneUptime could not read ${namesOfGroupChats(
+            failedChatIds.length,
+          )} just now.`;
+        }
+
+        setAnnouncement(summary);
+      }
     } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Exception));
+      const message: string = API.getFriendlyErrorMessage(err as Exception);
+
+      if (options?.refreshNames && hasLoaded) {
+        setRefreshError(
+          `Chats could not be refreshed, so the list below may be out of date. ${message}`,
+        );
+      } else {
+        setError(message);
+      }
+
+      if (options?.refreshNames) {
+        setNamePermissionDeniedChatIds([]);
+        setNameFailedChatIds([]);
+        setAnnouncement(`Chats could not be refreshed. ${message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +227,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
               ? "Wait for the test notification to finish sending."
               : undefined,
           onClick: () => {
-            loadChats().catch((err: Exception) => {
+            loadChats({ refreshNames: true }).catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
             });
           },
@@ -126,9 +235,19 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
       ]}
     >
       <div className="mt-2">
+        <div className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </div>
+
         {isLoading && <ComponentLoader />}
 
         {!isLoading && error && <ErrorMessage message={error} />}
+
+        {!isLoading && !error && refreshError && (
+          <div className="mb-3">
+            <ErrorMessage message={refreshError} />
+          </div>
+        )}
 
         {!isLoading && !error && chats.length === 0 && (
           <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
@@ -260,9 +379,23 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                      * floor the control wraps onto its own line instead.
                      */}
                     <div className="min-w-[8rem] flex-1">
-                      <div className="font-medium text-gray-900 truncate">
+                      <div
+                        className="font-medium text-gray-900 truncate"
+                        title={chat.name}
+                      >
                         {chat.name}
                       </div>
+                      {namePermissionDeniedChatIds.includes(chat.id) && (
+                        <div className="text-xs text-amber-700">
+                          Microsoft Teams did not let OneUptime read this
+                          chat&apos;s name
+                        </div>
+                      )}
+                      {nameFailedChatIds.includes(chat.id) && (
+                        <div className="text-xs italic text-gray-600">
+                          This chat&apos;s name could not be read just now
+                        </div>
+                      )}
                       {chat.addedAt && (
                         <div className="text-xs text-gray-500">
                           Connected{" "}
@@ -298,6 +431,63 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 );
               })}
             </ul>
+            {namePermissionDeniedChatIds.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Microsoft Teams did not let OneUptime read{" "}
+                {namesOfGroupChats(namePermissionDeniedChatIds.length)} (marked
+                above), so{" "}
+                {namePermissionDeniedChatIds.length === 1
+                  ? "its name here may be out of date or built from its"
+                  : "their names here may be out of date or built from their"}{" "}
+                members. Teams shares a chat&apos;s name once the OneUptime app
+                in that chat asks for the{" "}
+                <span className="font-mono">ChatSettings.Read.Chat</span>{" "}
+                permission, which takes an update of the app in the chat.{" "}
+                {BILLING_ENABLED ? (
+                  <>
+                    When Teams offers an update for the OneUptime app in{" "}
+                    {namePermissionDeniedChatIds.length === 1
+                      ? "that chat"
+                      : "those chats"}
+                    , accept it, then click Refresh Chats. If you sideloaded the
+                    app, first download its manifest again (Download App
+                    Manifest for Sideloading, on this page once your own
+                    Microsoft Teams account is connected) and upload it to
+                    Microsoft Teams as an update.
+                  </>
+                ) : (
+                  <>
+                    Click Download App Manifest Zip on this page, upload the zip
+                    to Microsoft Teams as an update of the OneUptime app, accept
+                    the update in{" "}
+                    {namePermissionDeniedChatIds.length === 1
+                      ? "that chat"
+                      : "those chats"}
+                    , then click Refresh Chats. Or grant your app registration
+                    the{" "}
+                    <span className="font-mono">
+                      Chat.ReadBasic.WhereInstalled
+                    </span>{" "}
+                    application permission (with admin consent) to read every
+                    chat&apos;s name without updating the app in each chat; it
+                    can take up to an hour to take effect.
+                  </>
+                )}
+              </div>
+            )}
+            {nameFailedChatIds.length > 0 && (
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                OneUptime could not read{" "}
+                {namesOfGroupChats(nameFailedChatIds.length)} from Microsoft
+                Teams just now, so{" "}
+                {nameFailedChatIds.length === 1
+                  ? "it keeps its"
+                  : "they keep their"}{" "}
+                current name (marked above). Click Refresh Chats again later; if
+                it keeps happening, check the OneUptime server logs for
+                Microsoft Graph errors.
+              </div>
+            )}
             <p className="text-xs text-gray-500">
               To connect more chats, add the OneUptime app to a chat in
               Microsoft Teams and click Refresh Chats. Removing the app from a
