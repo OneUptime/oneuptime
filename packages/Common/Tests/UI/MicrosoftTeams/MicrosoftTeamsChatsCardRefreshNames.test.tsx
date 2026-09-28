@@ -148,16 +148,21 @@ const TEAMS_NAME: string = "Platform On-Call";
 
 const REFRESH_ROUTE: string = "/microsoft-teams/chats/refresh";
 
-const DENIED_MARKER: string = "Microsoft Teams did not share this chat's name";
+const DENIED_MARKER: string =
+  "Microsoft Teams did not let OneUptime read this chat's name";
 const FAILED_MARKER: string = "This chat's name could not be read just now";
 
 /*
  * Anchored on words only the notices carry. The live region repeats the
- * start of the permission sentence ("Microsoft Teams did not share the name
- * of ..."), so matching on that would find two elements.
+ * start of each sentence ("Microsoft Teams did not let OneUptime read ...",
+ * "OneUptime could not read ..."), so matching on that would find two
+ * elements.
  */
-const PERMISSION_NOTICE_TEXT: RegExp = /listed by member names/;
-const FAILED_NOTICE_TEXT: RegExp = /OneUptime could not read the name of/;
+const PERMISSION_NOTICE_TEXT: RegExp = /may be out of date or built from/;
+const FAILED_NOTICE_TEXT: RegExp = /from Microsoft Teams just now/;
+
+const REFRESH_ERROR_PREFIX: string =
+  "Chats could not be refreshed, so the list below may be out of date.";
 
 function groupChat(id: string, name: string): JSONObject {
   return { id: id, name: name, chatType: "groupChat", addedAt: null };
@@ -471,35 +476,73 @@ describe("MicrosoftTeamsChatsCard — a refresh that fails", () => {
       },
     ],
   ])(
-    "shows the error when the request %s, and says so to screen readers",
+    "keeps the loaded list, with its Send Test buttons, and shows the error above it when the request %s",
     async (_label: string, failingResponder: Responder) => {
       await renderCard();
       postResponder = failingResponder;
 
       await clickRefresh();
 
-      expect(screen.getByText(MESSAGE)).toBeInTheDocument();
-      // The error takes the list's place.
-      expect(screen.queryByRole("list")).not.toBeInTheDocument();
-      expect(screen.queryByText(MEMBER_NAME)).not.toBeInTheDocument();
+      expect(
+        screen.getByText(`${REFRESH_ERROR_PREFIX} ${MESSAGE}`),
+      ).toBeInTheDocument();
+      // The list that was loaded stays up, still usable.
+      expect(screen.getByRole("list")).toBeInTheDocument();
+      expect(
+        within(getRow(MEMBER_NAME)).getByRole("button", {
+          name: `Send test notification to ${MEMBER_NAME}`,
+        }),
+      ).toBeInTheDocument();
       expect(getLiveRegion().textContent).toBe(
-        `Chat names could not be refreshed. ${MESSAGE}`,
+        `Chats could not be refreshed. ${MESSAGE}`,
       );
     },
   );
 
-  test("the next Refresh Chats brings the list back", async () => {
+  test("when the first load failed too, the error stands alone: no empty-state guidance", async () => {
+    /*
+     * With nothing loaded there is no list to keep, and "No chats connected
+     * yet" would be a false statement about a list that could not be read.
+     */
+    getResponder = async (): Promise<ApiResult> => {
+      return new HTTPErrorResponse(500, { message: MESSAGE }, {});
+    };
+    await act(async (): Promise<void> => {
+      render(<MicrosoftTeamsChatsCard />);
+    });
+    await waitForLoaderToGo();
+    expect(screen.getByText(MESSAGE)).toBeInTheDocument();
+
+    postResponder = async (): Promise<ApiResult> => {
+      return new HTTPErrorResponse(500, { message: MESSAGE }, {});
+    };
+    await clickRefresh();
+
+    expect(screen.getByText(MESSAGE)).toBeInTheDocument();
+    expect(
+      screen.queryByText(`${REFRESH_ERROR_PREFIX} ${MESSAGE}`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No chats connected yet"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the next Refresh Chats clears the error", async () => {
     await renderCard();
     postResponder = async (): Promise<ApiResult> => {
       return new HTTPErrorResponse(503, { message: MESSAGE }, {});
     };
     await clickRefresh();
-    expect(screen.getByText(MESSAGE)).toBeInTheDocument();
+    expect(
+      screen.getByText(`${REFRESH_ERROR_PREFIX} ${MESSAGE}`),
+    ).toBeInTheDocument();
 
     postResponder = refreshResponse({});
     await clickRefresh();
 
-    expect(screen.queryByText(MESSAGE)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(`${REFRESH_ERROR_PREFIX} ${MESSAGE}`),
+    ).not.toBeInTheDocument();
     expect(getRow(TEAMS_NAME)).toBeInTheDocument();
     expect(getLiveRegion().textContent).toBe("Chat names refreshed.");
   });
@@ -606,7 +649,7 @@ describe("MicrosoftTeamsChatsCard — rows whose name could not be read are mark
     expect(screen.getAllByText(DENIED_MARKER)).toHaveLength(1);
     // One real id, so one chat - not the five entries sent.
     expect(getPermissionNotice()).toHaveTextContent(
-      "did not share the name of 1 group chat, so it is listed by member names",
+      "did not let OneUptime read the name of 1 group chat (marked above), so its name here may be out of date",
     );
   });
 });
@@ -632,7 +675,7 @@ describe("MicrosoftTeamsChatsCard — when Microsoft will not share chat names",
 
     const notice: HTMLElement = getPermissionNotice();
     expect(notice).toHaveTextContent(
-      "Microsoft Teams did not share the name of 1 group chat, so it is listed by member names (marked above).",
+      "Microsoft Teams did not let OneUptime read the name of 1 group chat (marked above), so its name here may be out of date or built from its members.",
     );
     expect(notice).toHaveTextContent(
       "once the OneUptime app in that chat asks for the ChatSettings.Read.Chat permission",
@@ -641,9 +684,9 @@ describe("MicrosoftTeamsChatsCard — when Microsoft will not share chat names",
       "Click Download App Manifest Zip on this page, upload the zip to Microsoft Teams as an update of the OneUptime app, accept the update in that chat, then click Refresh Chats.",
     );
     expect(notice).toHaveTextContent(
-      "Or grant your app registration the Chat.ReadBasic.WhereInstalled application permission (with admin consent)",
+      "Or grant your app registration the Chat.ReadBasic.WhereInstalled application permission (with admin consent) to read every chat's name without updating the app in each chat; it can take up to an hour to take effect.",
     );
-    expect(notice).not.toHaveTextContent("they are");
+    expect(notice).not.toHaveTextContent("their names");
     expect(notice).not.toHaveTextContent("those chats");
     // That button only exists on SaaS.
     expect(notice).not.toHaveTextContent(
@@ -667,12 +710,12 @@ describe("MicrosoftTeamsChatsCard — when Microsoft will not share chat names",
 
     const notice: HTMLElement = getPermissionNotice();
     expect(notice).toHaveTextContent(
-      "Microsoft Teams did not share the name of 3 group chats, so they are listed by member names (marked above).",
+      "Microsoft Teams did not let OneUptime read the names of 3 group chats (marked above), so their names here may be out of date or built from their members.",
     );
     expect(notice).toHaveTextContent(
       "accept the update in those chats, then click Refresh Chats.",
     );
-    expect(notice).not.toHaveTextContent("it is listed");
+    expect(notice).not.toHaveTextContent("its name here");
     expect(notice).not.toHaveTextContent("that chat,");
   });
 
@@ -688,7 +731,7 @@ describe("MicrosoftTeamsChatsCard — when Microsoft will not share chat names",
 
     const notice: HTMLElement = getPermissionNotice();
     expect(notice).toHaveTextContent(
-      "Microsoft Teams did not share the name of 1 group chat, so it is listed by member names (marked above).",
+      "Microsoft Teams did not let OneUptime read the name of 1 group chat (marked above), so its name here may be out of date or built from its members.",
     );
     expect(notice).toHaveTextContent("ChatSettings.Read.Chat");
     expect(notice).toHaveTextContent(
@@ -722,7 +765,7 @@ describe("MicrosoftTeamsChatsCard — when Microsoft will not share chat names",
 
     const notice: HTMLElement = getPermissionNotice();
     expect(notice).toHaveTextContent(
-      "did not share the name of 4 group chats, so they are listed by member names",
+      "did not let OneUptime read the names of 4 group chats (marked above), so their names here may be out of date",
     );
     expect(notice).toHaveTextContent(
       "When Teams offers an update for the OneUptime app in those chats, accept it",
@@ -763,7 +806,7 @@ describe("MicrosoftTeamsChatsCard — when a chat name could not be read for ano
     await clickRefresh();
 
     expect(getFailedNotice()).toHaveTextContent(
-      "OneUptime could not read the name of 1 group chat from Microsoft Teams just now, so it keeps its current name (marked above). Click Refresh Chats again in a few minutes.",
+      "OneUptime could not read the name of 1 group chat from Microsoft Teams just now, so it keeps its current name (marked above). Click Refresh Chats again later; if it keeps happening, check the OneUptime server logs for Microsoft Graph errors.",
     );
     // Nothing for an admin to fix, so no permission advice.
     expect(permissionNotice()).not.toBeInTheDocument();
@@ -780,7 +823,7 @@ describe("MicrosoftTeamsChatsCard — when a chat name could not be read for ano
 
     const notice: HTMLElement = getFailedNotice();
     expect(notice).toHaveTextContent(
-      "OneUptime could not read the name of 2 group chats from Microsoft Teams just now, so they keep their current name (marked above).",
+      "OneUptime could not read the names of 2 group chats from Microsoft Teams just now, so they keep their current name (marked above).",
     );
     expect(notice).not.toHaveTextContent("it keeps its");
   });
@@ -796,7 +839,7 @@ describe("MicrosoftTeamsChatsCard — when a chat name could not be read for ano
     await clickRefresh();
 
     expect(getPermissionNotice()).toHaveTextContent(
-      "did not share the name of 2 group chats",
+      "did not let OneUptime read the names of 2 group chats",
     );
     expect(getFailedNotice()).toHaveTextContent(
       "could not read the name of 1 group chat from",
@@ -843,14 +886,16 @@ describe("MicrosoftTeamsChatsCard — when the notices and markers go away", () 
     };
     await clickRefresh();
 
-    expect(screen.getByText("Graph is down.")).toBeInTheDocument();
+    expect(
+      screen.getByText(`${REFRESH_ERROR_PREFIX} Graph is down.`),
+    ).toBeInTheDocument();
     expect(permissionNotice()).not.toBeInTheDocument();
     expect(failedNotice()).not.toBeInTheDocument();
     expect(screen.queryByText(DENIED_MARKER)).not.toBeInTheDocument();
     expect(screen.queryByText(FAILED_MARKER)).not.toBeInTheDocument();
     // Nor does the summary still report the earlier refresh's counts.
     expect(getLiveRegion().textContent).toBe(
-      "Chat names could not be refreshed. Graph is down.",
+      "Chats could not be refreshed. Graph is down.",
     );
   });
 
@@ -931,7 +976,7 @@ describe("MicrosoftTeamsChatsCard — what a screen reader hears after Refresh C
     expect(region.isConnected).toBe(true);
     expect(getLiveRegion()).toBe(region);
     expect(region.textContent).toBe(
-      "Chat names refreshed. Microsoft Teams did not share the name of 1 group chat.",
+      "Chat names refreshed. Microsoft Teams did not let OneUptime read the name of 1 group chat.",
     );
   });
 
@@ -941,19 +986,19 @@ describe("MicrosoftTeamsChatsCard — what a screen reader hears after Refresh C
       "one name was refused",
       [DENIED_CHAT_ID],
       [],
-      "Chat names refreshed. Microsoft Teams did not share the name of 1 group chat.",
+      "Chat names refreshed. Microsoft Teams did not let OneUptime read the name of 1 group chat.",
     ],
     [
       "two names failed",
       [],
       [FAILED_CHAT_ID, "19:second@thread.v2"],
-      "Chat names refreshed. The name of 2 group chats could not be read just now.",
+      "Chat names refreshed. OneUptime could not read the names of 2 group chats just now.",
     ],
     [
       "names were both refused and failed",
       [DENIED_CHAT_ID, "19:second@thread.v2", "19:third@thread.v2"],
       [FAILED_CHAT_ID],
-      "Chat names refreshed. Microsoft Teams did not share the name of 3 group chats. The name of 1 group chat could not be read just now.",
+      "Chat names refreshed. Microsoft Teams did not let OneUptime read the names of 3 group chats. OneUptime could not read the name of 1 group chat just now.",
     ],
   ])(
     "summary when %s",

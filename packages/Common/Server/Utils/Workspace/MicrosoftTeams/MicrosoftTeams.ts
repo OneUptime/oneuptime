@@ -208,6 +208,13 @@ export interface MicrosoftTeamsChatNameUpdate {
 const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY: number = 5;
 
 /*
+ * Per-lookup ceiling. Concurrent refreshes of a project share one run, so a
+ * lookup that never answers would otherwise hold every later Refresh Chats
+ * for that project.
+ */
+const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_TIMEOUT_IN_MS: number = 15000;
+
+/*
  * Chat names are kept well under the 100-character ShortText columns that
  * store them in notification logs — Teams chat names can be much longer.
  */
@@ -4657,7 +4664,10 @@ All monitoring checks are passing normally.`;
       topic = storedChat?.topic; // not read this time: keep the last known name.
     }
 
-    let memberNames: Array<string> | undefined = storedChat?.memberNames;
+    let memberNames: Array<string> | undefined = storedChat?.memberNames?.slice(
+      0,
+      MICROSOFT_TEAMS_CHAT_NAME_MEMBERS_SHOWN,
+    );
     let memberCount: number | undefined = storedChat?.memberCount;
     let memberAadObjectIds: Array<string> =
       storedChat?.memberAadObjectIds || [];
@@ -5102,6 +5112,9 @@ All monitoring checks are passing normally.`;
    * any project connected to the tenant (bot activities identify the tenant,
    * not the project, and every project of a tenant yields the same Graph app
    * token), and the chat as it is stored now, so a re-capture builds on it.
+   *
+   * A failed read throws: capturing without knowing what is stored would
+   * overwrite a chat's real name with whatever this activity could supply.
    */
   private static async getTenantChatContext(data: {
     tenantId: string;
@@ -5113,40 +5126,33 @@ All monitoring checks are passing normally.`;
     let projectId: ObjectID | null = null;
     let storedChat: MicrosoftTeamsChat | undefined = undefined;
 
-    try {
-      const projectAuths: Array<WorkspaceProjectAuthToken> =
-        await WorkspaceProjectAuthTokenService.findBy({
-          query: {
-            workspaceType: WorkspaceType.MicrosoftTeams,
-            workspaceProjectId: data.tenantId,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            miscData: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-      for (const projectAuth of projectAuths) {
-        if (!projectId && projectAuth.projectId) {
-          projectId = projectAuth.projectId;
-        }
-
-        if (!storedChat) {
-          storedChat = (projectAuth.miscData as MicrosoftTeamsMiscData)
-            ?.availableChats?.[data.chatId];
-        }
+    for (const projectAuth of projectAuths) {
+      if (!projectId && projectAuth.projectId) {
+        projectId = projectAuth.projectId;
       }
-    } catch (err) {
-      logger.debug(
-        `Could not read the Microsoft Teams connections of tenant ${data.tenantId}:`,
-      );
-      logger.debug(err);
+
+      if (!storedChat) {
+        storedChat = (projectAuth.miscData as MicrosoftTeamsMiscData)
+          ?.availableChats?.[data.chatId];
+      }
     }
 
     return { projectId: projectId, storedChat: storedChat };
@@ -5191,6 +5197,9 @@ All monitoring checks are passing normally.`;
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
+          },
+          options: {
+            timeout: MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_TIMEOUT_IN_MS,
           },
         });
 
@@ -5254,8 +5263,9 @@ All monitoring checks are passing normally.`;
    * that was the removed Teams name. A chat whose name could not be read is
    * left as it is and reported, so the page can say why.
    *
-   * Concurrent refreshes of one project share a single run, so a held-down
-   * button costs one pass over the chats, not one per click.
+   * Concurrent refreshes of one project (within this App process) share a
+   * single run, so a held-down button costs one pass over the chats, not one
+   * per click.
    */
   public static async refreshChatNamesForProject(data: {
     projectId: ObjectID;
@@ -5369,16 +5379,17 @@ All monitoring checks are passing normally.`;
       });
     }
 
-    if (Object.keys(updates).length === 0) {
-      return result;
+    if (Object.keys(updates).length > 0) {
+      await this.renameChatsInProjectAuthTokens({
+        tenantId: tenantId,
+        chatNames: updates,
+      });
     }
 
-    await this.renameChatsInProjectAuthTokens({
-      tenantId: tenantId,
-      chatNames: updates,
-    });
-
-    // What is stored now: a chat removed while names were read is gone.
+    /*
+     * What is stored now, whether or not anything was renamed: a chat
+     * removed while names were being read is gone, and is not reported.
+     */
     result.chats = await this.getChatsForProject({
       projectId: data.projectId,
     });

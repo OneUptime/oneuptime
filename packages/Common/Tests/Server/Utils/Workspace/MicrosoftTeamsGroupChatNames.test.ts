@@ -1141,14 +1141,14 @@ describe("MicrosoftTeamsUtil.getTenantChatContext", () => {
     ).resolves.toEqual({ projectId: null, storedChat: undefined });
   });
 
-  test("a failed read is no project and no stored chat, not a throw", async () => {
+  test("a failed read throws: capturing blind would overwrite what is stored", async () => {
     jest
       .spyOn(WorkspaceProjectAuthTokenService, "findBy")
       .mockRejectedValue(new Error("db down"));
 
     await expect(
       tenantChatContext()({ tenantId: TENANT_ID, chatId: GROUP_CHAT_ID }),
-    ).resolves.toEqual({ projectId: null, storedChat: undefined });
+    ).rejects.toThrow("db down");
   });
 });
 
@@ -1244,6 +1244,26 @@ describe("chat capture reads the group chat's name from Graph", () => {
     });
     expect(savedChat().name).not.toContain("Contractor");
     expect(saveSpy.mock.calls[0]![0]).toMatchObject({ tenantId: TENANT_ID });
+  });
+
+  test("when the stored chat cannot be read, nothing is saved and Graph is not asked", async () => {
+    /*
+     * Saving without knowing what is stored would replace a chat's real name
+     * with whatever this activity could supply (e.g. member names).
+     */
+    mockIssueMembers();
+    tenantContextSpy.mockRejectedValue(new Error("db down"));
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    await addBot();
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(topicSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   test("the tenant's context is read for this chat, and Graph is asked with its project", async () => {
@@ -1821,6 +1841,16 @@ describe("MicrosoftTeamsUtil.getGroupChatTopicFromGraph", () => {
     expect(requestUrl()).not.toContain("?");
   });
 
+  test("the lookup has its own timeout, so a stalled read cannot hold a refresh", async () => {
+    apiGetSpy.mockResolvedValue(graphOk({ topic: TEAMS_NAME }));
+
+    await lookup();
+
+    const options: { timeout?: number } | undefined =
+      apiGetSpy.mock.calls[0]![0].options;
+    expect(options?.timeout).toBe(15000);
+  });
+
   test("uses the access token it is given, without fetching one", async () => {
     apiGetSpy.mockResolvedValue(graphOk({ topic: TEAMS_NAME }));
 
@@ -2186,7 +2216,7 @@ describe("MicrosoftTeamsUtil.refreshChatNamesForProject (Refresh Chats)", () => 
     expect(result.chats[GROUP_CHAT_ID]!.topic).toBe("Payments On-Call");
   });
 
-  test("nothing is written, or re-read, when the name and topic are already right", async () => {
+  test("nothing is written when the name and topic are already right (the list is still re-read)", async () => {
     storeChats([buildNamedChat()]);
     topics({ [GROUP_CHAT_ID]: FOUND });
 
@@ -2194,8 +2224,29 @@ describe("MicrosoftTeamsUtil.refreshChatNamesForProject (Refresh Chats)", () => 
 
     expect(renameSpy).not.toHaveBeenCalled();
     expect(updateSpy).not.toHaveBeenCalled();
-    expect(getChatsSpy).not.toHaveBeenCalled();
+    expect(getChatsSpy).toHaveBeenCalledTimes(1);
     expect(result.chats[GROUP_CHAT_ID]).toStrictEqual(buildNamedChat());
+  });
+
+  test("a chat removed mid-refresh is not returned even when nothing was written", async () => {
+    storeChats([
+      buildNamedChat(),
+      buildChat({ id: "19:removed@thread.v2", name: "Soon gone" }),
+    ]);
+    topicSpy.mockImplementation(
+      async (data: {
+        chatId: string;
+      }): Promise<MicrosoftTeamsChatTopicLookup> => {
+        // The bot is removed from the other chat while this one is read.
+        delete storedChats["19:removed@thread.v2"];
+        return data.chatId === GROUP_CHAT_ID ? FOUND : DENIED;
+      },
+    );
+
+    const result: MicrosoftTeamsChatNameRefreshResult = await refresh();
+
+    expect(renameSpy).not.toHaveBeenCalled();
+    expect(Object.keys(result.chats)).toEqual([GROUP_CHAT_ID]);
   });
 
   test("a chat already listed under its Teams name, but without the topic, gets the topic written", async () => {
@@ -2702,7 +2753,8 @@ describe("MicrosoftTeamsUtil.refreshChatNamesForProject (Refresh Chats)", () => 
     const second: MicrosoftTeamsChatNameRefreshResult = await refresh();
 
     expect(first).not.toBe(second);
-    expect(getProjectAuthSpy).toHaveBeenCalledTimes(2);
+    // Each run reads the connection, then re-reads the stored chats.
+    expect(getProjectAuthSpy).toHaveBeenCalledTimes(4);
     expect(topicSpy).toHaveBeenCalledTimes(2);
   });
 
