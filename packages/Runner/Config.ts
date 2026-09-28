@@ -45,8 +45,11 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
 export const IS_CLUSTER_SCOPED: boolean = HasClusterKey;
 
 /*
- * KUBERNETES-AGENT MODE: the Runner the kubernetes-agent Helm chart installs
- * next to the OpenTelemetry collector (aiAccess.enabled=true). It has no
+ * KUBERNETES-AGENT MODE (deprecated): the Runner that kubernetes-agent Helm
+ * charts 14.0.2–14.0.8 installed next to the OpenTelemetry collector
+ * (aiAccess.enabled=true). Newer charts install the Kubernetes AI agent
+ * (agents/KubernetesAIAgent, image oneuptime/kubernetes-ai-agent) instead;
+ * this mode keeps those older installs working until they upgrade. It has no
  * dashboard-issued id and key; it presents the project's telemetry ingestion
  * key (the same one the agent ships telemetry with) plus the cluster's name,
  * and the server issues it a Runner identity bound to that cluster. That is

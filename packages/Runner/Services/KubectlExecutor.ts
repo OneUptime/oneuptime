@@ -465,7 +465,7 @@ export default class KubectlExecutor {
         success: false,
         output: "",
         errorMessage:
-          "This kubectl command has no Kubernetes credential, and only the in-cluster Runner installed by the Kubernetes agent chart may run kubectl with its pod's own ServiceAccount — this Runner is not that Runner (or is not running inside a cluster). Bind a Kubernetes credential to this Runner on the cluster's AI page, or install the Kubernetes agent with --set aiAccess.enabled=true and select its Runner there.",
+          "This kubectl command has no Kubernetes credential, and only the in-cluster Runner installed by the Kubernetes agent chart may run kubectl with its pod's own ServiceAccount — this Runner is not that Runner (or is not running inside a cluster). Install the Kubernetes AI agent in that cluster (it ships with the Kubernetes agent chart: helm upgrade ... --reuse-values --set aiAgent.enabled=true), or reach the cluster through a Runner with a Kubernetes credential.",
       };
     }
 
@@ -500,7 +500,7 @@ export default class KubectlExecutor {
             jobClusterIdentifier || "(not specified)"
           }" but this Runner is the Kubernetes agent of cluster "${
             ownClusterIdentifier || "(not specified)"
-          }" and only runs credential-less kubectl for its own cluster. Check that the cluster's AI page points at the Runner the Kubernetes agent installed in that cluster (its ONEUPTIME_KUBERNETES_CLUSTER_NAME must match the cluster's identifier).`,
+          }" and only runs credential-less kubectl for its own cluster. Check that this Runner was installed in that cluster (its ONEUPTIME_KUBERNETES_CLUSTER_NAME must match the cluster's identifier), or upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces it.`,
         };
       }
     }
@@ -620,7 +620,7 @@ export default class KubectlExecutor {
         : `${KUBECTL_ALLOW_WRITES_ENV}="${setting}"`;
 
     if (KubernetesAgentMode.isActive()) {
-      return `Refused by the Runner: this Runner was installed read-only (${current}; only "true" allows writes). Upgrade the Kubernetes agent with --set aiAccess.remediation.enabled=true to allow OneUptime AI to change this cluster.`;
+      return `Refused by the Runner: this Runner was installed read-only (${current}; only "true" allows writes). Upgrade the Kubernetes agent chart — the Kubernetes AI agent replaces this Runner — with --set aiAgent.remediation.enabled=true to allow OneUptime AI to change this cluster.`;
     }
 
     return `Refused by the Runner: this Runner host does not allow AI-composed kubectl writes (${current}; when it is set, only "true" allows them). Set ${KUBECTL_ALLOW_WRITES_ENV}=true in this Runner's environment (or remove it) and restart it to let OneUptime AI change clusters through it; the Kubernetes credential's RBAC still bounds what it can do.`;
@@ -647,7 +647,7 @@ export default class KubectlExecutor {
         : `this Runner cannot tell for certain whether "${data.displayCommand}" changes a node (${data.uncertainty})`;
 
     if (KubernetesAgentMode.isActive()) {
-      return `Refused by the Runner: ${what}, and this Runner was installed without node operations (${current}; only "true" allows them). Upgrade the Kubernetes agent with --set aiAccess.remediation.nodeOperations=true to let OneUptime AI change nodes; other fixes are unaffected.`;
+      return `Refused by the Runner: ${what}, and this Runner was installed without node operations (${current}; only "true" allows them). Upgrade the Kubernetes agent chart — the Kubernetes AI agent replaces this Runner — with --set aiAgent.remediation.nodeOperations=true to let OneUptime AI change nodes; other fixes are unaffected.`;
     }
 
     return `Refused by the Runner: ${what}, and this Runner host does not allow AI-composed node operations (${current}; when it is set, only "true" allows them). Set ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}=true in this Runner's environment (or remove it) and restart it to let OneUptime AI change nodes through it; the Kubernetes credential's RBAC still bounds what it can do.`;

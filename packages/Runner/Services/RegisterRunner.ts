@@ -502,6 +502,16 @@ export default class Register {
     reason: string | null;
     hasServerReason: boolean;
   }): string {
+    /*
+     * Transient too, but not a wait for this Runner's predecessor: the
+     * cluster's Kubernetes AI agent — which replaces this Runner — is
+     * online. The server only refuses while it is, so a rolled-back chart
+     * (which stops the agent) lets this Runner register again.
+     */
+    if (data.reason === "superseded_by_ai_agent") {
+      return `Cluster "${data.clusterName}" is connected through the Kubernetes AI agent, which replaces this in-cluster Runner, so this Runner is not needed. Upgrade the Kubernetes agent chart (helm repo update, then helm upgrade ... --reuse-values) to remove it. The Runner keeps retrying in case the AI agent is removed.`;
+    }
+
     if (isTransientKubernetesAgentRegistrationRefusal(data.reason)) {
       return `The previous Runner instance for cluster "${data.clusterName}" still looks online — its pod was stopped without a clean shutdown (an OOM kill, a crash, a node loss), or another install uses the same clusterName. It is admitted automatically once that instance's last heartbeat is 5 minutes old, so no action is needed unless this keeps repeating for more than about 10 minutes (then check for a second install with the same clusterName).`;
     }
@@ -512,9 +522,9 @@ export default class Register {
 
     switch (data.reason) {
       case "runner_holds_more_than_defaults":
-        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner, or delete it and then select the fresh Runner this pod registers on the cluster's AI page as its Runner (a deleted Runner leaves the cluster with no Runner bound, and a fresh one never binds itself) — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner, or delete it — better still, upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
       case "runner_belongs_to_another_cluster":
-        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed) and then select the fresh Runner this pod registers on the cluster's AI page as its Runner, or give this install its own clusterName on the Kubernetes agent chart — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed), or give this install its own clusterName on the Kubernetes agent chart — better still, upgrade the chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
       default:
         if (data.reason) {
           return `The server refused the registration (reason "${data.reason}") and did not say that the refusal clears on its own, so an operator must act on what it says — the server's own words follow. ${retry}`;
@@ -662,8 +672,8 @@ export default class Register {
        */
       logger.warn(
         result.data["bindingState"] === "left_unbound_by_operator"
-          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it, or its Runner was deleted), so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`
-          : `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`,
+          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it, or its Runner was deleted), so OneUptime AI will not use this in-cluster Runner. Upgrade the Kubernetes agent chart to switch to the Kubernetes AI agent, which replaces it.`
+          : `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner. Upgrade the Kubernetes agent chart to switch to the Kubernetes AI agent, which replaces it.`,
         { runnerName: RUNNER_NAME } as LogAttributes,
       );
     }

@@ -374,7 +374,13 @@ describe("KubectlExecutor", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain("installed read-only");
-    expect(result.errorMessage).toContain("aiAccess.remediation.enabled=true");
+    /*
+     * The chart that installs this legacy Runner is superseded: the fix is
+     * the Kubernetes AI agent's write flag, which a chart upgrade brings.
+     */
+    expect(result.errorMessage).toContain("aiAgent.remediation.enabled=true");
+    expect(result.errorMessage).toContain("Kubernetes AI agent");
+    expect(result.errorMessage).not.toContain("aiAccess");
     expect(result.errorMessage).toContain(
       'ONEUPTIME_KUBECTL_ALLOW_WRITES="false"',
     );
@@ -419,6 +425,7 @@ describe("KubectlExecutor", () => {
         "ONEUPTIME_KUBECTL_ALLOW_WRITES=true",
       );
       expect(result.errorMessage).not.toContain("aiAccess");
+      expect(result.errorMessage).not.toContain("aiAgent");
       expect(result.errorMessage).not.toContain("helm");
       expect(result.errorMessage).not.toContain("Upgrade the Kubernetes agent");
       expect(childProcessMock.spawn).not.toHaveBeenCalled();
@@ -1488,8 +1495,9 @@ describe("KubectlExecutor", () => {
           expect(result.success).toBe(false);
           expect(result.errorMessage).toContain("node operation");
           expect(result.errorMessage).toContain(
-            "aiAccess.remediation.nodeOperations=true",
+            "aiAgent.remediation.nodeOperations=true",
           );
+          expect(result.errorMessage).not.toContain("aiAccess");
           expect(result.errorMessage).toContain(
             'ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS="false"',
           );
@@ -1535,6 +1543,7 @@ describe("KubectlExecutor", () => {
         "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true",
       );
       expect(result.errorMessage).not.toContain("aiAccess");
+      expect(result.errorMessage).not.toContain("aiAgent");
       expect(childProcessMock.spawn).not.toHaveBeenCalled();
     });
 
