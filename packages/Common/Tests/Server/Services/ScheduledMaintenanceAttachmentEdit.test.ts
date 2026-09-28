@@ -17,6 +17,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import logger, { LogAttributes } from "../../../Server/Utils/Logger";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -40,7 +41,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * The database is stubbed: the event before the write is served by a stub of
  * findBy, after it by findOneById, and its state timeline by the timeline
- * service's findBy.
+ * service's findBy. Every monitor carries the maintenance flag unless a test
+ * says otherwise (monitorsNotFlagged).
  */
 
 const DASHBOARD: string = "https://oneuptime.example/dashboard";
@@ -260,6 +262,21 @@ function carriedOf(
 let eventsBeforeWrite: Array<ScheduledMaintenance> = [];
 let eventsAfterWrite: Dictionary<ScheduledMaintenance> = {};
 let stateTimeline: Array<ScheduledMaintenanceStateTimeline> = [];
+/*
+ * Monitors without disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
+ * no event put them into maintenance, or one has released them already.
+ */
+let monitorsNotFlagged: Set<string> = new Set<string>();
+
+type MonitorFindBy = {
+  query: {
+    _id: unknown;
+    projectId: ObjectID;
+    disableActiveMonitoringBecauseOfScheduledMaintenanceEvent?: boolean;
+  };
+  select: JSONObject;
+  props: JSONObject;
+};
 
 let eventFindBy: jest.SpyInstance;
 let eventFindOneById: jest.SpyInstance;
@@ -319,6 +336,31 @@ function sectionLines(markdown: string, header: string): Array<string> | null {
   return end === -1 ? lines : lines.slice(0, end);
 }
 
+// The reads that name monitors for the feed, apart from the flag reads.
+function nameReads(): Array<MonitorFindBy> {
+  return monitorFindBy.mock.calls
+    .map((call: Array<unknown>): MonitorFindBy => {
+      return call[0] as MonitorFindBy;
+    })
+    .filter((findBy: MonitorFindBy): boolean => {
+      return Boolean(findBy.select["name"]);
+    });
+}
+
+// The reads of which detached monitors carry the maintenance flag.
+function flagReads(): Array<MonitorFindBy> {
+  return monitorFindBy.mock.calls
+    .map((call: Array<unknown>): MonitorFindBy => {
+      return call[0] as MonitorFindBy;
+    })
+    .filter((findBy: MonitorFindBy): boolean => {
+      return (
+        findBy.query
+          .disableActiveMonitoringBecauseOfScheduledMaintenanceEvent === true
+      );
+    });
+}
+
 function restoredMonitorIds(call: number = 0): Array<string> {
   return idsOf(
     (enableActiveMonitoring.mock.calls[call]![0] as ScheduledMaintenance)
@@ -345,6 +387,7 @@ beforeEach(() => {
   eventsBeforeWrite = [];
   eventsAfterWrite = {};
   stateTimeline = [];
+  monitorsNotFlagged = new Set<string>();
 
   eventFindBy = jest
     .spyOn(ScheduledMaintenanceService, "findBy")
@@ -414,14 +457,29 @@ beforeEach(() => {
     .spyOn(MonitorService, "changeMonitorStatus")
     .mockResolvedValue(undefined as never);
 
-  // Names only the project's own monitors, as the project-held read would.
+  /*
+   * Names only the project's own monitors, as the project-held read would,
+   * and answers the flag read with the flagged ones.
+   */
   monitorFindBy = jest
     .spyOn(MonitorService, "findBy")
-    .mockImplementation((async (findBy: {
-      query: { _id: unknown; projectId: ObjectID };
-    }): Promise<Array<Monitor>> => {
+    .mockImplementation((async (
+      findBy: MonitorFindBy,
+    ): Promise<Array<Monitor>> => {
       if (findBy.query.projectId?.toString() !== PROJECT_ID.toString()) {
         return [];
+      }
+
+      if (
+        findBy.query.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+      ) {
+        return idsInOperator(findBy.query._id)
+          .filter((id: string): boolean => {
+            return !monitorsNotFlagged.has(id);
+          })
+          .map((id: string): Monitor => {
+            return monitor(id);
+          });
       }
 
       return idsInOperator(findBy.query._id)
@@ -1009,6 +1067,8 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
         changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
       }),
     );
+    // The transition ran after the write, so it never reached B.
+    monitorsNotFlagged.add(MONITOR_B);
 
     // The transition itself holds the list attached at that moment.
     jest
@@ -1020,7 +1080,15 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
       currentScheduledMaintenanceStateId: new ObjectID(STATE_IDS["ongoing"]!),
     });
 
-    expectNoMonitorSideEffects();
+    // B was asked about, and is not forced into the operational status.
+    expect(flagReads()).toHaveLength(1);
+    expect(enableActiveMonitoring).not.toHaveBeenCalled();
+
+    // C is held again, which changes nothing the transition did.
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    expect(
+      idsOf(changeMonitorStatus.mock.calls[0]![1] as Array<ObjectID>),
+    ).toEqual([MONITOR_C]);
   });
 
   test("an event whose row the write skipped is left alone", async () => {
@@ -1511,6 +1579,535 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: the updated feed item", (
     expect(idsOf(restored.monitors)).toEqual([MONITOR_B]);
     expect(restored.projectId?.toString()).toBe(PROJECT_ID.toString());
 
-    expect(monitorFindBy).not.toHaveBeenCalled();
+    // The flag is read held to the event's project; no name is read.
+    expect(flagReads()[0]!.query.projectId.toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(nameReads()).toHaveLength(0);
+  });
+});
+
+describe("ScheduledMaintenanceService.onUpdateSuccess: which detached monitors are released", () => {
+  test("only a detached monitor still in maintenance is released", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_B, MONITOR_C],
+      }),
+    ];
+    afterWrite(maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A] }));
+    // Released already, by another event ending or a restore of its own.
+    monitorsNotFlagged.add(MONITOR_C);
+
+    await edit({ monitors: [{ _id: MONITOR_A }] });
+
+    expect(enableActiveMonitoring).toHaveBeenCalledTimes(1);
+    expect(restoredMonitorIds()).toEqual([MONITOR_B]);
+
+    // Both are still named in the feed: the edit detached both.
+    expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
+      `- [payments-api](${link(MONITOR_B)})`,
+      `- [search-api](${link(MONITOR_C)})`,
+    ]);
+  });
+
+  test("the flag is read as root, held to the project, for the detached monitors only", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    afterWrite(
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_C] }),
+    );
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(flagReads()).toHaveLength(1);
+
+    const flagRead: MonitorFindBy = flagReads()[0]!;
+
+    expect(idsInOperator(flagRead.query._id)).toEqual([MONITOR_B]);
+    expect(flagRead.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(flagRead.props).toEqual({ isRoot: true });
+  });
+
+  test("with no detached monitor in maintenance, nothing is released", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    afterWrite(maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A] }));
+    monitorsNotFlagged.add(MONITOR_B);
+
+    await edit({ monitors: [{ _id: MONITOR_A }] });
+
+    expect(enableActiveMonitoring).not.toHaveBeenCalled();
+    expect(feedItem).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The ChangeStateToOngoing job, or another request, can move the event
+ * between onBeforeUpdate's read and the write, or just after the write. The
+ * state before the write is then not the one the transition acted on, so
+ * neither list can be decided by it alone.
+ */
+describe("ScheduledMaintenanceService.onUpdateSuccess: a state change racing the edit", () => {
+  test("started between the read and the write: the detached monitor the start flagged is restored, the attached one held", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A, MONITOR_B],
+      }),
+    ];
+    // The start read [A, B], so B is flagged and C is not.
+    afterWrite(
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_C],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    // B would otherwise stay disabled for good.
+    expect(restoredMonitorIds()).toEqual([MONITOR_B]);
+    // C would otherwise be probed and alerting through the window.
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    expect(changeMonitorStatus).toHaveBeenCalledTimes(1);
+    expect(
+      idsOf(changeMonitorStatus.mock.calls[0]![1] as Array<ObjectID>),
+    ).toEqual([MONITOR_C]);
+    expect((changeMonitorStatus.mock.calls[0]![2] as ObjectID).toString()).toBe(
+      MAINTENANCE_STATUS_ID.toString(),
+    );
+  });
+
+  test("started just after the write: the detached monitor it never reached is left alone, the attached one held again", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A, MONITOR_B],
+      }),
+    ];
+    // The start read [A, C]: B was never flagged, C already is.
+    afterWrite(
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_C],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+    monitorsNotFlagged.add(MONITOR_B);
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    // B is not forced into the operational status over its real one.
+    expect(enableActiveMonitoring).not.toHaveBeenCalled();
+    // Idempotent with what the start did.
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    expect(changeMonitorStatus).toHaveBeenCalledTimes(1);
+  });
+
+  test("started and moved to a state of the project's own before the write: still held", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A, MONITOR_B],
+      }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "custom",
+        monitors: [MONITOR_A, MONITOR_C],
+      }),
+    );
+    stateTimeline = timelineOf(["scheduled", "ongoing", "custom"]);
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(restoredMonitorIds()).toEqual([MONITOR_B]);
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    // Asked once, after the write; the scheduled state answered before it.
+    expect(timelineFindBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("ended by another request just before the write: nothing is released twice, nothing new held", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    // The end read [A, B] and released both.
+    afterWrite(
+      maintenanceEvent({
+        state: "ended",
+        monitors: [MONITOR_A, MONITOR_C],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+    monitorsNotFlagged.add(MONITOR_A);
+    monitorsNotFlagged.add(MONITOR_B);
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(flagReads()).toHaveLength(1);
+    expect(enableActiveMonitoring).not.toHaveBeenCalled();
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+    expect(changeMonitorStatus).not.toHaveBeenCalled();
+  });
+
+  test("ended by another request just after the write: the detached monitor it no longer reached is released", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    // The end read [A, C]; B is still flagged.
+    afterWrite(
+      maintenanceEvent({
+        state: "ended",
+        monitors: [MONITOR_A, MONITOR_C],
+      }),
+    );
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(restoredMonitorIds()).toEqual([MONITOR_B]);
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  test("an event holding nothing on either side of the write reads no flag and touches nothing", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A, MONITOR_B],
+      }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A, MONITOR_C],
+      }),
+    );
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(flagReads()).toHaveLength(0);
+    expectNoMonitorSideEffects();
+  });
+});
+
+/*
+ * The write has committed by the time these run. A failure used to escape
+ * onUpdateSuccess: it stranded the monitors after the one that failed, and
+ * skipped the rest of the edit's effects, the feed item and every later
+ * event of a bulk update - and the saved update came back as an error.
+ */
+describe("ScheduledMaintenanceService.onUpdateSuccess: a failure after the write", () => {
+  let loggerError: jest.SpyInstance;
+
+  beforeEach(() => {
+    loggerError = jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  // Every error was logged against the event and its project.
+  function expectLoggedFor(scheduledMaintenanceId: string): void {
+    const attributes: Array<LogAttributes> = loggerError.mock.calls
+      .map((call: Array<unknown>): LogAttributes => {
+        return (call[1] || {}) as LogAttributes;
+      })
+      .filter((logAttributes: LogAttributes): boolean => {
+        return (
+          logAttributes["scheduledMaintenanceId"] === scheduledMaintenanceId
+        );
+      });
+
+    expect(attributes.length).toBeGreaterThan(0);
+
+    for (const logAttributes of attributes) {
+      expect(logAttributes.projectId).toBe(PROJECT_ID.toString());
+    }
+  }
+
+  test("restoring the detached monitors fails: the attached ones are still held, the sites re-rolled and the feed written", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_B],
+        networkSites: [SITE_1],
+      }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_C],
+        networkSites: [SITE_2],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+    enableActiveMonitoring.mockRejectedValue(
+      new Error("Could not acquire the status timeline lock") as never,
+    );
+
+    await expect(
+      edit({
+        monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }],
+        networkSites: [{ _id: SITE_2 }],
+      }),
+    ).resolves.toBeDefined();
+
+    expect(enableActiveMonitoring).toHaveBeenCalledTimes(1);
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    expect(changeMonitorStatus).toHaveBeenCalledTimes(1);
+    expect(
+      idsOf(
+        (recomputeSiteRollups.mock.calls[0]![0] as ScheduledMaintenance)
+          .networkSites,
+      ),
+    ).toEqual([SITE_1, SITE_2]);
+
+    expect(feedItem).toHaveBeenCalledTimes(1);
+    expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
+      `- [payments-api](${link(MONITOR_B)})`,
+    ]);
+    expect(sectionLines(feedMarkdown(), ADDED_HEADER)).toEqual([
+      `- [search-api](${link(MONITOR_C)})`,
+    ]);
+
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("reading which detached monitors are in maintenance fails: the attached ones are still held and the feed written", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    afterWrite(
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_C] }),
+    );
+
+    const namesOnly: (findBy: MonitorFindBy) => Promise<Array<Monitor>> =
+      monitorFindBy.getMockImplementation() as (
+        findBy: MonitorFindBy,
+      ) => Promise<Array<Monitor>>;
+
+    monitorFindBy.mockImplementation((async (
+      findBy: MonitorFindBy,
+    ): Promise<Array<Monitor>> => {
+      if (
+        findBy.query.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+      ) {
+        throw new Error("connection reset");
+      }
+
+      return await namesOnly(findBy);
+    }) as never);
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(enableActiveMonitoring).not.toHaveBeenCalled();
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
+    expect(feedItem).toHaveBeenCalledTimes(1);
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("putting one attached monitor into maintenance fails: the others are still held, and the feed written", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A] }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_C, MONITOR_D],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+
+    monitorUpdateOneById.mockImplementation((async (updateOneById: {
+      id: ObjectID;
+    }): Promise<void> => {
+      if (updateOneById.id.toString() === MONITOR_C) {
+        throw new Error("connection reset");
+      }
+    }) as never);
+
+    await edit({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }, { _id: MONITOR_D }],
+    });
+
+    // Both were tried; D went all the way.
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C, MONITOR_D]);
+    expect(changeMonitorStatus).toHaveBeenCalledTimes(1);
+    expect(
+      idsOf(changeMonitorStatus.mock.calls[0]![1] as Array<ObjectID>),
+    ).toEqual([MONITOR_D]);
+
+    expect(sectionLines(feedMarkdown(), ADDED_HEADER)).toEqual([
+      `- [search-api](${link(MONITOR_C)})`,
+      `- [auth-api](${link(MONITOR_D)})`,
+    ]);
+
+    const monitorAttributes: Array<LogAttributes> = loggerError.mock.calls
+      .map((call: Array<unknown>): LogAttributes => {
+        return (call[1] || {}) as LogAttributes;
+      })
+      .filter((logAttributes: LogAttributes): boolean => {
+        return Boolean(logAttributes["monitorId"]);
+      });
+    expect(monitorAttributes.length).toBeGreaterThan(0);
+    expect(monitorAttributes[0]!["monitorId"]).toBe(MONITOR_C);
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("the status change of one attached monitor fails: the others still get it", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A] }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "ongoing",
+        monitors: [MONITOR_A, MONITOR_C, MONITOR_D],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+    changeMonitorStatus.mockRejectedValueOnce(
+      new Error("Could not acquire the status timeline lock") as never,
+    );
+
+    await edit({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }, { _id: MONITOR_D }],
+    });
+
+    expect(flaggedMonitorIds()).toEqual([MONITOR_C, MONITOR_D]);
+    expect(changeMonitorStatus).toHaveBeenCalledTimes(2);
+    expect(
+      changeMonitorStatus.mock.calls
+        .map((call: Array<unknown>): Array<string> => {
+          return idsOf(call[1] as Array<ObjectID>);
+        })
+        .flat()
+        .sort(),
+    ).toEqual([MONITOR_C, MONITOR_D]);
+    expect(feedItem).toHaveBeenCalledTimes(1);
+  });
+
+  test("one event of a bulk update failing leaves the next one to its edit and its feed item", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({
+        id: EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_A],
+      }),
+      maintenanceEvent({
+        id: SECOND_EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_B],
+      }),
+    ];
+    afterWrite(
+      maintenanceEvent({ id: EVENT_ID, state: "ongoing", monitors: [] }),
+    );
+    afterWrite(
+      maintenanceEvent({
+        id: SECOND_EVENT_ID,
+        state: "ongoing",
+        monitors: [],
+      }),
+    );
+
+    enableActiveMonitoring.mockImplementation((async (
+      scheduledMaintenance: ScheduledMaintenance,
+    ): Promise<void> => {
+      if (scheduledMaintenance.id?.toString() === EVENT_ID) {
+        throw new Error("connection reset");
+      }
+    }) as never);
+
+    await edit(
+      { monitors: [] },
+      {
+        query: { projectId: PROJECT_ID },
+        updatedItemIds: [EVENT_ID, SECOND_EVENT_ID],
+      },
+    );
+
+    expect(enableActiveMonitoring).toHaveBeenCalledTimes(2);
+    expect(restoredMonitorIds(1)).toEqual([MONITOR_B]);
+    expect(
+      (
+        enableActiveMonitoring.mock.calls[1]![0] as ScheduledMaintenance
+      ).id?.toString(),
+    ).toBe(SECOND_EVENT_ID);
+
+    // Each event still records its own edit.
+    expect(feedItem).toHaveBeenCalledTimes(2);
+    expect(sectionLines(feedMarkdown(0), REMOVED_HEADER)).toEqual([
+      `- [checkout-web](${link(MONITOR_A)})`,
+    ]);
+    expect(sectionLines(feedMarkdown(1), REMOVED_HEADER)).toEqual([
+      `- [payments-api](${link(MONITOR_B)})`,
+    ]);
+
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("the event cannot be read back: nothing is acted on, and the rest of the edit is still recorded", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    eventFindOneById.mockRejectedValue(new Error("connection reset") as never);
+
+    await edit({
+      title: "Database upgrade",
+      monitors: [{ _id: MONITOR_A }],
+    });
+
+    expectNoMonitorSideEffects();
+    expect(feedItem).toHaveBeenCalledTimes(1);
+    expect(feedMarkdown()).toContain("Database upgrade");
+    expect(feedMarkdown()).not.toContain(REMOVED_HEADER);
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("whether the event holds its monitors after the write cannot be read: nothing new is held, the detached ones are still restored", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "custom", monitors: [MONITOR_A, MONITOR_B] }),
+    ];
+    afterWrite(
+      maintenanceEvent({
+        state: "custom",
+        monitors: [MONITOR_A, MONITOR_C],
+        changeMonitorStatusToId: MAINTENANCE_STATUS_ID,
+      }),
+    );
+
+    // Read before the write; the read after it fails.
+    timelineFindBy
+      .mockResolvedValueOnce(
+        timelineOf(["scheduled", "ongoing", "custom"]) as never,
+      )
+      .mockRejectedValueOnce(new Error("connection reset") as never);
+
+    await edit({ monitors: [{ _id: MONITOR_A }, { _id: MONITOR_C }] });
+
+    expect(timelineFindBy).toHaveBeenCalledTimes(2);
+    expect(restoredMonitorIds()).toEqual([MONITOR_B]);
+    // Left probed rather than disabled with nothing to restore it.
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+    expect(changeMonitorStatus).not.toHaveBeenCalled();
+    expect(feedItem).toHaveBeenCalledTimes(1);
+    expectLoggedFor(EVENT_ID);
+  });
+
+  test("naming the changed monitors fails: the feed item is still written for the rest", async () => {
+    eventsBeforeWrite = [
+      maintenanceEvent({ state: "scheduled", monitors: [MONITOR_A] }),
+    ];
+    afterWrite(maintenanceEvent({ state: "scheduled" }));
+    monitorFindBy.mockRejectedValue(new Error("connection reset") as never);
+
+    await edit({ title: "Database upgrade", monitors: [] });
+
+    expect(feedItem).toHaveBeenCalledTimes(1);
+    expect(feedMarkdown()).toContain("Database upgrade");
+    expect(feedMarkdown()).not.toContain(REMOVED_HEADER);
+    expectLoggedFor(EVENT_ID);
   });
 });

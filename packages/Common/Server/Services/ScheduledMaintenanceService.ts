@@ -127,10 +127,10 @@ const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
 /*
  * What onBeforeUpdate hands to onUpdateSuccess for one event the update
  * matched: the lists the event held just before the write, and what its
- * state meant for them. The before-state is what decides a removal, because
- * it says whether this event was holding the monitor in maintenance - the
- * state after the write can differ when the same update also moves the
- * event.
+ * state meant for them. The state after the write can differ - the same
+ * update can move the event, and so can the ChangeStateToOngoing job or
+ * another request between this read and the write - so
+ * applyAttachmentChangeToEvent weighs both.
  *
  * Only the ids the event held are kept, not the ids the payload asked for.
  * The write drops list entries it cannot read as an id (see
@@ -894,12 +894,14 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
           // Only monitors are held; sites follow the live state.
           attachmentsBeforeUpdate.wasHoldingMonitorsBeforeUpdate =
-            await this.isHoldingMonitorsInMaintenance({
-              scheduledMaintenanceId: scheduledMaintenanceEvent.id,
-              projectId: scheduledMaintenanceEvent.projectId,
-              currentState:
-                scheduledMaintenanceEvent.currentScheduledMaintenanceState,
-            });
+            await ScheduledMaintenanceStateTimelineService.isScheduledMaintenanceHoldingMonitors(
+              {
+                scheduledMaintenanceId: scheduledMaintenanceEvent.id,
+                projectId: scheduledMaintenanceEvent.projectId,
+                currentState:
+                  scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+              },
+            );
         } else {
           attachmentsBeforeUpdate.networkSiteIdsBeforeUpdate = this.getIdsNotIn(
             {
@@ -914,83 +916,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     return carryForward;
-  }
-
-  /*
-   * Whether the event is holding its monitors in maintenance: it has moved
-   * to an ongoing state and not since to an ended or resolved one. That is
-   * what the state transitions leave behind - entering ongoing disables the
-   * attached monitors, entering ended or resolved restores them, and a state
-   * a project added itself (say "Verifying", between Ongoing and Ended)
-   * does neither, so an event sitting in one still holds whatever it held
-   * while ongoing. Asking isOngoingState alone would treat that event like a
-   * scheduled one, and a monitor detached from it would stay disabled.
-   *
-   * The built-in kinds answer from the state itself. Only a project's own
-   * state costs a read: the event's timeline, replayed in order the way the
-   * transitions applied it (states only ever move forward).
-   */
-  private async isHoldingMonitorsInMaintenance(data: {
-    scheduledMaintenanceId: ObjectID;
-    projectId: ObjectID | undefined;
-    currentState: ScheduledMaintenanceState | undefined;
-  }): Promise<boolean> {
-    const currentState: ScheduledMaintenanceState | undefined =
-      data.currentState;
-
-    if (!currentState || !data.projectId) {
-      return false;
-    }
-
-    if (currentState.isOngoingState) {
-      return true;
-    }
-
-    if (
-      currentState.isScheduledState ||
-      currentState.isEndedState ||
-      currentState.isResolvedState
-    ) {
-      return false;
-    }
-
-    const timeline: Array<ScheduledMaintenanceStateTimeline> =
-      await ScheduledMaintenanceStateTimelineService.findBy({
-        query: {
-          scheduledMaintenanceId: data.scheduledMaintenanceId,
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          scheduledMaintenanceState: STATE_KIND_SELECT,
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    let isHolding: boolean = false;
-
-    for (const timelineItem of timeline) {
-      const timelineState: ScheduledMaintenanceState | undefined =
-        timelineItem.scheduledMaintenanceState;
-
-      if (timelineState?.isOngoingState) {
-        isHolding = true;
-      } else if (
-        timelineState?.isEndedState ||
-        timelineState?.isResolvedState
-      ) {
-        isHolding = false;
-      }
-    }
-
-    return isHolding;
   }
 
   /*
@@ -2176,9 +2101,14 @@ ${scheduledMaintenance.description || "No description provided."}
    * transitions did for the rest.
    *
    * Monitors are acted on while the event holds them (see
-   * isHoldingMonitorsInMaintenance): a scheduled event picks up its list
-   * when it starts, and an ended one has nothing held. Network sites are
-   * suppressed only while the event is live in an ongoing state.
+   * ScheduledMaintenanceStateTimelineService.isScheduledMaintenanceHoldingMonitors):
+   * a scheduled event picks up its list when it starts, and an ended one
+   * has nothing held. Network sites are suppressed only while the event is
+   * live in an ongoing state.
+   *
+   * The write has already committed, so nothing here may undo it or turn it
+   * into an error. Each step fails on its own, and each monitor within a
+   * step, logged; the steps after it still run.
    */
   private async applyAttachmentChangeToEvent(data: {
     scheduledMaintenanceId: ObjectID;
@@ -2194,85 +2124,99 @@ ${scheduledMaintenance.description || "No description provided."}
       return;
     }
 
-    /*
-     * Restored exactly as ending the event restores its monitors, which
-     * already skips a monitor another ongoing event still holds. This event
-     * no longer counts: the write has already removed the monitor from it.
-     */
-    if (
-      attachmentsBeforeUpdate.wasHoldingMonitorsBeforeUpdate &&
-      change.monitorsRemoved.length > 0
-    ) {
-      const eventWithRemovedMonitors: Model = new Model(
-        data.scheduledMaintenanceId,
-      );
-      eventWithRemovedMonitors.projectId = projectId;
-      eventWithRemovedMonitors.monitors = change.monitorsRemoved.map(
-        (monitorId: ObjectID): Monitor => {
-          return new Monitor(monitorId);
-        },
-      );
+    const logAttributes: LogAttributes = {
+      projectId: projectId.toString(),
+      scheduledMaintenanceId: data.scheduledMaintenanceId.toString(),
+    } as LogAttributes;
 
-      await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
-        eventWithRemovedMonitors,
-      );
+    const wasHoldingMonitorsBeforeUpdate: boolean =
+      attachmentsBeforeUpdate.wasHoldingMonitorsBeforeUpdate;
+
+    /*
+     * Whether the event holds its monitors now, as read back after the write
+     * and after any state change the same update made. The state can also
+     * move between onBeforeUpdate's read and the write - the
+     * ChangeStateToOngoing job starting the event, or another request
+     * changing its state - so the state before the write cannot decide
+     * either list alone. Read only when it can change what happens.
+     *
+     * If it cannot be read, nothing new is held: a monitor probed through
+     * the window is better than one disabled with nothing to restore it.
+     */
+    let isHoldingMonitorsAfterUpdate: boolean = false;
+
+    if (
+      change.eventAfterUpdate &&
+      (change.monitorsAdded.length > 0 ||
+        (change.monitorsRemoved.length > 0 && !wasHoldingMonitorsBeforeUpdate))
+    ) {
+      try {
+        isHoldingMonitorsAfterUpdate =
+          await ScheduledMaintenanceStateTimelineService.isScheduledMaintenanceHoldingMonitors(
+            {
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              projectId: projectId,
+              currentState:
+                change.eventAfterUpdate.currentScheduledMaintenanceState,
+            },
+          );
+      } catch (err) {
+        logger.error(
+          `ScheduledMaintenanceService.applyAttachmentChangeToEvent: could not read whether scheduled maintenance ${data.scheduledMaintenanceId.toString()} holds its monitors after the update; holding none of the monitors it attached.`,
+          logAttributes,
+        );
+        logger.error(err, logAttributes);
+      }
     }
 
     /*
-     * Held after the write too, as read back: the same update can set the
-     * status to apply, or move the event to ended - in which case the
-     * transition has already restored the whole list and there is nothing
-     * to hold.
+     * A detached monitor is released if the event held its monitors on
+     * either side of the write: before it, or after it when the event
+     * started in between and the transition flagged the list it read then,
+     * which may still have had this monitor on it. Only the monitors
+     * actually flagged are released (see restoreMonitorsDetachedFromEvent).
      */
-    const scheduledMaintenanceEvent: Model | null = change.eventAfterUpdate;
-
     if (
-      attachmentsBeforeUpdate.wasHoldingMonitorsBeforeUpdate &&
-      change.monitorsAdded.length > 0 &&
-      scheduledMaintenanceEvent
+      change.monitorsRemoved.length > 0 &&
+      (wasHoldingMonitorsBeforeUpdate || isHoldingMonitorsAfterUpdate)
     ) {
-      const isHoldingMonitorsAfterUpdate: boolean =
-        await this.isHoldingMonitorsInMaintenance({
+      try {
+        await this.restoreMonitorsDetachedFromEvent({
           scheduledMaintenanceId: data.scheduledMaintenanceId,
           projectId: projectId,
-          currentState:
-            scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+          monitorIds: change.monitorsRemoved,
         });
-
-      if (isHoldingMonitorsAfterUpdate) {
-        // As ScheduledMaintenanceStateTimelineService does on entering ongoing.
-        for (const monitorId of change.monitorsAdded) {
-          await MonitorService.updateOneById({
-            id: monitorId,
-            data: {
-              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-
-        const eventWithAddedMonitors: Model = new Model(
-          data.scheduledMaintenanceId,
+      } catch (err) {
+        logger.error(
+          `ScheduledMaintenanceService.applyAttachmentChangeToEvent: could not restore the monitors detached from scheduled maintenance ${data.scheduledMaintenanceId.toString()}.`,
+          logAttributes,
         );
-        eventWithAddedMonitors.projectId = projectId;
-        eventWithAddedMonitors.monitors = change.monitorsAdded.map(
-          (monitorId: ObjectID): Monitor => {
-            return new Monitor(monitorId);
-          },
-        );
-
-        if (scheduledMaintenanceEvent.changeMonitorStatusToId) {
-          eventWithAddedMonitors.changeMonitorStatusToId =
-            scheduledMaintenanceEvent.changeMonitorStatusToId;
-        }
-
-        // A no-op when the event does not change monitor status.
-        await this.changeAttachedMonitorStates(eventWithAddedMonitors, {
-          isRoot: true,
-        });
+        logger.error(err, logAttributes);
       }
+    }
+
+    /*
+     * An attached monitor is held when the event holds its monitors after
+     * the write, whatever it was doing before: the job (or another request)
+     * can have started it between onBeforeUpdate's read and the write,
+     * flagging the list without this monitor. A transition that ran after
+     * the write - the same update started the event, or the job did just
+     * after - has reached this monitor already, and holding it again
+     * changes nothing. An event the same update ended has had its whole list
+     * restored by the transition, and holds nothing.
+     */
+    if (
+      change.monitorsAdded.length > 0 &&
+      isHoldingMonitorsAfterUpdate &&
+      change.eventAfterUpdate
+    ) {
+      await this.holdMonitorsAttachedToEvent({
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        projectId: projectId,
+        monitorIds: change.monitorsAdded,
+        changeMonitorStatusToId:
+          change.eventAfterUpdate.changeMonitorStatusToId,
+      });
     }
 
     /*
@@ -2280,6 +2224,7 @@ ${scheduledMaintenance.description || "No description provided."}
      * already taken effect; this only re-rolls the chains now rather than at
      * the next stale sweep, as the state transition does. Detached sites
      * need it as much as attached ones: they were suppressed until now.
+     * recomputeNetworkSiteRollups logs its own failures.
      */
     if (
       attachmentsBeforeUpdate.wasOngoingBeforeUpdate &&
@@ -2298,6 +2243,124 @@ ${scheduledMaintenance.description || "No description provided."}
       await ScheduledMaintenanceStateTimelineService.recomputeNetworkSiteRollups(
         eventWithChangedSites,
       );
+    }
+  }
+
+  /*
+   * Releases the monitors an edit detached from an event that was holding
+   * them, exactly as ending the event releases its list:
+   * enableActiveMonitoringForMonitors clears the flag and puts each back in
+   * the operational status, skipping a monitor another event still holds
+   * and carrying on past one that fails. This event no longer counts as
+   * holding them: the write has already removed them from it.
+   *
+   * Only a monitor whose flag is set is released. That the event held its
+   * monitors says it held the list it read when it started, not that it
+   * held this monitor: an event the same update (or the job, just after the
+   * write) started never flagged a monitor the write had already detached,
+   * and one ended by another request just before the write has released it
+   * already. Released anyway, that monitor would be forced into the
+   * operational status over the one it is really in.
+   */
+  private async restoreMonitorsDetachedFromEvent(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID>;
+  }): Promise<void> {
+    const heldMonitors: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        _id: QueryHelper.any(data.monitorIds),
+        projectId: data.projectId,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (heldMonitors.length === 0) {
+      return;
+    }
+
+    const eventWithRemovedMonitors: Model = new Model(
+      data.scheduledMaintenanceId,
+    );
+    eventWithRemovedMonitors.projectId = data.projectId;
+    eventWithRemovedMonitors.monitors = this.getIdsNotIn({
+      ids: resolveReferenceIds(heldMonitors),
+      exclude: [],
+    }).map((monitorId: ObjectID): Monitor => {
+      return new Monitor(monitorId);
+    });
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      eventWithRemovedMonitors,
+    );
+  }
+
+  /*
+   * Puts the monitors an edit attached into maintenance, as entering ongoing
+   * does for the list (ScheduledMaintenanceStateTimelineService): the flag
+   * that stops probing, then the status the event applies, if any. Both are
+   * idempotent, so a monitor the transition has reached as well - the event
+   * started just after the write - is left as it is.
+   *
+   * One monitor at a time, as the release is: one that fails must not leave
+   * the rest of what the edit attached probed and alerting through the
+   * window.
+   */
+  private async holdMonitorsAttachedToEvent(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID>;
+    changeMonitorStatusToId: ObjectID | undefined;
+  }): Promise<void> {
+    for (const monitorId of data.monitorIds) {
+      try {
+        await MonitorService.updateOneById({
+          id: monitorId,
+          data: {
+            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const eventWithAddedMonitor: Model = new Model(
+          data.scheduledMaintenanceId,
+        );
+        eventWithAddedMonitor.projectId = data.projectId;
+        eventWithAddedMonitor.monitors = [new Monitor(monitorId)];
+
+        if (data.changeMonitorStatusToId) {
+          eventWithAddedMonitor.changeMonitorStatusToId =
+            data.changeMonitorStatusToId;
+        }
+
+        // A no-op when the event does not change monitor status.
+        await this.changeAttachedMonitorStates(eventWithAddedMonitor, {
+          isRoot: true,
+        });
+      } catch (err) {
+        const logAttributes: LogAttributes = {
+          projectId: data.projectId.toString(),
+          scheduledMaintenanceId: data.scheduledMaintenanceId.toString(),
+          monitorId: monitorId.toString(),
+        } as LogAttributes;
+
+        logger.error(
+          `ScheduledMaintenanceService.holdMonitorsAttachedToEvent: could not put monitor ${monitorId.toString()} into maintenance; continuing with the remaining monitors.`,
+          logAttributes,
+        );
+        logger.error(err, logAttributes);
+        continue;
+      }
     }
   }
 
@@ -2432,16 +2495,35 @@ ${scheduledMaintenance.description || "No description provided."}
         let attachmentChange: AttachmentChange | null = null;
 
         if (attachmentsBeforeUpdate) {
-          attachmentChange = await this.getAttachmentChange({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            attachmentsBeforeUpdate: attachmentsBeforeUpdate,
-          });
+          /*
+           * The update is saved by now. Whatever fails here is logged, and
+           * the feed item and the other events of a bulk update still
+           * follow - with the change named in the feed, when it was read
+           * back before the failure.
+           */
+          try {
+            attachmentChange = await this.getAttachmentChange({
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              attachmentsBeforeUpdate: attachmentsBeforeUpdate,
+            });
 
-          await this.applyAttachmentChangeToEvent({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            attachmentsBeforeUpdate: attachmentsBeforeUpdate,
-            change: attachmentChange,
-          });
+            await this.applyAttachmentChangeToEvent({
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              attachmentsBeforeUpdate: attachmentsBeforeUpdate,
+              change: attachmentChange,
+            });
+          } catch (err) {
+            const logAttributes: LogAttributes = {
+              projectId: attachmentsBeforeUpdate.projectId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+            } as LogAttributes;
+
+            logger.error(
+              `ScheduledMaintenanceService.onUpdateSuccess: could not apply the edit of the monitors or network sites of scheduled maintenance ${scheduledMaintenanceId.toString()}; the update itself is saved.`,
+              logAttributes,
+            );
+            logger.error(err, logAttributes);
+          }
         }
 
         if (onUpdate.updateBy.data.title) {
@@ -2549,15 +2631,29 @@ ${LinkedAffectedResources.getMarkdownLines({
          * without this the feed would not record the edit at all.
          */
         if (attachmentChange && onUpdate.updateBy.props.tenantId) {
-          const monitorChangesMarkdown: string =
-            await this.getMonitorChangesFeedMarkdown({
-              projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-              change: attachmentChange,
-            });
+          // A line the names could not be read for is left out, not the item.
+          try {
+            const monitorChangesMarkdown: string =
+              await this.getMonitorChangesFeedMarkdown({
+                projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+                change: attachmentChange,
+              });
 
-          if (monitorChangesMarkdown) {
-            feedInfoInMarkdown += monitorChangesMarkdown;
-            shouldAddScheduledMaintenanceFeed = true;
+            if (monitorChangesMarkdown) {
+              feedInfoInMarkdown += monitorChangesMarkdown;
+              shouldAddScheduledMaintenanceFeed = true;
+            }
+          } catch (err) {
+            const logAttributes: LogAttributes = {
+              projectId: onUpdate.updateBy.props.tenantId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+            } as LogAttributes;
+
+            logger.error(
+              `ScheduledMaintenanceService.onUpdateSuccess: could not name the monitors added to or removed from scheduled maintenance ${scheduledMaintenanceId.toString()} in its feed.`,
+              logAttributes,
+            );
+            logger.error(err, logAttributes);
           }
         }
 

@@ -33,9 +33,30 @@ import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/S
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import Select from "../Types/Database/Select";
+
+/*
+ * Enough of a state to tell which kind it is. A project can add its own
+ * states between the built-in ones, and those are none of the four kinds.
+ */
+const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
+  _id: true,
+  isScheduledState: true,
+  isOngoingState: true,
+  isEndedState: true,
+  isResolvedState: true,
+};
+
+/*
+ * How many events' timelines one read replays when asking whether any of
+ * them holds a monitor. An event's timeline is a handful of rows, so a batch
+ * this size stays far inside LIMIT_MAX: a read cut short at the limit would
+ * drop the latest rows of some events and misjudge them.
+ */
+const TIMELINE_REPLAY_BATCH_SIZE: number = 100;
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
@@ -888,6 +909,13 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     }
   }
 
+  /*
+   * Releases the monitors of an event that has let go of them - it ended or
+   * was resolved, it was deleted, or an edit detached them - clearing the
+   * flag that stopped probing and putting each back in the operational
+   * status. A monitor another event still holds is left as it is (see
+   * isMonitorHeldInMaintenanceByAnyEvent).
+   */
   @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
     scheduledMaintenanceEvent: ScheduledMaintenance,
@@ -929,86 +957,413 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       // check if this monitor is not in this status already.
 
       if (resolvedMonitorState) {
+        /*
+         * Whether each event in a state of its project's own holds its
+         * monitors, once worked out, for the rest of this release. Such an
+         * event is usually attached to many of the monitors let go here (a
+         * "Cancelled" state reached from Scheduled leaves one behind on every
+         * monitor it had), and without this its timeline was replayed again
+         * for each of them. Kept to this one call, so a later release reads
+         * afresh.
+         */
+        const holdingByEventId: Map<string, boolean> = new Map<
+          string,
+          boolean
+        >();
+
         for (const monitor of scheduledMaintenanceEvent.monitors) {
-          // check if the monitor is not in this status already.
+          /*
+           * Per-monitor isolation, as in
+           * IncidentService.markMonitorsActiveForMonitoring: one monitor
+           * failing here (the fail-closed status timeline lock, a "same as
+           * previous" rejection after a concurrent writer, a transient DB
+           * error) must not abort the loop and strand the REMAINING monitors
+           * with disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+           * still set. A monitor left that way is never probed again, and
+           * nothing else clears the flag once the event has let go of it.
+           */
+          try {
+            // check if the monitor is not in this status already.
 
-          const dbMonitor: Monitor | null = await MonitorService.findOneById({
-            id: monitor.id!,
-            select: {
-              currentMonitorStatusId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+            const dbMonitor: Monitor | null = await MonitorService.findOneById({
+              id: monitor.id!,
+              select: {
+                currentMonitorStatusId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
-          const hasMoreOngoingScheduledMaintenanceEvents: boolean =
-            await this.hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
-              monitor.id!,
+            const isHeldByAnotherEvent: boolean =
+              await this.isMonitorHeldInMaintenanceByAnyEvent(
+                monitor.id!,
+                holdingByEventId,
+              );
+
+            if (isHeldByAnotherEvent) {
+              // dont do anything because other events are active at the same time.
+              continue;
+            }
+
+            await MonitorService.updateOneById({
+              id: monitor.id!,
+              data: {
+                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
+                  false, /// This will start active monitoring again.
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (
+              dbMonitor?.currentMonitorStatusId?.toString() ===
+              resolvedMonitorState.id?.toString()
+            ) {
+              // if already in resolved state then skip.
+              continue;
+            }
+
+            const monitorStatusTimeline: MonitorStatusTimeline =
+              new MonitorStatusTimeline();
+            monitorStatusTimeline.monitorId = monitor.id!;
+            monitorStatusTimeline.projectId =
+              scheduledMaintenanceEvent.projectId!;
+            monitorStatusTimeline.monitorStatusId = resolvedMonitorState.id!;
+
+            await MonitorStatusTimelineService.create({
+              data: monitorStatusTimeline,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (err) {
+            const logAttributes: LogAttributes = {
+              projectId: scheduledMaintenanceEvent.projectId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceEvent.id?.toString(),
+              monitorId: monitor.id?.toString(),
+            } as LogAttributes;
+
+            logger.error(
+              `ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+              logAttributes,
             );
-
-          if (hasMoreOngoingScheduledMaintenanceEvents) {
-            // dont do anything because other events are active at the same time.
+            logger.error(err, logAttributes);
             continue;
           }
-
-          await MonitorService.updateOneById({
-            id: monitor.id!,
-            data: {
-              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false, /// This will start active monitoring again.
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (
-            dbMonitor?.currentMonitorStatusId?.toString() ===
-            resolvedMonitorState.id?.toString()
-          ) {
-            // if already in resolved state then skip.
-            continue;
-          }
-
-          const monitorStatusTimeline: MonitorStatusTimeline =
-            new MonitorStatusTimeline();
-          monitorStatusTimeline.monitorId = monitor.id!;
-          monitorStatusTimeline.projectId =
-            scheduledMaintenanceEvent.projectId!;
-          monitorStatusTimeline.monitorStatusId = resolvedMonitorState.id!;
-
-          await MonitorStatusTimelineService.create({
-            data: monitorStatusTimeline,
-            props: {
-              isRoot: true,
-            },
-          });
         }
       }
     }
   }
 
+  /*
+   * Whether any scheduled maintenance event still holds this monitor in
+   * maintenance (see isScheduledMaintenanceHoldingMonitors), so an event
+   * letting go of it must leave it disabled. Asked once the releasing event
+   * has let go - it has moved to ended or resolved, been deleted, or had the
+   * monitor detached - so that event does not count itself.
+   *
+   * This used to count only events in an ongoing state, while an edit to an
+   * event treats one in a state of the project's own past ongoing (say
+   * "Verifying") as still holding its monitors. A monitor attached to both
+   * such an event and another one was re-enabled when the other ended,
+   * while the first still held it.
+   *
+   * Only events in a state that can hold are read (scheduled, ended and
+   * resolved never do), and none past that when an ongoing event holds the
+   * monitor. The rest are each in a state of their project's own and are
+   * replayed from their timelines, all of them in one read rather than one
+   * read each (see replayWhetherScheduledMaintenancesHoldMonitors).
+   *
+   * holdingByEventId carries the answers for such events across the
+   * monitors of one release (enableActiveMonitoringForMonitors): an event
+   * already replayed is not read again, and whatever is replayed here is
+   * added to it.
+   */
   @CaptureSpan()
-  public async hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
-    id: ObjectID,
+  public async isMonitorHeldInMaintenanceByAnyEvent(
+    monitorId: ObjectID,
+    holdingByEventId?: Map<string, boolean>,
   ): Promise<boolean> {
-    const count: PositiveNumber = await ScheduledMaintenanceService.countBy({
-      query: {
-        monitors: QueryHelper.inRelationArray([id]),
-        currentScheduledMaintenanceState: {
-          isOngoingState: true,
+    const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: {
+          monitors: QueryHelper.inRelationArray([monitorId]),
+          currentScheduledMaintenanceState: {
+            isScheduledState: false,
+            isEndedState: false,
+            isResolvedState: false,
+          },
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        select: {
+          _id: true,
+          projectId: true,
+          currentScheduledMaintenanceState: STATE_KIND_SELECT,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    if (count.toNumber() > 0) {
+    const isHeldByOngoingEvent: boolean = scheduledMaintenanceEvents.some(
+      (scheduledMaintenanceEvent: ScheduledMaintenance): boolean => {
+        return Boolean(
+          scheduledMaintenanceEvent.currentScheduledMaintenanceState
+            ?.isOngoingState,
+        );
+      },
+    );
+
+    if (isHeldByOngoingEvent) {
       return true;
     }
 
+    const scheduledMaintenanceEventsToReplay: Array<ScheduledMaintenance> = [];
+
+    for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
+      if (
+        !scheduledMaintenanceEvent.id ||
+        !scheduledMaintenanceEvent.projectId
+      ) {
+        continue;
+      }
+
+      const knownHolding: boolean | undefined = holdingByEventId?.get(
+        scheduledMaintenanceEvent.id.toString(),
+      );
+
+      if (knownHolding === true) {
+        return true;
+      }
+
+      if (knownHolding === undefined) {
+        scheduledMaintenanceEventsToReplay.push(scheduledMaintenanceEvent);
+      }
+    }
+
+    return await this.replayWhetherScheduledMaintenancesHoldMonitors({
+      scheduledMaintenanceEvents: scheduledMaintenanceEventsToReplay,
+      holdingByEventId: holdingByEventId || new Map<string, boolean>(),
+    });
+  }
+
+  /*
+   * Replays the timelines of events in a state of their project's own and
+   * tells whether any of them holds its monitors, recording each answer in
+   * holdingByEventId. One read covers a whole batch of events (kept per
+   * project, as the timeline of a single event is read), and it stops at the
+   * first batch with an event that holds.
+   */
+  private async replayWhetherScheduledMaintenancesHoldMonitors(data: {
+    scheduledMaintenanceEvents: Array<ScheduledMaintenance>;
+    holdingByEventId: Map<string, boolean>;
+  }): Promise<boolean> {
+    const eventsByProjectId: Map<
+      string,
+      { projectId: ObjectID; scheduledMaintenanceIds: Array<ObjectID> }
+    > = new Map<
+      string,
+      { projectId: ObjectID; scheduledMaintenanceIds: Array<ObjectID> }
+    >();
+
+    for (const scheduledMaintenanceEvent of data.scheduledMaintenanceEvents) {
+      if (
+        !scheduledMaintenanceEvent.id ||
+        !scheduledMaintenanceEvent.projectId
+      ) {
+        continue;
+      }
+
+      const projectKey: string = scheduledMaintenanceEvent.projectId.toString();
+
+      if (!eventsByProjectId.has(projectKey)) {
+        eventsByProjectId.set(projectKey, {
+          projectId: scheduledMaintenanceEvent.projectId,
+          scheduledMaintenanceIds: [],
+        });
+      }
+
+      eventsByProjectId
+        .get(projectKey)!
+        .scheduledMaintenanceIds.push(scheduledMaintenanceEvent.id);
+    }
+
+    for (const projectEvents of eventsByProjectId.values()) {
+      for (
+        let batchStart: number = 0;
+        batchStart < projectEvents.scheduledMaintenanceIds.length;
+        batchStart += TIMELINE_REPLAY_BATCH_SIZE
+      ) {
+        const scheduledMaintenanceIds: Array<ObjectID> =
+          projectEvents.scheduledMaintenanceIds.slice(
+            batchStart,
+            batchStart + TIMELINE_REPLAY_BATCH_SIZE,
+          );
+
+        const timeline: Array<ScheduledMaintenanceStateTimeline> =
+          await this.findBy({
+            query: {
+              scheduledMaintenanceId: QueryHelper.any(scheduledMaintenanceIds),
+              projectId: projectEvents.projectId,
+            },
+            select: {
+              _id: true,
+              scheduledMaintenanceId: true,
+              scheduledMaintenanceState: STATE_KIND_SELECT,
+            },
+            sort: {
+              startsAt: SortOrder.Ascending,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        // The rows of every event in the batch, interleaved; split them up.
+        const timelineByEventId: Map<
+          string,
+          Array<ScheduledMaintenanceStateTimeline>
+        > = new Map<string, Array<ScheduledMaintenanceStateTimeline>>();
+
+        for (const timelineItem of timeline) {
+          const eventKey: string | undefined =
+            timelineItem.scheduledMaintenanceId?.toString();
+
+          if (!eventKey) {
+            continue;
+          }
+
+          if (!timelineByEventId.has(eventKey)) {
+            timelineByEventId.set(eventKey, []);
+          }
+
+          timelineByEventId.get(eventKey)!.push(timelineItem);
+        }
+
+        let isAnyHolding: boolean = false;
+
+        for (const scheduledMaintenanceId of scheduledMaintenanceIds) {
+          const eventKey: string = scheduledMaintenanceId.toString();
+
+          const isHolding: boolean = this.isHoldingAfterTimeline(
+            timelineByEventId.get(eventKey) || [],
+          );
+
+          data.holdingByEventId.set(eventKey, isHolding);
+
+          if (isHolding) {
+            isAnyHolding = true;
+          }
+        }
+
+        if (isAnyHolding) {
+          return true;
+        }
+      }
+    }
+
     return false;
+  }
+
+  /*
+   * An event's state timeline, oldest first, replayed the way the
+   * transitions applied it: entering ongoing holds the monitors, entering
+   * ended or resolved lets go of them, and a state the project added itself
+   * does neither (states only ever move forward).
+   */
+  private isHoldingAfterTimeline(
+    timeline: Array<ScheduledMaintenanceStateTimeline>,
+  ): boolean {
+    let isHolding: boolean = false;
+
+    for (const timelineItem of timeline) {
+      const timelineState: ScheduledMaintenanceState | undefined =
+        timelineItem.scheduledMaintenanceState;
+
+      if (timelineState?.isOngoingState) {
+        isHolding = true;
+      } else if (
+        timelineState?.isEndedState ||
+        timelineState?.isResolvedState
+      ) {
+        isHolding = false;
+      }
+    }
+
+    return isHolding;
+  }
+
+  /*
+   * Whether the event is holding its monitors in maintenance: it has moved
+   * to an ongoing state and not since to an ended or resolved one. That is
+   * what the state transitions leave behind - entering ongoing disables the
+   * attached monitors, entering ended or resolved restores them (both in
+   * onCreateSuccess), and a state a project added itself (say "Verifying",
+   * between Ongoing and Ended) does neither, so an event sitting in one
+   * still holds whatever it held while ongoing. Asking isOngoingState alone
+   * would treat that event like a scheduled one.
+   *
+   * The one definition of holding, for both questions asked of it: whether
+   * an edit to an event's monitors puts them into or out of maintenance
+   * (ScheduledMaintenanceService), and whether another event still holds a
+   * monitor one is letting go of (isMonitorHeldInMaintenanceByAnyEvent,
+   * which applies the same rules to many events at once).
+   *
+   * The built-in kinds answer from the state itself. Only a project's own
+   * state costs a read: the event's timeline, replayed in order the way the
+   * transitions applied it (isHoldingAfterTimeline).
+   */
+  @CaptureSpan()
+  public async isScheduledMaintenanceHoldingMonitors(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID | undefined;
+    currentState: ScheduledMaintenanceState | undefined;
+  }): Promise<boolean> {
+    const currentState: ScheduledMaintenanceState | undefined =
+      data.currentState;
+
+    if (!currentState || !data.projectId) {
+      return false;
+    }
+
+    if (currentState.isOngoingState) {
+      return true;
+    }
+
+    if (
+      currentState.isScheduledState ||
+      currentState.isEndedState ||
+      currentState.isResolvedState
+    ) {
+      return false;
+    }
+
+    const timeline: Array<ScheduledMaintenanceStateTimeline> =
+      await this.findBy({
+        query: {
+          scheduledMaintenanceId: data.scheduledMaintenanceId,
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          scheduledMaintenanceState: STATE_KIND_SELECT,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return this.isHoldingAfterTimeline(timeline);
   }
 
   @CaptureSpan()
