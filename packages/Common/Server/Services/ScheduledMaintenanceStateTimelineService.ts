@@ -850,9 +850,12 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
    * Re-rolls the health of every network site chain this event covers.
    * A no-op for the overwhelming majority of events, which have no sites
    * attached at all.
+   *
+   * Public for ScheduledMaintenanceService, which passes the sites an edit
+   * attached to or detached from an ongoing event.
    */
   @CaptureSpan()
-  private async recomputeNetworkSiteRollups(
+  public async recomputeNetworkSiteRollups(
     scheduledMaintenanceEvent: ScheduledMaintenance | null,
   ): Promise<void> {
     if (
