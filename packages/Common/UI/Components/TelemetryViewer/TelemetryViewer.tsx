@@ -22,9 +22,10 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import useHistogramZoom, {
-  HistogramZoomState,
-} from "../Charts/Utils/useHistogramZoom";
+import useViewerTimeRangeZoom, {
+  ViewerTimeRangeZoom,
+} from "./useViewerTimeRangeZoom";
+import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -169,10 +170,13 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
    * window for a custom one and nothing remembers what the reader was
-   * looking at. This keeps that window so a double-click on the chart can
-   * hand it back.
+   * looking at. This keeps that window so a double-click on a chart, or
+   * "Reset zoom" beside the picker, can hand it back. The same zoom is
+   * offered to everything the viewer renders (see the provider below), so
+   * a drag across the analytics chart retimes the viewer just like one
+   * across the histogram.
    */
-  const histogramZoom: HistogramZoomState = useHistogramZoom({
+  const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
     onTimeRangeSelect: props.onHistogramTimeRangeSelect,
     onTimeRangeChange: props.onTimeRangeChange,
@@ -190,7 +194,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
 
-  return (
+  const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -247,7 +251,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
         <TelemetryTimeRangePicker
           value={props.timeRange}
-          onChange={histogramZoom.onTimeRangeChange || props.onTimeRangeChange}
+          onChange={viewerZoom.onTimeRangeChange || props.onTimeRangeChange}
         />
 
         {props.live && (
@@ -320,8 +324,8 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             series={props.histogramSeries}
             title={props.histogramTitle}
             bucketIntervalMs={props.histogramBucketIntervalMs}
-            onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
-            onZoomOut={histogramZoom.onZoomOut}
+            onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
+            onZoomOut={viewerZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}
             valueFormatter={props.histogramValueFormatter}
           />
@@ -418,6 +422,24 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
       {/* Detail panel overlay */}
       {props.detailPanel}
     </div>
+  );
+
+  /*
+   * Every chart in the viewer zooms the viewer's own window: the histogram,
+   * the analytics charts a host renders as mainContentOverride, and the
+   * picker's "Reset zoom", which is how a keyboard user gets back out. It
+   * also shadows any zoom a page around the viewer offers, since a drag
+   * here is about this explorer's window. A host that cannot zoom (no
+   * select handler) leaves whatever surrounds the viewer in place.
+   */
+  if (!viewerZoom.zoom) {
+    return viewer;
+  }
+
+  return (
+    <TimeRangeZoomProvider zoom={viewerZoom.zoom}>
+      {viewer}
+    </TimeRangeZoomProvider>
   );
 }
 
