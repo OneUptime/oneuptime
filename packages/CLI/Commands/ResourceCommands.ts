@@ -142,7 +142,13 @@ function registerListCommand(
               : result;
 
           // eslint-disable-next-line no-console
-          console.log(formatOutput(responseData, options.output));
+          console.log(
+            formatOutput(
+              responseData,
+              options.output ??
+                resourceCmd.optsWithGlobals<{ output?: string }>().output,
+            ),
+          );
         } catch (error) {
           handleError(error);
         }
@@ -177,7 +183,13 @@ function registerGetCommand(
         });
 
         // eslint-disable-next-line no-console
-        console.log(formatOutput(result, options.output));
+        console.log(
+          formatOutput(
+            result,
+            options.output ??
+              resourceCmd.optsWithGlobals<{ output?: string }>().output,
+          ),
+        );
       } catch (error) {
         handleError(error);
       }
@@ -220,7 +232,13 @@ function registerCreateCommand(
           });
 
           // eslint-disable-next-line no-console
-          console.log(formatOutput(result, options.output));
+          console.log(
+            formatOutput(
+              result,
+              options.output ??
+                resourceCmd.optsWithGlobals<{ output?: string }>().output,
+            ),
+          );
         } catch (error) {
           handleError(error);
         }
@@ -253,7 +271,13 @@ function registerUpdateCommand(
         });
 
         // eslint-disable-next-line no-console
-        console.log(formatOutput(result, options.output));
+        console.log(
+          formatOutput(
+            result,
+            options.output ??
+              resourceCmd.optsWithGlobals<{ output?: string }>().output,
+          ),
+        );
       } catch (error) {
         handleError(error);
       }
