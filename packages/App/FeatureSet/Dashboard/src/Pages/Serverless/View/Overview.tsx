@@ -19,6 +19,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -152,18 +153,37 @@ const ServerlessFunctionOverview: FunctionComponent<
     const start: Date = range.startValue;
     const end: Date = range.endValue;
     setChartWindow({ start, end });
+
+    /*
+     * Staleness guard: a chart zoom, its reset, the picker and the
+     * auto-refresh can each start a fetch while another is in flight. A
+     * slow response for the window the reader just left must not land on
+     * the charts after the newer one (a double-click right after a drag is
+     * exactly that race).
+     */
+    let ignore: boolean = false;
     fetchSpanMetrics({
       attributes: { "resource.faas.name": fn.functionIdentifier as string },
       start,
       end,
     })
       .then((m: SpanMetrics) => {
+        if (ignore) {
+          return;
+        }
         setMetrics(m);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
         setMetricsLoading(false);
       });
+
+    return () => {
+      ignore = true;
+    };
   }, [serverlessFunction, timeRange]);
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
@@ -323,41 +343,49 @@ const ServerlessFunctionOverview: FunctionComponent<
     { label: "Agent Version", value: fn.agentVersion },
   ];
 
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Invocations / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back.
+   */
   return (
-    <ResourceOverview
-      icon={IconProp.Bolt}
-      title={(fn.name as string) || "Serverless Function"}
-      identifier={(fn.functionIdentifier as string) || ""}
-      identifierLabel="faas.name"
-      status={fn.otelCollectorStatus}
-      lastSeenAt={fn.lastSeenAt}
-      description={fn.description as string}
-      chips={chips}
-      tiles={tiles}
-      charts={charts}
-      controls={
-        <AutoRefreshControl
-          autoRefreshInterval={autoRefreshInterval}
-          onAutoRefreshIntervalChange={setAutoRefreshInterval}
-          onManualRefresh={(): void => {
-            fetchModel(false).catch(() => {});
-          }}
-          isRefreshing={isRefreshing}
-          lastRefreshedAt={lastRefreshedAt}
-          timeRangePicker={
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={(value: RangeStartAndEndDateTime): void => {
-                setTimeRange(value);
-              }}
-            />
-          }
-        />
-      }
-      quickLinks={quickLinks}
-      detailRows={detailRows}
-      labels={fn.labels}
-    />
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      <ResourceOverview
+        icon={IconProp.Bolt}
+        title={(fn.name as string) || "Serverless Function"}
+        identifier={(fn.functionIdentifier as string) || ""}
+        identifierLabel="faas.name"
+        status={fn.otelCollectorStatus}
+        lastSeenAt={fn.lastSeenAt}
+        description={fn.description as string}
+        chips={chips}
+        tiles={tiles}
+        charts={charts}
+        controls={
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              fetchModel(false).catch(() => {});
+            }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
+          />
+        }
+        quickLinks={quickLinks}
+        detailRows={detailRows}
+        labels={fn.labels}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

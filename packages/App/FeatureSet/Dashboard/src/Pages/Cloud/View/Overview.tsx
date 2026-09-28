@@ -11,7 +11,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -26,6 +25,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -485,8 +485,15 @@ const CloudResourceOverview: FunctionComponent<
 
   const topInstances: Array<CloudResourceInstance> = liveInstances.slice(0, 5);
 
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Requests / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back. The
+   * CPU / Memory / Instances tiles and Top instances are live values.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {!isScoped ? (
         <CloudResourceConnectBanner
           modelId={modelId}
@@ -572,7 +579,7 @@ const CloudResourceOverview: FunctionComponent<
       ) : (
         <></>
       )}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -30,6 +29,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -292,8 +292,18 @@ const ProxmoxClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
+  /*
+   * Issue #4105: the five cards share one range, so they share one zoom.
+   * A drag on any chart — the metric charts and the disk / network rate
+   * charts alike — retimes every card, and a double-click on any of them
+   * (or Reset zoom in any card's header) puts the range from before the
+   * zoom back. The rate charts take the zoom from this scope on their own.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory usage across all nodes in the cluster."
@@ -371,7 +381,7 @@ const ProxmoxClusterInsights: FunctionComponent<
           syncId={`proxmox-insights-${modelId.toString()}`}
         />
       </EmbeddedMetricCard>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 
