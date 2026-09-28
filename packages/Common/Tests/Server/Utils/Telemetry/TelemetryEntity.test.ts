@@ -2169,7 +2169,11 @@ describe("host MAC, OS version and firmware (issue #4107)", () => {
     test("duplicates are removed case-insensitively, first spelling kept", () => {
       expect(
         hostDescriptive({
-          "host.mac": ["ac-de-48-23-45-67", "AC-DE-48-23-45-67", "00-15-5D-01-02-03"],
+          "host.mac": [
+            "ac-de-48-23-45-67",
+            "AC-DE-48-23-45-67",
+            "00-15-5D-01-02-03",
+          ],
         }),
       ).toEqual({ "host.mac": "ac-de-48-23-45-67, 00-15-5D-01-02-03" });
     });
@@ -2244,9 +2248,7 @@ describe("host MAC, OS version and firmware (issue #4107)", () => {
           `02-00-00-00-00-${i.toString(16).padStart(2, "0").toUpperCase()}`,
         );
       }
-      const value: string = hostDescriptive({ "host.mac": macs })![
-        "host.mac"
-      ]!;
+      const value: string = hostDescriptive({ "host.mac": macs })!["host.mac"]!;
       expect(value.split(", ")).toHaveLength(27);
       expect(value.split(", ").length).toBeLessThanOrEqual(
         MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
@@ -2300,10 +2302,18 @@ describe("host MAC, OS version and firmware (issue #4107)", () => {
         projectId: PROJECT,
         attributes: {
           ...IDENTITY,
-          "host.mac": ["AC-DE-48-23-45-67", "00-00-00-00-00-00", "00-15-5D-01-02-03"],
+          "host.mac": [
+            "AC-DE-48-23-45-67",
+            "00-00-00-00-00-00",
+            "00-15-5D-01-02-03",
+          ],
         },
         entityRefs: [
-          { type: "host", idKeys: ["host.name"], descriptionKeys: ["host.mac"] },
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["host.mac"],
+          },
         ],
       }).find((e: ExtractedEntity) => {
         return e.entityType === EntityType.Host;
@@ -2343,9 +2353,9 @@ describe("host MAC, OS version and firmware (issue #4107)", () => {
 
   describe("firmware version", () => {
     test("lands verbatim under device.firmware.version", () => {
-      expect(
-        hostDescriptive({ "device.firmware.version": "2.19.1" }),
-      ).toEqual({ "device.firmware.version": "2.19.1" });
+      expect(hostDescriptive({ "device.firmware.version": "2.19.1" })).toEqual({
+        "device.firmware.version": "2.19.1",
+      });
     });
 
     test.each([

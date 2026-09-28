@@ -1205,10 +1205,7 @@ export default class InventoryItem {
      * BIOS is what a PC or server calls its firmware, so that spelling
      * is accepted too.
      */
-    [
-      "device.firmware.version",
-      ["host.firmware.version", "host.bios.version"],
-    ],
+    ["device.firmware.version", ["host.firmware.version", "host.bios.version"]],
     /*
      * The reverse case: `host.serial_number` predates this and stays
      * canonical, but an operator who has just written `device.manufacturer`
@@ -1242,8 +1239,12 @@ export default class InventoryItem {
    * virtual adapters (and a few tunnel drivers on Windows) report it for
    * an interface that is up, and listing it would read as a real NIC.
    */
+  private static readonly placeholderMacPattern: RegExp = new RegExp(
+    "^0{2}([-:.]?0{2}){5}$",
+  );
+
   private static isPlaceholderMac(value: string): boolean {
-    return /^0{2}([-:.]?0{2}){5}$/.test(value.trim());
+    return this.placeholderMacPattern.test(value.trim());
   }
 
   private static descriptiveAttributesFor(
@@ -1296,13 +1297,10 @@ export default class InventoryItem {
             return !this.isPlaceholderMac(item);
           });
         }
-        const joined: string | null = normalizeHostIpAddresses(
-          items,
-          {
-            maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
-            maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
-          },
-        );
+        const joined: string | null = normalizeHostIpAddresses(items, {
+          maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+          maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+        });
         if (joined) {
           return joined;
         }
