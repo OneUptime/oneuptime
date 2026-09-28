@@ -147,10 +147,6 @@ As credenciais são armazenadas em `~/.oneuptime/config.json` com permissões re
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```

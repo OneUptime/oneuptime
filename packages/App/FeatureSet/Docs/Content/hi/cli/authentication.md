@@ -147,10 +147,6 @@ Credentials प्रतिबंधित permissions (`0600`) के साथ
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```

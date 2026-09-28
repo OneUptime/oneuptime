@@ -147,10 +147,6 @@ Inloggegevens worden opgeslagen in `~/.oneuptime/config.json` met beperkte recht
       "apiUrl": "https://staging.oneuptime.com",
       "apiKey": "sk-..."
     }
-  },
-  "defaults": {
-    "output": "table",
-    "limit": 10
   }
 }
 ```
