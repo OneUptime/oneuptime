@@ -27,7 +27,9 @@ import XAxisType from "../../../UI/Components/Charts/Types/XAxis/XAxisType";
  *
  *   jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
  *     return (
- *       jest.requireActual("./ContainerChartZoomStandIn") as typeof import("./ContainerChartZoomStandIn")
+ *       jest.requireActual(
+ *         "./ContainerChartZoomStandIn",
+ *       ) as typeof import("./ContainerChartZoomStandIn")
  *     ).chartModuleStandIn(
  *       "area",
  *       jest.requireActual("../../../UI/Components/Charts/Area/AreaChart"),

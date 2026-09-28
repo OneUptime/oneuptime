@@ -23,8 +23,9 @@ import React, { ReactElement } from "react";
  * The pages are rendered for real over a fake analytics server that only
  * answers with the rows inside the window it is asked for, so what the
  * tiles and lists show proves which window they were computed from. Only
- * the chart itself is stood in for (see ContainerChartZoomStandIn): it resolves its
- * zoom exactly the way LineChartElement does and offers the two gestures.
+ * the chart itself is stood in for (see ContainerChartZoomStandIn): it
+ * resolves its zoom exactly the way LineChartElement does and offers the
+ * two gestures.
  */
 
 /*
