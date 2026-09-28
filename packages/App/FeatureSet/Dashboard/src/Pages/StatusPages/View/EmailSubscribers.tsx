@@ -41,6 +41,8 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
+import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -305,6 +307,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         required: true,
         placeholder: "subscriber@company.com",
         disableSpellCheck: true,
+        footerElement: (
+          <Alert
+            type={AlertType.WARNING}
+            className="mt-2"
+            dataTestId="add-subscriber-shared-address-warning"
+            title={SubscriberUnsubscribeCopy.sharedAddressWarning}
+          />
+        ),
       },
       {
         field: {
@@ -433,6 +443,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
           )}
           <SubscriberNotificationWarnings statusPageId={modelId} />
+          <TeamAddedSubscribersUnsubscribedNotice
+            statusPageId={modelId}
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            channelQuery={{ subscriberEmail: new NotNull() }}
+            contactSelect={{ subscriberEmail: true }}
+          />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-subscriber"
@@ -523,6 +539,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Subscribed At",
                 type: FieldType.Date,
               },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
+                type: FieldType.Date,
+              },
             ]}
             viewPageRoute={Navigation.getCurrentRoute()}
             columns={[
@@ -565,6 +588,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 type: FieldType.DateTime,
                 hideOnMobile: true,
               },
+              {
+                field: {
+                  unsubscribedAt: true,
+                },
+                title: SubscriberUnsubscribeCopy.unsubscribedAtTitle,
+                type: FieldType.DateTime,
+                hideOnMobile: true,
+              },
             ]}
           />
 
@@ -589,6 +620,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     required: true,
                     placeholder:
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
+                    /*
+                     * Every notification can be unsubscribed from without
+                     * signing in, so one reader of a mailing list added here
+                     * can take everyone on it off this page.
+                     */
+                    footerElement: (
+                      <Alert
+                        type={AlertType.WARNING}
+                        className="mt-2"
+                        dataTestId="bulk-add-shared-address-warning"
+                        title={SubscriberUnsubscribeCopy.sharedAddressWarning}
+                      />
+                    ),
                   },
                   {
                     field: { isSubscriptionConfirmed: true },

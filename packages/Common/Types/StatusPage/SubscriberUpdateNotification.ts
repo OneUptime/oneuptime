@@ -63,27 +63,48 @@ export default class SubscriberUpdateNotification {
 
   /*
    * Returns why an update notification should not be sent given where the
-   * original ("posted") notification is, or null when it may go out.
+   * original ("posted") notification is, or null when it may go out - or
+   * wait (see isOriginalNotificationBeingSent).
    *
-   * While the original is still Pending or InProgress, subscribers have not
-   * heard of the item at all. The original notification reads the item when it
-   * is sent, so it already carries this edit - a second "updated" message
-   * about something they were never told about would only confuse them.
+   * While the original is still Pending, subscribers have not heard of the
+   * item at all, and the original will carry this edit: the edit changed the
+   * row's version, so the run that claims the original
+   * (SubscriberNotificationClaim, which checks the version it read) has read
+   * the item since. A second "updated" message about something they were
+   * never told about would only confuse them.
+   *
+   * InProgress is different: that send read the item before it claimed it,
+   * and goes on with what it read, so it may carry the text from before the
+   * edit - a typo fixed, or an ETA corrected, right after posting is exactly
+   * that case. The update waits for it instead
+   * (isOriginalNotificationBeingSent), and goes out once it has settled.
    *
    * Every settled state lets the update through: Success is the normal case,
-   * and Skipped or Failed mean subscribers were not told originally, which the
-   * editor is now explicitly asking to do.
+   * and Skipped or Failed mean subscribers were not told originally (or not
+   * all of them), which the editor is now explicitly asking to do.
    */
   public static getSkipReasonForOriginalNotificationStatus(
     originalStatus: StatusPageSubscriberNotificationStatus | undefined | null,
   ): string | null {
-    if (
-      originalStatus === StatusPageSubscriberNotificationStatus.Pending ||
-      originalStatus === StatusPageSubscriberNotificationStatus.InProgress
-    ) {
+    if (originalStatus === StatusPageSubscriberNotificationStatus.Pending) {
       return this.notYetNotifiedMessage;
     }
 
     return null;
+  }
+
+  /*
+   * Whether the update notification waits: the original ("posted")
+   * notification is being sent right now, with the item as it was read
+   * before the edit. The update is left Pending, untouched, and the job
+   * decides again on a later run, once the original has settled - then it
+   * goes out, since subscribers may have been sent the text from before the
+   * edit. A send that never settles is failed by the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications), which lets it through.
+   */
+  public static isOriginalNotificationBeingSent(
+    originalStatus: StatusPageSubscriberNotificationStatus | undefined | null,
+  ): boolean {
+    return originalStatus === StatusPageSubscriberNotificationStatus.InProgress;
   }
 }

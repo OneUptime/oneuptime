@@ -6,6 +6,8 @@ You build both on a single screen. Open a status page and pick **Resources** in 
 
 Get this part right and the rest of the status page is decoration. Visitors judge "is it me or is it them?" from these rows, so name them the way customers talk about your product — **Checkout API**, not `prod-checkout-lb-healthcheck-us-east-1`.
 
+**Resources also decide which incidents the page shows.** An incident appears here, and the page's subscribers hear about it, when one of the incident's monitors is a resource on the page, directly or through a monitor group. Put the same monitor on several pages and its incidents reach all of them, unless an incident is limited to some of those pages. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+
 ## The Resources screen
 
 The screen is split in two. On the left is a navigator listing every group on the page; on the right is the contents of whichever group you selected.
@@ -166,5 +168,6 @@ The import creates groups, not resources — add monitors afterwards with **Add 
 - [Status Pages Overview](/docs/status-pages/index) — what a status page is and how the pieces fit.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — logo, favicon, chart colors, and putting the page on your own domain.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets told when these resources change.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — the same monitor on many pages, and an incident that reaches only some of them.
 - [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what makes an incident appear on, and disappear from, the page.

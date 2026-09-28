@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import dns from "dns";
+import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
 /*
  * SSRFProtection is the single guard standing between attacker-controlled
@@ -29,6 +30,9 @@ type LookupSpy = jest.SpiedFunction<
     options: { all: true },
   ) => Promise<Array<{ address: string; family: number }>>
 >;
+
+// Detailed refusals are asserted throughout; SaaS behaviour is tested apart.
+startEachTestOnSelfHostedEgressPolicy();
 
 describe("SSRFProtection.validateWebhookTargetIsSafe", () => {
   let lookupSpy: LookupSpy;

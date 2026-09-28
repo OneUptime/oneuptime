@@ -574,6 +574,14 @@ describe("the credential routes have a limiter in front of the handler", () => {
     ["/verify-webauthn-auth"],
     ["/verify-totp-enrolment"],
     ["/verify-backup-code"],
+
+    /*
+     * Not a guessing oracle -- its credentials are a server-signed token or a
+     * random link token -- but anonymous, and every request that gets through
+     * sends an email. Limited on a bucket of its own; see
+     * ResendVerificationEmail.test.ts for the bucket and the ordering.
+     */
+    ["/resend-verification-email"],
   ])("%s runs middleware before its handler", (uri: string) => {
     expect(mockRouter.matchAll("post", uri).length).toBeGreaterThan(1);
   });
@@ -647,8 +655,9 @@ describe("the credential routes have a limiter in front of the handler", () => {
 
     expect(postRoutes).toContain("/login");
     expect(postRoutes).toContain("/verify-backup-code");
+    expect(postRoutes).toContain("/resend-verification-email");
     expect(postRoutes.length).toBeGreaterThanOrEqual(
-      ROUTES_THAT_ACCEPT_NO_CREDENTIAL.length + 5,
+      ROUTES_THAT_ACCEPT_NO_CREDENTIAL.length + 6,
     );
   });
 });

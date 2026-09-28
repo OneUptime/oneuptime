@@ -39,12 +39,32 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import {
+  StatusPagePickerAccessHint,
+  TranslatedScopeNotice,
+  TranslatedScopeText,
+} from "../../../Components/Incident/IncidentStatusPageScopeNotices";
+import { isScopedToDeletedStatusPages } from "../../../Components/Incident/IncidentStatusPageScopeForm";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../../Components/Incident/useStatusPagePickerAccess";
 import User from "Common/Models/DatabaseModels/User";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Picking status pages needs status page read access (see the hint).
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
 
   return (
     <Fragment>
@@ -490,6 +510,117 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelId: modelId,
         }}
       />
+
+      {/*
+       * The status pages incidents declared from this template are limited
+       * to. Its own card: the one above already reads six lists.
+       */}
+      <CardModelDetail<IncidentTemplate>
+        name="Incident Template > Status Page Scope"
+        cardProps={{
+          title: IncidentStatusPageScopeCopy.settingsCardTitle,
+          description: IncidentStatusPageScopeCopy.templatePickerDescription,
+        }}
+        isEditable={true}
+        editButtonText={IncidentStatusPageScopeCopy.settingsEditButton}
+        formFields={[
+          {
+            field: {
+              statusPages: true,
+            },
+            title: IncidentStatusPageScopeCopy.pickerTitle,
+            description: IncidentStatusPageScopeCopy.templatePickerDescription,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: StatusPage,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+            footerElement: (
+              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
+            ),
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: IncidentTemplate,
+          id: "model-detail-incident-template-status-page-scope",
+          fields: [
+            {
+              field: {
+                statusPages: {
+                  name: true,
+                  _id: true,
+                },
+              },
+              title: IncidentStatusPageScopeCopy.scopeFieldTitle,
+              fieldType: FieldType.Element,
+              getElement: (item: IncidentTemplate): ReactElement => {
+                const statusPages: Array<StatusPage> = item.statusPages || [];
+
+                /*
+                 * Limited to pages that have all been deleted since: the
+                 * flag stays, so say what that means for its incidents.
+                 */
+                if (
+                  isScopedToDeletedStatusPages({
+                    isScopedToStatusPages: item.isScopedToStatusPages,
+                    statusPages: statusPages,
+                  })
+                ) {
+                  return (
+                    <TranslatedScopeNotice
+                      text={
+                        IncidentStatusPageScopeCopy.templateScopedToDeletedPagesWarning
+                      }
+                      dataTestId="incident-template-scoped-to-deleted-pages"
+                    />
+                  );
+                }
+
+                if (statusPages.length === 0) {
+                  return (
+                    <TranslatedScopeText
+                      className="text-sm text-gray-500"
+                      text={IncidentStatusPageScopeCopy.noScopeSummary}
+                    />
+                  );
+                }
+
+                return <StatusPagesElement statusPages={statusPages} />;
+              },
+            },
+          ],
+          selectMoreFields: {
+            isScopedToStatusPages: true,
+          },
+          modelId: modelId,
+        }}
+      />
+
+      {/*
+       * The custom field values incidents declared from this template start
+       * with. Nothing is shown to a project with no incident custom fields,
+       * or none on its plan.
+       */}
+      {currentProjectId ? (
+        <CustomFieldsDetail
+          title={IncidentCustomFieldsCopy.templateCustomFieldsCardTitle}
+          description={
+            IncidentCustomFieldsCopy.templateCustomFieldsCardDescription
+          }
+          modelType={IncidentTemplate}
+          customFieldType={IncidentCustomField}
+          name="Incident Template Custom Fields"
+          projectId={currentProjectId}
+          modelId={modelId}
+          hideIfEmpty={true}
+        />
+      ) : (
+        <></>
+      )}
 
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}

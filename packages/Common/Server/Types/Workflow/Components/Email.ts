@@ -6,9 +6,18 @@ import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components/Email";
 import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
+import DataSourceEgressGuard, {
+  ResolvedAddress,
+} from "../../../Utils/DataSource/EgressGuard";
+import PinnedSmtpSocket, {
+  SmtpSocketCallback,
+} from "../../../Utils/Mail/PinnedSmtpSocket";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class Email extends ComponentCode {
+  // nodemailer's own default connection timeout.
+  private static readonly CONNECTION_TIMEOUT_IN_MS: number = 2 * 60 * 1000;
+
   public constructor() {
     super();
 
@@ -123,10 +132,60 @@ export default class Email extends ComponentCode {
       };
     }
 
+    const smtpHost: string = args["smtp-host"].toString().trim();
+    // "[fd00::25]" is how an IPv6 literal is usually written next to a port.
+    const bareSmtpHost: string = smtpHost.replace(/^\[|\]$/g, "");
+    const smtpPort: number = args["smtp-port"] as number;
+
     try {
+      /*
+       * The SMTP host is free text typed into the workflow node by any
+       * project member who can edit workflows, and nodemailer's failures
+       * ("Invalid greeting. response=<banner>", refused vs timed out) come
+       * back through the Error port into the workflow log. Unchecked, this
+       * step is a port scanner with banner disclosure for whatever network
+       * the workflow worker runs in.
+       *
+       * Same guard and label as a project's own SMTP server in MailService,
+       * so the same policy: loopback, link-local and cloud metadata are
+       * refused everywhere; private ranges are refused on SaaS and allowed on
+       * self-hosted installs unless DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true.
+       * A refusal is thrown inside this try, so it takes the Error port like
+       * any other failure to send, before a socket is opened.
+       */
+      const validatedAddresses: Array<ResolvedAddress> =
+        await DataSourceEgressGuard.assertHostnameAllowed(bareSmtpHost, {
+          targetLabel: "SMTP server",
+        });
+
       const smtpTransport: SMTPTransport.Options = {
-        host: args["smtp-host"]?.toString(),
-        port: args["smtp-port"] as number,
+        /*
+         * nodemailer still needs the name the user typed: it is what TLS
+         * sends as SNI and checks the certificate against, on implicit TLS
+         * and on the STARTTLS upgrade alike. It is never dialed; see
+         * getSocket.
+         */
+        host: bareSmtpHost,
+        port: smtpPort,
+        /*
+         * Connect here, to the addresses just validated, and hand nodemailer
+         * the open socket. Given the name instead, nodemailer resolves it
+         * again on its own (dns.resolve4/6, then a process-wide five-minute
+         * cache), so a DNS answer that changed after the check would choose
+         * the address actually connected to.
+         */
+        getSocket: (
+          _options: SMTPTransport.Options,
+          callback: SmtpSocketCallback,
+        ): void => {
+          PinnedSmtpSocket.connect({
+            host: bareSmtpHost,
+            port: smtpPort,
+            addresses: validatedAddresses,
+            timeoutInMs: Email.CONNECTION_TIMEOUT_IN_MS,
+            onDone: callback,
+          });
+        },
       };
 
       if (

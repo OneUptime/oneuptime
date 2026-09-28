@@ -21,6 +21,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * The notes feed every incident, alert, scheduled maintenance and episode
@@ -334,6 +335,8 @@ import FileModel from "../../../Models/DatabaseModels/File";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
@@ -1253,6 +1256,104 @@ describe("event notes: the composer", () => {
     ).toBe(true);
   });
 
+  /*
+   * Who the note will reach ("Will notify: Site 03 (up to 41 email)"), for
+   * the incident pages that pass one (SubscriberAudienceSummary): under the
+   * notify box, and only while it is ticked - an unticked note reaches nobody.
+   */
+  test("shows who the note will reach while notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: (
+          <div data-testid="stub-audience">Will notify: Site 03</div>
+        ),
+      },
+    });
+    await openComposer();
+
+    expect(
+      within(screen.getByTestId("note-notify-audience")).getByTestId(
+        "stub-audience",
+      ),
+    ).toHaveTextContent("Will notify: Site 03");
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  test("a quiet incident shows the audience only once notifying is ticked", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: false,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: <div data-testid="stub-audience">Will notify</div>,
+      },
+    });
+    await openComposer();
+
+    expect(screen.queryByTestId("stub-audience")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.getByTestId("stub-audience")).toBeInTheDocument();
+  });
+
+  /*
+   * 'Preview notification' for the incident pages that pass one: rendered
+   * from the note as it is being written, under the notify box, and only
+   * while it is ticked.
+   */
+  test("offers a preview of the notification, from the note being written, while notifying is ticked", async () => {
+    const drafts: Array<{ note: string; postedAt: Date | null }> = [];
+
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        renderPreview: (draft: {
+          note: string;
+          postedAt: Date | null;
+        }): ReactElement => {
+          drafts.push(draft);
+          return <div data-testid="stub-preview">{draft.note}</div>;
+        },
+      },
+    });
+    await openComposer();
+
+    type(editor(), "Rolling back the release.");
+
+    expect(
+      within(screen.getByTestId("note-notify-preview")).getByTestId(
+        "stub-preview",
+      ),
+    ).toHaveTextContent("Rolling back the release.");
+    expect(drafts[drafts.length - 1]).toEqual({
+      note: "Rolling back the release.",
+      postedAt: null,
+    });
+
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+    expect(screen.queryByTestId("note-notify-preview")).toBeNull();
+  });
+
+  test("without an audience to show, the notify box stands alone", async () => {
+    await renderPublic();
+    await openComposer();
+
+    expect(screen.getByTestId("note-notify-checkbox")).toBeChecked();
+    expect(screen.queryByTestId("note-notify-audience")).toBeNull();
+  });
+
   test("unticking on a notifying incident explains the note still goes on the status page", async () => {
     await renderPublic();
     await openComposer();
@@ -1633,6 +1734,140 @@ describe("event notes: templates", () => {
     await renderPublic({ templates: undefined });
 
     expect(screen.queryByTestId("note-template-menu-button")).toBeNull();
+  });
+});
+
+describe("event notes: template placeholders", () => {
+  const PLACEHOLDER_TEMPLATE: string =
+    "**Incident**: {{incident.title}}\n**Impact**: {{customFields.impact}}\n**Owner**: {{incident.owner}}";
+
+  function seedPlaceholderTemplate(): void {
+    tableOf(IncidentNoteTemplate).push({
+      _id: "71000000-0000-4000-8000-000000000099",
+      templateName: "Status update",
+      note: PLACEHOLDER_TEMPLATE,
+    });
+  }
+
+  async function pickTemplate(): Promise<void> {
+    fireEvent.click(screen.getByTestId("note-template-menu-button"));
+    fireEvent.click(
+      (await screen.findAllByText("Status update"))[0]!.closest("button")!,
+    );
+  }
+
+  function variablesLoader(): MockFunction {
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockResolvedValue({
+      "incident.title": "Payments are failing",
+      "customFields.impact": "High",
+    } as never);
+    return loader;
+  }
+
+  test("a picked template's placeholders are filled with the event's values; unknown ones stay", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
+  test("the values are asked for each time a template is picked, not once per page", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    // Nothing is read until a template is picked.
+    expect(loader).not.toHaveBeenCalled();
+
+    await pickTemplate();
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+    expect(loader).toHaveBeenCalledTimes(1);
+
+    loader.mockResolvedValue({
+      "incident.title": "Payments are recovering",
+    } as never);
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are recovering");
+    });
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  test("when the values cannot be read, the template still goes in, as written", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = getJestMockFunction();
+    loader.mockRejectedValue(new Error("No access to the incident.") as never);
+    await renderPublic({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("only the template is filled: braces already typed are left alone", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+    await openComposer();
+    type(editor(), "We saw {{incident.title}} in the logs.");
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(
+        "We saw {{incident.title}} in the logs.\n\n**Incident**: Payments are failing\n**Impact**: High\n**Owner**: {{incident.owner}}",
+      );
+    });
+  });
+
+  test("the private notes feed fills them too", async () => {
+    seedPlaceholderTemplate();
+    const loader: MockFunction = variablesLoader();
+    await renderPrivate({ templateVariables: loader as never });
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor().value).toContain("**Incident**: Payments are failing");
+    });
+  });
+
+  test("a feed given no values puts the template in as written", async () => {
+    seedPlaceholderTemplate();
+    await renderPublic();
+
+    await pickTemplate();
+
+    await waitFor(() => {
+      expect(editor()).toHaveValue(PLACEHOLDER_TEMPLATE);
+    });
+  });
+
+  test("an AI draft is not a template: nothing is read for it", async () => {
+    const loader: MockFunction = variablesLoader();
+    await renderPublic({ templateVariables: loader as never });
+
+    fireEvent.click(screen.getByTestId("note-ai-button"));
+    fireEvent.click(screen.getByText("Use AI draft"));
+
+    expect(await screen.findByTestId("note-composer")).toBeInTheDocument();
+    expect(editor()).toHaveValue("Drafted by AI.");
+    expect(loader).not.toHaveBeenCalled();
   });
 });
 
@@ -2076,5 +2311,546 @@ describe("event notes: the page header", () => {
     expect(
       within(header).getByText(/about this alert\. They are never shown/),
     ).toBeVisible();
+  });
+});
+
+/*
+ * Sending a note's 'posted' notification again. The incident's public notes
+ * pass a `resend` setting: a note whose notification went out offers Resend,
+ * a failed one Retry, and both ask first, naming who the note would reach
+ * now. The episode and scheduled maintenance notes pass none and keep Retry
+ * only, straight from the details dialog. A note posted without notifying
+ * subscribers offers neither: it would sit in Pending forever.
+ */
+describe("event notes: sending a note's notification again", () => {
+  const RESEND_AUDIENCE: ReactElement = (
+    <div data-testid="resend-audience">
+      Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)
+    </div>
+  );
+
+  function withResend(): Partial<EventNotesProps<IncidentPublicNote>> {
+    return {
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        resend: { audience: RESEND_AUDIENCE },
+      },
+    };
+  }
+
+  function openPostedStatus(text: string): HTMLElement {
+    fireEvent.click(within(card(text)).getByTestId("note-notification-status"));
+
+    return screen.getByRole("dialog", { name: "Subscriber notification" });
+  }
+
+  function seedQuietNote(): void {
+    tableOf(IncidentPublicNote).push({
+      _id: noteId(40),
+      incidentId: INCIDENT_ID,
+      note: "Posted quietly.",
+      createdAt: ago(2 * MINUTE),
+      postedAt: ago(2 * MINUTE),
+      createdByUser: MAYA,
+      shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Notifications skipped as subscribers are not to be notified for this incident note.",
+    });
+  }
+
+  test("a note whose notification went out offers Resend, which asks first and names who it reaches", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Monitoring.");
+
+    fireEvent.click(
+      within(details).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+
+    // Nothing is sent from the details: the confirmation asks first.
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.resendConfirmTitle,
+    });
+
+    expect(
+      within(confirm).getByTestId("note-notification-resend-description"),
+    ).toHaveTextContent(SubscriberNotificationResendCopy.noteResendDescription);
+    expect(within(confirm).getByTestId("resend-audience")).toHaveTextContent(
+      "Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(
+          SubscriberNotificationResendCopy.resendButton,
+        ),
+      );
+    });
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateByIdMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: IncidentPublicNote,
+        data: {
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage: null,
+        },
+      }),
+    );
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(noteId(1));
+
+    await waitFor(() => {
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status"),
+      ).toHaveTextContent("Notifying subscribers soon");
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("a failed note offers Retry, which says a note goes to every page again", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Identified.");
+
+    expect(within(details).getByText("The SMTP relay refused.")).toBeVisible();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(details).getByText(
+        SubscriberNotificationResendCopy.retryNoteNotificationButton,
+      ),
+    );
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.retryConfirmTitle,
+    });
+
+    expect(
+      within(confirm).getByTestId("note-notification-resend-description"),
+    ).toHaveTextContent(SubscriberNotificationResendCopy.noteRetryDescription);
+    expect(within(confirm).getByTestId("resend-audience")).toBeVisible();
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(SubscriberNotificationResendCopy.retryButton),
+      );
+    });
+
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(noteId(2));
+  });
+
+  test("Cancel sends nothing", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+
+    fireEvent.click(
+      within(openPostedStatus("Monitoring.")).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole("dialog", {
+          name: SubscriberNotificationResendCopy.resendConfirmTitle,
+        }),
+      ).getByText(SubscriberNotificationResendCopy.cancelButton),
+    );
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("a refused resend keeps the confirmation open with the server's reason", async () => {
+    seedPublicNotes();
+    await renderPublic(withResend());
+    updateByIdMock.mockRejectedValueOnce(
+      new Error(
+        "This notification is being sent right now. Wait until it has finished, then send it again.",
+      ),
+    );
+
+    fireEvent.click(
+      within(openPostedStatus("Monitoring.")).getByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    );
+
+    const confirm: HTMLElement = screen.getByRole("dialog", {
+      name: SubscriberNotificationResendCopy.resendConfirmTitle,
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(confirm).getByText(
+          SubscriberNotificationResendCopy.resendButton,
+        ),
+      );
+    });
+
+    expect(within(confirm).getByRole("alert")).toHaveTextContent(
+      "This notification is being sent right now.",
+    );
+  });
+
+  test("a note posted without notifying subscribers offers neither", async () => {
+    seedQuietNote();
+    await renderPublic(withResend());
+
+    const details: HTMLElement = openPostedStatus("Posted quietly.");
+
+    expect(
+      within(details).getByText(/not to be notified for this incident note/),
+    ).toBeVisible();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+    expect(
+      within(details).queryByText(
+        SubscriberNotificationResendCopy.retryNoteNotificationButton,
+      ),
+    ).toBeNull();
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.InProgress,
+  ])(
+    "a note whose notification is %s offers neither",
+    async (status: StatusPageSubscriberNotificationStatus) => {
+      tableOf(IncidentPublicNote).push({
+        _id: noteId(41),
+        incidentId: INCIDENT_ID,
+        note: "On its way.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(MINUTE),
+        createdByUser: MAYA,
+        subscriberNotificationStatusOnNoteCreated: status,
+      });
+      await renderPublic(withResend());
+
+      // No detail and nothing to offer: a plain pill, not a button.
+      expect(
+        within(card("On its way.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+    },
+  );
+
+  test("an update notification that went out is not offered again", async () => {
+    tableOf(IncidentPublicNote).push({
+      _id: noteId(42),
+      incidentId: INCIDENT_ID,
+      note: "Edited and announced.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(MINUTE),
+      createdByUser: MAYA,
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        "Update notifications sent successfully to all subscribers.",
+    });
+    await renderPublic(withResend());
+
+    fireEvent.click(
+      within(card("Edited and announced.")).getByTestId(
+        "note-update-notification-status",
+      ),
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Update notification",
+    });
+
+    expect(
+      within(dialog).queryByText(
+        SubscriberNotificationResendCopy.resendNoteNotificationButton,
+      ),
+    ).toBeNull();
+  });
+
+  describe("without the resend setting (the episode and scheduled maintenance notes)", () => {
+    test("a note whose notification went out offers nothing", async () => {
+      seedPublicNotes();
+      await renderPublic();
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+    });
+
+    test("a failed one retries straight from the details, with no confirmation", async () => {
+      seedPublicNotes();
+      await renderPublic();
+
+      const details: HTMLElement = openPostedStatus("Identified.");
+
+      await act(async () => {
+        fireEvent.click(
+          within(details).getByText(
+            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+          ),
+        );
+      });
+
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole("dialog", {
+          name: SubscriberNotificationResendCopy.retryConfirmTitle,
+        }),
+      ).toBeNull();
+    });
+
+    test("a scheduled maintenance note keeps Retry only, for its own roles", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.ScheduledMaintenanceMember];
+
+      const EVENT_ID: ObjectID = new ObjectID(
+        "30000000-0000-4000-8000-000000000001",
+      );
+
+      tableOf(ScheduledMaintenancePublicNote).push(
+        {
+          _id: noteId(50),
+          scheduledMaintenanceId: EVENT_ID,
+          note: "Maintenance started.",
+          createdAt: ago(10 * MINUTE),
+          postedAt: ago(10 * MINUTE),
+          createdByUser: MAYA,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Success,
+        },
+        {
+          _id: noteId(51),
+          scheduledMaintenanceId: EVENT_ID,
+          note: "Maintenance extended.",
+          createdAt: ago(5 * MINUTE),
+          postedAt: ago(5 * MINUTE),
+          createdByUser: MAYA,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Failed,
+          subscriberNotificationStatusMessage: "Relay refused.",
+        },
+      );
+
+      render(
+        <EventNotes<ScheduledMaintenancePublicNote>
+          modelType={ScheduledMaintenancePublicNote}
+          visibility="public"
+          eventNoun="scheduled maintenance event"
+          parentIdField="scheduledMaintenanceId"
+          parentId={EVENT_ID}
+          currentProject={buildProject()}
+          subscriberNotifications={{
+            isNotifyingByDefault: true,
+            quietDescription: QUIET_DESCRIPTION,
+          }}
+        />,
+      );
+      await waitFor(() => {
+        expect(screen.queryByTestId("notes-loading")).toBeNull();
+      });
+
+      expect(
+        within(card("Maintenance started.")).getByTestId(
+          "note-notification-status",
+        ).tagName,
+      ).toBe("SPAN");
+
+      const details: HTMLElement = openPostedStatus("Maintenance extended.");
+
+      await act(async () => {
+        fireEvent.click(
+          within(details).getByText(
+            SubscriberNotificationResendCopy.retryNoteNotificationButton,
+          ),
+        );
+      });
+
+      expect(updateByIdMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: ScheduledMaintenancePublicNote,
+          data: {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessage: null,
+          },
+        }),
+      );
+    });
+  });
+
+  describe("who is offered it", () => {
+    test("a project member is offered Resend", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.ProjectMember];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(openPostedStatus("Monitoring.")).getByText(
+          SubscriberNotificationResendCopy.resendNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("a viewer is offered neither Resend nor Retry", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.Viewer];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+      expect(
+        within(openPostedStatus("Identified.")).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+    });
+
+    /*
+     * Telling subscribers about an edit tells them what the note says now,
+     * and an editor can change the text first: it takes the permission to
+     * post a notifying note, like sending the posted notification again.
+     */
+    test("an editor who could not post a note is offered neither the posted notification nor an edit's", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(card("Monitoring.")).getByTestId("note-notification-status")
+          .tagName,
+      ).toBe("SPAN");
+      expect(
+        within(openPostedStatus("Identified.")).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+
+      fireEvent.click(within(screen.getByRole("dialog")).getByText("Close"));
+
+      fireEvent.click(
+        within(card("Investigating reports")).getByTestId(
+          "note-update-notification-status",
+        ),
+      );
+
+      expect(
+        within(
+          screen.getByRole("dialog", { name: "Update notification" }),
+        ).queryByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeNull();
+    });
+
+    test("that editor may still edit a note, without the checkbox to notify subscribers", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      const noteCard: HTMLElement = card("Monitoring.");
+      await openActions(noteCard);
+      fireEvent.click(
+        within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+      );
+      const composer: HTMLElement =
+        await within(noteCard).findByTestId("note-edit-composer");
+
+      expect(within(composer).queryByTestId("note-notify-checkbox")).toBeNull();
+      expect(
+        within(composer).queryByText("Notify subscribers about this update"),
+      ).toBeNull();
+
+      type(
+        within(composer).getByLabelText("Note text") as HTMLTextAreaElement,
+        "Monitoring. A fix is live everywhere.",
+      );
+      await act(async () => {
+        fireEvent.click(within(composer).getByTestId("note-submit"));
+      });
+
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(
+        (updateMock.mock.calls[0]![0] as { miscDataProps?: JSONObject })
+          .miscDataProps,
+      ).toEqual({});
+    });
+
+    test("a role that may post and edit notes may retry an edit's notification", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.CreateIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      fireEvent.click(
+        within(card("Investigating reports")).getByTestId(
+          "note-update-notification-status",
+        ),
+      );
+
+      expect(
+        within(
+          screen.getByRole("dialog", { name: "Update notification" }),
+        ).getByText(
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("a role that may post and edit notes is offered it", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.CreateIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+        Permission.ReadIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic(withResend());
+
+      expect(
+        within(openPostedStatus("Monitoring.")).getByText(
+          SubscriberNotificationResendCopy.resendNoteNotificationButton,
+        ),
+      ).toBeInTheDocument();
+    });
   });
 });

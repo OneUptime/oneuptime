@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Abonnement bestätigen",
       "success": "Abonnement erfolgreich bestätigt"
+    },
+    "unsubscribe": {
+      "title": "Abbestellen",
+      "titleWithName": "{{statusPageName}} abbestellen",
+      "confirmPrompt": "Möchten Sie keine Benachrichtigungen mehr von dieser Statusseite erhalten?",
+      "channelEmail": "E-Mail-Adresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-Workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-Workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dieses Abonnement wurde vom Team hinzugefügt, das diese Statusseite betreibt. Handelt es sich um eine gemeinsam genutzte Adresse wie eine Mailingliste, erhält nach dem Abbestellen niemand mehr diese Benachrichtigungen, der sie über diese Adresse bekommt, und das Team wird informiert.",
+      "confirmButton": "Abbestellen",
+      "manageInstead": "Stattdessen auswählen, welche Benachrichtigungen Sie erhalten",
+      "manageSubscription": "Abonnement verwalten",
+      "success": "Sie haben die Benachrichtigungen abbestellt. Sie erhalten keine weiteren Benachrichtigungen von dieser Statusseite.",
+      "alreadyUnsubscribed": "Dieses Abonnement wurde bereits beendet. Sie erhalten keine Benachrichtigungen von dieser Statusseite.",
+      "outOfDateLink": "Dieser Abbestelllink ist veraltet. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "invalidLink": "Dieser Abbestelllink ist ungültig. Er ist möglicherweise unvollständig, oder das Abonnement wurde entfernt. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "failed": "Das Abbestellen ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "loadFailed": "Dieser Abbestelllink konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
     }
   },
   "accounts": {

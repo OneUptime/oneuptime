@@ -27,7 +27,7 @@ validation_failed=0
 MONITOR_RESPONSE=$(api_get_resource "/api/monitor-custom-field" "$MONITOR_FIELD_ID" \
     '{"_id": true, "name": true, "customFieldType": true}')
 INCIDENT_RESPONSE=$(api_get_resource "/api/incident-custom-field" "$INCIDENT_FIELD_ID" \
-    '{"_id": true, "name": true, "customFieldType": true}')
+    '{"_id": true, "name": true, "customFieldType": true, "sortOrder": true, "showOnCreate": true, "isRequiredOnCreate": true, "includeInSubscriberNotifications": true, "variableKey": true}')
 ALERT_RESPONSE=$(api_get_resource "/api/alert-custom-field" "$ALERT_FIELD_ID" \
     '{"_id": true, "name": true, "customFieldType": true}')
 
@@ -35,6 +35,15 @@ validate_field "$MONITOR_RESPONSE" "name" "terraform-e2e-monitor-field" || valid
 validate_field "$MONITOR_RESPONSE" "customFieldType" "Text" || validation_failed=1
 validate_field "$INCIDENT_RESPONSE" "name" "terraform-e2e-incident-field" || validation_failed=1
 validate_field "$INCIDENT_RESPONSE" "customFieldType" "Number" || validation_failed=1
+validate_field "$INCIDENT_RESPONSE" "sortOrder" "1" || validation_failed=1
+validate_field "$INCIDENT_RESPONSE" "showOnCreate" "true" || validation_failed=1
+validate_field "$INCIDENT_RESPONSE" "isRequiredOnCreate" "true" || validation_failed=1
+validate_field "$INCIDENT_RESPONSE" "includeInSubscriberNotifications" "true" || validation_failed=1
+
+# The server makes the template key from the name; Terraform reads it back.
+validate_field "$INCIDENT_RESPONSE" "variableKey" "terraform_e2e_incident_field" || validation_failed=1
+assert_equals "terraform_e2e_incident_field" "$(get_output incident_custom_field_variable_key)" \
+    "incident_custom_field_variable_key output" || validation_failed=1
 validate_field "$ALERT_RESPONSE" "name" "terraform-e2e-alert-field" || validation_failed=1
 validate_field "$ALERT_RESPONSE" "customFieldType" "Boolean" || validation_failed=1
 

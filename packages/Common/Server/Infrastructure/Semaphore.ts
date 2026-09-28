@@ -81,6 +81,12 @@ export default class Semaphore {
     acquireTimeout?: number | undefined;
     acquireAttemptsLimit?: number | undefined;
     retryInterval?: number | undefined;
+    /*
+     * Called when a held permit could not be refreshed and has lapsed. By
+     * default redis-semaphore throws from its refresh timer, which nothing
+     * can catch; a holder that runs for long should pass one.
+     */
+    onLockLost?: ((err: Error) => void) | undefined;
   }): Promise<SemaphorePermit> {
     if (!Number.isInteger(data.limit) || data.limit <= 0) {
       throw new Error("Semaphore permit limit must be a positive integer");
@@ -106,6 +112,10 @@ export default class Semaphore {
 
     if (data.retryInterval !== undefined) {
       lockOptions.retryInterval = data.retryInterval;
+    }
+
+    if (data.onLockLost) {
+      lockOptions.onLockLost = data.onLockLost;
     }
 
     const permit: SemaphorePermit = new RedisSemaphore(

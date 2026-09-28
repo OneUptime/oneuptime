@@ -5,12 +5,12 @@ import ButtonType from "../Button/ButtonTypes";
 import { FormProps } from "../Forms/BasicForm";
 import ModelForm, {
   ComponentProps as ModelFormComponentProps,
+  ModelFormOnBeforeCreate,
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 
@@ -28,9 +28,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   submitButtonStyleType?: undefined | ButtonStyleType;
   formProps: ModelFormComponentProps<TBaseModel>;
   modelIdToEdit?: ObjectID | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   footer?: ReactElement | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
 }

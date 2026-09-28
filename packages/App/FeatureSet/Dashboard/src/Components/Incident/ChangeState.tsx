@@ -29,6 +29,11 @@ import EventStatusPanel, {
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import {
+  fillNoteTemplate,
+  NoteTemplateVariables,
+} from "Common/Utils/Incident/IncidentNoteTemplateVariables";
+import { fetchIncidentNoteTemplateVariables } from "./IncidentNoteTemplateVariables";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
@@ -139,6 +144,15 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   const [incidentNoteTemplates, setIncidentNoteTemplates] = useState<
     IncidentNoteTemplate[]
   >([]);
+
+  /*
+   * The values for a note template's {{incident.title}}-style placeholders,
+   * read as the state change form opens (and only when there is a template
+   * to pick), so a template picked there goes in filled. Until they arrive,
+   * or if they cannot be read, a template goes in as written.
+   */
+  const [noteTemplateVariables, setNoteTemplateVariables] =
+    useState<NoteTemplateVariables>({});
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | undefined | null =
@@ -406,7 +420,25 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
     setSelectedIncidentState(incidentState);
     setShowModal(true);
+
+    if (incidentNoteTemplates.length > 0) {
+      loadNoteTemplateVariables();
+    }
   };
+
+  const loadNoteTemplateVariables: PromiseVoidFunction =
+    async (): Promise<void> => {
+      // Never the values of an earlier opening: the incident may have moved on.
+      setNoteTemplateVariables({});
+
+      try {
+        setNoteTemplateVariables(
+          await fetchIncidentNoteTemplateVariables(props.incidentId),
+        );
+      } catch {
+        // The template goes in as written.
+      }
+    };
 
   let modalTitle: string =
     "Mark Incident as " + (selectedIncidentState?.name || "");
@@ -536,7 +568,10 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                       },
                     );
 
-                  const note: string = selectedTemplate?.note || "";
+                  const note: string = fillNoteTemplate(
+                    selectedTemplate?.note || "",
+                    noteTemplateVariables,
+                  );
 
                   if (note) {
                     setNewFormValues({

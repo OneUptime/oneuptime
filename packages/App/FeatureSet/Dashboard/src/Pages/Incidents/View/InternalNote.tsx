@@ -1,5 +1,6 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
 import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
+import { fetchIncidentNoteTemplateVariables } from "../../../Components/Incident/IncidentNoteTemplateVariables";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -31,6 +32,13 @@ const IncidentPrivateNotes: FunctionComponent<PageComponentProps> = (
         settingsRoute: RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
         ),
+      }}
+      /*
+       * A template's {{incident.title}}-style placeholders are filled in with
+       * this incident's values when it is picked.
+       */
+      templateVariables={() => {
+        return fetchIncidentNoteTemplateVariables(modelId);
       }}
       ai={{
         title: "Generate Private Note with AI",

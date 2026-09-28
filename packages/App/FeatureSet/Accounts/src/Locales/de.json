@@ -118,7 +118,13 @@
     "verifyEmailSent": "Wir haben Ihnen einen Bestätigungslink gesendet.",
     "verifyEmailInstructions": "Öffnen Sie den Link in dieser E-Mail, um Ihr Konto zu aktivieren, und melden Sie sich dann an.",
     "verifyEmailResendHint": "Nicht gefunden? Prüfen Sie Ihren Spam-Ordner. Der Link ist 24 Stunden gültig. Wenn Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort anmelden, senden wir Ihnen einen neuen.",
-    "verifyEmailLoginLink": "Zur Anmeldung"
+    "verifyEmailLoginLink": "Zur Anmeldung",
+    "verifyEmailSpamHint": "Nicht gefunden? Prüfen Sie Ihren Spam- oder Junk-Ordner. Der Link ist 24 Stunden gültig.",
+    "verifyEmailOpenProvider": "{{provider}} öffnen",
+    "verifyEmailOpensInNewTab": "(öffnet in einem neuen Tab)",
+    "verifyEmailAlreadyVerifiedPrompt": "Haben Sie Ihre E-Mail-Adresse bereits bestätigt?",
+    "verifyEmailWrongAddressPrompt": "Falsche E-Mail-Adresse?",
+    "verifyEmailUseDifferentEmail": "Mit einer anderen E-Mail-Adresse registrieren"
   },
   "forgotPassword": {
     "title": "Passwort vergessen",
@@ -159,7 +165,18 @@
     "errorTitle": "Entschuldigung, etwas ist schiefgelaufen!",
     "returnToSignIn": "Zurück zur Anmeldung?",
     "loginLink": "Anmelden.",
-    "continueToSignIn": "Weiter zur Anmeldung"
+    "continueToSignIn": "Weiter zur Anmeldung",
+    "linkInvalidTitle": "Dieser Bestätigungslink ist nicht mehr gültig",
+    "requestNewLinkDescription": "Wenn Ihr Link abgelaufen ist oder nicht mehr funktioniert, können wir Ihnen per E-Mail einen neuen senden.",
+    "tryAgain": "Erneut versuchen"
+  },
+  "resendVerificationEmail": {
+    "button": "Bestätigungs-E-Mail erneut senden",
+    "countdown": "Sie können in {{time}} eine weitere E-Mail anfordern.",
+    "sent": "Wir haben einen neuen Bestätigungslink gesendet. Es kann ein bis zwei Minuten dauern, bis er ankommt.",
+    "wait": "Vor Kurzem wurde bereits eine Bestätigungs-E-Mail gesendet. Sie können eine weitere anfordern, sobald der Timer abgelaufen ist.",
+    "alreadyVerified": "Ihre E-Mail-Adresse ist bereits bestätigt. Sie können sich jetzt anmelden.",
+    "failed": "Wir konnten keine neue Bestätigungs-E-Mail senden. Bitte versuchen Sie es gleich noch einmal."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
   "Password is required.": "Ein Passwort ist erforderlich.",
   "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Diese Bestätigungsanfrage ist nicht mehr gültig. Melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an, dann senden wir Ihnen einen neuen Bestätigungslink.",
+  "Your account has been blocked. Please contact your administrator.": "Ihr Konto wurde gesperrt. Bitte wenden Sie sich an Ihren Administrator.",
   "Account details": "Kontodetails",
   "Secure your account": "Sichern Sie Ihr Konto",
   "Between {{minimum}} and {{maximum}} characters": "Zwischen {{minimum}} und {{maximum}} Zeichen",

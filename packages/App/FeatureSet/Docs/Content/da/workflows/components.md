@@ -88,15 +88,26 @@ Send en besked til en Telegram-chat med et bot-token og et chat-ID.
 
 ## Email
 
-Send en e-mail gennem OneUptime.
+Send en e-mail gennem en SMTP-server, som du angiver på blokken.
 
 **Indstillinger**:
 
-- **Til** — modtagerens e-mailadresse.
-- **Emne** — emnelinjen.
-- **Body** — beskeden i Markdown eller HTML.
+- **From Email** — afsenderen, for eksempel `Alerts <alerts@company.com>`.
+- **To Email** — modtagerens e-mailadresse. Adskil flere adresser med kommaer eller semikoloner.
+- **Subject** — emnelinjen.
+- **Email Body** — beskeden, sendt som HTML.
+- **SMTP Host** og **SMTP Port** — den mailserver, der skal oprettes forbindelse til.
+- **SMTP Username** og **SMTP Password** — valgfri. Udfyld enten begge eller ingen af dem.
+- **Use Implicit TLS** — slå den til for implicit TLS, typisk på port 465. Lad den være slået fra for STARTTLS, typisk på port 587.
 
-E-mailen sendes fra dit projekts konfigurerede afsender — se [SMTP](/docs/emails/smtp).
+**Outputs**:
+
+- **Succes** — fyrer, når SMTP-serveren accepterede beskeden.
+- **Fejl** — fyrer, når SMTP-værten afvises, serveren ikke kan nås, eller serveren afviser beskeden. Sender fejlmeddelelsen videre. Mangler **To Email**, **From Email**, **SMTP Host** eller **SMTP Port**, stopper kørslen i stedet.
+
+Blokken opretter forbindelse direkte til den server, der står i dens indstillinger. Den bruger hverken dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i Notifikationslogs. Vil du tjekke, hvad den gjorde, så se workflowets [kørsler & logfiler](/docs/workflows/runs-and-logs).
+
+Forbindelser til loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og cloud-metadata-adresser afvises. På OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der opløses til en sådan adresse. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært går til **Fejl**-outputtet, og intet bliver sendt.
 
 ## Custom Code
 

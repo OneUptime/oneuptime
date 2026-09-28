@@ -118,7 +118,13 @@
     "verifyEmailSent": "Nous vous avons envoyé un lien de vérification.",
     "verifyEmailInstructions": "Ouvrez le lien contenu dans cet e-mail pour activer votre compte, puis connectez-vous.",
     "verifyEmailResendHint": "Vous ne le trouvez pas ? Vérifiez votre dossier de courrier indésirable. Le lien expire au bout de 24 heures, et vous en recevrez un nouveau en vous connectant avec votre adresse e-mail et votre mot de passe.",
-    "verifyEmailLoginLink": "Aller à la connexion"
+    "verifyEmailLoginLink": "Aller à la connexion",
+    "verifyEmailSpamHint": "Vous ne le trouvez pas ? Vérifiez votre dossier de spam ou de courrier indésirable. Le lien expire au bout de 24 heures.",
+    "verifyEmailOpenProvider": "Ouvrir {{provider}}",
+    "verifyEmailOpensInNewTab": "(s'ouvre dans un nouvel onglet)",
+    "verifyEmailAlreadyVerifiedPrompt": "Vous avez déjà vérifié votre adresse e-mail ?",
+    "verifyEmailWrongAddressPrompt": "Adresse e-mail incorrecte ?",
+    "verifyEmailUseDifferentEmail": "S'inscrire avec une autre adresse e-mail"
   },
   "forgotPassword": {
     "title": "Mot de passe oublié",
@@ -159,7 +165,18 @@
     "errorTitle": "Désolé, quelque chose s'est mal passé !",
     "returnToSignIn": "Retour à la connexion ?",
     "loginLink": "Connexion.",
-    "continueToSignIn": "Continuer vers la connexion"
+    "continueToSignIn": "Continuer vers la connexion",
+    "linkInvalidTitle": "Ce lien de vérification n'est plus valide",
+    "requestNewLinkDescription": "Si votre lien a expiré ou ne fonctionne plus, nous pouvons vous en envoyer un nouveau par e-mail.",
+    "tryAgain": "Réessayer"
+  },
+  "resendVerificationEmail": {
+    "button": "Renvoyer l'e-mail de vérification",
+    "countdown": "Vous pourrez demander un autre e-mail dans {{time}}.",
+    "sent": "Nous vous avons envoyé un nouveau lien de vérification. Il peut mettre une minute ou deux à arriver.",
+    "wait": "Un e-mail de vérification a été envoyé récemment. Vous pourrez en demander un autre à la fin du compte à rebours.",
+    "alreadyVerified": "Votre adresse e-mail est déjà vérifiée. Vous pouvez maintenant vous connecter.",
+    "failed": "Nous n'avons pas pu envoyer de nouvel e-mail de vérification. Veuillez réessayer dans un instant."
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "Le mot de passe ne peut pas contenir uniquement des espaces.",
   "Password is required.": "Le mot de passe est obligatoire.",
   "Password must be a string.": "Le mot de passe doit être une chaîne de caractères.",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "Cette demande de vérification n'est plus valide. Connectez-vous avec votre adresse e-mail et votre mot de passe, et nous vous enverrons un nouveau lien de vérification.",
+  "Your account has been blocked. Please contact your administrator.": "Votre compte a été bloqué. Veuillez contacter votre administrateur.",
   "Account details": "Informations du compte",
   "Secure your account": "Sécurisez votre compte",
   "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} et {{maximum}} caractères",

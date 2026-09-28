@@ -105,6 +105,7 @@
 - **Show Incidents** (`showIncidentsOnStatusPage`) — به‌طور پیش‌فرض روشن. خاموش کردنش آیتم پیمایش **Incidents** را هم برمی‌دارد.
 - **Show Incident History (in days)** (`showIncidentHistoryInDays`) — فهرست حادثه‌ها چقدر به عقب می‌رسد. پیش‌فرض ۱۴.
 - **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — به‌طور پیش‌فرض خاموش.
+- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — به‌طور پیش‌فرض خاموش. روشنش کنید تا صفحه فقط حادثه‌هایی را که با **Limit to these status pages** به آن محدود شده‌اند نشان دهد و مشترکانش را فقط درباره آن‌ها خبردار کند. حادثه‌هایی که به هیچ صفحه‌ای محدود نشده‌اند، از جمله حادثه‌هایی که مانیتور، Slack، Microsoft Teams، API یا هوش مصنوعی خودشان باز می‌کنند، هرگز به آن نمی‌رسند تا کسی صفحه را به آن‌ها بیفزاید. برای صفحه‌هایی که در مانیتورها شریک‌اند اما به مخاطبان مختلفی خدمت می‌کنند، [یک صفحه وضعیت برای هر مخاطب](/docs/status-pages/one-status-page-per-audience) را ببینید.
 
 **Episode Settings** — همان سه کلید برای اپیزودهای حادثه: **Show Episodes** (`showEpisodesOnStatusPage`، به‌طور پیش‌فرض روشن)، **Show Episode History (in days)** (پیش‌فرض ۱۴)، و **Show Episode Labels** (به‌طور پیش‌فرض خاموش). اپیزودها مدل خودشان با نقطه‌های پایانی خودشان‌اند، نه نمایی از حادثه‌ها.
 
@@ -180,6 +181,7 @@
 - [منابع و گروه‌های صفحه وضعیت](/docs/status-pages/resources-and-groups) — گذاشتن مانیتورها روی صفحه و سازماندهی‌شان در بخش‌ها.
 - [برندسازی و دامنه‌های صفحه وضعیت](/docs/status-pages/branding-and-domains) — نشان، فاوآیکن، پاورقی، کد سفارشی، و نشانه گرفتن دامنه خودتان به صفحه.
 - [مشترکان و اعلامیه‌ها](/docs/status-pages/subscribers) — پنج کانال مشترک، تأیید دوگام، و انتشار اعلامیه.
+- [یک صفحه وضعیت برای هر مخاطب](/docs/status-pages/one-status-page-per-audience) — یک صفحه وضعیت برای هر مشتری، سایت یا منطقه، و تصمیم به ازای هر حادثه که کدام‌ها درباره‌اش بشنوند.
 - [API عمومی](/docs/status-pages/public-api) — خواندن برنامه‌نویسانه داده صفحه وضعیت.
 - [نمای کلی حادثه‌ها](/docs/incidents/index) — رویدادهایی که روی صفحه پدیدار می‌شوند.
 - [وضعیت‌ها و شدت‌های حادثه](/docs/incidents/states-and-severities) — چه چیزی حادثه‌ای را روی صفحه وضعیت پدیدار می‌کند و چه چیزی برش می‌دارد.

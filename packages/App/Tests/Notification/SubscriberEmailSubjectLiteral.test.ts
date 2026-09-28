@@ -22,7 +22,9 @@ import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import EmailLogService from "Common/Server/Services/EmailLogService";
 import API from "Common/Utils/API";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import "../../FeatureSet/Notification/API/Mail";
@@ -324,5 +326,51 @@ describe("a subject that is still a template", () => {
 
     expect(delivered.subject).toBe("[Report] Acme Status");
     expect(delivered.html).toBe("<p>Acme Status report</p>");
+  });
+});
+
+/*
+ * A custom subject can carry {{unsubscribeUrl}}. The subscriber gets the link
+ * whole; the email log, which project members who may not touch subscribers
+ * can read, keeps it with the token that cancels the subscription redacted.
+ */
+describe("the email log of a subject carrying an unsubscribe link", () => {
+  test("keeps the link with its token redacted, while the subscriber gets it whole", async () => {
+    const token: string = "6f".repeat(32);
+    const subscriberId: string = "d0000000-0000-4000-8000-000000000001";
+    const link: string = `https://status.acme.test/unsubscribe/${subscriberId}-${token}`;
+
+    await CommonMailService.sendMail(customTemplateEmail(`Stop: ${link}`), {
+      mailServer: SMTP_SERVER,
+      projectId: new ObjectID("d0000000-0000-4000-8000-000000000002"),
+    });
+
+    const request: { data: JSONObject } | undefined = jest.mocked(API.post).mock
+      .calls[0]?.[0] as { data: JSONObject } | undefined;
+
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+    await mockRouter.match("post", "/send").handlerFunction(
+      {
+        body: JSON.parse(JSON.stringify(request!.data)),
+      } as ExpressRequest,
+      {} as ExpressResponse,
+      next as unknown as NextFunction,
+    );
+    expect(next).not.toHaveBeenCalled();
+
+    expect(sendMail.mock.calls[0]![0].subject).toBe(`Stop: ${link}`);
+
+    const logged: Array<{ subject?: string }> = jest
+      .mocked(EmailLogService.create)
+      .mock.calls.map((call: Array<unknown>): { subject?: string } => {
+        return (call[0] as { data: { subject?: string } }).data;
+      });
+
+    expect(logged.length).toBeGreaterThan(0);
+    for (const row of logged) {
+      expect(row.subject).toBe(
+        `Stop: https://status.acme.test/unsubscribe/${subscriberId}-[redacted]`,
+      );
+    }
   });
 });

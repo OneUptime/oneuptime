@@ -88,15 +88,26 @@ Envoyer un message dans une conversation Telegram à l'aide d'un jeton de bot et
 
 ## Email
 
-Envoyer un e-mail via OneUptime.
+Envoyer un e-mail via un serveur SMTP que vous saisissez dans le bloc.
 
 **Paramètres** :
 
-- **À** — l'adresse e-mail du destinataire.
-- **Objet** — la ligne d'objet.
-- **Body** — le message, en Markdown ou en HTML.
+- **From Email** — l'expéditeur, par exemple `Alerts <alerts@company.com>`.
+- **To Email** — l'adresse e-mail du destinataire. Séparez plusieurs adresses par des virgules ou des points-virgules.
+- **Subject** — la ligne d'objet.
+- **Email Body** — le message, envoyé en HTML.
+- **SMTP Host** et **SMTP Port** — le serveur de messagerie auquel se connecter.
+- **SMTP Username** et **SMTP Password** — facultatifs. Renseignez les deux ou aucun des deux.
+- **Use Implicit TLS** — à activer pour le TLS implicite, généralement sur le port 465. Laissez-le désactivé pour STARTTLS, généralement sur le port 587.
 
-L'e-mail part depuis l'expéditeur configuré pour votre projet — voir [SMTP](/docs/emails/smtp).
+**Sorties** :
+
+- **Succès** — part quand le serveur SMTP a accepté le message.
+- **Erreur** — part quand l'hôte SMTP est refusé, que le serveur est injoignable ou qu'il rejette le message. Transmet le message d'erreur. L'absence de **To Email**, **From Email**, **SMTP Host** ou **SMTP Port** arrête plutôt l'exécution.
+
+Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'utilise ni les paramètres [SMTP](/docs/emails/smtp) de votre projet ni le propre serveur de messagerie de OneUptime, et les e-mails qu'il envoie n'apparaissent pas dans les Journaux de notification. Pour vérifier ce qu'il a fait, consultez les [Exécutions et journaux](/docs/workflows/runs-and-logs) du workflow.
+
+Les connexions vers les adresses de bouclage (`localhost`, `127.0.0.1`), de lien local et de métadonnées cloud sont refusées. Sur OneUptime Cloud, un hôte SMTP situé sur une adresse de réseau privé, ou un nom qui se résout vers une telle adresse, est également refusé. Les installations auto-hébergées peuvent atteindre un serveur de messagerie sur leur propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` est défini sur `true`. Un hôte refusé emprunte la sortie **Erreur**, et rien n'est envoyé.
 
 ## Custom Code
 

@@ -51,7 +51,7 @@ const interpolateTemplate: (
  * we fall back to JS-interpolating the English template, so placeholders are
  * never shown literally and behavior is unchanged where i18n isn't set up.
  */
-const translateValidationMessage: (
+export const translateValidationMessage: (
   template: string,
   values?: InterpolationValues,
 ) => string = (template: string, values: InterpolationValues = {}): string => {

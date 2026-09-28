@@ -1,5 +1,6 @@
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import SubscriberNotificationTemplateVariables, {
+  SubscriberNotificationTemplateDynamicVariable,
   SubscriberNotificationTemplateVariable,
 } from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 import { describe, expect, test } from "@jest/globals";
@@ -24,6 +25,17 @@ const STATUS_PAGE: Array<string> = [
 ];
 
 const COMMON: Array<string> = [...STATUS_PAGE, "resourcesAffected"];
+
+// What every incident event offers on top of its own variables.
+const INCIDENT: Array<string> = ["incidentLabels", "affectedStatusPages"];
+
+const INCIDENT_EVENTS: Array<StatusPageSubscriberNotificationEventType> = [
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+];
 
 // Messages about the subscription itself, or the report - not about a resource.
 const ACCOUNT_EVENTS: Array<StatusPageSubscriberNotificationEventType> = [
@@ -151,6 +163,38 @@ describe("SubscriberNotificationTemplateVariables", () => {
         "postedAt",
         "note",
         "detailsUrl",
+        ...INCIDENT,
+      ],
+    ],
+    [
+      Event.SubscriberIncidentCreated,
+      [
+        "incidentTitle",
+        "incidentDescription",
+        "incidentSeverity",
+        "detailsUrl",
+        ...INCIDENT,
+      ],
+    ],
+    [
+      Event.SubscriberIncidentStateChanged,
+      [
+        "incidentTitle",
+        "incidentDescription",
+        "incidentSeverity",
+        "incidentState",
+        "detailsUrl",
+        ...INCIDENT,
+      ],
+    ],
+    [
+      Event.SubscriberIncidentPostmortemPublished,
+      [
+        "incidentTitle",
+        "incidentSeverity",
+        "postmortemNote",
+        "detailsUrl",
+        ...INCIDENT,
       ],
     ],
     [
@@ -208,10 +252,290 @@ describe("SubscriberNotificationTemplateVariables", () => {
     },
   );
 
+  /*
+   * In the body of an email template, a variable is either HTML already
+   * (rendered Markdown, or the resource list built from escaped names) or
+   * plain text, which the body escapes. The workers' tests hold each worker
+   * to this split, so it has to be exactly the HTML ones: a title marked as
+   * HTML would go into the email unescaped.
+   */
+  test.each([
+    [
+      Event.SubscriberIncidentCreated,
+      ["resourcesAffected", "incidentDescription"],
+    ],
+    [
+      Event.SubscriberIncidentStateChanged,
+      ["resourcesAffected", "incidentDescription"],
+    ],
+    [Event.SubscriberIncidentNoteCreated, ["resourcesAffected", "note"]],
+    [Event.SubscriberIncidentNoteUpdated, ["resourcesAffected", "note"]],
+    [
+      Event.SubscriberIncidentPostmortemPublished,
+      ["resourcesAffected", "postmortemNote"],
+    ],
+    [
+      Event.SubscriberAnnouncementCreated,
+      ["resourcesAffected", "announcementDescription"],
+    ],
+    [
+      Event.SubscriberAnnouncementUpdated,
+      ["resourcesAffected", "announcementDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceCreated,
+      ["resourcesAffected", "scheduledMaintenanceDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceStateChanged,
+      ["resourcesAffected", "scheduledMaintenanceDescription"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceNoteCreated,
+      ["resourcesAffected", "scheduledMaintenanceDescription", "note"],
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceNoteUpdated,
+      ["resourcesAffected", "scheduledMaintenanceDescription", "note"],
+    ],
+    [
+      Event.SubscriberEpisodeCreated,
+      ["resourcesAffected", "episodeDescription"],
+    ],
+    [Event.SubscriberEpisodeStateChanged, ["resourcesAffected"]],
+    [Event.SubscriberEpisodeNoteCreated, ["resourcesAffected", "note"]],
+    [Event.SubscriberEpisodeNoteUpdated, ["resourcesAffected", "note"]],
+    [Event.SubscriberSubscriptionConfirmation, []],
+    [Event.SubscriberSubscribed, []],
+    [Event.SubscriberManageSubscription, []],
+  ] as Array<[StatusPageSubscriberNotificationEventType, Array<string>]>)(
+    "%s marks exactly its HTML variables as HTML in an email body",
+    (
+      event: StatusPageSubscriberNotificationEventType,
+      htmlVariables: Array<string>,
+    ) => {
+      expect(
+        [
+          ...SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+            event,
+          ),
+        ].sort(),
+      ).toEqual([...htmlVariables].sort());
+    },
+  );
+
+  test.each(ALL_EVENTS)(
+    "%s never marks a title, name, severity, state, time or URL as HTML",
+    (event: StatusPageSubscriberNotificationEventType) => {
+      for (const name of SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+        event,
+      )) {
+        expect(name).not.toMatch(
+          /Title$|Name$|Severity$|State$|Url$|At$|Time$/,
+        );
+      }
+    },
+  );
+
+  /*
+   * The incident custom fields: one variable per field, by the field's
+   * Template Variable key, so they are listed as a family by prefix.
+   */
+  describe("the custom field variables", () => {
+    test.each(INCIDENT_EVENTS)(
+      "%s offers {{customFields.<key>}}",
+      (event: StatusPageSubscriberNotificationEventType) => {
+        const dynamic: Array<SubscriberNotificationTemplateDynamicVariable> =
+          SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+            event,
+          );
+
+        expect(
+          dynamic.map(
+            (variable: SubscriberNotificationTemplateDynamicVariable) => {
+              return [variable.prefix, variable.placeholder];
+            },
+          ),
+        ).toEqual([["customFields.", "<key>"]]);
+        expect(dynamic[0]!.description).toMatch(/Internal/);
+        // A Rich text field's value is rendered Markdown in an email body.
+        expect(dynamic[0]!.mayBeHtmlInEmailBody).toBe(true);
+      },
+    );
+
+    test.each(
+      ALL_EVENTS.filter(
+        (event: StatusPageSubscriberNotificationEventType): boolean => {
+          return !INCIDENT_EVENTS.includes(event);
+        },
+      ),
+    )(
+      "%s offers no custom fields",
+      (event: StatusPageSubscriberNotificationEventType) => {
+        expect(
+          SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+            event,
+          ),
+        ).toEqual([]);
+        expect(
+          SubscriberNotificationTemplateVariables.isVariableOffered(
+            event,
+            "customFields.site",
+          ),
+        ).toBe(false);
+      },
+    );
+
+    test.each([
+      ["customFields.site", true],
+      ["customFields.affected_location_2", true],
+      ["customFields.", false],
+      ["customFields.Site", false],
+      ["customFields.site-name", false],
+      ["customFields.site.name", false],
+      ["customFields._site", false],
+      ["customFieldssite", false],
+      ["incidentTitle", true],
+      ["affectedStatusPages", true],
+      ["episodeTitle", false],
+    ] as Array<[string, boolean]>)(
+      "an incident template can use {{%s}}: %s",
+      (name: string, offered: boolean) => {
+        expect(
+          SubscriberNotificationTemplateVariables.isVariableOffered(
+            Event.SubscriberIncidentCreated,
+            name,
+          ),
+        ).toBe(offered);
+      },
+    );
+
+    test("a listed variable is not taken for a custom field", () => {
+      expect(
+        SubscriberNotificationTemplateVariables.getDynamicVariableForName(
+          Event.SubscriberIncidentCreated,
+          "incidentTitle",
+        ),
+      ).toBeNull();
+      expect(
+        SubscriberNotificationTemplateVariables.getDynamicVariableForName(
+          Event.SubscriberIncidentCreated,
+          "customFields.site",
+        )?.prefix,
+      ).toBe("customFields.");
+    });
+
+    test("returns a new list each time", () => {
+      const first: Array<SubscriberNotificationTemplateDynamicVariable> =
+        SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+          Event.SubscriberIncidentCreated,
+        );
+      first[0]!.prefix = "changed.";
+
+      expect(
+        SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+          Event.SubscriberIncidentCreated,
+        )[0]!.prefix,
+      ).toBe("customFields.");
+    });
+
+    test.each(INCIDENT_EVENTS)(
+      "%s marks the affected status pages and labels as plain text",
+      (event: StatusPageSubscriberNotificationEventType) => {
+        const html: Array<string> =
+          SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+            event,
+          );
+
+        expect(html).not.toContain("affectedStatusPages");
+        expect(html).not.toContain("incidentLabels");
+      },
+    );
+
+    test.each(INCIDENT_EVENTS)(
+      "%s warns that the affected status pages are internal",
+      (event: StatusPageSubscriberNotificationEventType) => {
+        const affected: SubscriberNotificationTemplateVariable | undefined =
+          SubscriberNotificationTemplateVariables.getAvailableVariablesForEventType(
+            event,
+          ).find((variable: SubscriberNotificationTemplateVariable) => {
+            return variable.name === "affectedStatusPages";
+          });
+
+        expect(affected?.description).toMatch(/Internal/);
+      },
+    );
+  });
+
   test("the report documents its structured fields rather than flat values", () => {
     const report: Array<string> = names(Event.SubscriberReport);
 
     expect(report).toContain("report.averageUptimePercent");
     expect(report).toContain("report.rows");
+  });
+});
+
+/*
+ * The placeholders that read the team's incident records - labels and custom
+ * fields - which only someone who may read incidents may place in a
+ * template (SubscriberTemplateIncidentRecordAccess). Everything else a
+ * template offers is on the status page already.
+ */
+describe("SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders", () => {
+  test("finds labels and every custom field placeholder, each once, sorted", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "<p>{{ customFields.root_cause }} {{incidentLabels}}</p>",
+        "{{customFields.customer_account}} {{customFields.root_cause}}",
+        null,
+        undefined,
+      ]),
+    ).toEqual([
+      "customFields.customer_account",
+      "customFields.root_cause",
+      "incidentLabels",
+    ]);
+  });
+
+  test("a guessed key counts, whether or not such a field exists", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "{{customFields.a}}{{customFields.b_2}}",
+      ]),
+    ).toEqual(["customFields.a", "customFields.b_2"]);
+  });
+
+  test("what the status page shows does not count", () => {
+    const publicVariables: Array<string> = Array.from(
+      new Set(
+        ALL_EVENTS.flatMap(
+          (event: StatusPageSubscriberNotificationEventType) => {
+            return names(event);
+          },
+        ),
+      ),
+    ).filter((name: string) => {
+      return name !== "incidentLabels";
+    });
+
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        publicVariables
+          .map((name: string) => {
+            return `{{${name}}}`;
+          })
+          .join(" "),
+      ]),
+    ).toEqual([]);
+    expect(publicVariables).toContain("affectedStatusPages");
+    expect(publicVariables).toContain("incidentTitle");
+  });
+
+  test("only what the compiler would fill: other spellings are left as written", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "{customFields.a} {{customFields.a-b}} {{ customfields.a }} {{incidentlabels}}",
+      ]),
+    ).toEqual([]);
   });
 });

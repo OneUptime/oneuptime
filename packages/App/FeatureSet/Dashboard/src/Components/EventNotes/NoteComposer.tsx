@@ -58,6 +58,17 @@ export interface ComponentProps {
   editorKey: string;
   isAttachmentsEnabled: boolean;
   notifyOption?: NotifyOption | undefined;
+  /*
+   * Who the notification would reach ("Will notify: Site 03 (up to 41
+   * email)"), shown under the notify checkbox while it is ticked.
+   */
+  notifyAudience?: ReactElement | undefined;
+  /*
+   * What the notification would look like ('Preview notification' for
+   * incident public notes), from the note as it is being written. Shown with
+   * the audience while the notify checkbox is ticked.
+   */
+  notifyPreview?: ((values: NoteComposerValues) => ReactElement) | undefined;
   isPostedAtEditable: boolean;
   isSubmitting: boolean;
   error?: string | undefined;
@@ -186,6 +197,16 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         }
       }}
       onKeyDown={(event: React.KeyboardEvent<HTMLFormElement>) => {
+        /*
+         * Only keys typed in the composer itself. React bubbles a portalled
+         * dialog's events here too - 'Preview notification' opens from the
+         * composer - and its Escape must close the dialog, not the draft,
+         * and its Cmd+Enter must not post.
+         */
+        if (!event.currentTarget.contains(event.target as Node)) {
+          return;
+        }
+
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
 
@@ -377,6 +398,20 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
                   : props.notifyOption.uncheckedDescription,
               )}
             </p>
+            {props.values.shouldNotify && props.notifyAudience ? (
+              <div data-testid="note-notify-audience">
+                {props.notifyAudience}
+              </div>
+            ) : (
+              <></>
+            )}
+            {props.values.shouldNotify && props.notifyPreview ? (
+              <div data-testid="note-notify-preview">
+                {props.notifyPreview(props.values)}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       )}

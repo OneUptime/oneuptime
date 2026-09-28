@@ -215,6 +215,26 @@
     "confirm": {
       "title": "구독 확인",
       "success": "구독이 확인되었습니다"
+    },
+    "unsubscribe": {
+      "title": "구독 취소",
+      "titleWithName": "{{statusPageName}} 구독 취소",
+      "confirmPrompt": "이 상태 페이지의 알림을 더 이상 받지 않으시겠습니까?",
+      "channelEmail": "이메일 주소",
+      "channelSms": "전화번호",
+      "channelSlack": "Slack 워크스페이스",
+      "channelMicrosoftTeams": "Microsoft Teams 워크스페이스",
+      "channelWebhook": "웹훅",
+      "addedByTeamWarning": "이 구독은 이 상태 페이지를 운영하는 팀이 추가했습니다. 메일링 리스트와 같은 공유 주소라면 구독을 취소할 때 이 알림을 받는 모든 사람에게 알림이 중단되며, 팀에도 이 사실이 알려집니다.",
+      "confirmButton": "구독 취소",
+      "manageInstead": "대신 받을 알림 선택하기",
+      "manageSubscription": "구독 관리",
+      "success": "구독이 취소되었습니다. 이 상태 페이지의 알림을 더 이상 받지 않습니다.",
+      "alreadyUnsubscribed": "이 구독은 이미 취소되었습니다. 이 상태 페이지의 알림을 받지 않습니다.",
+      "outOfDateLink": "이 구독 취소 링크는 오래되었습니다. 구독을 취소하려면 이 상태 페이지에서 최근에 받은 메시지의 구독 취소 링크를 사용하세요.",
+      "invalidLink": "이 구독 취소 링크는 유효하지 않습니다. 링크가 불완전하거나 구독이 삭제되었을 수 있습니다. 구독을 취소하려면 이 상태 페이지에서 최근에 받은 메시지의 구독 취소 링크를 사용하세요.",
+      "failed": "구독을 취소하지 못했습니다. 다시 시도해 주세요.",
+      "loadFailed": "이 구독 취소 링크를 불러오지 못했습니다. 나중에 다시 시도해 주세요."
     }
   },
   "accounts": {

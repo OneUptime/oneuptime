@@ -162,6 +162,12 @@ const ConfirmSubscription: React.LazyExoticComponent<
     };
   });
 });
+const Unsubscribe: React.LazyExoticComponent<AllPagesModule["Unsubscribe"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.Unsubscribe };
+    });
+  });
 const SlackSubscribe: React.LazyExoticComponent<
   AllPagesModule["SlackSubscribe"]
 > = lazy(() => {
@@ -659,6 +665,33 @@ const App: () => JSX.Element = () => {
             }
           />
 
+          {/*
+           * The unsubscribe page, in both the form its link arrives in and the
+           * token-free form SensitiveUrlToken leaves in the address bar. Like
+           * the sign-in pages it runs none of the page's custom JavaScript.
+           */}
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.UNSUBSCRIBE]?.toString() || "",
+            )}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.UNSUBSCRIBE]?.toString() || ""}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
+
           <PageRoute
             path={RouteMap[PageMap.SUBSCRIBE_SLACK]?.toString() || ""}
             element={
@@ -1096,6 +1129,28 @@ const App: () => JSX.Element = () => {
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
                 }
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() || "",
+            )}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_UNSUBSCRIBE]?.toString() || ""}
+            element={
+              <Unsubscribe
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
               />
             }
           />

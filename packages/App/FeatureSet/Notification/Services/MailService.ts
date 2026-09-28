@@ -12,7 +12,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
-import EmailMessage from "Common/Types/Email/EmailMessage";
+import EmailMessage, { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import MailTransportType from "Common/Types/Email/MailTransportType";
@@ -23,12 +23,18 @@ import { JSONObject } from "Common/Types/JSON";
 import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import DataSourceEgressGuard, {
+  ResolvedAddress,
+} from "Common/Server/Utils/DataSource/EgressGuard";
+import PinnedSmtpSocket, {
+  SmtpSocketCallback,
+} from "Common/Server/Utils/Mail/PinnedSmtpSocket";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -43,6 +49,12 @@ import nodemailer, {
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
+
+// An email as it is sent: its final subject and HTML body.
+export interface RenderedEmail {
+  subject: string;
+  body: string;
+}
 
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
@@ -230,7 +242,7 @@ export class TransporterPool {
 
   /*
    * Validate the SMTP host of a PROJECT-supplied mail server before dialing
-   * it.
+   * it, and return the addresses that passed.
    *
    * hostname/port on ProjectSmtpConfig are free text, and nodemailer reports
    * what it found on the socket — "Invalid greeting. response=<raw bytes>" —
@@ -240,36 +252,102 @@ export class TransporterPool {
    * rather than on write: rows configured before this existed are still in
    * the database.
    *
-   * The GLOBAL mail server is exempt. It is operator-configured, not
-   * tenant-configured (EmailServer.id is set only for project configs), and
-   * pointing it at an internal relay is a normal self-hosted deployment.
+   * The GLOBAL mail server is exempt, and gets null: nodemailer dials it by
+   * name as it always has. It is operator-configured, not tenant-configured
+   * (EmailServer.id is set only for project configs), and pointing it at an
+   * internal relay is a normal self-hosted deployment.
    */
   private static async assertMailServerHostIsAllowed(
     emailServer: EmailServer,
-  ): Promise<void> {
+  ): Promise<Array<ResolvedAddress> | null> {
     if (!emailServer.id) {
-      return;
+      return null;
     }
 
     if (!emailServer.host) {
-      return;
+      return null;
     }
 
+    return await this.validateMailServerHost(emailServer.host);
+  }
+
+  private static async validateMailServerHost(
+    host: Hostname,
+  ): Promise<Array<ResolvedAddress>> {
     /*
      * .hostname, not .toString(): the latter re-appends the port, and the
      * guard resolves what it is given.
      */
-    await DataSourceEgressGuard.assertHostnameAllowed(
-      emailServer.host.hostname,
-      { targetLabel: "SMTP server" },
-    );
+    return await DataSourceEgressGuard.assertHostnameAllowed(host.hostname, {
+      targetLabel: "SMTP server",
+    });
+  }
+
+  /*
+   * nodemailer's getSocket hook for a project mail server: every connection
+   * the transporter opens goes to an address the egress guard has just
+   * validated, and nodemailer is handed the connected socket.
+   *
+   * Validating the name and then giving it to nodemailer is not enough.
+   * nodemailer resolves it again on its own (dns.resolve4/6, then a
+   * process-wide cache kept for five minutes whatever the TTL), so a DNS
+   * server that answers the guard with a public address and nodemailer with
+   * 127.0.0.1 or 169.254.169.254 would walk straight around the check.
+   *
+   * getSocket runs once per connection, not once per transporter. That
+   * matters for the pooled transporter, which lives for as long as the
+   * config keeps sending and opens new connections by itself (after an
+   * idle close, after maxMessages, when concurrent sends need another one).
+   * Each of those validates the host again and pins what it found, so a
+   * resolution change can never be reached through a transporter built
+   * before it. The first connection uses the addresses getTransporter has
+   * just validated rather than resolving a second time.
+   */
+  private static createPinnedSocketProvider(data: {
+    host: Hostname;
+    port: number;
+    validatedAddresses: Array<ResolvedAddress>;
+    timeoutInMs: number;
+  }): (options: unknown, callback: SmtpSocketCallback) => void {
+    let unusedAddresses: Array<ResolvedAddress> | null =
+      data.validatedAddresses;
+
+    return (_options: unknown, callback: SmtpSocketCallback): void => {
+      const addresses: Promise<Array<ResolvedAddress>> = unusedAddresses
+        ? Promise.resolve(unusedAddresses)
+        : this.validateMailServerHost(data.host);
+
+      unusedAddresses = null;
+
+      addresses.then(
+        (validated: Array<ResolvedAddress>) => {
+          try {
+            PinnedSmtpSocket.connect({
+              // Bare, so an IPv6 literal is dialed rather than looked up.
+              host: data.host.hostname.replace(/^\[|\]$/g, ""),
+              port: data.port,
+              addresses: validated,
+              timeoutInMs: data.timeoutInMs,
+              onDone: callback,
+            });
+          } catch (error) {
+            callback(error as Error);
+          }
+        },
+        (error: Error) => {
+          // Refused or unresolvable now: the send fails with the guard's reason.
+          callback(error);
+        },
+      );
+    };
   }
 
   public static async getTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Promise<Transporter<SMTPSentMessageInfo>> {
-    await this.assertMailServerHostIsAllowed(emailServer);
+    const validatedAddresses: Array<ResolvedAddress> | null =
+      await this.assertMailServerHostIsAllowed(emailServer);
 
     this.evictIdleTransporters();
 
@@ -278,16 +356,32 @@ export class TransporterPool {
      * The access token has a limited lifetime and needs to be refreshed
      */
     if (emailServer.authType === SMTPAuthenticationType.OAuth) {
-      return await this.createOAuthTransporter(emailServer, options);
+      return await this.createOAuthTransporter(
+        emailServer,
+        options,
+        validatedAddresses,
+      );
     }
 
     const key: string = this.getPoolKey(emailServer, options);
 
     let pooled: PooledTransporter | undefined = this.pools.get(key);
 
+    /*
+     * A pool hit ignores the addresses just validated. That is safe because
+     * the hit only hands back sockets already open to an address that was
+     * validated when it was dialed, and the transporter's getSocket validates
+     * again before any new one (see createPinnedSocketProvider). The check
+     * above still refuses the send outright once the host resolves somewhere
+     * it may not go.
+     */
     if (!pooled) {
       pooled = {
-        transporter: this.createTransporter(emailServer, options),
+        transporter: this.createTransporter(
+          emailServer,
+          options,
+          validatedAddresses,
+        ),
         lastUsedAt: Date.now(),
         connectionKey: this.getConnectionKey(emailServer),
       };
@@ -299,9 +393,37 @@ export class TransporterPool {
     return pooled.transporter;
   }
 
+  /*
+   * What pins a transporter: a getSocket hook for a project mail server,
+   * nothing for the exempt global one (validatedAddresses is null), which
+   * nodemailer keeps resolving and dialing by name.
+   */
+  private static getSocketOptions(
+    emailServer: EmailServer,
+    options: {
+      portNumber: number;
+      timeoutInMs: number;
+      validatedAddresses: Array<ResolvedAddress> | null;
+    },
+  ): Pick<SMTPTransportOptions, "getSocket"> {
+    if (!options.validatedAddresses || !emailServer.host) {
+      return {};
+    }
+
+    return {
+      getSocket: this.createPinnedSocketProvider({
+        host: emailServer.host,
+        port: options.portNumber,
+        validatedAddresses: options.validatedAddresses,
+        timeoutInMs: options.timeoutInMs,
+      }) as SMTPTransportOptions["getSocket"],
+    };
+  }
+
   private static async createOAuthTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
+    validatedAddresses: Array<ResolvedAddress> | null,
   ): Promise<Transporter<SMTPSentMessageInfo>> {
     const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
       this.resolveConnectionSettings(emailServer);
@@ -365,12 +487,18 @@ export class TransporterPool {
         accessToken: accessToken,
       },
       connectionTimeout: options.timeout || 60000,
+      ...this.getSocketOptions(emailServer, {
+        portNumber,
+        timeoutInMs: options.timeout || 60000,
+        validatedAddresses,
+      }),
     } as SMTPTransportOptions);
   }
 
   private static createTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
+    validatedAddresses: Array<ResolvedAddress> | null,
   ): Transporter<SMTPSentMessageInfo> {
     const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
       this.resolveConnectionSettings(emailServer);
@@ -409,6 +537,11 @@ export class TransporterPool {
       connectionTimeout: options.timeout || 60000,
       pool: true, // Enable connection pooling
       maxConnections: this.MAX_CONCURRENT_CONNECTIONS,
+      ...this.getSocketOptions(emailServer, {
+        portNumber,
+        timeoutInMs: options.timeout || 60000,
+        validatedAddresses,
+      }),
     });
   }
 
@@ -719,6 +852,44 @@ export default class MailService {
     return subjectHandlebars(vars).toString();
   }
 
+  /**
+   * The subject and HTML body an email is sent with, exactly as send()
+   * sends them: its template (or its body, when it names none) compiled
+   * with its variables and the defaults every email gets, and its subject
+   * compiled too unless it is literal.
+   *
+   * send() renders through this, so anything that shows an email before it
+   * goes out - the status page subscriber notification preview - shows
+   * byte for byte what a recipient gets. Nothing is sent or logged, and the
+   * envelope is not changed.
+   */
+  public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
+    // The defaults every email gets.
+    const vars: Dictionary<string | JSONObject> = { ...(mail.vars || {}) };
+
+    if (!vars["year"]) {
+      vars["year"] = OneUptimeDate.getCurrentYear().toString();
+    }
+
+    const body: string = mail.templateType
+      ? await this.compileEmailBody(mail.templateType, vars)
+      : this.compileText(mail.body || "", vars);
+
+    /*
+     * A literal subject was rendered by the sender, often from user-authored
+     * text; compiling it again would read any "{{" in that text as template
+     * syntax.
+     */
+    const subject: string = mail.isSubjectLiteral
+      ? mail.subject
+      : this.compileText(mail.subject, vars);
+
+    return {
+      subject: subject,
+      body: body,
+    };
+  }
+
   private static async createMailer(
     emailServer: EmailServer,
     options: {
@@ -911,7 +1082,17 @@ export default class MailService {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
       emailLog.toEmail = mail.toEmail;
-      emailLog.subject = mail.subject;
+      /*
+       * A status page's custom subject template can put {{unsubscribeUrl}}
+       * in the subject, and the token in that link lets whoever holds it
+       * cancel the subscription without signing in. The email log is
+       * readable by project members who may not touch subscribers, so it
+       * keeps the link with its token redacted (see
+       * StatusPageSubscriberUnsubscribe.redactCredentials).
+       */
+      emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
+        mail.subject,
+      );
 
       if (options.emailServer?.id) {
         emailLog.projectSmtpConfigId = options.emailServer?.id;
@@ -964,7 +1145,7 @@ export default class MailService {
       }
     }
 
-    // default vars.
+    // default vars, on the message itself as they always were.
     if (!mail.vars) {
       mail.vars = {};
     }
@@ -976,18 +1157,14 @@ export default class MailService {
     try {
       const emailServerType: EmailServerType = await getEmailServerType();
 
-      mail.body = mail.templateType
-        ? await this.compileEmailBody(mail.templateType, mail.vars)
-        : this.compileText(mail.body || "", mail.vars);
-
       /*
-       * A literal subject was rendered by the sender, often from user-authored
-       * text; compiling it again would read any "{{" in that text as template
-       * syntax.
+       * Rendered as render() renders it, so a preview of an email shows what
+       * this sends.
        */
-      if (!mail.isSubjectLiteral) {
-        mail.subject = this.compileText(mail.subject, mail.vars);
-      }
+      const rendered: RenderedEmail = await this.render(mail);
+
+      mail.body = rendered.body;
+      mail.subject = rendered.subject;
 
       if (
         (!options || !options.emailServer) &&

@@ -17,6 +17,7 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -37,7 +38,9 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
+  SubscriberNotificationEmailBodyTemplateVariables,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -347,6 +350,10 @@ const notifySubscribersOfAnnouncement: (data: {
          * both as HTML. SMS and the email subject are plain text. Slack and
          * Teams render the description's Markdown as written, and show
          * "<br/>" literally, so they get the plain-text resource list.
+         *
+         * The shared values are plain text: the email body escapes them
+         * (compileEmailBodyTemplate), and only the values wrapped in SafeHtml
+         * go into it as HTML.
          */
         const resourcesAffectedHtml: string =
           StatusPageResourceUtil.getResourcesGroupedByGroupName(
@@ -364,11 +371,14 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementTitle: announcement.title || "",
         };
 
-        const emailBodyTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedHtml,
-          announcementDescription: announcementDescriptionHtml,
-        };
+        const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+          {
+            ...templateVariables,
+            resourcesAffected: SafeHtml.fromTrustedHtml(resourcesAffectedHtml),
+            announcementDescription: SafeHtml.fromTrustedHtml(
+              announcementDescriptionHtml,
+            ),
+          };
 
         const plainTextTemplateVariables: Record<string, string> = {
           ...templateVariables,
@@ -413,17 +423,18 @@ const notifySubscribersOfAnnouncement: (data: {
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
                 URL.fromString(statusPageURL),
-                subscriber.id!,
+                subscriber,
               ).toString();
 
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
 
-            const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
-              ...emailBodyTemplateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
+            const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
+              {
+                ...emailBodyTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
             const subscriberPlainTextTemplateVariables: Dictionary<string> = {
               ...plainTextTemplateVariables,
               unsubscribeUrl: unsubscribeUrl,
@@ -440,6 +451,19 @@ const notifySubscribersOfAnnouncement: (data: {
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
               );
 
+              /*
+               * On a public status page the SMS keeps the shorter manage link,
+               * which works there without signing in: an SMS is billed by the
+               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+               */
+              const smsUnsubscribeUrl: string =
+                StatusPageSubscriberUnsubscribe.buildSmsLink({
+                  isPublicStatusPage: statuspage.isPublicStatusPage,
+                  statusPageUrl: statusPageURL,
+                  subscriberId: subscriber.id!,
+                  unsubscribeUrl: unsubscribeUrl,
+                });
+
               // Build SMS message - use custom template if available and custom Twilio is configured
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
@@ -447,10 +471,13 @@ const notifySubscribersOfAnnouncement: (data: {
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
+                    {
+                      ...subscriberPlainTextTemplateVariables,
+                      unsubscribeUrl: smsUnsubscribeUrl,
+                    },
                   );
               } else {
-                smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
               }
 
               const sms: SMS = {
@@ -585,7 +612,7 @@ const notifySubscribersOfAnnouncement: (data: {
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const customEmailBody: string =
-                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
                     emailTemplate.templateBody,
                     subscriberEmailBodyTemplateVariables,
                   );
@@ -830,6 +857,23 @@ RunCron(
 
     for (const announcement of announcements) {
       try {
+        /*
+         * The announcement's notification is being sent right now, with the
+         * announcement as it was read before this edit. Left Pending,
+         * untouched: a later run sends the update once that has settled
+         * (SubscriberUpdateNotification).
+         */
+        if (
+          SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+            announcement.subscriberNotificationStatus,
+          )
+        ) {
+          logger.debug(
+            `Announcement ${announcement.id}'s notification is being sent; its update notification waits for it.`,
+          );
+          continue;
+        }
+
         let skipReason: string | null =
           SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
             announcement.subscriberNotificationStatus,

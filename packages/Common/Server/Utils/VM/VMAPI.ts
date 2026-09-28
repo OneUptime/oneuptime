@@ -15,6 +15,7 @@ export default class VMUtil {
       allowPrivateNetworkRequests?: boolean | undefined;
       privateNetworkAccessIsAllowed?: boolean | undefined;
       privateNetworkHint?: string | undefined;
+      includeResolutionDetailInError?: boolean | undefined;
     };
   }): Promise<ReturnResult> {
     return VMRunner.runCodeInSandbox(data);

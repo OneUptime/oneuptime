@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { NoteTemplateVariables } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 import GenerateFromAIModal, {
   AITemplate,
   GenerateAIRequestData,
@@ -60,6 +61,8 @@ import {
 } from "./EventNotesUtil";
 import NoteAvatar from "./NoteAvatar";
 import NoteCard, { NoteActionGate } from "./NoteCard";
+import { NoteResendConfirmation } from "./NoteNotificationBadge";
+import SubscriberNotificationResendCopy from "../StatusPageSubscribers/SubscriberNotificationResendCopy";
 import NoteComposer, {
   AudienceBadge,
   AUDIENCE_STYLES,
@@ -92,6 +95,35 @@ export interface EventNotesSubscriberConfig {
   isNotifyingByDefault: boolean;
   // Why it starts unticked, shown while it is.
   quietDescription: string;
+  /*
+   * Who a new note would reach, shown under "Notify status page
+   * subscribers" while it is ticked (SubscriberAudienceSummary for incidents).
+   */
+  audienceSummary?: ReactElement | undefined;
+  /*
+   * What a new note's notification would look like, from the note being
+   * written ('Preview notification' for incident public notes), shown with
+   * the audience while "Notify status page subscribers" is ticked.
+   */
+  renderPreview?:
+    | ((draft: { note: string; postedAt: Date | null }) => ReactElement)
+    | undefined;
+  /*
+   * Offers Resend for a note whose notification went out, next to Retry for
+   * one that failed, and asks before either is sent, naming who it would
+   * reach now. The incident's public notes pass it; the episode and
+   * scheduled maintenance notes leave it out and keep Retry only, straight
+   * from the details dialog.
+   */
+  resend?: EventNotesResendConfig | undefined;
+}
+
+export interface EventNotesResendConfig {
+  /*
+   * Who a note sent again would reach now (SubscriberAudienceSummary for
+   * incidents), shown in the confirmation.
+   */
+  audience?: ReactElement | undefined;
 }
 
 export interface ComponentProps<TNote extends BaseModel> {
@@ -110,6 +142,14 @@ export interface ComponentProps<TNote extends BaseModel> {
   attachmentApiPath?: string | undefined;
   subscriberNotifications?: EventNotesSubscriberConfig | undefined;
   templates?: EventNotesTemplatesConfig | undefined;
+  /*
+   * The values for the {{placeholders}} in a picked template
+   * ({{incident.title}}, {{customFields.impact}}...), read each time a
+   * template is picked so they are the event's values at that moment. A
+   * placeholder with no value - or every one, when this is left out or the
+   * values cannot be read - is put in the draft as written.
+   */
+  templateVariables?: (() => Promise<NoteTemplateVariables>) | undefined;
   ai?: EventNotesAIConfig | undefined;
   // The other kind of note's page for the same event.
   siblingRoute?: Route | undefined;
@@ -205,6 +245,51 @@ function EventNotes<TNote extends BaseModel>(
 
   const isNotifyingByDefault: boolean =
     props.subscriberNotifications?.isNotifyingByDefault ?? true;
+
+  /*
+   * Sending a note's 'posted' notification again writes its status, and
+   * tells every subscriber what the note says - what posting it did. So it
+   * takes both: permission to edit the note's notification status, and
+   * permission to post a note that notifies subscribers. The server checks
+   * the same (SubscriberNotificationResendAccess).
+   */
+  const canResendPostedNotification: boolean =
+    isPublic &&
+    editGate.isShown &&
+    !editGate.isDisabled &&
+    createGate.isAllowed &&
+    canWrite("subscriberNotificationStatusOnNoteCreated", "update") &&
+    canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create");
+
+  /*
+   * Telling subscribers about an edit - the edit form's checkbox, and Retry
+   * of a failed update - tells them what the note says now, and an editor
+   * can change the text first. So it takes the permission to post a note
+   * that notifies subscribers as well as the note's edit permission, as
+   * sending the 'posted' notification again does. The server checks the
+   * same (SubscriberNotificationResendAccess).
+   */
+  const canNotifyAboutEdit: boolean =
+    isPublic &&
+    createGate.isAllowed &&
+    canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") &&
+    canWrite("subscriberNotificationStatusOnNoteUpdated", "update");
+
+  const canResendUpdateNotification: boolean =
+    editGate.isShown && !editGate.isDisabled && canNotifyAboutEdit;
+
+  const postedNotificationResendConfirmation:
+    | NoteResendConfirmation
+    | undefined =
+    isPublic && props.subscriberNotifications?.resend
+      ? {
+          resendDescription:
+            SubscriberNotificationResendCopy.noteResendDescription,
+          retryDescription:
+            SubscriberNotificationResendCopy.noteRetryDescription,
+          audience: props.subscriberNotifications.resend.audience,
+        }
+      : undefined;
 
   const createDraft: DraftFactory = (): NoteComposerValues => {
     return {
@@ -407,14 +492,44 @@ function EventNotes<TNote extends BaseModel>(
     setIsComposerOpen(options.isOpen);
   };
 
-  const insertIntoDraft: (text: string) => void = (text: string): void => {
+  const insertIntoDraft: (
+    text: string,
+    variables?: NoteTemplateVariables | undefined,
+  ) => void = (
+    text: string,
+    variables?: NoteTemplateVariables | undefined,
+  ): void => {
     setDraft((current: NoteComposerValues) => {
-      return { ...current, note: applyTemplateToDraft(current.note, text) };
+      return {
+        ...current,
+        note: applyTemplateToDraft(current.note, text, variables),
+      };
     });
     setComposerRevision((revision: number) => {
       return revision + 1;
     });
     setIsComposerOpen(true);
+  };
+
+  /*
+   * A template goes in with its placeholders filled. Reading the values must
+   * never cost the author the template: if it fails, the template goes in as
+   * written and they fill the placeholders in by hand.
+   */
+  const insertTemplateIntoDraft: (
+    templateNote: string,
+  ) => Promise<void> = async (templateNote: string): Promise<void> => {
+    let variables: NoteTemplateVariables | undefined = undefined;
+
+    if (props.templateVariables) {
+      try {
+        variables = await props.templateVariables();
+      } catch {
+        variables = undefined;
+      }
+    }
+
+    insertIntoDraft(templateNote, variables);
   };
 
   const postNote: () => Promise<void> = async (): Promise<void> => {
@@ -520,7 +635,7 @@ function EventNotes<TNote extends BaseModel>(
       modelType: props.modelType,
       formType: FormType.Update,
       miscDataProps:
-        isPublic && values.shouldNotify
+        canNotifyAboutEdit && values.shouldNotify
           ? SubscriberUpdateNotification.getMiscDataProps()
           : {},
     });
@@ -637,7 +752,7 @@ function EventNotes<TNote extends BaseModel>(
       }
     : undefined;
 
-  const updateNotifyOption: NotifyOption | undefined = isPublic
+  const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit
     ? {
         title: SubscriberUpdateNotification.formFieldTitle,
         checkedDescription:
@@ -655,7 +770,7 @@ function EventNotes<TNote extends BaseModel>(
           settingsRoute={props.templates.settingsRoute}
           isOpeningUpwards={isComposerOpen}
           onPick={(template: NoteTemplateOption) => {
-            insertIntoDraft(template.note);
+            void insertTemplateIntoDraft(template.note);
           }}
         />
       )}
@@ -733,6 +848,17 @@ function EventNotes<TNote extends BaseModel>(
         editorKey={`create-${composerRevision}`}
         isAttachmentsEnabled={isCreateAttachmentsEnabled}
         notifyOption={createNotifyOption}
+        notifyAudience={props.subscriberNotifications?.audienceSummary}
+        notifyPreview={
+          props.subscriberNotifications?.renderPreview
+            ? (values: NoteComposerValues): ReactElement => {
+                return props.subscriberNotifications!.renderPreview!({
+                  note: values.note,
+                  postedAt: values.postedAt,
+                });
+              }
+            : undefined
+        }
         isPostedAtEditable={isCreatePostedAtEditable}
         isSubmitting={isPosting}
         error={postError}
@@ -925,18 +1051,21 @@ function EventNotes<TNote extends BaseModel>(
                         return deleteNote(note);
                       }}
                       onRetryPostedNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendPostedNotification
                           ? () => {
                               return resendNotification(note, "posted");
                             }
                           : undefined
                       }
                       onRetryUpdateNotification={
-                        editGate.isShown && !editGate.isDisabled
+                        canResendUpdateNotification
                           ? () => {
                               return resendNotification(note, "update");
                             }
                           : undefined
+                      }
+                      postedNotificationResendConfirmation={
+                        postedNotificationResendConfirmation
                       }
                       isPostedAtEditable={
                         isEditPostedAtEditable &&

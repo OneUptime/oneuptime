@@ -32,6 +32,9 @@ import Email from "../../../Types/Email";
 import Phone from "../../../Types/Phone";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import SubscriberNotificationTemplateVariables from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
+import SafeHtml from "../../../Types/SafeHtml";
 import {
   afterEach,
   beforeEach,
@@ -68,6 +71,12 @@ const EVENT_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const MONITOR_ID: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
+
+// The secret in the subscriber's unsubscribe link, as its row carries it.
+const UNSUBSCRIBE_TOKEN: string = "5e".repeat(32);
+const STATUS_PAGE_URL: string = "https://status.example.com";
+const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID.toString()}-${UNSUBSCRIBE_TOKEN}`;
+const MANAGE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
 
 const STARTS_AT: Date = new Date("2024-03-04T06:08:00.000Z");
 const TITLE: string = "Quarterly database failover drill";
@@ -167,6 +176,7 @@ function subscriber(id: ObjectID = SUBSCRIBER_ID): StatusPageSubscriber {
   row.subscriberWebhook = URL.fromString(
     "https://hooks.example.com/subscriber",
   );
+  row.unsubscribeToken = UNSUBSCRIBE_TOKEN;
 
   return row;
 }
@@ -243,16 +253,40 @@ function sentWebhookData(): Record<string, string> {
     .data;
 }
 
-// The variables the service handed to compileTemplate for this template.
-function variablesCompiledInto(template: string): Record<string, string> {
-  const calls: Array<Array<unknown>> = mock(
-    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.filter((call: Array<unknown>): boolean => {
+/*
+ * The variables the service handed to the compile of this template, as it
+ * passed them. The email body goes through compileEmailBodyTemplate, where
+ * HTML values are SafeHtml; everything else through compileTemplate.
+ */
+function rawVariablesCompiledInto(
+  template: string,
+): Record<string, string | SafeHtml> {
+  const calls: Array<Array<unknown>> = [
+    ...mock(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+    ).mock.calls,
+    ...mock(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    ).mock.calls,
+  ].filter((call: Array<unknown>): boolean => {
     return call[0] === template;
   });
 
   expect(calls).toHaveLength(1);
-  return calls[0]![1] as Record<string, string>;
+  return calls[0]![1] as Record<string, string | SafeHtml>;
+}
+
+// The same, with every SafeHtml value as its HTML.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const variables: Record<string, string> = {};
+
+  for (const [name, value] of Object.entries(
+    rawVariablesCompiledInto(template),
+  )) {
+    variables[name] = SafeHtml.isSafeHtml(value) ? value.toHtml() : value;
+  }
+
+  return variables;
 }
 
 describe("scheduled maintenance subscriber notifications: template formats", () => {
@@ -296,6 +330,10 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
     jest.spyOn(
       StatusPageSubscriberNotificationTemplateServiceClass,
       "compileTemplate",
+    );
+    jest.spyOn(
+      StatusPageSubscriberNotificationTemplateServiceClass,
+      "compileEmailBodyTemplate",
     );
 
     jest.spyOn(MailService, "sendMail").mockResolvedValue(accepted());
@@ -368,19 +406,29 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
         OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT),
       scheduledEndTime: "",
       resourcesAffected: "Primary database, Replica",
-      unsubscribeUrl: expect.any(String),
     };
 
+    /*
+     * Every message links to the subscriber's unsubscribe page, token and
+     * all - except an SMS from this public page, which keeps the shorter
+     * manage link (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+     */
     expect(sms).toEqual({
       ...shared,
       scheduledMaintenanceDescription: DESCRIPTION_TEXT,
+      unsubscribeUrl: MANAGE_URL,
     });
     expect(slack).toEqual({
       ...shared,
       scheduledMaintenanceDescription: DESCRIPTION,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
     });
-    expect(emailBody).toEqual(expect.objectContaining(shared));
-    expect(emailSubject).toEqual(expect.objectContaining(shared));
+    expect(emailBody).toEqual(
+      expect.objectContaining({ ...shared, unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
+    expect(emailSubject).toEqual(
+      expect.objectContaining({ ...shared, unsubscribeUrl: UNSUBSCRIBE_URL }),
+    );
     expect(Object.keys(emailSubject).sort()).toEqual(
       Object.keys(emailBody).sort(),
     );
@@ -514,5 +562,237 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
         isSubjectLiteral: true,
       }),
     );
+  });
+  describe("the unsubscribe link", () => {
+    beforeEach(() => {
+      jest
+        .spyOn(
+          StatusPageSubscriberNotificationTemplateService,
+          "getTemplateForStatusPage",
+        )
+        .mockResolvedValue(null);
+    });
+
+    test("the default email, Slack and webhook carry the token link; a public page's SMS the manage link", async () => {
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(sentMail()[0]!.vars["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+      expect(sentSlack()[0]).toContain(`[Unsubscribe](${UNSUBSCRIBE_URL})`);
+      expect(
+        (
+          mock(StatusPageSubscriberWebhookUtil.sendWebhookNotification).mock
+            .calls[0]![0] as { payload: { unsubscribeUrl: string } }
+        ).payload.unsubscribeUrl,
+      ).toBe(UNSUBSCRIBE_URL);
+      expect(sentSms()[0]).toContain(`Unsub: ${MANAGE_URL}`);
+      expect(sentSms()[0]).not.toContain(UNSUBSCRIBE_TOKEN);
+    });
+
+    test("a private page's SMS carries the token link: its manage page needs a signed-in visitor", async () => {
+      const privatePage: StatusPage = statusPage({ withCustomProviders: true });
+      privatePage.isPublicStatusPage = false;
+
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([privatePage]);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(sentSms()[0]).toContain(`Unsub: ${UNSUBSCRIBE_URL}`);
+      expect(sentMail()[0]!.vars["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+    });
+
+    test("a private page's custom SMS template gets the token link as {{unsubscribeUrl}}", async () => {
+      const privatePage: StatusPage = statusPage({ withCustomProviders: true });
+      privatePage.isPublicStatusPage = false;
+
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([privatePage]);
+      useCustomTemplates(CUSTOM_SUBJECT);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(
+        variablesCompiledInto(
+          CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
+        )["unsubscribeUrl"],
+      ).toBe(UNSUBSCRIBE_URL);
+    });
+  });
+
+  /*
+   * Escaping. The maintenance title, the status page's name and the names of
+   * its resources are plain text a project member typed. In an email body
+   * they must read as those characters; the description and the scheduled
+   * time are HTML the service rendered, and stay HTML. The subject, SMS,
+   * Slack and webhooks show text as written.
+   */
+  describe("escaping", () => {
+    const HOSTILE_TITLE: string = "<script>alert('x')</script> Failover";
+    const HOSTILE_TITLE_HTML: string =
+      "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; Failover";
+    const HOSTILE_PAGE_NAME: string = '<a href="https://evil.example">Acme</a>';
+    const HOSTILE_PAGE_NAME_HTML: string =
+      "&lt;a href=&quot;https://evil.example&quot;&gt;Acme&lt;/a&gt;";
+    const HOSTILE_RESOURCE: string = '<img src=x onerror="alert(1)"> & DB';
+    const HOSTILE_RESOURCE_HTML: string =
+      "&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; DB";
+
+    const ESCAPING_EMAIL_BODY: string =
+      "<h1>{{scheduledMaintenanceTitle}}</h1><p>{{statusPageName}}</p><div>{{resourcesAffected}}</div><div>{{scheduledMaintenanceDescription}}</div>";
+    const ESCAPING_TEXT: string =
+      "{{scheduledMaintenanceTitle}} on {{statusPageName}}: {{resourcesAffected}}";
+
+    function hostileEvent(): ScheduledMaintenance {
+      const event: ScheduledMaintenance = scheduledEvent();
+      event.title = HOSTILE_TITLE;
+      return event;
+    }
+
+    function hostilePage(withCustomProviders: boolean): StatusPage {
+      const page: StatusPage = statusPage({
+        withCustomProviders: withCustomProviders,
+      });
+      page.pageTitle = HOSTILE_PAGE_NAME;
+      return page;
+    }
+
+    beforeEach(() => {
+      // The service reads resources without their groups: a list of names.
+      jest
+        .spyOn(StatusPageResourceService, "findByMonitors")
+        .mockResolvedValue([resource(HOSTILE_RESOURCE), resource("Replica")]);
+    });
+
+    test("a custom email body escapes the title, the page name and the resource names", async () => {
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([hostilePage(true)]);
+      jest
+        .spyOn(
+          StatusPageSubscriberNotificationTemplateService,
+          "getTemplateForStatusPage",
+        )
+        .mockImplementation(
+          async (data: {
+            notificationMethod: StatusPageSubscriberNotificationMethod;
+          }): Promise<StatusPageSubscriberNotificationTemplate | null> => {
+            const template: StatusPageSubscriberNotificationTemplate =
+              new StatusPageSubscriberNotificationTemplate();
+            template.notificationMethod = data.notificationMethod;
+            if (
+              data.notificationMethod ===
+              StatusPageSubscriberNotificationMethod.Email
+            ) {
+              template.templateBody = ESCAPING_EMAIL_BODY;
+              template.emailSubject = ESCAPING_TEXT;
+            } else {
+              template.templateBody = `${data.notificationMethod}: ${ESCAPING_TEXT}`;
+            }
+            return template;
+          },
+        );
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        hostileEvent(),
+      ]);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!.vars).toEqual({
+        body: `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML}</p><div>${HOSTILE_RESOURCE_HTML}, Replica</div><div>${DESCRIPTION_HTML}</div>`,
+      });
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME}: ${HOSTILE_RESOURCE}, Replica`;
+      expect(sentMail()[0]!.subject).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentWebhookData()["scheduledMaintenanceTitle"]).toBe(
+        HOSTILE_TITLE,
+      );
+      expect(sentWebhookData()["resourcesAffected"]).toBe(
+        `${HOSTILE_RESOURCE}, Replica`,
+      );
+    });
+
+    /*
+     * Only the advertised HTML variables, and the email-only HTML ones the
+     * default template also receives (the multi-timezone time, the rendered
+     * description under its old name, and the footer the page's admins
+     * wrote), go into the body as HTML.
+     */
+    test("only HTML values reach the email body as HTML", async () => {
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([hostilePage(true)]);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        hostileEvent(),
+      ]);
+
+      const variables: Record<string, string | SafeHtml> =
+        rawVariablesCompiledInto(
+          CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!,
+        );
+      const html: Array<string> = Object.keys(variables)
+        .filter((name: string): boolean => {
+          return SafeHtml.isSafeHtml(variables[name]);
+        })
+        .sort();
+
+      expect(html).toEqual(
+        [
+          ...SubscriberNotificationTemplateVariables.getEmailBodyHtmlVariableNamesForEventType(
+            StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
+          ),
+          "eventDescription",
+          "scheduledAt",
+          "subscriberEmailNotificationFooterText",
+        ].sort(),
+      );
+      expect(variables["scheduledMaintenanceTitle"]).toBe(HOSTILE_TITLE);
+      expect(variables["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+    });
+
+    test("the default email gets the resource names escaped, and SMS and Slack get them as written", async () => {
+      jest
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([hostilePage(false)]);
+      jest
+        .spyOn(
+          StatusPageSubscriberNotificationTemplateService,
+          "getTemplateForStatusPage",
+        )
+        .mockResolvedValue(null);
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        hostileEvent(),
+      ]);
+
+      expect(sentMail()[0]!.templateType).toBe(
+        EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+      );
+      expect(sentMail()[0]!.vars["resourcesAffected"]).toBe(
+        `${HOSTILE_RESOURCE_HTML}, Replica`,
+      );
+      expect(sentMail()[0]!.vars["eventTitle"]).toBe(HOSTILE_TITLE);
+      expect(sentSms()[0]).toContain(`Impact: ${HOSTILE_RESOURCE}, Replica.`);
+      expect(sentSlack()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCE}, Replica`,
+      );
+      for (const message of [...sentSms(), ...sentSlack()]) {
+        expect(message).not.toMatch(/&(?:amp|lt|gt|quot|#39);/);
+      }
+    });
   });
 });

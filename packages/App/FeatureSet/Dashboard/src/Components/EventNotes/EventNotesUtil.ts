@@ -10,6 +10,13 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberNotificationResend, {
+  SubscriberNotificationResendAction,
+} from "Common/Types/StatusPage/SubscriberNotificationResend";
+import {
+  fillNoteTemplate,
+  NoteTemplateVariables,
+} from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 
 /*
  * Everything the notes feed decides without React: which date a note is
@@ -275,16 +282,24 @@ export function isNoteBlank(text: string | undefined | null): boolean {
 /*
  * Picking a template never throws away what someone already typed: an empty
  * draft takes the template, anything else gets it appended after a blank line.
+ *
+ * With `variables`, the template's {{placeholders}} are filled in first
+ * ({{incident.title}}, {{customFields.impact}}...; see
+ * IncidentNoteTemplateVariables). Only the template's: what was already typed
+ * is left exactly as it is. A placeholder with no value stays as written.
  */
 export function applyTemplateToDraft(
   draft: string | undefined | null,
   templateNote: string,
+  variables?: NoteTemplateVariables | null | undefined,
 ): string {
+  const note: string = fillNoteTemplate(templateNote, variables);
+
   if (isNoteBlank(draft)) {
-    return templateNote;
+    return note;
   }
 
-  return `${(draft || "").trimEnd()}\n\n${templateNote}`;
+  return `${(draft || "").trimEnd()}\n\n${note}`;
 }
 
 export function buildNotesQuery(data: {
@@ -322,20 +337,43 @@ export interface NoteNotificationSummary {
   label: string;
   tone: NoteNotificationTone;
   icon: IconProp;
-  isRetryable: boolean;
+  /*
+   * What the details dialog offers to send it again: Retry after a failure,
+   * Resend after a success where resending is offered, or nothing.
+   */
+  resendAction: SubscriberNotificationResendAction | null;
   detail: string | null;
+}
+
+export interface PostedNotificationSummaryOptions {
+  /*
+   * Offer Resend for a note whose notification went out, as the incident's
+   * public notes do. Left off, only a failed notification can be sent again
+   * (Retry) - what the episode and scheduled maintenance notes keep.
+   */
+  isResendAfterSuccessOffered?: boolean | undefined;
 }
 
 /*
  * What happened to the notification subscribers get when a public note is
  * posted. An unset status is what a note from before notifications existed,
- * or one posted with "notify" unticked, carries: nobody was told.
+ * or one posted with "notify" unticked, carries: nobody was told. Which
+ * notifications can be sent again, and how, is SubscriberNotificationResend's
+ * call: never a skipped one, which would sit in Pending forever.
  */
 export function getPostedNotificationSummary(
   status: StatusPageSubscriberNotificationStatus | null | undefined,
   message: string | null | undefined,
+  options?: PostedNotificationSummaryOptions | undefined,
 ): NoteNotificationSummary {
   const detail: string | null = message?.trim() ? message.trim() : null;
+  const resendAction: SubscriberNotificationResendAction | null =
+    SubscriberNotificationResend.getAction({
+      status: status,
+      isResendAfterSuccessOffered: Boolean(
+        options?.isResendAfterSuccessOffered,
+      ),
+    });
 
   switch (status) {
     case StatusPageSubscriberNotificationStatus.Success:
@@ -343,7 +381,7 @@ export function getPostedNotificationSummary(
         label: "Subscribers notified",
         tone: NoteNotificationTone.Success,
         icon: IconProp.CheckCircle,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Pending:
@@ -351,7 +389,7 @@ export function getPostedNotificationSummary(
         label: "Notifying subscribers soon",
         tone: NoteNotificationTone.Pending,
         icon: IconProp.Clock,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.InProgress:
@@ -359,7 +397,7 @@ export function getPostedNotificationSummary(
         label: "Notifying subscribers",
         tone: NoteNotificationTone.Progress,
         icon: IconProp.ArrowPath,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Failed:
@@ -367,7 +405,7 @@ export function getPostedNotificationSummary(
         label: "Notification failed",
         tone: NoteNotificationTone.Danger,
         icon: IconProp.Error,
-        isRetryable: true,
+        resendAction,
         detail,
       };
     default:
@@ -375,7 +413,7 @@ export function getPostedNotificationSummary(
         label: "Subscribers not notified",
         tone: NoteNotificationTone.Neutral,
         icon: IconProp.BellSlash,
-        isRetryable: false,
+        resendAction,
         detail,
       };
   }
@@ -383,13 +421,21 @@ export function getPostedNotificationSummary(
 
 /*
  * The notification about an edit, which only exists once somebody asked for
- * one. Null means there is nothing to show.
+ * one. Null means there is nothing to show. Only a failed one can be sent
+ * again (Retry): an update that went out is not offered again - editing the
+ * note with "Notify subscribers about this update" ticked sends the latest
+ * text, and resending the note sends it as the note.
  */
 export function getUpdateNotificationSummary(
   status: StatusPageSubscriberNotificationStatus | null | undefined,
   message: string | null | undefined,
 ): NoteNotificationSummary | null {
   const detail: string | null = message?.trim() ? message.trim() : null;
+  const resendAction: SubscriberNotificationResendAction | null =
+    SubscriberNotificationResend.getAction({
+      status: status,
+      isResendAfterSuccessOffered: false,
+    });
 
   switch (status) {
     case StatusPageSubscriberNotificationStatus.Success:
@@ -397,7 +443,7 @@ export function getUpdateNotificationSummary(
         label: "Update sent",
         tone: NoteNotificationTone.Success,
         icon: IconProp.CheckCircle,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Pending:
@@ -405,7 +451,7 @@ export function getUpdateNotificationSummary(
         label: "Update queued",
         tone: NoteNotificationTone.Pending,
         icon: IconProp.Clock,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.InProgress:
@@ -413,7 +459,7 @@ export function getUpdateNotificationSummary(
         label: "Sending update",
         tone: NoteNotificationTone.Progress,
         icon: IconProp.ArrowPath,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Failed:
@@ -421,7 +467,7 @@ export function getUpdateNotificationSummary(
         label: "Update failed",
         tone: NoteNotificationTone.Danger,
         icon: IconProp.Error,
-        isRetryable: true,
+        resendAction,
         detail,
       };
     case StatusPageSubscriberNotificationStatus.Skipped:
@@ -429,7 +475,7 @@ export function getUpdateNotificationSummary(
         label: "Update not sent",
         tone: NoteNotificationTone.Neutral,
         icon: IconProp.BellSlash,
-        isRetryable: false,
+        resendAction,
         detail,
       };
     default:

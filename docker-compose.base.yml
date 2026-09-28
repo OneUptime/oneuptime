@@ -37,6 +37,11 @@ x-common-variables: &common-variables
   # per-project setting.
   ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
   PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
+  # Egress policy for everything that is not a webhook (data sources, LLM
+  # providers, SMTP, OIDC discovery, runbook HTTP steps) — see
+  # config.example.env. Defaulted so a config.env upgraded in place, which will
+  # not have the key, keeps today's self-hosted behaviour.
+  DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES: ${DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES:-false}
 
   SERVER_APP_HOSTNAME: app
   SERVER_HOME_HOSTNAME: home

@@ -1693,6 +1693,36 @@ export default class IncidentEpisode extends BaseModel {
   })
   public subscriberNotificationStatusMessage?: string = undefined;
 
+  /*
+   * When a subscriber job last claimed the 'episode created' notification
+   * (SubscriberNotificationClaim), which the sweeper
+   * (StatusPageSubscriber:TimeoutStuckNotifications) times a notification
+   * still In progress from. Not updatedAt: other code writes this row all
+   * the time while it is open - incidents joining it, its severity and
+   * state, edits - so updatedAt could keep an interrupted send from ever
+   * looking stuck, and Retry waits for it to settle. Written by the claim
+   * only; nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Subscriber Notification Claimed At on Episode Created",
+    description:
+      "When a subscriber notification job last started sending the notification that this episode was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public subscriberNotificationClaimedAtOnEpisodeCreated?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

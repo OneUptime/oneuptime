@@ -1,4 +1,10 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
+import SubscriberAudienceSummary from "../../../Components/Incident/SubscriberAudienceSummary";
+import SubscriberNotificationPreviewButton from "../../../Components/Incident/SubscriberNotificationPreviewButton";
+import { getPublicNotePreviewRequest } from "../../../Components/Incident/SubscriberNotificationPreviewRequests";
+import SubscriberNotificationPreviewCopy from "../../../Components/StatusPage/SubscriberNotificationPreviewCopy";
+import { SubscriberNotificationPreviewRequest } from "Common/Types/StatusPage/SubscriberNotificationPreview";
+import { fetchIncidentNoteTemplateVariables } from "../../../Components/Incident/IncidentNoteTemplateVariables";
 import { getNoteGenerator } from "../../../Components/EventNotes/GenerateNoteWithAI";
 import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
 import PageMap from "../../../Utils/PageMap";
@@ -60,12 +66,70 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
         isNotifyingByDefault,
         quietDescription:
           PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+        /*
+         * Who the note will reach: the status pages this incident's scope
+         * lets through, with an "up to" count per channel.
+         */
+        audienceSummary: (
+          <SubscriberAudienceSummary
+            request={{ incidentId: modelId }}
+            dataTestId="incident-public-note-audience"
+          />
+        ),
+        /*
+         * And what they will be sent: each status page's email, with the
+         * note as it is being written.
+         */
+        renderPreview: (draft: {
+          note: string;
+          postedAt: Date | null;
+        }): ReactElement => {
+          const getRequest: () => SubscriberNotificationPreviewRequest | null =
+            (): SubscriberNotificationPreviewRequest | null => {
+              return getPublicNotePreviewRequest({
+                incidentId: modelId,
+                note: draft.note,
+                postedAt: draft.postedAt,
+              });
+            };
+
+          return (
+            <SubscriberNotificationPreviewButton
+              dataTestId="incident-public-note-preview-notification"
+              getRequest={getRequest}
+              isDisabled={getRequest() === null}
+              disabledReason={
+                SubscriberNotificationPreviewCopy.previewButtonDisabledNoNote
+              }
+            />
+          );
+        },
+        /*
+         * A note whose notification went out can be sent again (Resend),
+         * one that failed retried; both ask first, naming the status pages
+         * the incident's scope reaches now - where it would go.
+         */
+        resend: {
+          audience: (
+            <SubscriberAudienceSummary
+              request={{ incidentId: modelId }}
+              dataTestId="incident-public-note-resend-audience"
+            />
+          ),
+        },
       }}
       templates={{
         modelType: IncidentNoteTemplate,
         settingsRoute: RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
         ),
+      }}
+      /*
+       * A template's {{incident.title}}-style placeholders are filled in with
+       * this incident's values when it is picked.
+       */
+      templateVariables={() => {
+        return fetchIncidentNoteTemplateVariables(modelId);
       }}
       ai={{
         title: "Generate Public Note with AI",

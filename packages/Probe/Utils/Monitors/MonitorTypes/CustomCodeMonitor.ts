@@ -66,6 +66,12 @@ export default class CustomCodeMonitor {
             allowPrivateNetworkRequests: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
             privateNetworkAccessIsAllowed: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
             privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
+            /*
+             * Same rule as the HTTP monitors (HttpMonitorRequest): a script on
+             * a shared probe must not learn whether a name resolved and where
+             * to, or it can enumerate the probe's internal DNS.
+             */
+            includeResolutionDetailInError: false,
           },
         });
 

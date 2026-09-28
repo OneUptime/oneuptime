@@ -32,6 +32,20 @@ enum CustomFieldType {
    * decommissioned at.
    */
   DateTime = "DateTime",
+
+  /**
+   * Several lines of plain text — additional information, affected users or
+   * systems. Stored as a string, exactly like `Text`; only the input (a text
+   * area) and the rendering (line breaks kept) differ.
+   */
+  LongText = "LongText",
+
+  /**
+   * Rich text, written in the Markdown editor (which has a visual mode) and
+   * stored as the Markdown source string. Anything that renders it must go
+   * through the Markdown renderer, never insert it as HTML.
+   */
+  Markdown = "Markdown",
 }
 
 export default CustomFieldType;

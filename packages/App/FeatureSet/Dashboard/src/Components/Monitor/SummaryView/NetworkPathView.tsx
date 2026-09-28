@@ -1,10 +1,46 @@
 import TracerouteHopsTable from "../../NetworkDevice/TracerouteHopsTable";
-import NetworkPathTrace from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
+import NetworkPathTrace, {
+  TraceRoute,
+  TraceRouteHop,
+} from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   networkPathTrace: NetworkPathTrace;
 }
+
+/*
+ * The one-line verdict under the hop table.
+ *
+ * With no hops the probe recorded no path at all: traceroute never ran (a
+ * probe with no IPv6 fails "connect: Cannot assign requested address"
+ * before one packet leaves it), hit its deadline, or printed nothing we
+ * could read. "Route did not reach the destination." there told the
+ * customer their host was off the network when the path was never walked,
+ * so nothing is said about the route; the trace's own failure message,
+ * shown right after, says why.
+ */
+type GetRouteVerdictFunction = (traceRoute: TraceRoute) => string;
+
+const getRouteVerdict: GetRouteVerdictFunction = (
+  traceRoute: TraceRoute,
+): string => {
+  const hops: Array<TraceRouteHop> = traceRoute.hops || [];
+
+  if (hops.length === 0) {
+    return "No path was recorded.";
+  }
+
+  if (traceRoute.isComplete) {
+    return "Route reached the destination.";
+  }
+
+  if (traceRoute.failedHop !== undefined) {
+    return `Route broke at hop ${traceRoute.failedHop}.`;
+  }
+
+  return "Route did not reach the destination.";
+};
 
 /*
  * Renders the traceroute + DNS lookup the probe captured when a network
@@ -54,15 +90,13 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
        * The hop table is shared with the on-demand device traceroute
        * (issue #3745); it renders nothing for an empty hop list.
        */}
-      {trace.traceRoute && <TracerouteHopsTable hops={trace.traceRoute.hops} />}
+      {trace.traceRoute && (
+        <TracerouteHopsTable hops={trace.traceRoute.hops || []} />
+      )}
 
       {trace.traceRoute && (
         <div className="mt-2 text-xs text-gray-500">
-          {trace.traceRoute.isComplete
-            ? "Route reached the destination."
-            : trace.traceRoute.failedHop !== undefined
-              ? `Route broke at hop ${trace.traceRoute.failedHop}.`
-              : "Route did not reach the destination."}
+          {getRouteVerdict(trace.traceRoute)}
           {trace.traceRoute.failureMessage
             ? ` ${trace.traceRoute.failureMessage}`
             : ""}

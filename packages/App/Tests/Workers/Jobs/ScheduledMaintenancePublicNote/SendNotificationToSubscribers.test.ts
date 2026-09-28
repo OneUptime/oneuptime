@@ -129,6 +129,27 @@ jest.mock(
        * implementation.
        */
       Service: {
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
         compileTemplate: jest.fn(
           (template: string, variables: Record<string, string>): string => {
             let compiled: string = template;
@@ -218,6 +239,26 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  smsManageLinkFor,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -252,7 +293,15 @@ const STORAGE_GROUP_ID: ObjectID = new ObjectID(
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/scheduled-events/${EVENT_ID.toString()}`;
-const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
 const DASHBOARD_URL: string =
   "https://oneuptime.acme.com/dashboard/scheduled-maintenance/1";
 
@@ -448,7 +497,7 @@ function subscriber(): StatusPageSubscriber {
     "https://outlook.office.com/webhook/abc",
   );
   row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
-  return row;
+  return withUnsubscribeToken(row);
 }
 
 function mock(fn: unknown): jest.Mock {
@@ -518,12 +567,14 @@ interface CompileTemplateCall {
 
 // Every compileTemplate call, in order.
 function compileTemplateCalls(): Array<CompileTemplateCall> {
-  return mock(
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-  ).mock.calls.map((call: Array<unknown>): CompileTemplateCall => {
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileTemplateCall => {
     return {
-      template: call[0] as string,
-      variables: call[1] as Record<string, string>,
+      template: call.template,
+      variables: call.variables,
     };
   });
 }
@@ -645,7 +696,10 @@ function expectedCustomMessages(data: {
   return [
     `Email|${data.emailBody ?? data.body}`,
     `Subject|${data.plainTextBody ?? data.body}`,
-    `SMS|${data.plainTextBody ?? data.body}`,
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    `SMS|${(data.plainTextBody ?? data.body)
+      .split(UNSUBSCRIBE_URL)
+      .join(SMS_UNSUBSCRIBE_URL)}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
@@ -732,7 +786,10 @@ function dashboardDefault(
     statusPageName: "Acme Status",
     statusPageUrl: STATUS_PAGE_URL,
     detailsUrl: DETAILS_URL,
-    unsubscribeUrl: UNSUBSCRIBE_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
     scheduledMaintenanceTitle: EVENT_TITLE,
     note: NOTE,
   };
@@ -797,8 +854,8 @@ beforeEach(() => {
   mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
     true,
   );
-  mock(StatusPageSubscriberService.getUnsubscribeLink).mockReturnValue(
-    URL.fromString(UNSUBSCRIBE_URL),
+  mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
+    fakeGetUnsubscribeLink,
   );
   mock(StatusPageService.getStatusPageURL).mockResolvedValue(
     STATUS_PAGE_URL as never,
@@ -854,32 +911,46 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
     expect(DatabaseConfig.getHost).not.toHaveBeenCalled();
   });
 
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the note's original notification is %s",
-    async (originalStatus: StatusPageSubscriberNotificationStatus) => {
-      updatedNotes = [
-        publicNote({
-          subscriberNotificationStatusOnNoteCreated: originalStatus,
-        }),
-      ];
+  test("skips while the note's original notification is Pending", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
 
-      await runJob(UPDATED_JOB);
+    await runJob(UPDATED_JOB);
 
-      nothingSent();
-      expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
-      expect(statusWrites()).toEqual([
-        {
-          subscriberNotificationStatusOnNoteUpdated:
-            StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessageOnNoteUpdated:
-            SubscriberUpdateNotification.notYetNotifiedMessage,
-        },
-      ]);
-    },
-  );
+    nothingSent();
+    expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          SubscriberUpdateNotification.notYetNotifiedMessage,
+      },
+    ]);
+  });
+
+  /*
+   * The original is being sent with the note as it was read before the
+   * edit: the update waits, untouched, and goes out once that settled.
+   */
+  test("waits, untouched, while the note's original notification is being sent", async () => {
+    updatedNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      }),
+    ];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(ScheduledMaintenanceService.findOneById).not.toHaveBeenCalled();
+    expect(statusWrites()).toEqual([]);
+  });
 
   test("emails the updated-note template with an update subject", async () => {
     updatedNotes = [publicNote()];
@@ -893,11 +964,16 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
     expect(sentMail()[0]!["subject"]).toBe(
       `[Scheduled Maintenance Note Updated] ${EVENT_TITLE}`,
     );
+    /*
+     * The template shows the event description in a raw-HTML row, so it is
+     * the rendered Markdown - never the Markdown as written, which put any
+     * HTML its author typed into the email live.
+     */
     expect(sentMail()[0]!["vars"]).toEqual(
       expect.objectContaining({
         note: NOTE_HTML,
         eventTitle: EVENT_TITLE,
-        eventDescription: DESCRIPTION,
+        eventDescription: DESCRIPTION_HTML,
         resourcesAffected: "Primary database",
         scheduledAt: STARTS_AT_STRING,
         detailsUrl: DETAILS_URL,
@@ -915,7 +991,7 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated;
 
     expect(sentSms()).toEqual([
-      `Maintenance note updated: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Maintenance note updated: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
     expect(sentSms()[0]).toBe(
       dashboardDefault(event, StatusPageSubscriberNotificationMethod.SMS),
@@ -1108,7 +1184,7 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
       `[Update Scheduled Maintenance] ${EVENT_TITLE}`,
     );
     expect(sentSms()[0]).toBe(
-      `Maintenance update: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+      `Maintenance update: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     );
     expect(sentSlack()[0]).toContain("**New Note Added**");
     expect(sentWebhooks()[0]!["eventType"]).toBe(
@@ -1662,7 +1738,8 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
       expect(compiledVariablesByChannel()).toEqual({
         Email: emailBody,
         Subject: plainText,
-        SMS: plainText,
+        // An SMS from this public page carries the manage link (see smsManageLinkFor).
+        SMS: { ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL },
         Slack: markdown,
         "Microsoft Teams": markdown,
       });
@@ -1812,3 +1889,154 @@ describe.each(TRIGGERS)(
     });
   },
 );
+
+/*
+ * Escaping, for the created and the updated note alike. The maintenance
+ * title and state, the status page's name and the names of its resources and
+ * groups are plain text a project member typed. In an email they must read
+ * as those characters; the note and the description are Markdown rendered
+ * to HTML and stay HTML. Text channels (a subject, SMS, Slack, Teams,
+ * webhooks) show text as written, so they must get no HTML entities at all.
+ */
+describe.each(TRIGGERS)(
+  "ScheduledMaintenancePublicNote escapes plain values in email ($name)",
+  (trigger: TriggerCase) => {
+    const HOSTILE_STATE: string = "Ongoing <now> & 'later'";
+    const HOSTILE_STATE_HTML: string =
+      "Ongoing &lt;now&gt; &amp; &#39;later&#39;";
+
+    const ESCAPING_EMAIL_BODY: string =
+      '<h1>{{scheduledMaintenanceTitle}}</h1><p>{{statusPageName}} / {{scheduledMaintenanceState}}</p><div>{{resourcesAffected}}</div><div>{{scheduledMaintenanceDescription}}</div><div>{{note}}</div><a href="{{detailsUrl}}">Details</a>';
+    const ESCAPING_TEXT: string =
+      "{{scheduledMaintenanceTitle}} on {{statusPageName}} is {{scheduledMaintenanceState}}: {{resourcesAffected}}";
+
+    function hostilePage(withCustomDelivery: boolean): StatusPage {
+      const page: StatusPage = statusPage({
+        withCustomDelivery: withCustomDelivery,
+      });
+      page.pageTitle = HOSTILE_PAGE_NAME;
+      return page;
+    }
+
+    beforeEach(() => {
+      trigger.queue([publicNote()]);
+      const event: ScheduledMaintenance = scheduledEvent();
+      event.title = HOSTILE_TITLE;
+      event.currentScheduledMaintenanceState!.name = HOSTILE_STATE;
+      storedEvent = event;
+      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+        hostileResources(STATUS_PAGE_ID) as never,
+      );
+    });
+
+    describe("with custom templates", () => {
+      beforeEach(() => {
+        mock(
+          StatusPageSubscriberService.getStatusPagesToSendNotification,
+        ).mockResolvedValue([hostilePage(true)] as never);
+        mock(
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+        ).mockImplementation(async (args: unknown) => {
+          const method: string = (args as JSONObject)[
+            "notificationMethod"
+          ] as string;
+          return method === StatusPageSubscriberNotificationMethod.Email
+            ? customTemplate(ESCAPING_EMAIL_BODY, ESCAPING_TEXT)
+            : customTemplate(`${method}: ${ESCAPING_TEXT}`);
+        });
+      });
+
+      test("the email body escapes the plain values and keeps the note, the description and the resource list as HTML", async () => {
+        await runJob(trigger.job);
+
+        expect(sentMail()).toHaveLength(1);
+        expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+          `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / ${HOSTILE_STATE_HTML}</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${DESCRIPTION_HTML}</div><div>${NOTE_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+        );
+
+        const emailBody: Array<RecordedCompile> = recordedCompiles(
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+          StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+        ).filter((call: RecordedCompile): boolean => {
+          return call.emailBody;
+        });
+        expect(emailBody).toHaveLength(1);
+        expectOnlyTheListedHtmlVariables(
+          emailBody[0]!.rawVariables,
+          trigger.eventType,
+        );
+      });
+
+      test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+        await runJob(trigger.job);
+
+        const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} is ${HOSTILE_STATE}: ${HOSTILE_RESOURCES_TEXT}`;
+
+        expect(sentMail()[0]!["subject"]).toBe(text);
+        expect(sentSms()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+        ]);
+        expect(sentSlack()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        ]);
+        expect(sentTeams()).toEqual([
+          `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        ]);
+        for (const message of [
+          sentMail()[0]!["subject"] as string,
+          ...sentSms(),
+          ...sentSlack(),
+          ...sentTeams(),
+        ]) {
+          expectNoHtmlEntities(message);
+        }
+
+        expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+        expect(sentWebhooks()[0]!["data"]).toEqual(
+          expect.objectContaining({
+            scheduledMaintenanceTitle: HOSTILE_TITLE,
+            resourcesAffected: HOSTILE_RESOURCES_TEXT,
+          }),
+        );
+      });
+    });
+
+    test("the default email gets the resource list escaped and the description rendered, never the Markdown as written", async () => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([hostilePage(false)] as never);
+
+      await runJob(trigger.job);
+
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: HOSTILE_RESOURCES_HTML,
+          eventDescription: DESCRIPTION_HTML,
+          note: NOTE_HTML,
+          eventTitle: HOSTILE_TITLE,
+          statusPageName: HOSTILE_PAGE_NAME,
+        }),
+      );
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+      }
+    });
+  },
+);
+
+describe("ScheduledMaintenancePublicNote unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    updatedNotes = [publicNote()];
+
+    await runJob(UPDATED_JOB);
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});

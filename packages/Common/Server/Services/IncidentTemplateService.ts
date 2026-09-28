@@ -10,6 +10,7 @@ import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
@@ -28,6 +29,8 @@ import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
+import IncidentScopeAddedPagesNotification from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -52,6 +55,12 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
 
+    // Derived from the list, whatever the caller sent (see the column).
+    createBy.data.isScopedToStatusPages =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      ).length > 0;
+
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident template",
@@ -64,6 +73,19 @@ export class Service extends DatabaseService<Model> {
       ],
     });
 
+    /*
+     * A template's status pages are picked for everyone who declares from
+     * it, so picking them needs the same read access as picking an
+     * incident's (see StatusPageReadAccess).
+     */
+    await StatusPageReadAccess.assertCallerCanPickStatusPages({
+      statusPageIds: IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+        createBy.data.statusPages,
+      ),
+      props: createBy.props,
+      subject: "incident template",
+    });
+
     return { createBy, carryForward: null };
   }
 
@@ -71,6 +93,22 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * The scope flag follows a write to the list and nothing else: a client
+     * value is dropped, and deleting the template's pages (join rows
+     * cascading away) never clears it.
+     */
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    delete data["isScopedToStatusPages"];
+
+    if (data["statusPages"] !== undefined) {
+      data["isScopedToStatusPages"] =
+        IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
+          data["statusPages"],
+        ).length > 0;
+    }
+
     const references: Array<ProjectScopedReference> =
       this.getProjectScopedReferences(updateBy.data);
 
@@ -131,7 +169,73 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // Once the pages are known to be the project's.
+    await this.assertCallerCanReadAddedStatusPages(updateBy);
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * The status pages an update adds to a template must be pages the caller
+   * can read (see StatusPageReadAccess). Pages the template already holds are
+   * not checked, so saving a template limited to a page the editor cannot
+   * see does not fail. The templates are read as root, limited to the
+   * caller's project: the update's own tenant filter is only added after
+   * this hook.
+   */
+  private async assertCallerCanReadAddedStatusPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const requested: unknown = (updateBy.data as Dictionary<unknown>)[
+      "statusPages"
+    ];
+
+    if (updateBy.props.isRoot || requested === undefined) {
+      return;
+    }
+
+    const requestedIds: Array<string> =
+      IncidentScopeAddedPagesNotification.normalizeStatusPageIds(requested);
+
+    if (requestedIds.length === 0) {
+      return;
+    }
+
+    const templates: Array<Model> = await this.findBy({
+      query: updateBy.props.tenantId
+        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+        : updateBy.query,
+      select: {
+        _id: true,
+        statusPages: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const addedIds: Array<string> = [];
+
+    for (const template of templates) {
+      for (const id of IncidentScopeAddedPagesNotification.getScopeChange({
+        before: template.statusPages,
+        after: requestedIds,
+      }).addedStatusPageIds) {
+        if (!addedIds.includes(id)) {
+          addedIds.push(id);
+        }
+      }
+    }
+
+    await StatusPageReadAccess.assertCallerCanPickStatusPages({
+      statusPageIds: addedIds,
+      props: updateBy.props,
+      subject: "incident template",
+    });
   }
 
   /*
@@ -156,6 +260,11 @@ export class Service extends DatabaseService<Model> {
         column: "onCallDutyPolicies",
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
+      },
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];

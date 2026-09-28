@@ -118,7 +118,13 @@
     "verifyEmailSent": "हमने आपको एक सत्यापन लिंक भेजा है।",
     "verifyEmailInstructions": "अपना खाता सक्रिय करने के लिए उस ईमेल में दिया गया लिंक खोलें, फिर साइन इन करें।",
     "verifyEmailResendHint": "नहीं मिल रहा? अपना स्पैम फ़ोल्डर देखें। लिंक 24 घंटे में समाप्त हो जाता है, और अपने ईमेल और पासवर्ड से साइन इन करने पर आपको एक नया लिंक भेजा जाएगा।",
-    "verifyEmailLoginLink": "साइन इन पर जाएँ"
+    "verifyEmailLoginLink": "साइन इन पर जाएँ",
+    "verifyEmailSpamHint": "नहीं मिल रहा? अपना स्पैम या जंक फ़ोल्डर देखें। लिंक 24 घंटे में समाप्त हो जाता है।",
+    "verifyEmailOpenProvider": "{{provider}} खोलें",
+    "verifyEmailOpensInNewTab": "(नए टैब में खुलता है)",
+    "verifyEmailAlreadyVerifiedPrompt": "क्या आपने अपना ईमेल पहले ही सत्यापित कर लिया है?",
+    "verifyEmailWrongAddressPrompt": "ईमेल पता गलत है?",
+    "verifyEmailUseDifferentEmail": "किसी दूसरे ईमेल से साइन अप करें"
   },
   "forgotPassword": {
     "title": "पासवर्ड भूल गए",
@@ -159,7 +165,18 @@
     "errorTitle": "क्षमा करें, कुछ गलत हो गया!",
     "returnToSignIn": "साइन इन पर वापस जाएं?",
     "loginLink": "लॉग इन करें।",
-    "continueToSignIn": "साइन इन करने के लिए जारी रखें"
+    "continueToSignIn": "साइन इन करने के लिए जारी रखें",
+    "linkInvalidTitle": "यह सत्यापन लिंक अब मान्य नहीं है",
+    "requestNewLinkDescription": "अगर आपका लिंक समाप्त हो गया है या काम नहीं कर रहा है, तो हम आपको ईमेल पर एक नया लिंक भेज सकते हैं।",
+    "tryAgain": "फिर से कोशिश करें"
+  },
+  "resendVerificationEmail": {
+    "button": "सत्यापन ईमेल फिर से भेजें",
+    "countdown": "आप {{time}} के बाद एक और ईमेल का अनुरोध कर सकते हैं।",
+    "sent": "हमने एक नया सत्यापन लिंक भेजा है। इसे पहुँचने में एक-दो मिनट लग सकते हैं।",
+    "wait": "हाल ही में एक सत्यापन ईमेल भेजा गया था। टाइमर खत्म होने के बाद आप एक और ईमेल का अनुरोध कर सकते हैं।",
+    "alreadyVerified": "आपका ईमेल पता पहले से सत्यापित है। अब आप साइन इन कर सकते हैं।",
+    "failed": "हम नया सत्यापन ईमेल नहीं भेज सके। कृपया थोड़ी देर में फिर से कोशिश करें।"
   },
   "errors": {
     "forbidden": {
@@ -194,6 +211,8 @@
   "Password cannot be blank.": "पासवर्ड में केवल खाली स्थान नहीं हो सकते।",
   "Password is required.": "पासवर्ड आवश्यक है।",
   "Password must be a string.": "पासवर्ड एक टेक्स्ट स्ट्रिंग होना चाहिए।",
+  "This verification request is no longer valid. Sign in with your email and password and we will send you a new verification link.": "यह सत्यापन अनुरोध अब मान्य नहीं है। अपने ईमेल और पासवर्ड से साइन इन करें, हम आपको एक नया सत्यापन लिंक भेज देंगे।",
+  "Your account has been blocked. Please contact your administrator.": "आपका खाता ब्लॉक कर दिया गया है। कृपया अपने व्यवस्थापक से संपर्क करें।",
   "Account details": "खाते की जानकारी",
   "Secure your account": "अपना खाता सुरक्षित करें",
   "Between {{minimum}} and {{maximum}} characters": "{{minimum}} से {{maximum}} अक्षर",

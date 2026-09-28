@@ -164,9 +164,13 @@ describe("the shared notes feed", () => {
   const card: string = readSource(...EVENT_NOTES_DIR, "NoteCard.tsx");
   const util: string = readSource(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
 
-  test("offers the notify-about-this-update checkbox on the edit form of a public note only", () => {
+  test("offers the notify-about-this-update checkbox on the edit form of a public note only, to whoever may notify about an edit", () => {
+    // A public note, and the permission to post a notifying note too.
     expect(feed).toContain(
-      "const updateNotifyOption: NotifyOption | undefined = isPublic ? { title: SubscriberUpdateNotification.formFieldTitle,",
+      'const canNotifyAboutEdit: boolean = isPublic && createGate.isAllowed && canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") && canWrite("subscriberNotificationStatusOnNoteUpdated", "update");',
+    );
+    expect(feed).toContain(
+      "const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit ? { title: SubscriberUpdateNotification.formFieldTitle,",
     );
     expect(feed).toContain("updateNotifyOption={updateNotifyOption}");
     expect(card).toContain("notifyOption={props.updateNotifyOption}");
@@ -182,9 +186,9 @@ describe("the shared notes feed", () => {
     expect(startEdit).toContain("shouldNotify: false,");
   });
 
-  test("asks for an update notification as a misc data prop, only when ticked on a public note", () => {
+  test("asks for an update notification as a misc data prop, only when ticked on a public note by whoever may", () => {
     expect(feed).toContain(
-      "miscDataProps: isPublic && values.shouldNotify ? SubscriberUpdateNotification.getMiscDataProps() : {},",
+      "miscDataProps: canNotifyAboutEdit && values.shouldNotify ? SubscriberUpdateNotification.getMiscDataProps() : {},",
     );
   });
 

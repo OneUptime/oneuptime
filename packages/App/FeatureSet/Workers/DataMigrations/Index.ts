@@ -117,6 +117,8 @@ import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
+import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
+import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -511,6 +513,24 @@ const DataMigrations: Array<DataMigrationBase> = [
    * a concurrent save wins. Idempotent.
    */
   new RepairKubernetesDashboardClusterCpuTile(),
+  /*
+   * Issue #4035: gives every status page subscriber that existed before the
+   * upgrade the token its unsubscribe link carries, and marks the ones a
+   * teammate added (they have a creator) as added by the team. Walks the
+   * table in primary key order, a batch at a time, outside the schema
+   * migrations' transactions, so the table stays usable while it runs;
+   * senders give a subscriber it has not reached yet a token of its own.
+   * Idempotent: it only fills what is still empty.
+   */
+  new BackfillStatusPageSubscriberUnsubscribeColumns(),
+  /*
+   * Issue #4035: gives a template key to every incident custom field without
+   * one. The schema migration that added the key gave one to every field
+   * that existed then, but a pod still on the previous version can create a
+   * field while the new version rolls out, and only a create assigns a key.
+   * Idempotent: it only fills an empty key.
+   */
+  new BackfillIncidentCustomFieldVariableKeys(),
 ];
 
 export default DataMigrations;

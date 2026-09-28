@@ -20,6 +20,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const getListMock: MockFunction = getJestMockFunction();
 const modelFormModalMock: MockFunction = getJestMockFunction();
+const fetchNoteTemplateVariablesMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -48,6 +49,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
+
+// The values a note template's placeholders are filled with.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentNoteTemplateVariables",
+  () => {
+    return {
+      __esModule: true,
+      fetchIncidentNoteTemplateVariables: (...args: Array<unknown>) => {
+        return fetchNoteTemplateVariablesMock(...args);
+      },
+    };
+  },
+);
 
 /*
  * The state-change modal is a full model form with its own API traffic. These
@@ -186,6 +200,7 @@ const listResult: (data: Array<unknown>) => ListResultShape = (
 
 interface FakeApiOptions {
   withTemplate?: boolean | undefined;
+  templateNote?: string | undefined;
 }
 
 const buildStates: () => Array<IncidentState> = (): Array<IncidentState> => {
@@ -228,7 +243,7 @@ const respondWith: (options?: FakeApiOptions) => void = (
       const template: IncidentNoteTemplate = new IncidentNoteTemplate();
       template.id = new ObjectID(TEMPLATE_ID);
       template.templateName = "Investigating update";
-      template.note = TEMPLATE_NOTE;
+      template.note = options.templateNote || TEMPLATE_NOTE;
       return Promise.resolve(listResult([template]));
     }
 
@@ -380,12 +395,15 @@ beforeEach(() => {
   project.id = new ObjectID(PROJECT_ID);
 
   jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+
+  fetchNoteTemplateVariablesMock.mockResolvedValue({} as never);
 });
 
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
   modelFormModalMock.mockReset();
+  fetchNoteTemplateVariablesMock.mockReset();
   jest.restoreAllMocks();
 });
 
@@ -616,6 +634,78 @@ describe("ChangeIncidentState note template", () => {
 
     expect(fieldByKey(props, "publicNoteTemplate").showIf!()).toBe(false);
     expect(props.initialValues).toEqual({ [NOTIFY_FIELD_KEY]: false });
+  });
+
+  test("a picked template's placeholders are filled with this incident's values", async () => {
+    fetchNoteTemplateVariablesMock.mockResolvedValue({
+      "incident.title": "Checkout latency above 2s",
+      "incident.severity": "Critical",
+    } as never);
+
+    await openModal(OPEN_CASES[0]!, false, {
+      withTemplate: true,
+      templateNote:
+        "Looking into {{incident.title}} ({{incident.severity}}). Owner: {{incident.owner}}",
+    });
+
+    // Read for this incident as the form opens.
+    await waitFor(() => {
+      expect(fetchNoteTemplateVariablesMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      String(fetchNoteTemplateVariablesMock.mock.calls[0]![0] as ObjectID),
+    ).toBe(INCIDENT_ID);
+
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    await waitFor(() => {
+      setNewFormValues.mockClear();
+      fieldByKey(lastModalProps(), "publicNoteTemplate").onChange!(
+        TEMPLATE_ID,
+        { [NOTIFY_FIELD_KEY]: false },
+        setNewFormValues,
+      );
+
+      expect(setNewFormValues).toHaveBeenCalledWith({
+        [NOTIFY_FIELD_KEY]: false,
+        publicNote:
+          "Looking into Checkout latency above 2s (Critical). Owner: {{incident.owner}}",
+      });
+    });
+  });
+
+  test("when the values cannot be read, the template goes in as written", async () => {
+    fetchNoteTemplateVariablesMock.mockRejectedValue(
+      new Error("No access.") as never,
+    );
+
+    await openModal(OPEN_CASES[0]!, false, {
+      withTemplate: true,
+      templateNote: "Looking into {{incident.title}}.",
+    });
+
+    await waitFor(() => {
+      expect(fetchNoteTemplateVariablesMock).toHaveBeenCalledTimes(1);
+    });
+
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    fieldByKey(lastModalProps(), "publicNoteTemplate").onChange!(
+      TEMPLATE_ID,
+      { [NOTIFY_FIELD_KEY]: false },
+      setNewFormValues,
+    );
+
+    expect(setNewFormValues).toHaveBeenCalledWith({
+      [NOTIFY_FIELD_KEY]: false,
+      publicNote: "Looking into {{incident.title}}.",
+    });
+  });
+
+  test("with no templates to pick, nothing is read for them", async () => {
+    await openModal(OPEN_CASES[0]!, false);
+
+    expect(fetchNoteTemplateVariablesMock).not.toHaveBeenCalled();
   });
 });
 

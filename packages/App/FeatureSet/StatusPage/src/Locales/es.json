@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Confirmar suscripción",
       "success": "Suscripción confirmada con éxito"
+    },
+    "unsubscribe": {
+      "title": "Cancelar suscripción",
+      "titleWithName": "Cancelar la suscripción a {{statusPageName}}",
+      "confirmPrompt": "¿Quiere dejar de recibir notificaciones de esta página de estado?",
+      "channelEmail": "Dirección de correo electrónico",
+      "channelSms": "Número de teléfono",
+      "channelSlack": "Espacio de trabajo de Slack",
+      "channelMicrosoftTeams": "Espacio de trabajo de Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Esta suscripción la añadió el equipo que gestiona esta página de estado. Si es una dirección compartida, como una lista de correo, al cancelarla dejarán de recibir estas notificaciones todas las personas que las reciben, y se avisará al equipo.",
+      "confirmButton": "Cancelar suscripción",
+      "manageInstead": "Elegir en su lugar qué notificaciones recibe",
+      "manageSubscription": "Gestionar su suscripción",
+      "success": "Se ha cancelado su suscripción. No recibirá más notificaciones de esta página de estado.",
+      "alreadyUnsubscribed": "Esta suscripción ya estaba cancelada. No recibe notificaciones de esta página de estado.",
+      "outOfDateLink": "Este enlace para cancelar la suscripción está desactualizado. Para cancelarla, use el enlace de un mensaje reciente de esta página de estado.",
+      "invalidLink": "Este enlace para cancelar la suscripción no es válido. Puede estar incompleto o la suscripción puede haberse eliminado. Para cancelarla, use el enlace de un mensaje reciente de esta página de estado.",
+      "failed": "No se pudo cancelar la suscripción. Inténtelo de nuevo.",
+      "loadFailed": "No se pudo cargar este enlace para cancelar la suscripción. Inténtelo de nuevo más tarde."
     }
   },
   "accounts": {

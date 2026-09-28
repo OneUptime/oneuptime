@@ -1,6 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import IncidentStateService from "./IncidentStateService";
@@ -15,6 +16,7 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -472,6 +474,30 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * Sending a state change notification again while it is being sent would
+   * let a second run send it alongside, or be overwritten when the send
+   * settles (SubscriberNotificationResendAccess). No user role may write its
+   * status (update: []), so this only ever stops a master admin; it is here
+   * so the rule holds for every notification the same way.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<IncidentEpisodeStateTimeline>,
+  ): Promise<OnUpdate<IncidentEpisodeStateTimeline>> {
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: IncidentEpisodeStateTimeline,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatus"],
+    });
+
+    return {
+      updateBy: updateBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()

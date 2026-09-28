@@ -16,6 +16,7 @@ export { default as EmailSubscribe } from "./Subscribe/EmailSubscribe";
 export { default as SMSSubscribe } from "./Subscribe/SmsSubscribe";
 export { default as UpdateSubscription } from "./Subscribe/UpdateSubscription";
 export { default as ConfirmSubscription } from "./Subscribe/ConfirmSubscription";
+export { default as Unsubscribe } from "./Subscribe/Unsubscribe";
 export { default as SlackSubscribe } from "./Subscribe/SlackSubscribe";
 export { default as MicrosoftTeamsSubscribe } from "./Subscribe/MicrosoftTeamsSubscribe";
 export { default as WebhookSubscribe } from "./Subscribe/WebhookSubscribe";

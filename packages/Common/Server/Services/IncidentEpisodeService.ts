@@ -15,6 +15,7 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -94,6 +95,20 @@ export class Service extends DatabaseService<Model> {
       updateBy.query,
       updateBy.props,
     );
+
+    /*
+     * Sending the episode's created notification again while it is being
+     * sent would let a second run send it alongside, or be overwritten when
+     * the send settles (SubscriberNotificationResendAccess). No user role may
+     * write its status (update: []), so this only ever stops a master admin;
+     * it is here so the rule holds for every notification the same way.
+     */
+    await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+      statusColumns: ["subscriberNotificationStatusOnEpisodeCreated"],
+    });
 
     /*
      * An episode carries the same project-scoped state and severity an

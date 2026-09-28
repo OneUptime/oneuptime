@@ -583,7 +583,7 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     const code: string = dense(CREATE_PAGE);
     const onBeforeCreate: string = bodyOf(
       code,
-      "onBeforeCreate={async(item:Incident,miscDataProps:JSONObject,):Promise<Incident>=>{",
+      "onBeforeCreate={async(item:Incident,miscDataProps:JSONObject,formValues:JSONObject,):Promise<Incident>=>{",
     );
     const linkingBranch: string = bodyOf(
       onBeforeCreate,

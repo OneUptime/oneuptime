@@ -371,7 +371,14 @@ describe("declaring an incident from alerts", () => {
     test("renders the form straight away, reads no alerts and shows no banner", async () => {
       const form: CapturedFormProps = await openPage();
 
-      expect(capturedForms[0]!.initialValues).toEqual({});
+      /*
+       * Nothing from alerts. The form waits only for the project's incident
+       * custom fields (its Details step), so the first state may already be
+       * in by the time it renders.
+       */
+      expect([{}, { currentIncidentState: FIRST_STATE_ID }]).toContainEqual(
+        capturedForms[0]!.initialValues,
+      );
       expect(alertRequests()).toHaveLength(0);
       expect(
         screen.queryByTestId("incident-create-alerts-to-link"),

@@ -245,6 +245,51 @@ http://[username:password@]proxy.server.com:port
 
 **Note:** Both standard environment variables (`HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY`) and lowercase variants (`http_proxy`, `https_proxy`, `no_proxy`) are supported for compatibility.
 
+### Monitoring IPv6 Destinations
+
+A probe can monitor an IPv6 destination only if the probe's own network has IPv6:
+
+- **Docker with `--network host`, or Compose with `network_mode: host`** (the setups above): the probe shares the host's network, so it has IPv6 exactly when the host does.
+- **A Docker bridge network** (what you get without host networking): no IPv6, unless IPv6 is turned on for that network (see below).
+- **Kubernetes**: pods have IPv6 only on a dual-stack or IPv6-only cluster.
+
+To check, ping a public IPv6 address from inside the probe:
+
+```bash
+# Docker or Docker Compose
+docker exec oneuptime-probe ping -6 -c 1 2001:4860:4860::8888
+
+# Kubernetes (the Deployment above)
+kubectl exec deploy/oneuptime-probe -- ping -6 -c 1 2001:4860:4860::8888
+```
+
+`1 received` means the probe can reach IPv6 destinations. If the probe has no usable IPv6, `ping` fails at once and the error says why:
+
+| Error | What it means |
+| --- | --- |
+| `Network is unreachable` | The probe's network has no IPv6 route: a Docker bridge network without IPv6, an IPv4-only Kubernetes cluster, or a host with no IPv6 connectivity. |
+| `Cannot assign requested address` | IPv6 is turned off in the probe's network namespace. Check `net.ipv6.conf.all.disable_ipv6` and `net.ipv6.conf.lo.disable_ipv6`: `cat /proc/sys/net/ipv6/conf/all/disable_ipv6` inside the probe prints `1` when it is off. With host networking these are the host's settings. |
+| `Address family not supported by protocol` | The kernel was booted with `ipv6.disable=1`, so the machine has no IPv6 at all. Remove it from the kernel command line and reboot, or run the probe on another machine. |
+
+In each case nothing was sent to the destination, so the probe cannot tell whether it is up. The check still fails, but a Ping monitor's failure reason names the probe instead of saying the destination did not reply:
+
+```
+This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so 2001:db8::1 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:db8::1 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.
+```
+
+The network path captured with the failure says `Traceroute could not run: this probe cannot send IPv6 traffic (...)`. Fix the probe's network, or move the monitor to a probe that has IPv6.
+
+#### IPv6 Without Host Networking
+
+If you cannot use host networking, attach the probe to a Docker network with IPv6 turned on. The host itself still needs IPv6.
+
+```bash
+docker network create --ipv6 oneuptime-probe-ipv6
+docker run --name oneuptime-probe --network oneuptime-probe-ipv6 -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -d oneuptime/probe:release
+```
+
+Docker Engine 27 and later picks an IPv6 subnet for the network and masquerades the probe's outbound IPv6 behind the host's address. Older versions need an explicit IPv6 subnet (for example `docker network create --ipv6 --subnet fd00:0:0:1::/64 oneuptime-probe-ipv6`) and `"ip6tables": true` with `"experimental": true` in `/etc/docker/daemon.json`. With Docker Compose, remove `network_mode: host` and set `enable_ipv6: true` on the probe's network.
+
 ### NetBIOS Name Lookups in Discovery Scans
 
 A [network discovery scan](/docs/monitor/network-device-monitor) with **Look up NetBIOS names for hosts DNS doesn't name** turned on sends NetBIOS name queries (NBSTAT) from the probe. For scans that use it, allow this traffic:

@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Confirm Subscription",
       "success": "Subscription confirmed successfully"
+    },
+    "unsubscribe": {
+      "title": "Unsubscribe",
+      "titleWithName": "Unsubscribe from {{statusPageName}}",
+      "confirmPrompt": "Do you want to stop receiving notifications from this status page?",
+      "channelEmail": "Email address",
+      "channelSms": "Phone number",
+      "channelSlack": "Slack workspace",
+      "channelMicrosoftTeams": "Microsoft Teams workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "This subscription was added by the team that runs this status page. If it is a shared address, such as a mailing list, unsubscribing stops these notifications for everyone who receives them, and the team will be told.",
+      "confirmButton": "Unsubscribe",
+      "manageInstead": "Choose which notifications you receive instead",
+      "manageSubscription": "Manage your subscription",
+      "success": "You have been unsubscribed. You will not receive any more notifications from this status page.",
+      "alreadyUnsubscribed": "This subscription has already been cancelled. You do not receive notifications from this status page.",
+      "outOfDateLink": "This unsubscribe link is out of date. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "invalidLink": "This unsubscribe link is not valid. It may be incomplete, or the subscription may have been removed. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "failed": "We could not unsubscribe you. Please try again.",
+      "loadFailed": "We could not load this unsubscribe link. Please try again later."
     }
   },
   "accounts": {

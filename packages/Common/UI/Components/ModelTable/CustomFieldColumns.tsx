@@ -7,6 +7,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../Types/Date";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
+import { CUSTOM_FIELD_COLUMN_ID_PREFIX } from "../../../Types/CustomField/CustomFieldSavedViews";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
@@ -316,6 +317,14 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     return <span>{JSON.stringify(value)}</span>;
   }
 
+  /*
+   * Long text keeps its line breaks, as the type promises and as the Custom
+   * Fields card and its email show it; runs of spaces still collapse.
+   */
+  if (definition.customFieldType === CustomFieldType.LongText) {
+    return <span className="whitespace-pre-line">{String(value)}</span>;
+  }
+
   return <span>{String(value)}</span>;
 };
 
@@ -343,7 +352,11 @@ export const getCustomFieldColumns: GetCustomFieldColumnsFunction = <
   return (data.definitions || []).map(
     (definition: CustomFieldDefinition): Column<TBaseModel> => {
       return {
-        id: `${CustomFieldsColumnKey}.${definition.name}`,
+        /*
+         * The prefix is shared with renaming a field, which rewrites saved
+         * views' column lists (CustomFieldSavedViews).
+         */
+        id: `${CUSTOM_FIELD_COLUMN_ID_PREFIX}${definition.name}`,
         field: {
           [CustomFieldsColumnKey]: true,
         } as Column<TBaseModel>["field"],

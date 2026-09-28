@@ -106,19 +106,26 @@ describe("SubscriberUpdateNotification.isRequested", () => {
 });
 
 describe("SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus", () => {
-  test.each([
-    StatusPageSubscriberNotificationStatus.Pending,
-    StatusPageSubscriberNotificationStatus.InProgress,
-  ])(
-    "skips while the original notification is %s, because it will carry the edit",
-    (status: StatusPageSubscriberNotificationStatus) => {
-      expect(
-        SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
-          status,
-        ),
-      ).toBe(SubscriberUpdateNotification.notYetNotifiedMessage);
-    },
-  );
+  test("skips while the original notification is Pending, because it will carry the edit", () => {
+    expect(
+      SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
+        StatusPageSubscriberNotificationStatus.Pending,
+      ),
+    ).toBe(SubscriberUpdateNotification.notYetNotifiedMessage);
+  });
+
+  /*
+   * A send in progress read the item before the edit and goes on with what
+   * it read: skipping the update would leave subscribers with the old text.
+   * It waits instead (isOriginalNotificationBeingSent).
+   */
+  test("does not skip while the original notification is InProgress: that send may carry the text from before the edit", () => {
+    expect(
+      SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
+        StatusPageSubscriberNotificationStatus.InProgress,
+      ),
+    ).toBeNull();
+  });
 
   test.each([
     StatusPageSubscriberNotificationStatus.Success,
@@ -196,5 +203,45 @@ describe("SubscriberNotificationTrigger", () => {
       "Created",
       "Updated",
     ]);
+  });
+});
+
+describe("SubscriberUpdateNotification.isOriginalNotificationBeingSent", () => {
+  test("waits while the original notification is InProgress", () => {
+    expect(
+      SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+        StatusPageSubscriberNotificationStatus.InProgress,
+      ),
+    ).toBe(true);
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Pending,
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Skipped,
+    StatusPageSubscriberNotificationStatus.Failed,
+    undefined,
+    null,
+  ])("does not wait once it is %s", (status: unknown) => {
+    expect(
+      SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+        status as StatusPageSubscriberNotificationStatus,
+      ),
+    ).toBe(false);
+  });
+
+  test("never both waits and skips: every status has one decision", () => {
+    for (const status of Object.values(
+      StatusPageSubscriberNotificationStatus,
+    )) {
+      const waits: boolean =
+        SubscriberUpdateNotification.isOriginalNotificationBeingSent(status);
+      const skips: boolean =
+        SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
+          status,
+        ) !== null;
+
+      expect(waits && skips).toBe(false);
+    }
   });
 });

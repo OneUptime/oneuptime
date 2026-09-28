@@ -4,6 +4,7 @@ import SSRFProtection, {
 } from "Common/Server/Utils/SSRFProtection";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import dns from "dns";
 
 /*
  * Custom JavaScript Code is the ONE monitor type a probe cannot point at an
@@ -50,6 +51,7 @@ interface SandboxCallOptions {
   allowPrivateNetworkRequests?: boolean;
   privateNetworkAccessIsAllowed?: boolean;
   privateNetworkHint?: string;
+  includeResolutionDetailInError?: boolean;
   timeout?: number;
 }
 
@@ -177,6 +179,7 @@ async function validateAsTheSandboxBridgeWould(
     privateNetworkAccessIsAllowed: options.privateNetworkAccessIsAllowed,
     targetLabel: "Request URL",
     privateNetworkHint: options.privateNetworkHint,
+    includeResolutionDetailInError: options.includeResolutionDetailInError,
   });
 }
 
@@ -441,6 +444,68 @@ describe("CustomCodeMonitor private network policy", () => {
       ).resolves.toMatchObject({
         addresses: [{ address: "10.23.45.67", family: 4 }],
       });
+    });
+  });
+
+  /*
+   * The HTTP monitors never tell a tenant whether a name resolved or where to
+   * (HttpMonitorRequest), because on a shared probe that difference maps the
+   * probe's internal DNS. A script sees the sandbox guard's refusal verbatim,
+   * so it has to follow the same rule — on every probe, since the probe cannot
+   * tell whose script it is running.
+   */
+  describe("what a refusal tells the script about DNS", () => {
+    test.each([
+      ["a private probe", PRIVATE_PROBE],
+      ["a self-hosted global probe", SELF_HOSTED_GLOBAL_PROBE],
+      ["a hosted global probe", HOSTED_GLOBAL_PROBE],
+    ])(
+      "asks for no resolution detail on %s",
+      async (_label: string, deployment: ProbeDeployment) => {
+        const options: SandboxCallOptions = await sandboxOptionsFor(
+          undefined,
+          deployment,
+        );
+
+        expect(options.includeResolutionDetailInError).toBe(false);
+      },
+    );
+
+    test("a missing name and an internal name produce the same refusal", async () => {
+      const options: SandboxCallOptions = await sandboxOptionsFor(
+        undefined,
+        SELF_HOSTED_GLOBAL_PROBE,
+      );
+      const lookupSpy: jest.SpyInstance = jest.spyOn(dns.promises, "lookup");
+
+      lookupSpy.mockRejectedValue(new Error("getaddrinfo ENOTFOUND redis"));
+      const missing: Error = await validateAsTheSandboxBridgeWould(
+        options,
+        "http://redis:6379/",
+      ).then(
+        (): Error => {
+          throw new Error("Expected the missing name to be refused.");
+        },
+        (err: Error): Error => {
+          return err;
+        },
+      );
+
+      lookupSpy.mockResolvedValue([{ address: "10.96.0.9", family: 4 }]);
+      const internal: Error = await validateAsTheSandboxBridgeWould(
+        options,
+        "http://redis:6379/",
+      ).then(
+        (): Error => {
+          throw new Error("Expected the internal name to be refused.");
+        },
+        (err: Error): Error => {
+          return err;
+        },
+      );
+
+      expect(missing.message).toBe("Request URL could not be reached.");
+      expect(internal.message).toBe(missing.message);
     });
   });
 });

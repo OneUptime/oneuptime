@@ -39,6 +39,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { Black, VeryLightGray } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
@@ -61,10 +62,38 @@ import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 
+/*
+ * Whether a dropdown's list request was refused because the person may not
+ * read that model (the server answers NotAuthorizedException with 422).
+ */
+export const isListRefusedForLackOfPermission: (err: unknown) => boolean = (
+  err: unknown,
+): boolean => {
+  return err instanceof HTTPErrorResponse && err.statusCode === 422;
+};
+
 export enum FormType {
   Create,
   Update,
 }
+
+/*
+ * Runs on a Create form just before the request goes out, with the model built
+ * from the form's model columns and the misc data the request will carry (the
+ * same object: what the hook adds or removes there is what is sent).
+ *
+ * `formValues` is every value the form holds, exactly as submitted - the
+ * inputs that are not model columns included. Read those values from here
+ * rather than from `miscDataProps`, which keeps only the truthy ones: a
+ * number input holding 0 or a switch left off would otherwise vanish.
+ */
+export type ModelFormOnBeforeCreate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = (
+  item: TBaseModel,
+  miscDataProps: JSONObject,
+  formValues: JSONObject,
+) => Promise<TBaseModel>;
 
 export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
   extends Field<TBaseModel> {
@@ -114,9 +143,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
-  onBeforeCreate?:
-    | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
-    | undefined;
+  onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
@@ -587,8 +614,22 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     setIsFetchingDropdownOptions(true);
 
-    try {
-      for (const field of fieldsToFetch) {
+    /*
+     * Each dropdown is fetched on its own, so one that fails still leaves the
+     * others their options. The first failure is shown once they are done,
+     * except a list the person may not read at all: that dropdown is simply
+     * left empty (and remembered as empty), as EntityDropdown does for its
+     * own requests. Reading the related model is a separate permission from
+     * editing this one, so someone may edit a field whose options they cannot
+     * list - an incident member and the status pages an incident is limited
+     * to - and a form-wide error on every step would say the form is broken
+     * when it is not. Pages that care explain the empty list next to the
+     * field.
+     */
+    let firstFetchError: unknown = null;
+
+    for (const field of fieldsToFetch) {
+      try {
         if (field.dropdownModal && field.dropdownModal.type) {
           const tempModel: BaseModel = new field.dropdownModal.type();
           const select: any = {
@@ -788,9 +829,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
             selectByAccessControlProps: field.selectByAccessControlProps,
           });
         }
+      } catch (err) {
+        if (isListRefusedForLackOfPermission(err) && field.dropdownModal) {
+          field.dropdownOptions = [];
+
+          setCachedDropdownOptions(field.dropdownModal, {
+            dropdownOptions: [],
+            selectByAccessControlProps: undefined,
+          });
+
+          continue;
+        }
+
+        if (firstFetchError === null) {
+          firstFetchError = err;
+        }
       }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
+    }
+
+    if (firstFetchError !== null) {
+      setError(API.getFriendlyMessage(firstFetchError));
     }
 
     if (generation === fieldsRunGeneration.current) {
@@ -1024,7 +1082,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
       ) as TBaseModel;
 
       if (props.onBeforeCreate && props.formType === FormType.Create) {
-        tBaseModel = await props.onBeforeCreate(tBaseModel, miscDataProps);
+        tBaseModel = await props.onBeforeCreate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
       }
 
       result = await modelAPI.createOrUpdate<TBaseModel>({

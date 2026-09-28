@@ -5,6 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import IncidentNoteTemplatePlaceholders from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
@@ -76,6 +77,8 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
               note: true,
             },
             title: "Public or Private note template.",
+            // The {{placeholders}} it can use, filled in from the incident.
+            description: <IncidentNoteTemplatePlaceholders />,
             fieldType: FormFieldSchemaType.Markdown,
             stepId: "note-details",
             required: true,

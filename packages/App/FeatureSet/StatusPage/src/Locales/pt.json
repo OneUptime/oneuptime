@@ -215,6 +215,26 @@
     "confirm": {
       "title": "Confirmar inscrição",
       "success": "Inscrição confirmada com sucesso"
+    },
+    "unsubscribe": {
+      "title": "Cancelar inscrição",
+      "titleWithName": "Cancelar a inscrição em {{statusPageName}}",
+      "confirmPrompt": "Deseja deixar de receber notificações desta página de status?",
+      "channelEmail": "Endereço de e-mail",
+      "channelSms": "Número de telefone",
+      "channelSlack": "Workspace do Slack",
+      "channelMicrosoftTeams": "Workspace do Microsoft Teams",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Esta inscrição foi adicionada pela equipe que administra esta página de status. Se for um endereço compartilhado, como uma lista de e-mails, cancelar a inscrição interrompe estas notificações para todos que as recebem, e a equipe será avisada.",
+      "confirmButton": "Cancelar inscrição",
+      "manageInstead": "Em vez disso, escolher quais notificações você recebe",
+      "manageSubscription": "Gerenciar sua inscrição",
+      "success": "Sua inscrição foi cancelada. Você não receberá mais notificações desta página de status.",
+      "alreadyUnsubscribed": "Esta inscrição já foi cancelada. Você não recebe notificações desta página de status.",
+      "outOfDateLink": "Este link de cancelamento está desatualizado. Para cancelar a inscrição, use o link de uma mensagem recente desta página de status.",
+      "invalidLink": "Este link de cancelamento não é válido. Ele pode estar incompleto ou a inscrição pode ter sido removida. Para cancelar a inscrição, use o link de uma mensagem recente desta página de status.",
+      "failed": "Não foi possível cancelar a inscrição. Tente novamente.",
+      "loadFailed": "Não foi possível carregar este link de cancelamento. Tente novamente mais tarde."
     }
   },
   "accounts": {
