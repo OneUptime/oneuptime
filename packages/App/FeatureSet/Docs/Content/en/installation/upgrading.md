@@ -307,6 +307,62 @@ destination it shows. Expect monitors that were failing permanently on macOS or
 FreeBSD probes to start reporting the truth, which may resolve incidents or
 raise new ones.
 
+### Kubernetes agent chart: the Kubernetes AI agent
+
+The `kubernetes-agent` chart now runs the **Kubernetes AI agent** by default:
+one small, read-only pod (`component=ai-agent`, image
+`oneuptime/kubernetes-ai-agent`) that lets OneUptime AI run `kubectl` while it
+investigates an incident or alert on that cluster. It replaces the in-cluster
+Runner that `aiAccess.enabled=true` installed. It is not related to the AI
+Agent retired in OneUptime 12
+([If you ran the standalone AI Agent](#if-you-ran-the-standalone-ai-agent)).
+
+- **Upgrade the OneUptime server before the chart.** The AI agent needs an API
+  that older servers do not have. Against one, it logs "This OneUptime server
+  does not have the Kubernetes AI agent API" and retries every 5 minutes —
+  and the chart upgrade has already removed the old in-cluster Runner. Until
+  you can upgrade the server, install the chart version that matches it
+  (`--version <your OneUptime version>`).
+- **Mirror the image, or opt out, if your upgrades wait.** The chart upgrade
+  adds a pod that pulls `docker.io/oneuptime/kubernetes-ai-agent`. If your
+  nodes pull through a mirror or an image allowlist and you upgrade with
+  `--wait` or `--atomic`, with Terraform or with Flux, mirror the image and set
+  `aiAgent.image.repository` (and `aiAgent.imagePullSecrets` for a private
+  registry), or pass `--set aiAgent.enabled=false`. Otherwise the pod never
+  becomes ready, the upgrade times out, and `--atomic` rolls back the whole
+  release.
+- **`aiAccess` settings carry over.** Write access, the namespace list, the
+  node-operations switch and `aiAccess.extraEnv` keep applying until you set
+  the matching `aiAgent.*` value, which always wins. `aiAccess.enabled=false`
+  does not turn the AI agent off — `--set aiAgent.enabled=false` does — and
+  `aiAccess.image` and `aiAccess.resources` are not carried over.
+- **Cluster AI settings are kept**, with two changes made by the server
+  upgrade: a cluster whose Runner someone had unbound or deleted (the
+  in-cluster Runner or any other) starts with kubectl access off, and
+  **Automatic** or **Bypass approval** on a cluster whose project never
+  turned on **Enable AI Command Execution** becomes **Ask for approval**.
+- **To downgrade the chart, use `helm rollback`**, not
+  `helm upgrade --version <older version>`: an older chart's schema refuses the
+  `aiAgent` values stored on the release. Within a week of the upgrade, the
+  rollback brings the in-cluster Runner back, and it reconnects on its own
+  once the AI agent has stopped. After that, OneUptime may have removed the
+  old Runner, and the rolled-back one is not used until you bind it to the
+  cluster again with the API or Terraform (the cluster's **AI Access
+  Runner**; a Project Owner, a Project Admin or **Edit Auto Remediation
+  Rule** may do it), or you upgrade the chart again.
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set aiAgent.enabled=true
+```
+
+Use your own release name and namespace if they differ. The Kubernetes agent
+page's [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent)
+has the details, and [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
+explains what the agent may do and how to let it fix what it finds.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is
