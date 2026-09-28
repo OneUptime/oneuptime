@@ -5,6 +5,7 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -175,6 +176,12 @@ const Telegram: () => JSX.Element = (): ReactElement => {
             title: "Verify",
             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
             icon: IconProp.Check,
+            /*
+             * Verifying is what an unverified row is waiting on. Without this
+             * the NORMAL-styled code action beside it would take the row's
+             * button and bury Verify in the menu.
+             */
+            placement: ActionButtonPlacement.Primary,
             isVisible: (item: UserTelegram): boolean => {
               return !item["isVerified"];
             },

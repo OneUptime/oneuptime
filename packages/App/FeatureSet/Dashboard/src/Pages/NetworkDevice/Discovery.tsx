@@ -20,6 +20,7 @@ import NetworkDeviceDiscoveryScan, {
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -1925,6 +1926,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
             title: "Review Results",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
+            /*
+             * Reviewing and importing what a scan found is the reason a scan
+             * with results exists, so whenever this is offered it is the row's
+             * button and Edit moves to the ⋯ menu.
+             */
+            placement: ActionButtonPlacement.Primary,
             /*
              * A RUNNING scan qualifies too, once it has found something.
              *
