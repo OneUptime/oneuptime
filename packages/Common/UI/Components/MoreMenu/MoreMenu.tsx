@@ -63,10 +63,16 @@ const PORTALED_MENU_VIEWPORT_PADDING_PX: number = 8;
 // w-56, for the first measurement before the menu has a width of its own.
 const PORTALED_MENU_FALLBACK_WIDTH_PX: number = 224;
 
+/*
+ * Exactly one of left / right is set, and exactly one of top / bottom. Right
+ * is the usual anchor: it lines the menu's right edge up with the trigger's
+ * whatever width the menu turns out to have.
+ */
 interface PortaledMenuPosition {
   top: number | undefined;
   bottom: number | undefined;
-  left: number;
+  left: number | undefined;
+  right: number | undefined;
   isAbove: boolean;
 }
 
@@ -233,18 +239,36 @@ const MoreMenu: React.ForwardRefExoticComponent<
         menuElement?.offsetWidth || PORTALED_MENU_FALLBACK_WIDTH_PX;
       const menuHeight: number = menuElement?.offsetHeight || 0;
 
-      // Right edge to right edge, like the in-place menu's `right-0`.
-      const maximumLeft: number = Math.max(
-        PORTALED_MENU_VIEWPORT_PADDING_PX,
-        window.innerWidth - PORTALED_MENU_VIEWPORT_PADDING_PX - menuWidth,
-      );
-      const left: number = Math.min(
-        Math.max(
-          triggerRect.right - menuWidth,
-          PORTALED_MENU_VIEWPORT_PADDING_PX,
-        ),
-        maximumLeft,
-      );
+      /*
+       * `right` on a fixed element is measured from the edge of the layout
+       * viewport, which stops short of a classic vertical scrollbar - so the
+       * width that matters is clientWidth, not innerWidth.
+       */
+      const viewportWidth: number =
+        document.documentElement.clientWidth || window.innerWidth;
+
+      /*
+       * Right edge to right edge, like the in-place menu's `right-0`, and
+       * anchored by that right edge rather than by a left computed from the
+       * menu's width. The width is not settled at first measurement: the
+       * Tailwind runtime the dashboards load generates the rule for a class
+       * the page has not used yet a moment AFTER the element carrying it
+       * mounts, so the first width read is the unstyled one. A left-anchored
+       * menu then grew rightwards off the screen; a right-anchored one just
+       * grows leftwards into place.
+       */
+      const isOverflowingLeft: boolean =
+        triggerRect.right - menuWidth < PORTALED_MENU_VIEWPORT_PADDING_PX;
+
+      const right: number | undefined = isOverflowingLeft
+        ? undefined
+        : Math.max(
+            viewportWidth - triggerRect.right,
+            PORTALED_MENU_VIEWPORT_PADDING_PX,
+          );
+      const left: number | undefined = isOverflowingLeft
+        ? PORTALED_MENU_VIEWPORT_PADDING_PX
+        : undefined;
 
       const spaceBelow: number =
         window.innerHeight -
@@ -265,6 +289,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
           ? window.innerHeight - triggerRect.top + PORTALED_MENU_GAP_PX
           : undefined,
         left,
+        right,
         isAbove,
       });
     }, [buttonId, props.isOpeningUpwards, ref]);
@@ -299,14 +324,31 @@ const MoreMenu: React.ForwardRefExoticComponent<
       window.addEventListener("resize", schedulePositionUpdate);
       document.addEventListener("scroll", schedulePositionUpdate, true);
 
+      /*
+       * The menu's own size decides whether it fits below its trigger, and
+       * that size can change after it opens - its styles arriving late (see
+       * updatePortaledMenuPosition), or its items changing. Place it again
+       * whenever it does.
+       */
+      const menuElement: HTMLElement | null = ref.current as HTMLElement | null;
+      const resizeObserver: ResizeObserver | null =
+        menuElement && typeof ResizeObserver !== "undefined"
+          ? new ResizeObserver(schedulePositionUpdate)
+          : null;
+
+      if (menuElement && resizeObserver) {
+        resizeObserver.observe(menuElement);
+      }
+
       return () => {
         window.removeEventListener("resize", schedulePositionUpdate);
         document.removeEventListener("scroll", schedulePositionUpdate, true);
+        resizeObserver?.disconnect();
         if (animationFrame !== null) {
           window.cancelAnimationFrame(animationFrame);
         }
       };
-    }, [isMenuPortaled, isComponentVisible, updatePortaledMenuPosition]);
+    }, [isMenuPortaled, isComponentVisible, ref, updatePortaledMenuPosition]);
 
     /*
      * A portalled menu is not inside the Modal it was opened from, so a press
@@ -621,7 +663,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
                 position: "fixed",
                 top: portaledMenuPosition?.top,
                 bottom: portaledMenuPosition?.bottom,
-                left: portaledMenuPosition?.left ?? 0,
+                left: portaledMenuPosition
+                  ? portaledMenuPosition.left
+                  : 0,
+                right: portaledMenuPosition?.right,
                 zIndex: DROPDOWN_MENU_Z_INDEX,
                 visibility: portaledMenuPosition ? "visible" : "hidden",
               }

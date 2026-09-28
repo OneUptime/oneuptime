@@ -4,7 +4,7 @@ import splitActionButtons, {
   isDestructiveActionButton,
   SplitActionButtonsResult,
 } from "./SplitActionButtons";
-import Button, { ButtonSize } from "../Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import MoreMenu from "../MoreMenu/MoreMenu";
@@ -31,6 +31,27 @@ export interface ComponentProps<T extends GenericObject> {
    */
   className?: string | undefined;
 }
+
+/*
+ * OUTLINE and its hover variants are drawn by a `btn-outline-secondary` class
+ * that no stylesheet defines, so they render as bare text. That was tolerable
+ * in a strip of buttons; as the row's one button, sat beside a bordered ⋯, it
+ * reads as a stray label. The row's button always looks like a button.
+ */
+const getRowButtonStyle: (style: ButtonStyleType) => ButtonStyleType = (
+  style: ButtonStyleType,
+): ButtonStyleType => {
+  switch (style) {
+    case ButtonStyleType.OUTLINE:
+    case ButtonStyleType.HOVER_PRIMARY_OUTLINE:
+    case ButtonStyleType.HOVER_SUCCESS_OUTLINE:
+      return ButtonStyleType.NORMAL;
+    case ButtonStyleType.HOVER_DANGER_OUTLINE:
+      return ButtonStyleType.DANGER_OUTLINE;
+    default:
+      return style;
+  }
+};
 
 type RowActionsFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
@@ -161,7 +182,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
           buttonSize={ButtonSize.Small}
           title={primary.button.title}
           icon={primary.button.icon}
-          buttonStyle={primary.button.buttonStyleType}
+          buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
           isLoading={loadingActionIndexes.current[primary.index]}
           disabled={primary.button.disabled}
           tooltip={primary.button.tooltip}
@@ -179,7 +200,12 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
             <button
               type="button"
               data-testid="row-actions-more-button"
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white px-1.5 py-1 text-gray-500 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              /*
+               * Sized to the Small row button beside it: that button's label
+               * is text-base below md and text-sm above, so the trigger's
+               * vertical padding steps down at md to keep the two level.
+               */
+              className="inline-flex shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white px-1.5 py-1.5 md:py-1 text-gray-500 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
             </button>

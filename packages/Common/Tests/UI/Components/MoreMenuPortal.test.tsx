@@ -273,8 +273,9 @@ describe("MoreMenu, portalled", () => {
       // 8px under the trigger's bottom edge (100 + 30).
       expect(menu.style.top).toBe("138px");
       expect(menu.style.bottom).toBe("");
-      // Right edge of the menu on the trigger's right edge (1134 - 224).
-      expect(menu.style.left).toBe("910px");
+      // Right edge of the menu on the trigger's right edge (1280 - 1134).
+      expect(menu.style.right).toBe("146px");
+      expect(menu.style.left).toBe("");
       expect(menu.style.visibility).toBe("visible");
       expect(menu).toHaveClass("origin-top-right");
     });
@@ -312,7 +313,10 @@ describe("MoreMenu, portalled", () => {
 
       renderMenu();
 
-      expect(openMenu().style.left).toBe("8px");
+      const menu: HTMLElement = openMenu();
+
+      expect(menu.style.left).toBe("8px");
+      expect(menu.style.right).toBe("");
     });
 
     test("is kept on screen when the trigger runs past the right edge", () => {
@@ -320,8 +324,8 @@ describe("MoreMenu, portalled", () => {
 
       renderMenu();
 
-      // 1280 - 8 padding - 224 wide.
-      expect(openMenu().style.left).toBe("1048px");
+      // Pulled back to the 8px padding rather than hanging off the edge.
+      expect(openMenu().style.right).toBe("8px");
     });
 
     test("isOpeningUpwards opens above whenever there is room", () => {
@@ -354,7 +358,7 @@ describe("MoreMenu, portalled", () => {
       });
 
       expect(menu.style.top).toBe("98px");
-      expect(menu.style.left).toBe("810px");
+      expect(menu.style.right).toBe("246px");
     });
 
     test("follows its trigger when the window is resized", () => {
@@ -372,7 +376,7 @@ describe("MoreMenu, portalled", () => {
       });
 
       expect(menu.style.top).toBe("238px");
-      expect(menu.style.left).toBe("510px");
+      expect(menu.style.right).toBe("546px");
     });
   });
 
