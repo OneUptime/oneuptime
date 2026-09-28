@@ -1,9 +1,11 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "../../../../Types/Icon/IconProp";
+import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../../Types/Time/TimeRange";
 import Icon from "../../Icon/Icon";
 import {
   ChartTimeRangeZoomContextValue,
+  isTimeRangeZoomFor,
   useChartTimeRangeZoom,
 } from "./TimeRangeZoomContext";
 
@@ -12,6 +14,13 @@ export const RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID: string =
 
 export interface ComponentProps {
   className?: string | undefined;
+  /*
+   * The range of the picker or card this button sits beside. The button
+   * then shows only for a zoom of THAT range: a time-series viewer or a
+   * card nested in a zoomed page has a range of its own, and its button
+   * must not reset the page behind it.
+   */
+  forTimeRange?: RangeStartAndEndDateTime | undefined;
 }
 
 /**
@@ -27,6 +36,10 @@ const ResetTimeRangeZoomButton: FunctionComponent<ComponentProps> = (
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
 
   if (!zoom || !zoom.isZoomed || !zoom.onTimeRangeReset) {
+    return null;
+  }
+
+  if (props.forTimeRange && !isTimeRangeZoomFor(zoom, props.forTimeRange)) {
     return null;
   }
 

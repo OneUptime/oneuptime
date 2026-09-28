@@ -20,6 +20,7 @@ import {
   ChartTimeRangeZoomHandlers,
   TimeRangeZoomProvider,
   TimeRangeZoomScope,
+  isTimeRangeZoomFor,
   resolveChartTimeRangeZoom,
   useChartTimeRangeZoom,
 } from "../../../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -46,11 +47,20 @@ const pageReset: () => void = (): void => {};
 const hostSelect: (startTime: Date, endTime: Date) => void = (): void => {};
 const hostReset: () => void = (): void => {};
 
+const ZOOMED_WINDOW: RangeStartAndEndDateTime = {
+  range: TimeRange.CUSTOM,
+  startAndEndDate: new InBetween<Date>(
+    new Date("2026-09-28T11:10:00.000Z"),
+    new Date("2026-09-28T11:25:00.000Z"),
+  ),
+};
+
 const ZOOMED_PAGE: ChartTimeRangeZoomContextValue = {
   onTimeRangeSelect: pageSelect,
   onTimeRangeReset: pageReset,
   isZoomed: true,
   rangeBeforeZoom: { range: TimeRange.PAST_ONE_HOUR },
+  timeRange: ZOOMED_WINDOW,
 };
 
 const UNZOOMED_PAGE: ChartTimeRangeZoomContextValue = {
@@ -58,6 +68,7 @@ const UNZOOMED_PAGE: ChartTimeRangeZoomContextValue = {
   onTimeRangeReset: undefined,
   isZoomed: false,
   rangeBeforeZoom: null,
+  timeRange: { range: TimeRange.PAST_ONE_HOUR },
 };
 
 describe("resolveChartTimeRangeZoom", () => {
@@ -511,5 +522,140 @@ describe("ResetTimeRangeZoomButton", () => {
     expect(latestContext?.rangeBeforeZoom).toEqual({
       range: TimeRange.PAST_ONE_HOUR,
     });
+    // And the range the zoom now works over: the page's zoomed window.
+    expect(latestContext?.timeRange?.range).toBe(TimeRange.CUSTOM);
+    expect(
+      latestContext?.timeRange?.startAndEndDate?.startValue.toISOString(),
+    ).toBe("2026-09-28T11:10:00.000Z");
+  });
+
+  test("with forTimeRange, shows only for a zoom of that range", () => {
+    render(
+      <TimeRangeZoomProvider
+        zoom={{
+          isZoomed: true,
+          rangeBeforeZoom: { range: TimeRange.PAST_ONE_HOUR },
+          timeRange: ZOOMED_WINDOW,
+          zoomToTimeRange: () => {},
+          resetZoom: () => {},
+        }}
+      >
+        <div data-testid="same-range">
+          <ResetTimeRangeZoomButton forTimeRange={ZOOMED_WINDOW} />
+        </div>
+        <div data-testid="other-range">
+          <ResetTimeRangeZoomButton
+            forTimeRange={{ range: TimeRange.PAST_ONE_DAY }}
+          />
+        </div>
+      </TimeRangeZoomProvider>,
+    );
+
+    expect(screen.getByTestId("same-range")).not.toBeEmptyDOMElement();
+    expect(screen.getByTestId("other-range")).toBeEmptyDOMElement();
+  });
+
+  test("a zoom that does not say its range is taken to be the button's", () => {
+    render(
+      <TimeRangeZoomProvider
+        zoom={{
+          isZoomed: true,
+          rangeBeforeZoom: { range: TimeRange.PAST_ONE_HOUR },
+          zoomToTimeRange: () => {},
+          resetZoom: () => {},
+        }}
+      >
+        <ResetTimeRangeZoomButton
+          forTimeRange={{ range: TimeRange.PAST_ONE_DAY }}
+        />
+      </TimeRangeZoomProvider>,
+    );
+
+    expect(
+      screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    ).toBeVisible();
+  });
+});
+
+describe("a picker nested in a zoomed page, over a range of its own", () => {
+  /*
+   * The critic's case: a time-series viewer (its own picker, its own
+   * range) rendered inside a page - or an investigation drawer opened from
+   * a chart - that is zoomed. Its picker must not offer "Reset zoom", which
+   * would reset the page behind it.
+   */
+  const NestedViewer: FunctionComponent = (): ReactElement => {
+    const [range, setRange] = useState<RangeStartAndEndDateTime>({
+      range: TimeRange.PAST_ONE_DAY,
+    });
+    return (
+      <div data-testid="nested-viewer">
+        <TelemetryTimeRangePicker value={range} onChange={setRange} />
+      </div>
+    );
+  };
+
+  test("only the page's own picker offers the page's reset", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+        <NestedViewer />
+      </Page>,
+    );
+
+    fireEvent.click(screen.getByTestId("cpu-drag"));
+
+    const resets: Array<HTMLElement> = screen.getAllByTestId(
+      RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID,
+    );
+    expect(resets).toHaveLength(1);
+    expect(
+      screen
+        .getByTestId("nested-viewer")
+        .querySelector(
+          `[data-testid="${RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID}"]`,
+        ),
+    ).toBeNull();
+  });
+});
+
+describe("isTimeRangeZoomFor", () => {
+  test("no zoom is for no range", () => {
+    expect(isTimeRangeZoomFor(null, { range: TimeRange.PAST_ONE_HOUR })).toBe(
+      false,
+    );
+  });
+
+  test("a zoom is for the range it works over, compared by value", () => {
+    expect(
+      isTimeRangeZoomFor(ZOOMED_PAGE, {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2026-09-28T11:10:00.000Z"),
+          new Date("2026-09-28T11:25:00.000Z"),
+        ),
+      }),
+    ).toBe(true);
+    expect(
+      isTimeRangeZoomFor(UNZOOMED_PAGE, { range: TimeRange.PAST_ONE_HOUR }),
+    ).toBe(true);
+  });
+
+  test("a zoom is not for a different range", () => {
+    expect(
+      isTimeRangeZoomFor(UNZOOMED_PAGE, { range: TimeRange.PAST_ONE_DAY }),
+    ).toBe(false);
+    expect(
+      isTimeRangeZoomFor(ZOOMED_PAGE, { range: TimeRange.PAST_ONE_HOUR }),
+    ).toBe(false);
+  });
+
+  test("a zoom that does not say its range is for any range", () => {
+    expect(
+      isTimeRangeZoomFor(
+        { ...UNZOOMED_PAGE, timeRange: null },
+        { range: TimeRange.PAST_ONE_DAY },
+      ),
+    ).toBe(true);
   });
 });

@@ -4,9 +4,11 @@ import React, {
   ReactNode,
   useContext,
   useMemo,
+  useRef,
 } from "react";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
 import useTimeRangeZoom, { TimeRangeZoom } from "./UseTimeRangeZoom";
+import TimeRangeZoomUtil from "./TimeRangeZoomUtil";
 
 /**
  * What a chart needs to take part in page-wide drag-to-zoom. Handed down by
@@ -27,6 +29,13 @@ export interface ChartTimeRangeZoomContextValue {
   isZoomed: boolean;
   /** The range a reset returns to; null while the page is not zoomed. */
   rangeBeforeZoom: RangeStartAndEndDateTime | null;
+  /*
+   * The range this zoom works over right now (the page's current range),
+   * or null when the zoom did not say. A control that owns a range of its
+   * own uses it to tell whether this zoom is about ITS range: a viewer or a
+   * card nested in a zoomed page must not offer to reset the page.
+   */
+  timeRange: RangeStartAndEndDateTime | null;
 }
 
 const ChartTimeRangeZoomContext: React.Context<ChartTimeRangeZoomContextValue | null> =
@@ -62,6 +71,21 @@ export const TimeRangeZoomProvider: FunctionComponent<
   const isZoomed: boolean = Boolean(zoom?.isZoomed);
   const rangeBeforeZoom: RangeStartAndEndDateTime | null =
     zoom?.rangeBeforeZoom || null;
+  /*
+   * Kept by value: a page that builds its range inline would otherwise
+   * hand every chart a new context on every render.
+   */
+  const stableTimeRange: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(zoom?.timeRange || null);
+  if (
+    !TimeRangeZoomUtil.isSameRange(
+      stableTimeRange.current,
+      zoom?.timeRange || null,
+    )
+  ) {
+    stableTimeRange.current = zoom?.timeRange || null;
+  }
+  const timeRange: RangeStartAndEndDateTime | null = stableTimeRange.current;
 
   const value: ChartTimeRangeZoomContextValue | null =
     useMemo((): ChartTimeRangeZoomContextValue | null => {
@@ -74,8 +98,9 @@ export const TimeRangeZoomProvider: FunctionComponent<
         onTimeRangeReset: isZoomed ? resetZoom : undefined,
         isZoomed: isZoomed,
         rangeBeforeZoom: rangeBeforeZoom,
+        timeRange: timeRange,
       };
-    }, [onTimeRangeSelect, resetZoom, isZoomed, rangeBeforeZoom]);
+    }, [onTimeRangeSelect, resetZoom, isZoomed, rangeBeforeZoom, timeRange]);
 
   return (
     <ChartTimeRangeZoomContext.Provider value={value}>
@@ -115,6 +140,29 @@ export const TimeRangeZoomScope: FunctionComponent<TimeRangeZoomScopeProps> = (
   return (
     <TimeRangeZoomProvider zoom={zoom}>{props.children}</TimeRangeZoomProvider>
   );
+};
+
+/**
+ * Whether a zoom is over the given range. A zoom that did not say which
+ * range it works over is taken to be over any; see
+ * ChartTimeRangeZoomContextValue.timeRange.
+ */
+export const isTimeRangeZoomFor: (
+  zoom: ChartTimeRangeZoomContextValue | null,
+  timeRange: RangeStartAndEndDateTime,
+) => boolean = (
+  zoom: ChartTimeRangeZoomContextValue | null,
+  timeRange: RangeStartAndEndDateTime,
+): boolean => {
+  if (!zoom) {
+    return false;
+  }
+
+  if (!zoom.timeRange) {
+    return true;
+  }
+
+  return TimeRangeZoomUtil.isSameRange(zoom.timeRange, timeRange);
 };
 
 export interface ChartTimeRangeZoomHandlers {
