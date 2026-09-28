@@ -123,8 +123,18 @@ warm_image() {
 		return 0
 	fi
 
-	if RETRY_REGISTRY_READ_DELAYS="$ECR_RETRY_DELAYS" \
-		retry_registry_read "pull ${image}" "$DOCKER" pull "$image"; then
+	# Saved and restored around the call rather than written as an assignment
+	# prefix: whether `VAR=x some_function` leaves VAR set afterwards is
+	# version-dependent in bash, and that must not be what decides the ladder
+	# the mirror pull below gets.
+	local previous_delays="$RETRY_REGISTRY_READ_DELAYS"
+	local ecr_status=0
+
+	RETRY_REGISTRY_READ_DELAYS="$ECR_RETRY_DELAYS"
+	retry_registry_read "pull ${image}" "$DOCKER" pull "$image" || ecr_status=$?
+	RETRY_REGISTRY_READ_DELAYS="$previous_delays"
+
+	if (( ecr_status == 0 )); then
 		echo "✅ Pulled ${image} from public.ecr.aws"
 		return 0
 	fi

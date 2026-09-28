@@ -181,6 +181,24 @@ output="$(bash "$SCRIPT" "$dockerfile" 2>&1)" || status=$?
 assert_eq 0 "$status" "succeeds when the image is already in the local store"
 assert_not_contains "$(docker_calls)" "pull " "pulls nothing when the image is already local"
 
+# --- The two ladders are independent. ---
+#
+# ECR gets a short one because a data quota will not clear while we wait and a
+# mirror is standing by; the mirror keeps retry.sh's default, because a 429 from
+# Docker Hub is a per-window limit that does clear and by then it is the last
+# thing left to try. The two are set through the same global, so a regression
+# that let the ECR ladder carry over would quietly cut the mirror's attempts
+# from four to three -- no error, just a build that gives up sooner than
+# intended on the one registry it has left.
+new_docker_stub all
+dockerfile="$(write_dockerfile Dockerfile \
+	'FROM public.ecr.aws/docker/library/node:26-alpine3.24')"
+status=0
+output="$(bash "$SCRIPT" "$dockerfile" 2>&1)" || status=$?
+assert_eq 1 "$status" "gives up once both ladders are exhausted"
+assert_eq 3 "$(docker_calls | grep -c 'pull public.ecr.aws')" "tries ECR on its own short ladder (WARM_BASE_IMAGES_ECR_DELAYS+1)"
+assert_eq 4 "$(docker_calls | grep -c 'pull docker.io')" "tries the mirror on retry.sh's default ladder (RETRY_REGISTRY_READ_DELAYS+1), not ECR's"
+
 # --- Both registries down: fail, rather than let the build fail later. ---
 new_docker_stub all
 dockerfile="$(write_dockerfile Dockerfile \
