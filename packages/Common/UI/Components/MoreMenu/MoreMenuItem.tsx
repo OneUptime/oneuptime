@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
@@ -33,6 +33,33 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isDisabled: boolean = Boolean(props.isDisabled);
   const isDestructive: boolean = Boolean(props.isDestructive);
+  const reasonId: string = useId();
+
+  /*
+   * A locked item that says why it is locked stays reachable. Table rows now
+   * keep their permission-locked actions in the ⋯ menu ("You need the Delete
+   * permission"), and a natively disabled button can neither take focus nor
+   * show a tooltip on focus - so the explanation would exist for the mouse
+   * only. Such an item is aria-disabled instead: MoreMenu's roving focus
+   * lands on it, the reason is announced through aria-describedby and shown
+   * by the tooltip, and activating it does nothing. A locked item with nothing
+   * to say stays natively disabled and is skipped, as before.
+   */
+  const isExplainedLock: boolean = isDisabled && Boolean(props.tooltip);
+
+  const colorClassName: string = isDestructive
+    ? "text-red-600"
+    : "text-gray-700";
+
+  /*
+   * Keyboard focus gets the same highlight as the pointer's hover, so an item
+   * reached with the arrow keys looks exactly as active as one under the mouse.
+   */
+  const stateClassName: string = isDisabled
+    ? "cursor-not-allowed opacity-50 focus-visible:outline-none focus-visible:bg-gray-100"
+    : isDestructive
+      ? "cursor-pointer hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:bg-red-50 focus-visible:text-red-700"
+      : "cursor-pointer hover:bg-indigo-50 hover:text-gray-900 focus-visible:outline-none focus-visible:bg-indigo-50 focus-visible:text-gray-900";
 
   const menuItem: ReactElement = (
     /*
@@ -42,18 +69,20 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      */
     <button
       type="button"
-      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
-        isDestructive
-          ? "text-red-600 enabled:hover:bg-red-50 enabled:hover:text-red-700"
-          : "text-gray-700 enabled:hover:bg-indigo-50 enabled:hover:text-gray-900"
-      } ${
-        isDisabled && props.tooltip ? "pointer-events-none " : ""
-      }${props.className || ""}`}
+      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
+        props.className || ""
+      }`}
       role="menuitem"
       tabIndex={-1}
-      disabled={isDisabled}
+      disabled={isDisabled && !isExplainedLock}
       aria-disabled={isDisabled}
+      aria-describedby={isExplainedLock ? reasonId : undefined}
+      data-focusable-when-disabled={isExplainedLock ? "true" : undefined}
       onClick={() => {
+        if (isDisabled) {
+          return;
+        }
+
         props.onClick();
       }}
     >
@@ -62,8 +91,8 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           icon={props.icon}
           className={`mr-2.5 h-4 w-4 shrink-0 transition-colors duration-100 ${
             isDestructive
-              ? "text-red-500 group-hover:text-red-600"
-              : "text-gray-400 group-hover:text-indigo-500"
+              ? `text-red-500 ${isDisabled ? "" : "group-hover:text-red-600"}`
+              : `text-gray-400 ${isDisabled ? "" : "group-hover:text-indigo-500"}`
           } ${props.iconClassName || ""}`}
         />
       )}
@@ -81,20 +110,21 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
     return menuItem;
   }
 
-  /*
-   * A disabled control dispatches no pointer events, so the tooltip has to
-   * hang off a wrapper that still receives them. Matches what Button does for
-   * the same reason - but tabIndex stays -1 here, because MoreMenu drives
-   * focus itself with a roving tabindex and a tabbable wrapper would add a
-   * stop it does not know about.
-   */
-  if (isDisabled) {
+  if (isExplainedLock) {
+    /*
+     * The reason sits outside the button so it describes the item without
+     * becoming part of its name - the item is still "Delete", not "Delete You
+     * do not have permission to delete this Monitor.".
+     */
     return (
-      <Tooltip text={props.tooltip}>
-        <span className="flex w-full" tabIndex={-1}>
+      <>
+        <Tooltip text={props.tooltip} isTriggerAlreadyDescribed={true}>
           {menuItem}
+        </Tooltip>
+        <span id={reasonId} className="sr-only">
+          {props.tooltip}
         </span>
-      </Tooltip>
+      </>
     );
   }
 

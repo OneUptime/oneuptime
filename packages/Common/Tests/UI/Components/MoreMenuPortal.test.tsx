@@ -293,6 +293,30 @@ describe("MoreMenu, portalled", () => {
       expect(menu).toHaveClass("origin-bottom-right");
     });
 
+    /*
+     * `bottom` on a fixed element is measured from the layout viewport, which
+     * stops above a classic horizontal scrollbar - clientHeight, not
+     * innerHeight.
+     */
+    test("measures from the layout viewport, above a horizontal scrollbar", () => {
+      triggerRect = { top: 740, left: 1100, width: 34, height: 30 };
+      Object.defineProperty(document.documentElement, "clientHeight", {
+        configurable: true,
+        value: 785,
+      });
+
+      try {
+        renderMenu();
+
+        // 785 - 740 + 8, not 800 - 740 + 8.
+        expect(openMenu().style.bottom).toBe("53px");
+      } finally {
+        delete (document.documentElement as unknown as Record<string, unknown>)[
+          "clientHeight"
+        ];
+      }
+    });
+
     test("stays below when there is no more room above than below", () => {
       triggerRect = { top: 40, left: 1100, width: 34, height: 30 };
       Object.defineProperty(window, "innerHeight", {

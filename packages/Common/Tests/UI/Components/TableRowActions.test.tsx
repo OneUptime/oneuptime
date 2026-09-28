@@ -305,6 +305,47 @@ describe("Table row actions, desktop", () => {
     );
   });
 
+  test("each ⋯ names its row when the table knows what its rows are", () => {
+    const { actions } = makeRowActions();
+
+    render(
+      <Table<Row>
+        id="named-domains-table"
+        data={ROWS}
+        columns={[
+          { title: "Domain", type: FieldType.Text, key: "name" },
+          { title: "Actions", type: FieldType.Actions, key: null },
+        ]}
+        actionButtons={actions}
+        bulkItemToString={(row: Row) => {
+          return `Domain: ${row.name}`;
+        }}
+        currentPageNumber={1}
+        totalItemsCount={ROWS.length}
+        itemsOnPage={10}
+        error=""
+        isLoading={false}
+        singularLabel="Domain"
+        pluralLabel="Domains"
+        sortOrder={SortOrder.Ascending}
+        sortBy={null}
+        onSortChanged={() => {}}
+        onNavigateToPage={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "More actions for Domain: status.acme.com",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "More actions for Domain: status.globex.com",
+      }),
+    ).toBeInTheDocument();
+  });
+
   test("a table without actions draws no row actions at all", () => {
     renderTable({ actions: [] });
 

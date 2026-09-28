@@ -401,19 +401,16 @@ function menuItemTitles(menu: HTMLElement): Array<string> {
 }
 
 /*
- * A locked menu item is a disabled button, and a disabled button dispatches
- * no pointer events - so, as with Button, the tooltip that says why it is
- * locked hangs off the wrapper around it. Every locked item gives the same
- * reason, and jsdom never finishes a tooltip's exit transition, so the
- * reason is read through the wrapper's own aria-describedby rather than
- * from whichever tooltip happens to be on the page.
+ * A locked menu item is aria-disabled rather than natively disabled, so it
+ * stays reachable from the keyboard, and the reason it is locked is its own
+ * accessible description whether or not the tooltip is showing. Every locked
+ * item gives the same reason, and jsdom never finishes a tooltip's exit
+ * transition, so the reason is read from the item rather than from whichever
+ * tooltip happens to be on the page.
  */
 function expectLockedMenuItem(item: HTMLElement, reason: string): void {
-  expect(item).toBeDisabled();
-  const wrapper: HTMLElement = item.parentElement as HTMLElement;
-  fireEvent.mouseEnter(wrapper);
-  expect(wrapper).toHaveAccessibleDescription(reason);
-  fireEvent.mouseLeave(wrapper);
+  expect(item).toHaveAttribute("aria-disabled", "true");
+  expect(item).toHaveAccessibleDescription(reason);
 }
 
 function postCall(index: number = 0): JSONObject {

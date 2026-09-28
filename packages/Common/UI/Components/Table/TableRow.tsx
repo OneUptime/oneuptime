@@ -53,6 +53,8 @@ export interface ComponentProps<T extends GenericObject> {
   itemSelectLabel?: string | undefined;
   /** Hover text for a row whose box is locked. Says why, in the caller's words. */
   itemNotSelectableReason?: string | undefined;
+  /** What this row is ("Monitor: Checkout API"), for its ⋯ menu's name. */
+  itemLabel?: string | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -198,6 +200,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         actionButtons={props.actionButtons}
                         isMobile={true}
                         className="justify-start"
+                        itemLabel={props.itemLabel}
                       />
                     </div>
                   );
@@ -468,6 +471,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         item={props.item}
                         actionButtons={props.actionButtons}
                         isMobile={isMobileView}
+                        itemLabel={props.itemLabel}
                       />
                     </div>
                   )}

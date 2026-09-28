@@ -692,9 +692,10 @@ describe("BaseModelTable bulk Delete", () => {
       const deleteItem: HTMLElement | undefined = findMenuItem("Delete");
 
       expect(deleteItem).toBeDefined();
-      expect(deleteItem).toBeDisabled();
+      // Locked, but still reachable from the keyboard: aria-disabled.
+      expect(deleteItem).toHaveAttribute("aria-disabled", "true");
 
-      fireEvent.mouseEnter(deleteItem!.parentElement as HTMLElement);
+      fireEvent.mouseEnter(deleteItem!);
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(
         "You do not have permission to delete this Network Device.",
@@ -916,9 +917,10 @@ describe("BaseModelTable bulk Delete", () => {
       const unlinkItem: HTMLElement | undefined = findMenuItem("Unlink");
 
       expect(unlinkItem).toBeDefined();
-      expect(unlinkItem).toBeDisabled();
+      // Locked, but still reachable from the keyboard: aria-disabled.
+      expect(unlinkItem).toHaveAttribute("aria-disabled", "true");
 
-      fireEvent.mouseEnter(unlinkItem!.parentElement as HTMLElement);
+      fireEvent.mouseEnter(unlinkItem!);
 
       /*
        * The reason follows the verb, but the permission it names is still the

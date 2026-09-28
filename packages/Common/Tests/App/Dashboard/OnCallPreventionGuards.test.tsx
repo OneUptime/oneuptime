@@ -1897,9 +1897,14 @@ const controlLabels: ControlLabelsFunction = (
   controls: Array<HTMLElement>,
 ): Array<string> => {
   return controls.map((control: HTMLElement) => {
-    return (
-      control.getAttribute("aria-label") || (control.textContent || "").trim()
-    );
+    const label: string =
+      control.getAttribute("aria-label") || (control.textContent || "").trim();
+
+    /*
+     * Each ⋯ is named for its row ("More actions for Monitor: Checkout
+     * API"); what these tests compare is which controls a row has.
+     */
+    return label.startsWith("More actions for ") ? "More actions" : label;
   });
 };
 

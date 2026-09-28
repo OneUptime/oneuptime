@@ -476,13 +476,16 @@ describe("RowActions", () => {
         name: /Remove from Project/,
       });
 
-      expect(removeItem).toBeDisabled();
+      expect(removeItem).toHaveAttribute("aria-disabled", "true");
+      expect(removeItem).toHaveAccessibleDescription(
+        "Only admins can remove members",
+      );
 
       fireEvent.click(removeItem);
 
       expect(actions.onRemove).not.toHaveBeenCalled();
 
-      fireEvent.mouseEnter(removeItem.parentElement as HTMLElement);
+      fireEvent.mouseEnter(removeItem);
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(
         "Only admins can remove members",

@@ -239,7 +239,9 @@ html.dark [class~="active:bg-gray-100"]:active,
  * near-white bar across whatever it is on - see the status page group tree.
  */
 html.dark [class~="focus-within:bg-gray-100"]:focus-within,
-html.dark [class~="disabled:bg-gray-100"]:disabled {
+html.dark [class~="disabled:bg-gray-100"]:disabled,
+/* A locked menu item reached with the keyboard (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-gray-100"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
@@ -307,6 +309,7 @@ html.dark :is(
     [class~="hover:text-gray-900"]
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
+html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
 html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
 /*
  * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
@@ -938,6 +941,8 @@ html.dark :is(
     [class~="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
   ):hover,
+/* Menu items give keyboard focus the same ground as hover (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-indigo-50"]:focus-visible,
 html.dark .group:hover :is(
     [class*="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
@@ -958,11 +963,13 @@ html.dark :is(
     [class~="hover:bg-blue-100"],
     [class~="hover:bg-rose-50"],
     [class~="hover:bg-rose-100"]
-  ):hover {
+  ):hover,
+html.dark [class~="focus-visible:bg-red-50"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
 html.dark [class*="hover:text-red-"]:hover,
+html.dark [class~="focus-visible:text-red-700"]:focus-visible,
 html.dark .group:hover [class*="group-hover:text-red-"] {
   color: #fca5a5 !important;
 }

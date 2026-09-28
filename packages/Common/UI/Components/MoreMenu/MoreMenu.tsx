@@ -156,7 +156,15 @@ const MoreMenu: React.ForwardRefExoticComponent<
         return Array.from(
           menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
         ).filter((item: HTMLElement) => {
-          return !isMenuItemDisabled(item);
+          /*
+           * A locked item that explains itself (MoreMenuItem with a tooltip)
+           * stays in the roving focus so its reason can be reached from the
+           * keyboard; activating it is still refused below.
+           */
+          return (
+            !isMenuItemDisabled(item) ||
+            item.getAttribute("data-focusable-when-disabled") === "true"
+          );
         });
       }, [ref]);
 
@@ -246,6 +254,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
        */
       const viewportWidth: number =
         document.documentElement.clientWidth || window.innerWidth;
+      // The same holds for `bottom` and a classic horizontal scrollbar.
+      const viewportHeight: number =
+        document.documentElement.clientHeight || window.innerHeight;
 
       /*
        * Right edge to right edge, like the in-place menu's `right-0`, and
@@ -282,7 +293,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         : undefined;
 
       const spaceBelow: number =
-        window.innerHeight -
+        viewportHeight -
         triggerRect.bottom -
         PORTALED_MENU_GAP_PX -
         PORTALED_MENU_VIEWPORT_PADDING_PX;
@@ -297,7 +308,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
       setPortaledMenuPosition({
         top: isAbove ? undefined : triggerRect.bottom + PORTALED_MENU_GAP_PX,
         bottom: isAbove
-          ? window.innerHeight - triggerRect.top + PORTALED_MENU_GAP_PX
+          ? viewportHeight - triggerRect.top + PORTALED_MENU_GAP_PX
           : undefined,
         left,
         right,
@@ -597,6 +608,36 @@ const MoreMenu: React.ForwardRefExoticComponent<
       }
     };
 
+    /*
+     * Hand focus back to the trigger BEFORE the chosen item's own handler runs.
+     * Most items open a dialog (Edit, Delete, Show ID), and Modal remembers
+     * whatever held focus when it first rendered so it can return focus there
+     * on close. Left alone, that is the menu item - which the same update
+     * unmounts - so closing the dialog dropped focus to <body>. With the
+     * trigger focused first, the dialog remembers the trigger instead; an item
+     * that moves focus somewhere itself still wins, because it runs after.
+     */
+    const handleMenuClickCapture: (
+      event: React.MouseEvent<HTMLDivElement>,
+    ) => void = (event: React.MouseEvent<HTMLDivElement>): void => {
+      const eventTarget: EventTarget = event.target;
+
+      if (!(eventTarget instanceof Element)) {
+        return;
+      }
+
+      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+
+      if (
+        menuItem instanceof HTMLElement &&
+        event.currentTarget.contains(menuItem) &&
+        !isMenuItemDisabled(menuItem) &&
+        isComponentVisible
+      ) {
+        focusTrigger();
+      }
+    };
+
     const getNativeButtonTrigger: () => ReactElement | null =
       (): ReactElement | null => {
         if (!customTrigger || !isNativeButtonTrigger) {
@@ -684,6 +725,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         role="menu"
         aria-orientation="vertical"
         aria-labelledby={buttonId}
+        onClickCapture={handleMenuClickCapture}
         onClick={handleMenuClick}
       >
         {props.children.map((child: ReactElement, index: number) => {

@@ -30,6 +30,12 @@ export interface ComponentProps<T extends GenericObject> {
    * actions (the default); a centred card can centre them.
    */
   className?: string | undefined;
+  /*
+   * What this row is, for the ⋯ trigger's accessible name - "More actions for
+   * Monitor: Checkout API" rather than twenty-five identical "More actions" in
+   * a screen reader's list of buttons.
+   */
+  itemLabel?: string | undefined;
 }
 
 /*
@@ -177,24 +183,36 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       )}
 
       {primary && (
-        <Button
-          buttonSize={ButtonSize.Small}
-          title={primary.button.title}
-          icon={primary.button.icon}
-          buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
-          isLoading={loadingActionIndexes.current[primary.index]}
-          disabled={primary.button.disabled}
-          tooltip={primary.button.tooltip}
-          onClick={() => {
-            runAction(primary);
-          }}
-        />
+        /*
+         * Button is w-full below md. Its own content-sized box keeps it the
+         * size of its label on every surface - a Table card, a List card and a
+         * centred ordered-states item alike - instead of stretching whenever
+         * the row's container happens to be a block.
+         */
+        <div className="shrink-0">
+          <Button
+            buttonSize={ButtonSize.Small}
+            title={primary.button.title}
+            icon={primary.button.icon}
+            buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
+            isLoading={loadingActionIndexes.current[primary.index]}
+            disabled={primary.button.disabled}
+            tooltip={primary.button.tooltip}
+            onClick={() => {
+              runAction(primary);
+            }}
+          />
+        </div>
       )}
 
       {menuItems.length > 0 && (
         <MoreMenu
           isMenuPortaled={true}
-          ariaLabel={translateString("More actions") || "More actions"}
+          ariaLabel={
+            props.itemLabel
+              ? `${translateString("More actions for") || "More actions for"} ${props.itemLabel}`
+              : translateString("More actions") || "More actions"
+          }
           elementToBeShownInsteadOfButton={
             <button
               type="button"

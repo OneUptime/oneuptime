@@ -202,9 +202,15 @@ describe("BaseModelTable row actions", () => {
     return within(rowActions)
       .getAllByRole("button")
       .map((button: HTMLElement) => {
-        return (
-          button.getAttribute("aria-label") || (button.textContent || "").trim()
-        );
+        const label: string =
+          button.getAttribute("aria-label") ||
+          (button.textContent || "").trim();
+
+        /*
+         * Each ⋯ is named for its row ("More actions for Monitor: Checkout
+         * API"); what these tests compare is which controls a row has.
+         */
+        return label.startsWith("More actions for ") ? "More actions" : label;
       });
   };
 
@@ -258,6 +264,23 @@ describe("BaseModelTable row actions", () => {
       "Edit",
       "Delete",
     ]);
+  });
+
+  test("each row's ⋯ is named for the record it belongs to", async () => {
+    renderTable({ isViewable: true, isDeleteable: true });
+
+    await waitForRows();
+
+    expect(
+      screen.getByRole("button", {
+        name: "More actions for Monitor: Checkout API",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "More actions for Monitor: Billing Worker",
+      }),
+    ).toBeInTheDocument();
   });
 
   /*
@@ -442,9 +465,11 @@ describe("BaseModelTable row actions", () => {
     const rows: Array<HTMLElement> = await waitForRows();
     const menu: HTMLElement = openMenuIn(rows[0]!);
 
-    expect(within(menu).getByRole("menuitem", { name: "Edit" })).toBeDisabled();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Edit" }),
+    ).toHaveAttribute("aria-disabled", "true");
     expect(
       within(menu).getByRole("menuitem", { name: /Delete/ }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
   });
 });

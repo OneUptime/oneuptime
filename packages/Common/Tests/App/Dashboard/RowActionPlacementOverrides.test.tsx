@@ -198,9 +198,14 @@ const rowButtonLabels: (rowActions: HTMLElement) => Array<string> = (
   return within(rowActions)
     .getAllByRole("button")
     .map((button: HTMLElement) => {
-      return (
-        button.getAttribute("aria-label") || (button.textContent || "").trim()
-      );
+      const label: string =
+        button.getAttribute("aria-label") || (button.textContent || "").trim();
+
+      /*
+       * Each ⋯ is named for its row ("More actions for Monitor: Checkout
+       * API"); what these tests compare is which controls a row has.
+       */
+      return label.startsWith("More actions for ") ? "More actions" : label;
     });
 };
 
@@ -855,6 +860,6 @@ describe("Discovery scans: Review Results is the row's button whenever it is off
     expect(menuLabels(menu)).toEqual(["Delete"]);
     expect(
       within(menu).getByRole("menuitem", { name: "Delete" }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
   });
 });
