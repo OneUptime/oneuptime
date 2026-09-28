@@ -848,6 +848,37 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   }, [isOpen, isEditable]);
 
   /*
+   * The keyboard's side of the outside press above. Tabbing from the search
+   * input, or on past the panel's last row, onto another field used to leave
+   * the list open, and when that field opened a menu of its own (the Monitor
+   * dropdown beside the picker on an alert) the two stacked on top of each
+   * other. The panel is a DOM child of containerRef, so moving between the
+   * chips, the input and the panel's tabs, rows and buttons stays inside and
+   * keeps it open.
+   *
+   * Only a move onto another element closes it. With no element to go to
+   * (relatedTarget null, or the document itself) focus went nowhere in
+   * particular - the window lost focus, a press landed on something that
+   * takes no focus, the focused row unmounted - and presses are for the
+   * listener above to judge.
+   */
+  const closeListWhenFocusLeaves: (
+    event: React.FocusEvent<HTMLDivElement>,
+  ) => void = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const nextFocused: EventTarget | null = event.relatedTarget;
+
+    if (
+      !(nextFocused instanceof Element) ||
+      event.currentTarget.contains(nextFocused)
+    ) {
+      return;
+    }
+
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  /*
    * Shared fetcher used both for typed searches (name/description filters) and
    * for the default "suggestions" list shown when the dropdown is open with an
    * empty query. Failures per type are swallowed so a 403 on one resource type
@@ -1539,7 +1570,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   ]);
 
   return (
-    <div ref={containerRef} className="relative mt-1 w-full">
+    <div
+      ref={containerRef}
+      className="relative mt-1 w-full"
+      onBlur={closeListWhenFocusLeaves}
+    >
       {selected.length > 0 && (
         <div className={props.readOnly ? "space-y-2" : "mb-2 space-y-2"}>
           {(chipOverflow > 0 || selected.length >= MAX_VISIBLE_CHIPS) &&
