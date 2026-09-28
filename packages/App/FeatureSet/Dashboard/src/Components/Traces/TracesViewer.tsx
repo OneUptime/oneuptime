@@ -251,7 +251,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "status:ok|error|unset",
-    description: "Filter by span status (unset = no error recorded)",
+    description: "Filter by span status (unset = no error status set)",
     example: "status:error",
   },
   {

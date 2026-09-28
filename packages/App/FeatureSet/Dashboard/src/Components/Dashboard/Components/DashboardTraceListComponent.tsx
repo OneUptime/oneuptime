@@ -18,7 +18,7 @@ import {
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span from "Common/Models/AnalyticsModels/Span";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -216,11 +216,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           </td>
           <td className="px-3 py-2">
             <span
-              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${
-                status.status === SpanStatus.Error
-                  ? "border-red-100"
-                  : "border-emerald-100"
-              }`}
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${status.pillBorderClassName}`}
               style={{ fontSize: "10px" }}
               title={status.description}
             >

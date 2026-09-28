@@ -10,21 +10,24 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
  * operation fails and leaves successful spans Unset; Ok is for code that
  * explicitly marks a span as successful. So on a healthy service most spans
  * are Unset, and a neutral grey made the Traces chart read as "mostly
- * unknown" (issue #4118). Unset therefore uses the success (green) family,
- * one step lighter than the explicit Ok, and says "no error" where there is
- * room to. Error is the only alarming color.
+ * unknown" (issue #4118). Unset therefore uses the success green and says
+ * "no error" where there is room to; Error is the only alarming color. The
+ * wording is about the status field: recording an exception does not change
+ * a span's status, so an Unset span can still carry exceptions.
  *
  * Only the presentation lives here. The stored values (0 / 1 / 2), the
  * "Unset" name that filters, monitors and the API use, and the `status:unset`
  * search term all stay as they are.
  *
- * The chart colors were checked as a stacked set, in the order the Traces
- * chart stacks them (Ok, Unset, Error), on the light (#ffffff) and dark
- * (#172033) card: every adjacent pair stays apart for full color vision and
- * under simulated deuteranopia and protanopia. The old grey Unset did not
- * (it sat next to Ok at the same lightness). SpanStatusPresentation.test.ts
- * pins those numbers. Keep them six-digit hex: some consumers append an alpha
- * suffix or parse the value.
+ * The chart colors were checked as a set, on the light (#ffffff) and dark
+ * (#172033) card, for every pair — not only the neighbours in the chart's
+ * stack (Ok, Unset, Error): Ok and Error touch whenever a bucket has no Unset
+ * spans. Every pair stays apart for full color vision and under simulated
+ * deuteranopia and protanopia. That rules out a darker green for Ok (it
+ * collapses into red for protanopes), so the explicit Ok is cyan. The old
+ * grey Unset failed (it sat next to Ok at the same lightness).
+ * SpanStatusPresentation.test.ts pins those numbers. Keep them six-digit hex:
+ * some consumers append an alpha suffix or parse the value.
  */
 
 export interface SpanStatusPresentation {
@@ -46,6 +49,9 @@ export interface SpanStatusPresentation {
   barClassName: string;
   barTrackClassName: string;
   pillClassName: string;
+  // Accent for a pill that draws a border or a ring around pillClassName.
+  pillBorderClassName: string;
+  pillRingClassName: string;
 }
 
 const UNSET: SpanStatusPresentation = {
@@ -53,13 +59,15 @@ const UNSET: SpanStatusPresentation = {
   label: "Unset",
   displayLabel: "Unset (no error)",
   description:
-    "No error was recorded. Unset is the OpenTelemetry default for spans that finish without an error.",
+    "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
   color: "#10b981",
   dotClassName: "bg-emerald-500",
   ringClassName: "ring-emerald-200",
   barClassName: "bg-emerald-500",
   barTrackClassName: "bg-gray-100",
   pillClassName: "bg-emerald-50 text-emerald-700",
+  pillBorderClassName: "border-emerald-100",
+  pillRingClassName: "ring-emerald-600/10",
 };
 
 const OK: SpanStatusPresentation = {
@@ -68,25 +76,29 @@ const OK: SpanStatusPresentation = {
   displayLabel: "Ok",
   description:
     "Explicitly marked successful by the application or a trace pipeline.",
-  color: "#047857",
-  dotClassName: "bg-emerald-700",
-  ringClassName: "ring-emerald-200",
-  barClassName: "bg-emerald-700",
+  color: "#0891b2",
+  dotClassName: "bg-cyan-600",
+  ringClassName: "ring-cyan-200",
+  barClassName: "bg-cyan-600",
   barTrackClassName: "bg-gray-100",
-  pillClassName: "bg-emerald-50 text-emerald-800",
+  pillClassName: "bg-cyan-50 text-cyan-800",
+  pillBorderClassName: "border-cyan-100",
+  pillRingClassName: "ring-cyan-600/10",
 };
 
 const ERROR: SpanStatusPresentation = {
   status: SpanStatus.Error,
   label: "Error",
   displayLabel: "Error",
-  description: "The span recorded an error.",
+  description: "The operation failed: the span's status is Error.",
   color: "#ef4444",
   dotClassName: "bg-red-500",
   ringClassName: "ring-red-100",
   barClassName: "bg-red-500",
   barTrackClassName: "bg-red-50",
   pillClassName: "bg-red-50 text-red-700",
+  pillBorderClassName: "border-red-100",
+  pillRingClassName: "ring-red-600/10",
 };
 
 // In the order the Traces chart stacks them, bottom to top.

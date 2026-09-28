@@ -463,6 +463,14 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
       });
   }, [fullSpan]);
 
+  /*
+   * Recording an exception does not change a span's status, so an Unset span
+   * can carry exceptions. Name the status plainly then: "no error" would
+   * contradict the exceptions listed under it.
+   */
+  const statusLabel: string =
+    exceptionMessages.length > 0 ? status.label : status.displayLabel;
+
   // Route to the full trace, highlighting this span via `?spanId=`.
   const fullTraceRoute: Route | undefined = useMemo(() => {
     if (!props.traceRoute) {
@@ -541,7 +549,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
     { label: entityDisplay.typeLabel, value: serviceName },
-    { label: "Status", value: status.displayLabel },
+    { label: "Status", value: statusLabel },
     { label: "Duration", value: durationLabel },
     { label: "Span Kind", value: kindLabel },
     ...(startTimeDate
@@ -590,7 +598,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                     style={{ backgroundColor: status.color }}
                     aria-hidden="true"
                   />
-                  {status.displayLabel}
+                  {statusLabel}
                 </span>
               </div>
               <div className="font-mono text-xs text-gray-500">

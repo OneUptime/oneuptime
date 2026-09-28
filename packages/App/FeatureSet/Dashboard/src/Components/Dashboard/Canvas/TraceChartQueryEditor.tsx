@@ -261,6 +261,16 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   const currentGroupBy: string = (args.groupByAttribute || "").trim();
 
   /*
+   * A split by span status keeps each status's own color, so the lead color
+   * does not apply (see resolveTraceSeriesColor). Pins still work, keyed by
+   * the stored value, which the chart itself now names — so suggest those.
+   */
+  const isStatusSplit: boolean = currentGroupBy === "statusCode";
+  const pinValueSuggestions: Record<string, Array<string>> = isStatusSplit
+    ? { ...valueSuggestions, statusCode: ["0", "1", "2"] }
+    : valueSuggestions;
+
+  /*
    * Load value suggestions for the split attribute so the per-series color
    * pin editor can autocomplete. Special columns (name/statusCode/kind) are
    * skipped — the values endpoint only knows span attributes; pins on those
@@ -445,23 +455,36 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
             defaultCollapsed={true}
           >
             <div className="space-y-5">
-              <SeriesColorSelector
-                label={currentGroupBy ? "Default series color" : "Series color"}
-                description={
-                  currentGroupBy
-                    ? "Colors the first unpinned series; the rest use the theme palette."
-                    : "Pick a color for the series, or leave on Auto to use the theme palette."
-                }
-                value={args.color}
-                onChange={(color: string | undefined): void => {
-                  writeArgs({ color });
-                }}
-              />
+              {isStatusSplit ? (
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid="trace-chart-status-split-colors"
+                >
+                  A split by status keeps each status&apos;s own color: Unset
+                  green, Ok cyan, Error red. To change one, pin its stored value
+                  below: 0 for Unset, 1 for Ok, 2 for Error.
+                </p>
+              ) : (
+                <SeriesColorSelector
+                  label={
+                    currentGroupBy ? "Default series color" : "Series color"
+                  }
+                  description={
+                    currentGroupBy
+                      ? "Colors the first unpinned series; the rest use the theme palette."
+                      : "Pick a color for the series, or leave on Auto to use the theme palette."
+                  }
+                  value={args.color}
+                  onChange={(color: string | undefined): void => {
+                    writeArgs({ color });
+                  }}
+                />
+              )}
 
               {currentGroupBy ? (
                 <SeriesGroupColorSelector
                   groupByKeys={[currentGroupBy]}
-                  valueSuggestions={valueSuggestions}
+                  valueSuggestions={pinValueSuggestions}
                   loadingKeys={loadingValueKeys}
                   value={args.colorsByGroup || {}}
                   onChange={(colorsByGroup: Record<string, string>): void => {

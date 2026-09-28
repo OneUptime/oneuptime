@@ -1,5 +1,4 @@
 import { FilterBuilderConfig } from "./Types";
-import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import {
   SpanStatusPresentation,
   getSpanStatusPresentation,
@@ -30,10 +29,7 @@ export function getStatusCodePillClass(value: string): string {
     return "bg-gray-50 text-gray-600 ring-gray-500/10";
   }
   const status: SpanStatusPresentation = getSpanStatusPresentation(value);
-  if (status.status === SpanStatus.Error) {
-    return `${status.pillClassName} ring-red-600/10`;
-  }
-  return `${status.pillClassName} ring-emerald-600/10`;
+  return `${status.pillClassName} ${status.pillRingClassName}`;
 }
 
 const TraceFilterConfig: FilterBuilderConfig = {
@@ -96,7 +92,7 @@ const TraceFilterConfig: FilterBuilderConfig = {
         {
           value: "0",
           label: "Unset",
-          description: "No error recorded (OpenTelemetry default)",
+          description: "No error status set (OpenTelemetry default)",
         },
         {
           value: "1",

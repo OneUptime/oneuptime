@@ -11,10 +11,17 @@ import {
 } from "../../Utils/SpanStatusPresentation";
 
 export interface ComponentProps {
-  spanStatusCode: SpanStatus;
+  // No status (null / undefined) draws no dot.
+  spanStatusCode: SpanStatus | null | undefined;
   title?: string | undefined;
   titleClassName?: string | undefined;
   traceId?: string | undefined;
+  /*
+   * Name the status alone ("Unset") rather than "Unset (no error)". For rows
+   * that are themselves an exception: recording one does not change the
+   * span's status, so "no error" would contradict the row.
+   */
+  plainLabel?: boolean | undefined;
 }
 
 const SpanStatusElement: FunctionComponent<ComponentProps> = (
@@ -35,7 +42,9 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
         {hasStatus ? (
           <ColorCircle
             color={new Color(status.color)}
-            tooltip={`Span Status: ${status.displayLabel}`}
+            tooltip={`Span Status: ${
+              props.plainLabel ? status.label : status.displayLabel
+            }`}
           />
         ) : (
           <></>
