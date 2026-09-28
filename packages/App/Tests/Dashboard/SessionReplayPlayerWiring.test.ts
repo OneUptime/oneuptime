@@ -1658,3 +1658,45 @@ describe("URL state", () => {
     );
   });
 });
+
+/*
+ * github.com/OneUptime/oneuptime/issues/4119: the replay document loads
+ * the recorded page's own images and stylesheets (not under Mask all
+ * text), and a viewer is told which of them did not load and why. The
+ * stage picks the policy and hears the failures; what only this file can
+ * get wrong is handing it the right masking mode and carrying its reports
+ * to the capture notes and the Details panel.
+ */
+describe("recorded assets", () => {
+  test("the stage is told the recording's masking mode, which picks the replay document's policy", () => {
+    const stage: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stage).toContain("maskingMode={manifest.details.maskingMode}");
+  });
+
+  test("the stage's failure reports reach the capture notes and the Missing assets list", () => {
+    const stage: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stage).toContain("onAssetLoadFailures={onAssetLoadFailures}");
+    expect(SOURCE).toMatch(/buildReplayPlaybackAssetNotes\(\{/);
+    expect(SOURCE).toContain("missingAssets={missingAssetUrls}");
+    /* The notes lead the capture notes, so their summary names them first. */
+    expect(SOURCE).toContain("[...playbackAssetNotes, ...captureNotes]");
+  });
+
+  test("failures belong to the engine that reported them, so another tab or session starts from none", () => {
+    expect(SOURCE).toMatch(
+      /setAssetFailureReport\(\{\s*engine: engine,\s*failures: failures\s*\}\)/,
+    );
+    expect(SOURCE).toContain("assetFailureReport.engine === engine");
+  });
+
+  test("the stage installs the policy and the failure listener on every created and rebuilt document", () => {
+    expect(STAGE_SOURCE).toContain(
+      "injectDocumentCsp(event.replayer, getReplayDocumentCsp(loadsImages));",
+    );
+    expect(STAGE_SOURCE).toContain(
+      "listenForAssetFailures(event.replayer, loadsImages);",
+    );
+  });
+});

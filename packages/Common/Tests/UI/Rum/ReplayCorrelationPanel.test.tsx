@@ -1178,6 +1178,51 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
     expect(section).toHaveTextContent("app.css");
   });
 
+  /*
+   * github.com/OneUptime/oneuptime/issues/4119: the player now feeds this
+   * list with the recorded images and stylesheets that did not load in the
+   * viewer's browser, and a viewer looking at one needs to know why and
+   * what the site's owner can change.
+   */
+  it("says the missing assets did not load in this browser, and links to why", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      missingAssets: ["https://wbdynprod.powerappsportals.com/logo.png"],
+    });
+
+    const section: HTMLElement = screen.getByTestId(
+      "details-section-missing-assets",
+    );
+
+    expect(section).toHaveTextContent("did not load in your browser");
+
+    const docs: HTMLElement = within(section).getByTestId(
+      "replay-details-missing-assets-docs",
+    );
+
+    expect(docs.getAttribute("href")).toMatch(
+      /\/rum\/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay$/,
+    );
+    expect(docs).toHaveAttribute("target", "_blank");
+    expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+    expect(docs.getAttribute("aria-label")).toContain("opens in a new tab");
+  });
+
+  it("counts missing assets on the Fidelity tab with the gaps and notices", () => {
+    renderPanel({
+      activeTabId: "session",
+      fidelityNotices: [SessionReplayFidelityNotice.StylesheetInaccessible],
+      missingAssets: [
+        "https://content.powerapps.com/img/web.png",
+        "https://content.powerapps.com/img/close.png",
+      ],
+    });
+
+    expect(
+      within(screen.getByRole("tab", { name: /^Fidelity/ })).getByText("3"),
+    ).toBeInTheDocument();
+  });
+
   it("explains why the recording ended from the sealed reason", () => {
     renderPanel({
       activeTabId: "fidelity",

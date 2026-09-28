@@ -207,3 +207,53 @@ describe("getSealedReasonCopy", () => {
     expect(unknown.severity).toBe("info");
   });
 });
+
+/*
+ * github.com/OneUptime/oneuptime/issues/4119: playback loads a stylesheet
+ * the recorder could not read, and the page's web fonts, from their
+ * original addresses. The notes must not go on promising an unstyled
+ * replay or a system font as though the player never fetched them, and
+ * the fix they offer must not break the customer's own page.
+ */
+describe("fidelity copy for assets playback loads from their original address", () => {
+  it("says an unreadable stylesheet is loaded from where it lives, and how to have it recorded", () => {
+    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(
+      SessionReplayFidelityNotice.StylesheetInaccessible,
+    );
+
+    expect(copy.description).toContain(
+      "playback loads it from its original address instead",
+    );
+    expect(copy.description).toContain(
+      "If that address does not load in your browser",
+    );
+    /*
+     * crossorigin alone makes the customer's own page refuse the sheet;
+     * it only works together with the server's CORS header.
+     */
+    expect(copy.description).toContain("Access-Control-Allow-Origin");
+    expect(copy.description).toContain('crossorigin="anonymous"');
+  });
+
+  it("says web fonts load when their server allows other sites, and only otherwise fall back", () => {
+    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(
+      SessionReplayFidelityNotice.FontsOmitted,
+    );
+
+    expect(copy.description).toContain(
+      "playback loads them from their original addresses",
+    );
+    expect(copy.description).toContain("Access-Control-Allow-Origin");
+    expect(copy.description).toContain("otherwise text falls back");
+    expect(copy.description).not.toContain("playback uses a system font stack");
+  });
+
+  it("does not promise video or audio a labelled placeholder that nothing draws", () => {
+    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(
+      SessionReplayFidelityNotice.MediaNotReplayable,
+    );
+
+    expect(copy.description).not.toContain("labelled placeholder");
+    expect(copy.description).toContain("do not play in the replay");
+  });
+});
