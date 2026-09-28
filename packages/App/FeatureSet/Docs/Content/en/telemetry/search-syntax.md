@@ -96,7 +96,7 @@ A leading `-` inverts any filter, including the ones above:
 | --- | --- |
 | `service` | Service name |
 | `name` | Span name. Bare words search this too |
-| `status` | `ok`, `error`, `unset` |
+| `status` | `ok`, `error`, `unset` (unset = no error recorded, the OpenTelemetry default) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
 | `duration` | Milliseconds, e.g. `duration:>500` |
 | `statusMessage` | Status message text |

@@ -37,9 +37,13 @@ Vælg én eller flere tjenester, der skal overvåges traces fra. Tjenester skal 
 
 ### Span-statuskoder
 
-- **OK** – Operationen fuldførte med succes
+- **OK** – Operationen blev eksplicit markeret som vellykket af applikationskode eller en trace-pipeline
 - **ERROR** – Operationen stødte på en fejl
-- **UNSET** – Status blev ikke eksplicit angivet
+- **UNSET** – Der blev ikke registreret nogen fejl. Dette er OpenTelemetrys standardstatus
+
+UNSET betyder ikke, at der mangler data. OpenTelemetry-instrumentering sætter ERROR, når en operation fejler, og lader vellykkede spans stå som UNSET, så på en sund tjeneste er de fleste spans UNSET. OneUptime viser dem med grønt som "Unset (no error)". For at advare om fejl skal du filtrere på ERROR. For at tælle alle spans, der ikke fejlede, skal du vælge både OK og UNSET.
+
+Hvis du vil have vellykkede forespørgsler vist som OK, skal du tilføje en trace-pipeline under **Spor > Indstillinger > Pipelines** med filterbetingelsen **Status = Ikke angivet** og en **Status-remapper**, der mapper `http.response.status_code`-værdier såsom `200` til Ok.
 
 ## Overvågningskriterier
 

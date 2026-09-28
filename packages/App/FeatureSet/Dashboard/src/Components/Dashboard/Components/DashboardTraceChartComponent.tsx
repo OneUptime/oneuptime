@@ -237,6 +237,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             {sharedAxes}
             <Area
               dataKey={seriesKeys[0] || "value"}
+              name={labelForSeries(seriesKeys[0] || "value")}
               stroke={singleSeriesColor}
               strokeWidth={2}
               fill={hexToRgba(singleSeriesColor, 0.08)}

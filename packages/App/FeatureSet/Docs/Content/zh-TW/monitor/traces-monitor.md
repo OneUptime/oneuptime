@@ -37,9 +37,13 @@
 
 ### Span 狀態碼
 
-- **OK** — 作業已成功完成
+- **OK** — 作業已由應用程式程式碼或追蹤管道明確標記為成功
 - **ERROR** — 作業遇到錯誤
-- **UNSET** — 未明確設定狀態
+- **UNSET** — 未記錄錯誤。這是 OpenTelemetry 的預設狀態
+
+UNSET 並不表示缺少資料。OpenTelemetry 檢測會在作業失敗時將狀態設為 ERROR，並讓成功的 span 維持 UNSET，因此在健康的服務上，大多數 span 都是 UNSET。OneUptime 會以綠色將它們顯示為「Unset (no error)」。若要針對失敗發出警示，請依 ERROR 篩選。若要計算所有未失敗的 span，請同時選擇 OK 與 UNSET。
+
+如果您希望成功的請求顯示為 OK，請在 **追蹤 > 設定 > 管道** 下新增一個追蹤管道，其篩選條件為 **狀態 = 未設定**，並包含一個 **狀態重新對應器**，用來將 `http.response.status_code` 的值（例如 `200`）對應為 Ok。
 
 ## 監控準則
 

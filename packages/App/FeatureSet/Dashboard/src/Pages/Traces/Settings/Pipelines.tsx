@@ -44,7 +44,7 @@ Most instrumentation leaves successful spans **Unset**, the OpenTelemetry defaul
 1. Create a pipeline with the filter condition **Status = Unset** (\`statusCode = '0'\`), so spans already marked Error are never changed.
 2. Add a **Status Remapper** processor with the source key \`http.response.status_code\` (older SDKs use \`http.status_code\`) and one mapping per code, for example \`200\` → Ok, \`201\` → Ok, \`204\` → Ok and \`304\` → Ok. Each mapping matches one exact value.
 
-Pipelines apply to spans ingested after you save them; spans already stored keep their status.
+Pipelines apply to spans ingested after you save them (a change can take up to a minute to reach ingest); spans already stored keep their status.
 `;
 
 const TracePipelines: FunctionComponent<

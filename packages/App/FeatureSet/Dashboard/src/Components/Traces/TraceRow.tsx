@@ -103,7 +103,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const statusMessage: string | undefined =
     (span as unknown as { statusMessage?: string }).statusMessage || undefined;
 
-  const isError: boolean = span.statusCode === SpanStatus.Error;
+  const isError: boolean = status.status === SpanStatus.Error;
 
   const isExpanded: boolean = props.isExpanded === true;
 
