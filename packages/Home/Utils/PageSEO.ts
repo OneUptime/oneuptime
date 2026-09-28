@@ -687,7 +687,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Filter calls by provider, model and operation",
         "Token / cost / latency dashboards and alerts",
         "Scrub rules for sensitive prompt data",
-        "Usage-based pricing, not per-seat",
+        "Usage-based telemetry pricing, billed per GB ingested",
         "Open source",
       ],
     },
