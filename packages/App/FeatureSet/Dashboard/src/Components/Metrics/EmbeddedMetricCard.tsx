@@ -286,7 +286,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   }, [dateRange, effectiveQueryConfigs, props.formulaConfigs]);
 
   const headerControls: ReactElement = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {props.rightElement}
       <RangeStartAndEndDateView
         dashboardStartAndEndDate={effectiveTimeRange}
