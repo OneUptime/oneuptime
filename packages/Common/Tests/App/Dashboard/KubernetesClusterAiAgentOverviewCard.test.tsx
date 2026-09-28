@@ -316,8 +316,12 @@ describe("the Overview page", () => {
       "utf8",
     );
     const agentStatusAt: number = source.indexOf('title="Agent Status"');
+    // The card may carry more props (its (i) tooltip), so match the opening.
     const aiAgentCardAt: number = source.indexOf(
-      "<KubernetesAiAgentOverviewCard clusterId={modelId} />",
+      "<KubernetesAiAgentOverviewCard",
+    );
+    expect(source).toMatch(
+      /<KubernetesAiAgentOverviewCard\s+clusterId=\{modelId\}/,
     );
     expect(agentStatusAt).toBeGreaterThan(-1);
     expect(aiAgentCardAt).toBeGreaterThan(agentStatusAt);
