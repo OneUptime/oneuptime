@@ -24,6 +24,9 @@ import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import IconProp from "Common/Types/Icon/IconProp";
 import { isDataSourceQueryConfigured } from "../Utils/DataSourceWidget";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceValueComponentType;
@@ -170,6 +173,13 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
       },
     );
 
+  /*
+   * A drag across the sparkline retimes the whole board, like a drag on
+   * any chart panel beside it; a double-click puts it back.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.Hashtag} />;
   }
@@ -203,6 +213,8 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
       warningThreshold={props.component.arguments.warningThreshold}
       criticalThreshold={props.component.arguments.criticalThreshold}
       trendDirection={props.component.arguments.trendDirection}
+      onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+      onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
     />
   );
 };
@@ -213,6 +225,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {
