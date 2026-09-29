@@ -111,6 +111,7 @@ describe("the Kubernetes cluster description records read well", () => {
     expect(Object.keys(CLUSTER).sort()).toEqual(
       [
         "agentStatus",
+        "aiAgent",
         "availability",
         "availabilityChart",
         "clusterHealth",
@@ -228,6 +229,7 @@ const TITLED: Array<[string, string]> = [
   ["Pods", CLUSTER.pods],
   ["Namespaces", CLUSTER.namespaces],
   ["Agent Status", CLUSTER.agentStatus],
+  ["AI agent", CLUSTER.aiAgent],
   ["Memory Pressure", CLUSTER.memoryPressure],
   ["Disk Pressure", CLUSTER.diskPressure],
   ["PID Pressure", CLUSTER.pidPressure],

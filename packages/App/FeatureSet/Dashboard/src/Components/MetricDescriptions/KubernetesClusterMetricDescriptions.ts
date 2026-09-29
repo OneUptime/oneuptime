@@ -102,7 +102,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   agentStatus:
     "Connected while the Kubernetes agent keeps sending data to OneUptime; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While disconnected, inventory counts on this page keep their last reported values.",
   aiAgent:
-    "Whether OneUptime AI can reach this cluster to investigate: Connected, Offline (it signed off or has not checked in for over 5 minutes) or Not installed. This is the Kubernetes AI agent that runs read-only kubectl for OneUptime AI, not the telemetry agent above. Opens AI → Agent.",
+    "Whether OneUptime AI can reach this cluster to investigate: Connected, Offline (signed off, or silent for over 5 minutes) or Not installed. This is the Kubernetes AI agent that runs read-only kubectl for OneUptime AI, not the telemetry agent. Opens AI → Agent.",
 
   // Node pressure banner - nodes reporting each condition right now.
   memoryPressure:
