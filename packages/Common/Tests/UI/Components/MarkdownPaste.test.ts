@@ -13,8 +13,10 @@ import {
   PastedClipboard,
 } from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
 import {
+  CHROME_CODE_VIEW_TABLE_COPY_HTML,
   CHROME_VIEWER_CODE_LINES_COPY_HTML,
   CHROME_VIEWER_COPY_HTML,
+  CODE_VIEW_TABLE_COPY_TEXT,
   CHROME_VIEWER_COPY_TEXT,
   FIREFOX_VIEWER_CODE_LINES_COPY_HTML,
   FIREFOX_VIEWER_COPY_HTML,
@@ -24,6 +26,7 @@ import {
   GOOGLE_DOCS_LIST_COPY_TEXT,
   VIEWER_CODE_LINES_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
+  WEBKIT_CODE_VIEW_TABLE_COPY_HTML,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
 
@@ -859,6 +862,30 @@ describe("isRichClipboardHtml", () => {
       ),
     ).toBe(false);
   });
+
+  /*
+   * A code view drawn as a table -- a row per line, as the Dashboard's
+   * Kubernetes YAML tab and exception stack frames are -- copied in Chromium
+   * or Safari, which write the cells' white-space:pre on each of them.
+   */
+  it("leaves lines copied out of a code view drawn as a table to their plain text", () => {
+    expect(isRichClipboardHtml(CHROME_CODE_VIEW_TABLE_COPY_HTML)).toBe(false);
+    expect(isRichClipboardHtml(WEBKIT_CODE_VIEW_TABLE_COPY_HTML)).toBe(false);
+    expect(
+      isRichClipboardHtml(
+        '<table><tbody><tr><th style="white-space: pre;">  key: value</th></tr></tbody></table>',
+      ),
+    ).toBe(false);
+  });
+
+  // A table of prose keeps its rows and columns.
+  it("still takes a table whose cells wrap their text as a table", () => {
+    expect(
+      isRichClipboardHtml(
+        '<table><tbody><tr><td style="white-space: normal;">Region</td><td>Status</td></tr><tr><td>EU</td><td>Down</td></tr></tbody></table>',
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("clipboardToMarkdown", () => {
@@ -1038,6 +1065,27 @@ describe("clipboardToMarkdown", () => {
         }),
       ),
     ).toBe("# Heading");
+  });
+
+  /*
+   * Taken as rich HTML, the four YAML lines became a one-column table: the
+   * first line its header, the others' indentation gone -- the nesting that
+   * is the YAML's meaning.
+   */
+  it("gives lines copied out of a code view drawn as a table as their plain text", () => {
+    for (const html of [
+      CHROME_CODE_VIEW_TABLE_COPY_HTML,
+      WEBKIT_CODE_VIEW_TABLE_COPY_HTML,
+    ]) {
+      expect(
+        clipboardToMarkdown(
+          clipboard({
+            "text/html": html,
+            "text/plain": CODE_VIEW_TABLE_COPY_TEXT,
+          }),
+        ),
+      ).toBe("metadata:\n  name: api\n  labels:\n    app: api");
+    }
   });
 
   it("turns both real viewer copies back into the note's markdown", () => {

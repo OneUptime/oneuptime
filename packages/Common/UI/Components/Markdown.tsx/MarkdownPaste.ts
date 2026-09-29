@@ -1105,16 +1105,23 @@ const tidyInlineFormatting: (body: HTMLElement) => void = (
  * <div> of coloured spans per line. Its plain text is the real content
  * (often markdown source itself), so that is what gets pasted, as before.
  *
- * Only that <div> counts, and not inside a <pre> or a list item. Google Docs
- * puts "white-space:pre" on every list item it copies, and Chromium, Safari
- * and Docs wrap each tab in a <span class="Apple-tab-span"> styled the same
+ * So is a table cell that keeps its whitespace: a code view drawn as a
+ * table, one row per line beside a column of line numbers, as OneUptime's
+ * own Kubernetes YAML tab and exception stack frames are. Chromium and
+ * Safari write the cell's white-space on every cell they copy. Not counted,
+ * lines of YAML copied there pasted as a one-column table with the first
+ * line as its header and the indentation gone.
+ *
+ * Only those count, and not inside a <pre> or a list item. Google Docs puts
+ * "white-space:pre" on every list item it copies, and Chromium, Safari and
+ * Docs wrap each tab in a <span class="Apple-tab-span"> styled the same
  * way; taken for a code editor's copy, any Docs copy with a list or a tab
  * lost its lists, links and formatting to its plain text -- bare lines.
  */
 const isCodeEditorCopy: (body: HTMLElement) => boolean = (
   body: HTMLElement,
 ): boolean => {
-  return elementsOf(body, "div[style]").some(
+  return elementsOf(body, "div[style], td[style], th[style]").some(
     (element: HTMLElement): boolean => {
       return element.style.whiteSpace === "pre" && !element.closest("pre, li");
     },
