@@ -384,8 +384,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   });
 
   /*
-   * The in-context investigation panel for the CURRENT window + filters —
-   * companion signals and the log summary without leaving the explorer.
+   * The in-context investigation panel for the window + filters on screen
+   * when Investigate is clicked — companion signals and the log summary
+   * without leaving the explorer.
    *
    * Snapshotted on the Investigate click, window and view data together,
    * the way every other opener does: auto-refresh re-resolves a rolling
