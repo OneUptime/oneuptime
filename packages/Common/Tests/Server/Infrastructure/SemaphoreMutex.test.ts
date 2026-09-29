@@ -90,6 +90,37 @@ describe("Semaphore exclusive mutex", () => {
     expect(mutex).toBe(lastMockMutex());
   });
 
+  /*
+   * A long sweep that polls mutex.isAcquired between pages needs both: a
+   * refresh interval short enough for the flag to be current (it only turns
+   * false when a refresh finds the lock gone), and a lock-lost handler, or
+   * redis-semaphore throws from its refresh timer where nothing can catch it.
+   */
+  test("forwards refreshInterval and onLockLost when the caller sets them", async () => {
+    const client: ClientType = mockRedisClient();
+    const onLockLost: (err: Error) => void = (): void => {};
+
+    await Semaphore.lock({
+      key: "Rum:PublishSessionReplayBudgetMetrics",
+      namespace: "Workers.Cron",
+      lockTimeout: 240_000,
+      acquireAttemptsLimit: 1,
+      refreshInterval: 30_000,
+      onLockLost: onLockLost,
+    });
+
+    expect(redisMutexConstructor).toHaveBeenCalledWith(
+      client,
+      "Workers.Cron-Rum:PublishSessionReplayBudgetMetrics",
+      {
+        lockTimeout: 240_000,
+        acquireAttemptsLimit: 1,
+        refreshInterval: 30_000,
+        onLockLost: onLockLost,
+      },
+    );
+  });
+
   test("composes the Redis key as namespace-key", async () => {
     mockRedisClient();
 

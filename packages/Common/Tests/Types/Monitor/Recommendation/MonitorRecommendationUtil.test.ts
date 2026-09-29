@@ -181,6 +181,33 @@ describe("MonitorRecommendationUtil", () => {
         expect(new Set(names).size).toBe(names.length);
       }
     });
+
+    it("produces distinct names within the set a recording RUM application with a budget is offered", () => {
+      /*
+       * The context-free loop above never sees the session replay budget
+       * alerts - they are only offered to an application that records
+       * replays - so it proves nothing for them. With every replay fact
+       * known, one application is offered all eleven at once, including two
+       * pairs that read the same series at different thresholds.
+       */
+      const names: Array<string> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.RumApplication,
+          {
+            sessionReplayEnabled: true,
+            sessionReplayHasRecorded: true,
+            sessionReplayMonthlyBudgetInGB: 10,
+          },
+        ).map((recommendation: MonitorRecommendation) => {
+          return MonitorRecommendationUtil.getMonitorName({
+            recommendation: recommendation,
+            resourceDisplayName: "Storefront",
+          });
+        });
+
+      expect(names).toHaveLength(11);
+      expect(new Set(names).size).toBe(names.length);
+    });
   });
 
   describe("getMonitorStep — every recommendation, every resource type", () => {
@@ -988,6 +1015,92 @@ describe("MonitorRecommendationUtil", () => {
       );
 
       expect(lastCriticalIndex).toBeLessThan(firstWarningIndex);
+    });
+  });
+
+  /*
+   * The RUM session replay budget alerts come in two pairs that read ONE
+   * series each, differing only in threshold. The already-created diff must
+   * still tell the two halves of a pair apart - or creating the Warning hides
+   * the Critical card - and must scope each monitor to its application: the
+   * daily value is posted identically under every recording application, so
+   * nothing but the application id distinguishes one application's monitor
+   * from another's.
+   */
+  describe("RUM session replay budget fingerprints", () => {
+    const APPLICATION_A: string = ObjectID.generate().toString();
+    const APPLICATION_B: string = ObjectID.generate().toString();
+
+    const budgetRecommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+        {
+          sessionReplayEnabled: true,
+          sessionReplayHasRecorded: true,
+          sessionReplayMonthlyBudgetInGB: 10,
+        },
+      ).filter((recommendation: MonitorRecommendation) => {
+        return recommendation.category === "Session Replay";
+      });
+
+    function stepOn(
+      recommendation: MonitorRecommendation,
+      resourceIdentifier: string,
+    ): MonitorStep {
+      return recommendation.getMonitorStep(
+        buildArgs({ resourceIdentifier: resourceIdentifier }),
+      );
+    }
+
+    it("reads the application id off the step as the resource identifier", () => {
+      expect(budgetRecommendations).toHaveLength(4);
+
+      for (const recommendation of budgetRecommendations) {
+        const fingerprint: MonitorRecommendationFingerprint | undefined =
+          MonitorRecommendationUtil.getFingerprintFromMonitorStep(
+            stepOn(recommendation, APPLICATION_A),
+          );
+
+        expect(fingerprint?.configKind).toBe("metricMonitor");
+        expect(fingerprint?.resourceIdentifier).toBe(APPLICATION_A);
+      }
+    });
+
+    it("never lets one threshold of a pair cover the other", () => {
+      for (const created of budgetRecommendations) {
+        const covered: Set<string> =
+          MonitorRecommendationUtil.getCoveredRecommendationIds({
+            recommendations: budgetRecommendations,
+            existingMonitorSteps: [stepOn(created, APPLICATION_A)],
+            args: buildArgs({ resourceIdentifier: APPLICATION_A }),
+          });
+
+        expect([...covered]).toEqual([created.recommendationId]);
+      }
+    });
+
+    it("never lets one application's budget monitor cover another application's", () => {
+      const existing: Array<MonitorStep> = budgetRecommendations.map(
+        (recommendation: MonitorRecommendation) => {
+          return stepOn(recommendation, APPLICATION_A);
+        },
+      );
+
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: budgetRecommendations,
+          existingMonitorSteps: existing,
+          args: buildArgs({ resourceIdentifier: APPLICATION_B }),
+        }).size,
+      ).toBe(0);
+
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: budgetRecommendations,
+          existingMonitorSteps: existing,
+          args: buildArgs({ resourceIdentifier: APPLICATION_A }),
+        }).size,
+      ).toBe(budgetRecommendations.length);
     });
   });
 

@@ -44,6 +44,7 @@ import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import SessionReplayBudgetMetricTypeUtil from "../../Utils/Rum/SessionReplayBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -95,6 +96,27 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
       primaryEntityType as ServiceType,
     );
   };
+
+/*
+ * Metric names whose rows are never billed as ingested volume. The session
+ * replay budget sweep posts its oneuptime.rum.session.replay.budget.*
+ * readings every five minutes: OneUptime's own operational data about the
+ * customer's replay budget, like the SLO rows above, and billing them would
+ * charge a project for having recorded a replay.
+ *
+ * Left out by NAME, not by type: the rows keep primaryEntityType =
+ * RealUserMonitor, keyed to the application, so monitors scoped to that
+ * application see them - and the application's real web-vitals rows share
+ * that id and type, so an entity-type exclusion would stop billing those
+ * too. That is only safe because nothing but the budget sweep can write a
+ * name under the session replay prefix (isReservedMetricName in
+ * Common/Utils/Rum/SessionReplayBudgetMetricType): OTLP ingest drops them,
+ * and a metric or trace recording rule cannot be saved with one as its
+ * output. So no customer telemetry can be stored under one of these names to
+ * be kept for free.
+ */
+export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
+  SessionReplayBudgetMetricTypeUtil.getAll();
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -329,12 +351,18 @@ export class Service extends DatabaseService<Model> {
           averageRowSizeInBytes,
         );
       } else if (data.productType === ProductType.Metrics) {
+        /*
+         * The session replay budget rows share their RUM application's
+         * (primaryEntityId, primaryEntityType) with its web vitals, so they
+         * can only be told apart - and left out - inside the scan.
+         */
         addUsage(
           await MetricService.groupTelemetryUsageByService({
             projectId: data.projectId,
             timestampColumnName: "time",
             startDate: startOfDay,
             endDate: endOfDay,
+            excludeNames: [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES],
           }),
           averageRowSizeInBytes,
         );

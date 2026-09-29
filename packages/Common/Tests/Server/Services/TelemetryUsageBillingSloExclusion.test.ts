@@ -26,16 +26,26 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
+import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
+import LogService from "../../../Server/Services/LogService";
 import MetricService from "../../../Server/Services/MetricService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import ProfileSampleService from "../../../Server/Services/ProfileSampleService";
+import ProfileService from "../../../Server/Services/ProfileService";
+import RumSessionService from "../../../Server/Services/RumSessionService";
+import SecurityEventService from "../../../Server/Services/SecurityEventService";
+import SpanService from "../../../Server/Services/SpanService";
 import TelemetryUsageBillingService, {
   isTelemetryBillingExcludedEntityType,
   TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES,
+  TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES,
 } from "../../../Server/Services/TelemetryUsageBillingService";
 import TelemetryUsageBilling from "../../../Models/DatabaseModels/TelemetryUsageBilling";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../Types/ObjectID";
+import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import SessionReplayBudgetMetricTypeUtil from "../../../Utils/Rum/SessionReplayBudgetMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -285,4 +295,212 @@ describe("the staging loop uses the shared exclusion", () => {
       "usage.primaryEntityType === ServiceType.Monitor",
     );
   });
+});
+
+/*
+ * The session replay budget sweep posts oneuptime.rum.session.replay.budget.*
+ * readings keyed to the RUM application with primaryEntityType
+ * RealUserMonitor - the same id and type as the application's real web
+ * vitals, which must stay billed. So those rows are left out by NAME, inside
+ * the Metrics scan only, and never by type. That is safe only because OTLP
+ * ingest refuses the names (App's OtelMetricsIngestReservedNames.test.ts):
+ * the pins below fail if either side drifts from the other.
+ */
+
+const RUM_APPLICATION_ID: string = "88888888-8888-4888-8888-888888888888";
+
+const EVERY_BUDGET_METRIC_NAME: Array<string> = (
+  Object.values(SessionReplayBudgetMetricType) as Array<string>
+).sort();
+
+describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
+  test("is exactly the session replay budget series, every one of them", () => {
+    expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
+      EVERY_BUDGET_METRIC_NAME,
+    );
+  });
+
+  test("names only series OTLP ingest refuses, so no customer row can be stored under one for free", () => {
+    for (const name of TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES) {
+      expect(SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name)).toBe(
+        true,
+      );
+    }
+  });
+
+  test("leaves RUM applications billable by type: the exclusion is by name alone", () => {
+    expect(TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES).not.toContain(
+      ServiceType.RealUserMonitor,
+    );
+    expect(
+      isTelemetryBillingExcludedEntityType(ServiceType.RealUserMonitor),
+    ).toBe(false);
+  });
+});
+
+describe("stageTelemetryUsageForProject excludes the budget series from the Metrics scan only", () => {
+  interface StagedRumUsage {
+    primaryEntityId: ObjectID;
+    primaryEntityType?: ServiceType | undefined;
+    dataIngestedInGB: number;
+  }
+
+  interface UsageScanSpies {
+    spans: jest.SpyInstance;
+    exceptions: jest.SpyInstance;
+    logs: jest.SpyInstance;
+    metrics: jest.SpyInstance;
+    securityEvents: jest.SpyInstance;
+    profiles: jest.SpyInstance;
+    profileSamples: jest.SpyInstance;
+    sessionReplay: jest.SpyInstance;
+  }
+
+  let staged: Array<StagedRumUsage>;
+  let scans: UsageScanSpies;
+
+  beforeEach(() => {
+    staged = [];
+    mockIsBillingEnabled = true;
+
+    jest
+      .spyOn(PayAsYouGoBillingService, "isLiveAuthorizationFor")
+      .mockReturnValue(true);
+    jest
+      .spyOn(PayAsYouGoBillingService, "getTelemetryBillingStartDate")
+      .mockResolvedValue(undefined as never);
+
+    // Every usage scan any product can run, each finding nothing by default.
+    scans = {
+      spans: jest
+        .spyOn(SpanService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      exceptions: jest
+        .spyOn(ExceptionInstanceService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      logs: jest
+        .spyOn(LogService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      metrics: jest
+        .spyOn(MetricService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      securityEvents: jest
+        .spyOn(SecurityEventService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      profiles: jest
+        .spyOn(ProfileService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      profileSamples: jest
+        .spyOn(ProfileSampleService, "groupTelemetryUsageByService")
+        .mockResolvedValue([]),
+      sessionReplay: jest
+        .spyOn(RumSessionService, "groupSessionReplayUsageByEntity")
+        .mockResolvedValue([]),
+    };
+
+    // Private helpers: retention lookups that would otherwise hit Postgres.
+    jest
+      .spyOn(
+        TelemetryUsageBillingService as unknown as {
+          buildTelemetryRetentionMap: () => Promise<Map<string, number>>;
+        },
+        "buildTelemetryRetentionMap",
+      )
+      .mockResolvedValue(new Map<string, number>());
+    jest
+      .spyOn(
+        TelemetryUsageBillingService as unknown as {
+          getProjectDefaultRetentionInDays: () => Promise<number>;
+        },
+        "getProjectDefaultRetentionInDays",
+      )
+      .mockResolvedValue(15);
+
+    jest
+      .spyOn(TelemetryUsageBillingService, "findBy")
+      .mockResolvedValue([] as Array<TelemetryUsageBilling> as never);
+    jest
+      .spyOn(TelemetryUsageBillingService, "updateUsageBilling")
+      .mockImplementation(async (data: StagedRumUsage): Promise<void> => {
+        staged.push(data);
+      });
+  });
+
+  afterEach(() => {
+    mockIsBillingEnabled = false;
+    jest.restoreAllMocks();
+  });
+
+  test("the Metrics scan is told to leave out every budget metric name", async () => {
+    await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Metrics,
+    });
+
+    expect(scans.metrics).toHaveBeenCalledTimes(1);
+
+    const scanArguments: {
+      projectId: ObjectID;
+      timestampColumnName: string;
+      excludeNames?: Array<string> | undefined;
+    } = scans.metrics.mock.calls[0]![0];
+
+    expect([...(scanArguments.excludeNames || [])].sort()).toEqual(
+      EVERY_BUDGET_METRIC_NAME,
+    );
+    // Nothing else about the scan changed.
+    expect(scanArguments.projectId).toBe(PROJECT_ID);
+    expect(scanArguments.timestampColumnName).toBe("time");
+  });
+
+  test("still stages a RUM application's own web vitals, which share the budget rows' id and type", async () => {
+    scans.metrics.mockResolvedValue([
+      {
+        primaryEntityId: RUM_APPLICATION_ID,
+        primaryEntityType: ServiceType.RealUserMonitor,
+        rowCount: 1000,
+        estimatedBytes: 5 * 1024 * 1024 * 1024,
+      },
+    ]);
+
+    await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Metrics,
+    });
+
+    expect(staged).toHaveLength(1);
+    expect(staged[0]!.primaryEntityId.toString()).toBe(RUM_APPLICATION_ID);
+    expect(staged[0]!.primaryEntityType).toBe(ServiceType.RealUserMonitor);
+    expect(staged[0]!.dataIngestedInGB).toBeGreaterThan(0);
+  });
+
+  test.each([
+    [ProductType.Traces, ["spans", "exceptions"]],
+    [ProductType.Logs, ["logs"]],
+    [ProductType.SecurityEvents, ["securityEvents"]],
+    [ProductType.Profiles, ["profiles", "profileSamples"]],
+    [ProductType.SessionReplay, ["sessionReplay"]],
+  ])(
+    "the %s scans exclude no names",
+    async (productType: ProductType, expectedScans: Array<string>) => {
+      await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
+
+      for (const [scanName, spy] of Object.entries(scans) as Array<
+        [string, jest.SpyInstance]
+      >) {
+        if (!expectedScans.includes(scanName)) {
+          expect(spy).not.toHaveBeenCalled();
+          continue;
+        }
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(
+          Object.keys(spy.mock.calls[0]![0] as Record<string, unknown>),
+        ).not.toContain("excludeNames");
+      }
+    },
+  );
 });

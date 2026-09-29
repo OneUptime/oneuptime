@@ -14,6 +14,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import SessionReplayBudgetMetricTypeUtil from "Common/Utils/Rum/SessionReplayBudgetMetricType";
 import {
   MetricCrossSignalScopeResult,
   SERVICE_NAME_ATTRIBUTE_KEY,
@@ -617,6 +618,36 @@ export const buildCompanionMetricNameQuery: BuildCompanionMetricNameQueryFunctio
     return query as Query<Metric>;
   };
 
+type ExcludeReservedCompanionMetricNamesFunction = (
+  metricNames: Array<string>,
+) => Array<string>;
+
+/**
+ * The discovered metric names minus OneUptime's own session replay budget
+ * series (`oneuptime.rum.session.replay.*`, SessionReplayBudgetMetricType),
+ * which the metrics companion never charts.
+ *
+ * The budget sweep writes them every five minutes under the id of each RUM
+ * application that records, so a RUM trace or exception incident (its
+ * companions are scoped to that id) finds them in its window. They sort
+ * ahead of `web_vital.*`, so under the chart cap they would take every slot
+ * and crowd out the web vitals the incident is about. They track storage
+ * budgets rather than anything the application's visitors experienced, and
+ * the charts could not narrow them to the application anyway (a RUM id
+ * resolves to no service name). The tab drops them from its name list and
+ * the chart plan drops them again, so the empty state, "Showing X of Y" and
+ * the charts all count the same names.
+ */
+export const excludeReservedCompanionMetricNames: ExcludeReservedCompanionMetricNamesFunction =
+  (metricNames: Array<string>): Array<string> => {
+    return (metricNames || []).filter((metricName: string): boolean => {
+      // Trimmed first: the chart plan charts a name by its trimmed spelling.
+      return !SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+        typeof metricName === "string" ? metricName.trim() : metricName,
+      );
+    });
+  };
+
 /** Cap on companion charts — each one costs an aggregate call. */
 export const MAX_COMPANION_METRIC_CHARTS: number = 4;
 
@@ -655,7 +686,14 @@ export const buildCompanionMetricChartPlan: BuildCompanionMetricChartPlanFunctio
 
     const uniqueNames: Array<string> = [];
 
-    for (const metricName of input.metricNames || []) {
+    /*
+     * The budget series go before the sort and the cap, so they neither take
+     * a chart slot nor count as omitted (see
+     * excludeReservedCompanionMetricNames).
+     */
+    for (const metricName of excludeReservedCompanionMetricNames(
+      input.metricNames || [],
+    )) {
       if (typeof metricName === "string" && metricName.trim().length > 0) {
         pushUniqueLabel(uniqueNames, metricName.trim());
       }
