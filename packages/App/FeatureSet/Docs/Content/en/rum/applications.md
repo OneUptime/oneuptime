@@ -105,11 +105,12 @@ The useful split: a support engineer with `ReadRumApplication` + `ReadRumSession
 
 ## Alerting on RUM data
 
-There is no separate "RUM monitor" type — RUM telemetry is ordinary logs, metrics and traces, so the existing monitors apply directly:
+There is no separate "RUM monitor" type — RUM telemetry is ordinary logs, metrics and traces, so the existing monitors apply directly. The quickest start is the application's **Recommendations** tab, which offers ready-made monitors already scoped to the application: for its Core Web Vitals, failed user operations and unhandled browser exceptions, and for its Session Replay storage budgets.
 
 - [Metrics Monitor](/docs/monitor/metrics-monitor) — alert on a Core Web Vital or any custom metric your app reports.
 - [Traces Monitor](/docs/monitor/traces-monitor) — alert on client-side error rate or latency.
 - [Logs Monitor](/docs/monitor/logs-monitor) — alert on a pattern in browser logs.
 - [Exceptions Monitor](/docs/monitor/exceptions-monitor) — alert on new or spiking client-side exceptions.
+- [Storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts) — hear when the project's daily Session Replay limit or the application's monthly budget is nearly spent, and again when it runs out and recorders are told to stop. Offered on the **Recommendations** tab once the application has recorded a replay; the monthly ones once it also has a monthly budget.
 
 Scope the monitor to the application so a backend service with a similar signature does not trigger it.
