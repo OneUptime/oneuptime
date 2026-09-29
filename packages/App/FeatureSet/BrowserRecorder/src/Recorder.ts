@@ -2977,9 +2977,15 @@ export default class Recorder {
   }
 
   /*
-   * A cross-origin stylesheet throws on cssRules, so rrweb keeps the <link
-   * href> and the player's CSP refuses to load it. Detected here so the
-   * viewer gets a banner rather than an unstyled replay they assume is real.
+   * A cross-origin stylesheet served without CORS throws on cssRules, so
+   * rrweb cannot inline it and keeps only its <link href>. The player
+   * loads it from that address (REPLAY_DOCUMENT_CSP in the Dashboard's
+   * ReplayStage.tsx lets it through), which works only while the address
+   * still answers the viewer's browser - it may need the end user's
+   * sign-in, refuse other origins, or be gone by then. The notice is raised
+   * anyway, because the sheet itself is not in the recording: a viewer
+   * looking at an unstyled region learns why from a capture note instead of
+   * taking it for what the user saw.
    */
   private static hasInaccessibleStylesheet(documentRef: Document): boolean {
     const sheets: StyleSheetList = documentRef.styleSheets;

@@ -268,7 +268,7 @@ The three modes, least to most private:
 | Mask inputs only | recorded | masked | masked |
 | Mask all text | masked | masked | masked |
 
-Under _Mask all text_ the replay is a wireframe: text nodes, the labels the recorder attaches to clicks, `identify()` traits and `track()` properties are all masked before upload.
+Under _Mask all text_ the replay is a wireframe: text nodes, the labels the recorder attaches to clicks, `identify()` traits and `track()` properties are all masked before upload, and the player never loads the page's images. The recording still holds their addresses, but a session recorded in this mode plays back without them. Stylesheets and fonts still load, so the layout keeps its shape (see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback)).
 
 If your pages render personal data, either move up a mode or add **mask** / **block** selectors for the specific elements — see *Marking your own content* below. Selectors are the right tool when only a few regions are sensitive; a stricter mode is the right tool when you cannot enumerate them.
 
@@ -295,7 +295,7 @@ Always masked regardless of mode, and not configurable:
 - **Card fields**, detected via `autocomplete` (`cc-number`, `cc-csc`, `cc-exp`), because card inputs are `type="text"` and otherwise invisible to type-based masking.
 - **One-time codes** (`autocomplete="one-time-code"`).
 - **File input values** — the browser exposes the real filename, and filenames are routinely personal.
-- **Query strings and fragments** are dropped from every recorded URL, and identifier-shaped path segments (UUIDs, emails, long digit runs, long opaque tokens) are replaced. This is the one channel text masking does not cover: a password-reset link would otherwise land in the session list.
+- **Query strings and fragments** are dropped from the page URLs the recording stores and from every network request's URL, and identifier-shaped path segments (UUIDs, emails, long digit runs, long opaque tokens) are replaced. This is the one channel text masking does not cover: a password-reset link would otherwise land in the session list. The addresses inside the page are a different matter. A link's target is scrubbed the same way only under _Mask all text_; in the other two modes it is recorded like the rest of the page. Image, stylesheet and font addresses are kept as the page wrote them in every mode, query string included, because playback loads them from there (see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback)). Block an element whose image address carries something sensitive, such as a signed token.
 - **Clipboard events** are never recorded.
 - **Keystroke timing** is quantised, because inter-keystroke intervals leak typed content even when the value is masked.
 - **Request and response bodies and headers** are never recorded. A network row in the player carries the method, URL, status, timing, byte counts and the trace id — nothing else. (The recorder does _add_ trace context to requests to your own origin; see [What your own requests carry](#what-your-own-requests-carry).)
@@ -378,7 +378,7 @@ connect-src 'self' https://oneuptime.com;
 
 If you self-host OneUptime, use your own host instead.
 
-One more CSP-adjacent detail: for playback to render your styles, your stylesheets must be readable by the recorder. A cross-origin stylesheet without `crossorigin="anonymous"` cannot be read, and the session will play back unstyled with a notice explaining why.
+One more CSP-adjacent detail, about stylesheets rather than your policy: the recorder can only store a stylesheet it can read. A stylesheet from another origin is readable only when its server sends an `Access-Control-Allow-Origin` header that allows your site **and** your `<link>` carries `crossorigin="anonymous"`. Otherwise the recording keeps only its address, and playback loads it from there in the viewer's browser; see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). Add the attribute only once the header is in place: `crossorigin` without the header makes your own page refuse the stylesheet.
 
 Use the **Test your installation** panel on the application's _Replay Policy_ page to confirm the token, the policy switches and the origin allowlists from the server's side. **It cannot check your CSP** — a CSP is a header your own site sends to your own visitors, and nothing server-side ever sees it. A CSP block shows up there only indirectly: `script-src` blocks the recorder, so the panel's _Recorder loaded on your site_ row stays waiting; `connect-src` blocks the upload, so that row passes while the recording-received row below it stays waiting. Either way the browser console on the blocked page logs the refusal, and that is the only positive proof.
 
@@ -621,7 +621,7 @@ Above the stage a URL bar shows the page the user was on at the playhead, with c
 
 Use **Select text** in that bar to pause the replay and copy visible text from the recorded page into a bug report, search, or terminal. The page remains read-only: links cannot navigate, controls and media cannot operate, and editing, paste, cut, drag and form submission are blocked. Any inspection-time scrolling is restored on exit; starting playback, seeking or switching recorded tabs leaves selection mode first. Copying cannot reveal content that was masked or blocked at capture time; _Mask all text_ recordings still contain placeholders rather than the original words.
 
-While the replay is paused, a screenshot dock in the bottom-right corner of the stage offers **Copy image** and **Download**. Both take the frame on the stage as a PNG — at the recorded viewport size, or up to twice that on a high-density screen, with the pointer where the stage draws it — and a thumbnail of it confirms what was taken. **Copy image** puts it on the clipboard, ready to paste into an issue or a chat; **Download** saves it as `session-replay-<session>-<offset>.png`, named after the session and the playhead (plus the tab, when the session has several). The picture is redrawn in your browser from the replay itself and nothing is fetched to make it, so a recorded image the stage could not load stays empty in the screenshot too, and content that was masked or blocked at capture time stays masked. Browsers only let a secure (`https`) page copy images; on a plain-http install **Copy image** says so and offers **Download** instead. The dock steps aside while **Select text** is on.
+While the replay is paused, a screenshot dock in the bottom-right corner of the stage offers **Copy image** and **Download**. Both take the frame on the stage as a PNG — at the recorded viewport size, or up to twice that on a high-density screen, with the pointer where the stage draws it — and a thumbnail of it confirms what was taken. **Copy image** puts it on the clipboard, ready to paste into an issue or a chat; **Download** saves it as `session-replay-<session>-<offset>.png`, named after the session and the playhead (plus the tab, when the session has several). The picture is redrawn in your browser from the replay itself and nothing is fetched to make it, so it can be plainer than the stage: most images the stage loaded from other sites are drawn as grey boxes of the same size, because the browser does not let a page read their pixels; CSS background images and web fonts are left out, so text is drawn in a fallback font; and the styles of a stylesheet from another site are left out, except that the elements it hides stay hidden. An image the stage could not load is drawn broken, one still loading is left blank, and content that was masked or blocked at capture time stays masked. Browsers only let a secure (`https`) page copy images; on a plain-http install **Copy image** says so and offers **Download** instead. The dock steps aside while **Select text** is on.
 
 The controls under the stage sit on one row: play/pause, the current time and duration, −10s / +10s, a speed menu (0.25× to 8×), **Skip idle**, previous / next error, next frustration, a **?** button that lists every keyboard shortcut, and a menu for the mouse trail, rail following, the timeline's signal lanes and whether playback carries on across tabs.
 
@@ -643,7 +643,7 @@ It never overrides you. A tab you **paused** at the end of stays paused, and cho
 
 **Theater and links.** `F` or **Theater** goes fullscreen with the rail kept at the side; `Esc` leaves. **Link** (or `C`) copies a URL to the current moment, including the selected row and rail tab, so a teammate opens exactly what you are looking at. The URL parameters are `t` (seconds from the start), `at` (an absolute time in Unix milliseconds — what links from logs and exceptions use; it wins over `t`), `tab`, `rail`, `signal` and `q` (a rail search).
 
-**Details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback).
+**Details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback, and under **Missing assets** the images and stylesheets that did not load in your browser while you watched).
 
 ### The events rail
 
@@ -757,22 +757,70 @@ A web page that is _loaded_ while offline does not record: the recorder has to f
 
 ## What is not recorded
 
-These are surfaced on the player's **Fidelity** tab rather than silently blank, so you always know what you are not seeing:
+Most of these are named on the player's **Fidelity** tab rather than left silently blank, and the same tab's **Missing assets** list names the images and stylesheets that did not load while you watched:
 
 | Not captured | Why |
 | --- | --- |
 | Canvas / WebGL | Off by default. Opt in per application; it is expensive and can capture rendered user data. |
 | Cross-origin iframes | Payment iframes stay black boxes. This is intentional. |
 | Closed shadow roots | Not traversable, so not recorded rather than recorded unmasked. |
-| Web fonts | Too large. Playback falls back to a system font stack. |
-| `<video>` / `<audio>` | Rendered as a labelled placeholder. |
-| Cross-origin stylesheets | Not readable without `crossorigin`; a notice explains it. |
+| Images | Kept as addresses rather than files, and loaded from the original site while you watch — never under _Mask all text_. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). |
+| Web fonts | Too large to record. Playback loads them from their original addresses when the font's server allows it, and falls back to a system font when it does not. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). |
+| `<video>` / `<audio>` | They do not play in the replay: their sources are often signed URLs that expire, and playback position cannot be synchronized. A poster image shows where the page set one (not under _Mask all text_). |
+| Cross-origin stylesheets | Not recorded unless served with `Access-Control-Allow-Origin` and linked with `crossorigin`. Playback loads them from their original addresses instead, and a notice says so. See [Recording a stylesheet from another origin](#recording-a-stylesheet-from-another-origin). |
 | A very large DOM snapshot | A snapshot the recorder could not store is reported, and playback starts from the next one. |
 | Signals past a cap | Console output, network requests and clicks are capped per session or per chunk; the rail marks where capture stopped. |
 | React Native image pixels | The image frame is preserved as an opaque placeholder; user photos and downloaded pixels are not copied. |
 | React Native WebViews | Outside the native view tree. Record the hosted page separately with the web recorder if needed. |
 | React Native canvas and custom drawing | Skia, OpenGL, maps, camera/video previews and similar surfaces are opaque placeholders. |
 | React Native animation frames | Native and UI-thread motion is sampled at snapshots rather than reproduced frame by frame. |
+
+## Images, styles and fonts during playback
+
+A recording keeps the page's structure, text and styles, but not the files the page loaded. For an image it keeps the address — `src`, `srcset`, a video's `poster`, a `url()` in the page's CSS — and never the image itself. A stylesheet the recorder can read is copied into the recording in full; one it cannot read, a stylesheet from another origin that is not shared with your page through CORS, is kept only as its address. Web fonts are kept as the addresses their `@font-face` rules name. The recorder never downloads an image or a font to store it (an image your page embeds as a `data:` URL is part of the markup, and is recorded with it).
+
+**Playback loads those files from their original addresses, in your browser, while you watch.** Images (including `srcset` candidates, video posters and CSS background images), the stylesheets the recorder could not read, and web fonts are requested from the sites your page loaded them from, the way your user's browser requested them, except that the request comes from your browser and from the OneUptime origin. It works for the recordings you already have, including those made before OneUptime loaded these files during playback: nothing in a recording has to change, because the player is what loads them.
+
+Everything else stays blocked inside the replay: scripts, `fetch`, XHR and WebSocket connections, loading a page into a frame, `<object>` and `<embed>`, video and audio, and form submission. A recorded page cannot run code, open a connection, embed another page or send a form while you watch it.
+
+Under _Mask all text_ the player never loads images. The recording keeps their addresses, but the replay stays the wireframe that mode promises, and a capture note under the player says _Images are not loaded_. Stylesheets and fonts still load, so the layout keeps its shape. A recording whose masking mode this dashboard does not recognise plays back the same way.
+
+### What a file needs to show in the replay
+
+Because the request comes from your browser rather than your user's, and from the OneUptime origin rather than your site's, a file shows only when:
+
+- **It needs no sign-in.** Your browser has none of your user's session, so a file only a signed-in user can fetch — a private avatar, an attachment, an image behind a login — does not load.
+- **It does not insist on a `Referer`.** Image and stylesheet requests from the replay carry none, so hotlink protection that requires one refuses them.
+- **Its server lets other sites use it.** `Cross-Origin-Resource-Policy: same-origin` or `same-site` refuses every other site, the replay included; send `cross-origin` on static files, or no such header. Web fonts, and images your page loads with a `crossorigin` attribute, also need `Access-Control-Allow-Origin` set to `*` or to your OneUptime origin.
+- **It still exists.** The replay asks for the file as it is now. A deploy that renamed its hashed files, a deleted image or an expired signed link leaves a gap where your user saw the file. Keeping the previous deploy's files online for as long as you keep recordings avoids it.
+- **Your browser can reach it.** Files on an intranet, behind a VPN or behind an IP allowlist load only on a network that can reach them.
+- **It is served over `https` when the dashboard is.** On an `https` dashboard the browser blocks `http://` stylesheets and fonts as mixed content, and upgrades `http://` images to `https://`, which fails where the host does not answer on `https`.
+
+Icons drawn from an SVG sprite file (`<use href="/icons.svg#close">`) never render. Browsers let `<use>` point only at a file on the page's own origin, and the replay's origin is OneUptime's, so a sprite on your own domain is out of reach too. A sprite inlined in the page (`<use href="#close">`) works.
+
+**Self-hosted:** if a reverse proxy in front of OneUptime adds a `Content-Security-Policy` header to the dashboard, that policy applies inside the replay as well. Its `img-src`, `style-src` and `font-src` have to allow the sites your recorded pages load files from (`https:` covers them), or those files do not show.
+
+### Recording a stylesheet from another origin
+
+A stylesheet the recorder could read is part of the recording, so its rules play back whatever the viewer's browser can reach (the images and fonts it names still load from their addresses). To have one from another origin recorded, serve it with an `Access-Control-Allow-Origin` header that allows your site (`*`, or your site's origin) **and** add `crossorigin="anonymous"` to its `<link>`:
+
+```html
+<link rel="stylesheet" href="https://cdn.example.com/app.css" crossorigin="anonymous" />
+```
+
+Set up the header first, and never add the attribute on its own: with `crossorigin` and no header, your own page refuses the stylesheet, for your users as well as in the replay.
+
+### What watching a replay reveals
+
+Loading these files makes your browser contact the sites the recorded page used:
+
+- Those sites see your IP address and user agent, and when you watched.
+- Image and stylesheet requests carry no `Referer`. Requests made by the recorded page's CSS — its background images and fonts — carry at most the OneUptime origin (`https://oneuptime.com/`, or your own host), and the requests a stylesheet loaded from its own address makes carry at most that stylesheet's address, as they do on your site. None of them carries the replay's URL or the session id.
+- Addresses are loaded as the page wrote them, query string included, so a signed link that is still valid works. To keep an element's addresses out of the recording altogether, block it with `.oneuptime-block` or a **Block selectors** entry (see [Marking your own content](#marking-your-own-content)): a blocked element is not recorded at all. Blocking does not reach an address written in a stylesheet: it is part of the stylesheet, not of the element.
+
+### When a file does not load
+
+The player tells you. When images or stylesheets fail to load in your browser, the first capture note under the player says so — _2 images didn't load in this replay_, with the sites they came from — and **Session details** (`I`) → **Fidelity** → **Missing assets** lists every address. Both link to [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay), which goes through the causes and what to change. The list covers `<img>` images and `<link>` stylesheets. A CSS background image or a font that fails is not listed, and neither is anything inside a shadow root or a frame, so look for those in your browser's developer tools.
 
 ## Retention and deletion
 
@@ -845,9 +893,12 @@ returns the last 250 of them together with the recorder's `state`, `decisions` a
 
 [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it, and the **Test your installation** panel on the _Replay Policy_ page answers the same question from the server's side.
 
+If recordings arrive and play but images, icons or styles are missing from them, see [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay).
+
 ## Self-hosted notes
 
 - Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
 - Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today".
 - Recordings are stored in ClickHouse. No object storage is required.
+- A `Content-Security-Policy` header that a reverse proxy adds to the OneUptime dashboard also applies inside the replay, so its `img-src`, `style-src` and `font-src` must allow the sites your recorded pages load images, stylesheets and fonts from. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback).
 - `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.

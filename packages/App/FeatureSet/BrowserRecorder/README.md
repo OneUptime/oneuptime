@@ -270,18 +270,35 @@ minted at all. `getVisitorId()` returns it.
 
 ### Known limits, stated plainly
 
-- **Image and media URLs are recorded verbatim.** `src`, `srcset` and
-  `poster` are what the player draws the page from, so they are kept in every
-  mode; a signed query string on one is a reference rather than readable
-  text, but it is still a URL the page handed out. Short `data-*` tokens that
-  CSS attribute selectors key on are kept too. Use `blockSelectors` or
-  `.oneuptime-block` for elements whose URLs or data attributes are
-  sensitive. In the two permissive masking modes attributes, like text, are
-  recorded as-is by policy.
+- **Image and media URLs are recorded verbatim, in every mode.** `src`,
+  `srcset` and `poster` are what the player draws the page from: it loads
+  those images from their addresses while the recording is watched, for
+  recordings made in the two permissive masking modes. Under `MaskAllText`
+  the addresses are kept but never loaded, and the replay stays a
+  wireframe. A signed query string on one is a reference rather than
+  readable text, but it is still a URL the page handed out, and one that is
+  still valid loads. Short `data-*` tokens that CSS attribute selectors key
+  on are kept too. Use `blockSelectors` or `.oneuptime-block` for elements
+  whose URLs or data attributes are sensitive. In the two permissive masking
+  modes attributes, like text, are recorded as-is by policy.
 - Canvas / WebGL, cross-origin iframes, closed shadow roots, cross-origin
   stylesheets, web fonts and `<video>`/`<audio>` are not captured. Each is
   reported to the player as a machine-readable `fidelityNotices` code, so a
   viewer sees "this was not recorded" rather than an unexplained blank.
+  Cross-origin stylesheets and web fonts still show at playback: the
+  recording keeps their addresses (the `<link href>`, the `@font-face` `src`)
+  and the player loads them from there, so they only go missing when the
+  viewer's browser cannot fetch them.
+- **Watching a replay makes the viewer's browser request those addresses**:
+  the images, the stylesheets rrweb could not inline and the web fonts, from
+  the hosts the recorded page used, which see the viewer's IP address.
+  `<img>` and `<link>` requests carry no `Referer`, requests made by CSS the
+  recording inlined (background images, `@font-face`) carry the Dashboard's
+  origin at most, and none carries the replay URL or the session id. Fonts
+  are CORS requests from the Dashboard's origin. An asset behind the end
+  user's sign-in, refused to other sites (`Cross-Origin-Resource-Policy`,
+  hotlink rules), expired, gone, or on a network the viewer cannot reach
+  does not render; the player names the images and stylesheets that failed.
 - **A terminal flush is ONE keepalive request under a 56 KB cap**, however
   many chunks it carries. The browser counts the keepalive quota per ORIGIN
   across every in-flight request, so "one request per piece" is one request

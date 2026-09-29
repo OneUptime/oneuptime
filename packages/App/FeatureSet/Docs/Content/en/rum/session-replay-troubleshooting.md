@@ -6,6 +6,8 @@ The one configuration where silence is normal is capture trigger `OnErrorOrFrust
 
 Start from the server's side if you can: the **Health** page, _RUM → your application → Session Replay → Health_, names the cause when nothing is arriving (the recorder never loaded, it loaded but nothing was uploaded and why, uploads are being refused and for what reason, the budget is spent). See [Recording health](/docs/telemetry/session-replay#recording-health). What follows is the browser's side: turn on diagnostics, reload once, and read the console.
 
+Recordings arrive, but play back with broken images, missing icons or unstyled regions? That is a playback question, answered in [Images, icons or styles are missing in the replay](#images-icons-or-styles-are-missing-in-the-replay).
+
 ## Turn on diagnostics
 
 Pick whichever switch you can reach. They are equivalent.
@@ -336,6 +338,46 @@ Gaps are not the same as **idle** stretches: an idle stretch is footage in which
 
 The player fetches footage in 15-second chunks as the playhead approaches them. **Buffering** means the next chunk has not arrived yet; after eight seconds it offers **Retry**. A chunk that fails for good shows an error with **Retry** and **Copy diagnostic** — the latter carries the session id, tab, chunk and generation, which is what support needs. A session whose footage has expired shows an explanation in place of the stage while the Logs, Traces and Errors tabs still work from your telemetry.
 
+## Images, icons or styles are missing in the replay
+
+A recording keeps the address of each image, and of each stylesheet the recorder could not read, rather than the file, and the player loads them from those addresses in your browser while you watch; see [Images, styles and fonts during playback](/docs/telemetry/session-replay#images-styles-and-fonts-during-playback). When one does not load, the replay looks different from what your user saw:
+
+- broken-image icons, sometimes with the image's alt text beside them, such as "web" or "close";
+- a missing logo or product photo;
+- regions that lost their styles: plain text, stacked layouts, controls in the browser's default look;
+- a banner or dialog your site normally hides, showing, because the rule that hides it is in a stylesheet that did not load. A Power Pages portal's _You're offline. This is a read only version of the page._ bar is one: it is on every portal page, hidden by a stylesheet from `content.powerapps.com`. It is the portal's own element, not OneUptime's [offline mode](/docs/telemetry/session-replay#offline-mode), and it says nothing about your user's connection;
+- text in a different font, which can move where lines break;
+- icon fonts drawn as empty squares, or as the words they stand for.
+
+### Check these first
+
+1. **Read the capture notes under the player.** When images or stylesheets failed to load in your browser, the first note says so — for example _2 images didn't load in this replay_ — and names the sites they came from. **Session details** (`I`) → **Fidelity** → **Missing assets** lists each address. Web fonts and CSS background images are not in that list; look for them in DevTools (below).
+2. **Check the masking mode.** A session recorded under _Mask all text_ never loads its images, by design, and its capture notes say _Images are not loaded_. **Session details** → **Privacy** shows the mode a session was recorded under. Stylesheets and fonts still load in that mode.
+3. **Check whether it failed for your user too.** Open the rail's **Errors** tab at that moment: a _Resource failed to load_ row for the same file means it was broken on your user's screen as well, and the replay is showing that faithfully.
+
+### Find the cause in DevTools
+
+Open your browser's developer tools on the dashboard tab (F12, or Cmd+Option+I on a Mac), select **Network**, reload the page and play to where something is missing. Filter by the host the capture note names, or by type (**Img**, **CSS**, **Font**), and read the status of the file that failed; the **Console** says in words why the browser refused it.
+
+| What you see | Why the file did not load | What to change |
+| --- | --- | --- |
+| `401` or `403` | The file needs your user's sign-in, or its server refuses it: an IP allowlist, a firewall rule, or hotlink protection that insists on a `Referer`. An expired signed link usually answers `403` too. | Serve static files such as logos, icons and stylesheets without sign-in, and let hotlink protection accept requests that carry no `Referer`. A file only a signed-in user can fetch cannot be shown in a replay. |
+| `404` or `410` | The file is gone: a deploy renamed its hashed name, or it was deleted. The replay asks for the file as it is now, not as it was when your user saw it. | Keep your previous deploys' files online for as long as you keep recordings. A file that is already gone cannot be brought back. |
+| _CORS error_, and in the console _No 'Access-Control-Allow-Origin' header is present on the requested resource_ | A web font, or an image your page loads with `crossorigin`. The browser uses those on another site only with the server's permission, and the replay runs on the OneUptime origin. | Send `Access-Control-Allow-Origin: *`, or your OneUptime origin, with those files. |
+| `ERR_BLOCKED_BY_RESPONSE.NotSameOrigin` in the console | The server sends `Cross-Origin-Resource-Policy: same-origin` or `same-site`, which refuses the file to every other site. | Send `Cross-Origin-Resource-Policy: cross-origin` on static files, or leave the header off. |
+| `(blocked:mixed-content)`, or a _Mixed Content_ warning in the console | An `http://` stylesheet or font on an `https` dashboard. `http://` images are upgraded to `https://` instead, and fail where the host has no `https`. | Serve the files over `https`. |
+| `(blocked:csp)`, or _Refused to load … because it violates the following Content Security Policy directive_ | A `Content-Security-Policy` on the OneUptime dashboard itself applies inside the replay too. On a self-hosted install it is usually added by a reverse proxy. | Allow `https:`, or the hosts your pages use, in that policy's `img-src`, `style-src` and `font-src`. |
+| A network error such as `ERR_NAME_NOT_RESOLVED` or `ERR_CONNECTION_TIMED_OUT` | Your browser cannot reach the host: an intranet name, a VPN-only host, an IP allowlist that does not include you. | Watch the replay from a network that can reach it. |
+| No request at all, for an icon | The icon is drawn from an SVG sprite file (`<use href="/icons.svg#close">`). Browsers let `<use>` point only at a file on the page's own origin, and the replay runs on OneUptime's, so these never render, even from your own domain. | Inline the sprite in the page (`<use href="#close">`), or draw the icon with `<img>` or an inline `<svg>`. |
+
+### Power Pages portals
+
+- The offline bar's stylesheet and its `web.png` and `close.png` icons come from `content.powerapps.com`, which serves them to any site, so the player loads them and the bar stays hidden, as it did for your user. If it still shows, the capture notes name the `content.powerapps.com` stylesheet that did not load in your browser. Check that your network, or a policy on a self-hosted dashboard, lets you reach that host; a `404` means that version of the file is no longer served.
+- Icon fonts the portal serves from its own domain, such as Glyphicons (`/fonts/glyphicons-halflings-regular.woff2`), load only when the portal allows your OneUptime origin through CORS. Add it (for example `https://oneuptime.com`) to the `HTTP/Access-Control-Allow-Origin` site setting in the Portal Management app, or under **Security** → **Advanced settings** → **CORS** in the Power Pages design studio.
+- Pages, web files and images that need a sign-in to the portal — behind page or table permissions, or on a private site — stay broken in the replay, because your browser does not have your user's portal session.
+
+Recordings of a portal made before OneUptime loaded these files during playback, the ones that showed the offline bar on every replay, now play back with it hidden too, as long as the stylesheet they name is still served: nothing in a recording has to change.
+
 ## The RUM application says "Disconnected"
 
 The status pill and Last Seen on _Real User Monitoring → your application_ report when telemetry last arrived for that application. Session replay counts: both a recorder fetching its policy and an accepted chunk refresh it, so an application instrumented with the replay snippet alone stays Connected. In older versions only OpenTelemetry RUM telemetry did, so a replay-only application read "Disconnected" with a Last Seen days old while its recorders were working perfectly.
@@ -401,5 +443,6 @@ Collect these before asking for help:
 - The output of `OneUptimeReplay.getDiagnostics()`.
 - The status of the `session-replay/v1/config` request.
 - What the **Health** page (_RUM → your application → Session Replay → Health_) and the **Test your installation** panel (_Replay Policy_) say. They answer from the server's side, which is the half a browser cannot see.
+- For missing images, icons or styles: the address of a file that did not load (**Missing assets** lists them) and the line the browser console printed for it.
 
 Then contact support@oneuptime.com, or open an issue on [GitHub](https://github.com/OneUptime/oneuptime).
