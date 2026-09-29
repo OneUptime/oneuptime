@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Riprova riprende dopo le pagine di stato già raggiunte: solo le pagine dell'ambito attuale di questo incidente che non hanno ricevuto la notifica per intero la ricevono ora, comprese le pagine aggiunte nel frattempo. A differenza di note e cambi di stato, che vengono inviati di nuovo a ogni pagina, le pagine già raggiunte non la ricevono due volte.",
   "Send it to every status page again, including the pages already reached": "Inviarla di nuovo a ogni pagina di stato, comprese le pagine già raggiunte",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "La notifica che questo incidente è stato creato viene inviata di nuovo agli iscritti di ogni pagina di stato che questo incidente raggiunge ora, comprese le pagine già raggiunte dall'invio non riuscito.",
-  "Could not queue the notification again.": "Impossibile rimettere in coda la notifica."
+  "Could not queue the notification again.": "Impossibile rimettere in coda la notifica.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + scorrimento o pizzico per lo zoom",
+  "The map is out of view.": "La mappa è fuori dalla vista."
 }

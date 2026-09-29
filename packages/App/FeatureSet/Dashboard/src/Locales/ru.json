@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Повтор продолжает после уже охваченных страниц состояния: сейчас уведомление получат только страницы текущей области этого инцидента, которые не получили его полностью, включая страницы, добавленные с тех пор. В отличие от заметок и изменений состояния, которые повторно отправляются на все страницы, уже охваченные страницы не получат его дважды.",
   "Send it to every status page again, including the pages already reached": "Отправить его ещё раз на все страницы состояния, включая уже охваченные",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Уведомление о создании этого инцидента будет повторно отправлено подписчикам каждой страницы состояния, до которой сейчас доходит этот инцидент, включая страницы, до которых уже дошла неудачная отправка.",
-  "Could not queue the notification again.": "Не удалось снова поставить уведомление в очередь."
+  "Could not queue the notification again.": "Не удалось снова поставить уведомление в очередь.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + прокрутка или щипок для масштабирования",
+  "The map is out of view.": "Карта вне области просмотра."
 }
