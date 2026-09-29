@@ -181,7 +181,11 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:flex-nowrap">
           {activeSeries.map((option: HistogramSeriesOption) => {
             return (
-              <div key={option.key} className="flex items-center gap-1.5">
+              <div
+                key={option.key}
+                className="flex items-center gap-1.5"
+                title={option.description}
+              >
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: option.color }}
