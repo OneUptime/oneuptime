@@ -91,9 +91,11 @@ charts in AI chat answers. Double-clicking one of them, or its **Reset zoom**
 button, puts its own window back.
 
 The telemetry snapshot on an incident, alert or episode page has a window of
-its own too. A drag on its metric chart zooms the whole snapshot, so its
-Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out,
-and **Reset zoom** beside the snapshot's badge puts the snapshot window back.
+its own too. A drag on its chart (the metric chart, or the log, trace or
+exception volume chart when that is what the snapshot shows) zooms the whole
+snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice
+you dragged out. **Reset zoom** beside the snapshot's badge, or a double-click
+on that chart, puts the snapshot window back.
 
 ## Charts that don't zoom
 

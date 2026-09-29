@@ -1080,11 +1080,12 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
     /*
      * Page text only: the snapshot's zoom lives in the incident, alert and
      * episode pages and is exercised by Common's
-     * EventOverviewTelemetrySnapshotZoom and
-     * TelemetrySnapshotPanelTimeRangeZoom suites.
+     * EventOverviewTelemetrySnapshotZoom, TelemetrySnapshotPanelTimeRangeZoom,
+     * SnapshotExplorerPrimaryZoom and EventOverviewSnapshotExplorerZoom
+     * suites (a metric primary, and a log, trace or exception primary).
      */
     expect(section).toContain(
-      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its metric chart zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out, and **Reset zoom** beside the snapshot's badge puts the snapshot window back.",
+      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its chart (the metric chart, or the log, trace or exception volume chart when that is what the snapshot shows) zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the snapshot's badge, or a double-click on that chart, puts the snapshot window back.",
     );
   });
 
