@@ -1512,6 +1512,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     void loadValues();
   }, [searchValue]);
 
+  /*
+   * The newest span-list and histogram requests. A zoom, a reset, a new
+   * pinned window or a new filter starts a request while an older one is
+   * still out, and the older (usually wider, slower) answer used to land
+   * last and paint the window the reader had just left under a picker that
+   * named the new one. Only the newest request commits and clears the
+   * loaders.
+   */
+  const spansRequestSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  const spansInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const histogramRequestSeqRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
   // Fetch spans list
   const fetchSpans: (options?: {
     skipLoadingState?: boolean;
@@ -1521,6 +1535,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (viewMode === "analytics") {
         return;
       }
+      const requestSeq: number = ++spansRequestSeqRef.current;
+      const isSuperseded: () => boolean = (): boolean => {
+        return requestSeq !== spansRequestSeqRef.current;
+      };
+      spansInFlightRef.current = true;
       if (!options.skipLoadingState) {
         setIsLoading(true);
       }
@@ -1538,12 +1557,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           >,
           requestOptions: {},
         });
+        if (isSuperseded()) {
+          return;
+        }
         setSpans(result.data);
         setTotalCount(result.count);
       } catch (err) {
+        if (isSuperseded()) {
+          return;
+        }
         setError(API.getFriendlyMessage(err));
       } finally {
-        if (!options.skipLoadingState) {
+        /*
+         * The newest request clears the loader whatever started it: the one
+         * it replaced may have been the one that put the loader up.
+         */
+        if (!isSuperseded()) {
+          spansInFlightRef.current = false;
           setIsLoading(false);
         }
       }
@@ -1848,6 +1878,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       return;
     }
 
+    const requestSeq: number = ++histogramRequestSeqRef.current;
+
     setHistogramLoading(true);
     setFacetLoading(true);
 
@@ -1930,6 +1962,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ),
       postApi("/telemetry/traces/facets", facetsPayload),
     ]);
+
+    // A newer window or filter asked again meanwhile: its answer wins.
+    if (requestSeq !== histogramRequestSeqRef.current) {
+      return;
+    }
 
     if (histogramResult.status === "fulfilled") {
       if (isLatencyChart) {
@@ -2030,6 +2067,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     if (isLive) {
       livePollRef.current = setInterval(() => {
+        /*
+         * A poll never replaces a request still out: it asks for the same
+         * list, and replacing it would drop its answer - on a list slower
+         * than the interval, every answer.
+         */
+        if (spansInFlightRef.current) {
+          return;
+        }
         void fetchSpans({ skipLoadingState: true });
       }, LIVE_POLL_INTERVAL_MS);
     }
