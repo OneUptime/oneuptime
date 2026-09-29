@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "Ce formulaire peut demander des champs personnalisés d'incident dès que votre projet en a. Créez-les dans Incidents > Paramètres > Champs personnalisés, puis ajoutez-les au formulaire ici.",
   "Go to Custom Fields": "Aller aux champs personnalisés",
   "This form's questions could not be loaded. The form may have been deleted.": "Les questions de ce formulaire n'ont pas pu être chargées. Le formulaire a peut-être été supprimé.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Copié depuis un champ personnalisé de moniteur : non demandé lorsque le modèle d'incident du formulaire ajoute des moniteurs, car l'incident prend la valeur du moniteur.",
   "Forms": "Formulaires",
   "View Form": "Voir le formulaire",
   "Incident Form": "Formulaire d'incident",

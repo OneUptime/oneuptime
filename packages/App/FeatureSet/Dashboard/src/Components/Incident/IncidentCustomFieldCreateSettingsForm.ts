@@ -10,6 +10,11 @@ import {
   isCustomFieldCreateSetting,
   readCustomFieldCreateSettings,
 } from "Common/Types/CustomField/CustomFieldCreateSettings";
+import {
+  CustomFieldMappingSourceInfo,
+  getCustomFieldMappingSource,
+} from "Common/Types/CustomField/CustomFieldMappingCatalog";
+import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
 import { isValidCustomFieldVariableKey } from "Common/Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "Common/Types/JSON";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -18,7 +23,10 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { CUSTOM_FIELD_TYPE_LABELS } from "../CustomFields/CustomFieldSettingsCopy";
 import IncidentCustomFieldCreateSettingsCopy from "./IncidentCustomFieldCreateSettingsCopy";
-import { IncidentCustomFieldDefinition } from "./IncidentCustomFieldDefinitions";
+import {
+  INCIDENT_CUSTOM_FIELD_DEFINITION_TABLE,
+  IncidentCustomFieldDefinition,
+} from "./IncidentCustomFieldDefinitions";
 
 /*
  * The inputs that set, per incident custom field, whether it is asked for
@@ -329,6 +337,55 @@ export const getCustomFieldProjectDefaultLabel: GetCustomFieldProjectDefaultLabe
 
     return getTemplateProjectDefaultLabel(definition);
   };
+
+export type IsCustomFieldCopiedFromMonitorFunction = (
+  definition: IncidentCustomFieldDefinition,
+) => boolean;
+
+/**
+ * Whether the field takes its value from a monitor custom field - the
+ * mapping set on the Custom Fields page. Once an incident has a monitor, the
+ * server copies the monitor's value over whatever was typed, which is why
+ * the Declare Incident page stops asking such a field then
+ * (isAskedOnIncidentForm), and why a public form leaves it out while its
+ * incident template attaches monitors.
+ */
+export const isCustomFieldCopiedFromMonitor: IsCustomFieldCopiedFromMonitorFunction =
+  (definition: IncidentCustomFieldDefinition): boolean => {
+    if (!definition.mapFromResourceType || !definition.mapFromCustomFieldName) {
+      return false;
+    }
+
+    const source: CustomFieldMappingSourceInfo | undefined =
+      getCustomFieldMappingSource({
+        definitionTableName: INCIDENT_CUSTOM_FIELD_DEFINITION_TABLE,
+        resource: definition.mapFromResourceType,
+      });
+
+    return source?.resource === CustomFieldMappingSourceResource.Monitor;
+  };
+
+export type GetCustomFieldQuestionNoteFunction = (
+  definition: IncidentCustomFieldDefinition,
+  mode: IncidentCustomFieldSettingsMode,
+) => string | undefined;
+
+/**
+ * A word about asking the field, beyond its setting: on a form, that a field
+ * copied from a monitor is not asked while the form's incident template
+ * attaches monitors. Said where the question is set, or an admin makes it
+ * Required and never learns why reporters are not asked it.
+ */
+export const getCustomFieldQuestionNote: GetCustomFieldQuestionNoteFunction = (
+  definition: IncidentCustomFieldDefinition,
+  mode: IncidentCustomFieldSettingsMode,
+): string | undefined => {
+  if (mode !== "form" || !isCustomFieldCopiedFromMonitor(definition)) {
+    return undefined;
+  }
+
+  return IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor;
+};
 
 export type GetCustomFieldTypeLabelFunction = (
   definition: IncidentCustomFieldDefinition,

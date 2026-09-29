@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "プロジェクトにインシデントのカスタムフィールドができると、このフォームで尋ねられるようになります。インシデント > 設定 > カスタムフィールドで作成してから、ここでフォームに追加してください。",
   "Go to Custom Fields": "カスタムフィールドへ移動",
   "This form's questions could not be loaded. The form may have been deleted.": "このフォームの質問を読み込めませんでした。フォームが削除された可能性があります。",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "モニターのカスタムフィールドからコピーされます。フォームのインシデントテンプレートがモニターを追加する場合、インシデントはモニターの値を使うため、この項目は尋ねません。",
   "Forms": "フォーム",
   "View Form": "フォームを表示",
   "Incident Form": "インシデントフォーム",

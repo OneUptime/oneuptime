@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "项目有了事件自定义字段后，此表单即可询问它们。请在 事件 > 设置 > 自定义字段 中创建，然后在此处将它们添加到表单。",
   "Go to Custom Fields": "前往自定义字段",
   "This form's questions could not be loaded. The form may have been deleted.": "无法加载此表单的问题。该表单可能已被删除。",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "从监视器自定义字段复制：当表单的事件模板添加监视器时不会询问此字段，因为事件会采用监视器的值。",
   "Forms": "表单",
   "View Form": "查看表单",
   "Incident Form": "事件表单",

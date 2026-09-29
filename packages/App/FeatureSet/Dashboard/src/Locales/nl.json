@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "Dit formulier kan om aangepaste incidentvelden vragen zodra uw project ze heeft. Maak ze aan onder Incidenten > Instellingen > Aangepaste velden en voeg ze hier aan het formulier toe.",
   "Go to Custom Fields": "Naar aangepaste velden",
   "This form's questions could not be loaded. The form may have been deleted.": "De vragen van dit formulier konden niet worden geladen. Het formulier is mogelijk verwijderd.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Gekopieerd uit een aangepast monitorveld: wordt niet gevraagd wanneer het incidentsjabloon van het formulier monitoren toevoegt, omdat het incident de waarde van de monitor krijgt.",
   "Forms": "Formulieren",
   "View Form": "Formulier bekijken",
   "Incident Form": "Incidentformulier",

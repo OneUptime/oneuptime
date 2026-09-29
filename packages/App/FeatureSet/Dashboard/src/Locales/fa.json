@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "این فرم وقتی پروژه شما فیلد سفارشی حادثه داشته باشد می‌تواند آن‌ها را بپرسد. آن‌ها را در حوادث > تنظیمات > فیلدهای سفارشی بسازید و سپس اینجا به فرم اضافه کنید.",
   "Go to Custom Fields": "رفتن به فیلدهای سفارشی",
   "This form's questions could not be loaded. The form may have been deleted.": "پرسش‌های این فرم بارگذاری نشد. ممکن است فرم حذف شده باشد.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "از یک فیلد سفارشی مانیتور کپی می‌شود: وقتی قالب حادثه فرم مانیتور اضافه می‌کند پرسیده نمی‌شود، چون حادثه مقدار مانیتور را می‌گیرد.",
   "Forms": "فرم‌ها",
   "View Form": "مشاهده فرم",
   "Incident Form": "فرم حادثه",

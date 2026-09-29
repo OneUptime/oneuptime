@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "आपके प्रोजेक्ट में घटना कस्टम फ़ील्ड होते ही यह फ़ॉर्म उनके बारे में पूछ सकता है। उन्हें घटनाएं > सेटिंग्स > कस्टम फ़ील्ड में बनाएँ, फिर यहाँ फ़ॉर्म में जोड़ें।",
   "Go to Custom Fields": "कस्टम फ़ील्ड पर जाएँ",
   "This form's questions could not be loaded. The form may have been deleted.": "इस फ़ॉर्म के प्रश्न लोड नहीं हो सके। हो सकता है फ़ॉर्म हटा दिया गया हो।",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "मॉनिटर कस्टम फ़ील्ड से कॉपी किया जाता है: जब फ़ॉर्म का घटना टेम्पलेट मॉनिटर जोड़ता है तब यह नहीं पूछा जाता, क्योंकि घटना मॉनिटर का मान लेती है।",
   "Forms": "फ़ॉर्म",
   "View Form": "फ़ॉर्म देखें",
   "Incident Form": "घटना फ़ॉर्म",

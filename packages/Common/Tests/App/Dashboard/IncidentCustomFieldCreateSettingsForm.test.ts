@@ -4,6 +4,7 @@ import {
   buildCustomFieldSettingsModelFormFields,
   getChangedCustomFieldSettingsFormValues,
   getCustomFieldProjectDefaultLabel,
+  getCustomFieldQuestionNote,
   getCustomFieldSettingFormKey,
   getCustomFieldSettingLabel,
   getCustomFieldSettingOptions,
@@ -15,6 +16,7 @@ import {
   getTemplateProjectDefaultLabel,
   getUnsetCustomFieldSetting,
   INCIDENT_CUSTOM_FIELD_SETTING_FORM_KEY_PREFIX,
+  isCustomFieldCopiedFromMonitor,
   isCustomFieldSettingChosen,
   KeyedIncidentCustomFieldDefinition,
   packCustomFieldSettingsFormValues,
@@ -27,6 +29,7 @@ import {
   CustomFieldCreateSetting,
   CustomFieldCreateSettings,
 } from "../../../Types/CustomField/CustomFieldCreateSettings";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
@@ -326,6 +329,66 @@ describe("a form's choices", () => {
     expect(values(getCustomFieldSettingOptions(IMPACT, "form"))).not.toContain(
       CustomFieldCreateSetting.Default,
     );
+  });
+});
+
+/*
+ * A field copied from a monitor custom field takes the monitor's value once
+ * the incident has a monitor, so a public form does not ask it while its
+ * incident template attaches monitors. The Questions card says so beside it.
+ */
+describe("a field copied from a monitor", () => {
+  const VENDOR: IncidentCustomFieldDefinition = {
+    name: "Vendor",
+    customFieldType: CustomFieldType.Text,
+    variableKey: "vendor",
+    mapFromResourceType: CustomFieldMappingSourceResource.Monitor,
+    mapFromCustomFieldName: "Vendor",
+  };
+
+  test("is a field mapped from a monitor custom field", () => {
+    expect(isCustomFieldCopiedFromMonitor(VENDOR)).toBe(true);
+    expect(isCustomFieldCopiedFromMonitor(IMPACT)).toBe(false);
+  });
+
+  test("a mapping missing its field, its source, or with a source incidents cannot copy from, is none", () => {
+    expect(
+      isCustomFieldCopiedFromMonitor({
+        ...VENDOR,
+        mapFromCustomFieldName: undefined,
+      }),
+    ).toBe(false);
+    expect(
+      isCustomFieldCopiedFromMonitor({ ...VENDOR, mapFromResourceType: "" }),
+    ).toBe(false);
+    expect(
+      isCustomFieldCopiedFromMonitor({
+        ...VENDOR,
+        mapFromResourceType: "Service",
+      }),
+    ).toBe(false);
+  });
+
+  test("a form's question for it says it is not asked while the template attaches monitors", () => {
+    expect(getCustomFieldQuestionNote(VENDOR, "form")).toBe(
+      IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor,
+    );
+    expect(IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor).toBe(
+      "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
+    );
+    expect(getCustomFieldQuestionNote(IMPACT, "form")).toBeUndefined();
+  });
+
+  test("a template says nothing: its Details step already leaves such a field out once there is a monitor", () => {
+    expect(getCustomFieldQuestionNote(VENDOR, "template")).toBeUndefined();
+  });
+
+  test("it can still be asked: the server decides per report, from the template's monitors", () => {
+    expect(values(getCustomFieldSettingOptions(VENDOR, "form"))).toEqual([
+      CustomFieldCreateSetting.Hidden,
+      CustomFieldCreateSetting.Optional,
+      CustomFieldCreateSetting.Required,
+    ]);
   });
 });
 

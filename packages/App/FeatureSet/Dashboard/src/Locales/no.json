@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "Dette skjemaet kan spørre om egendefinerte hendelsesfelt så snart prosjektet ditt har noen. Opprett dem under Hendelser > Innstillinger > Egendefinerte felt, og legg dem deretter til i skjemaet her.",
   "Go to Custom Fields": "Gå til egendefinerte felt",
   "This form's questions could not be loaded. The form may have been deleted.": "Spørsmålene i dette skjemaet kunne ikke lastes inn. Skjemaet kan ha blitt slettet.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Kopiert fra et egendefinert monitorfelt: spørres ikke når skjemaets hendelsesmal legger til monitorer, fordi hendelsen får monitorens verdi.",
   "Forms": "Skjemaer",
   "View Form": "Vis skjema",
   "Incident Form": "Hendelsesskjema",

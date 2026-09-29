@@ -89,6 +89,7 @@ import IncidentCustomFieldCreateSettingsCopy from "../../../../App/FeatureSet/Da
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -140,6 +141,14 @@ const LEGACY: IncidentCustomField = customField({
   name: "Legacy",
   showOnCreate: true,
   sortOrder: 4,
+});
+// Copied from the monitor field of the same name once there is a monitor.
+const VENDOR: IncidentCustomField = customField({
+  name: "Vendor",
+  sortOrder: 6,
+  variableKey: "vendor",
+  mapFromResourceType: CustomFieldMappingSourceResource.Monitor,
+  mapFromCustomFieldName: "Vendor",
 });
 
 let definitions: Array<IncidentCustomField> | Error = [];
@@ -641,6 +650,28 @@ describe("an incident template's Custom Fields on Create card", () => {
     expect(projectDefaultShownFor("category")).toBe(
       "Project default: Not Shown",
     );
+  });
+
+  test("a field copied from a monitor has no note on a template, whose Details step leaves it out once there is a monitor", async () => {
+    definitions = [IMPACT, VENDOR];
+
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    expect(
+      document.querySelectorAll(
+        '[data-testid="incident-custom-field-question-note"]',
+      ),
+    ).toHaveLength(0);
+
+    const dialog: HTMLElement = await openEditor(
+      "Edit Custom Fields on Create",
+    );
+
+    expect(
+      within(dialog).queryByTestId("incident-custom-field-question-note"),
+    ).toBeNull();
   });
 
   test("a saved override names the project default at once", async () => {
@@ -1222,6 +1253,77 @@ describe("an incident form's Questions card", () => {
     expect(settingShownFor("impact")).toBe("Required");
     expect(settingShownFor("estimated_duration")).toBe("Optional");
     expect(settingShownFor("category")).toBe("Not Asked");
+  });
+
+  /*
+   * The form does not ask such a field while its incident template attaches
+   * monitors - the incident takes the monitor's value - so the card says
+   * so where the question is set, rather than leave an admin wondering why
+   * a Required question is never asked.
+   */
+  test("a field copied from a monitor says it is not asked while the template attaches monitors, on the card and in the editor", async () => {
+    definitions = [IMPACT, VENDOR];
+    storedSettings = { vendor: "Required" };
+
+    await renderFormCard();
+
+    await screen.findByText("Questions");
+
+    expect(
+      within(row("vendor")).getByTestId("incident-custom-field-question-note"),
+    ).toHaveTextContent(
+      IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor,
+    );
+    expect(
+      within(row("impact")).queryByTestId(
+        "incident-custom-field-question-note",
+      ),
+    ).toBeNull();
+    // Still one row per field, and still a question the form can ask.
+    expect(listedKeys()).toEqual(["impact", "vendor"]);
+    expect(settingShownFor("vendor")).toBe("Required");
+
+    const dialog: HTMLElement = await openEditor("Edit Questions");
+
+    const notes: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "incident-custom-field-question-note",
+    );
+
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toHaveTextContent(
+      IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor,
+    );
+    // Under its type, which the dropdown still names.
+    expect(within(dialog).getByText("Text")).toBeInTheDocument();
+    expect(optionsOf("Vendor")).toEqual(["Not Asked", "Optional", "Required"]);
+    expect(selectedIn("Vendor")).toBe("Required");
+  });
+
+  test("the note goes through the translation lookup", async () => {
+    mockTranslate = (value: string): string => {
+      return `[de] ${value}`;
+    };
+
+    definitions = [IMPACT, VENDOR];
+
+    await renderFormCard();
+
+    await screen.findByText("[de] Questions");
+
+    expect(
+      within(row("vendor")).getByTestId("incident-custom-field-question-note"),
+    ).toHaveTextContent(
+      `[de] ${IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor}`,
+    );
+
+    const dialog: HTMLElement = await openEditor("[de] Edit Questions");
+
+    expect(
+      within(dialog).getByTestId("incident-custom-field-question-note"),
+    ).toHaveTextContent(
+      `[de] ${IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor}`,
+    );
+    expect(within(dialog).getByText("[de] Text")).toBeInTheDocument();
   });
 
   test("names no project default: a form does not follow the project's switches", async () => {

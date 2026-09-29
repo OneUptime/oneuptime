@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "Эта форма сможет запрашивать пользовательские поля инцидентов, как только они появятся в вашем проекте. Создайте их в разделе Инциденты > Настройки > Пользовательские поля, а затем добавьте их в форму здесь.",
   "Go to Custom Fields": "Перейти к пользовательским полям",
   "This form's questions could not be loaded. The form may have been deleted.": "Не удалось загрузить вопросы этой формы. Возможно, форма была удалена.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Копируется из пользовательского поля монитора: не запрашивается, если шаблон инцидента этой формы добавляет мониторы, потому что инцидент получает значение монитора.",
   "Forms": "Формы",
   "View Form": "Просмотр формы",
   "Incident Form": "Форма инцидента",

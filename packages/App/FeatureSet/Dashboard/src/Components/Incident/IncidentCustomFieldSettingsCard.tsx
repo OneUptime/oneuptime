@@ -5,6 +5,8 @@ import {
   buildCustomFieldSettingsFormFields,
   getChangedCustomFieldSettingsFormValues,
   getCustomFieldProjectDefaultLabel,
+  getCustomFieldQuestionNote,
+  getCustomFieldSettingFormKey,
   getCustomFieldSettingLabel,
   getCustomFieldSettingsFormInitialValues,
   getCustomFieldTypeLabel,
@@ -35,6 +37,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -71,9 +74,11 @@ import useAsyncEffect from "use-async-effect";
  *     template, not its custom fields.
  *   - mode "form", on an incident form's page: the form's questions. A field
  *     is Not Asked until the form names it, whatever its Show on Create says.
- *     The questions are the point of that card, so it stays: with a note on
- *     where custom fields are made when the project has none, and with the
- *     reason when they cannot be read.
+ *     A field copied from a monitor custom field says, on the card and in
+ *     the modal, that the form does not ask it while its incident template
+ *     attaches monitors. The questions are the point of that card, so it
+ *     stays: with a note on where custom fields are made when the project
+ *     has none, and with the reason when they cannot be read.
  *
  * The page may have been open a while when Edit is pressed, and somebody
  * else - another admin, another tab, the API, Terraform - may have changed
@@ -408,6 +413,68 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
       ]
     : [];
 
+  /*
+   * The modal's dropdowns, one per field. A field with a note says it there
+   * too, under its type: the modal is where somebody makes it Required.
+   */
+  const getEditFields: () => Array<Field<JSONObject>> = (): Array<
+    Field<JSONObject>
+  > => {
+    const notes: Map<string, string> = new Map<string, string>();
+
+    for (const definition of definitions) {
+      const note: string | undefined = getCustomFieldQuestionNote(
+        definition,
+        mode,
+      );
+
+      if (note) {
+        notes.set(getCustomFieldSettingFormKey(definition.variableKey), note);
+      }
+    }
+
+    return buildCustomFieldSettingsFormFields({
+      definitions: definitions,
+      mode: mode,
+    }).map((field: Field<JSONObject>): Field<JSONObject> => {
+      const note: string | undefined = notes.get(
+        Object.keys(field.field || {})[0] || "",
+      );
+
+      if (!note) {
+        return field;
+      }
+
+      const typeLabel: string | undefined =
+        typeof field.description === "string" ? field.description : undefined;
+
+      return {
+        ...field,
+        /*
+         * An element, which the label shows as it is - so the type and the
+         * note are looked up here.
+         */
+        description: (
+          <>
+            {typeLabel ? (
+              <span className="block">
+                {translateString(typeLabel) || typeLabel}
+              </span>
+            ) : (
+              <></>
+            )}
+            <span
+              className="mt-1 block"
+              data-testid="incident-custom-field-question-note"
+            >
+              {translateString(note) || note}
+            </span>
+          </>
+        ),
+      };
+    });
+  };
+
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return <ComponentLoader />;
@@ -467,6 +534,11 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
             const projectDefaultLabel: string | undefined =
               getCustomFieldProjectDefaultLabel(definition, settings, mode);
 
+            const questionNote: string | undefined = getCustomFieldQuestionNote(
+              definition,
+              mode,
+            );
+
             return (
               <li
                 key={definition.variableKey}
@@ -491,6 +563,16 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
                     >
                       {translateString(projectDefaultLabel) ||
                         projectDefaultLabel}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                  {questionNote ? (
+                    <p
+                      className="mt-1 text-xs text-gray-500"
+                      data-testid="incident-custom-field-question-note"
+                    >
+                      {translateString(questionNote) || questionNote}
                     </p>
                   ) : (
                     <></>
@@ -535,12 +617,7 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
           formProps={{
             initialValues: editValues,
             // No dropdowns at all over settings that could not be read.
-            fields: editReadError
-              ? []
-              : buildCustomFieldSettingsFormFields({
-                  definitions: definitions,
-                  mode: mode,
-                }),
+            fields: editReadError ? [] : getEditFields(),
             /*
              * The form's own error banner, above the dropdowns. (The
              * modal's error prop would show it twice: once from the modal

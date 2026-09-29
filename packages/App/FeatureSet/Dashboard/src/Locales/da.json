@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "Denne formular kan spørge om brugerdefinerede hændelsesfelter, så snart dit projekt har nogen. Opret dem under Hændelser > Indstillinger > Brugerdefinerede felter, og tilføj dem derefter til formularen her.",
   "Go to Custom Fields": "Gå til brugerdefinerede felter",
   "This form's questions could not be loaded. The form may have been deleted.": "Denne formulars spørgsmål kunne ikke indlæses. Formularen er muligvis blevet slettet.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Kopieret fra et brugerdefineret monitorfelt: spørges ikke, når formularens hændelsesskabelon tilføjer monitorer, fordi hændelsen får monitorens værdi.",
   "Forms": "Formularer",
   "View Form": "Vis formular",
   "Incident Form": "Hændelsesformular",

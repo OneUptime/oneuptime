@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.",
   "Go to Custom Fields": "Go to Custom Fields",
   "This form's questions could not be loaded. The form may have been deleted.": "This form's questions could not be loaded. The form may have been deleted.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
   "Forms": "Forms",
   "View Form": "View Form",
   "Incident Form": "Incident Form",

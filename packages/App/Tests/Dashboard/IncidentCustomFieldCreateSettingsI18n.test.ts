@@ -143,6 +143,10 @@ describe("the glossary's words", () => {
 
   test("an incident form's Questions card", () => {
     expect(IncidentCustomFieldCreateSettingsCopy.formTitle).toBe("Questions");
+    // The server does not ask such a field while the template attaches monitors.
+    expect(IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor).toBe(
+      "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
+    );
     expect([
       IncidentCustomFieldCreateSettingsCopy.formNotAsked,
       IncidentCustomFieldCreateSettingsCopy.optional,
@@ -162,7 +166,7 @@ describe("the glossary's words", () => {
 
 describe("Custom Fields on Create and Questions strings in every Dashboard locale", () => {
   test("there are strings to check", () => {
-    expect(STRINGS.length).toBe(21);
+    expect(STRINGS.length).toBe(22);
   });
 
   test.each(STRINGS)("%j holds no placeholder braces", (text: string) => {
@@ -295,6 +299,7 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "required",
       "optional",
       "formNotAsked",
+      "formCopiedFromMonitor",
     ]) {
       expect(form).toContain(`IncidentCustomFieldCreateSettingsCopy.${key}`);
     }

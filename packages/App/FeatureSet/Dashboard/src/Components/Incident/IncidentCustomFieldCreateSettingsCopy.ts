@@ -63,6 +63,8 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   formNoFieldsDescription: string;
   formNoFieldsLink: string;
   formNotFound: string;
+  // Beside a field whose value is copied from a monitor custom field.
+  formCopiedFromMonitor: string;
 } = {
   templateTitle: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
   templateDescription:
@@ -92,6 +94,8 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   formNoFieldsLink: "Go to Custom Fields",
   formNotFound:
     "This form's questions could not be loaded. The form may have been deleted.",
+  formCopiedFromMonitor:
+    "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
 };
 
 export default IncidentCustomFieldCreateSettingsCopy;

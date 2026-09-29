@@ -6625,6 +6625,7 @@
   "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.": "프로젝트에 인시던트 사용자 정의 필드가 생기면 이 양식에서 물어볼 수 있습니다. 인시던트 > 설정 > 사용자 정의 필드에서 필드를 만든 다음 여기에서 양식에 추가하세요.",
   "Go to Custom Fields": "사용자 정의 필드로 이동",
   "This form's questions could not be loaded. The form may have been deleted.": "이 양식의 질문을 불러올 수 없습니다. 양식이 삭제되었을 수 있습니다.",
+  "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.": "모니터 사용자 정의 필드에서 복사됩니다. 양식의 인시던트 템플릿이 모니터를 추가하면 인시던트가 모니터의 값을 사용하므로 이 항목은 묻지 않습니다.",
   "Forms": "양식",
   "View Form": "양식 보기",
   "Incident Form": "인시던트 양식",
