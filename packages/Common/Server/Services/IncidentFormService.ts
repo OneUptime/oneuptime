@@ -82,6 +82,7 @@ import ProjectScopedReferenceValidator, {
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { EntityMetadata, Repository } from "typeorm";
 
 /*
  * What an incident form may hold. The public page that submits a form - and
@@ -718,6 +719,70 @@ export class Service extends DatabaseService<Model> {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Takes a deleted incident custom field off every form of its project:
+   * its key is removed from each form's questions (customFieldSettings).
+   * Returns how many forms asked it.
+   *
+   * Forms ask fields by template key, and a field created later with the
+   * same name gets the same key back (generateCustomFieldVariableKey) - as
+   * does any field whose name gives the same key. Left behind, the key
+   * would put that new field, with its own description and dropdown
+   * options, straight onto every public form that asked the deleted one,
+   * and no admin could clear it from the Questions card meanwhile: the card
+   * lists only fields that exist. A public form must never show a field an
+   * admin did not choose for it. Templates keep their settings on purpose -
+   * a field created again gets its template setting back - so only forms
+   * are touched here.
+   *
+   * One raw statement, as CustomFieldRename moves values: removing a
+   * reference to a deleted field changes no form an admin configured, so it
+   * must not start every form's "On Update" workflow, bump its version or
+   * move its updatedAt. The table and column names come from the entity
+   * metadata and every value is a bound parameter.
+   */
+  public async removeCustomFieldFromQuestions(data: {
+    projectId: ObjectID;
+    variableKey: string;
+  }): Promise<number> {
+    const repository: Repository<Model> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+
+    const settingsColumn: string | undefined =
+      metadata.findColumnWithPropertyName("customFieldSettings")?.databaseName;
+    const projectIdColumn: string | undefined =
+      metadata.findColumnWithPropertyName("projectId")?.databaseName;
+
+    if (!settingsColumn || !projectIdColumn) {
+      throw new ServerException(
+        `Cannot remove a custom field from ${metadata.tableName}: it has no customFieldSettings or projectId column.`,
+      );
+    }
+
+    /*
+     * In a CTE so the statement answers with the rows it wrote. jsonb_typeof
+     * guards the operators: on a jsonb array "-" and jsonb_exists act on its
+     * string elements, and settings that are not an object hold no keys.
+     */
+    const result: unknown = await repository.manager.query(
+      `WITH "updated" AS (
+        UPDATE "${metadata.tableName}"
+        SET "${settingsColumn}" = "${settingsColumn}" - $2::text
+        WHERE "${projectIdColumn}" = $1
+          AND jsonb_typeof("${settingsColumn}") = 'object'
+          AND jsonb_exists("${settingsColumn}", $2::text)
+        RETURNING 1
+      ) SELECT COUNT(*)::int AS "count" FROM "updated"`,
+      [data.projectId.toString(), data.variableKey],
+    );
+
+    const row: JSONObject | undefined = Array.isArray(result)
+      ? (result[0] as JSONObject | undefined)
+      : undefined;
+
+    return Number(row?.["count"]) || 0;
   }
 
   /*

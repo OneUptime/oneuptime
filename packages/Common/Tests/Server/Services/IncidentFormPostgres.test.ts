@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import IncidentFormSubmission from "../../../Models/DatabaseModels/IncidentFormSubmission";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentFormService from "../../../Server/Services/IncidentFormService";
 import IncidentFormSubmissionService from "../../../Server/Services/IncidentFormSubmissionService";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -68,6 +69,7 @@ const TABLES: Array<string> = [
   "IncidentSeverity",
   "IncidentTemplate",
   "Incident",
+  "IncidentCustomField",
   "IncidentForm",
   "IncidentFormSubmission",
 ];
@@ -161,6 +163,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
     for (const service of [
       IncidentFormService,
       IncidentFormSubmissionService,
+      IncidentCustomFieldService,
     ] as Array<{
       onTriggerRealtime: unknown;
       onTriggerWorkflow: unknown;
@@ -629,6 +632,131 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       );
 
       expect((await storedForm(form.id!))["incidentTemplateId"]).toBeNull();
+    });
+  });
+
+  /*
+   * A form asks custom fields by template key, and a field created again
+   * gets its old key back. Deleting a field must take it off the forms, or
+   * the new field would appear on every public form that asked the old one.
+   */
+  describe("deleting a custom field", () => {
+    async function seedField(data: {
+      name: string;
+      variableKey: string;
+      customFieldType?: string;
+      dropdownOptions?: string;
+    }): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentCustomField"
+         ("_id", "projectId", "name", "customFieldType", "dropdownOptions", "variableKey", "sortOrder", "version")
+         VALUES ($1, $2, $3, $4, $5, $6, 1, 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          data.name,
+          data.customFieldType || "Text",
+          data.dropdownOptions || null,
+          data.variableKey,
+        ],
+      );
+      return id;
+    }
+
+    async function storedSettings(
+      table: string,
+      id: ObjectID,
+    ): Promise<{
+      customFieldSettings: unknown;
+      version: number;
+      updatedAt: Date;
+    }> {
+      const rows: Array<{
+        customFieldSettings: unknown;
+        version: number;
+        updatedAt: Date;
+      }> = await database.query(
+        `SELECT "customFieldSettings", "version", "updatedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!;
+    }
+
+    test("takes the field off every form of its project - not another project's, and no template - without touching the forms' version", async () => {
+      const customerId: ObjectID = await seedField({
+        name: "Customer",
+        variableKey: "customer",
+      });
+      await seedField({ name: "Impact", variableKey: "impact" });
+
+      const form: IncidentForm = await createForm({
+        customFieldSettings: { customer: "Optional", impact: "Required" },
+      });
+      const otherProjectsForm: IncidentForm = await createForm({
+        projectId: otherProjectId,
+        incidentSeverityId: await seedSeverity(otherProjectId),
+        customFieldSettings: { customer: "Required" },
+      });
+      const templateId: ObjectID = await seedTemplate();
+      await database.query(
+        `UPDATE "${schema}"."IncidentTemplate" SET "customFieldSettings" = $1::jsonb WHERE "_id" = $2`,
+        [JSON.stringify({ customer: "Required" }), templateId.toString()],
+      );
+
+      const before: { version: number; updatedAt: Date } = await storedSettings(
+        "IncidentForm",
+        form.id!,
+      );
+
+      const formWorkflow: ReturnType<typeof jest.fn> = jest.spyOn(
+        IncidentFormService,
+        "onTriggerWorkflow",
+      ) as unknown as ReturnType<typeof jest.fn>;
+      formWorkflow.mockClear();
+
+      await IncidentCustomFieldService.deleteOneById({
+        id: customerId,
+        props: { isRoot: true },
+      });
+
+      const after: {
+        customFieldSettings: unknown;
+        version: number;
+        updatedAt: Date;
+      } = await storedSettings("IncidentForm", form.id!);
+
+      expect(after.customFieldSettings).toEqual({ impact: "Required" });
+      expect(after.version).toBe(before.version);
+      expect(new Date(after.updatedAt).getTime()).toBe(
+        new Date(before.updatedAt).getTime(),
+      );
+      expect(formWorkflow).not.toHaveBeenCalled();
+
+      expect(
+        (await storedSettings("IncidentForm", otherProjectsForm.id!))
+          .customFieldSettings,
+      ).toEqual({ customer: "Required" });
+      expect(
+        (await storedSettings("IncidentTemplate", templateId))
+          .customFieldSettings,
+      ).toEqual({ customer: "Required" });
+
+      /*
+       * Created again, as a dropdown with options nobody meant to publish:
+       * it gets the old key back, and the form still does not ask it.
+       */
+      await seedField({
+        name: "Customer",
+        variableKey: "customer",
+        customFieldType: "Dropdown",
+        dropdownOptions: "Acme Corp (key account)\nGlobex (churn risk)",
+      });
+
+      expect(
+        (await storedSettings("IncidentForm", form.id!)).customFieldSettings,
+      ).toEqual({ impact: "Required" });
     });
   });
 
