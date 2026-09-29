@@ -1084,7 +1084,7 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
      * TelemetrySnapshotPanelTimeRangeZoom suites.
      */
     expect(section).toContain(
-      "the telemetry snapshot on an incident, alert or episode page (its Metrics, Logs, Traces and Exceptions tabs zoom together)",
+      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its metric chart zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out, and **Reset zoom** beside the snapshot's badge puts the snapshot window back.",
     );
   });
 

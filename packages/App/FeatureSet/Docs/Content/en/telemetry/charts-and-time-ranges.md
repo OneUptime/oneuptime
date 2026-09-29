@@ -85,12 +85,15 @@ Zooming retimes the whole page on:
 
 Charts with a window of their own zoom only that window, so they never change
 anything else on the page. That covers a metric preview in a monitor's form
-(the monitor keeps evaluating its own rolling window), the telemetry snapshot
-on an incident, alert or episode page (its Metrics, Logs, Traces and Exceptions
-tabs zoom together), an exception's Occurrence Trend, a chart opened in a
-pop-up or in the Investigate panel, and charts in AI chat answers.
-Double-clicking one of them, or its **Reset zoom** button, puts its own window
-back.
+(the monitor keeps evaluating its own rolling window), an exception's
+Occurrence Trend, a chart opened in a pop-up or in the Investigate panel, and
+charts in AI chat answers. Double-clicking one of them, or its **Reset zoom**
+button, puts its own window back.
+
+The telemetry snapshot on an incident, alert or episode page has a window of
+its own too. A drag on its metric chart zooms the whole snapshot, so its
+Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out,
+and **Reset zoom** beside the snapshot's badge puts the snapshot window back.
 
 ## Charts that don't zoom
 
